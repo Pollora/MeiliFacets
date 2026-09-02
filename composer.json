@@ -22,7 +22,7 @@
         }
     ],
     "require": {
-        "amphibee/meiliscout": "dev-main"
+        "amphibee/meiliscout": "dev-feat/meilifacets"
     },
     "extra": {
         "laravel": {
@@ -32,9 +32,7 @@
     },
     "autoload": {
         "psr-4": {
-            "Modules\\MeiliFacets\\": "app/",
-            "Modules\\MeiliFacets\\Database\\Factories\\": "database/factories/",
-            "Modules\\MeiliFacets\\Database\\Seeders\\": "database/seeders/"
+            "Modules\\MeiliFacets\\": "app/"
         }
     },
     "autoload-dev": {
