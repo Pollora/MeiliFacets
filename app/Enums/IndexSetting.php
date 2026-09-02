@@ -8,4 +8,5 @@ enum IndexSetting: string
 {
     case FilterableAttributes = 'filterableAttributes';
     case SortableAttributes = 'sortableAttributes';
+    case Faceting = 'faceting';
 }

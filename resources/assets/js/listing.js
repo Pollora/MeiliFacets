@@ -20,9 +20,10 @@ export class Listing {
 
     toggle(taxonomy, value) {
         const values = this.state.facets[taxonomy] ?? []
-        const kept = values.filter((current) => current !== value)
 
-        this.state.facets[taxonomy] = kept.length === values.length ? [...values, value] : kept
+        this.state.facets[taxonomy] = values.includes(value)
+            ? values.filter((current) => current !== value)
+            : [...values, value]
         this.state.page = 1
 
         return this

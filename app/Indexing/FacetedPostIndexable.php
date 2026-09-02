@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Indexing;
 
+use Modules\MeiliFacets\Contracts\IndexAttributes;
 use Modules\MeiliFacets\Enums\DocumentField;
+use Modules\MeiliFacets\Enums\FacetingSetting;
+use Modules\MeiliFacets\Enums\FacetValueOrder;
 use Modules\MeiliFacets\Enums\IndexSetting;
-use Modules\MeiliFacets\Enums\ProductMeta;
-use Modules\MeiliFacets\Support\WooCommerce;
 use Pollora\MeiliScout\Config\Settings;
 use Pollora\MeiliScout\Indexables\PostIndexable;
 
@@ -15,8 +16,12 @@ use Pollora\MeiliScout\Indexables\PostIndexable;
 // `formatForIndexing()` here would never run.
 final class FacetedPostIndexable extends PostIndexable
 {
+    private const string ALL_FACETS = '*';
+
     /** @var list<string>|null */
     private ?array $taxonomies = null;
+
+    public function __construct(private readonly IndexAttributes $attributes) {}
 
     /**
      * @return array<string, mixed>
@@ -25,18 +30,51 @@ final class FacetedPostIndexable extends PostIndexable
     {
         $settings = parent::getIndexSettings();
 
-        $settings[IndexSetting::FilterableAttributes->value] = $this->mergeUnique(
-            $settings[IndexSetting::FilterableAttributes->value] ?? [],
+        $settings = $this->mergeInto(
+            $settings,
+            IndexSetting::FilterableAttributes,
             $this->facetAttributes(),
-            $this->filterableProductAttributes()
+            $this->attributes->filterable()
         );
 
-        $settings[IndexSetting::SortableAttributes->value] = $this->mergeUnique(
-            $settings[IndexSetting::SortableAttributes->value] ?? [],
-            $this->sortableProductAttributes()
+        $settings = $this->mergeInto(
+            $settings,
+            IndexSetting::SortableAttributes,
+            $this->attributes->sortable()
+        );
+
+        $settings[IndexSetting::Faceting->value] = $this->facetingSettings(
+            $settings[IndexSetting::Faceting->value] ?? []
         );
 
         return $settings;
+    }
+
+    /**
+     * @param  array<string, mixed>  $settings
+     * @param  list<string>  ...$lists
+     * @return array<string, mixed>
+     */
+    private function mergeInto(array $settings, IndexSetting $setting, array ...$lists): array
+    {
+        $settings[$setting->value] = $this->mergeUnique($settings[$setting->value] ?? [], ...$lists);
+
+        return $settings;
+    }
+
+    /**
+     * @param  array<string, mixed>  $faceting
+     * @return array<string, mixed>
+     */
+    private function facetingSettings(array $faceting): array
+    {
+        // Meilisearch orders facet values alphabetically by default.
+        return [
+            ...$faceting,
+            FacetingSetting::SortValuesBy->value => [
+                self::ALL_FACETS => FacetValueOrder::ByCount->value,
+            ],
+        ];
     }
 
     /**
@@ -53,25 +91,9 @@ final class FacetedPostIndexable extends PostIndexable
     /**
      * @return list<string>
      */
-    private function filterableProductAttributes(): array
-    {
-        return WooCommerce::isActive() ? ProductMeta::paths() : [];
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function sortableProductAttributes(): array
-    {
-        return WooCommerce::isActive() ? [ProductMeta::Price->path()] : [];
-    }
-
-    /**
-     * @return list<string>
-     */
     private function indexedTaxonomies(): array
     {
-        // Reached on every save through ensureIndexExists(), so resolved once.
+        // Reached on every save through ensureIndexExists().
         return $this->taxonomies ??= $this->resolveIndexedTaxonomies();
     }
 

@@ -23,15 +23,15 @@ export class SearchClient {
         this.#timeout = timeout
     }
 
-    // Each call cancels the previous one: a slower answer must not overwrite a
-    // fresher one. A cancelled call resolves to null rather than throwing.
+    // A slower answer must not overwrite a fresher one. Cancelling resolves to
+    // null rather than throwing.
     async search(request) {
         this.#pending?.abort()
 
         const controller = new AbortController()
         this.#pending = controller
 
-        // An engine that never answers would otherwise hang the listing for good.
+        // An engine that never answers would hang the listing for good.
         const expiry = setTimeout(() => controller.abort(), this.#timeout)
 
         try {

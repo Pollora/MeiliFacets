@@ -9,6 +9,7 @@ enum DocumentField: string
     case Terms = 'terms';
     case Facets = 'facets';
     case Metas = 'metas';
+    case Card = 'card';
 
     public function path(string $key): string
     {

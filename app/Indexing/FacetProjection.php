@@ -7,7 +7,7 @@ namespace Modules\MeiliFacets\Indexing;
 use Modules\MeiliFacets\Enums\TermField;
 
 // Meilisearch aggregates each field independently, hence one field per taxonomy.
-final class FacetProjection
+final readonly class FacetProjection
 {
     /**
      * @param  list<array<string, mixed>>  $terms
@@ -28,6 +28,15 @@ final class FacetProjection
             $facets[$taxonomy][] = $slug;
         }
 
+        return self::deduplicate($facets);
+    }
+
+    /**
+     * @param  array<string, list<string>>  $facets
+     * @return array<string, list<string>>
+     */
+    private static function deduplicate(array $facets): array
+    {
         return array_map(
             static fn (array $slugs): array => array_values(array_unique($slugs)),
             $facets
@@ -41,10 +50,6 @@ final class FacetProjection
     {
         $value = $term[$field->value] ?? null;
 
-        if (! is_string($value) || $value === '') {
-            return null;
-        }
-
-        return $value;
+        return is_string($value) && $value !== '' ? $value : null;
     }
 }

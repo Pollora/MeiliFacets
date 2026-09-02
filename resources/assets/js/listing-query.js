@@ -1,4 +1,4 @@
-import { FACET_PREFIX } from './facet-field.js'
+import { FACET_PREFIX } from './facet-prefix.js'
 
 // One pass over both characters: escaping them in sequence would let a value
 // ending in a backslash close the string.

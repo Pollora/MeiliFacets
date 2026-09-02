@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Support;
 
-final class WooCommerce
+final readonly class WooCommerce
 {
     public static function isActive(): bool
     {

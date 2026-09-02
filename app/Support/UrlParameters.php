@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Support;
 
-final class UrlParameters
+final readonly class UrlParameters
 {
+    public const string UNMAPPED_PREFIX = 'f_';
+
     /**
      * @param  array<string, string>  $mapping
      */
-    public function __construct(private readonly array $mapping) {}
+    public function __construct(private array $mapping) {}
 
     public static function fromConfig(): self
     {
@@ -18,15 +20,7 @@ final class UrlParameters
 
     public function for(string $taxonomy): string
     {
-        return $this->mapping[$taxonomy] ?? $taxonomy;
-    }
-
-    /**
-     * @param  list<string>  $taxonomies
-     * @return array<string, string>
-     */
-    public function forMany(array $taxonomies): array
-    {
-        return array_combine($taxonomies, array_map($this->for(...), $taxonomies));
+        // A bare taxonomy name is a public WordPress query var, which would filter twice.
+        return $this->mapping[$taxonomy] ?? self::UNMAPPED_PREFIX.$taxonomy;
     }
 }

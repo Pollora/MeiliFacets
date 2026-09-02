@@ -1,6 +1,8 @@
-import { FACET_PREFIX } from './facet-field.js'
+import { FACET_PREFIX } from './facet-prefix.js'
 
 const VALUE_SEPARATOR = ','
+// Mirrors UrlParameters::UNMAPPED_PREFIX: a bare taxonomy name is a WordPress query var.
+const UNMAPPED_PREFIX = 'f_'
 const SORT_PARAM = 'sort'
 const PAGE_PARAM = 'page'
 const QUERY_PARAM = 'q'
@@ -8,13 +10,12 @@ const QUERY_PARAM = 'q'
 export class ListingUrl {
     #parameters
 
-    // The taxonomy/parameter mapping never changes: resolved once instead of on
-    // every URL read and write.
+    // The mapping never changes, and both reads and writes walk it.
     constructor(listing) {
         this.#parameters = listing.facets.map((field) => {
             const taxonomy = field.slice(FACET_PREFIX.length)
 
-            return [taxonomy, listing.params?.[taxonomy] ?? taxonomy]
+            return [taxonomy, listing.params?.[taxonomy] ?? UNMAPPED_PREFIX + taxonomy]
         })
     }
 
@@ -38,7 +39,7 @@ export class ListingUrl {
         }
     }
 
-    // Only the query string is rewritten: the path is WooCommerce's and stays untouched.
+    // Only the query string is rewritten: the path belongs to WordPress.
     toSearch(state) {
         const params = new URLSearchParams()
 
