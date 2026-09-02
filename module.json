@@ -1,0 +1,11 @@
+{
+    "name": "MeiliFacets",
+    "alias": "meilifacets",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\MeiliFacets\\Providers\\MeiliFacetsServiceProvider"
+    ],
+    "files": []
+}
