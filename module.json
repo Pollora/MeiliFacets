@@ -1,8 +1,13 @@
 {
     "name": "MeiliFacets",
     "alias": "meilifacets",
-    "description": "",
-    "keywords": [],
+    "description": "Faceted search, filtering and suggestions powered by Meilisearch.",
+    "keywords": [
+        "meilisearch",
+        "search",
+        "facets",
+        "filters"
+    ],
     "priority": 0,
     "providers": [
         "Modules\\MeiliFacets\\Providers\\MeiliFacetsServiceProvider"

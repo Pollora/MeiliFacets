@@ -1,18 +1,33 @@
 {
-    "name": "nwidart/meilifacets",
-    "description": "",
+    "name": "pollora/meilifacets",
+    "description": "Faceted search, filtering and suggestions powered by Meilisearch for Pollora projects.",
+    "license": "GPL-2.0-or-later",
+    "keywords": [
+        "pollora",
+        "wordpress",
+        "meilisearch",
+        "search",
+        "facets",
+        "filters",
+        "woocommerce"
+    ],
     "authors": [
         {
-            "name": "Nicolas Widart",
-            "email": "n.widart@gmail.com"
+            "name": "AmphiBee",
+            "homepage": "https://amphibee.fr"
+        },
+        {
+            "name": "Louis Boulanger",
+            "email": "louis.boulanger.work@gmail.com"
         }
     ],
+    "require": {
+        "amphibee/meiliscout": "dev-main"
+    },
     "extra": {
         "laravel": {
             "providers": [],
-            "aliases": {
-
-            }
+            "aliases": {}
         }
     },
     "autoload": {
