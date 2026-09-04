@@ -3,7 +3,7 @@
     <x-meilifacets::unavailable />
 @elseif ($resolved->cards() === [])
     <p class="meilifacetsResultsEmpty">
-        {{ __('Aucun résultat n’a été trouvé.', 'meilifacets') }}
+        {{ __('No results found.') }}
     </p>
 @else
     <ul class="meilifacetsResults">

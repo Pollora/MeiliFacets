@@ -1,7 +1,4 @@
-@php($message = __(
-    'La recherche est momentanément indisponible. Merci de réessayer dans quelques instants.',
-    'meilifacets'
-))
+@php($message = __('Search is temporarily unavailable. Please try again in a moment.'))
 <div class="meilifacetsUnavailable" role="alert">
     <p>{{ $message }}</p>
 </div>

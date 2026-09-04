@@ -23,7 +23,7 @@
     @endforeach
     @if ($resolved->listing->applyMode()->needsButton())
         <button type="button" class="meilifacetsFacetsApply">
-            {{ __('Appliquer les filtres', 'meilifacets') }}
+            {{ __('Apply filters') }}
         </button>
     @endif
 </div>

@@ -1,11 +1,11 @@
 @php($resolved = $listing())
 @php($pagination = $resolved->pagination())
 @if ($pagination->pages() > 1)
-    <nav class="meilifacetsPagination" aria-label="{{ __('Pagination', 'meilifacets') }}">
+    <nav class="meilifacetsPagination" aria-label="{{ __('Pagination') }}">
         @if ($pagination->hasPrevious())
             <a class="meilifacetsPaginationPrevious" rel="prev"
                href="{{ $resolved->urls()->page($resolved->state, $pagination->previous()) }}">
-                {{ __('Précédent', 'meilifacets') }}
+                {{ __('Previous') }}
             </a>
         @endif
         @foreach ($pagination->numbers() as $number)
@@ -18,7 +18,7 @@
         @if ($pagination->hasNext())
             <a class="meilifacetsPaginationNext" rel="next"
                href="{{ $resolved->urls()->page($resolved->state, $pagination->next()) }}">
-                {{ __('Suivant', 'meilifacets') }}
+                {{ __('Next') }}
             </a>
         @endif
     </nav>

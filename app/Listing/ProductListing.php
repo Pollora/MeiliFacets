@@ -40,13 +40,13 @@ final readonly class ProductListing implements Listing
     public function facets(): array
     {
         $facets = [
-            new Facet(self::BRAND, __('Marque', 'meilifacets')),
-            new Facet(self::SIZE, __('Contenance', 'meilifacets')),
+            new Facet(self::BRAND, __('Brand')),
+            new Facet(self::SIZE, __('Volume')),
         ];
 
         // On a category archive the aisle is already carried by the path.
         if (! is_tax(self::CATEGORY)) {
-            $facets[] = new Facet(self::CATEGORY, __('Catégorie', 'meilifacets'), SelectionMode::Single);
+            $facets[] = new Facet(self::CATEGORY, __('Category'), SelectionMode::Single);
         }
 
         return $facets;
@@ -58,9 +58,9 @@ final readonly class ProductListing implements Listing
     public function sorts(): array
     {
         return [
-            'price_asc' => new Sort(__('Prix croissant', 'meilifacets'), [ProductMeta::Price->path().':asc']),
-            'price_desc' => new Sort(__('Prix décroissant', 'meilifacets'), [ProductMeta::Price->path().':desc']),
-            'newest' => new Sort(__('Nouveautés', 'meilifacets'), ['post_date:desc']),
+            'price_asc' => new Sort(__('Price, low to high'), [ProductMeta::Price->path().':asc']),
+            'price_desc' => new Sort(__('Price, high to low'), [ProductMeta::Price->path().':desc']),
+            'newest' => new Sort(__('New arrivals'), ['post_date:desc']),
         ];
     }
 
