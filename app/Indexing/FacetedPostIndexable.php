@@ -18,6 +18,14 @@ final class FacetedPostIndexable extends PostIndexable
 {
     private const string ALL_FACETS = '*';
 
+    private const string EVERY_FIELD = '*';
+
+    /**
+     * The only fields the module reads back from a hit. Anything else a project
+     * needs is declared, not inherited.
+     */
+    private const array READ_BY_THE_MODULE = ['ID', 'card'];
+
     /** @var list<string>|null */
     private ?array $taxonomies = null;
 
@@ -43,11 +51,25 @@ final class FacetedPostIndexable extends PostIndexable
             $this->attributes->sortable()
         );
 
+        $settings[IndexSetting::DisplayedAttributes->value] = $this->displayedAttributes();
+
         $settings[IndexSetting::Faceting->value] = $this->facetingSettings(
             $settings[IndexSetting::Faceting->value] ?? []
         );
 
         return $settings;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function displayedAttributes(): array
+    {
+        $declared = $this->attributes->displayed();
+
+        return in_array(self::EVERY_FIELD, $declared, true)
+            ? [self::EVERY_FIELD]
+            : $this->mergeUnique(self::READ_BY_THE_MODULE, $declared);
     }
 
     /**

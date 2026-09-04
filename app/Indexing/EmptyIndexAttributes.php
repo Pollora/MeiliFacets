@@ -23,4 +23,12 @@ final readonly class EmptyIndexAttributes implements IndexAttributes
     {
         return [];
     }
+
+    /**
+     * @return list<string>
+     */
+    public function displayed(): array
+    {
+        return [];
+    }
 }

@@ -24,4 +24,12 @@ final readonly class WooCommerceIndexAttributes implements IndexAttributes
     {
         return [ProductMeta::Price->path()];
     }
+
+    /**
+     * @return list<string>
+     */
+    public function displayed(): array
+    {
+        return [];
+    }
 }

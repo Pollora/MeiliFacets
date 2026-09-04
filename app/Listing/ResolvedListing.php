@@ -1,0 +1,91 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Modules\MeiliFacets\Listing;
+
+use Modules\MeiliFacets\Contracts\Listing;
+use Modules\MeiliFacets\Http\Unavailable;
+use Modules\MeiliFacets\Search\ListingSearch;
+use Modules\MeiliFacets\Search\SearchFailed;
+use Modules\MeiliFacets\Search\SearchResults;
+
+final class ResolvedListing
+{
+    private ?SearchResults $results = null;
+
+    private bool $failed = false;
+
+    public function __construct(
+        public readonly Listing $listing,
+        public readonly ListingState $state,
+        private readonly ListingSearch $search,
+        private readonly FacetValues $values,
+        private readonly ListingUrls $urls,
+        private readonly Unavailable $unavailable,
+    ) {}
+
+    public function results(): SearchResults
+    {
+        return $this->results ??= $this->attempt();
+    }
+
+    public function failed(): bool
+    {
+        $this->results();
+
+        return $this->failed;
+    }
+
+    private function attempt(): SearchResults
+    {
+        try {
+            return $this->search->run($this->listing, $this->state);
+        } catch (SearchFailed $failure) {
+            $this->failed = true;
+            $this->unavailable->announce();
+            report($failure);
+
+            return new SearchResults([], 0, []);
+        }
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function cards(): array
+    {
+        return $this->results()->cards();
+    }
+
+    /**
+     * @return list<Facet>
+     */
+    public function facets(): array
+    {
+        return $this->listing->facets();
+    }
+
+    /**
+     * @return list<FacetValue>
+     */
+    public function valuesOf(Facet $facet): array
+    {
+        return $this->values->of($facet, $this->results()->distribution($facet->taxonomy), $this->state);
+    }
+
+    public function pagination(): Pagination
+    {
+        return new Pagination($this->state->page, $this->listing->perPage(), $this->results()->total);
+    }
+
+    public function urls(): ListingUrls
+    {
+        return $this->urls;
+    }
+
+    public function activeFilters(): int
+    {
+        return $this->state->activeFilters();
+    }
+}

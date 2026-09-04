@@ -3,15 +3,16 @@ import { FACET_PREFIX } from './facet-prefix.js'
 const VALUE_SEPARATOR = ','
 // Mirrors UrlParameters::UNMAPPED_PREFIX: a bare taxonomy name is a WordPress query var.
 const UNMAPPED_PREFIX = 'f_'
-const SORT_PARAM = 'sort'
-const PAGE_PARAM = 'page'
-const QUERY_PARAM = 'q'
+// Mirror QueryParameter: `page`, `paged` and `order` are WordPress query vars.
+const RESERVED = { sort: 'sort', query: 'q', page: 'pg' }
 
 export class ListingUrl {
     #parameters
+    #reserved
 
     // The mapping never changes, and both reads and writes walk it.
     constructor(listing) {
+        this.#reserved = { ...RESERVED, ...listing.reserved }
         this.#parameters = listing.facets.map((field) => {
             const taxonomy = field.slice(FACET_PREFIX.length)
 
@@ -24,19 +25,26 @@ export class ListingUrl {
         const facets = {}
 
         for (const [taxonomy, parameter] of this.#parameters) {
-            const raw = params.get(parameter)
+            const values = this.#values(params, parameter)
 
-            if (raw) {
-                facets[taxonomy] = raw.split(VALUE_SEPARATOR).filter(Boolean)
+            if (values.length > 0) {
+                facets[taxonomy] = values
             }
         }
 
         return {
             facets,
-            query: params.get(QUERY_PARAM) ?? '',
-            sort: params.get(SORT_PARAM) ?? null,
-            page: Number.parseInt(params.get(PAGE_PARAM) ?? '1', 10) || 1,
+            query: params.get(this.#reserved.query) ?? '',
+            sort: params.get(this.#reserved.sort) ?? null,
+            page: Number.parseInt(params.get(this.#reserved.page) ?? '1', 10) || 1,
         }
+    }
+
+    // Sorted on both sides: one state must have one URL, or Varnish caches it twice.
+    #values(params, parameter) {
+        const raw = params.get(parameter) ?? ''
+
+        return raw.split(VALUE_SEPARATOR).map((value) => value.trim()).filter(Boolean).sort()
     }
 
     // Only the query string is rewritten: the path belongs to WordPress.
@@ -47,20 +55,20 @@ export class ListingUrl {
             const values = state.facets?.[taxonomy]
 
             if (values?.length > 0) {
-                params.set(parameter, values.join(VALUE_SEPARATOR))
+                params.set(parameter, [...values].sort().join(VALUE_SEPARATOR))
             }
         }
 
         if (state.query) {
-            params.set(QUERY_PARAM, state.query)
+            params.set(this.#reserved.query, state.query)
         }
 
         if (state.sort) {
-            params.set(SORT_PARAM, state.sort)
+            params.set(this.#reserved.sort, state.sort)
         }
 
         if (state.page > 1) {
-            params.set(PAGE_PARAM, String(state.page))
+            params.set(this.#reserved.page, String(state.page))
         }
 
         // Commas are legal in a query string: keeping them unescaped keeps the URL readable.

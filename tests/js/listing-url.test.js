@@ -24,6 +24,15 @@ describe('ListingUrl', () => {
         assert.deepEqual(url.toState('?brand=acme,globex').facets.product_brand, ['acme', 'globex'])
     })
 
+    // One state, one URL: an unsorted pair would be a second Varnish entry.
+    it('sorts values when reading and when writing', () => {
+        assert.deepEqual(url.toState('?brand=globex,acme').facets.product_brand, ['acme', 'globex'])
+        assert.equal(
+            url.toSearch({ facets: { product_brand: ['globex', 'acme'] }, page: 1 }),
+            '?brand=acme,globex'
+        )
+    })
+
     it('drops the empty segments of a trailing separator', () => {
         assert.deepEqual(url.toState('?brand=acme,,').facets.product_brand, ['acme'])
     })
@@ -41,8 +50,28 @@ describe('ListingUrl', () => {
     })
 
     it('falls back to the first page on an unreadable page number', () => {
-        assert.equal(url.toState('?page=abc').page, 1)
-        assert.equal(url.toState('?page=0').page, 1)
+        assert.equal(url.toState('?pg=abc').page, 1)
+        assert.equal(url.toState('?pg=0').page, 1)
+    })
+
+    // `page` is a public WordPress query var: the server never writes it either.
+    it('paginates on pg, never on page', () => {
+        assert.equal(url.toState('?pg=3').page, 3)
+        assert.equal(url.toState('?page=3').page, 1)
+        assert.equal(url.toSearch({ facets: {}, page: 3 }), '?pg=3')
+    })
+
+    // One state, one URL: an array form would give Varnish a second cache entry.
+    it('reads the comma form only', () => {
+        assert.deepEqual(url.toState('?brand=acme,globex').facets.product_brand, ['acme', 'globex'])
+        assert.deepEqual(url.toState('?brand[]=acme&brand[]=globex').facets, {})
+    })
+
+    it('takes the parameter names the server declares', () => {
+        const renamed = new ListingUrl({ ...listing, reserved: { page: 'p2', sort: 'tri' } })
+
+        assert.equal(renamed.toState('?p2=2').page, 2)
+        assert.equal(renamed.toSearch({ facets: {}, sort: 'price_asc', page: 1 }), '?tri=price_asc')
     })
 
     it('writes only what differs from the default state', () => {
@@ -60,7 +89,7 @@ describe('ListingUrl', () => {
     })
 
     it('writes a page only past the first', () => {
-        assert.equal(url.toSearch({ facets: {}, page: 2 }), '?page=2')
+        assert.equal(url.toSearch({ facets: {}, page: 2 }), '?pg=2')
         assert.equal(url.toSearch({ facets: {}, page: 1 }), '')
     })
 

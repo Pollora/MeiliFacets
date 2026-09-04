@@ -6,6 +6,7 @@ namespace Modules\MeiliFacets\Indexing;
 
 use Modules\MeiliFacets\Contracts\CardProjector;
 use Modules\MeiliFacets\Enums\CardField;
+use Modules\MeiliFacets\Support\PlainText;
 use WP_Post;
 
 final readonly class DefaultCardProjector implements CardProjector
@@ -24,14 +25,17 @@ final readonly class DefaultCardProjector implements CardProjector
     public function project(WP_Post $post): array
     {
         return [
-            CardField::Title->value => get_the_title($post),
+            CardField::Title->value => PlainText::from(get_the_title($post)),
             CardField::Url->value => (string) get_permalink($post),
             ...$this->image($post),
         ];
     }
 
     /**
-     * @return array<string, string>
+     * Intrinsic dimensions ship with the URL: the card reserves its space before
+     * any stylesheet loads, and the layout never shifts once the image arrives.
+     *
+     * @return array<string, string|int>
      */
     private function image(WP_Post $post): array
     {
@@ -41,9 +45,19 @@ final readonly class DefaultCardProjector implements CardProjector
             return [];
         }
 
+        $image = wp_get_attachment_image_src($imageId, $this->imageSize);
+
+        if (! is_array($image)) {
+            return [];
+        }
+
+        [$url, $width, $height] = $image;
+
         return [
-            CardField::ImageUrl->value => (string) wp_get_attachment_image_url($imageId, $this->imageSize),
-            CardField::ImageAlt->value => (string) get_post_meta($imageId, self::ALT_META, true),
+            CardField::ImageUrl->value => (string) $url,
+            CardField::ImageAlt->value => PlainText::from((string) get_post_meta($imageId, self::ALT_META, true)),
+            CardField::ImageWidth->value => (int) $width,
+            CardField::ImageHeight->value => (int) $height,
         ];
     }
 }

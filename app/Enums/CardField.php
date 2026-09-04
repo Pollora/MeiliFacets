@@ -10,5 +10,7 @@ enum CardField: string
     case Url = 'url';
     case ImageUrl = 'image_url';
     case ImageAlt = 'image_alt';
+    case ImageWidth = 'image_width';
+    case ImageHeight = 'image_height';
     case Price = 'price';
 }

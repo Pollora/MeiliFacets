@@ -1,0 +1,15 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Modules\MeiliFacets\View\Components;
+
+use Illuminate\Contracts\View\View;
+
+final class Reset extends ListingComponent
+{
+    public function render(): View
+    {
+        return view('meilifacets::components.reset');
+    }
+}
