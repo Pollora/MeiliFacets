@@ -36,7 +36,7 @@ final readonly class ListingState
         return array_sum(array_map(count(...), $this->facets));
     }
 
-    public function isDefault(): bool
+    public function isPristine(): bool
     {
         return $this->facets === []
             && $this->sort === null

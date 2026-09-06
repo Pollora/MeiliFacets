@@ -98,7 +98,7 @@ final class ResolvedListing
 
     public function isPristine(): bool
     {
-        return $this->state->isDefault();
+        return $this->state->isPristine();
     }
 
     public function applyMode(): ApplyMode
