@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Tests\Unit;
 
 use Modules\MeiliFacets\Enums\DisplayOrder;
+use Modules\MeiliFacets\Listing\ChildTermsFacet;
 use Modules\MeiliFacets\Listing\Facet;
 use Modules\MeiliFacets\Listing\FacetValue;
 use Modules\MeiliFacets\Listing\FacetValues;
 use Modules\MeiliFacets\Listing\ListingState;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeTermLabels;
+use Modules\MeiliFacets\Tests\Unit\Doubles\FakeTermScope;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -89,7 +91,7 @@ final class FacetValuesTest extends TestCase
 
     private function values(): FacetValues
     {
-        return new FacetValues(new FakeTermLabels(['a' => 'Acme']));
+        return new FacetValues(new FakeTermLabels(['a' => 'Acme']), new FakeTermScope);
     }
 
     /**
@@ -107,6 +109,22 @@ final class FacetValuesTest extends TestCase
      * @param  array<string, int>  $distribution
      * @return list<FacetValue>
      */
+    /** The cap is spent on what the facet may show, not on what the engine returned. */
+    #[Test]
+    public function it_caps_a_scoped_facet_after_scoping_it(): void
+    {
+        $values = (new FacetValues(
+            new FakeTermLabels([]),
+            new FakeTermScope(['product_cat' => ['b', 'c']])
+        ))->of(
+            new ChildTermsFacet('product_cat', 'Category', cap: 2),
+            ['a' => 9, 'b' => 8, 'c' => 7, 'd' => 6],
+            new ListingState
+        );
+
+        $this->assertSame(['b', 'c'], array_map(static fn (FacetValue $v): string => $v->slug, $values));
+    }
+
     private function build(array $distribution, Facet $facet): array
     {
         return $this->values()->of($facet, $distribution, new ListingState);

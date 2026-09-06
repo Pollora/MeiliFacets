@@ -20,6 +20,27 @@ final class FakeTermHierarchy implements TermHierarchy
     /**
      * @return list<array<string, mixed>>
      */
+    /** @var array<string, list<string>> */
+    private array $children = [];
+
+    /**
+     * @param  list<string>  $slugs
+     */
+    public function withChildren(int $termId, string $taxonomy, array $slugs): self
+    {
+        $this->children[$taxonomy.':'.$termId] = $slugs;
+
+        return $this;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function childrenOf(int $termId, string $taxonomy): array
+    {
+        return $this->children[$taxonomy.':'.$termId] ?? [];
+    }
+
     public function ancestorsOf(int $termId, string $taxonomy): array
     {
         $this->lookups++;

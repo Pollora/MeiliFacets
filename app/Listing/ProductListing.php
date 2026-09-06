@@ -9,7 +9,6 @@ use Modules\MeiliFacets\Enums\ApplyMode;
 use Modules\MeiliFacets\Enums\DisplayOrder;
 use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Enums\ProductMeta;
-use Modules\MeiliFacets\Enums\SelectionMode;
 use Modules\MeiliFacets\Search\FilterExpression;
 use Modules\MeiliFacets\Support\WooCommerce;
 use RuntimeException;
@@ -51,17 +50,11 @@ final readonly class ProductListing implements Listing
      */
     public function facets(): array
     {
-        $facets = [
+        return [
+            new ChildTermsFacet(self::CATEGORY, __('Category'), order: DisplayOrder::Name),
             new Facet(self::BRAND, __('Brand'), order: DisplayOrder::Name),
             new Facet(self::SIZE, __('Volume'), order: DisplayOrder::Name),
         ];
-
-        // On a category archive the aisle is already carried by the path.
-        if (! is_tax(self::CATEGORY)) {
-            $facets[] = new Facet(self::CATEGORY, __('Category'), SelectionMode::Single, order: DisplayOrder::Name);
-        }
-
-        return $facets;
     }
 
     /**

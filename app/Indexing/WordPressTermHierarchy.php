@@ -31,6 +31,22 @@ final readonly class WordPressTermHierarchy implements TermHierarchy
     }
 
     /**
+     * @return list<string>
+     */
+    public function childrenOf(int $termId, string $taxonomy): array
+    {
+        $terms = get_terms([
+            'taxonomy' => $taxonomy,
+            'parent' => $termId,
+            'hide_empty' => false,
+        ]);
+
+        return is_array($terms)
+            ? array_values(array_map(static fn (WP_Term $term): string => $term->slug, array_filter($terms, static fn (mixed $term): bool => $term instanceof WP_Term)))
+            : [];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function describe(WP_Term $term): array

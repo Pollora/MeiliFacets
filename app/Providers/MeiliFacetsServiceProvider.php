@@ -12,6 +12,7 @@ use Modules\MeiliFacets\Contracts\IndexAttributes;
 use Modules\MeiliFacets\Contracts\SearchEngine;
 use Modules\MeiliFacets\Contracts\TermHierarchy;
 use Modules\MeiliFacets\Contracts\TermLabels;
+use Modules\MeiliFacets\Contracts\TermScope;
 use Modules\MeiliFacets\Discovery\ListingDiscovery;
 use Modules\MeiliFacets\Discovery\ListingRegistry;
 use Modules\MeiliFacets\Http\Unavailable;
@@ -23,6 +24,7 @@ use Modules\MeiliFacets\Indexing\WooCommerceIndexAttributes;
 use Modules\MeiliFacets\Indexing\WordPressTermHierarchy;
 use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\Listing\WordPressTermLabels;
+use Modules\MeiliFacets\Listing\WordPressTermScope;
 use Modules\MeiliFacets\Search\DisjunctiveFacetCounter;
 use Modules\MeiliFacets\Search\MeilisearchEngine;
 use Modules\MeiliFacets\Support\UrlParameters;
@@ -51,6 +53,7 @@ final class MeiliFacetsServiceProvider extends ModuleServiceProvider
 
         $this->app->bind(TermHierarchy::class, WordPressTermHierarchy::class);
         $this->app->bind(TermLabels::class, WordPressTermLabels::class);
+        $this->app->scoped(TermScope::class, WordPressTermScope::class);
         $this->app->bind(IndexAttributes::class, fn (): IndexAttributes => $this->indexAttributes());
         $this->app->bindIf(CardProjector::class, fn (): CardProjector => $this->defaultCard());
         $this->app->bind(FacetCounter::class, DisjunctiveFacetCounter::class);

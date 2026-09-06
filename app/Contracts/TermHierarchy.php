@@ -12,4 +12,11 @@ interface TermHierarchy
      * @return list<array<string, mixed>>
      */
     public function ancestorsOf(int $termId, string $taxonomy): array;
+
+    /**
+     * Slugs of the terms directly under the given one. The root is `0`.
+     *
+     * @return list<string>
+     */
+    public function childrenOf(int $termId, string $taxonomy): array;
 }

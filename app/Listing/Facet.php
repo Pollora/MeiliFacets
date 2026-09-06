@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Listing;
 
+use Modules\MeiliFacets\Contracts\TermScope;
 use Modules\MeiliFacets\Enums\DisplayOrder;
 use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Enums\SelectionMode;
 
-final readonly class Facet
+readonly class Facet
 {
     public const int DEFAULT_VISIBLE = 10;
 
@@ -23,6 +24,18 @@ final readonly class Facet
         public int $cap = self::DEFAULT_CAP,
         public bool $highCardinality = false,
     ) {}
+
+    /**
+     * Which of the values the engine returned this facet may show. A facet shows
+     * them all unless it says otherwise.
+     *
+     * @param  array<string, int>  $distribution
+     * @return array<string, int>
+     */
+    public function within(array $distribution, TermScope $scope): array
+    {
+        return $distribution;
+    }
 
     public function field(): string
     {
