@@ -7,20 +7,24 @@ namespace Modules\MeiliFacets\View\Components;
 use Illuminate\Contracts\View\View;
 use Modules\MeiliFacets\Enums\ImagePriority;
 use Modules\MeiliFacets\Http\IndexingPolicy;
+use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\Seo\ItemList;
+use Modules\MeiliFacets\View\CardSettings;
 
 final class Results extends ListingComponent
 {
-    /** How many cards a theme fits above the fold: layout-dependent, so overridable. */
-    public const int DEFAULT_EAGER = 4;
-
-    private ?int $eager = null;
+    public function __construct(
+        CurrentListing $listings,
+        private readonly IndexingPolicy $indexing,
+        private readonly CardSettings $cards,
+        string $name = '',
+    ) {
+        parent::__construct($listings, $name);
+    }
 
     public function priority(int $rank): ImagePriority
     {
-        $this->eager ??= $this->eagerCards();
-
-        return ImagePriority::forRank($rank, $this->eager);
+        return ImagePriority::forRank($rank, $this->cards->eager);
     }
 
     /**
@@ -29,22 +33,17 @@ final class Results extends ListingComponent
      */
     public function itemList(): ?ItemList
     {
-        if (app(IndexingPolicy::class)->isSecondaryView()) {
+        if ($this->indexing->isSecondaryView()) {
             return null;
         }
 
-        $resolved = $this->listing();
+        $listing = $this->listing();
 
-        return new ItemList($resolved->cards(), $resolved->pagination()->offset());
+        return new ItemList($listing->cards(), $listing->offset());
     }
 
     public function render(): View
     {
         return view('meilifacets::components.results');
-    }
-
-    private function eagerCards(): int
-    {
-        return (int) config('meilifacets.card.eager', self::DEFAULT_EAGER);
     }
 }

@@ -28,10 +28,9 @@ final class Sort extends ListingComponent
         return array_find($choices, fn (SortChoice $choice): bool => $choice->selected) ?? $choices[0];
     }
 
-    /** Carries the listing name: a template may place two listings on one page. */
     public function id(): string
     {
-        return 'meilifacets-'.$this->name.'-sort';
+        return $this->ids()->sort();
     }
 
     public function render(): View
@@ -44,8 +43,8 @@ final class Sort extends ListingComponent
      */
     private function build(): array
     {
-        $resolved = $this->listing();
+        $listing = $this->listing();
 
-        return (new SortChoices($this->id()))->of($resolved->listing->sorts(), $resolved->state->sort);
+        return (new SortChoices($this->id()))->of($listing->sorts(), $listing->currentSort());
     }
 }

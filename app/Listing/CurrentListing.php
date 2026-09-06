@@ -34,6 +34,12 @@ final class CurrentListing
         return $this->resolved[$name] ??= $this->resolve($name);
     }
 
+    /** What a template means when it names no listing. */
+    public function sole(): ResolvedListing
+    {
+        return $this->named($this->registry->sole()->name());
+    }
+
     private function resolve(string $name): ResolvedListing
     {
         $listing = $this->registry->get($name) ?? throw new RuntimeException(

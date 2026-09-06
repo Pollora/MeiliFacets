@@ -20,7 +20,13 @@ final readonly class FakeListing implements Listing
         private array $facets = [],
         private array $baseFilter = [],
         private int $perPage = 16,
+        private string $name = 'fake',
     ) {}
+
+    public static function named(string $name): self
+    {
+        return new self(name: $name);
+    }
 
     public static function withBrandAndCategory(): self
     {
@@ -32,7 +38,7 @@ final readonly class FakeListing implements Listing
 
     public function name(): string
     {
-        return 'fake';
+        return $this->name;
     }
 
     /**

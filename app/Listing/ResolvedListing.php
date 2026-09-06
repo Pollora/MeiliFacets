@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Listing;
 
 use Modules\MeiliFacets\Contracts\Listing;
+use Modules\MeiliFacets\Enums\ApplyMode;
 use Modules\MeiliFacets\Http\Unavailable;
 use Modules\MeiliFacets\Search\ListingSearch;
 use Modules\MeiliFacets\Search\SearchFailed;
@@ -18,8 +19,8 @@ final class ResolvedListing
     private bool $failed = false;
 
     public function __construct(
-        public readonly Listing $listing,
-        public readonly ListingState $state,
+        private readonly Listing $listing,
+        private readonly ListingState $state,
         private readonly ListingSearch $search,
         private readonly FacetValues $values,
         private readonly UrlParameters $parameters,
@@ -88,5 +89,38 @@ final class ResolvedListing
     public function activeFilterCount(): int
     {
         return $this->state->activeFilterCount();
+    }
+
+    public function name(): string
+    {
+        return $this->listing->name();
+    }
+
+    public function isPristine(): bool
+    {
+        return $this->state->isDefault();
+    }
+
+    public function applyMode(): ApplyMode
+    {
+        return $this->listing->applyMode();
+    }
+
+    /**
+     * @return array<string, Sort>
+     */
+    public function sorts(): array
+    {
+        return $this->listing->sorts();
+    }
+
+    public function currentSort(): ?string
+    {
+        return $this->state->sort;
+    }
+
+    public function offset(): int
+    {
+        return $this->pagination()->offset();
     }
 }

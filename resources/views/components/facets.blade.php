@@ -1,5 +1,5 @@
 @php($resolved = $listing())
-<div class="meilifacetsFacets" data-apply="{{ $resolved->listing->applyMode()->value }}" {{ $hook('facets') }}>
+<div class="meilifacetsFacets" data-apply="{{ $resolved->applyMode()->value }}" {{ $hook('facets') }}>
     @foreach ($resolved->facets() as $facet)
         @php($values = $resolved->valuesOf($facet))
         <fieldset class="meilifacetsFacet" data-taxonomy="{{ $facet->taxonomy }}" @if ($values === []) hidden @endif>
@@ -25,7 +25,7 @@
             </ul>
         </fieldset>
     @endforeach
-    @if ($resolved->listing->applyMode()->needsButton())
+    @if ($resolved->applyMode()->needsButton())
         <button type="button" class="meilifacetsFacetsApply" {{ $hook('apply') }}>
             {{ __('Apply filters') }}
         </button>

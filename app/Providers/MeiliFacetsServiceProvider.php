@@ -27,6 +27,7 @@ use Modules\MeiliFacets\Search\DisjunctiveFacetCounter;
 use Modules\MeiliFacets\Search\MeilisearchEngine;
 use Modules\MeiliFacets\Support\UrlParameters;
 use Modules\MeiliFacets\Support\WooCommerce;
+use Modules\MeiliFacets\View\CardSettings;
 use Nwidart\Modules\Support\ModuleServiceProvider;
 use Pollora\Discovery\Domain\Contracts\DiscoveryEngineInterface;
 use Pollora\Hook\Domain\Contracts\Action;
@@ -58,6 +59,9 @@ final class MeiliFacetsServiceProvider extends ModuleServiceProvider
         $this->app->scoped(CurrentListing::class);
         $this->app->scoped(Unavailable::class);
         $this->app->bind(UrlParameters::class, UrlParameters::fromConfig(...));
+        $this->app->bind(CardSettings::class, fn (): CardSettings => new CardSettings(
+            (int) config('meilifacets.card.eager', CardSettings::DEFAULT_EAGER)
+        ));
         $this->app->scoped(SearchEngine::class, $this->searchEngine(...));
     }
 

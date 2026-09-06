@@ -31,7 +31,7 @@ final class Facets extends ListingComponent
 
     public function countId(Facet $facet, FacetValue $value): string
     {
-        return 'meilifacets-'.$facet->taxonomy.'-'.$value->slug;
+        return $this->ids()->facetCount($facet->taxonomy, $value->slug);
     }
 
     public function render(): View
