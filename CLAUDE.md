@@ -98,7 +98,9 @@ Never hand over code with « please check ». Run these yourself, and **report w
 — « nothing » is a valid finding, silence is not.
 
 **Readability.** One level of abstraction per method. No method over ~15 lines without a reason.
-No boolean parameter: write a second method.
+No boolean parameter: write a second method. A name you introduce is compared to the name of what
+it wraps — two names for one concept is how a codebase stops being readable. A test whose name
+disagrees with the method it exercises is a finding waiting to be written.
 
 **Comments.** Apply the table above to every line you added. Count what you deleted.
 
