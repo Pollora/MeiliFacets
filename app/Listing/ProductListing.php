@@ -11,6 +11,9 @@ use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Enums\ProductMeta;
 use Modules\MeiliFacets\Enums\SelectionMode;
 use Modules\MeiliFacets\Search\FilterExpression;
+use Modules\MeiliFacets\Support\WooCommerce;
+use RuntimeException;
+use WP_Term;
 
 final readonly class ProductListing implements Listing
 {
@@ -29,6 +32,14 @@ final readonly class ProductListing implements Listing
     private const string HIDDEN_FROM_CATALOG = 'exclude-from-catalog';
 
     private const string VISIBILITY = 'product_visibility';
+
+    /** Discovery builds every listing it finds: the dependency has to refuse itself. */
+    public function __construct()
+    {
+        if (! WooCommerce::isActive()) {
+            throw new RuntimeException('WooCommerce is not active: there are no products to list.');
+        }
+    }
 
     public function name(): string
     {
@@ -97,6 +108,6 @@ final readonly class ProductListing implements Listing
     {
         $term = is_tax(self::CATEGORY) ? get_queried_object() : null;
 
-        return $term instanceof \WP_Term ? $term->slug : null;
+        return $term instanceof WP_Term ? $term->slug : null;
     }
 }

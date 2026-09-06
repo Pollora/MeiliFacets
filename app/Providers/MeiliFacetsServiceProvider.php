@@ -22,7 +22,6 @@ use Modules\MeiliFacets\Indexing\WooCommerceCardProjector;
 use Modules\MeiliFacets\Indexing\WooCommerceIndexAttributes;
 use Modules\MeiliFacets\Indexing\WordPressTermHierarchy;
 use Modules\MeiliFacets\Listing\CurrentListing;
-use Modules\MeiliFacets\Listing\ProductListing;
 use Modules\MeiliFacets\Listing\WordPressTermLabels;
 use Modules\MeiliFacets\Search\DisjunctiveFacetCounter;
 use Modules\MeiliFacets\Search\MeilisearchEngine;
@@ -114,12 +113,6 @@ final class MeiliFacetsServiceProvider extends ModuleServiceProvider
 
     private function registerListings(): void
     {
-        $registry = $this->app->make(ListingRegistry::class);
-
-        if (WooCommerce::isActive()) {
-            $registry->add(new ProductListing);
-        }
-
         if ($this->app->bound(DiscoveryEngineInterface::class)) {
             $this->app->make(DiscoveryEngineInterface::class)
                 ->addDiscovery('meilifacets_listings', $this->app->make(ListingDiscovery::class));
