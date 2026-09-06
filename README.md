@@ -25,6 +25,16 @@ MEILI_PUBLIC_URL=https://exemple.test:7701
 MEILI_SEARCH_KEY=<clé de recherche, navigateur>
 ```
 
+Le module livre une feuille de style et un client. `Modules/` étant hors du docroot, ils doivent
+être copiés dans `public/` — **à rejouer à chaque déploiement** :
+
+```bash
+php artisan module:publish MeiliFacets
+```
+
+Oubliée, la publication ne casse rien en silence : les éléments que le module masque par `hidden`
+réapparaissent à l'écran.
+
 ## Poser un listing
 
 Sur un projet WooCommerce, il n'y a rien à déclarer : le module fournit un listing produit. Les
@@ -62,6 +72,12 @@ production.
 Le module cherche ses vues dans le thème actif avant les siennes. Poser un fichier dans
 `<thème>/resources/views/modules/meilifacets/components/` suffit à en remplacer une, sans rien
 copier : les vues laissées de côté continuent de suivre les mises à jour du module.
+
+**Une seule chose n'est pas négociable : les crochets `data-meili`.** Balises, classes et styles
+appartiennent au thème ; ces attributs sont ce que le client adresse. S'il en manque un, ou si la
+version du contrat portée par la racine ne correspond plus à la sienne, le client **ne démarre
+pas** : la page reste celle du serveur et la console nomme ce qui manque. Le tableau des crochets
+est dans [architecture.md](../../docs/meilifacets/architecture.md).
 
 ## Tests
 
