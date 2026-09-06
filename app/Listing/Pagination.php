@@ -6,6 +6,8 @@ namespace Modules\MeiliFacets\Listing;
 
 final readonly class Pagination
 {
+    public const int WINDOW = 7;
+
     public function __construct(
         public int $current,
         public int $perPage,
@@ -42,11 +44,34 @@ final readonly class Pagination
         return min($this->current + 1, $this->pages());
     }
 
+    public function hasPages(): bool
+    {
+        return $this->pages() > ListingState::FIRST_PAGE;
+    }
+
+    /**
+     * Slots past the last page stay empty rather than absent: the client fills
+     * them when a filter widens the result set.
+     *
+     * @return list<?int>
+     */
+    public function window(): array
+    {
+        return array_pad($this->numbers(), self::WINDOW, null);
+    }
+
     /**
      * @return list<int>
      */
-    public function numbers(): array
+    private function numbers(): array
     {
-        return range(ListingState::FIRST_PAGE, max($this->pages(), ListingState::FIRST_PAGE));
+        $last = max($this->pages(), ListingState::FIRST_PAGE);
+        $width = min(self::WINDOW, $last);
+        $first = min(
+            max($this->current - intdiv($width, 2), ListingState::FIRST_PAGE),
+            $last - $width + 1
+        );
+
+        return range($first, $first + $width - 1);
     }
 }

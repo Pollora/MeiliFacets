@@ -68,6 +68,15 @@ final class MeiliFacetsServiceProvider extends ModuleServiceProvider
 
         $this->registerListings();
         $this->letTheThemeOverrideViews();
+        $this->publishAssets();
+    }
+
+    private function publishAssets(): void
+    {
+        $this->publishes(
+            [module_path($this->name, 'resources/assets') => public_path('modules/'.$this->nameLower)],
+            $this->nameLower.'-assets',
+        );
     }
 
     /**

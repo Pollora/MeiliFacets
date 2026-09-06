@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Tests\Feature;
 
 use Modules\MeiliFacets\Enums\CardField;
+use Modules\MeiliFacets\Enums\Hook;
+use Modules\MeiliFacets\Enums\ImagePriority;
 use Modules\MeiliFacets\Seo\ItemList;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -24,13 +26,14 @@ final class ResultsViewTest extends TestCase
         $this->assertStringNotContainsString('<ul', $html);
     }
 
+    /** Kept for the client to fill, hidden so no screen reader counts an empty list. */
     #[Test]
-    public function it_leaves_no_empty_list_for_a_screen_reader_to_count(): void
+    public function it_hides_the_list_it_has_nothing_to_put_in(): void
     {
         $html = $this->render(cards: []);
 
-        $this->assertStringNotContainsString('<ul', $html);
-        $this->assertStringContainsString('meilifacetsResultsEmpty', $html);
+        $this->assertStringContainsString('<ul class="meilifacetsResults" hidden', $html);
+        $this->assertStringNotContainsString('class="meilifacetsResultsEmpty" hidden', $html);
     }
 
     #[Test]
@@ -38,8 +41,26 @@ final class ResultsViewTest extends TestCase
     {
         $html = $this->render(cards: [$this->card('First'), $this->card('Second')]);
 
-        $this->assertSame(2, substr_count($html, 'meilifacetsResultsItem'));
-        $this->assertStringNotContainsString('meilifacetsResultsEmpty', $html);
+        $this->assertStringContainsString('First', $html);
+        $this->assertStringContainsString('Second', $html);
+        $this->assertStringContainsString('class="meilifacetsResultsEmpty" hidden', $html);
+    }
+
+    /** One clone source, so the client never carries markup of its own. */
+    #[Test]
+    public function it_offers_a_card_template_the_client_can_clone(): void
+    {
+        $html = $this->render(cards: [$this->card('First')]);
+
+        $this->assertStringContainsString('<template data-meili="card-template">', $html);
+        $this->assertSame(2, substr_count($html, 'data-meili="card"'));
+    }
+
+    /** No template on an outage: the contract fails and the client stays out. */
+    #[Test]
+    public function it_offers_nothing_to_clone_when_the_search_is_down(): void
+    {
+        $this->assertStringNotContainsString('card-template', $this->render(failed: true));
     }
 
     #[Test]
@@ -105,9 +126,12 @@ final class ResultsViewTest extends TestCase
             }
         };
 
-        return view('meilifacets::components.results', [
+        // Blade leaves a run of spaces where a conditional attribute was.
+        return (string) preg_replace('/\s+/', ' ', view('meilifacets::components.results', [
             'listing' => fn () => $resolved,
             'itemList' => fn () => $items,
-        ])->render();
+            'hook' => fn (string $name) => Hook::from($name)->attribute(),
+            'priority' => fn () => ImagePriority::Lazy,
+        ])->render());
     }
 }

@@ -4,7 +4,7 @@ import { describe, it } from 'node:test'
 import { ListingUrl } from '../../resources/assets/js/listing-url.js'
 
 const listing = {
-    facets: ['facets.product_brand', 'facets.pa_size'],
+    facets: [{ taxonomy: 'product_brand', multiple: true }, { taxonomy: 'pa_size', multiple: true }],
     params: { product_brand: 'brand' },
 }
 

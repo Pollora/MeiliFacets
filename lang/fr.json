@@ -1,4 +1,5 @@
 {
+    ":count result|:count results": ":count résultat|:count résultats",
     "Apply filters": "Appliquer les filtres",
     "Brand": "Marque",
     "Category": "Catégorie",
@@ -10,7 +11,8 @@
     "Previous": "Précédent",
     "Price, high to low": "Prix décroissant",
     "Price, low to high": "Prix croissant",
+    "Relevance": "Pertinence",
     "Search is temporarily unavailable. Please try again in a moment.": "La recherche est momentanément indisponible. Merci de réessayer dans quelques instants.",
-    "Sort": "Trier",
+    "Sort by": "Trier par",
     "Volume": "Contenance"
 }

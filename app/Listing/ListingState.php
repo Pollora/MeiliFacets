@@ -26,17 +26,17 @@ final readonly class ListingState
         return $this->facets[$taxonomy] ?? [];
     }
 
-    public function holds(string $taxonomy, string $value): bool
+    public function isSelected(string $taxonomy, string $value): bool
     {
         return in_array($value, $this->selected($taxonomy), true);
     }
 
-    public function activeFilters(): int
+    public function activeFilterCount(): int
     {
         return array_sum(array_map(count(...), $this->facets));
     }
 
-    public function isPristine(): bool
+    public function isDefault(): bool
     {
         return $this->facets === []
             && $this->sort === null

@@ -1,20 +1,24 @@
 @php($resolved = $listing())
-<div class="meilifacetsFacets" data-apply="{{ $resolved->listing->applyMode()->value }}">
+<div class="meilifacetsFacets" data-apply="{{ $resolved->listing->applyMode()->value }}" {{ $hook('facets') }}>
     @foreach ($resolved->facets() as $facet)
         @php($values = $resolved->valuesOf($facet))
-        @continue ($values === [])
-        <fieldset class="meilifacetsFacet" data-taxonomy="{{ $facet->taxonomy }}">
+        <fieldset class="meilifacetsFacet" data-taxonomy="{{ $facet->taxonomy }}" @if ($values === []) hidden @endif>
             <legend class="meilifacetsFacetLabel">{{ $facet->label }}</legend>
             <ul class="meilifacetsFacetValues">
                 @foreach ($values as $value)
-                    <li class="meilifacetsFacetValue" @if ($value->folded) hidden @endif>
+                    <li class="meilifacetsFacetValue" @if ($value->folded) hidden @endif {{ $hook('facet-value') }}>
                         <label>
                             <input type="{{ $inputType($facet) }}"
                                    name="{{ $inputName($facet) }}"
                                    value="{{ $value->slug }}"
-                                   @checked($value->selected)>
+                                   aria-describedby="{{ $countId($facet, $value) }}"
+                                   @checked($value->selected) {{ $hook('input') }}>
                             <span class="meilifacetsFacetName">{{ $value->label }}</span>
-                            <span class="meilifacetsFacetCount">{{ $value->count }}</span>
+                            {{-- Described, not named: the count changes at every filtering,
+                                 and a screen reader would rename the box under the cursor. --}}
+                            <span class="meilifacetsFacetCount" id="{{ $countId($facet, $value) }}" {{ $hook('count') }}>
+                                {{ $countLabel($value) }}
+                            </span>
                         </label>
                     </li>
                 @endforeach
@@ -22,7 +26,7 @@
         </fieldset>
     @endforeach
     @if ($resolved->listing->applyMode()->needsButton())
-        <button type="button" class="meilifacetsFacetsApply">
+        <button type="button" class="meilifacetsFacetsApply" {{ $hook('apply') }}>
             {{ __('Apply filters') }}
         </button>
     @endif

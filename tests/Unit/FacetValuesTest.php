@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Tests\Unit;
 
+use Modules\MeiliFacets\Enums\DisplayOrder;
 use Modules\MeiliFacets\Listing\Facet;
 use Modules\MeiliFacets\Listing\FacetValue;
 use Modules\MeiliFacets\Listing\FacetValues;
@@ -62,6 +63,28 @@ final class FacetValuesTest extends TestCase
 
         $this->assertTrue($values[0]->selected);
         $this->assertFalse($values[1]->selected);
+    }
+
+    #[Test]
+    public function it_shows_the_values_in_the_order_the_facet_asked_for(): void
+    {
+        $facet = new Facet('size', 'Volume', order: DisplayOrder::Name);
+        $values = $this->build(['500ml' => 9, '10ml' => 5, '50ml' => 1], $facet);
+
+        $this->assertSame(['10ml', '50ml', '500ml'], array_map(static fn ($v): string => $v->slug, $values));
+    }
+
+    /** The cap keeps the ten best counted, the display order only rearranges them. */
+    #[Test]
+    public function it_folds_on_the_count_even_when_it_shows_by_name(): void
+    {
+        $facet = new Facet('size', 'Volume', visible: 2, order: DisplayOrder::Name);
+        $values = $this->build(['b' => 9, 'z' => 8, 'a' => 1], $facet);
+
+        $folded = array_column(array_filter($values, static fn ($v): bool => $v->folded), 'slug');
+
+        $this->assertSame(['a', 'b', 'z'], array_map(static fn ($v): string => $v->slug, $values));
+        $this->assertSame(['a'], array_values($folded));
     }
 
     private function values(): FacetValues

@@ -54,8 +54,44 @@ final class PaginationTest extends TestCase
     }
 
     #[Test]
-    public function it_lists_every_page_number(): void
+    public function it_lists_every_page_when_they_fit_in_the_window(): void
     {
-        $this->assertSame([1, 2, 3], (new Pagination(1, 16, 40))->numbers());
+        $this->assertSame([1, 2, 3, null, null, null, null], (new Pagination(1, 16, 40))->window());
+    }
+
+    /** A fixed count of slots: the client fills them, it never adds any. */
+    #[Test]
+    public function it_always_offers_the_same_number_of_slots(): void
+    {
+        foreach ([0, 40, 5000] as $total) {
+            $this->assertCount(Pagination::WINDOW, (new Pagination(1, 16, $total))->window());
+        }
+    }
+
+    #[Test]
+    public function it_centres_the_window_on_the_current_page(): void
+    {
+        $this->assertSame([47, 48, 49, 50, 51, 52, 53], (new Pagination(50, 16, 5000))->window());
+    }
+
+    #[Test]
+    public function it_clamps_the_window_at_both_ends(): void
+    {
+        $this->assertSame([1, 2, 3, 4, 5, 6, 7], (new Pagination(1, 16, 5000))->window());
+        $this->assertSame([307, 308, 309, 310, 311, 312, 313], (new Pagination(313, 16, 5000))->window());
+    }
+
+    #[Test]
+    public function it_leaves_the_slots_past_the_last_page_empty(): void
+    {
+        $this->assertSame([1, 2, null, null, null, null, null], (new Pagination(1, 16, 20))->window());
+        $this->assertSame([1, null, null, null, null, null, null], (new Pagination(1, 16, 0))->window());
+    }
+
+    #[Test]
+    public function it_knows_when_there_is_nothing_to_paginate(): void
+    {
+        $this->assertFalse((new Pagination(1, 16, 12))->hasPages());
+        $this->assertTrue((new Pagination(1, 16, 20))->hasPages());
     }
 }

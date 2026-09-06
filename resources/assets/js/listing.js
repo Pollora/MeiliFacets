@@ -1,3 +1,4 @@
+import { BrowserHistory } from './browser-history.js'
 import { ListingQuery } from './listing-query.js'
 import { ListingUrl } from './listing-url.js'
 import { SearchClient } from './search-client.js'
@@ -6,16 +7,23 @@ export class Listing {
     #client
     #query
     #url
+    #history
 
-    constructor(listing, connection) {
-        this.#client = new SearchClient(connection)
+    constructor(listing, connection, {
+        client = new SearchClient(connection),
+        history = new BrowserHistory(),
+    } = {}) {
+        this.#client = client
         this.#query = new ListingQuery(listing)
         this.#url = new ListingUrl(listing)
-        this.state = this.#url.toState(window.location.search)
+        this.#history = history
+        this.state = this.#url.toState(this.#history.search())
     }
 
+    // Answers come back keyed like the plan, or null when a fresher search
+    // cancelled this one.
     async search() {
-        return this.#client.search(this.#query.build(this.state))
+        return this.#client.search(this.#query.plan(this.state))
     }
 
     toggle(taxonomy, value) {
@@ -49,7 +57,19 @@ export class Listing {
     }
 
     commitUrl() {
-        window.history.pushState(this.state, '', window.location.pathname + this.#url.toSearch(this.state))
+        this.#history.replace(this.state, this.#url.toSearch(this.state))
+    }
+
+    commitPage() {
+        this.#history.push(this.state, this.#url.toSearch(this.state))
+    }
+
+    // Without this, going back changes the URL and leaves the grid untouched.
+    onBack(repaint) {
+        this.#history.onPopState(() => {
+            this.restoreFrom(this.#history.search())
+            repaint()
+        })
     }
 
     restoreFrom(search) {

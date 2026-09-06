@@ -6,6 +6,7 @@ namespace Modules\MeiliFacets\View\Components;
 
 use Illuminate\Contracts\View\View;
 use Modules\MeiliFacets\Listing\Facet;
+use Modules\MeiliFacets\Listing\FacetValue;
 
 final class Facets extends ListingComponent
 {
@@ -16,7 +17,21 @@ final class Facets extends ListingComponent
 
     public function inputName(Facet $facet): string
     {
-        return $this->listing()->urls()->parameterFor($facet->taxonomy);
+        return $this->listing()->parameterFor($facet->taxonomy);
+    }
+
+    /**
+     * Spelled out rather than left as a bare number beside the label, where a
+     * screen reader would read "15ml 2".
+     */
+    public function countLabel(FacetValue $value): string
+    {
+        return trans_choice(':count result|:count results', $value->count, ['count' => $value->count]);
+    }
+
+    public function countId(Facet $facet, FacetValue $value): string
+    {
+        return 'meilifacets-'.$facet->taxonomy.'-'.$value->slug;
     }
 
     public function render(): View

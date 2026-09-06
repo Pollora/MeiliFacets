@@ -142,13 +142,13 @@ final class StateReaderTest extends TestCase
     {
         $state = $this->reader->read($this->listing, ['brand' => 'acme,globex', 'f_product_cat' => 'coats']);
 
-        $this->assertSame(3, $state->activeFilters());
-        $this->assertFalse($state->isPristine());
+        $this->assertSame(3, $state->activeFilterCount());
+        $this->assertFalse($state->isDefault());
     }
 
     #[Test]
     public function it_reports_an_untouched_listing_as_pristine(): void
     {
-        $this->assertTrue($this->reader->read($this->listing, [])->isPristine());
+        $this->assertTrue($this->reader->read($this->listing, [])->isDefault());
     }
 }

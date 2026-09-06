@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Listing;
 
 use Modules\MeiliFacets\Contracts\TermLabels;
+use Modules\MeiliFacets\Enums\DisplayOrder;
 
 /**
  * Turns a raw distribution into displayable values: engine order kept, labels
@@ -29,10 +30,28 @@ final readonly class FacetValues
                 $slug,
                 $labels[$slug] ?? $slug,
                 $distribution[$slug],
-                $state->holds($facet->taxonomy, $slug),
+                $state->isSelected($facet->taxonomy, $slug),
                 $rank >= $facet->visible,
             );
         }
+
+        return $this->displayed($values, $facet);
+    }
+
+    /**
+     * Folding is decided on the engine's order, then the values are shown in the
+     * order the facet asked for: capping and reading are two different needs.
+     *
+     * @param  list<FacetValue>  $values
+     * @return list<FacetValue>
+     */
+    private function displayed(array $values, Facet $facet): array
+    {
+        if ($facet->order === DisplayOrder::Count) {
+            return $values;
+        }
+
+        usort($values, fn (FacetValue $a, FacetValue $b): int => strnatcasecmp($a->label, $b->label));
 
         return $values;
     }

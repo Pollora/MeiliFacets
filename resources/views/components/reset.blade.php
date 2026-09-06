@@ -1,6 +1,4 @@
-@php($resolved = $listing())
-@unless ($resolved->state->isPristine())
-    <a class="meilifacetsReset" href="{{ $resolved->urls()->reset() }}">
-        {{ __('Clear all') }}
-    </a>
-@endunless
+<button type="button" class="meilifacetsReset"
+        @if ($listing()->state->isDefault()) hidden @endif {{ $hook('reset') }}>
+    {{ __('Clear all') }}
+</button>

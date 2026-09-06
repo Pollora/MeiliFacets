@@ -31,7 +31,7 @@ final readonly class ListingSearch
 
         return new SearchResults(
             array_values($main['hits'] ?? []),
-            (int) ($main['estimatedTotalHits'] ?? 0),
+            (int) ($main['totalHits'] ?? 0),
             $this->distributions($listing, $responses),
         );
     }

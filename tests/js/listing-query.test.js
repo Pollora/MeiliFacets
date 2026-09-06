@@ -5,21 +5,25 @@ import { ListingQuery } from '../../resources/assets/js/listing-query.js'
 
 const listing = {
     perPage: 16,
-    facets: ['facets.product_brand', 'facets.pa_size'],
+    facets: [
+        { taxonomy: 'product_brand', multiple: true },
+        { taxonomy: 'pa_size', multiple: true },
+    ],
     filter: 'post_type = product',
     sorts: { price_asc: ['metas._price:asc'] },
 }
 
-const build = (state, overrides = {}) => new ListingQuery({ ...listing, ...overrides }).build(state)
+const plan = (state, overrides = {}) => new ListingQuery({ ...listing, ...overrides }).plan(state)
+const build = (state, overrides = {}) => plan(state, overrides)[ListingQuery.RESULTS]
 
 describe('ListingQuery', () => {
     it('asks for the whole listing when nothing is selected', () => {
         const request = build({})
 
         assert.equal(request.filter, 'post_type = product')
-        assert.equal(request.limit, 16)
-        assert.equal(request.offset, 0)
-        assert.deepEqual(request.facets, listing.facets)
+        assert.equal(request.hitsPerPage, 16)
+        assert.equal(request.page, 1)
+        assert.deepEqual(request.facets, ['facets.product_brand', 'facets.pa_size'])
     })
 
     it('joins the values of one facet with OR', () => {
@@ -77,10 +81,44 @@ describe('ListingQuery', () => {
         assert.equal(filter, 'facets.product_brand = "x\\" OR post_status = \\"draft"')
     })
 
-    it('offsets by whole pages and clamps a page below the first', () => {
-        assert.equal(build({ page: 3 }).offset, 32)
-        assert.equal(build({ page: 0 }).offset, 0)
-        assert.equal(build({ page: -5 }).offset, 0)
+    it('asks for a page and clamps one below the first', () => {
+        assert.equal(build({ page: 3 }).page, 3)
+        assert.equal(build({ page: 0 }).page, 1)
+        assert.equal(build({ page: -5 }).page, 1)
+    })
+
+    // The server keys its searches the same way: results, then count:<taxonomy>.
+    it('plans one extra search per constrained multi-select facet', () => {
+        assert.deepEqual(Object.keys(plan({})), ['results'])
+        assert.deepEqual(
+            Object.keys(plan({ facets: { product_brand: ['acme'] } })),
+            ['results', 'count:product_brand']
+        )
+    })
+
+    it('never counts a facet twice', () => {
+        const state = { facets: { product_brand: ['acme'] } }
+        const queries = plan(state)
+
+        assert.ok(!queries.results.facets.includes('facets.product_brand'))
+        assert.deepEqual(queries['count:product_brand'].facets, ['facets.product_brand'])
+    })
+
+    it('lifts only the counted facet from its own filter', () => {
+        const state = { facets: { product_brand: ['acme'], pa_size: ['large'] } }
+        const counting = plan(state)['count:product_brand']
+
+        assert.ok(!counting.filter.includes('product_brand'))
+        assert.ok(counting.filter.includes('facets.pa_size = "large"'))
+        assert.equal(counting.hitsPerPage, 0)
+    })
+
+    it('leaves a single-select facet on the main search', () => {
+        const single = { facets: [{ taxonomy: 'product_cat', multiple: false }] }
+        const state = { facets: { product_cat: ['coats'] } }
+
+        assert.deepEqual(Object.keys(plan(state, single)), ['results'])
+        assert.deepEqual(plan(state, single).results.facets, ['facets.product_cat'])
     })
 
     it('sorts only by a sort the listing declares', () => {

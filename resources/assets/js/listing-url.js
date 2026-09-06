@@ -1,5 +1,3 @@
-import { FACET_PREFIX } from './facet-prefix.js'
-
 const VALUE_SEPARATOR = ','
 // Mirrors UrlParameters::UNMAPPED_PREFIX: a bare taxonomy name is a WordPress query var.
 const UNMAPPED_PREFIX = 'f_'
@@ -13,11 +11,10 @@ export class ListingUrl {
     // The mapping never changes, and both reads and writes walk it.
     constructor(listing) {
         this.#reserved = { ...RESERVED, ...listing.reserved }
-        this.#parameters = listing.facets.map((field) => {
-            const taxonomy = field.slice(FACET_PREFIX.length)
-
-            return [taxonomy, listing.params?.[taxonomy] ?? UNMAPPED_PREFIX + taxonomy]
-        })
+        this.#parameters = listing.facets.map(({ taxonomy }) => [
+            taxonomy,
+            listing.params?.[taxonomy] ?? UNMAPPED_PREFIX + taxonomy,
+        ])
     }
 
     toState(search) {

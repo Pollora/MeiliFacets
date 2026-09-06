@@ -35,7 +35,7 @@ final class ListingSearchTest extends TestCase
     {
         $engine = new FakeSearchEngine([self::RESULTS => [
             'hits' => [['card' => ['title' => 'Coat']], ['card' => ['title' => 'Scarf']], ['no_card' => true]],
-            'estimatedTotalHits' => 27,
+            'totalHits' => 27,
         ]]);
 
         $results = $this->searchWith($engine)->run(FakeListing::withBrandAndCategory(), new ListingState);

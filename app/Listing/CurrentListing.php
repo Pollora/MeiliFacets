@@ -46,7 +46,7 @@ final class CurrentListing
             $this->reader->read($listing, $query),
             $this->search,
             $this->values,
-            new ListingUrls($this->parameters, $this->path()),
+            $this->parameters,
             $this->unavailable,
         );
     }
@@ -57,10 +57,5 @@ final class CurrentListing
     private function requestQuery(): array
     {
         return request()->query();
-    }
-
-    private function path(): string
-    {
-        return (string) parse_url(request()->fullUrl(), PHP_URL_PATH);
     }
 }

@@ -28,8 +28,8 @@ final class QueryPlanTest extends TestCase
         $query = QueryPlan::results($this->listing, new ListingState);
 
         $this->assertSame('post_type = "product"', $query['filter']);
-        $this->assertSame(16, $query['limit']);
-        $this->assertSame(0, $query['offset']);
+        $this->assertSame(16, $query['hitsPerPage']);
+        $this->assertSame(1, $query['page']);
     }
 
     #[Test]
@@ -40,10 +40,17 @@ final class QueryPlanTest extends TestCase
         $this->assertSame(['card'], $query['attributesToRetrieve']);
     }
 
+    /**
+     * `hitsPerPage`/`page` answer with an exhaustive `totalHits`, where
+     * `limit`/`offset` only estimate it and stop at `maxTotalHits`.
+     */
     #[Test]
-    public function it_offsets_by_whole_pages(): void
+    public function it_asks_for_a_page_rather_than_an_offset(): void
     {
-        $this->assertSame(32, QueryPlan::results($this->listing, new ListingState(page: 3))['offset']);
+        $query = QueryPlan::results($this->listing, new ListingState(page: 3));
+
+        $this->assertSame(3, $query['page']);
+        $this->assertArrayNotHasKey('offset', $query);
     }
 
     #[Test]
@@ -91,7 +98,7 @@ final class QueryPlanTest extends TestCase
 
         $this->assertStringNotContainsString('product_brand', $counting['filter']);
         $this->assertStringContainsString('facets.product_cat = "coats"', $counting['filter']);
-        $this->assertSame(0, $counting['limit']);
+        $this->assertSame(0, $counting['hitsPerPage']);
     }
 
     #[Test]

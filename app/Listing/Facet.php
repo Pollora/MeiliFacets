@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Listing;
 
+use Modules\MeiliFacets\Enums\DisplayOrder;
 use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Enums\SelectionMode;
 
@@ -17,6 +18,7 @@ final readonly class Facet
         public string $taxonomy,
         public string $label,
         public SelectionMode $selection = SelectionMode::Multiple,
+        public DisplayOrder $order = DisplayOrder::Count,
         public int $visible = self::DEFAULT_VISIBLE,
         public int $cap = self::DEFAULT_CAP,
         public bool $highCardinality = false,

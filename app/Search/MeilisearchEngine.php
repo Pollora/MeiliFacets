@@ -52,8 +52,8 @@ final readonly class MeilisearchEngine implements SearchEngine
         $search = (new SearchQuery)
             ->setIndexUid($this->index)
             ->setQuery((string) ($query['q'] ?? ''))
-            ->setLimit((int) ($query['limit'] ?? 0))
-            ->setOffset((int) ($query['offset'] ?? 0));
+            ->setHitsPerPage((int) ($query['hitsPerPage'] ?? 0))
+            ->setPage((int) ($query['page'] ?? 1));
 
         foreach (['filter', 'facets', 'sort', 'attributesToRetrieve'] as $option) {
             $search = $this->apply($search, $option, $query[$option] ?? null);

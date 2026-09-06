@@ -9,6 +9,7 @@ use Modules\MeiliFacets\Http\Unavailable;
 use Modules\MeiliFacets\Search\ListingSearch;
 use Modules\MeiliFacets\Search\SearchFailed;
 use Modules\MeiliFacets\Search\SearchResults;
+use Modules\MeiliFacets\Support\UrlParameters;
 
 final class ResolvedListing
 {
@@ -21,7 +22,7 @@ final class ResolvedListing
         public readonly ListingState $state,
         private readonly ListingSearch $search,
         private readonly FacetValues $values,
-        private readonly ListingUrls $urls,
+        private readonly UrlParameters $parameters,
         private readonly Unavailable $unavailable,
     ) {}
 
@@ -79,13 +80,13 @@ final class ResolvedListing
         return new Pagination($this->state->page, $this->listing->perPage(), $this->results()->total);
     }
 
-    public function urls(): ListingUrls
+    public function parameterFor(string $taxonomy): string
     {
-        return $this->urls;
+        return $this->parameters->for($taxonomy);
     }
 
-    public function activeFilters(): int
+    public function activeFilterCount(): int
     {
-        return $this->state->activeFilters();
+        return $this->state->activeFilterCount();
     }
 }

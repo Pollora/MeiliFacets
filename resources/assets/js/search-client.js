@@ -13,19 +13,22 @@ const DEFAULT_TIMEOUT = 5000
 
 export class SearchClient {
     #endpoint
+    #index
     #headers
     #timeout
     #pending = null
 
     constructor({ url, key, index, timeout = DEFAULT_TIMEOUT }) {
-        this.#endpoint = `${url.replace(/\/$/, '')}/indexes/${index}/search`
+        this.#endpoint = `${url.replace(/\/$/, '')}/multi-search`
+        this.#index = index
         this.#headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` }
         this.#timeout = timeout
     }
 
-    // A slower answer must not overwrite a fresher one. Cancelling resolves to
-    // null rather than throwing.
-    async search(request) {
+    // A whole plan travels in one request: a second call would cancel the first,
+    // since a slower answer must never overwrite a fresher one. Cancelling
+    // resolves to null rather than throwing.
+    async search(queries) {
         this.#pending?.abort()
 
         const controller = new AbortController()
@@ -35,7 +38,7 @@ export class SearchClient {
         const expiry = setTimeout(() => controller.abort(), this.#timeout)
 
         try {
-            return await this.#post(controller.signal, request)
+            return await this.#post(controller.signal, queries)
         } catch (error) {
             if (error.name === 'AbortError') {
                 return null
@@ -47,11 +50,14 @@ export class SearchClient {
         }
     }
 
-    async #post(signal, request) {
+    async #post(signal, queries) {
+        const keys = Object.keys(queries)
         const response = await fetch(this.#endpoint, {
             method: 'POST',
             headers: this.#headers,
-            body: JSON.stringify(request),
+            body: JSON.stringify({
+                queries: keys.map((key) => ({ indexUid: this.#index, ...queries[key] })),
+            }),
             signal,
         })
 
@@ -59,7 +65,10 @@ export class SearchClient {
             throw await this.#toError(response)
         }
 
-        return response.json()
+        const { results = [] } = await response.json()
+
+        // Answers come back in order: the caller's keys are put back on them.
+        return Object.fromEntries(keys.map((key, rank) => [key, results[rank] ?? {}]))
     }
 
     async #toError(response) {

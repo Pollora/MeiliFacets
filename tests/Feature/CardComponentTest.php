@@ -7,6 +7,7 @@ namespace Modules\MeiliFacets\Tests\Feature;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\View\ViewException;
 use Modules\MeiliFacets\Enums\CardField;
+use Modules\MeiliFacets\Enums\ImagePriority;
 use Modules\MeiliFacets\View\CardImage;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -17,13 +18,14 @@ use Tests\TestCase;
  */
 final class CardComponentTest extends TestCase
 {
+    /** The price is what WooCommerce formatted: it is rendered as it stands. */
     #[Test]
-    public function it_strips_markup_the_price_has_no_business_carrying(): void
+    public function it_renders_the_price_markup_as_it_stands(): void
     {
-        $html = $this->render([CardField::Price->value => '<span>42</span><script>alert(1)</script>']);
+        $price = '<del aria-hidden="true"><span class="amount">50,00</span></del>'
+            .'<span class="screen-reader-text">Le prix initial était : 50,00.</span>';
 
-        $this->assertStringContainsString('<span>42</span>', $html);
-        $this->assertStringNotContainsString('<script>', $html);
+        $this->assertStringContainsString($price, $this->render([CardField::Price->value => $price]));
     }
 
     #[Test]
@@ -58,11 +60,30 @@ final class CardComponentTest extends TestCase
     }
 
     #[Test]
-    public function it_loads_the_first_cards_eagerly_and_the_rest_lazily(): void
+    public function it_renders_the_loading_hints_of_the_priority_it_is_given(): void
     {
-        $this->assertStringContainsString('loading="eager"', $this->render([], ['rank' => 0]));
-        $this->assertStringContainsString('fetchpriority="high"', $this->render([], ['rank' => 0]));
-        $this->assertStringContainsString('loading="lazy"', $this->render([], ['rank' => 99]));
+        $eager = $this->render([], ['priority' => ImagePriority::Eager]);
+
+        $this->assertStringContainsString('loading="eager"', $eager);
+        $this->assertStringContainsString('fetchpriority="high"', $eager);
+        $this->assertStringContainsString('loading="lazy"', $this->render([]));
+    }
+
+    /** A card the client clones lands in a page already painted: eager buys nothing. */
+    #[Test]
+    public function it_defers_the_image_of_a_card_nobody_placed(): void
+    {
+        $this->assertStringContainsString('loading="lazy"', Blade::render('<x-meilifacets::card :card="[]" />'));
+    }
+
+    #[Test]
+    public function it_marks_every_value_the_client_repaints(): void
+    {
+        $html = $this->render([]);
+
+        foreach (['url', 'image', 'title', 'price'] as $hook) {
+            $this->assertStringContainsString('data-meili="'.$hook.'"', $html);
+        }
     }
 
     #[Test]
@@ -70,7 +91,7 @@ final class CardComponentTest extends TestCase
     {
         $html = $this->render([CardField::Title->value => 'Serum'], ['heading' => 'h4']);
 
-        $this->assertStringContainsString('<h4 class="meilifacetsCardTitle">Serum</h4>', $html);
+        $this->assertStringContainsString('<h4 class="meilifacetsCardTitle" data-meili="title">Serum</h4>', $html);
     }
 
     #[Test]
@@ -100,8 +121,8 @@ final class CardComponentTest extends TestCase
     private function render(array $card, array $props = []): string
     {
         return Blade::render(
-            '<x-meilifacets::card :card="$card" :heading="$heading" :rank="$rank" />',
-            ['card' => $card, 'heading' => 'h3', 'rank' => 0, ...$props]
+            '<x-meilifacets::card :card="$card" :heading="$heading" :priority="$priority" />',
+            ['card' => $card, 'heading' => 'h3', 'priority' => ImagePriority::Lazy, ...$props]
         );
     }
 }

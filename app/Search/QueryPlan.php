@@ -25,8 +25,10 @@ final readonly class QueryPlan
                 ...self::facetClauses($listing, $state),
             ]),
             'facets' => self::fieldsCountedOnMain($listing, $state),
-            'limit' => $listing->perPage(),
-            'offset' => ($state->page - ListingState::FIRST_PAGE) * $listing->perPage(),
+            // `hitsPerPage`/`page` answer with `totalHits` and `totalPages`;
+            // `limit`/`offset` only give an estimate, capped at maxTotalHits.
+            'hitsPerPage' => $listing->perPage(),
+            'page' => $state->page,
             'attributesToRetrieve' => [DocumentField::Card->value],
         ];
 
@@ -50,7 +52,8 @@ final readonly class QueryPlan
                 ...self::facetClauses($listing, $state, $counted->taxonomy),
             ]),
             'facets' => [$counted->field()],
-            'limit' => self::NO_HIT,
+            'hitsPerPage' => self::NO_HIT,
+            'page' => ListingState::FIRST_PAGE,
         ];
     }
 

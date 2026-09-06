@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\View\Components;
 
-use Illuminate\View\Component;
 use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\Listing\ProductListing;
 use Modules\MeiliFacets\Listing\ResolvedListing;
 
-abstract class ListingComponent extends Component
+abstract class ListingComponent extends ContractComponent
 {
     public function __construct(public string $name = ProductListing::NAME) {}
 

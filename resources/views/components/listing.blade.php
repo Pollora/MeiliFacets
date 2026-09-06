@@ -1,5 +1,5 @@
 @php($resolved = $listing())
-<div {{ $attributes->class('meilifacets') }} data-listing="{{ $name }}">
+<div {{ $attributes->class('meilifacets') }} data-listing="{{ $name }}" {{ $contract() }}>
     @if ($resolved->failed())
         <x-meilifacets::unavailable />
     @else
