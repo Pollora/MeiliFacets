@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Listing;
 
 use Modules\MeiliFacets\Contracts\TermScope;
+use Modules\MeiliFacets\Enums\DefaultTerm;
 use Modules\MeiliFacets\Enums\DisplayOrder;
 use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Enums\SelectionMode;
@@ -23,6 +24,7 @@ readonly class Facet
         public int $visible = self::DEFAULT_VISIBLE,
         public int $cap = self::DEFAULT_CAP,
         public bool $highCardinality = false,
+        public DefaultTerm $defaultTerm = DefaultTerm::Hidden,
     ) {}
 
     /**

@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Listing;
 
+use Modules\MeiliFacets\Contracts\DefaultTerms;
 use Modules\MeiliFacets\Contracts\TermLabels;
 use Modules\MeiliFacets\Contracts\TermScope;
+use Modules\MeiliFacets\Enums\DefaultTerm;
 use Modules\MeiliFacets\Enums\DisplayOrder;
 
 /**
@@ -14,7 +16,11 @@ use Modules\MeiliFacets\Enums\DisplayOrder;
  */
 final readonly class FacetValues
 {
-    public function __construct(private TermLabels $labels, private TermScope $scope) {}
+    public function __construct(
+        private TermLabels $labels,
+        private TermScope $scope,
+        private DefaultTerms $defaults,
+    ) {}
 
     /**
      * @param  array<string, int>  $distribution  slug to count
@@ -22,7 +28,7 @@ final readonly class FacetValues
      */
     public function of(Facet $facet, array $distribution, ListingState $state): array
     {
-        $distribution = $facet->within($distribution, $this->scope);
+        $distribution = $facet->within($this->browsable($facet, $distribution), $this->scope);
         $slugs = array_slice(array_keys($distribution), 0, $facet->cap);
         $labels = $this->labels->of($facet->taxonomy, $slugs);
         $values = [];
@@ -38,6 +44,21 @@ final readonly class FacetValues
         }
 
         return $this->displayed($values, $facet);
+    }
+
+    /**
+     * @param  array<string, int>  $distribution
+     * @return array<string, int>
+     */
+    private function browsable(Facet $facet, array $distribution): array
+    {
+        if ($facet->defaultTerm === DefaultTerm::Shown) {
+            return $distribution;
+        }
+
+        $fallback = $this->defaults->slugOf($facet->taxonomy);
+
+        return $fallback === null ? $distribution : array_diff_key($distribution, [$fallback => 0]);
     }
 
     /**

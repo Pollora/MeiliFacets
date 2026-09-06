@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Tests\Unit;
 
+use Modules\MeiliFacets\Enums\DefaultTerm;
 use Modules\MeiliFacets\Enums\DisplayOrder;
 use Modules\MeiliFacets\Listing\ChildTermsFacet;
 use Modules\MeiliFacets\Listing\Facet;
 use Modules\MeiliFacets\Listing\FacetValue;
 use Modules\MeiliFacets\Listing\FacetValues;
 use Modules\MeiliFacets\Listing\ListingState;
+use Modules\MeiliFacets\Tests\Unit\Doubles\FakeDefaultTerms;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeTermLabels;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeTermScope;
 use PHPUnit\Framework\Attributes\Test;
@@ -91,7 +93,7 @@ final class FacetValuesTest extends TestCase
 
     private function values(): FacetValues
     {
-        return new FacetValues(new FakeTermLabels(['a' => 'Acme']), new FakeTermScope);
+        return new FacetValues(new FakeTermLabels(['a' => 'Acme']), new FakeTermScope, new FakeDefaultTerms);
     }
 
     /**
@@ -115,7 +117,8 @@ final class FacetValuesTest extends TestCase
     {
         $values = (new FacetValues(
             new FakeTermLabels([]),
-            new FakeTermScope(['product_cat' => ['b', 'c']])
+            new FakeTermScope(['product_cat' => ['b', 'c']]),
+            new FakeDefaultTerms
         ))->of(
             new ChildTermsFacet('product_cat', 'Category', cap: 2),
             ['a' => 9, 'b' => 8, 'c' => 7, 'd' => 6],
@@ -123,6 +126,54 @@ final class FacetValuesTest extends TestCase
         );
 
         $this->assertSame(['b', 'c'], array_map(static fn (FacetValue $v): string => $v->slug, $values));
+    }
+
+    /** « Non classé » says a content was filed nowhere: that is not a way to browse. */
+    #[Test]
+    public function it_drops_the_term_a_taxonomy_falls_back_to(): void
+    {
+        $values = $this->withFallback()->of(
+            new Facet('product_cat', 'Category'),
+            ['a' => 4, 'non-classe' => 1],
+            new ListingState
+        );
+
+        $this->assertSame(['a'], array_map(static fn (FacetValue $v): string => $v->slug, $values));
+    }
+
+    /** A taxonomy whose fallback is a term an editor chose keeps it. */
+    #[Test]
+    public function it_keeps_the_fallback_a_facet_asks_to_show(): void
+    {
+        $values = $this->withFallback()->of(
+            new Facet('product_cat', 'Category', defaultTerm: DefaultTerm::Shown),
+            ['a' => 4, 'non-classe' => 1],
+            new ListingState
+        );
+
+        $this->assertCount(2, $values);
+    }
+
+    #[Test]
+    public function it_leaves_a_taxonomy_without_a_fallback_alone(): void
+    {
+        $values = $this->withFallback()->of(
+            new Facet('product_brand', 'Brand'),
+            ['a' => 4, 'b' => 1],
+            new ListingState
+        );
+
+        $this->assertCount(2, $values);
+    }
+
+    /** A taxonomy that has a fallback term, and one that has none. */
+    private function withFallback(): FacetValues
+    {
+        return new FacetValues(
+            new FakeTermLabels([]),
+            new FakeTermScope,
+            new FakeDefaultTerms(['product_cat' => 'non-classe'])
+        );
     }
 
     private function build(array $distribution, Facet $facet): array
