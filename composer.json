@@ -40,5 +40,37 @@
         "psr-4": {
             "Modules\\MeiliFacets\\Tests\\": "tests/"
         }
+    },
+    "require-dev": {
+        "driftingly/rector-laravel": "^2.6",
+        "laravel/pint": "^1.30",
+        "phpunit/phpunit": "^12.5",
+        "rector/rector": "^2.6"
+    },
+    "scripts": {
+        "lint": "pint --test",
+        "fix": "pint",
+        "refactor": "rector process --dry-run",
+        "test": "phpunit --testsuite Unit",
+        "test:host": "phpunit --testsuite Feature",
+        "test:js": "npm test",
+        "check": [
+            "@lint",
+            "@refactor",
+            "@test",
+            "@test:js"
+        ]
+    },
+    "scripts-descriptions": {
+        "lint": "Check formatting without changing anything.",
+        "fix": "Apply the formatting the linter asks for.",
+        "refactor": "Report what Rector would change, without changing it.",
+        "test": "Run the tests that need nothing but this package.",
+        "test:host": "Run the tests that need a host application, from the host project.",
+        "test:js": "Run the browser client tests.",
+        "check": "Everything the module can verify on its own: the definition of done."
+    },
+    "config": {
+        "sort-packages": true
     }
 }

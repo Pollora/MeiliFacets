@@ -105,7 +105,7 @@ final class ResultsViewTest extends TestCase
      */
     private function render(bool $failed = false, array $cards = [], ?ItemList $items = null): string
     {
-        $resolved = new class($failed, $cards)
+        $resolved = new readonly class($failed, $cards)
         {
             /**
              * @param  list<array<string, mixed>>  $cards
@@ -128,10 +128,10 @@ final class ResultsViewTest extends TestCase
 
         // Blade leaves a run of spaces where a conditional attribute was.
         return (string) preg_replace('/\s+/', ' ', view('meilifacets::components.results', [
-            'listing' => fn () => $resolved,
-            'itemList' => fn () => $items,
+            'listing' => fn (): object => $resolved,
+            'itemList' => fn (): ?ItemList => $items,
             'hook' => fn (string $name) => Hook::from($name)->attribute(),
-            'priority' => fn () => ImagePriority::Lazy,
+            'priority' => fn (): ImagePriority => ImagePriority::Lazy,
         ])->render());
     }
 }

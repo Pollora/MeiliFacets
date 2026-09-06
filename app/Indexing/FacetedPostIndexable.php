@@ -105,7 +105,7 @@ final class FacetedPostIndexable extends PostIndexable
     private function facetAttributes(): array
     {
         return array_map(
-            static fn (string $taxonomy): string => DocumentField::Facets->path($taxonomy),
+            DocumentField::Facets->path(...),
             $this->indexedTaxonomies()
         );
     }

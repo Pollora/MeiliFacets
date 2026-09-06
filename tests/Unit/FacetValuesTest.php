@@ -25,7 +25,7 @@ final class FacetValuesTest extends TestCase
         $values = $this->build($this->distribution(14), new Facet('brand', 'Brand'));
 
         $this->assertCount(14, $values);
-        $this->assertSame(10, count(array_filter($values, static fn ($v): bool => ! $v->folded)));
+        $this->assertCount(10, array_filter($values, static fn ($v): bool => ! $v->folded));
         $this->assertTrue($values[10]->folded);
         $this->assertFalse($values[9]->folded);
     }
@@ -44,7 +44,7 @@ final class FacetValuesTest extends TestCase
         $values = $this->build($this->distribution(10), new Facet('brand', 'Brand', visible: 2, cap: 4));
 
         $this->assertCount(4, $values);
-        $this->assertSame(2, count(array_filter($values, static fn ($v): bool => ! $v->folded)));
+        $this->assertCount(2, array_filter($values, static fn ($v): bool => ! $v->folded));
     }
 
     #[Test]

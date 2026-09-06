@@ -1,1 +1,7 @@
+.claude/settings.local.json
+.phpunit.result.cache
 .playwright-mcp
+/.rector/
+/composer.lock
+/node_modules/
+/vendor/
