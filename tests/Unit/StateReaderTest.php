@@ -127,6 +127,15 @@ final class StateReaderTest extends TestCase
         $this->assertNull($state->sort);
     }
 
+    /** The path a visitor followed is merged in as `pg`, so an explicit one has to win. */
+    #[Test]
+    public function it_reads_the_page_from_the_parameter_it_was_given(): void
+    {
+        $state = $this->reader->read($this->listing, ['pg' => '3']);
+
+        $this->assertSame(3, $state->page);
+    }
+
     #[Test]
     public function it_falls_back_to_the_first_page(): void
     {

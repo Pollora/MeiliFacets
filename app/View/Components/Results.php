@@ -6,7 +6,7 @@ namespace Modules\MeiliFacets\View\Components;
 
 use Illuminate\Contracts\View\View;
 use Modules\MeiliFacets\Enums\ImagePriority;
-use Modules\MeiliFacets\Http\RobotsPolicy;
+use Modules\MeiliFacets\Http\IndexingPolicy;
 use Modules\MeiliFacets\Seo\ItemList;
 
 final class Results extends ListingComponent
@@ -29,7 +29,7 @@ final class Results extends ListingComponent
      */
     public function itemList(): ?ItemList
     {
-        if (app(RobotsPolicy::class)->appliesTo(request()->query())) {
+        if (app(IndexingPolicy::class)->isSecondaryView()) {
             return null;
         }
 

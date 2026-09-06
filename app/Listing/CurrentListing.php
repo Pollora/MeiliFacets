@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Listing;
 
 use Modules\MeiliFacets\Discovery\ListingRegistry;
+use Modules\MeiliFacets\Enums\QueryParameter;
 use Modules\MeiliFacets\Http\Unavailable;
 use Modules\MeiliFacets\Search\ListingSearch;
 use Modules\MeiliFacets\Support\UrlParameters;
@@ -52,10 +53,16 @@ final class CurrentListing
     }
 
     /**
+     * WordPress resolved `/page/N` before the listing was asked anything: the
+     * path is followed when no parameter of our own says otherwise.
+     *
      * @return array<string, mixed>
      */
     private function requestQuery(): array
     {
-        return request()->query();
+        $query = request()->query();
+        $page = $this->parameters->reserved(QueryParameter::Page);
+
+        return isset($query[$page]) ? $query : [...$query, $page => (string) get_query_var('paged')];
     }
 }

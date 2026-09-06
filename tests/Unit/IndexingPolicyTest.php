@@ -4,20 +4,20 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Tests\Unit;
 
-use Modules\MeiliFacets\Http\RobotsPolicy;
+use Modules\MeiliFacets\Http\IndexingPolicy;
 use Modules\MeiliFacets\Support\UrlParameters;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-final class RobotsPolicyTest extends TestCase
+final class IndexingPolicyTest extends TestCase
 {
-    private RobotsPolicy $policy;
+    private IndexingPolicy $policy;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->policy = new RobotsPolicy(new UrlParameters(['product_brand' => 'marque']));
+        $this->policy = new IndexingPolicy(new UrlParameters(['product_brand' => 'marque']));
     }
 
     #[Test]
@@ -38,25 +38,29 @@ final class RobotsPolicyTest extends TestCase
         $this->assertTrue($this->policy->appliesTo(['f_product_cat' => 'coats']));
     }
 
-    /**
-     * A paginated page has to stay indexable: the products it holds have no
-     * other internal link.
-     */
+    /** Nothing links to page 2 since the controls became buttons: it is a duplicate with no reader. */
     #[Test]
-    public function it_leaves_a_page_indexable(): void
+    public function it_covers_a_page_number(): void
     {
-        $this->assertFalse($this->policy->appliesTo(['pg' => '2']));
+        $this->assertTrue($this->policy->appliesTo(['pg' => '2']));
     }
 
-    /**
-     * The reserved names are global, so a campaign link carrying `?q=` must not
-     * take the home page out of the index.
-     */
+    /** The same products in another order, and a search result page. */
     #[Test]
-    public function it_leaves_a_sort_or_a_search_indexable(): void
+    public function it_covers_a_sort_and_a_search(): void
     {
-        $this->assertFalse($this->policy->appliesTo(['sort' => 'price_asc']));
-        $this->assertFalse($this->policy->appliesTo(['q' => 'bonjour']));
+        $this->assertTrue($this->policy->appliesTo(['sort' => 'price_asc']));
+        $this->assertTrue($this->policy->appliesTo(['q' => 'bonjour']));
+    }
+
+    /** A project may rename the reserved parameters; the policy follows the mapping, not the default. */
+    #[Test]
+    public function it_follows_a_renamed_reserved_parameter(): void
+    {
+        $policy = new IndexingPolicy(new UrlParameters([], ['q' => 'recherche']));
+
+        $this->assertTrue($policy->appliesTo(['recherche' => 'bonjour']));
+        $this->assertFalse($policy->appliesTo(['q' => 'bonjour']));
     }
 
     #[Test]
