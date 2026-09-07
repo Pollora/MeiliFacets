@@ -5,7 +5,7 @@
             @unless ($pagination->hasPrevious()) hidden @endunless {{ $hook('previous') }}>
         {{ __('Previous') }}
     </button>
-    @foreach ($pagination->window() as $number)
+    @foreach ($pagination->slots() as $number)
         <button type="button" class="meilifacetsPaginationPage" value="{{ $number }}"
                 @if ($number === null) hidden @endif
                 @if ($number === $pagination->current) aria-current="page" @endif {{ $hook('page') }}>

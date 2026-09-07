@@ -7,14 +7,12 @@ namespace Modules\MeiliFacets\Listing;
 use Modules\MeiliFacets\Discovery\ListingRegistry;
 use Modules\MeiliFacets\Enums\QueryParameter;
 use Modules\MeiliFacets\Http\Unavailable;
+use Modules\MeiliFacets\Search\EngineLimits;
 use Modules\MeiliFacets\Search\ListingSearch;
 use Modules\MeiliFacets\Support\UrlParameters;
 use RuntimeException;
 
-/**
- * One resolved listing per name for the whole request, so components placed
- * anywhere in the template share a single search.
- */
+/** One per name for the whole request: components placed anywhere share a single search. */
 final class CurrentListing
 {
     /** @var array<string, ResolvedListing> */
@@ -27,6 +25,7 @@ final class CurrentListing
         private readonly FacetValues $values,
         private readonly UrlParameters $parameters,
         private readonly Unavailable $unavailable,
+        private readonly EngineLimits $limits,
     ) {}
 
     public function named(string $name): ResolvedListing
@@ -55,12 +54,12 @@ final class CurrentListing
             $this->values,
             $this->parameters,
             $this->unavailable,
+            $this->limits,
         );
     }
 
     /**
-     * WordPress resolved `/page/N` before the listing was asked anything: the
-     * path is followed when no parameter of our own says otherwise.
+     * WordPress resolved `/page/N` before we were asked: the path wins unless a parameter of ours says otherwise.
      *
      * @return array<string, mixed>
      */

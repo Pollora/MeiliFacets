@@ -5,93 +5,62 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Tests\Unit;
 
 use Modules\MeiliFacets\Listing\Pagination;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
+/** Read here and by `tests/js/page-window.test.js`: the two copies answered differently until a shared table said so. */
 final class PaginationTest extends TestCase
 {
+    /** Far above anything these cases count: the engine's own cap is a case of its own. */
+    private const int UNBOUNDED = 1_000_000;
+
+    /**
+     * @param  array<string, mixed>  $case
+     */
+    #[DataProvider('cases')]
+    #[Test]
+    public function it_answers_the_shared_cases(array $case): void
+    {
+        $pagination = new Pagination($case['current'], $case['perPage'], $case['total'], $case['reachable']);
+
+        $this->assertSame(Pagination::SLOTS, $case['slotCount'], 'the shared cases expect another window width');
+        $this->assertSame($case['pages'], $pagination->pages(), 'pages');
+        $this->assertSame($case['resolvedCurrent'], $pagination->current, 'current');
+        $this->assertSame($case['hasPages'], $pagination->hasPages(), 'hasPages');
+        $this->assertSame($case['hasPrevious'], $pagination->hasPrevious(), 'hasPrevious');
+        $this->assertSame($case['hasNext'], $pagination->hasNext(), 'hasNext');
+        $this->assertSame($case['previous'], $pagination->previous(), 'previous');
+        $this->assertSame($case['next'], $pagination->next(), 'next');
+        $this->assertSame($case['slots'], $pagination->slots(), 'slots');
+    }
+
+    /**
+     * @return array<string, array{array<string, mixed>}>
+     */
+    public static function cases(): array
+    {
+        $cases = json_decode((string) file_get_contents(__DIR__.'/../pagination-cases.json'), true);
+        $sets = [];
+
+        foreach ($cases as $case) {
+            $sets[$case['case']] = [$case];
+        }
+
+        return $sets;
+    }
+
     #[Test]
     public function it_offsets_a_page_by_the_ones_before_it(): void
     {
-        $this->assertSame(0, (new Pagination(1, 16, 33))->offset());
-        $this->assertSame(16, (new Pagination(2, 16, 33))->offset());
-        $this->assertSame(32, (new Pagination(3, 16, 33))->offset());
+        $this->assertSame(0, (new Pagination(1, 16, 33, self::UNBOUNDED))->offset());
+        $this->assertSame(16, (new Pagination(2, 16, 33, self::UNBOUNDED))->offset());
+        $this->assertSame(32, (new Pagination(3, 16, 33, self::UNBOUNDED))->offset());
     }
 
     #[Test]
-    public function it_rounds_a_partial_last_page_up(): void
+    public function it_holds_the_window_against_the_last_page(): void
     {
-        $this->assertSame(3, (new Pagination(1, 16, 33))->pages());
-        $this->assertSame(1, (new Pagination(1, 16, 12))->pages());
-    }
-
-    #[Test]
-    public function it_reports_a_single_page_when_nothing_matches(): void
-    {
-        $pagination = new Pagination(1, 16, 0);
-
-        $this->assertSame(0, $pagination->pages());
-        $this->assertFalse($pagination->hasNext());
-        $this->assertFalse($pagination->hasPrevious());
-    }
-
-    #[Test]
-    public function it_never_divides_by_a_page_size_of_zero(): void
-    {
-        $this->assertSame(1, (new Pagination(1, 0, 40))->pages());
-    }
-
-    #[Test]
-    public function it_clamps_the_neighbours_of_the_current_page(): void
-    {
-        $first = new Pagination(1, 16, 40);
-        $last = new Pagination(3, 16, 40);
-
-        $this->assertSame(1, $first->previous());
-        $this->assertSame(2, $first->next());
-        $this->assertSame(3, $last->next());
-        $this->assertFalse($last->hasNext());
-    }
-
-    #[Test]
-    public function it_lists_every_page_when_they_fit_in_the_window(): void
-    {
-        $this->assertSame([1, 2, 3, null, null, null, null], (new Pagination(1, 16, 40))->window());
-    }
-
-    /** A fixed count of slots: the client fills them, it never adds any. */
-    #[Test]
-    public function it_always_offers_the_same_number_of_slots(): void
-    {
-        foreach ([0, 40, 5000] as $total) {
-            $this->assertCount(Pagination::WINDOW, (new Pagination(1, 16, $total))->window());
-        }
-    }
-
-    #[Test]
-    public function it_centres_the_window_on_the_current_page(): void
-    {
-        $this->assertSame([47, 48, 49, 50, 51, 52, 53], (new Pagination(50, 16, 5000))->window());
-    }
-
-    #[Test]
-    public function it_clamps_the_window_at_both_ends(): void
-    {
-        $this->assertSame([1, 2, 3, 4, 5, 6, 7], (new Pagination(1, 16, 5000))->window());
-        $this->assertSame([307, 308, 309, 310, 311, 312, 313], (new Pagination(313, 16, 5000))->window());
-    }
-
-    #[Test]
-    public function it_leaves_the_slots_past_the_last_page_empty(): void
-    {
-        $this->assertSame([1, 2, null, null, null, null, null], (new Pagination(1, 16, 20))->window());
-        $this->assertSame([1, null, null, null, null, null, null], (new Pagination(1, 16, 0))->window());
-    }
-
-    #[Test]
-    public function it_knows_when_there_is_nothing_to_paginate(): void
-    {
-        $this->assertFalse((new Pagination(1, 16, 12))->hasPages());
-        $this->assertTrue((new Pagination(1, 16, 20))->hasPages());
+        $this->assertSame([307, 308, 309, 310, 311, 312, 313], (new Pagination(313, 16, 5000, self::UNBOUNDED))->slots());
     }
 }

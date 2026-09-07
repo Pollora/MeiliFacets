@@ -6,17 +6,31 @@ namespace Modules\MeiliFacets\Listing;
 
 final readonly class Pagination
 {
-    public const int WINDOW = 7;
+    public const int SLOTS = 7;
+
+    /** Never outside the pages that exist: a URL carries whatever a visitor pasted into it. */
+    public int $current;
 
     public function __construct(
-        public int $current,
+        int $current,
         public int $perPage,
         public int $total,
-    ) {}
+        public int $reachable,
+    ) {
+        $this->current = min(
+            max($current, ListingState::FIRST_PAGE),
+            max($this->pages(), ListingState::FIRST_PAGE)
+        );
+    }
 
+    /** Meilisearch answers `200` with no hit past its `maxTotalHits`, while still announcing the pages it refuses. */
     public function pages(): int
     {
-        return $this->perPage > 0 ? (int) ceil($this->total / $this->perPage) : ListingState::FIRST_PAGE;
+        if ($this->perPage <= 0) {
+            return ListingState::FIRST_PAGE;
+        }
+
+        return (int) ceil(min($this->total, $this->reachable) / $this->perPage);
     }
 
     public function offset(): int
@@ -41,7 +55,7 @@ final readonly class Pagination
 
     public function next(): int
     {
-        return min($this->current + 1, $this->pages());
+        return min($this->current + 1, max($this->pages(), ListingState::FIRST_PAGE));
     }
 
     public function hasPages(): bool
@@ -50,14 +64,11 @@ final readonly class Pagination
     }
 
     /**
-     * Slots past the last page stay empty rather than absent: the client fills
-     * them when a filter widens the result set.
-     *
      * @return list<?int>
      */
-    public function window(): array
+    public function slots(): array
     {
-        return array_pad($this->numbers(), self::WINDOW, null);
+        return array_pad($this->numbers(), self::SLOTS, null);
     }
 
     /**
@@ -66,7 +77,7 @@ final readonly class Pagination
     private function numbers(): array
     {
         $last = max($this->pages(), ListingState::FIRST_PAGE);
-        $width = min(self::WINDOW, $last);
+        $width = min(self::SLOTS, $last);
         $first = min(
             max($this->current - intdiv($width, 2), ListingState::FIRST_PAGE),
             $last - $width + 1

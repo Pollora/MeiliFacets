@@ -29,6 +29,7 @@ use Modules\MeiliFacets\Listing\WordPressTermLabels;
 use Modules\MeiliFacets\Listing\WordPressTermScope;
 use Modules\MeiliFacets\Search\BrowserConnection;
 use Modules\MeiliFacets\Search\DisjunctiveFacetCounter;
+use Modules\MeiliFacets\Search\EngineLimits;
 use Modules\MeiliFacets\Search\MeilisearchEngine;
 use Modules\MeiliFacets\Support\UrlParameters;
 use Modules\MeiliFacets\Support\WooCommerce;
@@ -73,6 +74,9 @@ final class MeiliFacetsServiceProvider extends ModuleServiceProvider
         $this->app->scoped(SearchEngine::class, $this->searchEngine(...));
         $this->app->scoped(BrowserConnection::class, $this->browserConnection(...));
         $this->app->scoped(ListingScript::class);
+        $this->app->scoped(EngineLimits::class, fn (): EngineLimits => new EngineLimits(
+            (int) config('meilifacets.engine.reachable_hits', EngineLimits::DEFAULT_REACHABLE_HITS)
+        ));
     }
 
     public function boot(): void
@@ -92,10 +96,7 @@ final class MeiliFacetsServiceProvider extends ModuleServiceProvider
         );
     }
 
-    /**
-     * The only place MeiliScout is reached from: the client and the index name
-     * both come from it, so the module holds one border with the plugin.
-     */
+    /** The only place MeiliScout is reached from: one border with the plugin. */
     private function searchEngine(): SearchEngine
     {
         return new MeilisearchEngine(
@@ -140,10 +141,7 @@ final class MeiliFacetsServiceProvider extends ModuleServiceProvider
         }
     }
 
-    /**
-     * nwidart builds its cascade from config('view.paths'), which Pollora fills
-     * with the theme only afterwards: the theme path is added back here.
-     */
+    /** nwidart builds its cascade from `config('view.paths')`, which Pollora fills with the theme only afterwards. */
     private function letTheThemeOverrideViews(): void
     {
         if (! $this->app->bound(Action::class)) {

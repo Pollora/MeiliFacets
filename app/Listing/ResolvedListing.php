@@ -7,6 +7,7 @@ namespace Modules\MeiliFacets\Listing;
 use Modules\MeiliFacets\Contracts\Listing;
 use Modules\MeiliFacets\Enums\ApplyMode;
 use Modules\MeiliFacets\Http\Unavailable;
+use Modules\MeiliFacets\Search\EngineLimits;
 use Modules\MeiliFacets\Search\FilterExpression;
 use Modules\MeiliFacets\Search\ListingSearch;
 use Modules\MeiliFacets\Search\SearchFailed;
@@ -31,6 +32,7 @@ final class ResolvedListing
         private readonly FacetValues $values,
         private readonly UrlParameters $parameters,
         private readonly Unavailable $unavailable,
+        private readonly EngineLimits $limits,
     ) {}
 
     public function results(): SearchResults
@@ -84,7 +86,12 @@ final class ResolvedListing
 
     public function pagination(): Pagination
     {
-        return $this->pages ??= new Pagination($this->state->page, $this->listing->perPage(), $this->results()->total);
+        return $this->pages ??= new Pagination(
+            $this->state->page,
+            $this->listing->perPage(),
+            $this->results()->total,
+            $this->limits->reachableHits,
+        );
     }
 
     public function parameterFor(string $taxonomy): string
@@ -112,7 +119,6 @@ final class ResolvedListing
         return $this->listing->perPage();
     }
 
-    /** The clauses every query carries, as the engine expects them. */
     public function baseFilter(): string
     {
         return FilterExpression::all($this->listing->baseFilter());
