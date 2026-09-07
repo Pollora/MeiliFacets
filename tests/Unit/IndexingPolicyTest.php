@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Tests\Unit;
 
 use Modules\MeiliFacets\Http\IndexingPolicy;
+use Modules\MeiliFacets\Http\ListingPage;
 use Modules\MeiliFacets\Support\UrlParameters;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -17,7 +18,7 @@ final class IndexingPolicyTest extends TestCase
     {
         parent::setUp();
 
-        $this->policy = new IndexingPolicy(new UrlParameters(['product_brand' => 'marque']));
+        $this->policy = new IndexingPolicy(new UrlParameters(['product_brand' => 'marque']), new ListingPage);
     }
 
     #[Test]
@@ -57,7 +58,7 @@ final class IndexingPolicyTest extends TestCase
     #[Test]
     public function it_follows_a_renamed_reserved_parameter(): void
     {
-        $policy = new IndexingPolicy(new UrlParameters([], ['q' => 'recherche']));
+        $policy = new IndexingPolicy(new UrlParameters([], ['q' => 'recherche']), new ListingPage);
 
         $this->assertTrue($policy->appliesTo(['recherche' => 'bonjour']));
         $this->assertFalse($policy->appliesTo(['q' => 'bonjour']));

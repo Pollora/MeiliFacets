@@ -16,7 +16,7 @@ final readonly class IndexingPolicy
     /** Yoast's own WooCommerce integration filters the shop canonical at 10, after us. */
     private const int AFTER_YOAST_WOOCOMMERCE = 20;
 
-    public function __construct(private UrlParameters $parameters) {}
+    public function __construct(private UrlParameters $parameters, private ListingPage $page) {}
 
     /**
      * @param  array<string, bool>  $robots
@@ -56,13 +56,13 @@ final readonly class IndexingPolicy
     #[Filter('wpseo_next_rel_link')]
     public function dropLinkToTheNextPage(string $link): string
     {
-        return $this->onAListingPage() ? '' : $link;
+        return $this->page->isCurrent() ? '' : $link;
     }
 
     #[Filter('wpseo_prev_rel_link')]
     public function dropLinkToThePreviousPage(string $link): string
     {
-        return $this->onAListingPage() ? '' : $link;
+        return $this->page->isCurrent() ? '' : $link;
     }
 
     /**
@@ -86,21 +86,12 @@ final readonly class IndexingPolicy
 
     /**
      * A view of a listing that is not its bare path: filtered, sorted, searched,
-     * or one of the pages WordPress serves under `/page/N`.
+     * or one of the pages WordPress serves under `/page/N`. The page guard is
+     * what keeps a campaign link carrying `?q=` from deindexing the home page.
      */
     public function isSecondaryView(): bool
     {
-        return $this->onAListingPage() && ($this->appliesTo(request()->query()) || is_paged());
-    }
-
-    /**
-     * Every filter here fires on every page of the site, and the reserved names are
-     * global: without this guard a campaign link carrying `?q=` would take the
-     * home page out of the index.
-     */
-    public function onAListingPage(): bool
-    {
-        return is_archive() || is_search();
+        return $this->page->isCurrent() && ($this->appliesTo(request()->query()) || is_paged());
     }
 
     /**

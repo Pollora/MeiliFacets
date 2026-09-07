@@ -27,6 +27,7 @@ use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\Listing\WordPressDefaultTerms;
 use Modules\MeiliFacets\Listing\WordPressTermLabels;
 use Modules\MeiliFacets\Listing\WordPressTermScope;
+use Modules\MeiliFacets\Search\BrowserConnection;
 use Modules\MeiliFacets\Search\DisjunctiveFacetCounter;
 use Modules\MeiliFacets\Search\MeilisearchEngine;
 use Modules\MeiliFacets\Support\UrlParameters;
@@ -69,6 +70,7 @@ final class MeiliFacetsServiceProvider extends ModuleServiceProvider
             (int) config('meilifacets.card.eager', CardSettings::DEFAULT_EAGER)
         ));
         $this->app->scoped(SearchEngine::class, $this->searchEngine(...));
+        $this->app->scoped(BrowserConnection::class, $this->browserConnection(...));
     }
 
     public function boot(): void
@@ -100,6 +102,15 @@ final class MeiliFacetsServiceProvider extends ModuleServiceProvider
         );
     }
 
+    private function browserConnection(): BrowserConnection
+    {
+        return new BrowserConnection(
+            (string) config('meilifacets.browser.url', ''),
+            (string) config('meilifacets.browser.key', ''),
+            (new PostIndexable)->getIndexName(),
+        );
+    }
+
     /**
      * The two methods below are the only place a plugin reaches the index.
      */
@@ -112,8 +123,6 @@ final class MeiliFacetsServiceProvider extends ModuleServiceProvider
 
     private function defaultCard(): CardProjector
     {
-        // A key declared in the module config would win over the project one, and
-        // config:cache would drop it: overridable settings are read with a default.
         $card = new DefaultCardProjector(
             (string) config('meilifacets.card.image_size', DefaultCardProjector::DEFAULT_IMAGE_SIZE)
         );

@@ -23,7 +23,12 @@
     ],
     "require": {
         "php": "^8.3",
-        "amphibee/meiliscout": "dev-feat/meilifacets"
+        "amphibee/meiliscout": "dev-feat/meilifacets",
+        "illuminate/console": "^12.0 || ^13.0",
+        "illuminate/contracts": "^12.0 || ^13.0",
+        "illuminate/support": "^12.0 || ^13.0",
+        "illuminate/view": "^12.0 || ^13.0",
+        "league/uri": "^7.5"
     },
     "extra": {
         "laravel": {
