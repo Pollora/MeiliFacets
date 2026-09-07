@@ -10,6 +10,6 @@ final class ActiveFilters extends ListingComponent
 {
     public function render(): View
     {
-        return view('meilifacets::components.active-filters');
+        return view('meilifacets::components.active-filters', ['count' => $this->listing->activeFilterCount()]);
     }
 }

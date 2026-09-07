@@ -1,19 +1,18 @@
-@php($choices = $choices())
 @if (count($choices) > 1)
     <div class="meilifacetsSort" {{ $hook('sort') }}>
-        <label class="meilifacetsSortLabel" id="{{ $id() }}-label" for="{{ $id() }}-trigger">
+        <label class="meilifacetsSortLabel" id="{{ $ids->sortLabel() }}" for="{{ $ids->sortTrigger() }}">
             {{ __('Sort by') }}
         </label>
         {{-- Labelled by both, so the name read out is "Sort by, Price, low to high". --}}
-        <button type="button" class="meilifacetsSortTrigger" id="{{ $id() }}-trigger"
+        <button type="button" class="meilifacetsSortTrigger" id="{{ $ids->sortTrigger() }}"
                 role="combobox" aria-haspopup="listbox" aria-expanded="false"
-                aria-controls="{{ $id() }}-list"
-                aria-labelledby="{{ $id() }}-label {{ $id() }}-trigger"
+                aria-controls="{{ $ids->sortList() }}"
+                aria-labelledby="{{ $ids->sortLabel() }} {{ $ids->sortTrigger() }}"
                 {{ $hook('sort-trigger') }}>
-            {{ $selected()->label }}
+            {{ $selected->label }}
         </button>
-        <ul class="meilifacetsSortList" id="{{ $id() }}-list" role="listbox"
-            aria-labelledby="{{ $id() }}-label" hidden {{ $hook('sort-list') }}>
+        <ul class="meilifacetsSortList" id="{{ $ids->sortList() }}" role="listbox"
+            aria-labelledby="{{ $ids->sortLabel() }}" hidden {{ $hook('sort-list') }}>
             @foreach ($choices as $choice)
                 <li class="meilifacetsSortOption" id="{{ $choice->id }}" role="option"
                     data-value="{{ $choice->value }}"

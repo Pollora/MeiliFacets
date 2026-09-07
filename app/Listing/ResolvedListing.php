@@ -16,6 +16,11 @@ final class ResolvedListing
 {
     private ?SearchResults $results = null;
 
+    /** @var list<array<string, mixed>>|null */
+    private ?array $cards = null;
+
+    private ?Pagination $pages = null;
+
     private bool $failed = false;
 
     public function __construct(
@@ -57,7 +62,7 @@ final class ResolvedListing
      */
     public function cards(): array
     {
-        return $this->results()->cards();
+        return $this->cards ??= $this->results()->cards();
     }
 
     /**
@@ -78,7 +83,7 @@ final class ResolvedListing
 
     public function pagination(): Pagination
     {
-        return new Pagination($this->state->page, $this->listing->perPage(), $this->results()->total);
+        return $this->pages ??= new Pagination($this->state->page, $this->listing->perPage(), $this->results()->total);
     }
 
     public function parameterFor(string $taxonomy): string

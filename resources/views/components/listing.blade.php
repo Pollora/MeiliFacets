@@ -1,6 +1,5 @@
-@php($resolved = $listing())
-<div {{ $attributes->class('meilifacets') }} data-listing="{{ $name }}" {{ $contract() }}>
-    @if ($resolved->failed())
+<div {{ $attributes->class('meilifacets') }} data-listing="{{ $name }}" {{ $contract }}>
+    @if ($listing->failed())
         <x-meilifacets::unavailable />
     @else
         {{ $slot }}

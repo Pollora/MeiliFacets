@@ -1,13 +1,12 @@
-@php($resolved = $listing())
-@if ($resolved->failed())
+@if ($listing->failed())
     <x-meilifacets::unavailable />
 @else
-    <p class="meilifacetsResultsEmpty" @unless ($resolved->cards() === []) hidden @endunless {{ $hook('empty') }}>
+    <p class="meilifacetsResultsEmpty" @unless ($cards === []) hidden @endunless {{ $hook('empty') }}>
         {{ __('No results found.') }}
     </p>
 
-    <ul class="meilifacetsResults" @if ($resolved->cards() === []) hidden @endif {{ $hook('results') }}>
-        @foreach ($resolved->cards() as $card)
+    <ul class="meilifacetsResults" @if ($cards === []) hidden @endif {{ $hook('results') }}>
+        @foreach ($cards as $card)
             <li class="meilifacetsResultsItem" {{ $hook('card') }}>
                 <x-meilifacets::card :card="$card" :priority="$priority($loop->index)" />
             </li>
@@ -21,8 +20,6 @@
         </li>
     </template>
 
-    {{-- Null on a page robots are told to skip: nothing structured to publish. --}}
-    @php($items = $itemList())
     @if ($items && ! $items->isEmpty())
         <script type="application/ld+json">{!! $items->toJson() !!}</script>
     @endif

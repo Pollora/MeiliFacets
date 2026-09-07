@@ -5,32 +5,23 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\View\Components;
 
 use Illuminate\Contracts\View\View;
+use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\View\SortChoice;
 use Modules\MeiliFacets\View\SortChoices;
 
 final class Sort extends ListingComponent
 {
-    /** @var list<SortChoice>|null */
-    private ?array $choices = null;
+    /** @var list<SortChoice> */
+    public array $choices;
 
-    /**
-     * @return list<SortChoice>
-     */
-    public function choices(): array
+    public SortChoice $selected;
+
+    public function __construct(CurrentListing $listings, string $name = '')
     {
-        return $this->choices ??= $this->build();
-    }
+        parent::__construct($listings, $name);
 
-    public function selected(): SortChoice
-    {
-        $choices = $this->choices();
-
-        return array_find($choices, fn (SortChoice $choice): bool => $choice->selected) ?? $choices[0];
-    }
-
-    public function id(): string
-    {
-        return $this->ids()->sort();
+        $this->choices = (new SortChoices($this->ids))->of($this->listing->sorts(), $this->listing->currentSort());
+        $this->selected = $this->currentChoice();
     }
 
     public function render(): View
@@ -38,13 +29,9 @@ final class Sort extends ListingComponent
         return view('meilifacets::components.sort');
     }
 
-    /**
-     * @return list<SortChoice>
-     */
-    private function build(): array
+    private function currentChoice(): SortChoice
     {
-        $listing = $this->listing();
-
-        return (new SortChoices($this->id()))->of($listing->sorts(), $listing->currentSort());
+        return array_find($this->choices, static fn (SortChoice $choice): bool => $choice->selected)
+            ?? $this->choices[0];
     }
 }

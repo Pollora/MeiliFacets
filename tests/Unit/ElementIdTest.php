@@ -16,7 +16,8 @@ final class ElementIdTest extends TestCase
     {
         $ids = new ElementId('products');
 
-        $this->assertSame('meilifacets-products-sort', $ids->sort());
+        $this->assertSame('meilifacets-products-sort-trigger', $ids->sortTrigger());
+        $this->assertSame('meilifacets-products-sort-newest', $ids->sortOption('newest'));
         $this->assertSame('meilifacets-products-pa_contenance-100ml', $ids->facetCount('pa_contenance', '100ml'));
     }
 
@@ -24,8 +25,8 @@ final class ElementIdTest extends TestCase
     public function it_keeps_two_listings_apart(): void
     {
         $this->assertNotSame(
-            (new ElementId('products'))->sort(),
-            (new ElementId('articles'))->sort()
+            (new ElementId('products'))->sortList(),
+            (new ElementId('articles'))->sortList()
         );
     }
 }

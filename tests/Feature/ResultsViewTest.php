@@ -13,7 +13,7 @@ use Tests\TestCase;
 
 /**
  * The three states the view must keep apart, and the one it must not assume:
- * itemList() is null on a page robots are told to skip.
+ * `$items` is null on a page robots are told to skip.
  */
 final class ResultsViewTest extends TestCase
 {
@@ -105,31 +105,21 @@ final class ResultsViewTest extends TestCase
      */
     private function render(bool $failed = false, array $cards = [], ?ItemList $items = null): string
     {
-        $resolved = new readonly class($failed, $cards)
+        $resolved = new readonly class($failed)
         {
-            /**
-             * @param  list<array<string, mixed>>  $cards
-             */
-            public function __construct(private bool $failed, private array $cards) {}
+            public function __construct(private bool $failed) {}
 
             public function failed(): bool
             {
                 return $this->failed;
             }
-
-            /**
-             * @return list<array<string, mixed>>
-             */
-            public function cards(): array
-            {
-                return $this->cards;
-            }
         };
 
         // Blade leaves a run of spaces where a conditional attribute was.
         return (string) preg_replace('/\s+/', ' ', view('meilifacets::components.results', [
-            'listing' => fn (): object => $resolved,
-            'itemList' => fn (): ?ItemList => $items,
+            'listing' => $resolved,
+            'cards' => $cards,
+            'items' => $items,
             'hook' => fn (string $name) => Hook::from($name)->attribute(),
             'priority' => fn (): ImagePriority => ImagePriority::Lazy,
         ])->render());

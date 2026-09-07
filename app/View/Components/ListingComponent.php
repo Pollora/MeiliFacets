@@ -10,18 +10,13 @@ use Modules\MeiliFacets\View\ElementId;
 
 abstract class ListingComponent extends ContractComponent
 {
-    public function __construct(
-        private readonly CurrentListing $listings,
-        public string $name = '',
-    ) {}
+    public ResolvedListing $listing;
 
-    public function listing(): ResolvedListing
-    {
-        return $this->name === '' ? $this->listings->sole() : $this->listings->named($this->name);
-    }
+    public ElementId $ids;
 
-    public function ids(): ElementId
+    public function __construct(CurrentListing $listings, public string $name = '')
     {
-        return new ElementId($this->listing()->name());
+        $this->listing = $name === '' ? $listings->sole() : $listings->named($name);
+        $this->ids = new ElementId($this->listing->name());
     }
 }

@@ -10,6 +10,6 @@ final class Pagination extends ListingComponent
 {
     public function render(): View
     {
-        return view('meilifacets::components.pagination');
+        return view('meilifacets::components.pagination', ['pagination' => $this->listing->pagination()]);
     }
 }

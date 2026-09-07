@@ -1,4 +1,3 @@
-@php($pagination = $listing()->pagination())
 {{-- Rendered even with nothing to paginate: the client fills these slots, it adds none. --}}
 <nav class="meilifacetsPagination" aria-label="{{ __('Pagination') }}"
      @unless ($pagination->hasPages()) hidden @endunless {{ $hook('pagination') }}>

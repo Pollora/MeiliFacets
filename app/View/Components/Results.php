@@ -13,33 +13,29 @@ use Modules\MeiliFacets\View\CardSettings;
 
 final class Results extends ListingComponent
 {
+    /** @var list<array<string, mixed>> */
+    public array $cards;
+
+    /** Null on a page search engines are told to skip: nothing structured to publish. */
+    public ?ItemList $items;
+
     public function __construct(
         CurrentListing $listings,
-        private readonly IndexingPolicy $indexing,
-        private readonly CardSettings $cards,
+        IndexingPolicy $indexing,
+        private readonly CardSettings $cardSettings,
         string $name = '',
     ) {
         parent::__construct($listings, $name);
+
+        $this->cards = $this->listing->cards();
+        $this->items = $indexing->isSecondaryView()
+            ? null
+            : new ItemList($this->cards, $this->listing->offset());
     }
 
     public function priority(int $rank): ImagePriority
     {
-        return ImagePriority::forRank($rank, $this->cards->eager);
-    }
-
-    /**
-     * Nothing structured on a page search engines are told to skip — and the
-     * list would go stale as soon as the client filters.
-     */
-    public function itemList(): ?ItemList
-    {
-        if ($this->indexing->isSecondaryView()) {
-            return null;
-        }
-
-        $listing = $this->listing();
-
-        return new ItemList($listing->cards(), $listing->offset());
+        return ImagePriority::forRank($rank, $this->cardSettings->eager);
     }
 
     public function render(): View

@@ -13,7 +13,7 @@ final readonly class SortChoices
 
     private const string DEFAULT_ID = 'default';
 
-    public function __construct(private string $idPrefix) {}
+    public function __construct(private ElementId $ids) {}
 
     /**
      * @param  array<string, Sort>  $sorts
@@ -35,7 +35,7 @@ final readonly class SortChoices
         return new SortChoice(
             $value,
             $label,
-            $this->idPrefix.'-'.($value === self::DEFAULT_VALUE ? self::DEFAULT_ID : $value),
+            $this->ids->sortOption($value === self::DEFAULT_VALUE ? self::DEFAULT_ID : $value),
             $value === ($current ?? self::DEFAULT_VALUE),
         );
     }

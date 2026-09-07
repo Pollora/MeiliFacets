@@ -14,9 +14,24 @@ final readonly class ElementId
 
     public function __construct(private string $listing) {}
 
-    public function sort(): string
+    public function sortLabel(): string
     {
-        return $this->of('sort');
+        return $this->of('sort', 'label');
+    }
+
+    public function sortTrigger(): string
+    {
+        return $this->of('sort', 'trigger');
+    }
+
+    public function sortList(): string
+    {
+        return $this->of('sort', 'list');
+    }
+
+    public function sortOption(string $key): string
+    {
+        return $this->of('sort', $key);
     }
 
     public function facetCount(string $taxonomy, string $value): string

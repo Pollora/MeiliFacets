@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Tests\Unit;
 
 use Modules\MeiliFacets\Listing\Sort;
+use Modules\MeiliFacets\View\ElementId;
 use Modules\MeiliFacets\View\SortChoices;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -15,7 +16,7 @@ final class SortChoicesTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->choices = new SortChoices('meilifacets-products-sort');
+        $this->choices = new SortChoices(new ElementId('products'));
     }
 
     /** Without it, no way back to the engine's own order once a sort is picked. */
