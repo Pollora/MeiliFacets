@@ -3,9 +3,11 @@
 Recherche à facettes sur Meilisearch pour les projets Pollora. Le module indexe, interroge et
 rend ; il ne déclare aucune route et n'intercepte aucune requête WordPress.
 
-- **[Réglages et points d'extension](../../docs/meilifacets/configuration.md)** — tout ce qui est
-  surchargeable, et ce qui ne l'est pas. La documentation vit dans `docs/meilifacets/` du projet ;
-  son rapatriement dans le module est prévu au lot 7.
+- **[Réglages et points d'extension](docs/configuration.md)** — tout ce qui est
+  surchargeable, et ce qui ne l'est pas. Le reste de la documentation est dans `docs/` :
+  [architecture](docs/architecture.md), [installation](docs/installation.md),
+  [décisions](docs/decisions.md), [constats techniques](docs/pieges.md),
+  [découpage en lots](docs/lots.md) et le [registre de revue](docs/revue.md).
 
 ## Installer
 
@@ -58,7 +60,7 @@ automatiquement, il n'y a rien à enregistrer.
 
 **La clé de recherche part dans le navigateur.** Le module ne laisse donc lire que les champs
 qu'il utilise — `ID` et `card`. Un projet qui a besoin d'autres champs les déclare, et `'*'`
-rouvre le document entier ; voir [Ce que la clé de recherche peut lire](../../docs/meilifacets/configuration.md).
+rouvre le document entier ; voir [Ce que la clé de recherche peut lire](docs/configuration.md).
 
 **Un nom de paramètre d'URL peut entrer en collision** avec une query var WordPress ou être effacé
 par un proxy. `php artisan meilifacets:check-parameters` le vérifie avant que ça ne se voie en
@@ -77,7 +79,7 @@ copier : les vues laissées de côté continuent de suivre les mises à jour du 
 appartiennent au thème ; ces attributs sont ce que le client adresse. S'il en manque un, ou si la
 version du contrat portée par la racine ne correspond plus à la sienne, le client **ne démarre
 pas** : la page reste celle du serveur et la console nomme ce qui manque. Le tableau des crochets
-est dans [architecture.md](../../docs/meilifacets/architecture.md).
+est dans [architecture.md](docs/architecture.md).
 
 ## Tests
 

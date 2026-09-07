@@ -3,7 +3,7 @@
 A generic Pollora module. Pluralia is its test bed, not its owner: the module carries behaviour,
 the theme carries appearance, and every view stays overridable.
 
-**The register is `../../docs/meilifacets/revue.md`.** Every decision (`D-xx`), finding (`R-xx`),
+**The register is `docs/revue.md`.** Every decision (`D-xx`), finding (`R-xx`),
 question (`Q-xx`) and task (`T-xx`) has a stable number. Cite them; never restate their content
 here.
 
@@ -133,6 +133,9 @@ A point is closed when all of these are true, and not before:
 - [ ] `ddev exec vendor/bin/phpunit --testsuite Modules` is green from the project root — this is
       the only way to run the `Feature` tests, which render Blade and need an application;
 - [ ] the behaviour is covered by a test — a change with no test is a change that will regress;
+- [ ] the page was fetched, and opened in a browser when JavaScript changed. A green suite is not a
+      standing site: the standalone suite does not cover the view layer, and four `500` outages went
+      through it during the September review;
 - [ ] the register entry is updated: state, date, and what was observed rather than « done »;
 - [ ] any decision taken along the way is written in `decisions.md`, with its date and its cost.
 

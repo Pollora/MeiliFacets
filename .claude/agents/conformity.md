@@ -10,13 +10,13 @@ been decided, and where does it belong in the register?**
 
 ## Sources, in this order of authority
 
-1. `../../docs/meilifacets/revue.md` — the running register. Section 0 holds the decisions taken
+1. `docs/revue.md` — the running register. Section 0 holds the decisions taken
    in review (`D-xx`); the rest holds findings (`R-xx`), questions (`Q-xx`) and tasks (`T-xx`).
    A `D` entry outranks everything below it.
-2. `../../docs/meilifacets/decisions.md` — the « Validées » table is binding. « En attente de
+2. `docs/decisions.md` — the « Validées » table is binding. « En attente de
    validation » is not: a request touching one of those is a decision to take, not a rule to obey.
    « Dettes » is context.
-3. `../../docs/meilifacets/architecture.md` and `configuration.md` — what the module promises.
+3. `docs/architecture.md` and `configuration.md` — what the module promises.
 4. `CLAUDE.md` at the module root — how the work is done.
 5. The code itself. **Read it before trusting any document**: several statements in these files
    have already been found stale, and the register says which.

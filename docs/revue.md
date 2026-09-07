@@ -1,0 +1,2102 @@
+# MeiliFacets — revue de projet
+
+Voir aussi : [installation.md](installation.md) · [architecture.md](architecture.md) · [configuration.md](configuration.md) · [lots.md](lots.md) · [pieges.md](pieges.md) · [decisions.md](decisions.md)
+
+Registre de revue. Chaque entrée porte un identifiant stable — **R** constat, **Q** question
+ouverte, **T** tâche, **I** idée — une date d'ouverture et un état. **Une entrée ne se supprime
+pas : elle se ferme**, avec la date et la raison. C'est ce qui permet de reprendre point par point
+sans reperdre le fil.
+
+| Gravité | Sens |
+| --- | --- |
+| 🔴 | bloque la mise en production ou rend une promesse du module fausse |
+| 🟠 | défaut réel, corrigeable sans tout reprendre |
+| 🟡 | à surveiller, ou dette assumée à réexaminer |
+| ⚪ | cosmétique, résidu |
+
+| État | Sens |
+| --- | --- |
+| ouvert | rien de décidé |
+| à trancher | attend une décision (voir la question liée) |
+| accepté | on assume, avec la raison écrite |
+| fermé | corrigé ou sans objet |
+
+**Vérifié** signale ce qui a été mesuré pendant la revue du 2026-09-06, avec le moyen. Le reste est
+une lecture de code, signalée comme telle.
+
+---
+
+## Synthèse au 2026-09-06
+
+Le socle est solide et le niveau d'exigence du code est réel : typage complet, unités pures et
+testables, séparation indexation / recherche / rendu qui tient, 121 tests PHP et 49 tests Node qui
+passent (vérifié : `vendor/bin/phpunit --testsuite Modules`, `npm test`).
+
+Trois écarts expliquent l'impression de dispersion.
+
+**1. Le module publie une bibliothèque, pas un comportement.** Sept fichiers ES sont livrés dans
+`public/modules/meilifacets/js/`, aucun n'est chargé par une page — vérifié sur `/boutique`, seule
+la feuille de style est inscrite. `Contract` n'est instancié nulle part, `Listing.onBack()` n'est
+appelé par personne, aucun PHP ne transmet au navigateur ni la connexion (`MEILI_PUBLIC_URL`,
+`MEILI_SEARCH_KEY`) ni la description du listing qu'attendent `ListingQuery` et `ListingUrl`. Le
+lot 3c a produit les pièces sans jamais produire l'assemblage, et le document `lots.md` le dit
+lui-même (« écrit, jamais exécuté »).
+
+**2. Le socle serveur a des défauts qu'aucun client ne rattrapera.** Une facette mono-sélection est
+une porte à sens unique (R-10, vérifié en HTTP), la facette catégorie est plate sur une taxonomie à
+trois niveaux (R-11, vérifié), les valeurs repliées n'ont aucun bouton pour se déplier (R-46), et
+rien ne réindexe quand un terme change de nom, de slug ou de parent (R-12). Ce sont des questions
+de conception, pas de JavaScript.
+
+**3. La documentation a pris de l'avance sur le code.** 1 683 lignes réparties sur six fichiers,
+plus longues que le code applicatif, hors du module, et déjà fausses sur au moins quatre points
+(R-35). Écrire la décision avant de la vérifier a produit un corpus qu'il faut désormais auditer
+comme du code.
+
+Un point d'attention qui n'est écrit nulle part : **le transport direct navigateur → moteur rend
+cosmétique tout filtre de sécurité posé côté serveur** (R-28). `post_status = "publish"` sera une
+chaîne dans une requête que le visiteur contrôle.
+
+Aucun de ces points ne remet en cause l'architecture. Le découpage en sept lots reste bon ; c'est
+l'ordre à l'intérieur du lot 3 qui a été pris à l'envers — le contrat de liaison a été livré avant
+que le rendu qu'il contractualise soit juste.
+
+---
+
+## 0. Décisions prises pendant la revue — 2026-09-06
+
+Quatre réponses données en séance. Elles ferment ou réorientent les questions citées.
+
+### D-01 — Module du framework Pollora, en construction ; Pluralia est le banc d'essai
+
+*Répond à Q-01, oriente Q-04, Q-07, Q-13, Q-14.*
+
+MeiliFacets est un **module Pollora générique**, écrit pour de futurs projets. Pluralia sert de
+terrain d'essai à la conception, pas de destinataire final. La règle de partage est confirmée et
+précisée :
+
+- **le module porte le fonctionnement** — indexation, recherche, état, contrat, comportement ;
+- **le thème porte l'apparence**, et chaque vue de facette doit rester surchargeable ;
+- **le module livre malgré tout une feuille de style minimale**, limitée à ce qui ne fonctionne pas
+  sans elle — le premier cas nommé étant la liste déroulante de tri.
+
+Ce dernier point est nouveau et contredit `architecture.md`, qui écrit aujourd'hui : « le module ne
+pose **aucun style** : ni positionnement, ni liste sans puces ». Précision apportée en séance : la
+feuille n'est pas oubliée, elle est **en cours de production** — la revue a été demandée avant de
+la produire, précisément pour repartir sur une base plus conventionnée. Voir R-53, qui porte donc
+sur la règle à écrire, pas sur un manquement.
+
+Conséquence sur Q-14 : le contrat `data-meili` **est justifié** — la surcharge par le thème est une
+exigence, pas une hypothèse. La question devient « comment le vérifier sans coûter cher », pas
+« faut-il le garder ».
+
+Conséquence sur Q-07 : `ProductListing` peut rester dans le module tant qu'il est réellement
+conditionnel. R-09 passe donc de « à trancher » à « à corriger ».
+
+### D-02 — Le module vit dans son propre dépôt : `Pollora/MeiliFacets` (privé)
+
+*Répond à Q-02, ferme partiellement R-38.*
+
+Le dépôt imbriqué est **voulu** : il sépare le code du module de celui du projet. Vérifié —
+`origin` pointe sur `git@github.com:Pollora/MeiliFacets.git`. La manière dont Pollora versionne ses
+modules (paquet Composer, submodule, autre) se décidera plus tard, quand le module sera stabilisé.
+
+Ce qui reste ouvert, et qu'il faut garder en tête : **rien ne relie aujourd'hui une révision du
+projet à une révision du module**. Tant que c'est le cas, « ce qui est déployé » n'est pas une
+information disponible. À rouvrir avant la première mise en production, pas avant.
+
+### D-03 — Fondations d'abord, un point à la fois
+
+*Répond à Q-04.*
+
+Méthode retenue, dans les mots du projet : « préparer des fondations très solides, se focaliser
+point par point, valider la fondation, puis feature par feature. Trop de choses en même temps crée
+de la confusion, de la dette technique sur du code oublié, une méthode faite à moitié, non
+documentée, puis oubliée. »
+
+Traduction opérationnelle :
+
+1. le chantier B (socle serveur juste) passe **avant** le chantier C (client) ;
+2. **un point à la fois** — une entrée R ouverte, discutée, corrigée, testée, documentée, fermée,
+   avant d'ouvrir la suivante ;
+3. rien n'est marqué « livré » sans une observation vérifiable, comme le veut déjà `lots.md`.
+
+C'est aussi la raison d'être de ce registre : il n'existe que pour qu'un point commencé se termine.
+
+### D-06 — Le module se vérifie sans hôte, et assume le seul couplage global qui l'en empêchait
+
+*Décidé le 2026-09-06, dans le cadre de T-38.*
+
+`SortChoices` appelle `__('Relevance')`. Hors d'un hôte, cette fonction globale n'existe pas et
+quatre tests tombent. Trois issues étaient possibles : sortir ces tests de la suite autonome,
+injecter un vrai traducteur, ou déclarer un `__()` de repli dans le bootstrap de test.
+
+**Retenu : le repli dans `tests/bootstrap.php`**, derrière `if (! function_exists('__'))` — c'est
+la garde qu'emploie `pollora/helper-overrider` lui-même (`vendor/pollora/helper-overrider/src/helpers.php:29`),
+avec sa signature exacte, `(string $key, array|string $replace = [], ?string $locale = null)`. Une
+version antérieure inventait une signature à deux paramètres : corrigée.
+
+**Aucun précédent dans le projet, vérifié le 2026-09-06.** `Modules/Wishlist` ne pouvait pas
+servir de modèle : il n'a **aucun test** (`tests/Unit` et `tests/Feature` ne contiennent qu'un
+`.gitkeep`), aucun outil, et son `composer.json` est resté le squelette de nwidart —
+`"name": "nwidart/wishlist"`, auteur « Nicolas Widart ». Le plugin `pluralia-fulfillments`, lui,
+fait le choix inverse : ses dix tests vivent dans `tests/Feature/Fulfillments/` **du projet**,
+étendent `Tests\TestCase`, et tournent donc dans une application bootée où `__()` est le vrai. Il
+n'a aucun outillage propre.
+
+MeiliFacets est donc **le premier composant de ce projet à viser une vérification autonome**. Il
+n'y avait pas de convention à suivre : il y en a une à poser.
+
+Limite acceptée : le repli renvoie sa clé sans appliquer de remplacement. Aucun `__()` du module ne
+passe aujourd'hui de placeholder — `trans_choice()` est employé pour les pluriels, et son seul
+appel est dans `Facets`, qui relève de la suite `Feature`. Le jour où un test autonome portera sur
+une chaîne à placeholder, c'est I-10 qu'il faudra ouvrir, pas étendre le repli à l'aveugle.
+
+### D-07 — La catégorie reste une facette, mais contextuelle : `ChildTermsFacet`
+
+*Décidé et livré le 2026-09-06, sur maquette cliente.*
+
+La maquette d'une page de catégorie produit montre, sous le titre du rayon, une bande de pastilles
+portant **les sous-catégories du rayon courant** — sur « Visage » : Démaquillants, Lotions,
+Gommages, Sérums… Une seule apparaît active. Suivent un panneau repliable « Affiner la sélection »
+contenant les autres facettes, un compteur « Filtres appliqués : 1 », « Annuler la sélection » et
+« Trier par ».
+
+**Ce que ça tranche.** La catégorie **reste une facette** — l'option « navigation par liens » est
+écartée. Mais elle cesse d'être une liste plate : ses valeurs sont **les enfants directs du terme
+sur lequel on se trouve**, jamais la distribution globale. C'est ce qui rend 81 rayons utilisables
+sans plafond ni ordre d'affichage : on n'en montre que le niveau courant. R-11 se referme par la
+forme.
+
+**Nom retenu : `ChildTermsFacet`** — d'après le comportement, pas d'après l'apparence. Le module ne
+sait pas que ce sont des pastilles, comme il ne sait pas aujourd'hui que « Marque » est une colonne
+de cases à cocher. Le mécanisme est générique : il vaut pour `category` sur des articles ou pour
+la taxonomie d'un CPT, pas seulement pour `product_cat`. **Un listing ne mélange jamais les types
+de contenu** : une page, un type, une taxonomie.
+
+**Décision renversée.** `decisions.md` porte « Facette catégorie sur une archive de catégorie :
+retirée — le rayon est déjà porté par le chemin », appliquée dans `ProductListing::facets()` par un
+`is_tax()`. C'est l'inverse de ce qu'il faut : sur une archive de catégorie, la facette ne
+disparaît pas, elle **se restreint au niveau courant**.
+
+**Ce que la maquette ferme au passage :** R-47 — « Filtres appliqués : 1 » est bien un compteur, pas
+des puces retirables, donc `<x-meilifacets::active-filters>` fait déjà ce qu'il faut. Et R-46 /
+R-48 trouvent leur forme dans le panneau « Affiner la sélection ».
+
+**Tranché ensuite le même jour :** la facette ne montre **rien** sur un terme sans enfants — le
+déplacement latéral relève d'un fil d'Ariane, pas d'un contrôle qui par ailleurs restreint, et
+frères et multi-sélection sont de toute façon incompatibles (on ne restreint pas à « Sérums +
+Crèmes » quand on *est* dans Sérums). Elle est **multi-sélection** : « Démaquillants + Lotions » est
+une demande évidente, c'est cohérent avec les autres facettes, et ça règle la désélection sans
+mécanisme dédié. Et l'URL reste une **query var sur le chemin courant** — ce que le multi impose,
+un chemin ne pouvant porter qu'un rayon.
+
+Le doublon assumé : `/visage?categorie=demaquillants` sert le même contenu que
+`/categorie-produit/visage/demaquillants/`. Sans effet SEO, la version filtrée étant en `noindex`.
+
+#### Livré le 2026-09-06
+
+`Facet` cesse d'être `final` et ouvre un seul point de variation, `within()`, qui décide des valeurs
+qu'une facette peut montrer parmi celles que le moteur a renvoyées — par défaut, toutes.
+`ChildTermsFacet` le surcharge et ne garde que les enfants du terme courant, lus par un contrat
+`TermScope` mémoïsé par taxonomie : **une requête de termes par listing**, quel que soit le nombre
+de facettes. `Facet` reste sans WordPress, donc testable.
+
+Mesuré en HTTP :
+
+| | Avant | Après |
+| --- | --- | --- |
+| `/boutique` | 30 valeurs, 10 atteignables, trois niveaux mêlés | **6**, le niveau 0, toutes atteignables |
+| `/categorie-produit/cheveux` | 21 valeurs co-occurrentes, mono, radio indécochable | **5 enfants de « cheveux »**, cases à cocher |
+| catégorie feuille (`ampoules-cures`) | — | **facette masquée**, 1 produit |
+| multi-sélection | impossible | visage 16 → `soins-visage` 9 → `soins-visage,soleil` **10** |
+
+Le plafond de 30 et l'ordre d'affichage cessent d'avoir de l'importance : une douzaine de frères
+n'ont besoin ni de l'un ni de l'autre. **R-11 est fermé par la forme**, pas par un réglage.
+
+115 tests dans le module, 133 dans le projet. Robots et canoniques inchangés.
+
+### D-08 — Pas d'estimation sans mesure : on produit, on mesure ensuite
+
+*Décidé le 2026-09-07, en réponse à Q-29.*
+
+Aucun arbitrage de performance ne se prend sur une extrapolation. On livre, on mesure sur le
+catalogue réel, on décide ensuite.
+
+Ce que la mesure du 2026-09-07 a déjà donné, sur `/boutique` en local (76 produits) :
+
+| | Temps |
+| --- | --- |
+| Le moteur seul, `multi-search` complet avec facettes | **3 ms** |
+| `/boutique`, page entière | ~350 ms |
+| `/`, accueil sans aucun listing | ~410 ms |
+
+Le moteur pèse **1 %** de la page, et la page de listing n'est pas plus lente que les autres — elle
+est même plus rapide que l'accueil. Le listing n'est pas un point chaud ; le coût est WordPress, les
+plugins et le thème.
+
+Conséquence directe sur le reste-à-faire : le client JavaScript ne rendra pas le premier rendu plus
+rapide. Il transformera **un rechargement de 350 ms en un appel moteur de 3 ms** sur chaque filtre,
+chaque tri, chaque page. C'est là qu'est le facteur cent.
+
+**Q-29 est fermée** par cette décision, et **Q-30** (alléger la requête principale de l'archive)
+avec elle : ce chiffre est local, sur 76 produits, sans cache d'opcode représentatif. Il ne dit rien
+de la production. Les deux se rouvriront quand un catalogue réel sera disponible en local.
+
+### D-09 — Le client est écrit en JavaScript moderne, vérifié par des outils
+
+*Décidé et appliqué le 2026-09-07, lot 3c-1.*
+
+Les sept fichiers livrés au lot 2 n'avaient jamais été recettés. Revus, ils tenaient sur le style —
+champs privés, injection par constructeur, `AbortController` — et pas sur la conception. Ce qui a
+changé :
+
+| | Avant | Après |
+| --- | --- | --- |
+| État | public, muté sur place | `ListingState` **immuable**, chaque geste rend un état neuf |
+| Abonnement | un rappel `onBack(repaint)` | `Listing extends EventTarget`, événements `change` / `results` / `failed` |
+| Annulation | `setTimeout` + `clearTimeout` à la main | `AbortSignal.any([controller, AbortSignal.timeout()])` |
+| Fin de recherche | `null` pour « annulé » **et** « rien » | `SearchSuperseded` et `SearchError`, distinctes |
+| Typage | aucun | JSDoc + `jsconfig.json` (`checkJs`), le contrat PHP↔JS en `@typedef` |
+| Outillage | aucun | **ESLint**, dans `composer check` |
+
+**Pas de TypeScript**, décision inchangée : JSDoc avec `checkJs` donne la vérification dans
+l'éditeur sans build ni coût d'exécution. Une vérification en CI demanderait `typescript` en
+dépendance de développement ; à rouvrir si le besoin apparaît.
+
+**ESLint a payé immédiatement** : il a trouvé deux imports d'exécution qui n'existaient que pour le
+typage — le navigateur téléchargeait des modules dont il n'avait pas besoin — que l'audit manuel
+avait laissés passer.
+
+**Le passage des données** utilise l'API officielle de WordPress 6.9,
+`wp_enqueue_script_module()` et le filtre `script_module_data_{id}`. Trois avantages sur un
+`type="module"` forcé : c'est la convention du cœur, les données **ne vivent pas dans une vue** que
+le thème pourrait supprimer, et un module ES étant différé, le JSON est présent avant l'exécution.
+
+### D-05 — La méthode de livraison est outillée, pas seulement écrite
+
+*Décidé le 2026-09-06, en réponse à une constatation mesurée.*
+
+Constat qui a déclenché la décision : la règle sur les commentaires **existait déjà** dans le
+`CLAUDE.md` du module, formulée sans ambiguïté (« a comment that … justifies a design choice … is
+deleted »), et elle a été enfreinte une trentaine de fois. Mesure du 2026-09-06 : 148 blocs PHPDoc
+pour ~2 200 lignes applicatives, dont 91 de pur `@param`/`@return` et 57 porteurs de prose — la
+majorité de ces derniers justifiant un choix de conception. Second cas : `@return list<string>`
+écrit **12 fois** pour trois informations (`IndexAttributes` et ses trois implémentations).
+
+Deux enseignements, distincts :
+
+1. **Une règle enfreinte trente fois n'est pas une règle à réécrire, c'est une règle que personne
+   ne vérifie.** Écrire mieux ne changera rien ; il faut un moment de vérification.
+2. **Une règle peut aussi avoir un trou** : celle sur PHPDoc autorise les génériques de tableau
+   sans dire qu'ils s'écrivent une fois, sur l'interface. Là, c'est bien le texte qu'il faut
+   compléter.
+
+Ce qui est mis en place, par fiabilité décroissante :
+
+| Levier | Se déclenche | Où |
+| --- | --- | --- |
+| **Hook** — `composer check` | toujours, sans intervention | **posé** le 2026-09-06 dans `.claude/settings.json` du module : `cd "$CLAUDE_PROJECT_DIR" && composer check`, versionné parce qu'il ne porte aucun chemin machine |
+| **`CLAUDE.md` du module** | chargé à chaque session | réécrit le 2026-09-06 |
+| **Sous-agent `conformity`** | avant d'écrire, sur invocation | `.claude/agents/conformity.md` |
+| **Sous-agent `module-review`** | avant de rendre, sur invocation | `.claude/agents/module-review.md` |
+
+`CLAUDE.md` gagne quatre choses qu'il n'avait pas : une **passe de conformité avant d'écrire**
+(la demande contredit-elle une décision ? sous quelle entrée du registre travaille-t-on ?), la
+règle PHPDoc complétée, une **définition de « fini »** cochable, et une liste de ce qui ne se fait
+jamais sans accord.
+
+Écarté volontairement : un *skill* de livraison. Il aurait fait une quatrième copie des mêmes
+règles, donc une quatrième à tenir en phase — exactement le défaut relevé en R-25 entre `Hook` et
+`contract.js`.
+
+Réserve à garder en tête : un sous-agent ne s'exécute que si on l'invoque, et ses constats ne
+valent que s'ils sont traités. `CLAUDE.md` dit désormais qu'un constat rapporté doit être **corrigé
+ou refusé par écrit** — un constat ni corrigé ni répondu est précisément le mode de défaillance que
+tout ceci cherche à empêcher.
+
+### D-04 — Le but premier est de sortir le listing du coût de WordPress
+
+*Précise le cadrage ; laisse Q-03 ouverte, reformulée.*
+
+Rappel du besoin d'origine, tel que redit en séance : sur un listing à gros volume, charger
+WordPress à chaque requête coûte plusieurs secondes là où Meilisearch répond en quelques
+millisecondes. Le module existe pour supprimer ce coût.
+
+Ce cadrage n'est **pas** la même question que Q-03 (à qui l'on fait confiance pour construire le
+filtre). Les deux sont traitées séparément : Q-03 est reformulée ci-dessous, et le cadrage lui-même
+ouvre R-54 — parce qu'il n'est aujourd'hui tenu qu'à moitié.
+
+---
+
+## 1. Constats — architecture et conception
+
+### R-01 · 🟠 · ouvert · 2026-09-06 — `QueryPlan` est une classe qui a perdu son constructeur
+
+`QueryPlan::results($listing, $state)`, `QueryPlan::counting($listing, $state, $facet)`,
+`QueryPlan::isCountedApart($facet, $state)`, `QueryPlan::facetClauses($listing, $state, $except)` :
+quatre méthodes statiques qui reçoivent le même contexte à chaque appel. C'est mot pour mot ce que
+le `CLAUDE.md` du module interdit — « une fonction qui prend le même contexte à chaque appel est
+une méthode qui a perdu sa classe ». Un `QueryPlan` construit avec `(Listing, ListingState)`
+supprime le passage de paramètres, permet de mémoïser `facets()` (voir R-07) et rend le plan
+injectable.
+
+Même remarque, moins grave, pour `PageSize` (deux statiques sans état) et `FacetProjection` (une
+statique pure — acceptable). `FilterExpression` est une vraie façade de fonctions pures, elle peut
+rester ainsi.
+
+### R-02 · 🟠 · ouvert · 2026-09-06 — le plan de requête circule en tableau non typé, avec des clés littérales
+
+Entre `QueryPlan`, `FacetCounter`, `SearchEngine::multiSearch()` et
+`MeilisearchEngine::toSearchQuery()`, le plan est un `array<string, mixed>` dont les clés sont des
+chaînes en dur : `'q'`, `'filter'`, `'facets'`, `'sort'`, `'hitsPerPage'`, `'page'`,
+`'attributesToRetrieve'`. Deux règles du module tombent en même temps : « pas de chaînes
+littérales » et « typage complet ». `MeilisearchEngine::apply()` en est le symptôme — un `match`
+sur un nom d'option, avec un `default` qui suppose `attributesToRetrieve`.
+
+Un objet `SearchRequest` (readonly, avec un `toArray()` et un `fromArray()`) fermerait l'ensemble
+et donnerait au passage la forme sérialisable dont le client JavaScript a besoin (voir I-01).
+
+### R-03 · ⚪ · ouvert · 2026-09-06 — `Contract` n'est pas une énumération et vit dans `app/Enums/`
+
+`Modules\MeiliFacets\Enums\Contract` est une `final readonly class`. Elle appartient à
+`app/View/` ou à un `app/Contract/` dédié, avec `Hook`.
+
+### R-04 · 🟡 · ouvert · 2026-09-06 — service locator dans les composants Blade
+
+`ListingComponent::listing()` fait `app(CurrentListing::class)` et `Results::itemList()` fait
+`app(RobotsPolicy::class)`. Les composants Blade de Laravel résolvent depuis le conteneur tout
+paramètre de constructeur qui n'est pas passé en attribut : l'injection est disponible, elle n'est
+pas utilisée. Effet direct : ces deux composants ne se testent qu'avec une application bootée.
+
+### R-05 · 🟠 · ouvert · 2026-09-06 — la configuration est lue depuis les objets de domaine
+
+`ApplyMode::fromConfig()`, `UrlParameters::fromConfig()`, `Results::eagerCards()`,
+`ProductListing::applyMode()`, `Card` (rien) : quatre points où `config()` est appelé depuis un
+objet qui n'a rien à voir avec le conteneur. Une énumération qui lit la configuration est une
+dépendance globale déguisée en valeur.
+
+Le contournement du piège nwidart (ne rien déclarer dans `config/config.php`, lire le défaut dans
+le code) est juste — c'est **l'endroit** de la lecture qui est discutable. Le provider est le seul
+qui devrait lire `config()`, comme il le fait déjà bien pour `DefaultCardProjector`.
+
+### R-06 · 🟠 · ouvert · 2026-09-06 — le contrat `Listing` mélange déclaration et résolution
+
+`name()`, `facets()`, `sorts()` déclarent. `baseFilter()` appelle `is_tax()` et
+`get_queried_object()`, `perPage()` appelle WooCommerce, `applyMode()` lit la configuration : trois
+méthodes dépendent de la requête en cours. L'instance est pourtant construite une fois au `boot()`
+et conservée dans le registre.
+
+Ça fonctionne — les méthodes sont appelées tard — mais rien dans l'interface ne dit qu'elles
+doivent être idempotentes, bon marché et sûres à appeler avant que WordPress ait résolu sa requête.
+Un implémenteur tiers qui mettrait un état en cache dans son constructeur se ferait piéger sans
+avertissement.
+
+Piste : séparer `Listing` (déclaratif, sans WordPress) d'un `ListingContext` résolu par requête, ou
+au minimum documenter le contrat temporel dans l'interface.
+
+### R-07 · 🟠 · ouvert · 2026-09-06 — `facets()` est appelée six fois par requête, sans mémoïsation
+
+Sites d'appel relevés en lecture, pour un seul rendu : `StateReader::facets()`,
+`QueryPlan::fieldsCountedOnMain()`, `QueryPlan::facetClauses()` (une fois pour la requête
+principale, plus une par facette comptée à part), `DisjunctiveFacetCounter::queries()`,
+`ListingSearch::distributions()`, et la vue `facets.blade.php`. Chaque appel de
+`ProductListing::facets()` refait un `is_tax()`, trois `__()` et trois `new Facet`. `sorts()` :
+trois sites.
+
+Rien de dramatique en volume absolu, mais c'est la règle « compter les appels, pas les lignes » du
+`CLAUDE.md` du module qui n'est pas tenue par le module lui-même. Une mémoïsation dans
+`ResolvedListing` (ou dans le `QueryPlan` de R-01) supprime le problème et le rend impossible à
+réintroduire.
+
+### R-08 · 🟡 · ouvert · 2026-09-06 — le provider fait six choses
+
+`MeiliFacetsServiceProvider` porte les bindings, l'enregistrement des listings, la déclaration de
+la discovery, la cascade de vues du thème, la publication des assets et les commandes. 147 lignes,
+lisibles, mais c'est le fichier que personne n'ose plus toucher. Trois providers (bindings,
+listings, vues/assets) coûteraient moins cher à faire évoluer.
+
+---
+
+## 2. Constats — correction
+
+### R-09 · 🟠 · **fermé le 2026-09-06** · ouvert le 2026-09-06 — la garde WooCommerce sur `ProductListing` était inopérante
+
+`MeiliFacetsServiceProvider::registerListings()` n'ajoute `ProductListing` au registre que si
+WooCommerce est actif. Mais `ListingDiscovery::apply()` instancie **toute** classe implémentant
+`Listing` trouvée dans les emplacements scannés, `ProductListing` comprise, sans aucune garde.
+
+**Vérifié le 2026-09-06** : une classe jetable implémentant `Listing`, posée dans `app/Tmp/` puis
+dans `Modules/MeiliFacets/app/Tmp/`, apparaît dans le registre après `discovery:clear`
+(`listings: [products, probe-module]`). La découverte fonctionne donc bien — et elle enregistre
+`ProductListing` par un second chemin, non gardé.
+
+Conséquence sur un projet Pollora sans WooCommerce : le listing `products` existe, et
+`perPage()` appelle `wc_get_default_products_per_row()` — fonction absente, `Error` fatale au
+rendu. Le `catch (Throwable)` de `apply()` ne protège que la construction, pas les appels
+ultérieurs. La promesse « listing produit livré **quand WooCommerce est actif** » est fausse telle
+qu'écrite.
+
+**Fermé le 2026-09-06, sans toucher au contrat.** `ListingDiscovery::apply()` portait déjà la
+couture — « a listing whose dependencies cannot be built is skipped » — mais `ProductListing` ne
+déclarait pas sa dépendance : il se construisait sans rien demander puis échouait plus tard sur
+`wc_get_default_products_per_row()`, hors du `catch`. Son constructeur refuse désormais de se
+construire sans WooCommerce, et la couture existante fait son travail.
+
+L'enregistrement explicite du provider a été retiré dans la foulée : il faisait double emploi avec
+la découverte, vérifiée fonctionnelle (R-31). Un seul chemin, gardé. Vérifié après
+`discovery:clear` : `/boutique` rend toujours 16 produits, `?categorie=cheveux` 14, une archive de
+catégorie 14.
+
+Ajouter `Listing::isAvailable()` au contrat avait été envisagé puis écarté : ça aurait élargi un
+contrat public pour un problème interne au module, alors que la couture existait déjà.
+
+**Fermeture partielle**, relevée le jour même : `ListingComponent` désigne toujours
+`ProductListing::NAME` comme listing par défaut de tous les composants. Le module refuse désormais
+de *construire* le listing sans WooCommerce, mais continue de le *nommer* par défaut. Voir R-62.
+
+**La réponse de fond reste ailleurs** : `ProductListing` est du WooCommerce dans un paquet
+générique. Le sortir — vers le projet, ou vers un pont `meilifacets-woocommerce` — ferait
+disparaître la question au lieu de la garder. C'est un choix de produit, pas une correction : voir
+Q-07.
+
+### R-10 · 🟠 · **fermé le 2026-09-06** (D-07) · ouvert le 2026-09-06 — une facette mono-sélection était une porte à sens unique
+
+`QueryPlan::isCountedApart()` exige `needsDisjunctiveCount()`, qui exige `SelectionMode::Multiple`.
+Une facette mono — la catégorie — est donc comptée sur la réponse principale, elle-même filtrée par
+la valeur choisie. Les autres valeurs disparaissent de la distribution, donc du HTML.
+
+**Vérifié le 2026-09-06** en HTTP : `/boutique` rend 30 valeurs de `product_cat` ;
+`/boutique?f_product_cat=cheveux` n'en rend plus que 21, toutes co-occurrentes de « cheveux ».
+« maquillage », « parfums », « soins-visage » ont disparu. S'y ajoute que l'`<input type="radio">`
+rendu pour une facette mono **ne se décoche pas** : le seul retour en arrière est « Tout effacer »,
+qui vide aussi marque et contenance.
+
+Le raisonnement documenté — « le disjonctif n'est produit que pour le multi-sélection » — est
+exactement inversé. Un groupe de boutons radio doit montrer ses alternatives, sinon il n'est pas un
+choix ; c'est le mono qui a le plus besoin du comptage disjonctif.
+
+**Fermé le 2026-09-06 par D-07**, en supprimant le cas plutôt qu'en le traitant : la seule facette
+mono du projet passe en multi-sélection, et le comptage disjonctif la couvre donc nativement. La
+règle « le disjonctif n'est produit que pour le multi » n'a plus de contre-exemple. Elle reste
+fausse en principe : une facette mono déclarée à l'avenir retomberait dans le piège, et rien ne
+l'en avertit.
+
+### R-11 · 🟠 · **fermé le 2026-09-06** (D-07) · ouvert le 2026-09-06 — la facette catégorie était plate sur une taxonomie à trois niveaux
+
+Les ancêtres sont indexés — décision juste, sans quoi les archives parentes seraient vides. Mais la
+distribution qui en résulte mélange tous les niveaux dans une seule liste.
+
+**Vérifié le 2026-09-06** : sur `/boutique?f_product_cat=cheveux`, la facette liste côte à côte
+`cheveux`, `shampoings`, `apres-shampoings`, `brosses-peignes`,
+`cheveux-beaute-de-linterieur-complements-alimentaires`, `corps`, `huiles-visage` — 21 valeurs sans
+la moindre indication de niveau, plafonnées à 30 sur une taxonomie qui compte plus de cent termes.
+
+Le plafond de 30 est pris sur le compte : les rayons les plus fournis remontent, les feuilles rares
+tombent. Une facette de catégories illisible sur le catalogue de recette le sera davantage sur le
+catalogue réel.
+
+**Mesuré le 2026-09-06**, sur le catalogue local (76 produits publiés) :
+
+| Taxonomie | Termes non vides | Rendues dans le HTML | **Atteignables sans JavaScript de dépliage** |
+| --- | --- | --- | --- |
+| `product_cat` | **81** (6 au niveau 0, 24 au niveau 1, 51 au niveau 2) | 30 | **10** |
+| `product_brand` | 9, plats | 9 | 9 |
+| `pa_contenance` | 24 | 24 | **10** |
+
+Un visiteur atteint donc aujourd'hui **10 rayons sur 81**, et **10 contenances sur 24**. La
+taxonomie complète compte 109 termes sur trois niveaux. Aucun plafond ni aucun ordre d'affichage
+ne rend une liste plate de 81 valeurs utilisable : c'est la forme qui ne convient pas, pas son
+réglage. `product_brand`, à l'inverse, est une facette exemplaire — 9 valeurs plates, toutes
+visibles.
+
+À noter aussi : `product_cat` n'est pas dans `url_parameters`, donc la facette est servie sous
+`f_product_cat` — le préfixe que la documentation du module décrit explicitement comme « un
+mapping à faire, pas un état normal ».
+
+### R-12 · 🟠 · ouvert · 2026-09-06 — rien ne réindexe sur changement de taxonomie
+
+Renommer un terme, changer son slug, le déplacer sous un autre parent ou le supprimer laisse
+`facets.*` et la chaîne d'ancêtres périmés sur tous les produits concernés. Aucun hook n'est posé
+sur `edited_term`, `delete_term` ou `set_object_terms` côté module, et MeiliScout ne réindexe les
+posts que sur sauvegarde de post.
+
+Effets concrets, aucun visible :
+
+- un rayon déplacé vide ou remplit à tort l'archive de son ancien parent, durablement ;
+- un slug renommé casse toutes les URLs filtrées déjà indexées **et** fait disparaître la valeur de
+  la facette ;
+- un terme supprimé laisse ses produits filtrables sur une valeur qui n'existe plus, avec un
+  libellé qui retombe sur le slug (`FacetValues::of()`, `$labels[$slug] ?? $slug`).
+
+Le cas jumeau — la promotion qui expire sans sauvegarder le produit — est documenté dans
+`pieges.md`. Celui-ci ne l'est nulle part, et il est plus fréquent.
+
+### R-13 · 🟠 · ouvert · 2026-09-06 — un hit sans champ `card` est jeté en silence
+
+`SearchResults::cards()` filtre les hits dont le champ `card` n'est pas un tableau. Un document
+indexé avant l'ajout du projecteur, ou par un autre chemin, disparaît donc de la grille — mais il
+compte toujours dans `totalHits`, donc dans la pagination. Symptôme : une page qui affiche 15
+produits là où le module en annonce 16, sans une ligne de log.
+
+À rendre bruyant, ou à traiter comme une carte vide plutôt que comme une absence.
+
+### R-14 · 🟡 · ouvert · 2026-09-06 — `multiSearch()` peut lever un `ValueError` non converti
+
+`MeilisearchEngine::multiSearch()` fait
+`array_combine(array_keys($queries), array_slice($responses, 0, count($queries)))`. Si le moteur
+renvoie moins de réponses que de requêtes, `array_combine` lève un `ValueError` — **hors** du `try`
+de `send()`, donc jamais transformé en `SearchFailed`. Résultat : une 500 au lieu de la vue de
+repli, exactement dans le cas où celle-ci sert.
+
+### R-15 · 🟡 · ouvert · 2026-09-06 — les identifiants de compteur ne portent pas le nom du listing
+
+`Facets::countId()` produit `meilifacets-{taxonomie}-{slug}`, alors que `Sort::id()` produit
+`meilifacets-{listing}-sort` avec, en commentaire, « deux listings sur une page ne doivent pas se
+marcher dessus ». Deux listings sur une page produisent donc des `id` dupliqués et un
+`aria-describedby` qui pointe vers le mauvais compteur. Un des deux composants applique la règle,
+l'autre non.
+
+### R-16 · 🟡 · **fermé le 2026-09-06** · ouvert le 2026-09-06 — `RobotsPolicy` s'appliquait à toute page du site
+
+Le filtre `wp_robots` est global. `RobotsPolicy::appliesTo()` déclare une URL filtrée dès qu'un
+paramètre porte le préfixe `f_` ou figure dans `url_parameters` — sans jamais vérifier qu'un
+listing est rendu sur la page. Un lien de campagne `?marque=lumen` sur un article, ou n'importe
+quel `?f_…` sur l'accueil, bascule la page en `noindex`.
+
+C'est la même classe de bug que celui corrigé le 2026-09-04 pour `?q=`, resté ouvert du côté des
+facettes.
+
+**Fermé le 2026-09-06.** `RobotsPolicy` ne décide plus que sur une page d'archive ou de recherche.
+`wp_robots` s'exécutant dans `<head>`, donc avant que le composant du listing ne soit rendu, la
+décision ne peut pas venir du listing lui-même sans changer de mécanisme — trois options avaient
+été pesées :
+
+| | Verdict |
+| --- | --- |
+| `Listing::appliesToRequest()` sur le contrat | **écarté** — élargit un contrat public pour un problème de timing interne, duplique une troisième fois la logique de contexte déjà présente dans `baseFilter()` et `facets()`, et transforme une certitude en pronostic silencieusement faillible |
+| `X-Robots-Tag` posé au rendu, par ce qui sait | juste sur le fond, mais repose sur un chemin d'en-têtes que Pollora malmène déjà (R-40) : à mesurer avant de s'y fier |
+| Garde de contexte dans `RobotsPolicy` | **retenu** — trois lignes, aucun contrat touché, supprime le risque réel, et ne ferme pas la porte au précédent |
+
+Ce correctif a rendu sûr l'élargissement du `noindex` à `sort`, `q` et `pg` — voir R-58.
+
+Limite assumée : un listing posé sur une page libre, hors archive, n'est pas couvert.
+
+### R-17 · ⚪ · **accepté le 2026-09-06** · ouvert le 2026-09-06 — un crochet mal orthographié dans un thème produit une 500
+
+`ContractComponent::hook()` fait `Hook::from($name)`, qui lève un `ValueError` sur une valeur
+inconnue. Une vue surchargée par un thème avec `{{ $hook('titre') }}` fait tomber la page entière —
+alors que tout le contrat `data-meili` est construit sur la promesse inverse : « une surcharge de
+thème périmée dégrade vers le rendu serveur, jamais vers une interaction à moitié morte ».
+**Accepté le 2026-09-06**, après examen sous R-62 : la promesse de dégradation porte sur une
+surcharge **périmée**, pas sur une surcharge **cassée**. Une faute de frappe dans un `$hook()` est
+une erreur PHP dans une vue, et toute erreur de vue Blade produit déjà un 500. Rendre `hook()`
+tolérant masquerait un bug au lieu de le montrer.
+
+### R-18 · ⚪ · ouvert · 2026-09-06 — branchement de repli inatteignable dans `results.blade.php`
+
+`<x-meilifacets::listing>` remplace déjà tout son slot par `<x-meilifacets::unavailable>` quand la
+recherche a échoué. Le `@if ($resolved->failed())` de `results.blade.php` n'est donc jamais vrai
+dans l'usage documenté — mais il est couvert par un test, ce qui donne une fausse impression de
+couverture.
+
+### R-19 · 🟠 · ouvert · 2026-09-06 — le client de recherche de MeiliScout est inadapté au chemin de rendu
+
+`MeiliFacetsServiceProvider::searchEngine()` prend `ClientFactory::getSearchClient()`. Lecture du
+code du plugin : cette fabrique fait, à la première résolution de chaque process PHP, un
+`checkdnsrr($host, 'A')` **puis** un `GET /health` avant de rendre le client.
+
+Deux conséquences :
+
+- une résolution DNS et un aller-retour HTTP s'ajoutent devant chaque première recherche d'une
+  requête ; à ce stade c'est du bruit en local (mesuré : ~280 ms de TTFB sur `/boutique`), pas
+  forcément en production ;
+- `checkdnsrr(..., 'A')` renvoie `false` sur un hôte qui n'a qu'un CNAME — cas courant d'une URL
+  interne PaaS. Le client vaut alors `null`, `SearchFailed::unconfigured()` est levée, et **le
+  listing s'affiche en panne alors que le moteur répond**.
+
+S'y ajoute qu'aucun timeout n'est posé sur le client Meilisearch : un moteur qui accepte la
+connexion sans répondre bloque le rendu jusqu'au timeout PHP. Le lot 6 prévoit « timeout et repli
+côté rendu serveur » ; c'est en réalité un prérequis du lot 3, pas du lot 6.
+
+---
+
+## 3. Constats — client de recherche et contrat
+
+### R-20 · 🔴 · **fermé le 2026-09-07** · ouvert le 2026-09-06 — le client n'existait pas comme comportement
+
+Sept fichiers ES sont publiés dans `public/modules/meilifacets/js/` (vérifié). Aucun n'est chargé :
+`Stylesheet` inscrit la feuille de style, rien n'inscrit de script — vérifié sur `/boutique`, seul
+`/modules/meilifacets/css/meilifacets.css` apparaît dans le HTML.
+
+Il manque, dans l'ordre : un point d'entrée, son inscription en `type="module"`, l'instanciation de
+`Contract` sur chaque racine `[data-listing]`, la vérification avant démarrage, les cinq gestes
+(cocher, appliquer, trier, paginer, remettre à zéro), le repeint, et le branchement de
+`Listing.onBack()`. Le module livre aujourd'hui une bibliothèque testée et morte.
+
+**Fermé le 2026-09-07 (lot 3c-1).** Le client démarre, vérifie le contrat, et refuse de démarrer en
+nommant ce qui manque. `listing-page.js` amorce une instance par racine, `ListingBinding` écoute sur
+la racine — donc une carte clonée n'a rien à câbler — et `CardPainter` remplit une carte depuis le
+document.
+
+**Recetté en navigateur**, pas seulement en test : sur `/boutique`, cocher « lumen » ne fait rien
+en mode `submit`, « Appliquer » ramène 16 cartes à 10, l'URL devient `?marque=lumen`, et les
+compteurs des autres facettes se resserrent — visage passe de 24 à 6. Quatre combinaisons
+successives vérifiées, dont le décochage qui rend l'URL vide.
+
+**Deux gestes restent à câbler** : tri, pagination et remise à zéro existent sur `Listing` et
+n'écoutent rien (lot 3c-2) ; `popstate` est branché mais jamais recetté (lot 3c-3).
+
+### R-21 · 🔴 · **fermé le 2026-09-07** · ouvert le 2026-09-06 — rien ne transmettait la connexion ni la description au navigateur
+
+`SearchClient` attend `{ url, key, index }`. `ListingQuery` et `ListingUrl` attendent un objet
+`listing` portant `facets[]` (avec `taxonomy` et `multiple`), `perPage`, `sorts`, `filter`,
+`params`, `reserved`, `attributes`. **Aucun PHP ne produit cet objet.** `MEILI_PUBLIC_URL` et
+`MEILI_SEARCH_KEY` ne quittent nulle part le serveur.
+
+C'est le vrai chaînon manquant, et il n'est pas neutre : c'est aussi lui qui décidera de la forme
+du contrat de données (JSON dans un `<script type="application/json">` ? attributs `data-*` ? un
+`window.meilifacets` ?) et de ce qui est exposé.
+
+**Fermé le 2026-09-07.** `BrowserConnection` portait déjà l'adresse, la clé et l'index depuis R-52 ;
+`ListingDescription` s'y ajoute et publie `filter`, `perPage`, `attributes`, `apply`, `facets`
+(taxonomie, multiple, plafond), `params`, `reserved`, `sorts` et le motif de pluriel des compteurs.
+Le tout par `script_module_data_@meilifacets/listing`, et **seuls les listings réellement rendus
+sont décrits** : le composant s'inscrit au moment où il rend, WordPress imprime en pied de page.
+
+Conséquence assumée, déjà écrite en R-28 : le filtre de base part en clair dans la page.
+
+### R-22 · 🟠 · **fermé le 2026-09-07** · ouvert le 2026-09-06 — les deux implémentations du plan divergeaient
+
+La dette « une même règle, deux implémentations à tenir en phase » est présentée comme un risque.
+C'est déjà une divergence :
+
+| Règle | PHP (`StateReader`) | JS (`ListingUrl`, `Listing`) |
+| --- | --- | --- |
+| dédoublonnage des valeurs | oui (`array_unique`) | non |
+| plafond au `cap` de la facette | oui | non |
+| une seule valeur sur une facette mono | oui (`array_slice(…, 1)`) | non — `toggle()` ignore `facet.multiple` |
+| tri des valeurs | oui | oui |
+| longueur de `q` bornée à 200 | oui | non |
+
+Concrètement, en mode `immediate`, cocher deux catégories côté client produirait un état que le
+serveur refuse — et une URL que le rendu suivant ne reproduira pas.
+
+**Fermé le 2026-09-07.** `ListingState` déduplique, trie et borne la recherche à 200 caractères
+comme `StateReader` ; `toggling()` reçoit la description de la facette, donc une facette
+mono-sélection remplace au lieu d'empiler et le plafond est respecté. Cinq tests neufs couvrent
+exactement ces cas, qui n'étaient couverts nulle part.
+
+### R-23 · 🟡 · ouvert · 2026-09-06 — le client lit des attributs hors contrat
+
+`data-taxonomy` (sur le `<fieldset>`), `data-apply` (sur le conteneur de facettes),
+`data-listing` (sur la racine) et `data-value` (sur une option de tri) sont indispensables au
+client mais ne font pas partie de `Hook`, ne sont pas vérifiés par `Contract::breaches()` et ne
+figurent pas dans le tableau des crochets d'`architecture.md`. La règle « le client n'adresse que
+des crochets `data-meili` » est déjà entamée, sans que le mécanisme de version le voie.
+
+### R-24 · ⚪ · **fermé le 2026-09-07** · ouvert le 2026-09-06 — `Hook::PageTemplate` était déclaré et rendu nulle part
+
+`case PageTemplate = 'page-template'` existe dans l'énumération PHP, n'apparaît dans aucune vue,
+n'est pas dans `contract.js`, n'est pas dans le tableau d'`architecture.md`. Le contrat annonce
+24 crochets, 23 sont réels.
+
+### R-25 · 🟡 · ouvert · 2026-09-06 — rien ne vérifie que les deux listes de crochets coïncident
+
+`Contract::VERSION = 1` en PHP, `const VERSION = 1` en JavaScript, chacun écrit à la main. Le
+mécanisme de version protège contre un thème périmé, **pas** contre un oubli d'incrément ni contre
+une divergence des listes elles-mêmes : `Hook` porte 24 cas, les `RULES` de `contract.js` en
+citent 13. Aucun test ne compare les deux fichiers.
+
+**Fermé pour l'essentiel le 2026-09-07** par `ContractParityTest`, qui lit les fichiers JavaScript
+et compare quatre des huit duplications : la version du contrat, **chaque crochet que le client
+adresse**, l'identifiant du module de script, et le préfixe `f_`. Vérifié en les cassant
+volontairement — le test dit « contract.js and Contract::VERSION disagree » et « the client
+addresses "results", which Hook does not declare ».
+
+Restent non couvertes, parce qu'elles n'ont pas d'usage croisé observable : le préfixe de champ, les
+noms des paramètres réservés, la première page et la longueur maximale de la recherche.
+
+---
+
+## 4. Constats — sécurité
+
+### R-26 · 🟠 · à trancher (Q-11) · 2026-09-06 — le prix est du HTML non filtré, et la doc dit le contraire
+
+`Card::$price` est un `HtmlString` construit depuis le champ `card.price` de l'index, rendu tel
+quel. La décision de ne pas filtrer est argumentée et défendable (`decisions.md`, `pieges.md` §
+audit du 2026-09-04 : une liste blanche casse promo et variable, et ne protège d'aucun vecteur
+réaliste).
+
+Mais `pieges.md` affirme toujours, quelques paragraphes plus loin : « Le prix passe par `wp_kses`
+au rendu, pas à l'indexation ». **Le code ne filtre plus rien.** Deux affirmations contradictoires
+dans le même document, dont une fausse — exactement le genre d'écart qui fait rouvrir un débat déjà
+tranché à la prochaine revue.
+
+À faire quoi qu'il arrive : supprimer le passage périmé. À trancher : le seuil auquel on refiltre
+(un plugin branché sur `woocommerce_get_price_html`, une donnée saisie par un utilisateur non
+privilégié).
+
+### R-27 · 🟡 · ouvert · 2026-09-06 — `searchableAttributes` reste à `["*"]`
+
+**Vérifié** sur l'index réel : `searchableAttributes: ["*"]`, `displayedAttributes: ["ID","card"]`.
+La restriction d'affichage empêche de **lire** `post_content` et les metas ; elle n'empêche pas de
+les **cibler**. Avec la clé de recherche publique, un visiteur peut confirmer par recherche
+booléenne la présence d'une valeur dans n'importe quel champ indexé — `_edit_lock`,
+`_yoast_wpseo_*`, le contenu d'un brouillon s'il en entrait un.
+
+C'est noté « lot 5, question de pertinence ». Ç'en est aussi une de fuite d'information, et elle
+n'est pas évaluée comme telle.
+
+### R-28 · 🟠 · à trancher (Q-03) · 2026-09-06 — tout filtre de sécurité posé côté serveur devient cosmétique
+
+C'est la conséquence structurelle du transport direct, et elle n'est écrite nulle part.
+
+`ProductListing::baseFilter()` pose `post_type = "product"`, `post_status = "publish"` et
+l'exclusion de `exclude-from-catalog`. Au premier rendu, PHP applique ces clauses. **Dès le premier
+filtre, c'est le navigateur qui construit la requête** — et il devra recevoir ce filtre de base sous
+forme de chaîne (c'est ce qu'attend `ListingQuery`, champ `listing.filter`). Un visiteur qui édite
+cette chaîne interroge l'index sans aucun garde-fou.
+
+Le seul verrou réel est côté moteur : un **tenant token** Meilisearch, dont les `searchRules`
+imposent le filtre. `pieges.md` l'évoque une fois, en passant, à propos des brouillons. C'est en
+réalité le pivot de tout le modèle de sécurité du module.
+
+### R-29 · 🟡 · ouvert · 2026-09-06 — la clé de recherche n'a pas de périmètre documenté
+
+Le module consomme `MEILI_SEARCH_KEY` sans jamais dire à quoi elle doit être limitée : quels index,
+quelles actions (`search` seule ?), quelle expiration. Sur un projet réutilisable, c'est une
+consigne d'installation obligatoire, pas un détail d'infrastructure.
+
+---
+
+## 5. Constats — tests
+
+### R-30 · 🟠 · ouvert · 2026-09-06 — les tests couvrent les unités pures, pas le câblage
+
+**Vérifié le 2026-09-06** : 121 tests PHP, 212 assertions, verts ; 49 tests Node, verts. La qualité
+des cas est réelle — noms lisibles, un comportement par test, doublures propres.
+
+Ne sont couverts par **aucun** test : `MeiliScoutBridge`, `FacetedPostIndexable::getIndexSettings()`
+(seul `ConfiguredIndexAttributes` l'est), `MeilisearchEngine`, `CurrentListing`, `ResolvedListing`,
+`ListingDiscovery`, `ListingRegistry`, `Unavailable`, `Stylesheet`, `CheckParametersCommand`,
+`WordPressTermLabels`, `DefaultCardProjector`, `WooCommerceCardProjector`, `PageSize`,
+`WordPressTermHierarchy`.
+
+C'est exactement la liste de ce qui casse : la substitution d'indexable, la conversion en
+`SearchQuery`, la résolution du listing, la découverte, l'émission des en-têtes. R-09 et R-14
+seraient tombés sur un test.
+
+### R-31 · 🟡 · fermé le 2026-09-06 — la découverte automatique d'un listing n'avait jamais été exercée
+
+Ouvert puis vérifié dans la même session : une classe jetable implémentant `Listing`, posée dans
+`app/Tmp/` puis dans `Modules/MeiliFacets/app/Tmp/`, apparaît bien dans le registre après
+`php artisan discovery:clear`. La découverte fonctionne dans les deux emplacements.
+
+Reste que la seule implémentation livrée est **aussi** enregistrée explicitement par le provider :
+sans la classe de test, les deux chemins étaient indiscernables. Un test qui prouve la découverte
+manque toujours (voir T-14), et l'enregistrement explicite doit disparaître (R-09).
+
+### R-32 · 🟡 · ouvert · 2026-09-06 — rien ne teste ce que la dette PHP/JS demande de tester
+
+La dette assumée est « bornée en couvrant les deux côtés avec les mêmes cas ». Or aucun test ne
+compare `Hook` à `contract.js`, ni `QueryPlan` à `ListingQuery` sur un même jeu d'états. Les deux
+suites vivent côte à côte sans se regarder — et R-22 montre qu'elles ont déjà divergé.
+
+---
+
+## 6. Constats — code mort et résidus
+
+### R-33 · ⚪ · **fermé le 2026-09-07** · ouvert le 2026-09-06 — déclarations jamais lues
+
+Vérifié par recherche sur `app/`, `resources/` et `tests/` :
+
+| Déclaration | Statut |
+| --- | --- |
+| `PageSize::forPosts()` | jamais appelée |
+| `FacetValueOrder::Alphabetical` | jamais utilisée (seul `ByCount` l'est) |
+| `Facet::$highCardinality` | déclarée, jamais lue |
+| `Unavailable::announced()` | jamais appelée |
+| `Hook::PageTemplate` | voir R-24 |
+| `HeadingLevel::H2/H4/H5/H6` | jamais utilisées — acceptable, c'est un ensemble fermé |
+
+#### Vérifié avant de supprimer, le 2026-09-07
+
+**Deux gardées.** `FacetValueOrder::Alphabetical` modèle un ensemble fermé **imposé par le
+moteur** — vérifié en lui envoyant une valeur invalide : « expected one of `alpha`, `count` ». En
+retirer une moitié ferait un modèle incomplet. Idem `HeadingLevel`, ensemble fermé du HTML.
+
+**Quatre supprimées**, aucune n'ayant la moindre trace documentaire — ni intention écrite, ni lot
+qui l'attende :
+
+| | Pourquoi |
+| --- | --- |
+| `Facet::$highCardinality` | drapeau booléen que rien ne lit, et que les règles du module condamnent par ailleurs |
+| `Unavailable::announced()` | redondant avec `ResolvedListing::failed()`, que la vue interroge déjà |
+| `Hook::PageTemplate` | **contredit une décision prise** : la fenêtre de sept emplacements est rendue par le serveur, un `<template>` de page servirait à cloner des boutons |
+| `PageSize::forPosts()` | aide pour un listing d'articles qui n'existe pas ; une ligne à réécrire le jour où le lot 5 en aura besoin |
+
+Pas d'incrément de `Contract::VERSION` pour `PageTemplate` : jamais rendu, jamais lu par le client,
+donc rien ne change pour un thème.
+
+### R-34 · ⚪ · ouvert · 2026-09-06 — résidus de scaffold
+
+`app/Providers/.gitkeep`, `config/.gitkeep`, `resources/assets/.gitkeep`,
+`resources/views/.gitkeep`, `tests/Feature/.gitkeep` — dont un est **publié** dans
+`public/modules/meilifacets/.gitkeep` par `module:publish`. Et `.playwright-mcp/` (cinq traces de
+console et cinq instantanés de page) vit dans le module, ignoré par git mais présent sur disque.
+
+### R-35 · ⚪ · ouvert · 2026-09-06 — `config/config.php` existe pour ne rien déclarer
+
+Le fichier ne porte plus que `'name' => 'MeiliFacets'`, dont `configuration.md` dit lui-même que
+c'est une « clé de nwidart, sans usage dans le module ». Il reste utile comme porte-commentaire de
+la règle « un réglage déclaré ici n'est pas surchargeable » — à dire explicitement, ou à supprimer.
+
+---
+
+## 7. Constats — documentation
+
+### R-36 · 🟠 · ouvert · 2026-09-06 — la documentation est plus longue que le code, et déjà fausse par endroits
+
+1 683 lignes sur six fichiers, contre environ 2 200 lignes de code applicatif (tests exclus). Écarts
+relevés pendant la revue :
+
+| Où | Ce qui est écrit | Ce qui est vrai |
+| --- | --- | --- |
+| `pieges.md` | « Le prix passe par `wp_kses` au rendu » | aucun filtrage — voir R-26 |
+| `decisions.md`, dettes | `product_tag` mappé sur `tag` | `config/meilifacets.php` mappe `etiquette` (corrigé, dette non fermée) |
+| `config/meilifacets.php` (projet) | « Une taxonomie laissée de côté garde son propre nom » | elle prend le préfixe `f_` |
+| `architecture.md`, tableau des crochets | 24 crochets | `page-template` absent des vues — voir R-24 |
+| `lots.md`, recette du lot 3 | « Aucune `WP_Query` de produits n'est exécutée » | la requête principale de l'archive s'exécute toujours, par décision assumée ; c'est le **listing** qui n'en ajoute pas |
+
+Le fond est excellent — c'est le meilleur corpus de décisions que j'aie lu sur un module de ce
+type. Le problème est son coût de maintenance : à ce volume, il faut l'auditer comme du code, et
+rien ne le fait.
+
+### R-37 · 🟡 · **fermé le 2026-09-07** · ouvert le 2026-09-06 — la doc vivait hors du module
+
+`README.md` du module renvoie à `../../docs/meilifacets/`, un chemin qui n'existe pas depuis le
+dépôt du module (dépôt git distinct, voir R-38) et qui n'existera pas après extraction en paquet.
+Le rapatriement est prévu « au lot 7 », c'est-à-dire après tout le reste — donc au moment où le
+corpus sera le plus gros et le plus périmé.
+
+---
+
+## 8. Constats — dettes structurelles
+
+### R-38 · 🟡 · accepté (D-02), à rouvrir avant production · 2026-09-06 — le module est un dépôt git imbriqué
+
+**Vérifié** : `git status` du projet rend `?? Modules/MeiliFacets/`, et `git ls-files
+Modules/MeiliFacets` ne rend rien. Le projet ne versionne pas le module, et le module ignore le
+projet. Conséquences immédiates :
+
+- rien ne garantit qu'un déploiement embarque la révision attendue ;
+- aucune revue de code du projet ne voit les changements du module ;
+- `docs/meilifacets/`, `config/meilifacets.php` et `themes/pluralia/.../archive-product.blade.php`
+  évoluent dans un dépôt, le module dans l'autre, sans commit commun.
+
+Ce point n'est pas une commodité : c'est ce qui empêche aujourd'hui de dire « voilà ce qui est
+livré ».
+
+### R-39 · 🟠 · ouvert · 2026-09-06 — `amphibee/meiliscout` pointe une branche non mergée
+
+`dev-feat/meilifacets`, commit `1c59a05`. Rappel : sans le correctif `resolveIndexable()`, les
+facettes cassent à la première sauvegarde de contenu.
+
+### R-40 · 🟠 · ouvert · 2026-09-06 — le `503` ne sort pas
+
+Pollora écrase le statut HTTP de WordPress. Correctif rédigé dans `decisions.md`, **non soumis en
+amont**. Tant qu'il ne l'est pas, `Unavailable::announce()` produit un `200` avec deux
+`Cache-Control` contradictoires.
+
+À noter en passant : `Unavailable` écrit ses en-têtes par `header()` et `status_header()`,
+c'est-à-dire hors de l'objet réponse Laravel. Même une fois Pollora corrigé, c'est un contournement
+à réexaminer.
+
+### R-41 · 🟠 · ouvert · 2026-09-06 — l'écart de version du moteur n'est pas refermé
+
+**Vérifié** : local en 1.53.1, `pagination.maxTotalHits = 1000`,
+`faceting.maxValuesPerFacet = 100`, `searchCutoffMs` non posé. La production est en 1.10.3.
+
+Rien de ce qui est validé en local ne vaut engagement tant que la montée n'est pas faite. Les
+`filterableAttributes` posés aujourd'hui sont explicites (pas de motif `facets.*`), donc a priori
+compatibles — a priori seulement.
+
+### R-42 · 🟠 · ouvert, **différé le 2026-09-07** · 2026-09-06 — la pagination promet des pages que le moteur ne sert pas
+
+*Formulation corrigée le 2026-09-07 : elle était fausse.* Elle disait que `totalHits` plafonnait et
+que « rien ne le dit ». Mesuré sur 1.53.1 avec des index fabriqués pour l'occasion (détail dans
+[pieges.md](pieges.md)) :
+
+- **les facettes et les filtres sont exacts** au-delà du plafond — `{a: 1500, b: 1000}` sur
+  2 500 documents, `totalHits: 1500` sur un filtre à 1 500 ;
+- **`totalHits` et `totalPages` ne sont pas plafonnés** — 1 570 et 157 sur 1 570 documents ;
+- **seules les pages le sont** : à 10 par page, la 100 sert 10 produits, la 101 en sert **zéro**, en
+  répondant `200`. Le moteur annonce 157 pages et en refuse 57.
+
+Le défaut est donc l'inverse de ce qui était écrit : pas un plafond silencieux, **une promesse de
+pages inexistantes**. Sur 1 570 produits, un tiers du catalogue est hors d'atteinte.
+
+**Relever le plafond ne coûte rien** — page 1 à 0 ms que le plafond vaille 1 000 ou 20 000, et
+11 ms contre 10 en page 62. C'est la profondeur qui coûte (181 ms au 19 200ᵉ résultat), pas
+l'autorisation. Aucun aller-retour supplémentaire : c'est un réglage d'index.
+
+**Différé le 2026-09-07, décision du projet** : on ne relève pas pour l'instant. Le catalogue compte
+76 produits, le plafond est à treize fois sa taille, et les pages de listing sont en `noindex` sans
+lien interne au-delà de la première — donc aucun robot n'ira. À rouvrir avant qu'un catalogue
+approche les 1 000 résultats sur une seule recherche.
+
+**Ce qui reste à faire quelle que soit la valeur** : le module ne doit jamais afficher un numéro de
+page qu'il ne peut pas servir. Le bornage est indépendant du réglage, et c'est le même geste que
+R-61 — voir là-bas.
+
+---
+
+## 9. Constats — fonctionnel manquant ou oublié
+
+### R-43 · 🟠 · à trancher (Q-08) · 2026-09-06 — aucune facette prix ni disponibilité
+
+**Vérifié** dans les réglages de l'index : `metas._price` et `metas._stock_status` sont filtrables,
+`metas._price` est triable. Aucune facette ne les utilise ; seuls deux tris de prix existent.
+
+Ce sont les deux premiers filtres qu'un visiteur de boutique cherche. Ils sont repoussés au lot 4
+pour une raison — les produits variables — qui ne concerne pas les produits simples, et le
+catalogue de recette n'en contient aucun. Sur les produits simples, une facette de tranches de prix
+et une case « en stock » sont livrables aujourd'hui.
+
+### R-44 · 🟠 · à trancher (Q-09) · 2026-09-06 — la recherche texte est à moitié câblée
+
+`ListingState` porte `query`, `StateReader` la lit et la borne à 200 caractères, `QueryPlan`
+l'envoie au moteur, `ListingQuery` aussi. **Aucun composant ne la saisit ni ne l'affiche.** Une URL
+`?q=parfum` filtre donc la grille en silence : le visiteur voit un sous-ensemble sans savoir
+pourquoi, la remise à zéro est masquée uniquement si l'état est vierge (elle le serait donc
+correctement, mais rien ne nomme le terme recherché), et `RobotsPolicy` laisse la page indexable.
+
+Soit on livre le champ, soit on retire `q` du lecteur d'état jusqu'au lot 5.
+
+### R-45 · 🟠 · à trancher (Q-10) · 2026-09-06 — la carte du module remplace celle du thème, wishlist comprise
+
+`<x-meilifacets::results>` rend `<x-meilifacets::card>`. Le thème, lui, a
+`<x-theme::product-card>` qui porte le bouton wishlist sur la ligne du titre (module `Wishlist`,
+maquette cliente). Sur l'archive produit, **ce bouton a disparu**.
+
+`lots.md` annonce pourtant l'inverse : « la bascule sur `<x-theme::product-card>` étant assumée ».
+Ce n'est pas ce qui est livré. Trois issues : le listing rend la carte du thème, la wishlist
+devient un crochet du contrat, ou la disparition est assumée et écrite.
+
+### R-46 · 🟠 · ouvert · 2026-09-06 — les valeurs repliées n'ont aucun moyen d'être dépliées
+
+`FacetValues` marque `folded` tout ce qui dépasse `visible` (10), la vue les rend avec `hidden`, et
+le cap est à 30. **Il n'existe aucun bouton « voir plus »**, aucun crochet correspondant dans
+`Hook`, aucune ligne dans `contract.js`.
+
+**Mesuré le 2026-09-06** sur `/boutique` : 63 valeurs rendues, **34 en `hidden`**, sans aucun moyen
+de les atteindre — même avec JavaScript, puisque rien ne sait les révéler. Détail : `product_cat`
+30 rendues dont 20 masquées, `pa_contenance` 24 rendues dont 14 masquées, `product_brand` 9
+rendues et 0 masquée.
+
+### R-47 · 🟡 · ouvert · 2026-09-06 — les filtres actifs ne sont qu'un nombre
+
+`<x-meilifacets::active-filters>` rend un `<span>` avec un entier. Sur une archive filtrée, rien ne
+dit **quoi** est filtré en dehors des cases cochées — invisibles dès qu'une facette est repliée,
+hors écran, ou dans un panneau mobile. Le motif attendu sur un listing e-commerce est une liste de
+puces retirables une à une.
+
+### R-48 · 🟡 · ouvert · 2026-09-06 — rien pour le mobile
+
+Pas de composant de bascule, pas de tiroir de facettes, pas de crochet prévu. Sur un thème
+e-commerce, c'est la moitié du trafic, et la colonne de facettes de
+`archive-product.blade.php` (`lg:col-span-1`) est simplement empilée au-dessus de la grille en
+dessous de `lg`.
+
+### R-49 · 🟡 · ouvert · 2026-09-06 — le cul-de-sac « zéro résultat » est atteignable en deux clics
+
+Quand la recherche ne rend rien, toutes les distributions sont vides, donc tous les `<fieldset>`
+sont `hidden` (`@if ($values === [])`), donc **il ne reste que « Tout effacer »**. Le comptage
+disjonctif couvre le cas où l'on relâche une valeur de la facette qui contraint ; il ne couvre pas
+le croisement de deux facettes. C'est documenté comme « limite assumée » — mais aucune mesure ne
+dit à quelle fréquence le cas est atteint sur un vrai catalogue, et un message « aucun résultat »
+sans aucune facette visible est un mur.
+
+### R-50 · ⚪ · ouvert · 2026-09-06 — `ItemList` ne publie pas `numberOfItems`
+
+Détail SEO, une clé.
+
+### R-51 · 🟡 · ouvert · 2026-09-06 — le mode `submit` par défaut est peut-être le mauvais défaut ici
+
+`apply_mode` vaut `submit` par défaut, justifié par « un gros catalogue, où chaque case cochée
+coûterait une recherche ». Le catalogue de ce projet compte 76 produits publiés (vérifié). Sur ce
+volume, `immediate` est probablement le bon réglage — et le bouton « Appliquer les filtres » est
+aujourd'hui rendu et inerte.
+
+### R-52 · 🟡 · **fermé le 2026-09-07** · ouvert le 2026-09-06 — pas de `preconnect` vers l'origine du moteur
+
+Relevé par l'audit du 2026-09-04, jamais fait : `MEILI_PUBLIC_URL` est une seconde origine, donc le
+premier filtre paie DNS + TCP + TLS.
+
+**Mesuré le 2026-09-07**, depuis l'hôte comme un visiteur : `dns=2 ms`, `tcp=0,3 ms`,
+**`tls=60 ms`** — 65 ms au total, sur une machine qui se parle à elle-même. Sur mobile en 4G, ces
+trois postes coûtent couramment 200 à 500 ms, payés au moment précis où le visiteur attend une
+réponse instantanée.
+
+**Un point de l'audit était plus alarmiste que la réalité** : il comptait un préflight CORS à chaque
+requête. Vérifié — Meilisearch renvoie `access-control-max-age: 86400`, donc le préflight est mis en
+cache 24 heures. Un aller-retour la première fois, pas à chaque recherche.
+
+#### Livré le 2026-09-07 — et c'est la première tranche de R-21
+
+La question « où le module apprend-il l'adresse publique » n'avait jamais été posée : **personne ne
+lisait `MEILI_PUBLIC_URL`**, ni le module, ni MeiliScout, ni le thème. Elle dormait dans `.env`
+depuis l'installation.
+
+Trois formes étaient possibles ; `env()` en direct est écartée — Laravel rend `null` dès que le
+projet lance `config:cache`, et le `preconnect` disparaîtrait en silence en production. Retenu :
+**`config('meilifacets.browser.url')` et `.key`, déclarées par le projet**, parce qu'une clé
+déclarée par le module gagnerait sur celle du projet et s'évaporerait sous `config:cache`.
+
+`BrowserConnection` porte l'adresse, la clé et le nom d'index — c'est exactement ce dont le client
+du lot 3c aura besoin (R-21), donc cette tranche pose la connexion une fois pour les deux usages.
+Elle expose `origin()`, puisqu'une connexion s'ouvre par origine et non par chemin.
+
+`Preconnect` n'émet que sur une page de listing, ce qui a fait apparaître que `IndexingPolicy`
+portait déjà ce prédicat en privé : il est extrait dans `Http\ListingPage`, seul endroit qui
+répond désormais à « cette requête affiche-t-elle un listing ». Deux consommateurs, une définition.
+
+Vérifié : les deux balises sortent sur `/boutique` et sur une archive de catégorie, **et pas** sur
+l'accueil ni sur une fiche produit. 122 tests dans le module, 140 dans le projet.
+
+**Reste ouvert** : sans clé de recherche en configuration, le module se tait au lieu de le dire.
+C'est un cas pour `meilifacets:doctor` (lot 6), pas pour un journal sur chaque rendu.
+
+### R-53 · 🟠 · ouvert · 2026-09-06 — la ligne entre fonctionnement et apparence n'est pas écrite
+
+**Vérifié** : `resources/assets/css/meilifacets.css` contient quatre lignes — la contre-règle
+`[hidden]`, et rien d'autre. Aucune feuille du thème `pluralia` ne cible une classe
+`meilifacets*` (recherche sur `themes/pluralia/resources/assets/css/`).
+
+Conséquence à l'écran, aujourd'hui : la liste déroulante de tri est un `<ul role="listbox">` brut —
+puces visibles, aucun positionnement, aucune superposition. Une fois ouverte par le client, elle
+poussera le contenu au lieu de flotter au-dessus. Même chose pour la liste des valeurs de facettes
+et la grille de résultats, rendues en `<ul>` nus.
+
+`architecture.md` écrit pourtant : « le module ne pose **aucun style** : ni positionnement, ni
+liste sans puces ». D-01 dit l'inverse. Il faut trancher **où passe la ligne** — ma proposition :
+le module pose ce sans quoi le composant ne fonctionne pas (positionnement du `listbox`, retrait
+des puces, `[hidden]`), jamais ce qui relève de l'apparence (couleurs, espacements, typographie,
+états de survol). *Voir Q-28.*
+
+### R-54 · 🟠 · ouvert · 2026-09-06 — l'objectif « sortir du coût de WordPress » n'est tenu qu'à moitié
+
+D-04 rappelle le besoin d'origine. Voici où on en est, mesuré et lu :
+
+| Chemin | Coût WordPress | État |
+| --- | --- | --- |
+| Premier rendu d'une URL de listing | **complet** — cœur WP, plugins, thème, requête principale de l'archive, WooCommerce | inchangé, et assumé par une décision (`decisions.md`, « requête principale conservée ») |
+| Filtre, tri, page suivante | **nul** — navigateur → moteur en direct | conçu, pas encore branché (R-20) |
+
+Autrement dit : le gain visé n'existe aujourd'hui sur **aucun** chemin. Sur le premier rendu il n'a
+jamais été cherché ; sur les suivants il n'est pas encore livré.
+
+Trois choses méritent d'être dites explicitement, parce qu'elles décident de la suite :
+
+1. **Le premier rendu paie toujours WordPress en entier**, y compris sur une URL filtrée. C'est
+   même pire qu'avant sur ce point précis : le listing ajoute une recherche Meilisearch **par-dessus**
+   la requête principale de l'archive, qui n'a pas été allégée (`pre_get_posts`, `no_found_rows` :
+   listés « en attente de validation » depuis le début).
+2. **`ClientFactory::getSearchClient()` ajoute un DNS et un `/health` avant la première recherche**
+   (R-19) — soit exactement le genre de coût que le module existe pour supprimer.
+3. **Varnish ne protège pas le public qui convertit** : tout visiteur portant un cookie panier
+   passe en `pass` et paie un rendu PHP complet à chaque URL filtrée (`pieges.md`, audit du
+   2026-09-04).
+
+Si le gain de latence est l'objectif premier, alors la première mesure à faire n'est pas le client
+JavaScript : c'est de chronométrer un rendu de `/boutique` filtrée sur un catalogue réel, avec et
+sans allègement de la requête principale. Aucune mesure de ce genre n'existe à ce jour.
+
+### R-55 · 🟠 · **fermé le 2026-09-06** (T-38) · ouvert le 2026-09-06 — le module ne savait pas se vérifier lui-même
+
+Relevé en cherchant à écrire un hook qui ne dépende pas de Pluralia. **Vérifié le 2026-09-06** :
+
+| | État |
+| --- | --- |
+| `require-dev` du module | vide — ni `phpunit/phpunit`, ni `laravel/pint` |
+| `phpunit.xml`, `pint.json` du module | aucun des deux ; ceux du projet servent |
+| 16 tests `Unit` | autonomes — `PHPUnit\Framework\TestCase` pur, aucune dépendance projet |
+| 2 tests `Feature` | dépendent de `Tests\TestCase` **de Pluralia**, donc de son `bootstrap/app.php` |
+| nom de suite `Modules` | déclaré dans le `phpunit.xml` de Pluralia, pas dans le module |
+| `npm test` | autonome — Node, aucune dépendance |
+
+Conséquence directe : **aucune commande de vérification du module n'est indépendante du projet
+hôte.** Un module destiné à être installé ailleurs (D-01) ne peut donc pas emporter sa propre
+recette. C'est aussi ce qui rend un hook impossible à écrire proprement aujourd'hui — il coderait
+en dur un chemin et un lanceur (`ddev`) qui appartiennent à Pluralia.
+
+Ce n'est pas grave en soi ; c'est simplement une brique qui manque, et qui n'était identifiée
+nulle part.
+
+**Fermé le 2026-09-06 par T-38.** Le module a désormais ses propres outils : `require-dev`
+(phpunit, pint, rector, rector-laravel), `phpunit.xml`, `pint.json`, `rector.php`, un
+`tests/bootstrap.php`, et des scripts Composer. `composer check` vérifie formatage, Rector,
+103 tests PHP et 49 tests Node **sans aucun chemin ni aucun `ddev`** — donc le module emporte sa
+recette là où il sera installé.
+
+Ce qui a rendu la chose possible et n'était pas acquis : **le module s'installe seul**. Vérifié —
+`amphibee/meiliscout` se résout depuis Packagist, aucun dépôt privé n'est nécessaire, donc pas
+besoin d'entrée `repositories` ni de script de résolution de chemins.
+
+Deux effets à connaître :
+
+- **la suite `Feature` reste dépendante d'un hôte** (`CardComponentTest`, `ResultsViewTest` rendent
+  du Blade et utilisent `Tests\TestCase` de Pluralia). Elle est déclarée à part et lancée depuis le
+  projet. La rendre autonome demanderait un `TestCase` propre au module montant `illuminate/view`
+  seul — travail à part, voir I-09 ;
+- **la boucle de retour passe de 2,9 s à 38 ms** pour les tests autonomes : 103 tests hors
+  WordPress contre 121 à travers le projet.
+
+Ce que Rector a trouvé et ce qui a été appliqué : cinq règles sur trois fichiers — première classe
+citoyenne à la place d'une fonction fléchée déléguante, `readonly` sur une classe anonyme de test,
+types de retour de fonctions fléchées, `assertCount` à la place d'un `assertSame` sur `count()`.
+Quatre règles ont été **écartées nommément dans `rector.php`, avec le numéro du constat qu'elles
+masqueraient** : `AppToResolveRector` (renommerait le service locator de R-04 au lieu de le
+supprimer), `StringCastAssertStringContainsStringRector` (ajouterait des `(string)` plutôt que de
+typer le plan de R-02), plus deux qui nuisent à la lisibilité.
+
+
+### R-56 · 🟡 · ouvert · 2026-09-06 — `check-parameters` ne détecte pas deux taxonomies mappées sur le même nom
+
+`ReservedParameters::conflicts()` teste chaque paramètre contre les query vars publiques de
+WordPress et contre la liste que Varnish efface. Il ne compare **jamais les paramètres entre eux**,
+et `UrlParameters::all()` peut rendre une liste comportant des doublons sans que rien ne le
+signale.
+
+Deux taxonomies mappées sur le même nom **au sein d'un même listing** partageraient donc
+silencieusement leur paramètre : `StateReader::facets()` lirait la même valeur d'URL pour les deux,
+et cocher une valeur en cocherait une homonyme dans l'autre facette.
+
+Le cas légitime existe et doit rester permis : `product_cat` et `category` peuvent tous deux
+prendre le nom `categorie`, puisqu'un listing ne mélange jamais les types de contenu (D-07) et
+qu'une seule des deux taxonomies est lue sur une page. **La vérification doit donc porter sur les
+facettes d'un même listing, pas sur la configuration entière** — ce qui change la nature de la
+commande : elle passe d'un contrôle de configuration à un contrôle par listing.
+
+
+### R-57 · 🟡 · ouvert · 2026-09-06 — le client n'a aucune source de libellés
+
+*Formulation corrigée le jour même. Ce constat affirmait d'abord que `get_terms()` au rendu violait
+la règle du projet. C'est faux : la règle est **temporelle**, pas catégorielle — au premier rendu
+WordPress construit déjà la page et peut être interrogé ; c'est **à partir du premier filtre** que
+plus rien ne doit repasser par PHP, sous peine de perdre l'instantanéité. Les trois requêtes de
+`WordPressTermLabels` sont donc légitimes.*
+
+Ce qui reste vrai, et qui est la vraie forme du constat : **une fois le client aux commandes, il
+n'a aucun moyen d'obtenir un libellé.** Meilisearch ne lui renvoie que des slugs et des comptes. Il
+ne peut donc afficher que les valeurs déjà présentes dans le HTML servi — ce qui est cohérent avec
+le parti pris « nœuds stables, masqués quand le compte tombe à zéro », mais ferme définitivement le
+cas d'une valeur qui devrait réapparaître.
+
+Deux conséquences, à traiter le jour où le cas se présente :
+
+- une valeur absente de la distribution initiale ne peut jamais entrer dans le DOM ;
+- `ChildTermsFacet` (D-07) hérite du même plafond : les pastilles d'un rayon sont figées à celles du
+  rendu serveur.
+
+La sortie connue, si le besoin apparaît : projeter le couple slug → libellé à l'indexation, comme la
+carte l'est déjà. À ne pas faire par anticipation — R-12 deviendrait bloquant, puisqu'un terme
+renommé rendrait le dictionnaire périmé.
+
+
+### R-58 · 🟠 · **fermé le 2026-09-06** · ouvert le 2026-09-06 — un tri et une page numérotée entraient dans l'index
+
+`RobotsPolicy` ne déclenchait le `noindex` que sur une facette remplie. `?sort=price_asc` et
+`?pg=10` restaient indexables — soit, pour le tri, exactement le même contenu dans un autre ordre,
+et pour la pagination une page sans valeur propre qui dilue le rayon canonique.
+
+La justification inscrite dans le code était périmée : *« a paginated page must stay indexable, or
+the products it holds lose their only internal link »*. La décision du 2026-09-06 avait transformé
+pagination et tri en `<button>` — il n'existe plus aucun lien interne vers la page 2, et
+`architecture.md` l'admettait déjà (« la découverte des fiches repose entièrement sur le sitemap
+Yoast »). Le commentaire n'avait pas suivi la décision.
+
+**Fermé le 2026-09-06**, après R-16 : la garde de contexte a rendu l'élargissement sans danger.
+`appliesTo()` couvre désormais tout paramètre déclaré par `UrlParameters::all()`, donc les noms
+réservés y compris renommés. Vérifié en HTTP :
+
+| URL | Avant | Après |
+| --- | --- | --- |
+| `/boutique` | index | index |
+| `/boutique?categorie=cheveux` | noindex | noindex |
+| `/boutique?sort=newest` | **index** | **noindex** |
+| `/boutique?pg=2` | **index** | **noindex** |
+| `/?q=bonjour` | **noindex si `q` avait été inclus** | index |
+| `/?categorie=cheveux` | **noindex** | **index** |
+
+
+### R-59 · 🔴 · **fermé le 2026-09-06** · ouvert le 2026-09-06 — chaque URL de listing émettait `noindex` **et** une canonique vers une autre URL
+
+**Mesuré le 2026-09-06** en HTTP, sur le site local :
+
+| URL | robots | canonical |
+| --- | --- | --- |
+| `/` | `index, follow` | `/` |
+| `/?q=bonjour` | `index, follow` | `/` — Yoast retire le paramètre inconnu, comportement sain |
+| `/boutique` | `index, follow` | `/boutique` |
+| `/boutique?sort=newest` | **`noindex, follow`** | **`/boutique`** |
+| `/boutique?categorie=cheveux` | **`noindex, follow`** | **`/boutique`** |
+
+`decisions.md` porte pourtant : « Aucune canonique n'est posée vers le chemin nu — `noindex` et une
+canonique pointant ailleurs sont deux signaux contradictoires ». La décision décrivait ce que **le
+module** fait ; elle ne dit rien de ce que **la page** émet. **Yoast pose cette canonique de
+lui-même**, et personne n'avait vérifié le rendu réel.
+
+Le risque est documenté par Google : associer `noindex` à une canonique pointant ailleurs peut faire
+**transférer le `noindex` vers la cible de la canonique**. La cible est ici `/boutique`. La
+fermeture de R-58 vient par ailleurs d'étendre le `noindex` au tri et à la pagination, donc de
+multiplier les URLs concernées.
+
+Trois sorties possibles :
+
+| | Effet |
+| --- | --- |
+| **Supprimer la canonique** quand le module pose `noindex` (filtre `wpseo_canonical`) | Un seul signal, sans ambiguïté. Introduit une dépendance à un filtre Yoast |
+| **Canonique auto-référente** + `noindex` | La paire sûre et standard. Demande de reconstruire l'URL courante nous-mêmes |
+| **Renoncer au `noindex`** et s'en remettre à la canonique | Contredit la règle du projet, et les URLs filtrées resteraient explorées |
+
+**Fermé le 2026-09-06 : la canonique est supprimée quand le module pose `noindex`.**
+
+Deux choses apprises en le corrigeant, aucune des deux évidente :
+
+**Yoast le faisait déjà — sur ses propres robots.** `Canonical_Presenter::get()` commence par
+`if (in_array('noindex', $this->presentation->robots, true)) return '';`. Mais cette évaluation est
+interne à Yoast ; la nôtre est écrite sur `wp_robots`, que ce chemin ne lit jamais. Les deux ne se
+parlaient pas. Un seul filtre `wpseo_canonical` suffit à les réconcilier.
+
+**Et il fallait passer après l'intégration WooCommerce de Yoast.** `Integrations\Third_Party\WooCommerce`
+enregistre son propre `wpseo_canonical` à la priorité 10 et **réécrit la canonique de la page
+boutique**. À priorité égale, il passait après nous et effaçait notre valeur. Symptôme mesuré :
+le correctif fonctionnait sur `/` et sur `/categorie-produit/cheveux`, et restait sans effet sur
+`/boutique` — la page qui compte. Le module s'inscrit donc à 20.
+
+Aucune dépendance conditionnelle à écrire : sans Yoast, `wpseo_canonical` n'est jamais appliqué,
+donc le filtre est inerte. Et WordPress n'émet aucune canonique sur une archive — `rel_canonical()`
+sort immédiatement hors d'un contenu singulier.
+
+Vérifié en HTTP le 2026-09-06 :
+
+| URL | robots | canonical |
+| --- | --- | --- |
+| `/` | index | `/` |
+| `/?q=bonjour` | index | `/` |
+| `/boutique` | index | `/boutique` |
+| `/boutique?sort=newest` | noindex | **aucune** |
+| `/boutique?pg=2` | noindex | **aucune** |
+| `/boutique?categorie=cheveux` | noindex | **aucune** |
+| `/categorie-produit/cheveux` | index | `/categorie-produit/cheveux` |
+| `/categorie-produit/cheveux?marque=lumen` | noindex | **aucune** |
+
+`RobotsPolicy` a été renommée **`IndexingPolicy`** : avec deux balises à sa charge, l'ancien nom
+était devenu faux.
+
+
+### R-60 · 🔴 · **fermé le 2026-09-06** (B+) · ouvert le 2026-09-06 — deux paginations coexistaient, et c'est celle que le module ignore qui est indexée
+
+Analyse dédiée, mesures du 2026-09-06 sur l'installation locale (76 produits publiés).
+
+#### Ce qui est mesuré
+
+Le module pagine sur `?pg=`. WordPress pagine sur `/page/N`. Les deux répondent, aucune ne connaît
+l'autre.
+
+| URL | Statut | Produits | Premier produit |
+| --- | --- | --- | --- |
+| `/boutique` | 200 | 16 | Sérum Éclat Vitamine C |
+| `/boutique/page/2` | 200 | 16 | **Sérum Éclat Vitamine C** |
+| `/boutique/page/3` | 200 | 16 | **Sérum Éclat Vitamine C** |
+| `/boutique/page/4` | 200 | 16 | **Sérum Éclat Vitamine C** |
+| `/boutique/page/5` | 200 | 16 | **Sérum Éclat Vitamine C** |
+| `/boutique/page/6` | 404 | — | — |
+| `/boutique?pg=2` | 200 | 16 | Patchs Yeux Défatigants |
+| `/boutique?pg=5` | 200 | 10 | Crème Nuit Régénérante |
+
+**La pagination du module fonctionne** — `?pg=` sert bien des produits différents. C'est la
+pagination native qui ment : `/page/2` à `/page/5` servent quatre fois la première page.
+
+Trois aggravants, tous mesurés :
+
+- **chaque page porte une canonique auto-référente** (`/boutique/page/2` → elle-même) et
+  `index, follow` : elles sont donc présentées à Google comme quatre pages distinctes et
+  canoniques, toutes identiques ;
+- **la chaîne s'auto-entretient** : `/boutique` porte `rel="next"` vers `/page/2`, qui porte
+  `rel="next"` vers `/page/3`, et ainsi jusqu'à `/page/5`. Un robot entré sur la boutique parcourt
+  toute la série ;
+- **c'est le seul vecteur de découverte** — le sitemap ne contient aucune URL paginée
+  (`page-sitemap.xml` ne liste que `/boutique`), et le corps de la page ne contient aucun lien
+  `/page/N`. Sans le `rel="next"` de Yoast, la série serait inatteignable.
+
+#### L'échelle
+
+Aujourd'hui : **4 URLs dupliquées**, et une seule catégorie sur 81 dépasse 16 produits — donc le
+problème est presque entièrement concentré sur `/boutique`. Les archives de catégorie renvoient
+404 dès `/page/2`, faute de contenu.
+
+Sur un vrai catalogue, la règle est : **une URL dupliquée par page de chaque archive de plus de 16
+produits**. À 5 000 produits, `/boutique` seule en produit 312, auxquelles s'ajoutent celles de
+chaque rayon fourni. C'est un budget d'exploration dépensé à lire quatre cents fois la même page.
+
+#### Pourquoi ça existe
+
+Rien n'est cassé : deux systèmes corrects s'ignorent. `StateReader` lit `pg`, jamais `paged`. La
+requête principale de WordPress, elle, est conservée par décision (elle porte le routage et le SEO)
+et continue de paginer pour son propre compte. Yoast lit cette requête-là pour poser `rel="next"`
+et la canonique.
+
+C'est le même défaut de fond que R-59 : la décision « pagination en query var » décrivait ce que le
+module fait, sans regarder ce que la page continue d'émettre.
+
+#### Les issues
+
+| | Ce que ça donne | Ce que ça coûte |
+| --- | --- | --- |
+| **A. Le listing lit `paged`, `/page/N` devient indexable** | Les URLs paginées servent le vrai contenu, `rel="next"` redevient exact, et les fiches des pages 2+ gagnent un chemin explorable | **Contredit la décision du 2026-09-06** : « tri, recherche et pagination ne doivent pas être indexables ». Et laisse deux formes d'URL pour une même page |
+| **B. Fermer la série** | `noindex` sur `is_paged()`, `rel="next"`/`prev` supprimés. Plus aucune page paginée dans l'index, plus aucune invitation à explorer | `/page/2` continuerait de servir la page 1 : un visiteur arrivé par un lien ancien verrait le mauvais contenu |
+| **B+. Fermer la série, et dire la vérité** | Idem, **plus** : `StateReader` lit `paged` en repli de `pg`, donc `/page/2` sert la vraie page 2 — sans être indexée | Une ligne de lecture de plus, et une règle de priorité à écrire (`pg` gagne sur `paged`) |
+| **C. Ne rien faire** | — | La série grandit avec le catalogue |
+
+#### Ce qui est retenu et pourquoi
+
+**B+.** Elle est la seule à satisfaire les trois exigences en présence :
+
+1. **la règle du projet** — aucune page paginée dans l'index. A la contredit frontalement ;
+2. **ne pas mentir** — une URL qui répond `200` doit servir ce qu'elle annonce. B seule laisse
+   `/page/2` afficher la page 1 ;
+3. **ne rien inventer** — `paged` est déjà résolu par WordPress au premier rendu, sa lecture ne
+   coûte rien et ne contrevient pas à la règle du transport (elle est temporelle : WordPress au
+   premier rendu, jamais au filtrage).
+
+Lire `paged` n'entre pas en conflit avec l'interdiction des noms `page`/`paged` comme paramètres du
+module : cette interdiction porte sur le **double filtrage** qu'un paramètre homonyme provoquerait.
+Ici on ne déclare rien, on lit un contexte que WordPress a déjà établi.
+
+#### Ce que B+ demande
+
+1. `IndexingPolicy` : `noindex` aussi sur `is_paged()`, indépendamment des paramètres d'URL.
+2. Suppression de `rel="next"` et `rel="prev"` sur une page de listing — filtres
+   `wpseo_next_rel_link` et `wpseo_prev_rel_link` (vérifiés présents dans Yoast 28.3), inertes sans
+   Yoast comme `wpseo_canonical`.
+3. `StateReader` : `paged` en repli quand `pg` est absent.
+4. Un test de non-régression sur la règle de priorité entre les deux.
+
+#### Reste ouvert après B+
+
+La découverte des fiches situées au-delà de la première page repose entièrement sur le sitemap
+Yoast — qui liste bien les 76 produits (vérifié : 77 entrées dans `product-sitemap.xml`). C'était
+déjà l'état documenté depuis le passage des contrôles en boutons ; B+ ne le dégrade pas, mais le
+rend définitif. Si ce sitemap venait à être tronqué ou désactivé, l'argument tomberait.
+
+#### Livré le 2026-09-06
+
+Trois changements, dans `IndexingPolicy` et `CurrentListing` :
+
+- `isSecondaryView()` remplace `isFilteredView()` — le concept couvre désormais « une vue qui n'est
+  pas le chemin nu », donc la pagination native (`is_paged()`) autant que les paramètres ;
+- deux filtres `wpseo_next_rel_link` et `wpseo_prev_rel_link` rendent une chaîne vide sur une page
+  de listing : la chaîne d'exploration est coupée à sa source ;
+- `CurrentListing::requestQuery()` fusionne `get_query_var('paged')` sous le nom réservé de la
+  page, **quand aucun paramètre ne le porte déjà**. `/page/N` sert donc la vraie page N.
+
+Vérifié en HTTP :
+
+| URL | robots | canonical | rel next/prev | premier produit |
+| --- | --- | --- | --- | --- |
+| `/boutique` | index | `/boutique` | **0** | Sérum Éclat Vitamine C |
+| `/boutique/page/2` | **noindex** | **aucune** | **0** | **Patchs Yeux Défatigants** |
+| `/boutique/page/3` | noindex | aucune | 0 | **Lait Corps Amande Douce** |
+| `/boutique/page/5` | noindex | aucune | 0 | Crème Nuit Régénérante (10 produits) |
+| `/boutique/page/6` | 404 | — | — | — |
+| `/boutique?pg=2` | noindex | aucune | 0 | Patchs Yeux Défatigants — identique à `/page/2` |
+| `/boutique/page/2?pg=4` | noindex | aucune | 0 | **Gloss Repulpant Miel** — `pg` l'emporte |
+| `/categorie-produit/cheveux` | index | soi-même | 0 | inchangée |
+| `/` | index | `/` | 0 | intacte |
+
+Les quatre URLs dupliquées ont disparu : `/page/2` à `/page/5` servent quatre pages distinctes, et
+aucune n'entre dans l'index. La règle de priorité `pg` > `paged` est vérifiée en conditions réelles
+et couverte par un test unitaire.
+
+
+### R-61 · 🟠 · ouvert · 2026-09-06 — une page au-delà de la dernière annonce « aucun résultat »
+
+**Mesuré le 2026-09-06** : `/boutique?pg=2&categorie=cheveux` répond `200` et affiche « Aucun
+résultat n'a été trouvé. » Or la catégorie « cheveux » contient 14 produits — ils sont tous sur la
+page 1. Le message ment : il n'y a pas *aucun* résultat, il n'y a pas *cette page-là*.
+
+Le cas est atteignable sans rien forger : il suffit d'être en page 3 d'un listing et de cocher une
+facette qui réduit le résultat à une page. `ListingState::page` n'est pas remis à 1 côté serveur —
+le client le fait (`Listing.toggle()` pose `page = 1`), mais le client n'existe pas encore, et une
+URL partagée ou un rechargement passent par le serveur.
+
+Deux réponses possibles, à ne pas confondre :
+
+| | Effet |
+| --- | --- |
+| **Ramener à la dernière page existante** | `pg=2` sur un résultat d'une page servirait la page 1. Le visiteur voit des produits, jamais un cul-de-sac. Mais l'URL ne décrit plus ce qui est affiché |
+| **Distinguer les deux messages** | « Aucun résultat » quand le total est nul ; « Cette page n'existe plus » avec un retour à la première quand le total est non nul mais la page hors bornes |
+
+Antérieur au correctif de R-60 et indépendant de lui : `?pg=2&categorie=cheveux` se comportait déjà
+ainsi. Ce que R-60 change, c'est que le cas devient atteignable par deux chemins d'URL au lieu d'un.
+
+Lié à R-42 (`maxTotalHits`), qui produit le même symptôme pour une autre raison.
+
+
+### R-62 · 🟠 · **fermé le 2026-09-06** · ouvert le 2026-09-06 — la couche vue portait des décisions qui ne lui appartenaient pas
+
+Revue dédiée des huit composants Blade, demandée le 2026-09-06 après que la revue initiale n'en
+eut relevé que trois symptômes isolés (R-04, R-15, R-17) sans jamais examiner la couche comme un
+tout.
+
+**1. Le composant de base d'un module générique dépend de WooCommerce.**
+
+```php
+abstract class ListingComponent extends ContractComponent
+{
+    public function __construct(public string $name = ProductListing::NAME) {}
+```
+
+Tous les composants héritent d'un défaut qui désigne le listing produit. Sur un projet sans
+WooCommerce, `<x-meilifacets::results />` sans attribut `name` cherche un listing `products` qui
+n'existe pas. C'est la même racine que R-09, dont la fermeture est donc **partielle** : le
+constructeur de `ProductListing` refuse bien de se construire, mais la vue continue de le nommer
+par défaut. Le défaut doit venir de la configuration, ou ne pas exister.
+
+**2. Service locator au lieu d'injection**, trois sites : `app(CurrentListing::class)` dans
+`ListingComponent`, `app(IndexingPolicy::class)` dans `Results`. Laravel résout depuis le conteneur
+tout paramètre de constructeur qu'un attribut Blade ne fournit pas — l'injection est disponible,
+elle n'est pas utilisée. Effet direct : aucun de ces composants ne se teste sans application bootée.
+
+**3. Loi de Demeter, systématiquement.** `ResolvedListing` est conçue comme la façade du listing —
+elle expose `facets()`, `cards()`, `activeFilterCount()`, `parameterFor()`. La moitié des appelants
+la traversent quand même :
+
+| Où | Ce qui est écrit |
+| --- | --- |
+| `Sort::build()` | `$resolved->listing->sorts()`, `$resolved->state->sort` |
+| `Results::itemList()` | `$resolved->pagination()->offset()` |
+| `facets.blade.php` | `$resolved->listing->applyMode()->value`, `->applyMode()->needsButton()` |
+| `reset.blade.php` | `$listing()->state->isDefault()` |
+
+Chaque traversée fige la structure interne de `ResolvedListing` dans un gabarit qu'un thème peut
+surcharger — donc dans du markup qui n'est pas à nous.
+
+**4. Des objets métier construits dans la vue.** `new SortChoices(...)` dans `Sort`,
+`new ItemList(...)` dans `Results`, `new CardDocument(...)` et `new CardImage(...)` dans `Card`. Le
+composant décide *quoi* construire autant qu'il décide *comment* l'afficher.
+
+**5. Configuration lue depuis le composant** — `config('meilifacets.card.eager', …)` dans
+`Results`. Voir R-05 : c'est le provider qui doit lire la configuration.
+
+**6. Deux schémas d'identifiants ad hoc, et un préfixe littéral répété.**
+`'meilifacets-'.$this->name.'-sort'` d'un côté, `'meilifacets-'.$facet->taxonomy.'-'.$value->slug`
+de l'autre. Le second ne porte pas le nom du listing (R-15), et `'meilifacets-'` est une chaîne
+magique écrite deux fois dans un module qui interdit les chaînes littérales.
+
+**7. Les noms de crochets sont des chaînes littérales dans les vues.** `{{ $hook('results') }}`,
+`{{ $hook('card-template') }}`… `ContractComponent::hook()` reçoit une chaîne et fait
+`Hook::from()`. La règle « pas de chaîne littérale, une énumération pour un ensemble fermé » est
+enfreinte à l'endroit exact où l'ensemble fermé compte le plus — le contrat que le client vérifie —
+et une faute de frappe y lève un `ValueError` (R-17), contre la promesse de dégradation.
+
+**8. Mémoïsation à la main**, deux fois (`$this->choices ??=`, `$this->eager ??=`). Bénin en soi,
+mais c'est le signe que le composant porte un calcul dont il n'est pas propriétaire.
+
+#### Direction proposée
+
+Aucune de ces corrections n'est urgente ni risquée ; elles se font ensemble ou pas du tout, sous
+peine de mélanger deux styles dans la même couche.
+
+- `ListingComponent` **injecte** `CurrentListing`, et son `$name` n'a pas de défaut WooCommerce ;
+- `ResolvedListing` devient la **seule** surface que les vues touchent — elle gagne `applyMode()`,
+  `sortChoices()`, `isPristine()`, `offset()`, et les traversées disparaissent ;
+- les identifiants passent par un objet unique, préfixe compris ;
+- les crochets s'écrivent avec l'énumération plutôt qu'avec une chaîne.
+
+Ce qui reste **légitimement** dans les composants : `inputType()` (traduire un mode de sélection en
+type d'`input` est de la présentation), `countLabel()` (une formulation destinée à un lecteur
+d'écran), et `priority()` (une décision de chargement d'image).
+
+#### Deux points révisés avant de coder
+
+**Le point 4 était en partie faux.** `SortChoices` vit dans `View\`, `ItemList` dans `Seo\` : les
+construire dans un composant est légitime, ce sont des objets de présentation. Ce qui ne l'était
+pas, c'est la traversée `$resolved->pagination()->offset()` et le `app(IndexingPolicy::class)`.
+
+**Le point 7 est accepté plutôt que corrigé** (voir R-17). Le contrat promet qu'une surcharge de
+thème *périmée* dégrade vers le rendu serveur. Une faute de frappe dans un `$hook()` n'est pas un
+contrat périmé, c'est une erreur PHP dans une vue — et toute erreur de vue Blade produit déjà un
+500. `Hook::from()` qui lève est cohérent avec le reste ; le rendre tolérant masquerait un bug au
+lieu de le montrer.
+
+#### Livré le 2026-09-06
+
+`ListingComponent` injecte `CurrentListing` et n'a plus de défaut WooCommerce : une vue qui ne
+nomme aucun listing obtient **le seul déclaré**, et l'ambiguïté est refusée plutôt que devinée
+(`ListingRegistry::sole()`). `Results` reçoit `IndexingPolicy` et un `CardSettings` construit par le
+provider. `ResolvedListing` gagne `name()`, `isPristine()`, `applyMode()`, `sorts()`,
+`currentSort()`, `offset()`, et ses deux propriétés passent en privé — plus aucune traversée ne
+reste, ni en PHP ni en Blade. `ElementId` porte le préfixe une fois et le nom du listing toujours.
+
+**Vérification qui compte** : les 123 tests de la suite sont passés au vert **alors que le site
+répondait 500** sur toutes ses pages — `sole()` rend une `ResolvedListing`, dont j'appelais
+`name()` qui n'existait pas encore. Aucun test ne couvre les composants (R-30), et c'est le curl
+qui a trouvé la panne. Deux unités neuves sont désormais testées (`ListingRegistry::sole()`,
+`ElementId`), mais le trou de couverture sur la couche vue reste entier.
+
+Après correction : `/boutique` 16 produits, `?categorie=cheveux` 14, `/page/2` la vraie page 2,
+robots et canoniques inchangés, 63 identifiants portant `meilifacets-products-…`, 128 tests verts.
+
+
+### R-63 · ⚪ · **fermé le 2026-09-06** · ouvert le 2026-09-06 — un même concept portait deux noms
+
+`ListingState::isDefault()` existait depuis le lot 3b. `ResolvedListing::isPristine()` a été ajouté
+une heure plus tôt, dans la refonte de la couche vue (R-62), pour déléguer au premier. Deux noms
+pour la même question, dont l'un sur une façade publique.
+
+Aligné sur `isPristine()` : « default » ne dit pas de quoi — l'état par défaut, le listing par
+défaut ? — quand « pristine » dit ce qui compte, que le visiteur n'a touché à rien.
+
+**Deux enseignements de méthode, qui valent plus que la correction :**
+
+1. **La passe de lisibilité a examiné le code déplacé, pas le vocabulaire d'ensemble.** Ajouter une
+   méthode à une façade sans regarder comment s'appelle déjà ce qu'elle délègue est la manière
+   exacte dont deux noms s'installent pour un concept. À ajouter à la passe : *un nom introduit se
+   compare à celui de ce qu'il enveloppe*.
+
+2. **Le signal traînait dans la suite de tests depuis le début.** Le test s'appelait
+   `it_reports_an_untouched_listing_as_pristine` et assertait `isDefault()` : le nom du test disait
+   déjà que le nom de la méthode était mauvais. Un écart entre le nom d'un test et celui de la
+   méthode qu'il exerce est un constat en attente.
+
+
+### R-64 · 🟡 · **fermé le 2026-09-06** · ouvert le 2026-09-06 — la catégorie par défaut était proposée comme un rayon
+
+**Mesuré le 2026-09-06** sur `/boutique`, la facette de catégorie rend six valeurs, dont
+`non-classe` — « Non classé », la catégorie que WooCommerce assigne d'office à un produit qui n'en
+a aucune. Ce n'est pas une famille de produits, c'est un artefact technique, et il est offert au
+visiteur comme les cinq autres.
+
+Le symptôme cache deux problèmes qui ne se règlent pas au même endroit :
+
+- **du code** — rien n'exclut cette valeur. `get_option('default_product_cat')` la nomme, mais
+  `ChildTermsFacet` n'a aucun mécanisme d'exclusion, et l'exclusion est propre à WooCommerce donc
+  ne peut pas vivre dans le module générique ;
+- **de la donnée** — son compteur vaut 1 : un produit du catalogue n'a réellement aucun rayon.
+  Aucune exclusion ne le range, elle le rendrait seulement invisible dans la facette tout en le
+  laissant dans la grille.
+
+Trois issues pour la partie code :
+
+| | Effet |
+| --- | --- |
+| `Facet` déclare des valeurs exclues | Générique, réutilisable, mais ajoute un réglage à un objet qu'on vient de garder minimal |
+| `ProductListing` filtre son `baseFilter()` | `NOT facets.product_cat = "non-classe"` sortirait aussi le produit de la grille — donc invisible en boutique, ce qui est peut-être pire |
+| Rien dans le module, la donnée est corrigée | Le plus simple si le cas est accidentel. Mais rien n'empêche qu'il revienne |
+
+Le même piège vaut pour `product_visibility` et `product_type`, taxonomies techniques déjà
+filtrables (vérifié dans les réglages d'index) : elles ne sont pas *affichées* aujourd'hui parce
+qu'aucune facette ne les déclare, mais rien ne l'interdit.
+
+#### Livré le 2026-09-06 — la partie code
+
+**Ce n'est pas propre à WooCommerce.** Deux conventions nomment la même notion, et les deux sont
+lues : `default_term_<taxonomie>`, depuis l'argument `default_term` de `register_taxonomy`, et
+`default_<taxonomie>` pour celles qui la précèdent. Mesuré sur cette installation —
+`default_category` vaut 1 pour les articles, `default_product_cat` vaut 15 pour les produits, et les
+taxonomies plates (`product_brand`, `pa_contenance`, `post_tag`) n'en ont aucune.
+
+**Masqué par défaut**, parce qu'un terme de repli n'est jamais un moyen de parcourir un catalogue :
+il dit qu'un contenu n'a été rangé nulle part, ce qui est un fait sur le catalogue, pas une
+navigation. Une facette dont le repli est un terme réel choisi par un éditeur déclare
+`DefaultTerm::Shown` — une énumération plutôt qu'un booléen, comme `SelectionMode` et `DisplayOrder`
+à côté d'elle.
+
+Le tri se fait dans `FacetValues`, avant `within()`, plutôt que dans `Facet` : ce n'est pas une
+variation du *niveau* montré mais une règle uniforme, et `Facet` reste un objet de valeur sans
+dépendance.
+
+**Le produit reste en boutique** — « Trousse Vide Nomade » est toujours dans la grille, page 4, et
+sur son URL. La facette cesse d'offrir une entrée qui ne veut rien dire, elle ne cache pas un
+produit.
+
+Vérifié : `/boutique` rend 5 valeurs au lieu de 6, 16 produits inchangés, 118 tests dans le module
+et 136 dans le projet.
+
+#### Reste ouvert — la partie donnée
+
+« Trousse Vide Nomade » (#412) n'a toujours aucune catégorie. Le masquage la rend invisible dans la
+facette sans la ranger : elle n'est atteignable que par la boutique entière ou par une recherche.
+C'est une correction de contenu, pas de code.
+
+
+### R-65 · 🟠 · ouvert · 2026-09-07 — une adresse de moteur sans schéma désactive tout, en silence
+
+`MEILI_PUBLIC_URL` est l'adresse que le navigateur utilise. Sur Clever Cloud, la forme naturelle
+qu'on copie depuis la console est `3ds-staging-meilisearch.cleverapps.io/` — **sans schéma**.
+
+**Mesuré le 2026-09-07** : `Illuminate\Support\Uri` lit une telle valeur comme un *chemin*, donc
+`scheme()` et `host()` valent tous deux `null`. `BrowserConnection::origin()` rend une chaîne vide,
+`isConfigured()` rend `false`, et il ne se passe **rien** : ni `preconnect`, ni — demain — de client
+de recherche. Aucune erreur, aucune trace, aucun avertissement.
+
+Deviner `https` serait une devinette : le module ne sait pas si le moteur est joignable en clair ou
+non, et se tromper produit une requête bloquée pour contenu mixte plutôt qu'un message.
+
+Ce qui manque n'est donc pas une normalisation, c'est un **diagnostic** : une commande qui dise
+« `meilifacets.browser.url` n'a pas de schéma ; écrivez `https://…` ». C'est le premier candidat
+concret pour `meilifacets:doctor` (lot 6), et il vaut aussi pour la clé de recherche absente.
+
+En attendant, `installation.md` doit dire que le schéma est obligatoire.
+
+### R-66 · 🟡 · **fermé le 2026-09-07** · ouvert le 2026-09-07 — le module n'a jamais déclaré sa dépendance à Illuminate
+
+**Mesuré le 2026-09-07** : 14 fichiers sur 90 importaient `Illuminate\Contracts\View\View` (9),
+`Illuminate\Support\HtmlString` (4), `Illuminate\View\Component`, `Illuminate\Support\Facades\View`
+et `Illuminate\Console\Command`, alors que `composer.json` ne déclarait que `php` et
+`amphibee/meiliscout`.
+
+Ça ne cassait jamais **par accident** : aucune classe exercée par la suite autonome n'y touchait —
+les 14 sont des composants, le provider ou la commande, que seule la suite `Feature` couvre, dans le
+projet hôte.
+
+Fermé en déclarant `illuminate/console`, `illuminate/contracts`, `illuminate/support` et
+`illuminate/view` en `^12.0 || ^13.0` — les deux versions de Laravel que visent Pollora 12 et 13.
+
+**Et la déclaration honnête a immédiatement révélé une dépendance implicite de plus** :
+`Illuminate\Support\Uri` s'appuie sur `league/uri`, que `illuminate/support` ne déclare qu'en
+*suggest*. Dans un projet Laravel complet il est présent parce que le framework le tire ; en
+autonome, `Class "League\Uri\Uri" not found`. Ajouté explicitement.
+
+C'est l'argument contre « Laravel sera toujours là » : c'est vrai à l'exécution, et faux dès qu'on
+installe le module autrement — ce que la suite autonome fait à chaque exécution.
+
+
+### R-67 · 🟠 · **fermé le 2026-09-07** · ouvert le 2026-09-07 — la racine du listing ne portait plus son nom
+
+`listing.blade.php` rendait `data-listing="{{ $name }}"`, l'attribut Blade — vide depuis que le
+défaut WooCommerce a été retiré de `ListingComponent` (R-62), alors que le composant résout bien le
+listing unique. Le client trouvait donc une racine sans nom, ne trouvait aucune description, et
+**ne démarrait pas, en silence**.
+
+Corrigé : le markup porte le nom **résolu**, `$listing->name()`.
+
+Deux enseignements :
+
+- **aucun test ne rend `listing.blade.php`** — la suite `Feature` couvre `results` et `card`, pas la
+  racine. Quatrième panne de cette semaine trouvée par un `curl` ou un navigateur plutôt que par la
+  suite (R-30) ;
+- **l'échec était muet.** `listing-page.js` sortait sans un mot quand aucune description ne
+  correspondait. Deux `console.error` ont été ajoutés : quand la page ne publie aucune donnée alors
+  qu'une racine existe, et quand une racine porte un nom que la page ne décrit pas.
+
+### R-68 · 🟡 · ouvert · 2026-09-07 — le site servi en `http` casse tout son JavaScript, thème compris
+
+**Mesuré le 2026-09-07.** `home`, `siteurl` et `APP_URL` déclarent tous trois
+`https://pluralia.ddev.site`, donc `asset()` et `wp_enqueue_*` produisent des URLs en `https`. Une
+page ouverte en `http://pluralia.ddev.site` voit alors ses propres scripts comme une autre origine,
+et le navigateur les refuse :
+
+```
+Access to script at 'https://…/build/theme/pluralia/assets/app-*.js'
+from origin 'http://pluralia.ddev.site' has been blocked by CORS policy
+```
+
+**Le bundle du thème est bloqué exactement comme celui du module** : en `http`, le site n'a aucun
+JavaScript. Ce n'est donc pas un défaut du module, c'est un piège d'environnement — et il a coûté du
+temps, toutes les vérifications `curl` de la revue ayant été faites en `http` par habitude. Elles
+restent valables pour le HTML servi ; elles ne disaient rien du JavaScript.
+
+À écrire dans `installation.md` : **en local, le site se consulte en `https`**.
+
+### R-69 · 🟡 · ouvert · 2026-09-07 — la couche DOM n'a aucun test automatisé
+
+`happy-dom` avait été validé comme dépendance de développement pour tester la liaison au DOM. Il n'a
+pas été installé : `CardPainter`, `ListingBinding` et `listing-page.js` ont été recettés **à la main
+dans un navigateur**, par Playwright, ce qui prouve qu'ils marchent aujourd'hui et ne protège de
+rien demain.
+
+Les 58 tests Node couvrent l'état, l'URL, le plan de requête et le contrat — tout ce qui ne touche
+pas au document. C'est R-30 sous une autre forme, et la couche DOM est celle qui vient de grossir
+le plus.
+
+
+---
+
+## 10. Questions ouvertes
+
+Rangées de la plus structurante à la plus locale. Une réponse ici ferme ou réoriente les constats
+qui la citent.
+
+### Cadrage
+
+**Q-01 · ~~Ce module est-il un module de projet ou un paquet réutilisable ?~~** — **répondu le
+2026-09-06, voir D-01.** Module Pollora générique, Pluralia en banc d'essai. Le module porte le
+fonctionnement, le thème l'apparence, chaque vue reste surchargeable, et le module livre une
+feuille de style **minimale** — ce dernier point ouvre R-53 et Q-28.
+
+**Q-02 · ~~Que fait-on du dépôt git imbriqué ?~~** — **répondu le 2026-09-06, voir D-02.**
+Dépôt séparé assumé : `Pollora/MeiliFacets`, privé. Le mode de versionnage des modules Pollora se
+décidera plus tard. Reste à rouvrir avant la première mise en production : rien ne relie une
+révision du projet à une révision du module.
+
+**Q-03 · (reformulée le 2026-09-06) Qui a le droit de construire le filtre envoyé au moteur ?**
+
+*Première formulation mal posée. Reprise en clair.* Le point n'est pas la latence — sur ce sujet
+voir D-04 et R-54 — mais **la confiance**. Dès que le navigateur parle au moteur en direct, c'est
+lui qui écrit la requête. Le filtre `post_status = "publish" AND post_type = "product"` que PHP
+pose au premier rendu devra être transmis à la page, sous forme de chaîne, pour que le client
+puisse le rejouer. N'importe quel visiteur peut alors l'effacer dans la console et interroger
+l'index sans lui : brouillons, produits masqués du catalogue, articles non publiés — tout ce que
+l'index contient devient lisible, dans la limite de `displayedAttributes`.
+
+Ce n'est pas une faille du code écrit : c'est la conséquence mécanique du transport direct, et elle
+n'était écrite nulle part. Elle ne rend pas la décision mauvaise — elle dit seulement que **le
+filtre de sécurité doit vivre côté moteur, pas côté page**.
+Elle a un coût qui n'a jamais été écrit : aucun filtre de sécurité n'est opposable, et le filtre de
+base part en clair dans la page. Trois options, à peser explicitement :
+1. on garde le direct **et** on pose un tenant token Meilisearch (le filtre devient opposable
+   côté moteur) ;
+2. on garde le direct et on assume que l'index ne contient que du public, en le garantissant à
+   l'indexation plutôt qu'à la recherche ;
+3. on introduit une route Laravel légère (mode API de Pollora, ~100 ms annoncés, sans plugins) qui
+   signe la requête — ce qui contredit une décision validée, mais rend le modèle défendable.
+*Cite : R-27, R-28, R-29.*
+
+**Q-04 · ~~Quelle est la définition de « fini » ?~~** — **répondu le 2026-09-06, voir D-03.**
+Fondations d'abord, un point à la fois, chaque point validé et documenté avant d'ouvrir le suivant.
+Le chantier B passe avant le chantier C.
+
+**Q-04b · Reste à fixer : quel est le critère de recette du socle ?**
+« Fondations solides » demande une ligne d'arrivée observable. Proposition : le socle est validé
+quand, sur `/boutique` et sur une archive de catégorie, filtrée et non filtrée, (a) toute facette
+laisse atteindre ses autres valeurs, (b) aucune valeur rendue n'est inatteignable, (c) un
+changement de terme se propage à l'index, (d) le câblage est couvert par des tests. À valider ou à
+amender.
+
+### Ordre de marche
+
+**Q-05 · Que devient une facette mono-sélection ?**
+Trois issues à R-10 : (a) comptage disjonctif pour toutes les facettes, mono comprise ; (b) la
+catégorie cesse d'être une facette et devient une navigation par liens sur le chemin — ce qui est
+déjà à moitié le cas puisque la facette se retire sur une archive de catégorie ; (c) on garde le
+comportement actuel et on l'écrit comme une limite. Ma préférence : (b) pour la catégorie,
+(a) comme règle générale.
+
+**Q-06 · La facette catégorie doit-elle restituer la hiérarchie ?**
+Si oui, le modèle éprouvé est un champ par niveau (`facets.product_cat_lvl0/1/2`), ce qui change
+la projection d'indexation — donc c'est une décision de lot 1, à prendre avant d'écrire le client.
+Si non, il faut assumer une liste plate plafonnée à 30 sur plus de cent termes. *Cite : R-11.*
+
+**Q-07 · `ProductListing` reste-t-il dans le module ?**
+S'il en sort, R-09 disparaît, la dépendance WooCommerce du module aussi, et le lot 4 devient un
+travail de projet. S'il reste, il faut une garde que la découverte respecte
+(`Listing::isAvailable()`).
+
+**Q-08 · Prix et disponibilité : facettes tout de suite sur les produits simples, ou après le lot 4 ?**
+Les attributs sont déjà filtrables et triables. Livrer une facette de tranches de prix et une case
+« en stock » maintenant donne de la valeur immédiate ; le risque est de la refaire quand les
+variations arriveront. *Cite : R-43.*
+
+**Q-09 · La recherche texte : on livre le champ, ou on retire `q` du lecteur d'état ?**
+L'état intermédiaire actuel — le paramètre agit sans que rien ne l'affiche — est le pire des trois.
+*Cite : R-44.*
+
+**Q-10 · La carte du listing est-elle celle du module ou celle du thème ?**
+La wishlist a disparu de l'archive produit et la doc annonce l'inverse. *Cite : R-45.*
+
+**Q-11 · Le prix reste-t-il du HTML non filtré ?**
+La décision est argumentée et je ne la conteste pas ; il faut soit la confirmer et purger la doc
+contradictoire, soit poser le seuil auquel on refiltre. *Cite : R-26.*
+
+**Q-12 · Combien de temps garde-t-on le module en 1.53.1 en local contre 1.10.3 en production ?**
+Tant que l'écart dure, chaque recette locale est une hypothèse. Qui porte la montée de version, et
+selon quel calendrier ? *Cite : R-41.*
+
+### Conception
+
+**Q-13 · ~~La documentation : on la rapatrie maintenant ?~~** — **répondue le 2026-09-07 : oui**,
+faite (R-37). Reste ouverte la seconde moitié — **la réduit-on ?** Ancienne formulation :
+1 683 lignes hors du module, avec quatre affirmations fausses relevées aujourd'hui. Trois strates
+s'y mélangent : les décisions (à garder, c'est la valeur), les constats techniques sur les
+dépendances (à garder, c'est irremplaçable) et le journal de session (à archiver). Qui la lit,
+en dehors de nous deux ? *Cite : R-36, R-37.*
+
+**Q-14 · (réorientée par D-01) Le contrat `data-meili` est acquis — comment le rend-on fiable
+sans le rendre cher ?**
+La surcharge par le thème est une exigence, donc le contrat reste. Ce qui est encore ouvert : sa
+vérification tourne-t-elle en production ou seulement en `WP_DEBUG` ? Comment garantit-on que les
+deux listes ne divergent pas (R-25, voir I-05) ? Et que fait-on des attributs hors contrat que le
+client lit déjà — `data-taxonomy`, `data-apply`, `data-listing`, `data-value` (R-23) ?
+
+**Q-15 · Accepte-t-on définitivement les deux implémentations du plan de requête, ou le serveur
+émet-il le plan que le client rejoue ?**
+La divergence est déjà là (R-22). Si PHP sérialise un plan complet en JSON, `ListingQuery`
+disparaît, `ListingUrl` reste, et la dette se referme. Le coût : le client ne sait plus recalculer
+un plan sans aller-retour — ce qui n'est un problème que si l'on veut chaîner deux filtres sans
+recharger… c'est-à-dire tout le temps. À examiner sérieusement plutôt qu'à écarter. *Voir I-01.*
+
+**Q-16 · `Listing` doit-il être scindé en déclaration et contexte de requête ?** *Cite : R-06.*
+
+**Q-17 · Où lit-on la configuration ?** Provider seul, ou objets de domaine ? *Cite : R-05.*
+
+**Q-18 · Un index dédié plutôt que `posts` partagé avec MeiliScout ?**
+Aujourd'hui le module impose `displayedAttributes: ["ID","card"]` sur l'index commun, ce qui casse
+par construction la recherche `WP_Query` de MeiliScout pour tout autre usage du projet. Un index
+propre coûte une duplication d'extraction ; il rend le module indépendant.
+
+**Q-19 · `IndexAttributes` est-il le bon découpage ?**
+Un seul contrat porte `filterable()`, `sortable()` et `displayed()` — trois besoins avec trois
+cycles de vie. `ConfiguredIndexAttributes` n'implémente d'ailleurs que le troisième et fait suivre
+les deux autres.
+
+### Exploitation
+
+**Q-20 · Qui déclenche la réindexation sur changement de taxonomie, et à quel coût ?**
+Réindexer tous les descendants d'un terme déplacé peut être long. Hook synchrone, tâche
+planifiée, ou commande manuelle documentée ? *Cite : R-12.*
+
+**Q-21 · Que fait le client après un échec, et après plusieurs ?**
+Question déjà listée « en attente » dans `decisions.md`. Elle bloque l'écriture du client, donc
+elle doit se prendre maintenant : annulation du geste, message, dégradation vers un rechargement
+serveur ?
+
+**Q-22 · Accepte-t-on l'explosion du cache Varnish ?**
+Chaque combinaison de filtres devient une entrée de cache 180 s, et tout visiteur portant un cookie
+panier passe en `pass`. Sur trois facettes à 9, 24 et 30 valeurs, l'espace de clés est déjà très
+grand. Faut-il déclarer les URLs filtrées non cachables plutôt que de les cacher toutes ?
+
+**Q-23 · Les noms de paramètres d'URL (`marque`, `contenance`, `etiquette`, `selection`) sont-ils
+validés côté client et SEO ?** Ils partent dans des URLs indexées ; les changer casse des liens.
+`meilifacets:check-parameters` valide qu'ils ne collisionnent pas, pas qu'ils sont les bons.
+
+**Q-24 · Le mode d'application par défaut : `submit` ou `immediate` sur ce catalogue ?**
+*Cite : R-51.*
+
+**Q-25 · Jusqu'où patche-t-on MeiliScout en amont ?**
+`getSearchClient()` (DNS + health à chaque process, pas de timeout, R-19), `IndexingLogger`
+(fichier maison hors monitoring), `configureIndices()` (code mort), la contradiction
+`terms.*` / `taxonomies.*`. La règle du module — « corriger la dépendance plutôt que la contourner »
+— dit de le faire ; le calendrier de la PR en cours dit peut-être l'inverse.
+
+**Q-26 · Qui est responsable des réglages MeiliScout stockés en base (`indexed_post_types`,
+`indexed_meta_keys`) ?**
+Non versionnés, à refaire par environnement, et ils déterminent les taxonomies projetées. Une
+commande d'installation qui les pose serait plus fiable qu'une consigne.
+
+**Q-27 · Les classes CSS en camelCase (`meilifacetsCardImage`) restent-elles la convention ?**
+Choix assumé et documenté, mais il isole le module du reste du thème (BEM kebab-case) et il est la
+raison d'être de la contre-règle `[hidden]`. Confirmé ?
+
+### Nouvelles, ouvertes par les réponses du 2026-09-06
+
+**Q-28 · Où passe exactement la ligne entre « fonctionnement » et « apparence » dans la feuille de
+style du module ?**
+D-01 demande une feuille minimale ; `architecture.md` en interdit une. Proposition à valider : le
+module pose **uniquement** ce sans quoi le composant est cassé — positionnement et superposition de
+la `listbox` de tri, `list-style: none` sur ses propres listes, la contre-règle `[hidden]`, et le
+masquage des options fermées. Il ne pose jamais couleur, espacement, typographie, bordure, ni état
+de survol. Tout est sous des classes `meilifacets*`, donc désinscriptible d'un
+`wp_dequeue_style('meilifacets')`. *Cite : R-53.*
+
+**Q-29 · ~~Mesure-t-on le coût réel de WordPress avant d'aller plus loin ?~~** — **répondue le
+2026-09-07, voir D-08.** Pas d'estimation sans mesure : on produit, on mesure ensuite.
+Ancienne formulation :
+R-54 montre que l'objectif premier n'est tenu sur aucun chemin aujourd'hui, et qu'aucune mesure
+n'existe. Une demi-journée de chronométrage sur un catalogue réel (rendu nu, rendu filtré, avec et
+sans allègement de la requête principale par `pre_get_posts`) dirait où est réellement le temps —
+et si le client JavaScript est bien le prochain gain, ou seulement le plus visible.
+
+**Q-30 · ~~Allège-t-on la requête principale de l'archive ?~~** — **différée le 2026-09-07 (D-08)**,
+en attente d'un catalogue réel en local. Ancienne formulation :
+Question déjà listée « en attente de validation » depuis l'ouverture du projet, jamais reprise.
+Elle devient centrale au vu de D-04 : c'est elle qui porte l'essentiel du coût du premier rendu.
+Réserves connues : le gain n'est pas mesuré (Q-29), et une archive sans post peut basculer en 404.
+
+---
+
+## 11. Roadmap proposée
+
+Le découpage en sept lots reste valable. Ce qui change : **le lot 3c ne s'ouvre pas tant que le
+rendu qu'il contractualise n'est pas juste.** Écrire le client sur un socle qui a R-10, R-11 et
+R-46 revient à figer ces défauts dans un contrat versionné.
+
+Trois chantiers avant de reprendre le fil des lots.
+
+> **Méthode retenue (D-03) : un point à la fois.** Une entrée R ouverte, discutée, corrigée,
+> testée, documentée, fermée — puis la suivante. Les tableaux ci-dessous sont une file d'attente,
+> pas un plan de sprint.
+
+**Ordre de départ proposé**, si rien ne s'y oppose : T-02 (forme du listing) puis T-31, parce que
+tous deux changent le markup que le contrat fige — donc tout ce qui est fait avant eux serait à
+refaire. Ensuite T-33, qui dira si le prochain gain est bien le client. T-03 peut être traité en
+parallèle : il ne touche pas au rendu.
+
+### Chantier A — décider (bloquant, aucune ligne de code)
+
+| Id | Tâche | Ferme | État |
+| --- | --- | --- | --- |
+| T-01 | Cadrage : rôle du module, dépôt, méthode | R-38 (partiel) | **fait** — D-01, D-02, D-03 |
+| T-02 | Trancher Q-05, Q-06, Q-10 (forme du listing) | R-10, R-11, R-45 | à faire |
+| T-03 | Trancher Q-03 et Q-11 (modèle de sécurité) | R-26, R-27, R-28 | à faire |
+| T-04 | Fixer le calendrier de montée de version du moteur (Q-12) | R-41 | à faire |
+| T-31 | Fixer la ligne fonctionnement / apparence de la feuille de style (Q-28) | R-53 | à faire |
+| T-32 | Fixer le critère de recette du socle (Q-04b) | — | à faire |
+| T-33 | Mesurer le coût WordPress d'une URL de listing (Q-29, Q-30) | R-54 | à faire |
+| T-35 | Outiller la méthode : `CLAUDE.md` v2, agents `conformity` et `module-review` | — | **fait** — D-05 |
+| T-38 | Rendre le module vérifiable seul : `require-dev`, `phpunit.xml`, `pint.json`, scripts | R-55 | **fait** — `composer check` vert, sans chemin |
+| T-36 | Hook `Stop` exécutant `composer check` | R-55 | **fait** — `.claude/settings.json` du module, versionné, sans chemin machine |
+| T-37 | Purger les commentaires que la règle réécrite condamne (~37 blocs) | D-05 | à faire, sur les fichiers touchés |
+
+### Chantier B — rendre le socle serveur juste
+
+| Id | Tâche | Ferme |
+| --- | --- | --- |
+| T-05 | Comptage disjonctif selon la décision de Q-05 ; radio décochable ou navigation par liens | R-10 |
+| T-06 | Facette catégorie : hiérarchie ou limite écrite | R-11 |
+| T-07 | Bouton de dépliage : crochet, vue, contrat, version | R-46 |
+| T-08 | Filtres actifs en puces retirables | R-47 |
+| T-09 | Réindexation sur `edited_term`, `delete_term`, `set_object_terms` | R-12 |
+| T-10 | Timeout explicite sur le client Meilisearch + client construit par le module, pas par `ClientFactory` | R-19 |
+| T-11 | `RobotsPolicy` ne décide qu'en présence d'un listing | R-16 |
+| T-12 | `Hook::from()` tolérant ; `array_combine` protégé ; hit sans `card` journalisé | R-17, R-14, R-13 |
+| T-13 | `countId()` porte le nom du listing | R-15 |
+| T-14 | Tests du câblage : bridge, indexable, moteur, découverte, listing résolu | R-30, R-31 |
+| T-15 | `preconnect` vers `MEILI_PUBLIC_URL` | R-52 |
+| T-34 | Feuille de style minimale du module, selon la ligne fixée en T-31 | R-53 |
+
+### Chantier C — livrer le client (ex-lot 3c)
+
+| Id | Tâche | Ferme |
+| --- | --- | --- |
+| T-16 | Décider la forme du contrat de données serveur → navigateur (Q-15) | R-21 |
+| T-17 | Sérialiser connexion et description du listing | R-21 |
+| T-18 | Point d'entrée, inscription du script, démarrage sur vérification du contrat | R-20 |
+| T-19 | Les cinq gestes, le repeint, `popstate` | R-20 |
+| T-20 | Aligner `toggle()` sur la sélection mono, dédoublonner et plafonner côté JS | R-22 |
+| T-21 | Test croisé `Hook` / `contract.js` et `QueryPlan` / `ListingQuery` | R-25, R-32 |
+| T-22 | Comportement après échec, simple et unique (Q-21) | — |
+| T-23 | Retirer `Hook::PageTemplate` ou le rendre | R-24 |
+
+### Puis, dans l'ordre des lots
+
+- **Lot 4** — prix, stock, variations. À rouvrir avec Q-08 : les produits simples peuvent être
+  servis avant.
+- **Lot 5** — recherche et suggestions. Prérequis : Q-09, et `searchableAttributes` (R-27).
+- **Lot 6** — diagnostics. `meilifacets:doctor`, canal de log, messages avec `errorCode` /
+  `errorLink`.
+- **Lot 7** — réutilisabilité. Dépend entièrement de Q-01.
+
+### Nettoyage, à faire au fil de l'eau
+
+| Id | Tâche | Ferme |
+| --- | --- | --- |
+| T-24 | Supprimer les déclarations jamais lues | R-33 |
+| T-25 | Supprimer les `.gitkeep` et `.playwright-mcp` | R-34 |
+| T-26 | Corriger les quatre affirmations fausses de la doc | R-36 |
+| T-27 | Fermer la dette `product_tag => tag` (déjà corrigée en config) | R-36 |
+| T-28 | Extraire un `QueryPlan` instanciable ; mémoïser `facets()` et `sorts()` | R-01, R-07 |
+| T-29 | Objet `SearchRequest` typé à la place du tableau de plan | R-02 |
+| T-30 | Déplacer `Contract` hors de `Enums` | R-03 |
+
+---
+
+## 12. Idées
+
+**I-01 · Le serveur émet le plan, le client le rejoue.**
+Plutôt que deux implémentations du plan de requête, PHP sérialise un `SearchRequest` complet dans
+la page ; le client n'a plus qu'à substituer l'état (facettes cochées, page, tri) dans une
+structure qu'il ne construit pas. `ListingQuery` disparaît, `ListingUrl` reste. Ferme R-22 et une
+dette explicitement acceptée. À confronter à Q-15.
+
+**I-02 · Tenant token Meilisearch.**
+Un token dérivé de la clé de recherche, portant des `searchRules` qui imposent
+`post_type = "product" AND post_status = "publish"`. C'est le seul moyen de rendre opposable un
+filtre côté navigateur, et ça ferme R-28, R-27 et la question des brouillons d'un coup. Coût : le
+token a une expiration, donc un point d'émission côté PHP — ce que la page fait déjà.
+
+**I-03 · Facette hiérarchique par niveau.**
+`facets.product_cat_lvl0/1/2` à l'indexation, façon Algolia. Rend R-11 solvable, permet de ne
+montrer que le niveau courant et ses enfants, et supprime le mélange de niveaux. Décision de lot 1,
+à prendre avant le client.
+
+**I-04 · `searchCutoffMs` côté moteur.**
+Réglage d'index, non posé aujourd'hui (vérifié : `null`). Il borne le temps de recherche du moteur
+lui-même et rend une réponse dégradée plutôt qu'une attente. Complément naturel du timeout PHP de
+T-10.
+
+**I-05 · Un test qui compare les deux contrats.**
+Un test PHP qui lit `contract.js`, en extrait les crochets et la version, et les compare à `Hook` et
+`Contract::VERSION`. Quinze lignes, et la dette « deux listes qui divergent en silence » cesse
+d'exister.
+
+**I-06 · `meilifacets:doctor` avant le lot 6.**
+Une commande qui vérifie : moteur joignable, index existant et non vide, `filterableAttributes`
+contenant chaque facette déclarée, un document témoin portant `facets` et `card`, écart entre le
+nombre de produits publiés et le nombre de documents. Trois maillons sur quatre échouent sans
+exception : c'est le seul outil qui les rend visibles, et il servirait dès maintenant.
+
+**I-07 · Un mode dégradé sans JavaScript, ou l'assumer une bonne fois.**
+Aujourd'hui le listing servi est complet mais totalement inerte. C'est une décision prise ; elle
+mérite d'être revérifiée à la lumière de R-46 (des valeurs dans le HTML que rien ne peut révéler) et
+du fait que la pagination et le tri, qui **étaient** fonctionnels, ont été retirés.
+
+**I-10 · Un vrai traducteur en test plutôt qu'un repli inerte.**
+`illuminate/translation` en `require-dev` et un `__()` de bootstrap qui le résout donneraient deux
+choses que le repli actuel ne donne pas : les remplacements nommés appliqués, et surtout la
+possibilité de **tester `lang/fr.json`** — aujourd'hui aucun test ne vérifie qu'une clé du
+catalogue existe ni qu'elle est bien formée. À ouvrir le jour où une chaîne à placeholder entre
+dans la suite autonome. Voir D-06.
+
+**I-09 · Un `TestCase` propre au module, pour rendre la suite `Feature` autonome.**
+`CardComponentTest` et `ResultsViewTest` n'ont besoin que du moteur Blade, pas de WordPress ni de
+l'application complète : `illuminate/view` monté à la main en `require-dev` suffirait. Le module
+vérifierait alors ses vues partout, et non seulement dans Pluralia. Ouvert par T-38.
+
+**I-08 · Mesurer avant d'arbitrer sur le catalogue réel.**
+Trois décisions ouvertes attendent le catalogue de production (compteurs sous variations, mode
+d'application, taille des facettes). Rapatrier un dump récent en local coûte moins cher que de
+continuer à décider sur 76 produits sans variations.
+
+---
+
+## 13. Journal
+
+- **2026-09-06** — Revue complète du module à la demande du projet. Lecture intégrale du code
+  (~2 200 lignes applicatives, 1 400 lignes de tests, 7 fichiers ES), des six documents de
+  `docs/meilifacets/`, et vérifications sur l'environnement local : suites de tests (121 PHP,
+  49 Node, vertes), réglages réels de l'index, rendu HTTP de `/boutique` filtré et non filtré,
+  hooks effectivement enregistrés, découverte automatique d'un `Listing` prouvée par une classe
+  jetable, dépôt git imbriqué confirmé. 52 constats, 27 questions, 30 tâches consignés.
+- **2026-09-06** — Quatre réponses de cadrage en séance : D-01 à D-04. Q-01, Q-02 et Q-04 fermées,
+  Q-03 reformulée, Q-14 réorientée. Deux constats ouverts par ces réponses — R-53 (le module ne
+  livre aucun style alors que D-01 en demande un) et R-54 (l'objectif de latence n'est tenu sur
+  aucun chemin, et n'a jamais été mesuré). Trois questions nouvelles : Q-28, Q-29, Q-30. Total :
+  54 constats, 4 décisions, 30 questions, 34 tâches.
+- **2026-09-06** — Méthode de livraison outillée (D-05, T-35). Mesure à l'origine de la décision :
+  148 blocs PHPDoc, 57 porteurs de prose dont une trentaine condamnés par une règle déjà écrite ;
+  `@return list<string>` répété 12 fois pour trois informations. `CLAUDE.md` du module réécrit
+  (45 → 132 lignes), deux sous-agents ajoutés dans `.claude/agents/`. Le hook est **différé** :
+  chercher à l'écrire sans dépendre de Pluralia a fait apparaître R-55 — le module n'a ni
+  `require-dev`, ni `phpunit.xml`, ni `pint.json`, et deux de ses tests dépendent du `TestCase` du
+  projet. Total : 55 constats, 5 décisions, 30 questions, 38 tâches.
+- **2026-09-06** — T-38 livré, R-55 fermé. Le module a ses propres `require-dev`, `phpunit.xml`,
+  `pint.json`, `rector.php`, `tests/bootstrap.php` et scripts Composer ; `composer check` est vert
+  et ne dépend d'aucun chemin. Rector appliqué sur trois fichiers, quatre de ses règles écartées
+  nommément. Boucle de retour : 38 ms pour 103 tests autonomes, contre 2,9 s via le projet. La
+  suite du projet reste verte (121 tests). I-09 ouvert. D-06 : le repli `__()` du bootstrap de
+  test est assumé et documenté, après vérification qu'aucun précédent n'existe dans le projet —
+  `Modules/Wishlist` n'a aucun test, et `pluralia-fulfillments` fait le choix inverse en logeant
+  les siens dans le projet. I-10 ouvert. T-36 posé dans la foulée : hook `Stop` exécutant
+  `composer check`, versionné dans le module. Il est bloquant — une vérification rouge empêche de
+  rendre la main et son sortie remonte ; à retirer de `.claude/settings.json` si ça gêne.
+- **2026-09-06** — T-02 ouvert sur maquette cliente : D-07, `ChildTermsFacet`. `product_cat` et
+  `category` mappés sur `categorie` dans `config/meilifacets.php`. Puis trois corrections livrées —
+  **R-09**, **R-16** et **R-58** fermés, sans aucune addition au contrat `Listing`. Deux constats
+  ouverts au passage, R-56 et R-57, ce dernier reformulé le jour même après une mauvaise lecture de
+  la règle du projet : elle est **temporelle** — WordPress au premier rendu, jamais au filtrage —
+  et non catégorielle. 104 tests PHP, 49 tests Node, `composer check` vert.
