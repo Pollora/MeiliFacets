@@ -23,7 +23,6 @@ readonly class Facet
         public DisplayOrder $order = DisplayOrder::Count,
         public int $visible = self::DEFAULT_VISIBLE,
         public int $cap = self::DEFAULT_CAP,
-        public bool $highCardinality = false,
         public DefaultTerm $defaultTerm = DefaultTerm::Hidden,
     ) {}
 

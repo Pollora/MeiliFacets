@@ -1,4 +1,9 @@
-import { FACET_PREFIX } from './facet-prefix.js'
+import { facetField } from './description.js'
+
+/**
+ * @import { FacetDescription, ListingDescription } from './description.js'
+ * @import { ListingState } from './listing-state.js'
+ */
 
 // One pass over both characters: escaping them in sequence would let a value
 // ending in a backslash close the string.
@@ -12,10 +17,14 @@ const NO_HIT = 0
  * on both sides, or the grid contradicts itself between render and first click.
  */
 export class ListingQuery {
+    /** @type {ListingDescription} */
     #listing
 
-    constructor(listing) {
-        this.#listing = listing
+    /**
+     * @param {ListingDescription} description
+     */
+    constructor(description) {
+        this.#listing = description
     }
 
     static get RESULTS() {
@@ -41,13 +50,12 @@ export class ListingQuery {
 
     #results(state) {
         const { perPage, attributes, sorts } = this.#listing
-        const page = Math.max(state.page ?? 1, 1)
         const request = {
-            q: state.query ?? '',
+            q: state.query,
             filter: this.#filter(state, null),
             facets: this.#fieldsCountedOnMain(state),
             hitsPerPage: perPage,
-            page,
+            page: state.page,
         }
 
         if (attributes) {
@@ -65,22 +73,22 @@ export class ListingQuery {
     // stay reachable.
     #counting(facet, state) {
         return {
-            q: state.query ?? '',
+            q: state.query,
             filter: this.#filter(state, facet.taxonomy),
-            facets: [this.#field(facet)],
+            facets: [facetField(facet)],
             hitsPerPage: NO_HIT,
             page: 1,
         }
     }
 
     #isCountedApart(facet, state) {
-        return facet.multiple === true && (state.facets?.[facet.taxonomy]?.length ?? 0) > 0
+        return facet.multiple === true && state.selected(facet.taxonomy).length > 0
     }
 
     #fieldsCountedOnMain(state) {
         return this.#listing.facets
             .filter((facet) => !this.#isCountedApart(facet, state))
-            .map((facet) => this.#field(facet))
+            .map((facet) => facetField(facet))
     }
 
     // OR within a facet, AND across facets.
@@ -88,7 +96,7 @@ export class ListingQuery {
         const clauses = this.#listing.filter ? [this.#listing.filter] : []
 
         for (const facet of this.#listing.facets) {
-            const values = state.facets?.[facet.taxonomy] ?? []
+            const values = state.selected(facet.taxonomy)
 
             if (facet.taxonomy !== except && values.length > 0) {
                 clauses.push(this.#facetClause(facet, values))
@@ -99,14 +107,10 @@ export class ListingQuery {
     }
 
     #facetClause(facet, values) {
-        const field = this.#field(facet)
+        const field = facetField(facet)
         const clauses = values.map((value) => `${field} = ${this.#escape(value)}`)
 
         return clauses.length > 1 ? `(${clauses.join(' OR ')})` : clauses[0]
-    }
-
-    #field(facet) {
-        return FACET_PREFIX + facet.taxonomy
     }
 
     #escape(value) {

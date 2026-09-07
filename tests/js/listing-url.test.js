@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
+import { ListingState } from '../../resources/assets/js/listing-state.js'
 import { ListingUrl } from '../../resources/assets/js/listing-url.js'
 
 const listing = {
@@ -28,7 +29,7 @@ describe('ListingUrl', () => {
     it('sorts values when reading and when writing', () => {
         assert.deepEqual(url.toState('?brand=globex,acme').facets.product_brand, ['acme', 'globex'])
         assert.equal(
-            url.toSearch({ facets: { product_brand: ['globex', 'acme'] }, page: 1 }),
+            url.toSearch(new ListingState({ facets: { product_brand: ['globex', 'acme'] }, page: 1 })),
             '?brand=acme,globex'
         )
     })
@@ -58,7 +59,7 @@ describe('ListingUrl', () => {
     it('paginates on pg, never on page', () => {
         assert.equal(url.toState('?pg=3').page, 3)
         assert.equal(url.toState('?page=3').page, 1)
-        assert.equal(url.toSearch({ facets: {}, page: 3 }), '?pg=3')
+        assert.equal(url.toSearch(new ListingState({ facets: {}, page: 3 })), '?pg=3')
     })
 
     // One state, one URL: an array form would give Varnish a second cache entry.
@@ -71,41 +72,46 @@ describe('ListingUrl', () => {
         const renamed = new ListingUrl({ ...listing, reserved: { page: 'p2', sort: 'tri' } })
 
         assert.equal(renamed.toState('?p2=2').page, 2)
-        assert.equal(renamed.toSearch({ facets: {}, sort: 'price_asc', page: 1 }), '?tri=price_asc')
+        assert.equal(renamed.toSearch(new ListingState({ sort: 'price_asc' })), '?tri=price_asc')
     })
 
     it('writes only what differs from the default state', () => {
-        assert.equal(url.toSearch({ facets: {}, page: 1 }), '')
-        assert.equal(url.toSearch({ facets: { product_brand: [] }, page: 1 }), '')
+        assert.equal(url.toSearch(new ListingState({ facets: {}, page: 1 })), '')
+        assert.equal(url.toSearch(new ListingState({ facets: { product_brand: [] }, page: 1 })), '')
     })
 
     it('writes each facet under its parameter, commas left readable', () => {
-        const search = url.toSearch({
+        const search = url.toSearch(new ListingState({
             facets: { product_brand: ['acme', 'globex'], pa_size: ['large'] },
             page: 1,
-        })
+        }))
 
         assert.equal(search, '?brand=acme,globex&f_pa_size=large')
     })
 
     it('writes a page only past the first', () => {
-        assert.equal(url.toSearch({ facets: {}, page: 2 }), '?pg=2')
-        assert.equal(url.toSearch({ facets: {}, page: 1 }), '')
+        assert.equal(url.toSearch(new ListingState({ facets: {}, page: 2 })), '?pg=2')
+        assert.equal(url.toSearch(new ListingState({ facets: {}, page: 1 })), '')
     })
 
     it('writes the query and the sort when they are set', () => {
-        assert.equal(url.toSearch({ facets: {}, query: 'coat', sort: 'price_asc', page: 1 }),
+        assert.equal(url.toSearch(new ListingState({ facets: {}, query: 'coat', sort: 'price_asc', page: 1 })),
             '?q=coat&sort=price_asc')
     })
 
     it('reads back a state it has written', () => {
-        const state = {
+        const state = new ListingState({
             facets: { product_brand: ['acme', 'globex'], pa_size: ['large'] },
             query: 'coat',
             sort: 'price_asc',
             page: 3,
-        }
+        })
 
-        assert.deepEqual(url.toState(url.toSearch(state)), state)
+        const read = url.toState(url.toSearch(state))
+
+        assert.deepEqual(read.facets, state.facets)
+        assert.equal(read.query, state.query)
+        assert.equal(read.sort, state.sort)
+        assert.equal(read.page, state.page)
     })
 })

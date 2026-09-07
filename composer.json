@@ -61,10 +61,12 @@
         "test:js": "npm test",
         "check": [
             "@lint",
+            "@lint:js",
             "@refactor",
             "@test",
             "@test:js"
-        ]
+        ],
+        "lint:js": "npm run lint"
     },
     "scripts-descriptions": {
         "lint": "Check formatting without changing anything.",
@@ -73,7 +75,8 @@
         "test": "Run the tests that need nothing but this package.",
         "test:host": "Run the tests that need a host application, from the host project.",
         "test:js": "Run the browser client tests.",
-        "check": "Everything the module can verify on its own: the definition of done."
+        "check": "Everything the module can verify on its own: the definition of done.",
+        "lint:js": "Check the browser client for dead code and unused imports."
     },
     "config": {
         "sort-packages": true

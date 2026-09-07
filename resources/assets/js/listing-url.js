@@ -1,58 +1,63 @@
-const VALUE_SEPARATOR = ','
-// Mirrors UrlParameters::UNMAPPED_PREFIX: a bare taxonomy name is a WordPress query var.
+import { ListingState } from './listing-state.js'
+
+/**
+ * @import { ListingDescription } from './description.js'
+ */
+
+/** Mirrors UrlParameters::UNMAPPED_PREFIX: a bare taxonomy name is a WordPress query var. */
 const UNMAPPED_PREFIX = 'f_'
-// Mirror QueryParameter: `page`, `paged` and `order` are WordPress query vars.
+
+/** Mirrors QueryParameter: `page`, `paged` and `order` are WordPress query vars. */
 const RESERVED = { sort: 'sort', query: 'q', page: 'pg' }
 
 export class ListingUrl {
-    #parameters
+    /** @type {Record<string, string>} */
     #reserved
 
-    // The mapping never changes, and both reads and writes walk it.
-    constructor(listing) {
-        this.#reserved = { ...RESERVED, ...listing.reserved }
-        this.#parameters = listing.facets.map(({ taxonomy }) => [
+    /** @type {[string, string][]} */
+    #parameters
+
+    /**
+     * @param {ListingDescription} description
+     */
+    constructor(description) {
+        this.#reserved = { ...RESERVED, ...description.reserved }
+        this.#parameters = description.facets.map(({ taxonomy }) => [
             taxonomy,
-            listing.params?.[taxonomy] ?? UNMAPPED_PREFIX + taxonomy,
+            description.params?.[taxonomy] ?? UNMAPPED_PREFIX + taxonomy,
         ])
     }
 
+    /**
+     * @param {string} search
+     */
     toState(search) {
         const params = new URLSearchParams(search)
-        const facets = {}
 
-        for (const [taxonomy, parameter] of this.#parameters) {
-            const values = this.#values(params, parameter)
-
-            if (values.length > 0) {
-                facets[taxonomy] = values
-            }
-        }
-
-        return {
-            facets,
+        return new ListingState({
+            facets: Object.fromEntries(
+                this.#parameters
+                    .map(([taxonomy, parameter]) => [taxonomy, ListingState.valuesFrom(params.get(parameter) ?? '')])
+            ),
             query: params.get(this.#reserved.query) ?? '',
-            sort: params.get(this.#reserved.sort) ?? null,
-            page: Number.parseInt(params.get(this.#reserved.page) ?? '1', 10) || 1,
-        }
+            sort: params.get(this.#reserved.sort),
+            page: Number.parseInt(params.get(this.#reserved.page) ?? '1', 10),
+        })
     }
 
-    // Sorted on both sides: one state must have one URL, or Varnish caches it twice.
-    #values(params, parameter) {
-        const raw = params.get(parameter) ?? ''
-
-        return raw.split(VALUE_SEPARATOR).map((value) => value.trim()).filter(Boolean).sort()
-    }
-
-    // Only the query string is rewritten: the path belongs to WordPress.
+    /**
+     * Only the query string is rewritten: the path belongs to WordPress.
+     *
+     * @param {ListingState} state
+     */
     toSearch(state) {
         const params = new URLSearchParams()
 
         for (const [taxonomy, parameter] of this.#parameters) {
-            const values = state.facets?.[taxonomy]
+            const values = state.selected(taxonomy)
 
-            if (values?.length > 0) {
-                params.set(parameter, [...values].sort().join(VALUE_SEPARATOR))
+            if (values.length > 0) {
+                params.set(parameter, ListingState.valuesTo(values))
             }
         }
 

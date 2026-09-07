@@ -7,6 +7,7 @@ namespace Modules\MeiliFacets\Listing;
 use Modules\MeiliFacets\Contracts\Listing;
 use Modules\MeiliFacets\Enums\ApplyMode;
 use Modules\MeiliFacets\Http\Unavailable;
+use Modules\MeiliFacets\Search\FilterExpression;
 use Modules\MeiliFacets\Search\ListingSearch;
 use Modules\MeiliFacets\Search\SearchFailed;
 use Modules\MeiliFacets\Search\SearchResults;
@@ -104,6 +105,17 @@ final class ResolvedListing
     public function isPristine(): bool
     {
         return $this->state->isPristine();
+    }
+
+    public function perPage(): int
+    {
+        return $this->listing->perPage();
+    }
+
+    /** The clauses every query carries, as the engine expects them. */
+    public function baseFilter(): string
+    {
+        return FilterExpression::all($this->listing->baseFilter());
     }
 
     public function applyMode(): ApplyMode

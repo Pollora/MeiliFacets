@@ -28,9 +28,4 @@ final class Unavailable
         header('Retry-After: '.self::RETRY_AFTER);
         header('Cache-Control: no-store');
     }
-
-    public function announced(): bool
-    {
-        return $this->announced;
-    }
 }

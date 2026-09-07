@@ -33,6 +33,7 @@ use Modules\MeiliFacets\Search\MeilisearchEngine;
 use Modules\MeiliFacets\Support\UrlParameters;
 use Modules\MeiliFacets\Support\WooCommerce;
 use Modules\MeiliFacets\View\CardSettings;
+use Modules\MeiliFacets\View\ListingScript;
 use Nwidart\Modules\Support\ModuleServiceProvider;
 use Pollora\Discovery\Domain\Contracts\DiscoveryEngineInterface;
 use Pollora\Hook\Domain\Contracts\Action;
@@ -71,6 +72,7 @@ final class MeiliFacetsServiceProvider extends ModuleServiceProvider
         ));
         $this->app->scoped(SearchEngine::class, $this->searchEngine(...));
         $this->app->scoped(BrowserConnection::class, $this->browserConnection(...));
+        $this->app->scoped(ListingScript::class);
     }
 
     public function boot(): void

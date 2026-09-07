@@ -26,7 +26,6 @@ enum Hook: string
     case Apply = 'apply';
 
     case Pagination = 'pagination';
-    case PageTemplate = 'page-template';
     case Page = 'page';
     case Previous = 'previous';
     case Next = 'next';

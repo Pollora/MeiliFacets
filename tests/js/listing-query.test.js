@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
 import { ListingQuery } from '../../resources/assets/js/listing-query.js'
+import { ListingState } from '../../resources/assets/js/listing-state.js'
 
 const listing = {
     perPage: 16,
@@ -13,7 +14,7 @@ const listing = {
     sorts: { price_asc: ['metas._price:asc'] },
 }
 
-const plan = (state, overrides = {}) => new ListingQuery({ ...listing, ...overrides }).plan(state)
+const plan = (state, overrides = {}) => new ListingQuery({ ...listing, ...overrides }).plan(new ListingState(state))
 const build = (state, overrides = {}) => plan(state, overrides)[ListingQuery.RESULTS]
 
 describe('ListingQuery', () => {
