@@ -384,11 +384,10 @@ attributs sont alors omis plutôt que devinés, et le CLS revient jusqu'à la r�
 (`ddev wp meiliscout index --clear`). Le repli n'est pas une valeur par défaut arbitraire —
 mentir au navigateur sur la taille provoque exactement le décalage qu'on veut éviter.
 
-**Le prix passe par `wp_kses` au rendu, pas à l'indexation.** `get_price_html()` traverse un
-filtre WooCommerce que n'importe quelle extension peut étendre, et le document transite par un
-index qui est un stockage distinct. Filtrer au rendu protège aussi les documents déjà indexés,
-pour le coût d'un `wp_kses` sur une chaîne courte par carte. Le composant expose ensuite un
-`HtmlString`, ce qui laisse `{{ $price }}` rendre le balisage sans `{!! !!}` dans la vue.
+**Le prix n'est filtré nulle part.** `Card` fait `new HtmlString($document->text(CardField::Price))` :
+ce que WooCommerce a formaté à l'indexation ressort tel quel dans la page. Le champ vient de
+`wc_price()`, donc du markup maison — mais rien ne le vérifie au rendu, et un projet qui projette
+un prix depuis une autre source injecterait ce qu'il veut. C'est R-26, ouvert.
 
 **Les classes CSS du module sont en camelCase** (`meilifacetsCardImage`), pas en BEM kebab-case
 comme celles du thème `pluralia` (`pluralia-product-card`). Choix assumé du projet, appliqué à

@@ -149,14 +149,26 @@ un changement de prix se propage seul.
 ```
 Modules/MeiliFacets/
 ├── app/
+│   ├── Console/     commandes de diagnostic
 │   ├── Contracts/   points d'extension : projection de carte, lecture de hiérarchie
-│   ├── Enums/       contrats figés : champs de document, clés de réglage, metas produit
+│   ├── Discovery/   découverte des classes portant le contrat Listing
+│   ├── Enums/       contrats figés : champs de document, clés de réglage, crochets
+│   ├── Http/        indexabilité et page d'indisponibilité
 │   ├── Indexing/    projection des facettes et de la carte, branchement sur MeiliScout
+│   ├── Listing/     le domaine : état, facettes, pagination, tri
 │   ├── Providers/
-│   └── Support/     gardes de contexte et lecture de configuration
-├── resources/assets/js/   client de recherche navigateur
-├── tests/Unit/            PHPUnit, dans la testsuite `Modules` du projet
-├── tests/js/              lanceur intégré de Node, aucune dépendance
+│   ├── Search/      connexion, plan de requête, lecture des réponses
+│   ├── Seo/         données structurées
+│   ├── Support/     gardes de contexte et noms de paramètres
+│   └── View/        composants Blade et description publiée au navigateur
+├── resources/
+│   ├── assets/css/  la seule feuille de style du module
+│   ├── assets/js/   client de recherche navigateur
+│   └── views/       vues Blade, toutes surchargeables par le thème
+├── lang/            catalogue JSON, chargé par le provider
+├── tests/Unit/      suite `Unit`, autonome : ni WordPress ni moteur
+├── tests/Feature/   suite `Feature`, rend des vues, ne passe que depuis le projet
+├── tests/js/        lanceur intégré de Node, happy-dom pour la couche DOM
 ├── config/config.php
 └── CLAUDE.md        règles de travail sur ce module
 ```
@@ -196,6 +208,24 @@ et chargé en `type="module"` depuis `public/modules/meilifacets/`. Pas de TypeS
 > est publié à part, celui du thème est dans son bundle Vite, et rien n'assure que le nôtre
 > s'exécute avant `Alpine.start()`.
 
+**Deux familles de gestes, pas cinq.** Cocher une facette et saisir une recherche *se rassemblent*
+— en mode `submit` elles attendent « Appliquer », en mode `immediate` elles partent aussitôt.
+Trier, paginer et remettre à zéro ne se rassemblent pas : ce sont des ordres, ils s'appliquent sur
+place **dans les deux modes**. Un visiteur qui clique « page 2 » et voit sa demande mise en attente
+d'un bouton ne comprendrait pas ce qu'on lui demande.
+
+**L'état décide de ce qui est coché, jamais le dernier clic.** Après toute mise à jour de l'état,
+`FacetsView.showSelection()` repose chaque case sur ce que l'état retient — c'est ce qui rattrape
+une valeur écartée par un plafond, une remise à zéro et un retour arrière du navigateur.
+
+**Un geste qui remplace la grille ramène le haut du listing dans l'écran** — la pagination est en
+bas de plusieurs écrans de produits, et sans ça le visiteur lit la fin d'une page dont il n'a jamais
+vu le début. Pour un pointeur seulement : au clavier, le focus tient déjà la place, et déplacer la
+page sortirait de l'écran le bouton qu'on vient de presser.
+
+⚠️ **Un thème à en-tête collant doit poser `scroll-margin-top` sur `[data-listing]`.** Le module ne
+peut pas connaître cette hauteur, et sans la marge le haut du listing atterrit sous l'en-tête.
+
 **Composants Blade** pour l'intégration. Un bloc Gutenberg est envisagé plus tard, pas
 maintenant.
 
@@ -227,7 +257,8 @@ est servie en `noindex, follow` : le même contenu existe déjà sur le chemin n
 > interne » — argument déjà caduc, puisque le passage des contrôles en boutons a supprimé ces liens
 > et que la découverte des fiches repose sur le sitemap Yoast.
 >
-> Le correctif porte donc sur la portée, pas sur la liste des paramètres : `RobotsPolicy` ne décide
+> Le correctif porte donc sur la portée, pas sur la liste des paramètres : la classe — depuis
+> renommée `IndexingPolicy` — ne décide
 > plus que sur une page d'**archive ou de recherche**. Vérifié le 2026-09-06 — `/boutique` reste
 > `index`, `/boutique?categorie=cheveux`, `?sort=newest` et `?pg=2` passent en `noindex, follow`,
 > et `/?q=bonjour` comme `/?categorie=cheveux` restent `index` sur l'accueil.
@@ -293,9 +324,11 @@ Le markup reste celui du thème dans les deux cas : le `<template>` est produit 
 Blade que le thème peut surcharger, donc il n'existe jamais deux sources de markup.
 
 **Conséquence directe : ce que le client doit pouvoir mettre à jour doit exister dans la page
-servie.** Le message « aucun résultat », le lien « tout effacer », le badge de filtres actifs, la
-pagination et ses sept slots sont rendus dans tous les cas, avec l'attribut `hidden` quand ils
-n'ont rien à dire. C'est le prix de la règle « le markup appartient au thème » : le client révèle,
+servie.** Le message « aucun résultat », le bouton « tout effacer », le badge de filtres actifs, la
+pagination et ses slots sont rendus dans tous les cas, avec l'attribut `hidden` quand ils n'ont rien
+à dire. Le nombre de slots est celui que la vue rend — `Pagination::SLOTS` en produit sept, et le
+client **compte** ce qu'il trouve au lieu de le supposer, donc une vue surchargée qui en rend cinq
+obtient une fenêtre de cinq. C'est le prix de la règle « le markup appartient au thème » : le client révèle,
 il n'invente pas.
 
 **Limite connue, non résolue** : une valeur de facette dont le compte est nul n'est pas dans la
@@ -331,16 +364,20 @@ combobox de l'ARIA APG, en `ul`/`li` :
 ```
 
 - `aria-labelledby` cite le label **et** le déclencheur : le nom lu est « Trier par, Nouveautés » ;
-- le `<label for>` reste un vrai label — valide hors formulaire, il rend le libellé cliquable ;
+- le `<label for>` reste un vrai label — valide hors formulaire, et rendu par la vue quoi qu'il
+  arrive : la feuille du module le sort de la vue sans le sortir du nom lu, un thème le remontre
+  d'une règle ;
 - chaque option porte un `id`, préfixé du nom du listing : `aria-activedescendant` en a besoin, et
   deux listings sur une page ne doivent pas se marcher dessus ;
 - la première option, de valeur vide, est l'ordre du moteur — sans elle, aucun retour en arrière
   une fois un tri choisi ;
-- le module ne pose **aucun style** : ni positionnement, ni liste sans puces. Comme pour les
-  cartes et les facettes, l'apparence est au thème.
+- le module pose l'apparence par défaut de ce contrôle — bordure, panneau solidaire, coche,
+  survol —, sans famille de police, sans taille absolue et sans couleur de marque ; le thème la
+  remplace ou la désinscrit. Pour les cartes, l'apparence reste entièrement au thème.
 
-Le clavier (ouverture, flèches, `Home`/`End`, `Escape`, saisie au vol) est du ressort du client,
-donc du point 2 du lot 3c.
+Le clavier — ouverture, flèches, `Home`/`End`, `Entrée`, `Espace`, `Échap`, `Tab`, saisie au vol —
+est livré depuis le lot 3c-2, avec `aria-activedescendant` et le focus qui ne quitte jamais le
+bouton.
 
 Trois conséquences, toutes assumées :
 
@@ -402,7 +439,7 @@ thème périmée dégrade donc vers le rendu serveur, jamais vers une interactio
 | `sort-trigger` | idem | le bouton qui ouvre la liste et affiche le tri courant |
 | `sort-list` | idem | la `listbox`, masquée à la fermeture |
 | `sort-option` | idem | une option, sa clé dans `data-value` |
-| `reset` | `<x-meilifacets::reset>` | le lien « tout effacer » |
+| `reset` | `<x-meilifacets::reset>` | le bouton « tout effacer » |
 | `active-filters` | `<x-meilifacets::active-filters>` | le compteur de filtres actifs |
 
 **Ce qui est exigé et ce qui est toléré.** Le refus ne peut porter que sur ce que le thème
@@ -411,17 +448,37 @@ contrôle, jamais sur ce que la donnée décide :
 - toujours exigés : `results`, `card-template`, `empty`, et à l'intérieur du template `card`,
   `url`, `image`, `title`, `price` ;
 - exigés dès que leur hôte est rendu : `input` dans une `facet-value`, `page`/`previous`/`next`
-  dans une `pagination` ;
+  dans une `pagination`, `sort-trigger`/`sort-list`/`sort-option` dans un `sort` ;
 - optionnels : tout le reste. Un thème peut légitimement ne pas afficher de facettes, de tri ou
   de compteurs — et un listing sans résultat ne rend aucune `facet-value`.
 
+**Trois exigences ne sont pas des crochets, et le contrat ne les voit donc pas.** Une vue surchargée
+qui les oublie casse le client sans qu'aucune infraction ne soit signalée :
+
+| Ce qu'une vue doit rendre | Ce qui casse sinon |
+| --- | --- |
+| `data-listing="<nom>"` sur la racine | le client ne trouve aucun listing et sort **sans un mot** — le seul démarrage raté silencieux |
+| `name="<paramètre d'URL de la taxonomie>"` sur l'`<input>` d'une facette | `FacetsView` ne sait retrouver la taxonomie que par ce nom : les cases deviennent inertes |
+| un élément racine unique dans le `<template>` de carte | le clonage rend `undefined` et la grille lève à chaque recherche |
+
 Ajouter, renommer ou retirer un crochet **incrémente `Contract::VERSION`** des deux côtés. C'est
-le seul mécanisme qui empêche les deux listes de diverger en silence. Le compteur ne bouge qu'à
-partir du moment où un client le lit : tant que le lot 3c n'est pas fini, la version reste à 1.
+le seul mécanisme qui empêche les deux listes de diverger en silence. `ContractParityTest` fait le
+reste : il compare chaque crochet que le client adresse, les deux attributs du contrat, le préfixe
+de champ, le séparateur de valeurs, la borne de recherche et la première page.
 
 Les valeurs que le client doit lire voyagent dans des attributs natifs quand il en existe un —
 `value` sur les boutons de pagination, `data-value` sur une option de tri, `value`/`checked` sur
 une case de facette.
+
+Trois marques déplacées à chaque recherche : `aria-current="page"` sur le bouton de la page lue et
+`aria-selected` sur les options de tri, toutes deux **rendues par les vues** puis entretenues par le
+client ; et `data-active` sur l'option de tri que le clavier désigne, **écrite par le seul client**
+— elle n'a pas d'équivalent ARIA sur l'option, `aria-activedescendant` étant porté par le bouton.
+Aucune n'entre dans `VERSION` : le contrat porte sur les crochets qu'un thème doit rendre, pas sur
+les attributs que le client entretient.
+
+Le client garantit aussi un `id` sur chaque option de tri, faute de quoi `aria-activedescendant`
+ne désignerait rien : une vue surchargée peut l'omettre, `Contract` ne le vérifie pas.
 
 ⚠️ En panne moteur, aucun template n'est rendu : le contrat échoue, le client ne démarre pas, la
 page d'indisponibilité reste. C'est le comportement voulu, pas un effet de bord.

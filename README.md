@@ -16,16 +16,32 @@ composer require pollora/meilifacets
 ```
 
 Le module a besoin de [MeiliScout](https://github.com/AmphiBee/meiliscout) pour l'indexation, et
-de deux adresses distinctes pour le même moteur : `MEILI_HOST` pour PHP, `MEILI_PUBLIC_URL` pour
-le navigateur. Les mélanger donne un listing correct au premier rendu qui échoue à chaque filtre.
+de deux adresses distinctes pour le même moteur : celle que PHP joint, et celle que le navigateur
+joint. Les mélanger donne un listing correct au premier rendu qui échoue à chaque filtre.
+
+L'indexation est celle de MeiliScout, configurée par son environnement :
 
 ```dotenv
 MEILI_HOST=http://meilisearch:7700
 MEILI_KEY=<clé maître, indexation>
 MEILI_INDEX_NAME=posts
-MEILI_PUBLIC_URL=https://exemple.test:7701
-MEILI_SEARCH_KEY=<clé de recherche, navigateur>
 ```
+
+**Le module, lui, ne lit que deux clés**, et il ne les lit pas dans l'environnement : elles se
+posent dans le `config/meilifacets.php` du projet, à charge pour lui de les brancher où il veut.
+
+```php
+// config/meilifacets.php
+return [
+    'browser' => [
+        'url' => env('MEILI_PUBLIC_URL'),   // schéma obligatoire, sinon tout est désactivé en silence
+        'key' => env('MEILI_SEARCH_KEY'),   // clé de recherche seule, jamais la clé maître
+    ],
+];
+```
+
+Sans elles, `BrowserConnection::isConfigured()` répond `false` : la page est servie complète, mais
+aucun JavaScript n'est chargé et aucun filtre ne répond. Rien ne le signale.
 
 Le module livre une feuille de style et un client. `Modules/` étant hors du docroot, ils doivent
 être copiés dans `public/` — **à rejouer à chaque déploiement** :
@@ -78,12 +94,20 @@ copier : les vues laissées de côté continuent de suivre les mises à jour du 
 **Une seule chose n'est pas négociable : les crochets `data-meili`.** Balises, classes et styles
 appartiennent au thème ; ces attributs sont ce que le client adresse. S'il en manque un, ou si la
 version du contrat portée par la racine ne correspond plus à la sienne, le client **ne démarre
-pas** : la page reste celle du serveur et la console nomme ce qui manque. Le tableau des crochets
+pas** : la page reste celle du serveur et la console nomme ce qui manque — sauf si c'est
+`data-listing` qui manque sur la racine, seul cas où le client sort sans un mot, faute de savoir
+qu'il y avait un listing à démarrer. Le tableau des crochets
 est dans [architecture.md](docs/architecture.md).
 
 ## Tests
 
+Depuis la racine du module, sans projet hôte ni moteur :
+
 ```bash
-vendor/bin/phpunit --testsuite Modules   # unités PHP, sans WordPress ni moteur
-npm test                                 # client de recherche navigateur
+composer check   # formatage, Rector, tests PHP autonomes et client navigateur
+composer test    # les seuls tests PHP, suite Unit
+npm test         # le seul client navigateur
 ```
+
+Les tests `Feature` rendent des vues Blade et demandent donc une application : ils ne passent que
+depuis le projet, `vendor/bin/phpunit --testsuite Modules`.

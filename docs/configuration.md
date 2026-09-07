@@ -33,14 +33,40 @@ changer.
 
 À poser dans `config/meilifacets.php`, à la racine du projet.
 
-| Clé | Défaut | Lu par | Quand | Surchargeable |
-| --- | --- | --- | --- | --- |
-| `url_parameters` | `[]` | `UrlParameters` | au rendu et au filtrage | oui |
-| `query_parameters` | `sort`, `q`, `pg` | `UrlParameters` | au rendu et au filtrage | oui |
-| `card.image_size` | `medium` | `DefaultCardProjector` | à l'indexation | oui |
-| `displayed_attributes` | `[]` | `FacetedPostIndexable` | à l'indexation | oui |
-| `apply_mode` | `submit` | `ProductListing` | au rendu | oui |
-| `card.eager` | `4` | `Results` | au rendu | oui |
+Toutes sont lues **dans le provider**, avec leur défaut, et injectées ensuite : c'est la règle du
+module, et c'est ce qui les rend surchargeables sans que `config:cache` perde le fichier.
+
+| Clé | Défaut | Sert à | Quand |
+| --- | --- | --- | --- |
+| `browser.url` | `''` | `BrowserConnection` — l'adresse que le navigateur joint | au rendu |
+| `browser.key` | `''` | `BrowserConnection` — la clé de recherche seule | au rendu |
+| `url_parameters` | `[]` | `UrlParameters` | au rendu et au filtrage |
+| `query_parameters` | `sort`, `q`, `pg` | `UrlParameters` | au rendu et au filtrage |
+| `card.image_size` | `medium` | `DefaultCardProjector` | à l'indexation |
+| `displayed_attributes` | `[]` | `ConfiguredIndexAttributes` | à l'indexation |
+| `apply_mode` | `submit` | `ProductListing` | au rendu |
+| `card.eager` | `4` | `CardSettings` | au rendu |
+| `engine.reachable_hits` | `1000` | `EngineLimits` | au rendu |
+
+⚠️ **`browser.url` et `browser.key` sont les deux seules clés sans lesquelles rien ne fonctionne.**
+Le module ne lit **jamais** `MEILI_PUBLIC_URL` ni `MEILI_SEARCH_KEY` : c'est au
+`config/meilifacets.php` du projet de faire le pont. Absentes ou mal formées — un schéma manquant
+suffit (R-65) — `BrowserConnection::isConfigured()` répond `false`, aucun JavaScript n'est chargé,
+et rien ne le dit.
+
+⚠️ **`engine.reachable_hits` déclare une valeur, il ne la pose pas.** C'est le `maxTotalHits` du
+moteur, c'est-à-dire le nombre de résultats au-delà duquel Meilisearch répond `200` **sans aucun
+hit** — tout en continuant d'annoncer les pages qu'il refuse de servir. `Pagination` et son miroir
+`PageWindow` s'en servent pour ne jamais proposer une de ces pages.
+
+Le module **n'écrit pas** ce réglage sur l'index : il n'apparaît pas dans le tableau des réglages
+posés, plus bas. Les deux valeurs sont donc tenues à la main, et un projet qui monte le
+`maxTotalHits` de son index sans toucher cette clé garde une pagination tronquée, en silence. La
+valeur par défaut `1000` est celle de Meilisearch lui-même — tant que personne n'y touche, les deux
+sont d'accord.
+
+Facettes, filtres et total restent exacts au-delà du plafond : seules les pages sont concernées
+(mesuré, `R-42`).
 
 **`url_parameters`** associe une taxonomie au nom qu'elle porte dans l'URL —
 `'product_brand' => 'marque'`. Une taxonomie absente de ce tableau prend un nom préfixé, jamais
@@ -154,7 +180,7 @@ attributs filtrables et triables.
 
 Toute URL portant un paramètre du listing — facette, tri, page, recherche — sort en
 `noindex, follow` : le contenu existe déjà sur le chemin nu, et les liens qu'elle porte restent
-suivis. `RobotsPolicy` s'en charge par le filtre `wp_robots`, que Yoast respecte.
+suivis. `IndexingPolicy` s'en charge par le filtre `wp_robots`, que Yoast respecte.
 
 La règle **ne s'applique que sur une page d'archive ou de recherche** : le filtre `wp_robots` est
 global, et les noms réservés le sont aussi, donc sans cette garde un lien de campagne portant `?q=`
@@ -201,6 +227,7 @@ directement — ce qui est indexé est filtrable.
 | `filterableAttributes` | ceux de MeiliScout, plus `facets.<taxonomie>` pour chaque taxonomie indexée, plus `metas._price` et `metas._stock_status` si WooCommerce est actif |
 | `sortableAttributes` | ceux de MeiliScout, plus `metas._price` si WooCommerce est actif |
 | `faceting.sortFacetValuesBy` | `count` pour toutes les facettes |
+| `displayedAttributes` | ceux de MeiliScout, plus `card` et ce que `displayed_attributes` ajoute |
 
 Aucun point d'extension dédié : les changer demande d'étendre `FacetedPostIndexable` et de le
 substituer par `meiliscout/indexables` à une priorité plus haute que celle du module.
@@ -230,9 +257,12 @@ d'indexation. Un projet peut s'y brancher à son tour ; sa priorité décide de 
 | `submit` (défaut) | un bouton « Appliquer les filtres », une recherche par validation | un gros catalogue, où chaque case cochée coûterait une recherche |
 | `immediate` | pas de bouton, une recherche par case cochée | un catalogue modeste, où la réponse immédiate vaut le coût |
 
-Le mode voyage dans le markup : `data-apply="submit"` ou `"immediate"` sur le bloc de facettes.
-**Aucun des deux n'est branché en 3b** — les cases sont rendues cochées d'après l'URL, rien ne les
-soumet. C'est le lot 3c qui lira cet attribut, sans que le markup change.
+Le mode voyage **dans la description JSON** que le serveur publie (`'apply' => …`), lue par
+`Listing.searchesAtOnce`. L'attribut `data-apply` du bloc de facettes est rendu pour le thème, qui
+peut s'en servir pour styler ; **le client ne le lit pas**.
+
+⚠️ En mode `submit`, cocher une case ne cherche rien mais pose l'état : trier, paginer ou remettre
+à zéro emportent donc les filtres en attente (D-10).
 
 Il n'y a délibérément pas de `<form method="get">` : un formulaire GET ne sait produire que
 `marque[]=a&marque[]=b`, ce qui donnerait une seconde URL — et une seconde entrée de cache Varnish

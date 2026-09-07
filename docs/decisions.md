@@ -37,7 +37,8 @@ Voir aussi : [installation.md](installation.md) · [architecture.md](architectur
 | Pagination native de WordPress | `/page/N` **sert la vraie page N** — le listing lit `paged` en repli de `pg` — et reste en `noindex`, sans canonique et sans `rel="next"`/`"prev"`. Les deux paginations coexistaient sans se connaître : `/page/2` à `/page/5` servaient quatre fois la première page, en `index`, avec une canonique auto-référente et une chaîne `rel="next"` qui les liait toutes. *Tranché le 2026-09-06 après analyse dédiée (R-60).* |
 | Forme canonique d'une URL | valeurs triées et dédupliquées des deux côtés — sans quoi `?marque=a,b` et `?marque=b,a` sont deux entrées Varnish pour un même état |
 | Entrées non validées | un tri absent de `sorts()` est ignoré, une facette est plafonnée à son `cap`, la recherche à 200 caractères — un paramètre libre est un vecteur de saturation du cache |
-| Défense de `hidden` | contre-règle CSS imprimée par le module dans `wp_head`, restreinte à ses propres classes — un fichier ne serait pas servi, `Modules/` étant hors du docroot |
+| Défense de `hidden` | contre-règle CSS dans la feuille publiée, sur ses classes **et** sur `[data-meili]` — ce qu'une vue surchargée conserve |
+| Feuille de style du module | livre l'apparence par défaut du **tri**, de la **colonne de facettes** et de ses **boutons** — neutre : ni police, ni taille absolue, ni couleur de marque ; seule la grille de résultats reste nue. Le thème surcharge les mêmes sélecteurs `data-meili` ou désinscrit la feuille |
 | Markup du prix | rendu tel que WooCommerce le produit, sans liste blanche : filtrer casse les promos et les fourchettes, et ne protège d'aucun scénario réaliste. **À réexaminer si le prix incorpore un jour une donnée saisie par un utilisateur non privilégié** — un champ de personnalisation, un message promotionnel éditorial. Une revue automatique a classé ce retrait « XSS stockée, HIGH » le 2026-09-04 ; le signalement a été écarté faute de vecteur, pas par principe |
 | Mise à jour du DOM | découpage par élément selon le focus : cartes clonées depuis un `<template>`, valeurs de facettes en nœuds stables, pagination en fenêtre fixe |
 | Documentation | **dans le module, `docs/`** — rapatriée depuis `docs/meilifacets/` du projet le 2026-09-07, avant le lot 7 : elle ne faisait que grossir, et chaque jour ajoutait des liens à réécrire |
@@ -58,9 +59,9 @@ Voir aussi : [installation.md](installation.md) · [architecture.md](architectur
 | Défauts des paramètres réservés | `sort`, `q`, `pg` — en anglais, le projet les habille |
 | Facettes de l'archive produit | marque, contenance et catégorie, toutes en multi-sélection |
 | Markup des facettes | cases à cocher rendues cochées par le serveur, jamais des liens par valeur |
-| Déclenchement de la recherche | `meilifacets.apply_mode` : `submit` par défaut, `immediate` selon le volume ; l'attribut `data-apply` porte le choix jusqu'au JavaScript du lot 3c |
+| Déclenchement de la recherche | `meilifacets.apply_mode` : `submit` par défaut, `immediate` selon le volume ; le choix voyage dans la description JSON, `data-apply` n'est rendu que pour le thème |
 | Forme des valeurs multiples | une seule, `?marque=a,b` — un formulaire GET n'aurait produit que `marque[]=a&marque[]=b`, soit deux URLs et deux entrées Varnish pour un même état |
-| Paramètres d'URL côté client | le JavaScript lit les mêmes noms que le serveur : `pg`, `sort`, `q`, préfixe `f_` |
+| Paramètres d'URL côté client | le JavaScript n'en connaît aucun : il lit les noms que la description publie |
 | Déclaration d'un listing | classe implémentant `Listing`, découverte automatiquement |
 | Listing produit | livré par le module quand WooCommerce est actif |
 | Facette catégorie sur une archive de catégorie | **conservée et restreinte au niveau courant** (`ChildTermsFacet`) : elle propose les enfants directs du rayon, rien sur une feuille. *Renversé le 2026-09-06 — elle était retirée, la maquette cliente demande l'inverse.* |
@@ -122,6 +123,168 @@ recherche, qui aurait été obligatoire sinon.
 
 Ce que ça coûte : sans JavaScript le listing est inerte. Cohérent avec les facettes, sans
 formulaire depuis le lot 3b.
+
+### Deux familles de gestes, pas cinq (2026-09-07)
+
+Un filtre **se rassemble** : en mode `submit` il ne cherche rien, en mode `immediate` il part
+aussitôt. Trier, paginer et remettre à zéro **ne se rassemblent pas** : ce sont des ordres, ils
+s'appliquent sur place dans les deux modes — **et ils emportent avec eux les filtres en attente**.
+
+Cette dernière clause a été ajoutée le 2026-09-07, après qu'une revue a mesuré que le code faisait
+déjà cela et que le texte disait le contraire (`R-77`). Trier vaut donc validation. L'alternative —
+repartir du dernier état appliqué — imposerait de tenir deux états et laisserait le visiteur devant
+une grille qui ignore les cases qu'il vient de cocher : le bouton « Appliquer » resterait la seule
+façon de faire coïncider ce qu'il voit et ce qu'il a demandé. `Listing` a donc deux chemins privés au lieu d'un seul :
+`#byMode()`, qui suit le mode du listing, et `#atOnce()`, qui ne le consulte pas.
+
+Sans cette distinction, un visiteur en mode `submit` qui clique « page 2 » verrait sa demande mise
+en attente d'un bouton « Appliquer » qui parle de filtres. La règle vaut aussi pour « Tout
+effacer » : un effacement qui n'efface rien tant qu'on n'a pas validé n'efface pas.
+
+Ce que ça coûte : `Listing` déclenche lui-même la recherche pour trois gestes, donc un appelant qui
+enchaîne `.goToPage(2).apply()` en lance deux — l'écriture de l'URL comprise. La forme correcte est
+`.goToPage(2)` seul ; `apply()` ne reste public que pour le bouton « Appliquer ».
+
+### Le module rend ce que ses propres choix ont retiré (2026-09-07)
+
+Amende la dernière phrase de la décision précédente. La feuille de style du module ne porte aucune
+apparence — elle rembourse ce que deux décisions de conception ont enlevé au navigateur.
+
+Le `ul`/`li` à la place d'un `<select>` fait perdre une liste qui se superpose au lieu de pousser
+la page, un fond opaque, et une marque sur l'option que le clavier désigne. Rendus : `position` et
+`z-index`, `Canvas`/`CanvasText`, un `outline` sur `[data-active]`.
+
+`Canvas` et `CanvasText` sont les couleurs système de CSS Color Level 4 — la surface de page du
+navigateur et son texte. Choisies parce qu'elles nomment un **rôle** au lieu d'une couleur : le
+module doit rendre la liste lisible sans rien savoir de la palette du thème, et un `#fff` en dur
+serait une décision d'apparence qu'il s'interdit.
+
+⚠️ **Elles ne suivent pas `prefers-color-scheme` toutes seules.** Mesuré le 2026-09-07 : sous
+`prefers-color-scheme: dark` émulé, `Canvas` reste blanc, parce que la page ne déclare pas
+`color-scheme`. Elles suivent en revanche `forced-colors` (contraste élevé Windows) : noir sur
+blanc devient blanc sur noir, mesuré. Une première rédaction de cette décision affirmait le
+contraire ; c'était faux.
+
+Conséquence visible sur Pluralia : la liste est blanche sur une page crème (`rgb(255, 253, 245)`).
+C'est le cas prévu — le thème habille, le module rend seulement utilisable.
+
+Le `<button>` à la place du `<a href>` fait perdre le curseur en main — la seule affordance qu'un
+lien donnait gratuitement. Rendu : `cursor: pointer` sur les huit crochets qui se cliquent, et sur
+eux seuls. Mesuré avant correction : tout le module était en `cursor: default`, seule la carte
+produit avait la main, parce qu'elle est restée un lien.
+
+Tout le reste — dimensions, typographie, espacements, couleurs de marque — reste au thème et n'est
+pas déclaré. La règle s'accroche à `data-meili`, jamais aux classes : ce sont les crochets qu'un
+thème garde en surchargeant une vue, les classes sont ce qu'il peut remplacer.
+
+`data-active` est écrit par le client sur l'option active, faute d'équivalent ARIA sur l'option
+elle-même : `aria-activedescendant` est porté par le bouton, et le CSS ne sait pas suivre une
+référence. Il n'entre pas dans le contrat — le thème ne le rend pas, il le style s'il veut.
+
+### Ce que le module rend, il l'habille ; le thème remplace (2026-09-07)
+
+Amende la décision précédente, et répond à Q-28 pour ce seul contrôle. La liste déroulante de tri
+est le composant que le module a fabriqué de toutes pièces pour remplacer un `<select>` : c'est
+aussi le seul qui, livré nu, n'a l'air de rien tant qu'un thème ne l'a pas dessiné — un `ul`/`li`
+à puces posé sous un bouton sans bordure. Le module en livre donc l'apparence par défaut : bordure,
+panneau solidaire du déclencheur, séparateurs, coche sur l'ordre choisi, teinte au survol,
+ouverture animée. Le libellé « Trier par » sort de la vue sans sortir du nom lu — le déclencheur
+répète déjà la valeur, l'afficher deux fois était la remarque d'origine.
+
+Ce que cette apparence ne décide pas : aucune famille de police — `font: inherit`, dimensions en
+`em` — ni aucune couleur de marque : `currentColor`, `Canvas`/`CanvasText`, et trois teintes dérivées en `color-mix` exposées
+en variables sur `[data-meili="sort"]` (`--meili-edge`, `--meili-rule`, `--meili-tint`), qu'un thème
+retint d'une ligne.
+
+La case à cocher est accrochée à la **première ligne** de son libellé — `align-items: flex-start` et
+`margin-top: calc((1lh - 1em) / 2 - 0.08em)` — et non centrée sur le bloc : sur un libellé qui passe
+à la ligne, le centrage la posait entre les deux lignes. Elle prend `font-size: var(--meili-ui)`
+avant sa taille en `em`, parce qu'un `<input>` n'hérite pas de la police : sans ça elle mesurait
+13,3px sur un thème sans reset de formulaire, et 14 seulement sur ceux qui en ont un. `accent-color`
+suit `currentColor`, comme le reste.
+
+Les six commandes partagent une seule primitive : `inline-flex` centré, une hauteur commune
+(`--meili-control`, `2.4em`), un padding unique et la même échelle. Le centrage par `text-align` et
+`line-height` dépendait des métriques de la police ; les numéros de page, eux, prennent `min-width`
+et `tabular-nums`, sans quoi « 1 » et « 2 » n'ont pas la même largeur et la rangée est irrégulière.
+Corollaire à ne pas oublier : dans ce bloc, `font-size` doit précéder toute longueur en `em`, sinon
+`happy-dom` les calcule sur la taille héritée et les tests divergent du navigateur.
+
+Une taille est décidée, et c'est la seule : les **commandes** (tri, facettes,
+pagination, remise à zéro, compteur de filtres) prennent `var(--meili-ui)`, `0.875rem` par défaut.
+Hériter du texte de l'hôte donnait sur Pluralia une colonne de facettes en 18px, plus grosse que ce
+qu'elle filtre. Les résultats en sont exclus : la carte garde la typographie du thème. Un thème
+retaille tout d'une ligne, comme les teintes.
+
+Ce que ça coûte : le module a désormais un avis sur l'écran, donc une surface de conflit avec le
+thème qu'il n'avait pas. Le recours reste le même qu'avant — surcharger les mêmes sélecteurs, tous
+accrochés à `data-meili`, ou désinscrire la feuille (`wp_dequeue_style('meilifacets')`). Et le
+libellé masqué est une décision d'apparence prise pour tout le monde : un thème qui le veut visible
+pose une règle sur `[data-meili="sort"] > label`.
+
+La colonne de facettes suit, pour la même raison : livrée nue, elle sort en liste à puces indentée,
+compteur collé au libellé, groupes sans respiration — un `<fieldset>`/`<legend>` que personne ne
+lit tel quel. Le module pose donc ses espacements, retire puces et indentation de ses propres
+listes, aligne case et libellé, et pousse le compteur en fin de ligne à `0.85em` et `opacity: 0.6`.
+Deux valeurs de graisse et de taille seulement, toutes deux relatives : `font-weight: 600` sur la
+légende, `0.85em` sur le compteur.
+
+Les cinq boutons que le module rend — « Appliquer », « Tout effacer », les pages, précédent et
+suivant — partagent une seule règle : contour, rayon et espacement du déclencheur de tri, teinte au
+survol, et la page courante distinguée par son `aria-current`. Sans elle, ils sortaient en boutons
+natifs gris, chacun avec la police du système au lieu de celle de la page.
+
+« Appliquer » fait exception, parce que c'est le seul geste qui engage : plein `CanvasText` sur
+texte `Canvas`, largeur de sa colonne. Le couple de couleurs système suffit à faire un plein sans
+choisir de teinte, et s'inverse avec l'hôte ; son `outline` de focus repasse en `CanvasText`, sans
+quoi il serait invisible sur le fond clair de la page.
+
+La grille de résultats suit : `repeat(auto-fill, minmax(var(--meili-card), 1fr))`, le seuil exposé
+en variable. Sans elle, les cartes s'empilaient en une colonne sur toute la largeur — mesuré sur
+`/boutique` avant correction : 6674px de page, 4547px de liste. Après : trois colonnes, 3270px.
+L'intérieur de la carte reste au thème ; seule sa mise en colonnes est ici.
+
+Les états, eux, sont ceux qu'un composant doit avoir : `:active` en `scale(0.97)` sur les commandes
+(`0.99` sur les deux boutons pleine largeur, où un recul visible ferait sursauter la colonne),
+survol conditionné à `(hover: hover) and (pointer: fine)` — au doigt il restait collé après le tap —
+et cibles élargies sous `(pointer: coarse)`. La liste de tri passe du `@keyframes` à une transition
+avec `@starting-style` et `transition-behavior: allow-discrete` : un keyframe repart de zéro quand
+on ouvre et ferme vite, et surtout la fermeture n'avait aucune animation. Vérifié à l'écran :
+`display` reste `block` pendant les 160ms de sortie, puis bascule.
+
+### Remplacer la grille ramène le regard, déplacer le focus non (2026-09-07)
+
+Pagination, tri, remise à zéro et « Appliquer » **remplacent** ce qu'on lisait : ils ramènent le
+haut du listing dans l'écran. Cocher une facette **rétrécit** ce qu'on regarde déjà : rien ne bouge
+— en mode `immediate`, défiler à chaque case serait intenable.
+
+Le défilement ne vaut que pour un pointeur. Au clavier, le focus tient déjà la place, et déplacer
+la page sortirait de l'écran le bouton qu'on vient de presser. `event.detail` sépare les deux sans
+heuristique : `0` sur un clic levé par le clavier, non nul sur un vrai.
+
+`scrollIntoView` est appelé **sans `behavior`** : animer ou non est une décision de thème, prise
+dans son CSS, avec la garde `prefers-reduced-motion` au même endroit. Le module ne porte aucune
+apparence, ici comme ailleurs.
+
+Ce que ça coûte : `scroll-behavior` s'applique à la boîte de défilement, donc à `html` — un thème
+qui l'active anime **tout son site**, il ne peut pas viser ce seul geste. Et la règle
+pointeur/clavier reste invisible à la lecture du code appelant : c'est une propriété de l'événement,
+pas du geste. Elle est écrite dans `ListingBinding#reveal()` et testée des deux côtés.
+
+Ce que ça ne fait pas : déplacer le focus en haut des résultats. Ce serait l'usage annoncé aux
+lecteurs d'écran, mais paginer plusieurs fois de suite imposerait de retraverser la grille. L'annonce
+du changement relève de l'état d'attente, au lot 3c-3.
+
+### `happy-dom` en dépendance de développement (2026-09-07)
+
+Validé sous `R-69`, installé au lot 3c-2. La couche DOM était recettée à la main dans un
+navigateur : cela prouvait qu'elle marchait ce jour-là et ne protégeait de rien. `tests/js/dom.js`
+monte un document et reproduit le balisage des composants Blade, crochets et états `hidden`
+compris.
+
+Ce que ça coûte : un balisage de test à tenir aligné sur les vues Blade. Le contrat `data-meili`
+en couvre la structure, les tests `Feature` en couvrent le rendu réel — la dérive possible porte
+sur les états initiaux, pas sur les crochets.
 
 ### Contrat `data-meili` (2026-09-04)
 
@@ -190,8 +353,8 @@ Rien de ce qui suit n'est acquis.
   d'extensibilité de `feat/meilifacets` ; tant que la PR n'est pas intégrée, le projet dépend
   d'une branche qui peut diverger ou disparaître. Repasser à `dev-main` dès le merge.
 - **`Modules/MeiliFacets` contient son propre dépôt git**, donc le projet ne peut pas versionner
-  ses fichiers. À trancher : submodule déclaré, installation par Composer, ou dépôt imbriqué
-  retiré.
+  ses fichiers. **Voulu** (D-02) : le module est un produit à part. À rouvrir avant la première mise
+  en production, pour choisir la forme de distribution — submodule déclaré ou paquet Composer.
 - **Le plan de requête existe des deux côtés.** Le premier rendu le construit en PHP, le
   filtrage en JavaScript : une même règle, deux implémentations à tenir en phase. Inhérent au
   rendu serveur suivi d'un filtrage client. Bornée en couvrant les deux avec les mêmes cas.

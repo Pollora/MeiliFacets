@@ -74,15 +74,18 @@ filtrée ou non — ce qui est ce que le référencement demande.
 > Corrigé le 2026-09-04. Ce document affirmait qu'après 3b « l'archive fonctionne sans
 > JavaScript ». C'est faux : il n'y a pas de `<form>` — choix assumé, un formulaire GET aurait
 > produit `?marque[]=a&marque[]=b`, soit une seconde URL pour le même état — et le bouton est un
-> `<button type="button">`. **Sans JavaScript, cocher une case ne fait rien.** Seuls le tri, la
-> pagination et la remise à zéro fonctionnent, parce que ce sont de vrais liens : c'est le bon
-> repli, à intercepter plutôt qu'à remplacer au lot 3c.
+> `<button type="button">`. **Sans JavaScript, cocher une case ne fait rien.** À cette date, le
+> tri, la pagination et la remise à zéro étaient encore de vrais liens et fonctionnaient seuls.
+>
+> > Corrigé le 2026-09-07. Ils sont devenus des `<button type="button">` le 2026-09-06
+> > (« Les commandes sont des boutons »), donc **sans JavaScript le listing entier est inerte** :
+> > seul le premier rendu est servi, ce qui reste la promesse tenue.
 
 | Étape | Objet | État |
 | --- | --- | --- |
 | 3a | Projection de carte, ancêtres de catégorie, tri des valeurs de facette, tests des unités pures | **livrée** |
 | 3b | Recherche serveur, déclaration de listing, composants Blade, repli `503`, noms de paramètres d'URL | **livrée** |
-| 3c | Contrat de liaison, `multi-search` côté client, pagination, états de chargement | **en cours** |
+| 3c | Contrat de liaison, `multi-search` côté client, pagination, états de chargement | **3c-1 et 3c-2 livrés, 3c-3 en cours** |
 
 3a porte les ancêtres parce qu'ils relèvent de l'indexation et qu'ils **bloquent 3b** : sans eux,
 une archive de catégorie se vide dès qu'un produit est rangé dans un sous-rayon. La correction des
@@ -102,8 +105,11 @@ d'ici là le double filtrage silencieux.
 - Intégration sur l'archive produit de `themes/pluralia`.
 
 **Recette —** les produits sont dans le HTML source, un filtre les remplace sans rechargement, et
-moteur arrêté la page répond `503` sans être mise en cache. Aucune `WP_Query` de produits n'est
-exécutée.
+moteur arrêté la page répond `503` sans être mise en cache.
+
+> Corrigé le 2026-09-07. Ce passage affirmait qu'« aucune `WP_Query` de produits n'est exécutée ».
+> C'est faux, et R-36 le relevait déjà : la requête principale de l'archive est conservée — elle
+> porte le routage et le SEO — et c'est seulement son résultat que le listing n'utilise pas.
 
 **Aligné après coup —** le client JavaScript du lot 2 paginait encore sur `page`, la query var
 WordPress que 3b venait d'écarter. Corrigé et couvert : les noms réservés se surchargent depuis
@@ -157,10 +163,10 @@ Dans cet ordre, tous relevés par l'audit du 2026-09-04 :
 
 | Point de l'audit | État |
 | --- | --- |
-| 1. `multi-search` et comptage disjonctif côté client | **écrit, jamais exécuté** — `SearchClient` tape `/multi-search`, `ListingQuery` reflète `QueryPlan`, 49 tests Node passent ; aucun navigateur ne l'a encore chargé |
-| 2. Pagination fausse sur un vrai catalogue | **à moitié** — `totalHits` remplace l'estimation, la fenêtre est plafonnée à sept slots. Reste `maxTotalHits`, à 1000 par défaut : au-delà, la page 63 est la dernière atteignable et rien ne le dit |
-| 3. Contrat de liaison | **livré** — 24 crochets dans `Enums\Hook` et `contract.js`, `data-meili-contract="1"`, refus au démarrage |
-| 4. `popstate` | **non branché** — `Listing.onBack()` existe, personne ne l'appelle |
+| 1. `multi-search` et comptage disjonctif côté client | **livré** — recetté en navigateur au lot 3c-1, 131 tests Node |
+| 2. Pagination fausse sur un vrai catalogue | **livré** — `totalHits` remplace l'estimation, et la fenêtre ne propose jamais une page que le moteur refuse (`engine.reachable_hits`, R-42) |
+| 3. Contrat de liaison | **livré** — 23 crochets dans `Enums\Hook`, `data-meili-contract="1"`, refus au démarrage, parité testée |
+| 4. `popstate` | **branché** — `Listing.listenToHistory()`, appelé par `ListingBinding.start()` ; recette au lot 3c-3 |
 | a11y : compteur dans le nom accessible | **corrigé** — `aria-describedby`, le nom de la case ne change plus au filtrage |
 | a11y : règle `[hidden]` | **corrigée** — `resources/assets/css/meilifacets.css`, publiée et inscrite par le module |
 
@@ -170,12 +176,18 @@ nav de pagination, sept slots) ; un `<template>` de carte est rendu à chaque pa
 commandes sont devenues des `<button>` et une liste déroulante ARIA, ce qui a supprimé
 `ListingUrls`.
 
-**Ce qui reste à 3c**, dans l'ordre : le client (inscription du script, démarrage sur vérification
-du contrat, les cinq gestes, le repeint, `popstate`), puis l'annulation d'un geste sur panne, le
-`preconnect`, et `maxTotalHits`.
+**3c-1, livré le 2026-09-07** : inscription du script, démarrage sur vérification du contrat,
+cocher et appliquer, mise à jour de l'affichage, `popstate` branché.
 
-⚠️ **Aucune commande du listing ne fonctionne aujourd'hui.** Le module ne charge aucun JavaScript :
-le rendu serveur est complet, les gestes sont inertes. C'est l'objet du point restant.
+**3c-2, livré le 2026-09-07** : synchronisation des cases avec l'état, tri au clavier (motif ARIA
+« combobox select-only »), pagination — plafonnée à ce que le moteur sert réellement — et remise à
+zéro. `ListingBinding` n'est plus qu'un câblage : `ResultsView`, `FacetsView`, `PaginationView` et
+`SortCombobox` portent le rendu.
+
+**Ce qui reste à 3c-3** : état d'attente (`data-meili-busy`), comportement après échecs répétés,
+recette de `popstate` et du mode `immediate`. Retirés de cette liste parce que livrés le
+2026-09-07 : le `preconnect` (R-52) et le retour du regard en haut du listing (R-73).
+`maxTotalHits` est mesuré et volontairement laissé à sa valeur par défaut (R-42).
 
 ## Lot 4 — Prix, stock et variations
 

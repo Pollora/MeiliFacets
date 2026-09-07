@@ -2,8 +2,6 @@
 
 Voir aussi : [architecture.md](architecture.md) · [configuration.md](configuration.md) · [lots.md](lots.md) · [pieges.md](pieges.md) · [decisions.md](decisions.md) · [revue.md](revue.md)
 
-> Ce document sera déplacé dans le module une fois celui-ci créé.
-
 ## 1. Service Meilisearch en local
 
 ```bash
@@ -68,8 +66,23 @@ MEILI_SEARCH_KEY=
 ```
 
 Ces noms sont ceux déjà en place sur les autres projets AmphiBee : les reprendre tels quels,
-sans préfixe propre au module. Les quatre premiers sont lus par MeiliScout côté PHP,
-`MEILI_PUBLIC_URL` et `MEILI_SEARCH_KEY` par le navigateur.
+sans préfixe propre au module. Les quatre premiers sont lus par MeiliScout côté PHP.
+
+⚠️ **Les deux derniers ne sont pas lus par le module.** Il ne connaît que
+`config('meilifacets.browser.url')` et `.key` : c'est le `config/meilifacets.php` du projet qui
+fait le pont, et sans lui rien ne relie l'environnement au navigateur.
+
+```php
+// config/meilifacets.php
+'browser' => [
+    'url' => env('MEILI_PUBLIC_URL'),
+    'key' => env('MEILI_SEARCH_KEY'),
+],
+```
+
+⚠️ **Le schéma de `MEILI_PUBLIC_URL` est obligatoire.** `meili.example:7701` sans `https://`
+désactive tout le client, sans message (R-65). Et `MEILI_SEARCH_KEY` laissée vide, comme ci-dessus,
+suffit à rendre `BrowserConnection::isConfigured()` faux.
 
 `MEILI_SEARCH_KEY` est une clé de recherche, distincte de la clé maître `MEILI_KEY`. En production elle est
 fournie par l'infrastructure (submodule Docker AmphiBee) et doit avoir un **uid figé** : les
@@ -106,7 +119,8 @@ ddev wp meiliscout index --clear --chunk-size=50000   # gros catalogues, un proc
 
 ## 7. Publier les assets du module
 
-`Modules/` est hors du docroot : la feuille de style du module doit être copiée dans `public/`.
+`Modules/` est hors du docroot : **la feuille de style et tout le client JavaScript** doivent être
+copiés dans `public/`.
 
 ```bash
 ddev exec php artisan module:publish MeiliFacets
@@ -114,8 +128,16 @@ ddev exec php artisan module:publish MeiliFacets
 
 À rejouer **à chaque déploiement** et après toute modification de
 `Modules/MeiliFacets/resources/assets/`. `public/modules/` est ignoré par git : c'est de la sortie
-publiée, pas de la source. Oubliée, la publication ne casse rien en silence — les éléments que le
-module masque par `hidden` réapparaissent à l'écran.
+publiée, pas de la source.
+
+Oubliée, la publication rend le listing **entièrement inerte** : `ListingScript::require()` sort
+sans rien faire quand `public/modules/meilifacets/js/listing-page.js` est absent, donc aucun filtre
+ne répond — et les éléments que le module masque par `hidden` réapparaissent à l'écran.
+
+⚠️ **En local, le site se consulte en `https`.** Les assets sont inscrits avec le schéma déclaré
+par `home`/`siteurl` ; une page ouverte en `http` voit ses propres scripts comme une autre origine
+et le navigateur les refuse — le bundle du thème compris, donc le site entier sans JavaScript
+(R-68).
 
 ## 8. Vérifier
 

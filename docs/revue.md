@@ -36,7 +36,7 @@ Trois écarts expliquent l'impression de dispersion.
 
 **1. Le module publie une bibliothèque, pas un comportement.** Sept fichiers ES sont livrés dans
 `public/modules/meilifacets/js/`, aucun n'est chargé par une page — vérifié sur `/boutique`, seule
-la feuille de style est inscrite. `Contract` n'est instancié nulle part, `Listing.onBack()` n'est
+la feuille de style est inscrite. `Contract` n'est instancié nulle part, `Listing.listenToHistory()` (alors `onBack()`) n'est
 appelé par personne, aucun PHP ne transmet au navigateur ni la connexion (`MEILI_PUBLIC_URL`,
 `MEILI_SEARCH_KEY`) ni la description du listing qu'attendent `ListingQuery` et `ListingUrl`. Le
 lot 3c a produit les pièces sans jamais produire l'assemblage, et le document `lots.md` le dit
@@ -329,6 +329,20 @@ ouvre R-54 — parce qu'il n'est aujourd'hui tenu qu'à moitié.
 
 ---
 
+### D-10 — Trier, paginer ou remettre à zéro vaut validation des filtres en attente
+
+*Décidé le 2026-09-07, en réponse à `R-77`. Aucune ligne de code changée : c'est le texte qui suit.*
+
+En mode `submit`, cocher une case ne cherche rien mais **pose l'état** — sinon la case ne pourrait
+pas rester cochée. Tout geste qui remplace la grille part donc de cet état, et emporte les filtres
+qu'on n'avait pas validés.
+
+L'alternative aurait été de faire repartir ces gestes du dernier état **appliqué**. Elle impose de
+tenir deux états, et surtout elle laisse le visiteur devant une grille qui ignore les cases qu'il
+vient de cocher, avec « Appliquer » pour seul moyen de les faire coïncider. Le comportement retenu
+est aussi celui de la plupart des listes à facettes.
+
+
 ## 1. Constats — architecture et conception
 
 ### R-01 · 🟠 · ouvert · 2026-09-06 — `QueryPlan` est une classe qui a perdu son constructeur
@@ -362,14 +376,17 @@ et donnerait au passage la forme sérialisable dont le client JavaScript a besoi
 `Modules\MeiliFacets\Enums\Contract` est une `final readonly class`. Elle appartient à
 `app/View/` ou à un `app/Contract/` dédié, avec `Hook`.
 
-### R-04 · 🟡 · ouvert · 2026-09-06 — service locator dans les composants Blade
+### R-04 · 🟡 · **fermé le 2026-09-07** · ouvert le 2026-09-06 — service locator dans les composants Blade
 
 `ListingComponent::listing()` fait `app(CurrentListing::class)` et `Results::itemList()` fait
 `app(RobotsPolicy::class)`. Les composants Blade de Laravel résolvent depuis le conteneur tout
 paramètre de constructeur qui n'est pas passé en attribut : l'injection est disponible, elle n'est
 pas utilisée. Effet direct : ces deux composants ne se testent qu'avec une application bootée.
 
-### R-05 · 🟠 · ouvert · 2026-09-06 — la configuration est lue depuis les objets de domaine
+
+**Fermé le 2026-09-07** — par R-62, sans que ce constat soit mis à jour. Relevé par la passe de
+conformité de la documentation : le code qu'il décrit n'existe plus.
+### R-05 · 🟠 · **fermé le 2026-09-07** · ouvert le 2026-09-06 — la configuration est lue depuis les objets de domaine
 
 `ApplyMode::fromConfig()`, `UrlParameters::fromConfig()`, `Results::eagerCards()`,
 `ProductListing::applyMode()`, `Card` (rien) : quatre points où `config()` est appelé depuis un
@@ -380,6 +397,9 @@ Le contournement du piège nwidart (ne rien déclarer dans `config/config.php`, 
 le code) est juste — c'est **l'endroit** de la lecture qui est discutable. Le provider est le seul
 qui devrait lire `config()`, comme il le fait déjà bien pour `DefaultCardProjector`.
 
+
+**Fermé le 2026-09-07** — par R-62, sans que ce constat soit mis à jour. Relevé par la passe de
+conformité de la documentation : le code qu'il décrit n'existe plus.
 ### R-06 · 🟠 · ouvert · 2026-09-06 — le contrat `Listing` mélange déclaration et résolution
 
 `name()`, `facets()`, `sorts()` déclarent. `baseFilter()` appelle `is_tax()` et
@@ -549,7 +569,7 @@ renvoie moins de réponses que de requêtes, `array_combine` lève un `ValueErro
 de `send()`, donc jamais transformé en `SearchFailed`. Résultat : une 500 au lieu de la vue de
 repli, exactement dans le cas où celle-ci sert.
 
-### R-15 · 🟡 · ouvert · 2026-09-06 — les identifiants de compteur ne portent pas le nom du listing
+### R-15 · 🟡 · **fermé le 2026-09-07** · ouvert le 2026-09-06 — les identifiants de compteur ne portent pas le nom du listing
 
 `Facets::countId()` produit `meilifacets-{taxonomie}-{slug}`, alors que `Sort::id()` produit
 `meilifacets-{listing}-sort` avec, en commentaire, « deux listings sur une page ne doivent pas se
@@ -557,6 +577,9 @@ marcher dessus ». Deux listings sur une page produisent donc des `id` dupliqué
 `aria-describedby` qui pointe vers le mauvais compteur. Un des deux composants applique la règle,
 l'autre non.
 
+
+**Fermé le 2026-09-07** — par R-62, sans que ce constat soit mis à jour. Relevé par la passe de
+conformité de la documentation : le code qu'il décrit n'existe plus.
 ### R-16 · 🟡 · **fermé le 2026-09-06** · ouvert le 2026-09-06 — `RobotsPolicy` s'appliquait à toute page du site
 
 Le filtre `wp_robots` est global. `RobotsPolicy::appliesTo()` déclare une URL filtrée dès qu'un
@@ -632,7 +655,7 @@ Sept fichiers ES sont publiés dans `public/modules/meilifacets/js/` (vérifié)
 Il manque, dans l'ordre : un point d'entrée, son inscription en `type="module"`, l'instanciation de
 `Contract` sur chaque racine `[data-listing]`, la vérification avant démarrage, les cinq gestes
 (cocher, appliquer, trier, paginer, remettre à zéro), le repeint, et le branchement de
-`Listing.onBack()`. Le module livre aujourd'hui une bibliothèque testée et morte.
+`Listing.onBack()`, devenu `listenToHistory()` au lot 3c-1. Le module livrait alors une bibliothèque testée et morte.
 
 **Fermé le 2026-09-07 (lot 3c-1).** Le client démarre, vérifie le contrat, et refuse de démarrer en
 nommant ce qui manque. `listing-page.js` amorce une instance par racine, `ListingBinding` écoute sur
@@ -644,8 +667,10 @@ en mode `submit`, « Appliquer » ramène 16 cartes à 10, l'URL devient `?marqu
 compteurs des autres facettes se resserrent — visage passe de 24 à 6. Quatre combinaisons
 successives vérifiées, dont le décochage qui rend l'URL vide.
 
-**Deux gestes restent à câbler** : tri, pagination et remise à zéro existent sur `Listing` et
-n'écoutent rien (lot 3c-2) ; `popstate` est branché mais jamais recetté (lot 3c-3).
+**Complété le 2026-09-07 (lot 3c-2).** Tri, pagination et remise à zéro écoutent désormais, et la
+synchronisation des cases est faite : `ListingBinding` n'est plus qu'un câblage, quatre vues portent
+le rendu (`ResultsView`, `FacetsView`, `PaginationView`, `SortCombobox`). Reste au lot 3c-3 :
+l'état d'attente et le comportement après échecs répétés.
 
 ### R-21 · 🔴 · **fermé le 2026-09-07** · ouvert le 2026-09-06 — rien ne transmettait la connexion ni la description au navigateur
 
@@ -682,12 +707,39 @@ C'est déjà une divergence :
 Concrètement, en mode `immediate`, cocher deux catégories côté client produirait un état que le
 serveur refuse — et une URL que le rendu suivant ne reproduira pas.
 
-**Fermé le 2026-09-07.** `ListingState` déduplique, trie et borne la recherche à 200 caractères
-comme `StateReader` ; `toggling()` reçoit la description de la facette, donc une facette
-mono-sélection remplace au lieu d'empiler et le plafond est respecté. Cinq tests neufs couvrent
-exactement ces cas, qui n'étaient couverts nulle part.
+**Fermé le 2026-09-07 — puis rouvert et refermé le même jour, la première fermeture était fausse.**
 
-### R-23 · 🟡 · ouvert · 2026-09-06 — le client lit des attributs hors contrat
+`ListingState` déduplique, trie et borne la recherche ; `toggling()` reçoit la description de la
+facette, donc une facette mono-sélection remplace au lieu d'empiler.
+
+**Ce que la première fermeture affirmait à tort** : « le plafond est respecté ». Il ne l'était que
+sur le chemin d'écriture, `toggling()`. **Le chemin de lecture n'en avait aucun** — `toState()`
+n'appliquait ni le plafond ni la règle mono-sélection. Trouvé par une passe de revue, mesuré :
+
+```
+?brand=a,b,c,d,e,f,g,h   sur une facette plafonnée à 3
+client : ['a','b','c','d','e','f','g','h']      serveur : ['a','b','c']
+```
+
+Deux lignes du tableau ci-dessus restaient donc vraies après une fermeture qui prétendait le
+contraire.
+
+**Et la borne de `q` était jumelle sans l'être** : PHP tronque en **caractères** (`mb_substr`),
+JavaScript tronquait en **unités UTF-16** (`slice`). Mesuré sur `'a' + '😀'×210` : PHP garde
+200 caractères, JavaScript en gardait **101 et finissait sur un demi-substitut isolé** — une chaîne
+UTF-16 invalide envoyée au moteur. `ContractParityTest` comparait le nombre `200` des deux côtés et
+donnait donc une confiance que le code ne méritait pas : *la constante était jumelle, l'unité ne
+l'était pas.*
+
+**Refermé le 2026-09-07.** `toState()` applique `slice(0, multiple ? cap : 1)`, miroir exact de
+`StateReader::values()` ; la troncature de `q` compte des points de code. Deux tests neufs, vérifiés
+en les mutant. Recetté en navigateur sur une URL forgée à 60 valeurs : **30 après le premier geste,
+30 clauses envoyées au moteur**.
+
+**Enseignement** : un constat fermé sur « la règle est respectée » doit nommer *par quel chemin*.
+Ici l'écriture était couverte, la lecture ne l'était pas, et le tableau du constat le disait encore.
+
+### R-23 · 🟡 · **fermé le 2026-09-07** · ouvert le 2026-09-06 — le client lit des attributs hors contrat
 
 `data-taxonomy` (sur le `<fieldset>`), `data-apply` (sur le conteneur de facettes),
 `data-listing` (sur la racine) et `data-value` (sur une option de tri) sont indispensables au
@@ -695,27 +747,38 @@ client mais ne font pas partie de `Hook`, ne sont pas vérifiés par `Contract::
 figurent pas dans le tableau des crochets d'`architecture.md`. La règle « le client n'adresse que
 des crochets `data-meili` » est déjà entamée, sans que le mécanisme de version le voie.
 
+
+**Fermé le 2026-09-07** — par R-62, sans que ce constat soit mis à jour. Relevé par la passe de
+conformité de la documentation : le code qu'il décrit n'existe plus.
 ### R-24 · ⚪ · **fermé le 2026-09-07** · ouvert le 2026-09-06 — `Hook::PageTemplate` était déclaré et rendu nulle part
 
 `case PageTemplate = 'page-template'` existe dans l'énumération PHP, n'apparaît dans aucune vue,
 n'est pas dans `contract.js`, n'est pas dans le tableau d'`architecture.md`. Le contrat annonce
 24 crochets, 23 sont réels.
 
-### R-25 · 🟡 · ouvert · 2026-09-06 — rien ne vérifie que les deux listes de crochets coïncident
+### R-25 · 🟡 · **fermé le 2026-09-07** · ouvert le 2026-09-06 — rien ne vérifiait que les deux listes de crochets coïncident
 
 `Contract::VERSION = 1` en PHP, `const VERSION = 1` en JavaScript, chacun écrit à la main. Le
 mécanisme de version protège contre un thème périmé, **pas** contre un oubli d'incrément ni contre
 une divergence des listes elles-mêmes : `Hook` porte 24 cas, les `RULES` de `contract.js` en
 citent 13. Aucun test ne compare les deux fichiers.
 
-**Fermé pour l'essentiel le 2026-09-07** par `ContractParityTest`, qui lit les fichiers JavaScript
-et compare quatre des huit duplications : la version du contrat, **chaque crochet que le client
-adresse**, l'identifiant du module de script, et le préfixe `f_`. Vérifié en les cassant
-volontairement — le test dit « contract.js and Contract::VERSION disagree » et « the client
-addresses "results", which Hook does not declare ».
+**Fermé le 2026-09-07** par `ContractParityTest`, qui lit les fichiers JavaScript et compare à la
+constante PHP : la version du contrat, **chaque crochet que le client adresse**, l'identifiant du
+module de script, l'attribut `data-meili` et celui qui porte la version, le préfixe de champ
+`facets.`, le séparateur de valeurs, la borne de la recherche et la première page. Vérifié en les
+cassant une à une — chaque mutation fait tomber une assertion.
 
-Restent non couvertes, parce qu'elles n'ont pas d'usage croisé observable : le préfixe de champ, les
-noms des paramètres réservés, la première page et la longueur maximale de la recherche.
+**Deux duplications ont disparu au lieu d'être gardées**, le 2026-09-07 : le préfixe `f_` et les
+noms des paramètres réservés étaient écrits dans le client *et* publiés par le serveur, qui les
+produit toujours en entier — `params` boucle sur chaque facette, `reserved` sur chaque cas de
+`QueryParameter`. Les valeurs de repli du client étaient donc mortes. Même défaut que
+`PageWindow.SLOTS`, trouvé le même jour, et il masquait des jeux d'essai faux : deux fixtures
+déclaraient `reserved: {}`, ce qu'aucun serveur ne produit — l'URL sortait `?undefined=2` une fois
+les défauts retirés.
+
+**Enseignement** : une valeur par défaut côté client, en face d'un serveur qui publie toujours la
+donnée, n'est pas une sécurité — c'est un mensonge qui tient debout les tests qui devraient tomber.
 
 ---
 
@@ -931,6 +994,13 @@ que « rien ne le dit ». Mesuré sur 1.53.1 avec des index fabriqués pour l'oc
 - **les facettes et les filtres sont exacts** au-delà du plafond — `{a: 1500, b: 1000}` sur
   2 500 documents, `totalHits: 1500` sur un filtre à 1 500 ;
 - **`totalHits` et `totalPages` ne sont pas plafonnés** — 1 570 et 157 sur 1 570 documents ;
+
+**Ajouté le 2026-09-07 (revue du lot 3c-2).** `engine.reachable_hits` **déclare** le plafond, il ne
+le **pose pas** : le module n'écrit jamais `pagination.maxTotalHits` sur l'index, et le réglage
+n'apparaît pas dans la liste de ceux qu'il pose. Les deux valeurs sont tenues à la main. Un projet
+qui monte le `maxTotalHits` de son index sans toucher la clé garde une pagination tronquée, en
+silence. Documenté en avertissement dans `configuration.md` ; à reprendre si le lot 6 ajoute un
+`meilifacets:doctor`, qui saurait comparer les deux.
 - **seules les pages le sont** : à 10 par page, la 100 sert 10 produits, la 101 en sert **zéro**, en
   répondant `200`. Le moteur annonce 157 pages et en refuse 57.
 
@@ -1068,7 +1138,7 @@ l'accueil ni sur une fiche produit. 122 tests dans le module, 140 dans le projet
 **Reste ouvert** : sans clé de recherche en configuration, le module se tait au lieu de le dire.
 C'est un cas pour `meilifacets:doctor` (lot 6), pas pour un journal sur chaque rendu.
 
-### R-53 · 🟠 · ouvert · 2026-09-06 — la ligne entre fonctionnement et apparence n'est pas écrite
+### R-53 · 🟠 · fermé le 2026-09-07 — la ligne entre fonctionnement et apparence n'est pas écrite
 
 **Vérifié** : `resources/assets/css/meilifacets.css` contient quatre lignes — la contre-règle
 `[hidden]`, et rien d'autre. Aucune feuille du thème `pluralia` ne cible une classe
@@ -1084,6 +1154,14 @@ liste sans puces ». D-01 dit l'inverse. Il faut trancher **où passe la ligne**
 le module pose ce sans quoi le composant ne fonctionne pas (positionnement du `listbox`, retrait
 des puces, `[hidden]`), jamais ce qui relève de l'apparence (couleurs, espacements, typographie,
 états de survol). *Voir Q-28.*
+
+**Tranché le 2026-09-07, et pas dans le sens proposé ci-dessus** : le module livre l'apparence par
+défaut de ce qu'il rend — le **tri** (bordure, panneau solidaire, coche, survol, ouverture animée),
+la **colonne de facettes** (espacements, listes sans puces ni indentation, case et libellé alignés,
+compteur en fin de ligne) et ses **boutons** (« Appliquer », « Tout effacer », pagination, page
+courante marquée). Neutre au sens strict : ni famille de police, ni taille absolue, ni couleur de
+marque. La grille de résultats est mise en colonnes (`minmax(var(--meili-card), 1fr)`) ; l'intérieur de la carte reste au thème. Décision et coût dans `decisions.md`, « Le tri est livré habillé, le thème le
+remplace ». La prose fausse d'`architecture.md` est corrigée dans la foulée.
 
 ### R-54 · 🟠 · ouvert · 2026-09-06 — l'objectif « sortir du coût de WordPress » n'est tenu qu'à moitié
 
@@ -1146,7 +1224,7 @@ besoin d'entrée `repositories` ni de script de résolution de chemins.
 
 Deux effets à connaître :
 
-- **la suite `Feature` reste dépendante d'un hôte** (`CardComponentTest`, `ResultsViewTest` rendent
+- **la suite `Feature` reste dépendante d'un hôte** (`CardComponentTest`, `ResultsComponentTest` rendent
   du Blade et utilisent `Tests\TestCase` de Pluralia). Elle est déclarée à part et lancée depuis le
   projet. La rendre autonome demanderait un `TestCase` propre au module montant `illuminate/view`
   seul — travail à part, voir I-09 ;
@@ -1443,6 +1521,18 @@ Deux réponses possibles, à ne pas confondre :
 Antérieur au correctif de R-60 et indépendant de lui : `?pg=2&categorie=cheveux` se comportait déjà
 ainsi. Ce que R-60 change, c'est que le cas devient atteignable par deux chemins d'URL au lieu d'un.
 
+**Atténué le 2026-09-07 (lot 3c-2), pas fermé.** `PageWindow` (JS) ramenait `current` dans les
+bornes, `Pagination` (PHP) ne le faisait pas : les deux miroirs divergeaient, et c'est le lot qui
+avait introduit l'écart. `Pagination` ramène désormais `current` comme son miroir. Mesuré sur
+`/boutique?pg=999` — avant : « Précédent » pointait vers la page **998**, aucune page n'était
+marquée courante ; après : « Précédent » pointe vers 4, la page 5 porte `aria-current`, « Suivant »
+est masqué.
+
+Le clampage ne touche **que le widget** : la requête moteur lit `$state->page` dans `QueryPlan`,
+pas `Pagination::offset()`. La grille reste donc vide et le message reste « Aucun résultat » — la
+question posée ci-dessus, servir la dernière page ou distinguer les deux messages, **n'est pas
+tranchée**.
+
 Lié à R-42 (`maxTotalHits`), qui produit le même symptôme pour une autre raison.
 
 
@@ -1713,7 +1803,7 @@ restent valables pour le HTML servi ; elles ne disaient rien du JavaScript.
 
 À écrire dans `installation.md` : **en local, le site se consulte en `https`**.
 
-### R-69 · 🟡 · ouvert · 2026-09-07 — la couche DOM n'a aucun test automatisé
+### R-69 · 🟡 · **fermé le 2026-09-07** (lot 3c-2) · ouvert le 2026-09-07 — la couche DOM n'a aucun test automatisé
 
 `happy-dom` avait été validé comme dépendance de développement pour tester la liaison au DOM. Il n'a
 pas été installé : `CardPainter`, `ListingBinding` et `listing-page.js` ont été recettés **à la main
@@ -1724,6 +1814,312 @@ Les 58 tests Node couvrent l'état, l'URL, le plan de requête et le contrat —
 pas au document. C'est R-30 sous une autre forme, et la couche DOM est celle qui vient de grossir
 le plus.
 
+**Fermé le 2026-09-07.** `happy-dom` installé en dépendance de développement du module,
+`tests/js/dom.js` monte un document et un balisage qui reproduit ce que rendent les composants
+Blade, hooks et états `hidden` compris. Quatre suites nouvelles : `FacetsView`, `PaginationView`,
+`SortCombobox` et `ListingBinding` de bout en bout, `Listing` réel branché sur un moteur et un
+historique factices. 49 → 102 tests Node.
+
+Vérifié qu'ils mordent : en retirant le câblage de la pagination et l'appel à `showSelection()`,
+cinq tests tombent — dont les trois qui portent le correctif demandé.
+
+
+### R-70 · 🟠 · ouvert · 2026-09-07 — seul le point d'entrée du client est versionné ; les dix-sept autres fichiers sont figés dans le navigateur
+
+**Mesuré le 2026-09-07.** `ListingScript` inscrit `listing-page.js?ver=<filemtime>` : le point
+d'entrée porte bien un cache-buster. Ses imports, eux, sont **relatifs** (`./listing-binding.js`) et
+sont donc demandés à leur URL nue — sans `ver`. Or ces fichiers statiques sont servis avec :
+
+```
+cache-control: max-age=31536000, public
+```
+
+Un navigateur qui a déjà chargé la page retélécharge l'entrée (son `ver` a changé) et **réutilise
+les dix-sept autres depuis son cache, pendant un an**.
+
+Constaté en séance, pas déduit : après publication des fichiers du lot 3c-2, la page continuait
+d'exécuter l'ancien `listing-binding.js` — un clic sur une page de pagination ne faisait rien, sans
+la moindre erreur en console. Un `fetch` de la même URL avec `?bust=` renvoyait le nouveau contenu,
+sans `bust` l'ancien. Il a fallu `Network.clearBrowserCache` pour débloquer.
+
+**Conséquence** : tout correctif apporté à `listing.js`, `search-client.js`, `listing-binding.js`…
+n'atteint jamais un visiteur déjà venu. Pire qu'une absence de correctif — l'entrée, elle, se met à
+jour, et s'exécute alors contre des voisins périmés.
+
+L'en-tête vient du serveur statique (nginx en local) : la valeur peut différer en production, le
+mécanisme non. Trois sorties possibles, aucune gratuite :
+
+| | Ce que ça coûte |
+| --- | --- |
+| **Carte d'imports** (`wp_register_script_module` par fichier, spécificateurs nus) | La réponse native de WordPress 6.9. Mais `./listing.js` devient `@meilifacets/listing`, que ni `node --test` ni ESLint ne savent résoudre sans alias |
+| **Un bundle** (esbuild, Vite) en un fichier au nom haché | Une chaîne d'outils dans le module, là où il n'y a aujourd'hui que des fichiers servis tels quels |
+| **Publier sous un répertoire versionné** | Les imports relatifs héritent du répertoire, donc de la version. Le moins invasif ; demande de faire porter la version à l'étape de publication |
+
+**À décider — hors du lot 3c-2.** T-39.
+
+### R-71 · 🔴 · **fermé le 2026-09-07** (revue du lot 3c-2) · ouvert le 2026-09-07 — atteindre la dernière page jetait le clavier hors du document
+
+`PaginationView.show()` masque « Suivant » quand il n'y a plus de page suivante — donc **le bouton
+qui vient d'être pressé**. Le navigateur retire alors le focus de l'élément masqué et le repose sur
+`<body>` : un visiteur au clavier se retrouve en haut du document, après avoir simplement paginé
+jusqu'au bout. Symétrique sur « Précédent » en revenant en page 1.
+
+Trouvé par la passe « contexte » de `module-review`, dans un lot dont le clavier était précisément
+l'objet — `SortCombobox` rend le focus à son déclencheur, la pagination ne rendait rien.
+
+**Corrigé.** `show()` retient l'élément qui a le focus **avant** de peindre, et si la peinture l'a
+masqué, pose le focus sur le bouton de la page courante. Deux tests, dont un qui vérifie que le
+focus ne bouge pas tant que le bouton reste. Recetté en navigateur : « Suivant » pressé quatre fois
+sur cinq pages garde le focus sur « Suivant », puis le passe au bouton « 5 » — jamais à `<body>`.
+
+### R-72 · 🟠 · **fermé le 2026-09-07** · ouvert le 2026-09-07 — le garde-fou `[hidden]` ne protégeait que les vues non surchargées
+
+Le module rend des éléments vides et masqués que le client révèle — sept emplacements de page, le
+message « aucun résultat », la remise à zéro, le badge. Il livre pour cela une règle
+`display: none !important`, parce qu'un thème qui mate ses boutons en `flex` bat le `hidden` natif
+du navigateur.
+
+Cette règle ne visait que `[class^="meilifacets"]`. Or **le cas supporté est exactement l'inverse** :
+une vue surchargée garde les crochets `data-meili` — le contrat l'exige — et remplace les classes,
+que le module déclare appartenir au thème. Un thème faisant les deux choses ensemble voyait
+réapparaître deux boutons vides et cliquables au bout de sa pagination.
+
+Trouvé en tirant sur une remarque de séance — « des boutons vides » dans le DOM — et non par une
+passe de revue : les cinq passes lisent le code, pas le rendu.
+
+**Corrigé.** Le sélecteur porte désormais aussi sur `[data-meili][hidden]`. Vérifié en navigateur
+contre une feuille de thème `nav button { display: inline-flex !important }` : l'emplacement reste
+`none` **classe retirée**, donc c'est bien le nouveau sélecteur qui tient.
+
+⚠️ Non couvert par un test : happy-dom donne à l'attribut `hidden` une priorité absolue et rend
+l'assertion verte avec ou sans la règle. Un test a été écrit, constaté incapable d'échouer, puis
+retiré — `tests/js/stylesheet.test.js` le dit en tête. Les curseurs et la superposition de la liste,
+eux, sont testés et mordent.
+
+### R-73 · 🟠 · **fermé le 2026-09-07** · ouvert le 2026-09-07 — changer de page laissait le visiteur à la fin de la nouvelle page
+
+Rien ne ramène le regard en haut du listing après un geste. La pagination est en bas d'un listing
+long : le visiteur clique « 2 » depuis le bas, la grille est remplacée sous lui, et il se retrouve
+devant la **fin** de la page 2.
+
+**Mesuré le 2026-09-07** sur `/boutique`, écran de 900 px, listing de 5252 px : après un clic sur
+« 2 » depuis la pagination, défilement à 4335 px, haut des résultats à **-3944 px**, **1 carte
+visible sur 16**.
+
+Absent de tous les lots et de tous les documents — ce n'est pas un arbitrage oublié, c'est un cas
+jamais posé. Relevé en séance le 2026-09-07.
+
+Le geste n'est pas seulement « défiler » : il décide aussi où va le focus, et il croise donc R-71,
+fermé le jour même. Trois formes, à trancher (T-40) :
+
+| | Souris | Clavier |
+| --- | --- | --- |
+| **A · défiler seulement** | juste | la page saute, le focus reste en bas hors écran — on presse « Suivant » à l'aveugle |
+| **B · déplacer le focus en haut des résultats** (`tabindex="-1"`) | juste | cohérent, et annoncé aux lecteurs d'écran ; mais paginer plusieurs fois de suite impose de retraverser la grille |
+| **C · distinguer la source du geste** (`event.detail > 0` = pointeur) | juste | le focus ne bouge pas, la page non plus : on continue à paginer |
+
+Même question pour le tri et la remise à zéro, qui **remplacent** ce qu'on lisait. Pas pour les
+facettes, qui **rétrécissent** ce qu'on regarde déjà — et en mode `immediate`, défiler à chaque
+case cochée serait intenable.
+
+Sa place naturelle était le lot 3c-3, avec l'état d'attente. **Avancé et livré le jour même** : ce
+n'est pas un raffinement, c'est un basique qui manquait.
+
+**Retenu : C.** Le geste ramène le haut du listing dans l'écran, *pour un pointeur seulement* —
+`event.detail` vaut `0` sur un clic que le clavier a levé, et non nul sur un vrai. Le clavier garde
+donc sa place et son bouton, ce que R-71 venait d'assurer.
+
+Portée : pagination, tri, remise à zéro et « Appliquer » — les gestes qui **remplacent** la grille.
+Jamais une case cochée, qui **rétrécit** ce qu'on regarde déjà : en mode `immediate`, défiler à
+chaque clic serait intenable.
+
+Le défilement vise la racine du listing, pas le haut du document — on revient aux facettes et au
+tri, pas à l'en-tête du site.
+
+**Le module n'impose aucune animation** : `scrollIntoView` est appelé sans `behavior`, donc le
+`scroll-behavior` calculé décide — c'est-à-dire le thème.
+
+L'animation est donc une décision de thème. Côté Pluralia, `common/motion.css` :
+
+```css
+@media (prefers-reduced-motion: no-preference) {
+    html { scroll-behavior: smooth; }
+}
+```
+
+⚠️ **La propriété s'applique à la boîte de défilement, donc à `html` : tout le site est animé**,
+pas seulement le listing. C'est la contrepartie assumée du choix de le faire en CSS ; la seule
+façon de ne viser que ce geste serait de passer `behavior` depuis le module, ce qui mettrait une
+décision d'apparence dans un module qui s'en interdit.
+
+⚠️ **Mesuré le 2026-09-07 : 1451 ms** pour les 4788 px qui séparent la pagination du haut du
+listing, en 147 positions. La durée est décidée par le navigateur et croît avec la distance ; elle
+n'est pas réglable sans réécrire l'animation à la main. Sous `prefers-reduced-motion: reduce`, même
+trajet en **2 positions**, instantané — la garde CSS fonctionne. C'est long pour un geste de
+pagination : à rouvrir si l'usage le confirme.
+
+**Mesuré après correction**, même page, même écran : défilement 4335 → **144 px**, haut du listing
+à 139 px, **5 cartes visibles au lieu d'1**. Au clavier, `Entrée` sur « Suivant » : défilement
+inchangé à 4139 px, focus toujours sur « Suivant », URL en `?pg=3`.
+
+⚠️ **Le thème doit poser `scroll-margin-top` sur `[data-listing]`** s'il a un en-tête collant, sinon
+le haut du listing atterrit dessous. Le module ne peut pas connaître cette hauteur. Côté Pluralia :
+trois lignes dans un `components/listing.css` neuf, `scroll-margin-top: 9rem`.
+
+**Deux détours avant d'y arriver, et ils valent la correction :**
+
+1. La hauteur a d'abord été **relevée dans un navigateur puis écrite en dur**
+   (`--pluralia-header-height: 123px`), avec un commentaire demandant de la tenir à jour à la main.
+   Mesurée ensuite aux autres largeurs, elle était fausse trois fois sur cinq — **92 px en mobile,
+   94 px en tablette, 122-123 px en desktop** : l'en-tête est dimensionné par son contenu. *Une
+   valeur mesurée une fois n'est pas une constante ; il suffisait de changer la largeur.*
+2. Elle a ensuite été remplacée par un `ResizeObserver` publiant la hauteur réelle. Inutile :
+   **seul le dégagement insuffisant est un défaut** — trop dégager ne montre qu'un peu plus de ce
+   qui est au-dessus, ce que personne ne remarque. Une marge fixe et généreuse suffit donc, et
+   quinze lignes de JavaScript dans le thème ont été retirées. *Relevé en séance ; c'est
+   l'asymétrie du problème qui avait été manquée, pas la technique.*
+
+Mesuré après simplification, aux quatre largeurs : haut du listing à 144 px partout, dégagement de
+21 à 52 px sous l'en-tête. Aucune trace laissée dans `header.js` ni `header.css`.
+
+### R-74 · ⚪ · **fermé le 2026-09-07, sans code** · ouvert le 2026-09-07 — trier n'ouvre pas d'entrée d'historique, et efface celle de la page
+
+`Listing` ne pousse une entrée d'historique que pour un changement de page ; tout le reste
+**remplace**, pour qu'une poignée de cases cochées ne coûte pas autant d'appuis sur « retour ». La
+règle a été écrite avant que le tri ne soit câblé, et le tri est passé du mauvais côté sans
+décision.
+
+**Mesuré le 2026-09-07** sur `/boutique`, en navigateur :
+
+| Geste | URL | Historique |
+| --- | --- | --- |
+| chargement | *(vide)* | entrée A |
+| clic « 2 » | `?pg=2` | **pousse** B |
+| tri par prix décroissant | `?sort=price_desc` | **remplace** B |
+| facette + « Appliquer » | `?categorie=cheveux&sort=price_desc` | remplace |
+| retour arrière | *(vide)* | revient en **A** |
+
+**Fermé le jour même, et la première rédaction de ce constat était fausse.** Elle affirmait que « le
+tri ne s'annule pas par un retour arrière ». Remesuré pas à pas :
+
+```
+1. chargement     (vide)            page 1, Pertinence
+2. clic « 2 »     ?pg=2             page 2, Pertinence
+3. tri par prix   ?sort=price_asc   page 1, Prix croissant
+4. retour         (vide)            page 1, Pertinence
+```
+
+Le retour **annule bien le tri** et rend la page 1 non triée. Le comportement est celui qu'on
+attend, et il ne demande aucun code.
+
+La seule conséquence réelle : l'entrée `?pg=2` est écrasée par le tri, donc on ne peut pas revenir
+à « la page 2 non triée ». C'est défendable — trier ramène en page 1, cette position n'existe plus.
+Faire pousser une entrée au tri rendrait au contraire « retour » vers une page 2 non triée depuis
+une page 1 triée, ce qui serait plus déroutant que l'inverse.
+
+**Enseignement** : un constat écrit à partir d'une trace d'historique lue de travers. La mesure
+était juste, sa lecture ne l'était pas — il fallait dérouler le scénario du visiteur, pas la pile
+d'entrées.
+
+### R-75 · 🔴 · **fermé le 2026-09-07** · ouvert le 2026-09-07 — deux correctifs du même jour se battaient, et la page descendait
+
+Signalé en séance : « je clique sur Précédent, ça défile vers le bas ».
+
+**Reproduit et mesuré**, `/boutique?pg=2`, clic sur « Précédent » depuis le bas :
+
+```
+départ           y=4091   focus BODY
+ 74 ms           y=4091   focus « previous »
+116 ms           y=4083   focus « page »      ← le focus saute au bouton de la page courante
+249 ms           y=4243
+590 ms  arrivée  y=4927   ← 836 px SOUS le point de départ
+```
+
+Deux correctifs livrés le même jour, chacun juste, incompatibles ensemble :
+
+| | Ce qu'il fait |
+| --- | --- |
+| **R-71** | quand le bouton pressé disparaît, pose le focus sur la page courante — sinon le clavier tombe sur `<body>` |
+| **R-73** | ramène le haut du listing dans l'écran |
+
+`focus()` **fait défiler l'élément dans la vue**. Le focus posé sur un bouton resté en bas ramenait
+donc le navigateur vers lui — en douceur depuis que `scroll-behavior: smooth` est déclaré, ce qui
+rendait le mouvement bien visible. Le défilement vers le haut n'avait jamais le temps de démarrer.
+
+**Corrigé** par `focus({ preventScroll: true })` : le focus bouge, la vue non. Mesuré après
+correction sur les trois gestes — Précédent 2→1, Suivant 4→5, Suivant 2→3 : arrivée à 139 px dans
+les trois cas, et la position la plus basse atteinte est exactement le point de départ.
+
+**Pourquoi la recette ne l'avait pas vu.** Les deux correctifs avaient été recettés séparément, et
+sur la bonne gestuelle : R-71 en pressant « Suivant » jusqu'à la dernière page, R-73 en cliquant un
+numéro de page. Mais R-71 vérifiait **le focus** et R-73 **le défilement** — jamais les deux sur le
+geste où ils se croisent. *Deux correctifs qui touchent la même page se recettent ensemble, sur la
+même mesure.*
+
+### R-76 · 🟠 · **fermé le 2026-09-07** · ouvert le 2026-09-07 — deux crochets et toute la feuille de style échappaient au test de parité
+
+`ContractParityTest` affirmait couvrir « chaque crochet que le client adresse ». Il lisait en fait
+`one('…')`, `all('…')` et `selector('…')` — mais pas `#hookOf(node, '…')`, qui prend le crochet en
+**second** argument. `apply` et `reset` n'étaient donc vus par aucune des deux expressions
+régulières : renommer `Hook::Apply` aurait laissé la suite verte et le bouton « Appliquer » inerte.
+
+La feuille de style échappait pour une autre raison : le test ne balaie que `resources/assets/js/*.js`,
+alors que `meilifacets.css` écrit huit noms de crochets en dur depuis qu'elle s'accroche à
+`data-meili` plutôt qu'aux classes.
+
+**Corrigé** : le balayage inclut `#hookOf(…, '…')` et la feuille de style.
+
+### R-77 · 🟠 · **fermé le 2026-09-07** (D-10) · ouvert le 2026-09-07 — en mode `submit`, trier envoie les filtres jamais validés
+
+Trouvé par la troisième passe de revue, **mesuré** :
+
+```
+après deux cases cochées → recherches: 0 | url: []
+après changement de tri  → recherches: 1 | url: ["?brand=acme,globex&sort=price_asc"]
+filtre envoyé            : (facets.product_brand = "acme" OR facets.product_brand = "globex")
+```
+
+`#byMode()` pose l'état même quand il ne cherche pas — c'est ce qui permet aux cases de rester
+cochées. `#atOnce()` part de cet état, donc trier emporte les filtres en attente et les écrit dans
+l'URL. Le mode `submit` est le défaut (`apply_mode`), donc c'est le chemin normal.
+
+`decisions.md` (« Deux familles de gestes, pas cinq ») écrit pourtant : « Un filtre **se rassemble** :
+en mode `submit` il attend « Appliquer » ». **Il ne l'attend pas.** Aucun test ne coche puis ne trie.
+
+Deux sorties, et ce n'est pas au module de choisir :
+
+| | Ce que ça vaut |
+| --- | --- |
+| **Le code suit le texte** | `#atOnce()` repart du dernier état appliqué. Demande de tenir deux états — celui qui est affiché, celui qui est en attente — et laisse le visiteur devant une grille qui ignore ses cases cochées |
+| **Le texte suit le code** | trier vaut validation : tout geste qui remplace la grille emporte ce qui est en attente. Plus simple, et c'est ce que font la plupart des listes à facettes |
+
+**Tranché le 2026-09-07 (D-10) : le texte suit le code.** Trier vaut validation. Aucune ligne de
+code ne change ; `decisions.md` porte désormais la clause « et ils emportent avec eux les filtres en
+attente », et dit ce que l'autre branche aurait coûté.
+
+### R-78 · ⚪ · ouvert · 2026-09-07 — la règle du pluriel est anglaise des deux côtés, les chaînes ne le sont pas
+
+`countLabel()` choisit la forme sur `count === 1`. C'est la règle anglaise. Le serveur, lui, passe
+par `trans_choice`, dont la règle suit la locale — et le français range **zéro avec le singulier**.
+
+**Mesuré le 2026-09-07** sur le badge de filtres actifs, en français :
+
+| | zéro | un | deux |
+| --- | --- | --- | --- |
+| Serveur (`trans_choice`) | 0 filtre actif | 1 filtre actif | 2 filtres actifs |
+| Client (`countLabel`) | 0 filtre**s** actif**s** | 1 filtre actif | 2 filtres actifs |
+
+**Inobservable aujourd'hui**, et par construction : les deux seuls porteurs de ce motif sont masqués
+quand leur compte est nul — `host.hidden = hits === 0` pour une valeur de facette,
+`badge.hidden = count === 0` pour le badge. L'écart n'existe que dans le DOM, jamais à l'écran.
+
+Le commentaire de `facet-counts.js` annonce déjà la limite : « deux formes seulement ; une langue
+qui en demande trois demanderait la règle, pas seulement les chaînes ». Le cas de zéro montre que
+c'est déjà vrai à deux formes.
+
+Sortie propre le jour où ça compte : publier la locale et passer par `Intl.PluralRules`, ou
+envoyer la forme choisie plutôt que le motif. Aucune des deux ne vaut d'être faite tant que rien
+ne l'affiche.
 
 ---
 
@@ -1894,8 +2290,11 @@ raison d'être de la contre-règle `[hidden]`. Confirmé ?
 
 ### Nouvelles, ouvertes par les réponses du 2026-09-06
 
-**Q-28 · Où passe exactement la ligne entre « fonctionnement » et « apparence » dans la feuille de
-style du module ?**
+**Q-28 · ~~Où passe exactement la ligne entre « fonctionnement » et « apparence » dans la feuille
+de style du module ?~~** — **répondue le 2026-09-07 : la ligne passe par composant, pas par
+propriété.** Ce que le module rend de toutes pièces, il l'habille ; le thème remplace ou désinscrit. Voir
+`decisions.md`, « Ce que le module rend, il l'habille ; le thème remplace ».
+Ancienne formulation :
 D-01 demande une feuille minimale ; `architecture.md` en interdit une. Proposition à valider : le
 module pose **uniquement** ce sans quoi le composant est cassé — positionnement et superposition de
 la `listbox` de tri, `list-style: none` sur ses propres listes, la contre-règle `[hidden]`, et le
@@ -1944,43 +2343,43 @@ parallèle : il ne touche pas au rendu.
 | T-02 | Trancher Q-05, Q-06, Q-10 (forme du listing) | R-10, R-11, R-45 | à faire |
 | T-03 | Trancher Q-03 et Q-11 (modèle de sécurité) | R-26, R-27, R-28 | à faire |
 | T-04 | Fixer le calendrier de montée de version du moteur (Q-12) | R-41 | à faire |
-| T-31 | Fixer la ligne fonctionnement / apparence de la feuille de style (Q-28) | R-53 | à faire |
+| T-31 | Fixer la ligne fonctionnement / apparence de la feuille de style (Q-28) | R-53 | **fait** — Q-28 répondue, R-53 fermé |
 | T-32 | Fixer le critère de recette du socle (Q-04b) | — | à faire |
 | T-33 | Mesurer le coût WordPress d'une URL de listing (Q-29, Q-30) | R-54 | à faire |
 | T-35 | Outiller la méthode : `CLAUDE.md` v2, agents `conformity` et `module-review` | — | **fait** — D-05 |
 | T-38 | Rendre le module vérifiable seul : `require-dev`, `phpunit.xml`, `pint.json`, scripts | R-55 | **fait** — `composer check` vert, sans chemin |
 | T-36 | Hook `Stop` exécutant `composer check` | R-55 | **fait** — `.claude/settings.json` du module, versionné, sans chemin machine |
-| T-37 | Purger les commentaires que la règle réécrite condamne (~37 blocs) | D-05 | à faire, sur les fichiers touchés |
+| T-37 | Purger les commentaires que la règle réécrite condamne | D-05 | **fait** sur le lot 3c-2 — 86 → 49 lignes de prose, plus aucun bloc de plus d'une ligne |
 
 ### Chantier B — rendre le socle serveur juste
 
 | Id | Tâche | Ferme |
 | --- | --- | --- |
-| T-05 | Comptage disjonctif selon la décision de Q-05 ; radio décochable ou navigation par liens | R-10 |
-| T-06 | Facette catégorie : hiérarchie ou limite écrite | R-11 |
+| T-05 | Comptage disjonctif selon la décision de Q-05 ; radio décochable ou navigation par liens | R-10 | **fait** |
+| T-06 | Facette catégorie : hiérarchie ou limite écrite | R-11 | **fait** |
 | T-07 | Bouton de dépliage : crochet, vue, contrat, version | R-46 |
 | T-08 | Filtres actifs en puces retirables | R-47 |
 | T-09 | Réindexation sur `edited_term`, `delete_term`, `set_object_terms` | R-12 |
 | T-10 | Timeout explicite sur le client Meilisearch + client construit par le module, pas par `ClientFactory` | R-19 |
-| T-11 | `RobotsPolicy` ne décide qu'en présence d'un listing | R-16 |
+| T-11 | `IndexingPolicy` ne décide qu'en présence d'un listing | R-16 | **fait** |
 | T-12 | `Hook::from()` tolérant ; `array_combine` protégé ; hit sans `card` journalisé | R-17, R-14, R-13 |
-| T-13 | `countId()` porte le nom du listing | R-15 |
+| T-13 | `countId()` porte le nom du listing | R-15 | **fait** |
 | T-14 | Tests du câblage : bridge, indexable, moteur, découverte, listing résolu | R-30, R-31 |
-| T-15 | `preconnect` vers `MEILI_PUBLIC_URL` | R-52 |
-| T-34 | Feuille de style minimale du module, selon la ligne fixée en T-31 | R-53 |
+| T-15 | `preconnect` vers `MEILI_PUBLIC_URL` | R-52 | **fait** |
+| T-34 | Feuille de style du module, selon la ligne fixée en T-31 — **tri, facettes, boutons et mise en colonnes des résultats livrés** | R-53 |
 
 ### Chantier C — livrer le client (ex-lot 3c)
 
 | Id | Tâche | Ferme |
 | --- | --- | --- |
-| T-16 | Décider la forme du contrat de données serveur → navigateur (Q-15) | R-21 |
-| T-17 | Sérialiser connexion et description du listing | R-21 |
-| T-18 | Point d'entrée, inscription du script, démarrage sur vérification du contrat | R-20 |
-| T-19 | Les cinq gestes, le repeint, `popstate` | R-20 |
-| T-20 | Aligner `toggle()` sur la sélection mono, dédoublonner et plafonner côté JS | R-22 |
+| T-16 | Décider la forme du contrat de données serveur → navigateur (Q-15) | R-21 | **fait** |
+| T-17 | Sérialiser connexion et description du listing | R-21 | **fait** |
+| T-18 | Point d'entrée, inscription du script, démarrage sur vérification du contrat | R-20 | **fait** |
+| T-19 | Les cinq gestes, le repeint, `popstate` | R-20 | **fait** |
+| T-20 | Aligner `toggle()` sur la sélection mono, dédoublonner et plafonner côté JS | R-22 | **fait** |
 | T-21 | Test croisé `Hook` / `contract.js` et `QueryPlan` / `ListingQuery` | R-25, R-32 |
 | T-22 | Comportement après échec, simple et unique (Q-21) | — |
-| T-23 | Retirer `Hook::PageTemplate` ou le rendre | R-24 |
+| T-23 | Retirer `Hook::PageTemplate` ou le rendre | R-24 | **fait** |
 
 ### Puis, dans l'ordre des lots
 
@@ -1995,13 +2394,15 @@ parallèle : il ne touche pas au rendu.
 
 | Id | Tâche | Ferme |
 | --- | --- | --- |
-| T-24 | Supprimer les déclarations jamais lues | R-33 |
+| T-24 | Supprimer les déclarations jamais lues | R-33 | **fait** |
 | T-25 | Supprimer les `.gitkeep` et `.playwright-mcp` | R-34 |
 | T-26 | Corriger les quatre affirmations fausses de la doc | R-36 |
 | T-27 | Fermer la dette `product_tag => tag` (déjà corrigée en config) | R-36 |
 | T-28 | Extraire un `QueryPlan` instanciable ; mémoïser `facets()` et `sorts()` | R-01, R-07 |
 | T-29 | Objet `SearchRequest` typé à la place du tableau de plan | R-02 |
 | T-30 | Déplacer `Contract` hors de `Enums` | R-03 |
+| T-39 | Versionner les modules ES importés : un bundle au nom haché | R-70 | décidé le 2026-09-07, à faire |
+| T-40 | Ramener le regard en haut du listing après pagination et tri | R-73 | **fait** |
 
 ---
 
@@ -2053,7 +2454,7 @@ catalogue existe ni qu'elle est bien formée. À ouvrir le jour où une chaîne 
 dans la suite autonome. Voir D-06.
 
 **I-09 · Un `TestCase` propre au module, pour rendre la suite `Feature` autonome.**
-`CardComponentTest` et `ResultsViewTest` n'ont besoin que du moteur Blade, pas de WordPress ni de
+`CardComponentTest` et `ResultsComponentTest` n'ont besoin que du moteur Blade, pas de WordPress ni de
 l'application complète : `illuminate/view` monté à la main en `require-dev` suffirait. Le module
 vérifierait alors ses vues partout, et non seulement dans Pluralia. Ouvert par T-38.
 
@@ -2100,3 +2501,139 @@ continuer à décider sur 76 produits sans variations.
   ouverts au passage, R-56 et R-57, ce dernier reformulé le jour même après une mauvaise lecture de
   la règle du projet : elle est **temporelle** — WordPress au premier rendu, jamais au filtrage —
   et non catégorielle. 104 tests PHP, 49 tests Node, `composer check` vert.
+- **2026-09-07** — Lot 3c-2 livré : synchronisation des cases, tri au clavier complet, pagination,
+  remise à zéro. `ListingBinding` redevient un câblage — quatre vues portent le rendu
+  (`ResultsView`, `FacetsView`, `PaginationView`, `SortCombobox`), aucune ne dépasse 110 lignes.
+  Distinction nouvelle dans `Listing` : un filtre attend un envoi, **trier, paginer et remettre à
+  zéro s'appliquent sur place dans les deux modes** — ce ne sont pas des filtres qu'on rassemble.
+  `SortCombobox` implémente le motif ARIA « combobox select-only » : flèches, Origine/Fin, Entrée,
+  Espace, Échap, Tabulation, recherche par frappe, `aria-activedescendant`, focus qui ne quitte
+  jamais le bouton. Feuille de style du module complétée au strict nécessaire (liste en surcouche,
+  couleurs système, marque sur l'option active) — le `<select>` natif rendait ça gratuitement.
+  R-69 fermé au passage : `happy-dom` installé, 49 → **102 tests Node**, 131 tests PHP autonomes,
+  149 via le projet. Recetté en navigateur, cache vidé : pagination (URL, page courante, entrée
+  d'historique), tri au clavier (`?sort=price_desc`, focus rendu, grille repeinte, retour en
+  page 1), filtre + « Appliquer » + « Tout effacer », et retour arrière qui recoche les cases.
+  Une divergence trouvée en relisant : `PageWindow` bornait `current`, `Pagination` non — corrigée,
+  R-61 atténué sans être fermé. Trois décisions consignées dans `decisions.md`.
+  **R-70 ouvert** — et c'est le vrai enseignement de la séance : seul le point d'entrée porte un
+  `?ver`, les dix-sept autres fichiers sont figés un an dans le navigateur. Le lot a d'abord semblé ne
+  pas fonctionner pour cette seule raison. T-39 posé, décision à prendre hors lot.
+- **2026-09-07** — Les cinq passes passées sur le lot 3c-2 par `module-review`, et **le lot repris**.
+  Verdict initial : « à reprendre ». Corrigé : **R-71** (le focus jeté hors du document en fin de
+  pagination, 🔴) ; `Pagination::next()` qui valait `0` sans résultat ; la divergence des deux
+  miroirs — `WINDOW`/`SIZE` et `window()`/`slots()` alignés sur `slots()` des deux côtés, la constante ne restant qu'en PHP, et
+  surtout **un jeu d'essai unique**, `tests/pagination-cases.json`, lu par `PaginationTest` et par
+  `page-window.test.js` : les deux copiaient les mêmes cas à la main, c'est ce qui avait laissé
+  passer la divergence du clampage. `FilterSummaryView` extrait — la liaison ne peint plus rien
+  elle-même. `FacetsView` mémoïse ses nœuds (cocher une case coûtait ~123 requêtes DOM sur six
+  facettes de vingt valeurs). `ListingUrl` refuse un tri que le listing ne déclare pas, comme
+  `StateReader` — sans quoi un `?sort=` forgé laissait la commande annoncer un tri jamais appliqué.
+  `SortCombobox` garantit un `id` par option, `aria-activedescendant` en dépendant sans que
+  `Contract` le vérifie. Le CSS du module s'accroche désormais à `data-meili` et non aux classes,
+  qu'un thème peut légitimement remplacer. `EngineLimits` passe en `scoped`. Dix blocs de prose
+  supprimés — le lot n'en avait effacé aucun. `ResultsComponentTest` renommé `ResultsComponentTest` : le
+  nom désignait deux choses depuis l'arrivée de `results-view.js`.
+  **Refusé en connaissance de cause** : les cinq `closest()` par clic (un gestionnaire de clic n'est
+  pas un chemin chaud, il s'exécute une fois par geste) ; l'écouteur `click` du document jamais
+  retiré (le contrôle vit aussi longtemps que la page) ; la borne haute de `page` à l'entrée, qui
+  appartient à R-61 et non à ce lot. Ajouté à R-42 : le module **déclare** son plafond sans le
+  **poser** sur l'index — les deux valeurs sont tenues à la main, c'est documenté en avertissement.
+  133 tests PHP autonomes, 151 via le projet, 131 Node. Recette navigateur refaite, cache navigateur
+  **et** cache minifié de WP Rocket vidés — ce dernier servait encore l'ancien CSS.
+- **2026-09-07** — Trois oublis du même genre que `PageWindow.SLOTS`, trouvés en cherchant
+  systématiquement les valeurs écrites des deux côtés. Deux **replis morts** supprimés du client —
+  le préfixe `f_` et les noms des paramètres réservés — parce que le serveur publie toujours
+  `params` et `reserved` en entier ; ils masquaient deux fixtures déclarant `reserved: {}`, que
+  rien ne produit. Six **jumeaux légitimes** entrés dans `ContractParityTest` (`data-meili`,
+  l'attribut de version, le préfixe `facets.`, le séparateur de valeurs, la borne de recherche, la
+  première page), vérifiés en les mutant un à un. R-25 fermé. Passe de compaction des commentaires :
+  86 → 49 lignes de prose hors tests, **plus aucun bloc de plus d'une ligne** ; le cas de
+  `page-window.js` est exemplaire — deux de ses quatre lignes étaient devenues fausses depuis que le
+  client compte les boutons. R-74 ouvert sur l'historique du tri. 133 tests PHP autonomes, 151 via
+  le projet, 116 Node ; chaîne complète recettée en navigateur, sans erreur console.
+- **2026-09-07** — **Le tri est livré habillé.** Prototype de trois défauts neutres comparés dans un
+  harnais (bordé, fantôme, ancré), « ancré » retenu : bordure sur le déclencheur, panneau solidaire,
+  filets entre les options, coche sur l'ordre choisi, teinte au survol, ouverture animée, `Escape` et
+  clavier inchangés. Rien de tout cela ne décide de la typographie ni de la couleur — `font: inherit`,
+  dimensions en `em`, `currentColor` / `Canvas`, trois teintes en `color-mix` exposées en variables sur
+  `[data-meili="sort"]`. Le libellé « Trier par » est masqué visuellement, sans quitter le nom lu
+  (`clip-path`, jamais `display: none`) : le déclencheur répète déjà la valeur.
+  **Q-28 répondue, R-53 fermé, T-31 fait** — mais hors de l'ordre annoncé (T-02 devait passer avant)
+  et **pendant que 3c-3 est ouvert**, donc contre D-03 : c'est une décision prise en connaissance de
+  cause, pas un oubli. `architecture.md` disait encore « le module ne pose aucun style » ; corrigé.
+  Le balisage d'essai de `tests/js/dom.js` ne portait pas le `<label>` que rend `sort.blade.php` —
+  ajouté, avec son `aria-labelledby`, et un test qui échoue si le masquage repasse à `display: none`.
+  La colonne de facettes suit dans la même feuille : espacements, listes sans puces ni indentation,
+  case et libellé alignés, compteur poussé en fin de ligne à `0.85em`. Deux tests de plus, dont un
+  qui a d'abord échoué à tort — `happy-dom` ne dérive pas `list-style-type` de la forme courte
+  `list-style`, il faut interroger la propriété raccourcie.
+  Les cinq boutons du module suivent : une règle partagée, page courante marquée par `aria-current`,
+  et « Appliquer » en plein `CanvasText` sur toute la largeur de sa colonne — le seul geste qui
+  engage. Les trois teintes montent sur `[data-listing]` — le tri les gardait pour lui.
+  133 tests PHP autonomes, 150 via le projet, 123 Node. Recette navigateur sur `/boutique` : tri
+  ouvert, choisi, URL et grille suivies, aucune erreur console — assets republiés et `cache/min` de
+  WP Rocket vidé, sans quoi c'est l'ancienne feuille qui est servie. **Et vider `cache/min` ne
+  suffit pas** : l'URL minifiée garde son `?ver`, donc le navigateur ressert sa copie mémorisée —
+  une vraie recette demande le cache navigateur vidé, sinon on mesure l'ancienne feuille en croyant
+  la nouvelle inerte.
+- **2026-09-07** — Passe de finition sur la feuille, mesurée dans le navigateur avant et après.
+  Le vrai défaut n'était pas le détail mais la **mise en page** : sans règle sur `[data-meili="results"]`,
+  quarante cartes s'empilaient en une colonne — 6674px de page, 4547px pour la seule liste. Grille en
+  `auto-fill` : trois colonnes et 3270px. Le reste est du métier de composant — `:active` en
+  `scale(0.97)`, survol derrière `(hover: hover) and (pointer: fine)`, cibles élargies sous
+  `(pointer: coarse)` (ligne de facette 28 → 35px au doigt), chevron et panneau resynchronisés à
+  160ms, transition de `border-radius` retirée (les angles se ré-arrondissaient après la disparition
+  du panneau), courbe `cubic-bezier(0.23, 1, 0.32, 1)` au lieu de l'`ease-out` natif. La liste de tri
+  quitte le `@keyframes` pour une transition avec `@starting-style` et `display allow-discrete` :
+  elle a maintenant une **sortie** animée, et une ouverture interruptible. Mesuré : à +60ms après la
+  fermeture, `display: block` et `opacity: 0.097`, puis `none`.
+  **Reste ouvert et hors module** : sur mobile la colonne de facettes passe avant les produits — on
+  déroule quarante valeurs avant la première carte (R-48), et le contrôle de tri est seul, aligné à
+  gauche au-dessus de la colonne de facettes, parce que la barre du thème est un
+  `flex justify-between` dont le second enfant est masqué tant que rien n'est filtré.
+  **Reprise le même jour, après relecture critique** : la première passe avait posé les règles sans
+  mesurer les boîtes. Trois défauts, tous réels — « Tout effacer » à 38px et 18px de texte, parce
+  que le raccourci `font: inherit` du bloc bouton écrase le `font-size` posé plus haut et que ce
+  bouton est le seul à ne pas vivre dans un conteneur déjà mis à l'échelle ; déclencheur à 32,8px
+  contre 30px pour les boutons, deux paddings pour des commandes côte à côte ; et des numéros de
+  page de largeurs différentes (30,5 et 32,1px), les chiffres n'étant pas tabulaires. Corrigé par
+  une primitive unique — `inline-flex` centré, `--meili-control` en hauteur partagée, `min-width` et
+  `tabular-nums` sur les numéros. Mesuré après : tout à 33,6px, numéros carrés.
+  **Troisième passe, même jour** : la case à cocher. Mesurée au `TextMetrics` — son centre tombait
+  1,9px sous le centre optique du libellé, et sur un libellé de deux lignes le centrage la posait au
+  milieu du bloc. Accrochée à la première ligne, portée à `1em`, `accent-color` sur `currentColor`.
+  Écart après : 0,85px. Le test a attrapé au passage un défaut de portabilité que le navigateur
+  cachait : un `<input>` n'hérite pas de la taille de police, donc `1em` valait 13,3px partout où le
+  thème ne remet pas les polices de formulaire à plat — Pluralia le fait, d'où l'illusion.
+  Le compteur passe en `white-space: nowrap` : sur un libellé long, « 14 résultats » se coupait.
+  **Alignement de la barre** — le tri était posé au-dessus de la colonne de facettes (69,5 → 367)
+  alors qu'il commande la grille (399 → 1355), et le texte de son déclencheur, décalé de 12px par
+  bordure et padding, ne tombait sur rien. Corrigé **dans le thème** (`archive-product.blade.php`) :
+  la barre entre dans la colonne des résultats. Mesuré : tri à `x = 399`, « Tout effacer » à
+  `1355,5` — les deux arêtes de la grille. Le badge de filtres actifs, jusque-là un chiffre nu
+  flottant au-dessus de « Catégorie », prend une pastille neutre. Il a cessé entre-temps d'être un
+  chiffre : la vue rend désormais une phrase, donc la pastille est dimensionnée par son texte et non
+  ronde. Son centrage est optique et non géométrique — `padding: 0.47em 0.75em 0.23em`, l'espace du
+  jambage étant compensé en haut : écart entre le centre de la boîte et le centre des lettres ramené
+  de 2,02px à **0,27px**, gouttières gauche et droite à 10,5px chacune. R-47 n'est pas fermé pour
+  autant : une pastille bien centrée ne remplace pas des puces retirables.
+  Enfin, une taille est désormais décidée — `--meili-ui`, `0.875rem`, sur les commandes seules :
+  hériter des 18px de Pluralia donnait des facettes plus grosses que ce qu'elles filtrent. Mesuré
+  après : déclencheur et libellés à 14px, compteurs à 12.6px, titre de carte inchangé à 32px.
+- **2026-09-07** — Passe de conformité de la documentation, en sous-agent, sur les neuf documents :
+  chaque affirmation nommant un symbole, une constante, un nombre ou un chemin vérifiée contre les
+  sources. **Douze affirmations franchement fausses** corrigées, dont quatre qui égaraient — la
+  commande de test du `README`, `data-apply` donné comme lu par le client, `RobotsPolicy` renommée
+  depuis R-59, et le `preconnect` donné comme restant à faire alors que R-52 l'a livré. Le piège le
+  plus coûteux tenait à deux documents ensemble : `README` et `installation.md` suivis à la lettre
+  donnaient un listing **sans JavaScript**, sans qu'aucun ne dise que le module ne lit ni
+  `MEILI_PUBLIC_URL` ni `MEILI_SEARCH_KEY` mais seulement `meilifacets.browser.*`. Trois exigences
+  imposées au thème, jamais écrites, entrent dans `architecture.md` : le `name` de l'`<input>`, le
+  `data-listing` de la racine — seul démarrage raté qui ne dit rien — et l'élément racine unique du
+  `<template>`. **R-04, R-05, R-15 et R-23 fermés** : corrigés par R-62 sans que personne ne le
+  note. Treize tâches de la roadmap marquées faites, qui fermaient des constats déjà fermés — un
+  lecteur reprenant le module par la roadmap aurait refait du travail livré.
+
+  **Enseignement** : la documentation vieillit plus vite que le code, et sans bruit. Trois documents
+  décrivaient un module qui n'existait plus depuis le matin même.
