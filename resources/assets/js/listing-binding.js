@@ -1,36 +1,40 @@
-import { CardPainter } from './card-painter.js'
 import { Contract } from './contract.js'
-import { countLabel, FacetCounts } from './facet-counts.js'
+import { FacetCounts } from './facet-counts.js'
+import { FacetsView } from './facets-view.js'
+import { FilterSummaryView } from './filter-summary-view.js'
 import { ListingQuery } from './listing-query.js'
+import { PaginationView } from './pagination-view.js'
+import { ResultsView } from './results-view.js'
+import { SortCombobox } from './sort-combobox.js'
 
 /**
  * @import { ListingDescription } from './description.js'
  * @import { Listing } from './listing.js'
+ * @import { ListingState } from './listing-state.js'
  */
 
-/**
- * Ties the markup the theme rendered to the listing. It listens on the root, so
- * a card cloned after the fact needs no wiring of its own, and it never reads a
- * class: the theme owns those.
- */
+/** Ties the theme's markup to the listing: it listens on the root, and reads hooks, never classes. */
 export class ListingBinding {
     /** @type {Element} */
     #root
 
-    /** @type {Contract} */
-    #contract
-
     /** @type {Listing} */
     #listing
 
-    /** @type {ListingDescription} */
-    #description
+    /** @type {ResultsView} */
+    #results
 
-    /** @type {CardPainter} */
-    #painter
+    /** @type {FacetsView} */
+    #facets
 
-    /** @type {Map<string, string>} */
-    #taxonomies
+    /** @type {PaginationView} */
+    #pagination
+
+    /** @type {SortCombobox} */
+    #sort
+
+    /** @type {FilterSummaryView} */
+    #summary
 
     /**
      * @param {Element} root
@@ -40,18 +44,21 @@ export class ListingBinding {
      */
     constructor(root, contract, listing, description) {
         this.#root = root
-        this.#contract = contract
         this.#listing = listing
-        this.#description = description
-        this.#painter = new CardPainter(contract)
-        this.#taxonomies = new Map(Object.entries(description.params).map(([taxonomy, name]) => [name, taxonomy]))
+        this.#results = new ResultsView(contract)
+        this.#facets = new FacetsView(contract, description)
+        this.#pagination = new PaginationView(contract, description)
+        this.#sort = new SortCombobox(contract, (sort) => this.#listing.sortBy(sort))
+        this.#summary = new FilterSummaryView(contract, description)
     }
 
     start() {
         this.#root.addEventListener('change', (event) => this.#ticked(event))
         this.#root.addEventListener('click', (event) => this.#clicked(event))
-        this.#listing.addEventListener('results', (event) => this.#repaint(event.detail.answers))
+        this.#listing.addEventListener('change', (event) => this.#moved(/** @type {CustomEvent} */ (event).detail))
+        this.#listing.addEventListener('results', (event) => this.#repaint(/** @type {CustomEvent} */ (event).detail))
         this.#listing.listenToHistory()
+        this.#sort.start()
 
         return this
     }
@@ -66,7 +73,7 @@ export class ListingBinding {
             return
         }
 
-        const taxonomy = this.#taxonomies.get(input.name)
+        const taxonomy = this.#facets.taxonomyOf(input)
 
         if (taxonomy !== undefined) {
             this.#listing.toggle(taxonomy, input.value)
@@ -77,92 +84,86 @@ export class ListingBinding {
      * @param {Event} event
      */
     #clicked(event) {
+        if (this.#acted(event)) {
+            this.#reveal(event)
+        }
+    }
+
+    /**
+     * Whether the click was one of the gestures that replace the grid. The sort
+     * is picked inside the combobox, so only its choice is seen here.
+     *
+     * @param {Event} event
+     */
+    #acted(event) {
         if (this.#hookOf(event.target, 'apply')) {
             void this.#listing.apply()
+
+            return true
+        }
+
+        if (this.#hookOf(event.target, 'reset')) {
+            this.#listing.reset()
+
+            return true
+        }
+
+        if (this.#hookOf(event.target, 'sort-option')) {
+            return true
+        }
+
+        const page = this.#pageOf(event.target)
+
+        if (page === null) {
+            return false
+        }
+
+        this.#listing.goToPage(page)
+
+        return true
+    }
+
+    /**
+     * @param {Event} event
+     */
+    #reveal(event) {
+        // `detail` is 0 on a click the keyboard raised, and non-zero on a real one.
+        if (/** @type {MouseEvent} */ (event).detail > 0) {
+            // No `behavior`: the theme's `scroll-behavior` decides, reduced-motion guard included.
+            this.#root.scrollIntoView({ block: 'start' })
         }
     }
 
     /**
-     * @param {Record<string, any>} answers
+     * @param {EventTarget | null} target
+     * @returns {number | null}
      */
-    #repaint(answers) {
-        const hits = answers[ListingQuery.RESULTS]?.hits ?? []
+    #pageOf(target) {
+        const button = this.#hookOf(target, 'page')
+            ?? this.#hookOf(target, 'previous')
+            ?? this.#hookOf(target, 'next')
 
-        this.#showResults(hits.map((/** @type {any} */ hit) => hit.card ?? {}))
-        this.#showCounts(new FacetCounts(answers))
+        return button instanceof HTMLButtonElement ? Number.parseInt(button.value, 10) || null : null
     }
 
     /**
-     * The grid is replaced whole: nobody holds the focus inside it while a
-     * filter is being applied.
-     *
-     * @param {Record<string, unknown>[]} cards
+     * @param {{ state: ListingState }} detail
      */
-    #showResults(cards) {
-        const list = this.#contract.one('results')
-        const template = this.#contract.one('card-template')
-        const empty = this.#contract.one('empty')
-
-        if (!(list instanceof HTMLElement) || !(template instanceof HTMLTemplateElement)) {
-            return
-        }
-
-        list.replaceChildren(...cards.map((card) => this.#card(template, card)))
-        list.hidden = cards.length === 0
-
-        if (empty instanceof HTMLElement) {
-            empty.hidden = cards.length > 0
-        }
+    #moved({ state }) {
+        this.#facets.showSelection(state)
+        this.#sort.show(state)
+        this.#summary.show(state)
     }
 
     /**
-     * @param {HTMLTemplateElement} template
-     * @param {Record<string, unknown>} card
+     * @param {{ answers: Record<string, any>, state: ListingState }} detail
      */
-    #card(template, card) {
-        const node = /** @type {Element} */ (template.content.firstElementChild?.cloneNode(true))
+    #repaint({ answers, state }) {
+        const results = answers[ListingQuery.RESULTS] ?? {}
 
-        return this.#painter.paint(node, card)
-    }
-
-    /**
-     * Values are stable nodes: the focus is on the box that was just ticked, and
-     * recreating them would throw a keyboard visitor out of the list.
-     *
-     * @param {FacetCounts} counts
-     */
-    #showCounts(counts) {
-        for (const facet of this.#description.facets) {
-            const distribution = counts.of(facet)
-
-            for (const value of this.#contract.all('facet-value')) {
-                this.#showCount(value, facet.taxonomy, distribution)
-            }
-        }
-    }
-
-    /**
-     * @param {Element} value
-     * @param {string} taxonomy
-     * @param {Record<string, number>} distribution
-     */
-    #showCount(value, taxonomy, distribution) {
-        const input = this.#contract.one('input', value)
-
-        if (!(input instanceof HTMLInputElement) || this.#taxonomies.get(input.name) !== taxonomy) {
-            return
-        }
-
-        const count = distribution[input.value] ?? 0
-        const label = this.#contract.one('count', value)
-
-        if (label) {
-            label.textContent = countLabel(this.#description.countPattern, count)
-        }
-
-        if (value instanceof HTMLElement) {
-            value.hidden = count === 0
-        }
+        this.#results.show((results.hits ?? []).map((/** @type {any} */ hit) => hit.card ?? {}))
+        this.#facets.showCounts(new FacetCounts(answers))
+        this.#pagination.show(state, results.totalHits ?? 0)
     }
 
     /**

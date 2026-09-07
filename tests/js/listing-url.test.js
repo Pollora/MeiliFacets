@@ -5,20 +5,39 @@ import { ListingState } from '../../resources/assets/js/listing-state.js'
 import { ListingUrl } from '../../resources/assets/js/listing-url.js'
 
 const listing = {
-    facets: [{ taxonomy: 'product_brand', multiple: true }, { taxonomy: 'pa_size', multiple: true }],
-    params: { product_brand: 'brand' },
+    facets: [{ taxonomy: 'product_brand', multiple: true, cap: 30 }, { taxonomy: 'pa_size', multiple: true, cap: 30 }],
+    params: { product_brand: 'brand', pa_size: 'f_pa_size' },
+    reserved: { sort: 'sort', query: 'q', page: 'pg' },
+    sorts: { price_asc: ['metas._price:asc'] },
 }
 
 const url = new ListingUrl(listing)
 
 describe('ListingUrl', () => {
+    /** Mirrors StateReader: the control would otherwise announce an order nobody applied. */
+    it('drops a sort the listing does not declare', () => {
+        assert.equal(url.toState('?sort=price_asc').sort, 'price_asc')
+        assert.equal(url.toState('?sort=forged').sort, null)
+    })
+
     it('reads a mapped parameter under its configured name', () => {
         assert.deepEqual(url.toState('?brand=acme').facets, { product_brand: ['acme'] })
     })
 
-    it('prefixes a taxonomy left unmapped, never using its bare name', () => {
-        assert.deepEqual(url.toState('?f_pa_size=large').facets, { pa_size: ['large'] })
+    /** A bare taxonomy name is a public WordPress query var: only the declared name is read. */
+    it('never reads a facet under its bare taxonomy name', () => {
         assert.deepEqual(url.toState('?pa_size=large').facets, {})
+    })
+
+    /** Mirrors StateReader::values: a crafted URL must not turn into thousands of clauses. */
+    it('caps what a crafted URL may carry', () => {
+        const capped = new ListingUrl({
+            ...listing,
+            facets: [{ taxonomy: 'product_brand', multiple: true, cap: 3 }, { taxonomy: 'pa_size', multiple: false, cap: 1 }],
+        })
+
+        assert.deepEqual(capped.toState('?brand=a,b,c,d,e,f').facets.product_brand, ['a', 'b', 'c'])
+        assert.deepEqual(capped.toState('?f_pa_size=x,y,z').facets.pa_size, ['x'])
     })
 
     it('splits several values of one facet', () => {
@@ -69,7 +88,7 @@ describe('ListingUrl', () => {
     })
 
     it('takes the parameter names the server declares', () => {
-        const renamed = new ListingUrl({ ...listing, reserved: { page: 'p2', sort: 'tri' } })
+        const renamed = new ListingUrl({ ...listing, reserved: { sort: 'tri', query: 'q', page: 'p2' } })
 
         assert.equal(renamed.toState('?p2=2').page, 2)
         assert.equal(renamed.toSearch(new ListingState({ sort: 'price_asc' })), '?tri=price_asc')

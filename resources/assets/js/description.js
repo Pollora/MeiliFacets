@@ -1,7 +1,5 @@
 /**
- * What the server tells the browser about a listing. Written once by PHP, read
- * by every class here — so the shape below is the PHP/JavaScript contract, and
- * the only place it can be checked.
+ * The shape below is the PHP/JavaScript contract, written once here and once in `ListingDescription`.
  *
  * @typedef {object} FacetDescription
  * @property {string} taxonomy
@@ -12,10 +10,13 @@
  * @property {string} name
  * @property {string} filter                    clauses every query carries
  * @property {number} perPage
+ * @property {number} reachableHits             hits the engine will serve past which no page exists
  * @property {string[]} attributes              fields a hit may return
  * @property {Record<string, string[]>} sorts   key to engine sort expressions
  * @property {Record<string, string>} params    taxonomy to URL parameter
  * @property {Record<string, string>} reserved  names of sort, query and page
+ * @property {string} countPattern              singular and plural forms, separated by a pipe
+ * @property {string} filterPattern             the same, for the count of active filters
  * @property {FacetDescription[]} facets
  * @property {'submit' | 'immediate'} apply
  *

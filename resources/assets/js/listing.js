@@ -11,12 +11,7 @@ import { SearchClient, SearchSuperseded } from './search-client.js'
 const IMMEDIATE = 'immediate'
 
 /**
- * What the visitor asked for, and what the engine answered. It holds the state,
- * decides when the URL is written, and announces both — the DOM listens, it is
- * never called into.
- *
- * Two modes are supported because a catalogue decides which one it can afford:
- * `immediate` searches at every gesture, `submit` gathers them until `apply()`.
+ * What the visitor asked for and what the engine answered: it announces both, the DOM listens.
  *
  * @fires Listing#change   the state moved, nothing has been searched yet
  * @fires Listing#results  the engine answered
@@ -78,21 +73,21 @@ export class Listing extends EventTarget {
     toggle(taxonomy, value) {
         const facet = this.#facet(taxonomy)
 
-        return facet === undefined ? this : this.#moveTo(this.#state.toggling(facet, value))
+        return facet === undefined ? this : this.#byMode(this.#state.toggling(facet, value))
     }
 
     /**
      * @param {string | null} sort
      */
     sortBy(sort) {
-        return this.#moveTo(this.#state.sortedBy(sort))
+        return this.#atOnce(this.#state.sortedBy(sort))
     }
 
     /**
      * @param {string} query
      */
     search(query) {
-        return this.#moveTo(this.#state.searching(query))
+        return this.#byMode(this.#state.searching(query))
     }
 
     /**
@@ -101,17 +96,14 @@ export class Listing extends EventTarget {
     goToPage(page) {
         this.#keepsHistory = true
 
-        return this.#moveTo(this.#state.onPage(page))
+        return this.#atOnce(this.#state.onPage(page))
     }
 
     reset() {
-        return this.#moveTo(this.#state.cleared())
+        return this.#atOnce(this.#state.cleared())
     }
 
-    /**
-     * Writes the URL, asks the engine, and announces the answer. A search the
-     * visitor overtook is not a failure and says nothing.
-     */
+    /** A search the visitor overtook is not a failure and says nothing. */
     async apply() {
         this.#writeUrl()
 
@@ -142,15 +134,33 @@ export class Listing extends EventTarget {
     /**
      * @param {ListingState} state
      */
-    #moveTo(state) {
-        this.#state = state
-        this.#announce('change', { state })
+    #byMode(state) {
+        this.#moveTo(state)
 
         if (this.searchesAtOnce) {
             void this.apply()
         }
 
         return this
+    }
+
+    /**
+     * @param {ListingState} state
+     */
+    #atOnce(state) {
+        this.#moveTo(state)
+
+        void this.apply()
+
+        return this
+    }
+
+    /**
+     * @param {ListingState} state
+     */
+    #moveTo(state) {
+        this.#state = state
+        this.#announce('change', { state })
     }
 
     #writeUrl() {

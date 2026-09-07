@@ -10,10 +10,10 @@ use Modules\MeiliFacets\Support\UrlParameters;
 
 final readonly class StateReader
 {
-    private const string VALUE_SEPARATOR = ',';
+    public const string VALUE_SEPARATOR = ',';
 
     /** A query string is public input: both bounds keep a crafted URL cheap. */
-    private const int MAX_QUERY_LENGTH = 200;
+    public const int MAX_QUERY_LENGTH = 200;
 
     public function __construct(private UrlParameters $parameters) {}
 

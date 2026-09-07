@@ -13,7 +13,6 @@
         @endforeach
     </ul>
 
-    {{-- Cloned by the client: the only source of card markup. --}}
     <template {{ $hook('card-template') }}>
         <li class="meilifacetsResultsItem" {{ $hook('card') }}>
             <x-meilifacets::card :card="[]" />

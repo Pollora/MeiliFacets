@@ -1,31 +1,26 @@
 import { ListingState } from './listing-state.js'
 
 /**
- * @import { ListingDescription } from './description.js'
+ * @import { FacetDescription, ListingDescription } from './description.js'
  */
-
-/** Mirrors UrlParameters::UNMAPPED_PREFIX: a bare taxonomy name is a WordPress query var. */
-const UNMAPPED_PREFIX = 'f_'
-
-/** Mirrors QueryParameter: `page`, `paged` and `order` are WordPress query vars. */
-const RESERVED = { sort: 'sort', query: 'q', page: 'pg' }
 
 export class ListingUrl {
     /** @type {Record<string, string>} */
     #reserved
 
-    /** @type {[string, string][]} */
+    /** @type {[FacetDescription, string][]} */
     #parameters
+
+    /** @type {string[]} */
+    #sorts
 
     /**
      * @param {ListingDescription} description
      */
     constructor(description) {
-        this.#reserved = { ...RESERVED, ...description.reserved }
-        this.#parameters = description.facets.map(({ taxonomy }) => [
-            taxonomy,
-            description.params?.[taxonomy] ?? UNMAPPED_PREFIX + taxonomy,
-        ])
+        this.#reserved = description.reserved
+        this.#parameters = description.facets.map((facet) => [facet, description.params[facet.taxonomy]])
+        this.#sorts = Object.keys(description.sorts)
     }
 
     /**
@@ -36,13 +31,32 @@ export class ListingUrl {
 
         return new ListingState({
             facets: Object.fromEntries(
-                this.#parameters
-                    .map(([taxonomy, parameter]) => [taxonomy, ListingState.valuesFrom(params.get(parameter) ?? '')])
+                this.#parameters.map(([facet, parameter]) => [facet.taxonomy, this.#valuesOf(params, facet, parameter)])
             ),
             query: params.get(this.#reserved.query) ?? '',
-            sort: params.get(this.#reserved.sort),
+            sort: this.#declaredSort(params.get(this.#reserved.sort)),
             page: Number.parseInt(params.get(this.#reserved.page) ?? '1', 10),
         })
+    }
+
+    /**
+     * Mirrors StateReader::values: a crafted URL must not turn into thousands of clauses.
+     *
+     * @param {URLSearchParams} params
+     * @param {FacetDescription} facet
+     * @param {string} parameter
+     */
+    #valuesOf(params, facet, parameter) {
+        return ListingState.valuesFrom(params.get(parameter) ?? '').slice(0, facet.multiple ? facet.cap : 1)
+    }
+
+    /**
+     * Mirrors StateReader: a sort the listing does not declare is no sort at all.
+     *
+     * @param {string | null} sort
+     */
+    #declaredSort(sort) {
+        return sort !== null && this.#sorts.includes(sort) ? sort : null
     }
 
     /**
@@ -53,8 +67,8 @@ export class ListingUrl {
     toSearch(state) {
         const params = new URLSearchParams()
 
-        for (const [taxonomy, parameter] of this.#parameters) {
-            const values = state.selected(taxonomy)
+        for (const [facet, parameter] of this.#parameters) {
+            const values = state.selected(facet.taxonomy)
 
             if (values.length > 0) {
                 params.set(parameter, ListingState.valuesTo(values))

@@ -9,11 +9,7 @@ const MAX_QUERY_LENGTH = 200
 
 const VALUE_SEPARATOR = ','
 
-/**
- * What the visitor has asked for. A value, never edited in place: every gesture
- * hands back a new one, so two states can be compared and a back button can
- * restore one without anybody wondering who wrote what.
- */
+/** What the visitor has asked for, never edited in place: every gesture hands back a new value. */
 export class ListingState {
     /** @type {Readonly<Record<string, readonly string[]>>} */
     #facets
@@ -36,7 +32,9 @@ export class ListingState {
                 .map(([taxonomy, values]) => [taxonomy, Object.freeze(ListingState.#tidy(values))])
                 .filter(([, values]) => values.length > 0)
         ))
-        this.#query = query.slice(0, MAX_QUERY_LENGTH)
+        // Trimmed then cut by code point, like `trim()` + `mb_substr()`: slicing UTF-16
+        // units would cut a surrogate pair in half.
+        this.#query = [...query.trim()].slice(0, MAX_QUERY_LENGTH).join('')
         this.#sort = sort
         this.#page = Math.max(Math.trunc(page) || FIRST_PAGE, FIRST_PAGE)
     }
@@ -65,6 +63,11 @@ export class ListingState {
         return this.#facets[taxonomy] ?? []
     }
 
+    /** Mirrors ListingState on the server: only ticked values count as filters. */
+    activeFilterCount() {
+        return Object.values(this.#facets).reduce((total, values) => total + values.length, 0)
+    }
+
     isPristine() {
         return Object.keys(this.#facets).length === 0
             && this.#query === ''
@@ -73,9 +76,6 @@ export class ListingState {
     }
 
     /**
-     * Ticking or unticking a value. A facet that holds one value at a time
-     * replaces what it had; one that holds several adds to it, up to its cap.
-     *
      * @param {FacetDescription} facet
      * @param {string} value
      */
@@ -128,7 +128,7 @@ export class ListingState {
 
     /** Sorted and deduplicated: one state must have one URL, or a cache holds it twice. */
     static #tidy(values) {
-        return [...new Set(values.map((value) => value.trim()).filter(Boolean))].sort()
+        return [...new Set(values.map((value) => value.trim()).filter((value) => value.length > 0))].sort()
     }
 
     /**

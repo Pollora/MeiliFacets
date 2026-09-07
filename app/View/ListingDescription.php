@@ -9,16 +9,16 @@ use Modules\MeiliFacets\Enums\QueryParameter;
 use Modules\MeiliFacets\Listing\Facet;
 use Modules\MeiliFacets\Listing\ResolvedListing;
 use Modules\MeiliFacets\Listing\Sort;
+use Modules\MeiliFacets\Search\EngineLimits;
 use Modules\MeiliFacets\Support\UrlParameters;
 
-/**
- * What the server tells the browser about a listing, so that the same state
- * produces the same searches on both sides. Its shape is the contract, written
- * once here and once in `description.js`.
- */
+/** The shape is the PHP/JavaScript contract, written once here and once in `description.js`. */
 final readonly class ListingDescription
 {
-    public function __construct(private UrlParameters $parameters) {}
+    public function __construct(
+        private UrlParameters $parameters,
+        private EngineLimits $limits,
+    ) {}
 
     /**
      * @return array<string, mixed>
@@ -29,15 +29,16 @@ final readonly class ListingDescription
             'name' => $listing->name(),
             'filter' => $listing->baseFilter(),
             'perPage' => $listing->perPage(),
+            'reachableHits' => $this->limits->reachableHits,
             'attributes' => [DocumentField::Card->value],
             'apply' => $listing->applyMode()->value,
             'facets' => $this->facets($listing),
             'params' => $this->params($listing),
             'reserved' => $this->reserved(),
             'sorts' => $this->sorts($listing->sorts()),
-            // The client counts what the engine returns and has no catalogue of
-            // its own: the translated pattern travels with the description.
+            // The client has no catalogue of its own: the translated pattern travels with the description.
             'countPattern' => trans(':count result|:count results'),
+            'filterPattern' => trans(':count active filter|:count active filters'),
         ];
     }
 

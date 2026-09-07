@@ -15,7 +15,7 @@ const description = {
         { taxonomy: 'product_cat', multiple: false, cap: 1 },
     ],
     params: { product_brand: 'brand' },
-    reserved: {},
+    reserved: { sort: 'sort', query: 'q', page: 'pg' },
     sorts: { price_asc: ['metas._price:asc'] },
 }
 
@@ -152,6 +152,18 @@ describe('Listing', () => {
             await listing.apply()
             assert.equal(client.plans.length, 1)
         })
+
+        /** Sorting or paging is an order, not a filter being gathered. */
+        it('still sorts, pages and clears on the spot', async () => {
+            const { listing, client } = build()
+
+            listing.sortBy('price_asc')
+            listing.goToPage(2)
+            listing.reset()
+            await Promise.resolve()
+
+            assert.equal(client.plans.length, 3)
+        })
     })
 
     describe('when it searches at once', () => {
@@ -173,13 +185,12 @@ describe('Listing', () => {
         assert.deepEqual(Object.keys(client.plans[0]), ['results', 'count:product_brand'])
     })
 
-    // A filter replaces the entry; five ticked boxes must not cost five presses
-    // on the back button.
+    // Five ticked boxes must not cost five presses on the back button.
     it('replaces the history entry for a filter, pushes one for a page', async () => {
         const { listing, history } = build()
 
         await listing.toggle('product_brand', 'acme').apply()
-        await listing.goToPage(2).apply()
+        listing.goToPage(2)
 
         assert.deepEqual(history.replaced, ['?brand=acme'])
         assert.deepEqual(history.pushed, ['?brand=acme&pg=2'])

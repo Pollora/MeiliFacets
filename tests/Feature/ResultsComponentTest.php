@@ -11,11 +11,8 @@ use Modules\MeiliFacets\Seo\ItemList;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-/**
- * The three states the view must keep apart, and the one it must not assume:
- * `$items` is null on a page robots are told to skip.
- */
-final class ResultsViewTest extends TestCase
+/** `$items` is null on a page robots are told to skip — the state the view must not assume. */
+final class ResultsComponentTest extends TestCase
 {
     #[Test]
     public function it_announces_the_outage_instead_of_an_empty_list(): void
