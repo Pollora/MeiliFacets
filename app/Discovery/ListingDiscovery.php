@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Discovery;
 
 use Modules\MeiliFacets\Contracts\Listing;
+use Modules\MeiliFacets\Listing\ListingUnavailable;
 use Pollora\Discovery\Domain\Contracts\DiscoveryInterface;
 use Pollora\Discovery\Domain\Contracts\DiscoveryLocationInterface;
 use Pollora\Discovery\Domain\Contracts\ReflectionCacheInterface;
@@ -40,11 +41,25 @@ final class ListingDiscovery implements DiscoveryInterface
         foreach ($this->getItems() as $item) {
             try {
                 $this->registry->add(app($item['class']));
-            } catch (Throwable) {
-                // A listing whose dependencies cannot be built is skipped rather
-                // than taking the whole page down.
+            } catch (ListingUnavailable) {
+                continue;
+            } catch (Throwable $failure) {
+                $this->report($failure);
+
                 continue;
             }
+        }
+    }
+
+    /**
+     * Unreported, a project binding that throws surfaces as "no listing is
+     * declared". A handler that throws in turn must not take the page down.
+     */
+    private function report(Throwable $failure): void
+    {
+        try {
+            report($failure);
+        } catch (Throwable) {
         }
     }
 
