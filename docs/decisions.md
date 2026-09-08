@@ -201,9 +201,13 @@ Ce que cette apparence ne décide pas : aucune famille de police — `font: inhe
 en variables sur `[data-meili="sort"]` (`--meili-edge`, `--meili-rule`, `--meili-tint`), qu'un thème
 retint d'une ligne.
 
-La case à cocher est accrochée à la **première ligne** de son libellé — `align-items: flex-start` et
-`margin-top: calc((1lh - 1em) / 2 - 0.08em)` — et non centrée sur le bloc : sur un libellé qui passe
-à la ligne, le centrage la posait entre les deux lignes. Elle prend `font-size: var(--meili-ui)`
+La ligne de facette **centre ses trois éléments** (`align-items: center`) : sous `flex-start`, le
+compteur, dont la boîte est plus courte de deux pixels, était calé en haut et son texte flottait
+1,5px au-dessus de la ligne de base du libellé. Seule la case garde `align-self: flex-start`, avec
+`margin-top: calc((1lh - 1em) / 2 - 0.14em)` : sur une seule ligne cela revient au centrage, et sur
+un libellé qui passe à la ligne elle reste sur la première au lieu de descendre au milieu du bloc.
+
+La case prend `font-size: var(--meili-ui)`
 avant sa taille en `em`, parce qu'un `<input>` n'hérite pas de la police : sans ça elle mesurait
 13,3px sur un thème sans reset de formulaire, et 14 seulement sur ceux qui en ont un. `accent-color`
 suit `currentColor`, comme le reste.
@@ -214,6 +218,17 @@ Les six commandes partagent une seule primitive : `inline-flex` centré, une hau
 et `tabular-nums`, sans quoi « 1 » et « 2 » n'ont pas la même largeur et la rangée est irrégulière.
 Corollaire à ne pas oublier : dans ce bloc, `font-size` doit précéder toute longueur en `em`, sinon
 `happy-dom` les calcule sur la taille héritée et les tests divergent du navigateur.
+
+Elles partagent aussi **le même signal d'appui — un fond, jamais un recul**. Le recul, essayé
+d'abord, faisait rentrer les bords de 1 à 3px : sur le déclencheur de tri, le panneau soudé arrivait
+à pleine largeur pendant que lui était rétréci, et le joint sautait d'un pixel ; sur « Tout effacer »
+et « Appliquer », alignés sur une arête de colonne, ils s'en détachaient le temps de la pression.
+Ici toutes les commandes sont soit soudées, soit alignées sur une arête : la géométrie ne bouge pas,
+le fond suffit. Corollaire de cascade : les états d'appui se déclarent **après** la requête
+`(hover: hover)`, sinon `:hover` l'emporte à spécificité égale et le fond reste celui du survol.
+Au doigt, ni l'un ni l'autre ne se voit — `-webkit-tap-highlight-color` est éteint sur bien des
+thèmes et iOS ne déclenche pas `:active` sans écouteur tactile —, donc le module redéclare ce flash
+natif à la teinte d'appui sous `(pointer: coarse)`, où les cibles passent aussi à `2.9em`.
 
 Une taille est décidée, et c'est la seule : les **commandes** (tri, facettes,
 pagination, remise à zéro, compteur de filtres) prennent `var(--meili-ui)`, `0.875rem` par défaut.
