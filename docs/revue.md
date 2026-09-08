@@ -2986,7 +2986,7 @@ parallèle : il ne touche pas au rendu.
 | --- | --- | --- |
 | T-05 | Comptage disjonctif selon la décision de Q-05 ; radio décochable ou navigation par liens | R-10 | **fait** |
 | T-06 | Facette catégorie : hiérarchie ou limite écrite | R-11 | **fait** |
-| T-07 | Bouton de dépliage : crochet, vue, contrat, version | R-46 |
+| T-07 | Bouton de dépliage : crochet, vue, contrat, version | R-46 | **fait** — R-46 fermé, plus R-82 à R-86 relevés en chemin |
 | T-08 | Filtres actifs en puces retirables | R-47 |
 | T-09 | Réindexation sur `edited_term`, `delete_term`, `set_object_terms` | R-12 |
 | T-10 | Timeout explicite sur le client Meilisearch + client construit par le module, pas par `ClientFactory` | R-19 |
