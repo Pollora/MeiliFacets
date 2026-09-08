@@ -24,7 +24,7 @@ final class BrowserConnectionTest extends TestCase
     {
         $this->assertSame(
             'https://example.test',
-            (new BrowserConnection('https://example.test', 'key', 'posts'))->origin()
+            new BrowserConnection('https://example.test', 'key', 'posts')->origin()
         );
     }
 
@@ -56,18 +56,18 @@ final class BrowserConnectionTest extends TestCase
     #[Test]
     public function it_has_no_origin_to_offer_without_an_address(): void
     {
-        $this->assertSame('', (new BrowserConnection('', 'key', 'posts'))->origin());
-        $this->assertSame('', (new BrowserConnection('nonsense', 'key', 'posts'))->origin());
+        $this->assertSame('', new BrowserConnection('', 'key', 'posts')->origin());
+        $this->assertSame('', new BrowserConnection('nonsense', 'key', 'posts')->origin());
     }
 
     /** Warming a connection to an engine no key can query is spent for nothing. */
     #[Test]
     public function it_is_configured_only_when_all_three_are_known(): void
     {
-        $this->assertTrue((new BrowserConnection('https://e.test', 'key', 'posts'))->isConfigured());
-        $this->assertFalse((new BrowserConnection('', 'key', 'posts'))->isConfigured());
-        $this->assertFalse((new BrowserConnection('engine.test', 'key', 'posts'))->isConfigured());
-        $this->assertFalse((new BrowserConnection('https://e.test', '', 'posts'))->isConfigured());
-        $this->assertFalse((new BrowserConnection('https://e.test', 'key', ''))->isConfigured());
+        $this->assertTrue(new BrowserConnection('https://e.test', 'key', 'posts')->isConfigured());
+        $this->assertFalse(new BrowserConnection('', 'key', 'posts')->isConfigured());
+        $this->assertFalse(new BrowserConnection('engine.test', 'key', 'posts')->isConfigured());
+        $this->assertFalse(new BrowserConnection('https://e.test', '', 'posts')->isConfigured());
+        $this->assertFalse(new BrowserConnection('https://e.test', 'key', '')->isConfigured());
     }
 }

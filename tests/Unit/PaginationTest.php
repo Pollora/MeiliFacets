@@ -54,9 +54,9 @@ final class PaginationTest extends TestCase
     #[Test]
     public function it_tells_a_page_past_the_end_from_an_empty_result(): void
     {
-        $this->assertTrue((new Pagination(999, 10, 1570, self::UNBOUNDED))->isPastTheEnd());
-        $this->assertFalse((new Pagination(1, 10, 1570, self::UNBOUNDED))->isPastTheEnd());
-        $this->assertFalse((new Pagination(999, 10, 0, self::UNBOUNDED))->isPastTheEnd());
+        $this->assertTrue(new Pagination(999, 10, 1570, self::UNBOUNDED)->isPastTheEnd());
+        $this->assertFalse(new Pagination(1, 10, 1570, self::UNBOUNDED)->isPastTheEnd());
+        $this->assertFalse(new Pagination(999, 10, 0, self::UNBOUNDED)->isPastTheEnd());
     }
 
     /** The page that was asked for stays readable, next to the one that exists. */
@@ -72,14 +72,14 @@ final class PaginationTest extends TestCase
     #[Test]
     public function it_offsets_a_page_by_the_ones_before_it(): void
     {
-        $this->assertSame(0, (new Pagination(1, 16, 33, self::UNBOUNDED))->offset());
-        $this->assertSame(16, (new Pagination(2, 16, 33, self::UNBOUNDED))->offset());
-        $this->assertSame(32, (new Pagination(3, 16, 33, self::UNBOUNDED))->offset());
+        $this->assertSame(0, new Pagination(1, 16, 33, self::UNBOUNDED)->offset());
+        $this->assertSame(16, new Pagination(2, 16, 33, self::UNBOUNDED)->offset());
+        $this->assertSame(32, new Pagination(3, 16, 33, self::UNBOUNDED)->offset());
     }
 
     #[Test]
     public function it_holds_the_window_against_the_last_page(): void
     {
-        $this->assertSame([307, 308, 309, 310, 311, 312, 313], (new Pagination(313, 16, 5000, self::UNBOUNDED))->slots());
+        $this->assertSame([307, 308, 309, 310, 311, 312, 313], new Pagination(313, 16, 5000, self::UNBOUNDED)->slots());
     }
 }

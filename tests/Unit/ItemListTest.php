@@ -36,9 +36,9 @@ final class ItemListTest extends TestCase
     #[Test]
     public function it_is_empty_when_no_card_carries_a_url(): void
     {
-        $this->assertTrue((new ItemList([]))->isEmpty());
-        $this->assertTrue((new ItemList([[CardField::Title->value => 'Orphan']]))->isEmpty());
-        $this->assertFalse((new ItemList([$this->card('Kept')]))->isEmpty());
+        $this->assertTrue(new ItemList([])->isEmpty());
+        $this->assertTrue(new ItemList([[CardField::Title->value => 'Orphan']])->isEmpty());
+        $this->assertFalse(new ItemList([$this->card('Kept')])->isEmpty());
     }
 
     #[Test]

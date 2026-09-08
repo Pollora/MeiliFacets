@@ -25,8 +25,8 @@ final class ElementIdTest extends TestCase
     public function it_keeps_two_listings_apart(): void
     {
         $this->assertNotSame(
-            (new ElementId('products'))->sortList(),
-            (new ElementId('articles'))->sortList()
+            new ElementId('products')->sortList(),
+            new ElementId('articles')->sortList()
         );
     }
 }

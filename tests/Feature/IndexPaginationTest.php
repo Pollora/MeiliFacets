@@ -48,6 +48,6 @@ final class IndexPaginationTest extends TestCase
      */
     private function settingsFor(EngineLimits $limits): array
     {
-        return (new FacetedPostIndexable(new EmptyIndexAttributes, $limits))->getIndexSettings();
+        return new FacetedPostIndexable(new EmptyIndexAttributes, $limits)->getIndexSettings();
     }
 }

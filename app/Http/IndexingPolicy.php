@@ -75,13 +75,7 @@ final readonly class IndexingPolicy
     {
         $declared = $this->parameters->all();
 
-        foreach ($query as $parameter => $value) {
-            if ($this->isListingParameter((string) $parameter, $declared) && $this->isFilled($value)) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_any($query, fn ($value, $parameter): bool => $this->isListingParameter((string) $parameter, $declared) && $this->isFilled($value));
     }
 
     /**

@@ -11,7 +11,7 @@ use RectorLaravel\Set\LaravelSetList;
 
 return RectorConfig::configure()
     ->withPaths([__DIR__.'/app', __DIR__.'/tests'])
-    ->withPhpSets(php83: true)
+    ->withPhpSets(php84: true)
     ->withPreparedSets(
         codeQuality: true,
         typeDeclarations: true,

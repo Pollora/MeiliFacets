@@ -20,7 +20,7 @@ final class Sort extends ListingComponent
     {
         parent::__construct($listings, $name, $scroll);
 
-        $this->choices = (new SortChoices($this->ids))->of($this->listing->sorts(), $this->listing->currentSort());
+        $this->choices = new SortChoices($this->ids)->of($this->listing->sorts(), $this->listing->currentSort());
         $this->selected = $this->currentChoice();
     }
 
