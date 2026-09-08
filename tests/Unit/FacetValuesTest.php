@@ -11,6 +11,7 @@ use Modules\MeiliFacets\Listing\Facet;
 use Modules\MeiliFacets\Listing\FacetValue;
 use Modules\MeiliFacets\Listing\FacetValues;
 use Modules\MeiliFacets\Listing\ListingState;
+use Modules\MeiliFacets\Listing\NameOrder;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeDefaultTerms;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeTermLabels;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeTermScope;
@@ -121,7 +122,7 @@ final class FacetValuesTest extends TestCase
         $labels = new FakeTermLabels(['50ml' => '50ml', '5ml' => '5ml', '4g' => '4g']);
         $facet = new Facet('pa_contenance', 'Volume', order: DisplayOrder::Declared);
 
-        $values = new FacetValues($labels, new FakeTermScope, new FakeDefaultTerms)
+        $values = new FacetValues($labels, new FakeTermScope, new FakeDefaultTerms, new NameOrder)
             ->of($facet, ['4g' => 9, '50ml' => 5, '5ml' => 1], new ListingState);
 
         $this->assertSame(['50ml', '5ml', '4g'], array_map(static fn (FacetValue $v): string => $v->slug, $values));
@@ -134,7 +135,7 @@ final class FacetValuesTest extends TestCase
         $labels = new FakeTermLabels(['b' => 'B', 'a' => 'A']);
         $facet = new Facet('pa_contenance', 'Volume', order: DisplayOrder::Declared);
 
-        $values = new FacetValues($labels, new FakeTermScope, new FakeDefaultTerms)
+        $values = new FacetValues($labels, new FakeTermScope, new FakeDefaultTerms, new NameOrder)
             ->of($facet, ['orphan' => 9, 'a' => 5, 'b' => 1], new ListingState);
 
         $this->assertSame(['b', 'a', 'orphan'], array_map(static fn (FacetValue $v): string => $v->slug, $values));
@@ -142,7 +143,7 @@ final class FacetValuesTest extends TestCase
 
     private function values(): FacetValues
     {
-        return new FacetValues(new FakeTermLabels(['a' => 'Acme']), new FakeTermScope, new FakeDefaultTerms);
+        return new FacetValues(new FakeTermLabels(['a' => 'Acme']), new FakeTermScope, new FakeDefaultTerms, new NameOrder);
     }
 
     /**
@@ -163,7 +164,8 @@ final class FacetValuesTest extends TestCase
         $values = new FacetValues(
             new FakeTermLabels([]),
             new FakeTermScope(['product_cat' => ['b', 'c']]),
-            new FakeDefaultTerms
+            new FakeDefaultTerms,
+            new NameOrder
         )->of(
             new ChildTermsFacet('product_cat', 'Category', cap: 2),
             ['a' => 9, 'b' => 8, 'c' => 7, 'd' => 6],
@@ -217,7 +219,8 @@ final class FacetValuesTest extends TestCase
         return new FacetValues(
             new FakeTermLabels([]),
             new FakeTermScope,
-            new FakeDefaultTerms(['product_cat' => 'non-classe'])
+            new FakeDefaultTerms(['product_cat' => 'non-classe']),
+            new NameOrder
         );
     }
 

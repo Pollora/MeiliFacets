@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Providers;
 
 use Illuminate\Support\Facades\View;
+use IntlException;
 use Modules\MeiliFacets\Console\CheckParametersCommand;
 use Modules\MeiliFacets\Contracts\CardProjector;
 use Modules\MeiliFacets\Contracts\DefaultTerms;
@@ -26,6 +27,7 @@ use Modules\MeiliFacets\Indexing\WooCommerceCardProjector;
 use Modules\MeiliFacets\Indexing\WooCommerceIndexAttributes;
 use Modules\MeiliFacets\Indexing\WordPressTermHierarchy;
 use Modules\MeiliFacets\Listing\CurrentListing;
+use Modules\MeiliFacets\Listing\NameOrder;
 use Modules\MeiliFacets\Listing\WooCommerceFacets;
 use Modules\MeiliFacets\Listing\WooCommerceSorts;
 use Modules\MeiliFacets\Listing\WordPressDefaultTerms;
@@ -69,6 +71,7 @@ final class MeiliFacetsServiceProvider extends ModuleServiceProvider
         $this->app->bind(IndexAttributes::class, fn (): IndexAttributes => $this->indexAttributes());
         $this->app->bindIf(CardProjector::class, fn (): CardProjector => $this->defaultCard());
         $this->app->bind(FacetCounter::class, DisjunctiveFacetCounter::class);
+        $this->app->bind(NameOrder::class, fn (): NameOrder => new NameOrder($this->collator()));
         // Unguarded: `ProductListing` is their only consumer, and it refuses itself without WooCommerce.
         $this->app->scopedIf(ProductFacets::class, WooCommerceFacets::class);
         $this->app->scopedIf(ProductSorts::class, WooCommerceSorts::class);
@@ -131,6 +134,29 @@ final class MeiliFacetsServiceProvider extends ModuleServiceProvider
         $plugin = WooCommerce::isActive() ? new WooCommerceIndexAttributes : new EmptyIndexAttributes;
 
         return new ConfiguredIndexAttributes($plugin, (array) config('meilifacets.displayed_attributes', []));
+    }
+
+    /**
+     * Read here rather than in `register()`: Polylang sets the language on a later
+     * hook, and an empty locale collates as `en_US_POSIX`, not as the site's.
+     */
+    private function collator(): ?Collator
+    {
+        if (! class_exists(Collator::class)) {
+            return null;
+        }
+
+        $locale = function_exists('get_locale') ? get_locale() : $this->app->getLocale();
+
+        try {
+            $collator = new Collator($locale);
+        } catch (IntlException) {
+            return null;
+        }
+
+        $collator->setAttribute(Collator::NUMERIC_COLLATION, Collator::ON);
+
+        return $collator;
     }
 
     private function defaultCard(): CardProjector

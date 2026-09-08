@@ -52,6 +52,9 @@
         "phpunit/phpunit": "^12.5",
         "rector/rector": "^2.6"
     },
+    "suggest": {
+        "ext-intl": "Orders facet values as the site language does; without it, DisplayOrder::Name falls back to a byte comparison that misplaces accented labels."
+    },
     "scripts": {
         "lint": "pint --test",
         "fix": "pint",

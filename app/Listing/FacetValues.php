@@ -21,6 +21,7 @@ final readonly class FacetValues
         private TermLabels $labels,
         private TermScope $scope,
         private DefaultTerms $defaults,
+        private NameOrder $names,
     ) {}
 
     /**
@@ -113,7 +114,7 @@ final readonly class FacetValues
 
         return match ($order) {
             DisplayOrder::Count => null,
-            DisplayOrder::Name => static fn (FacetValue $a, FacetValue $b): int => strnatcasecmp($a->label, $b->label),
+            DisplayOrder::Name => $this->names->compare(...),
             DisplayOrder::Declared => $this->following($declared),
         };
     }
