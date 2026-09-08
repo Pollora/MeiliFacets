@@ -7,6 +7,7 @@ namespace Modules\MeiliFacets\Listing;
 use Modules\MeiliFacets\Contracts\DefaultTerms;
 use Modules\MeiliFacets\Contracts\TermLabels;
 use Modules\MeiliFacets\Contracts\TermScope;
+use Modules\MeiliFacets\Contracts\ValueOrder;
 use Modules\MeiliFacets\Enums\DefaultTerm;
 use Modules\MeiliFacets\Enums\DisplayOrder;
 
@@ -33,17 +34,37 @@ final readonly class FacetValues
         $labels = $this->labels->of($facet->taxonomy, $slugs);
         $values = [];
 
-        foreach (array_values($slugs) as $rank => $slug) {
+        foreach ($slugs as $slug) {
             $values[] = new FacetValue(
                 $slug,
                 $labels[$slug] ?? $slug,
                 $distribution[$slug],
                 $state->isSelected($facet->taxonomy, $slug),
-                $rank >= $facet->visible,
+                false,
             );
         }
 
-        return $this->displayed($values, $facet);
+        return $this->folded($this->displayed($values, $facet, array_keys($labels)), $facet);
+    }
+
+    /**
+     * The visitor reads the first values of the order the facet declared. The
+     * engine's count decides which values survive the cap, never which are read.
+     *
+     * @param  list<FacetValue>  $values
+     * @return list<FacetValue>
+     */
+    private function folded(array $values, Facet $facet): array
+    {
+        $displayed = [];
+
+        foreach ($values as $rank => $value) {
+            $displayed[] = $rank < $facet->visible || $value->selected
+                ? $value
+                : new FacetValue($value->slug, $value->label, $value->count, $value->selected, true);
+        }
+
+        return $displayed;
     }
 
     /**
@@ -66,16 +87,46 @@ final readonly class FacetValues
      * order the facet asked for: capping and reading are two different needs.
      *
      * @param  list<FacetValue>  $values
+     * @param  list<string>  $declared  slugs as the taxonomy lists them
      * @return list<FacetValue>
      */
-    private function displayed(array $values, Facet $facet): array
+    private function displayed(array $values, Facet $facet, array $declared): array
     {
-        if ($facet->order === DisplayOrder::Count) {
-            return $values;
+        $comparison = $this->comparing($facet->order, $declared);
+
+        if ($comparison !== null) {
+            usort($values, $comparison);
         }
 
-        usort($values, fn (FacetValue $a, FacetValue $b): int => strnatcasecmp($a->label, $b->label));
-
         return $values;
+    }
+
+    /**
+     * @param  list<string>  $declared
+     * @return null|callable(FacetValue, FacetValue): int null leaves the engine's order alone
+     */
+    private function comparing(DisplayOrder|ValueOrder $order, array $declared): ?callable
+    {
+        if ($order instanceof ValueOrder) {
+            return $order->compare(...);
+        }
+
+        return match ($order) {
+            DisplayOrder::Count => null,
+            DisplayOrder::Name => static fn (FacetValue $a, FacetValue $b): int => strnatcasecmp($a->label, $b->label),
+            DisplayOrder::Declared => $this->following($declared),
+        };
+    }
+
+    /**
+     * @param  list<string>  $declared
+     * @return callable(FacetValue, FacetValue): int
+     */
+    private function following(array $declared): callable
+    {
+        $rank = array_flip($declared);
+
+        // A slug the taxonomy no longer lists has no place in it: it waits at the end.
+        return static fn (FacetValue $a, FacetValue $b): int => ($rank[$a->slug] ?? PHP_INT_MAX) <=> ($rank[$b->slug] ?? PHP_INT_MAX);
     }
 }

@@ -7,8 +7,9 @@ namespace Modules\MeiliFacets\Contracts;
 interface TermLabels
 {
     /**
-     * Display names for the given slugs, keyed by slug. A slug without a term is
-     * simply absent.
+     * Display names for the given slugs, keyed by slug, **in the order the
+     * taxonomy lists its terms** — which is what `DisplayOrder::Declared` reads.
+     * A slug without a term is simply absent.
      *
      * @param  list<string>  $slugs
      * @return array<string, string>

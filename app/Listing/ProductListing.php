@@ -53,7 +53,7 @@ final readonly class ProductListing implements Listing
         return [
             new ChildTermsFacet(self::CATEGORY, __('Category'), order: DisplayOrder::Name),
             new Facet(self::BRAND, __('Brand'), order: DisplayOrder::Name),
-            new Facet(self::SIZE, __('Volume'), order: DisplayOrder::Name),
+            new Facet(self::SIZE, __('Volume'), order: DisplayOrder::Declared),
         ];
     }
 

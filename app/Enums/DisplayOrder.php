@@ -15,4 +15,11 @@ enum DisplayOrder
 
     /** Numeric-aware, so "10ml" precedes "500ml" instead of following it. */
     case Name;
+
+    /**
+     * The order the taxonomy itself lists its terms in. WooCommerce lets a shop
+     * set that per attribute — drag and drop, name, numeric name or term id —
+     * and applies it to every `get_terms()`; this reads it rather than guessing.
+     */
+    case Declared;
 }

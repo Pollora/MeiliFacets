@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Listing;
 
 use Modules\MeiliFacets\Contracts\TermScope;
+use Modules\MeiliFacets\Contracts\ValueOrder;
 use Modules\MeiliFacets\Enums\DefaultTerm;
 use Modules\MeiliFacets\Enums\DisplayOrder;
 use Modules\MeiliFacets\Enums\DocumentField;
@@ -20,7 +21,7 @@ readonly class Facet
         public string $taxonomy,
         public string $label,
         public SelectionMode $selection = SelectionMode::Multiple,
-        public DisplayOrder $order = DisplayOrder::Count,
+        public DisplayOrder|ValueOrder $order = DisplayOrder::Count,
         public int $visible = self::DEFAULT_VISIBLE,
         public int $cap = self::DEFAULT_CAP,
         public DefaultTerm $defaultTerm = DefaultTerm::Hidden,

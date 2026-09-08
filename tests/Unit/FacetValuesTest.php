@@ -78,9 +78,9 @@ final class FacetValuesTest extends TestCase
         $this->assertSame(['10ml', '50ml', '500ml'], array_map(static fn ($v): string => $v->slug, $values));
     }
 
-    /** The cap keeps the ten best counted, the display order only rearranges them. */
+    /** What is read is the head of the declared order, not the best counted. */
     #[Test]
-    public function it_folds_on_the_count_even_when_it_shows_by_name(): void
+    public function it_folds_what_the_display_order_puts_last(): void
     {
         $facet = new Facet('size', 'Volume', visible: 2, order: DisplayOrder::Name);
         $values = $this->build(['b' => 9, 'z' => 8, 'a' => 1], $facet);
@@ -88,7 +88,56 @@ final class FacetValuesTest extends TestCase
         $folded = array_column(array_filter($values, static fn ($v): bool => $v->folded), 'slug');
 
         $this->assertSame(['a', 'b', 'z'], array_map(static fn ($v): string => $v->slug, $values));
-        $this->assertSame(['a'], array_values($folded));
+        $this->assertSame(['z'], array_values($folded));
+    }
+
+    /** The two limits answer to two different masters: the engine spends the cap, the facet the fold. */
+    #[Test]
+    public function it_spends_the_cap_on_the_count_and_the_fold_on_the_order(): void
+    {
+        $facet = new Facet('size', 'Volume', visible: 1, cap: 2, order: DisplayOrder::Name);
+        $values = $this->build(['b' => 9, 'z' => 8, 'a' => 1], $facet);
+
+        // "a" sorts first but counts last: the cap drops it before the order is applied.
+        $this->assertSame(['b', 'z'], array_map(static fn ($v): string => $v->slug, $values));
+        $this->assertSame([false, true], array_map(static fn ($v): bool => $v->folded, $values));
+    }
+
+    /** A held value the visitor cannot see is a filter they cannot lift. */
+    #[Test]
+    public function it_never_folds_away_a_value_the_url_holds(): void
+    {
+        $facet = new Facet('brand', 'Brand', visible: 1);
+        $values = $this->values()->of($facet, ['a' => 9, 'b' => 8, 'c' => 7], new ListingState(['brand' => ['c']]));
+
+        $this->assertSame(['a', 'b', 'c'], array_map(static fn (FacetValue $v): string => $v->slug, $values));
+        $this->assertSame([false, true, false], array_map(static fn (FacetValue $v): bool => $v->folded, $values));
+    }
+
+    /** The taxonomy already carries an order a shop set; the module reads it rather than inventing one. */
+    #[Test]
+    public function it_shows_the_values_in_the_order_the_taxonomy_declares(): void
+    {
+        $labels = new FakeTermLabels(['50ml' => '50ml', '5ml' => '5ml', '4g' => '4g']);
+        $facet = new Facet('pa_contenance', 'Volume', order: DisplayOrder::Declared);
+
+        $values = new FacetValues($labels, new FakeTermScope, new FakeDefaultTerms)
+            ->of($facet, ['4g' => 9, '50ml' => 5, '5ml' => 1], new ListingState);
+
+        $this->assertSame(['50ml', '5ml', '4g'], array_map(static fn (FacetValue $v): string => $v->slug, $values));
+    }
+
+    /** A slug the taxonomy no longer lists still has a count: it waits at the end. */
+    #[Test]
+    public function it_sends_a_value_the_taxonomy_does_not_list_to_the_end(): void
+    {
+        $labels = new FakeTermLabels(['b' => 'B', 'a' => 'A']);
+        $facet = new Facet('pa_contenance', 'Volume', order: DisplayOrder::Declared);
+
+        $values = new FacetValues($labels, new FakeTermScope, new FakeDefaultTerms)
+            ->of($facet, ['orphan' => 9, 'a' => 5, 'b' => 1], new ListingState);
+
+        $this->assertSame(['b', 'a', 'orphan'], array_map(static fn (FacetValue $v): string => $v->slug, $values));
     }
 
     private function values(): FacetValues
@@ -107,19 +156,15 @@ final class FacetValuesTest extends TestCase
         );
     }
 
-    /**
-     * @param  array<string, int>  $distribution
-     * @return list<FacetValue>
-     */
     /** The cap is spent on what the facet may show, not on what the engine returned. */
     #[Test]
     public function it_caps_a_scoped_facet_after_scoping_it(): void
     {
-        $values = (new FacetValues(
+        $values = new FacetValues(
             new FakeTermLabels([]),
             new FakeTermScope(['product_cat' => ['b', 'c']]),
             new FakeDefaultTerms
-        ))->of(
+        )->of(
             new ChildTermsFacet('product_cat', 'Category', cap: 2),
             ['a' => 9, 'b' => 8, 'c' => 7, 'd' => 6],
             new ListingState
@@ -176,6 +221,10 @@ final class FacetValuesTest extends TestCase
         );
     }
 
+    /**
+     * @param  array<string, int>  $distribution
+     * @return list<FacetValue>
+     */
     private function build(array $distribution, Facet $facet): array
     {
         return $this->values()->of($facet, $distribution, new ListingState);
