@@ -12,13 +12,14 @@ final readonly class Pagination
     public int $current;
 
     public function __construct(
-        int $current,
+        /** What was asked for, kept apart: a page past the end is answered, not served. */
+        public int $asked,
         public int $perPage,
         public int $total,
         public int $reachable,
     ) {
         $this->current = min(
-            max($current, ListingState::FIRST_PAGE),
+            max($asked, ListingState::FIRST_PAGE),
             max($this->pages(), ListingState::FIRST_PAGE)
         );
     }
@@ -31,6 +32,12 @@ final readonly class Pagination
         }
 
         return (int) ceil(min($this->total, $this->reachable) / $this->perPage);
+    }
+
+    /** There are results, they are simply not on the page that was asked for. */
+    public function isPastTheEnd(): bool
+    {
+        return $this->total > 0 && $this->asked > $this->pages();
     }
 
     public function offset(): int

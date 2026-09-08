@@ -50,6 +50,25 @@ final class PaginationTest extends TestCase
         return $sets;
     }
 
+    /** The message must tell which of the two truths it is: nothing at all, or nothing here. */
+    #[Test]
+    public function it_tells_a_page_past_the_end_from_an_empty_result(): void
+    {
+        $this->assertTrue((new Pagination(999, 10, 1570, self::UNBOUNDED))->isPastTheEnd());
+        $this->assertFalse((new Pagination(1, 10, 1570, self::UNBOUNDED))->isPastTheEnd());
+        $this->assertFalse((new Pagination(999, 10, 0, self::UNBOUNDED))->isPastTheEnd());
+    }
+
+    /** The page that was asked for stays readable, next to the one that exists. */
+    #[Test]
+    public function it_remembers_the_page_it_was_asked_for(): void
+    {
+        $pagination = new Pagination(999, 10, 1570, self::UNBOUNDED);
+
+        $this->assertSame(999, $pagination->asked);
+        $this->assertSame(157, $pagination->current);
+    }
+
     #[Test]
     public function it_offsets_a_page_by_the_ones_before_it(): void
     {

@@ -2,7 +2,7 @@
     <x-meilifacets::unavailable />
 @else
     <p class="meilifacetsResultsEmpty" @unless ($cards === []) hidden @endunless {{ $hook('empty') }}>
-        {{ __('No results found.') }}
+        {{ $listing->pagination()->isPastTheEnd() ? __('There is nothing on this page.') : __('No results found.') }}
     </p>
 
     <ul class="meilifacetsResults" @if ($cards === []) hidden @endif {{ $hook('results') }}>

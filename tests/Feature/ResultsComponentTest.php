@@ -7,6 +7,7 @@ namespace Modules\MeiliFacets\Tests\Feature;
 use Modules\MeiliFacets\Enums\CardField;
 use Modules\MeiliFacets\Enums\Hook;
 use Modules\MeiliFacets\Enums\ImagePriority;
+use Modules\MeiliFacets\Listing\Pagination;
 use Modules\MeiliFacets\Seo\ItemList;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -41,6 +42,25 @@ final class ResultsComponentTest extends TestCase
         $this->assertStringContainsString('First', $html);
         $this->assertStringContainsString('Second', $html);
         $this->assertStringContainsString('class="meilifacetsResultsEmpty" hidden', $html);
+    }
+
+    /** There are results, they are simply not on the page that was asked for. */
+    #[Test]
+    public function it_says_which_of_the_two_emptinesses_it_is(): void
+    {
+        // Whatever language the site runs in, the two must not read the same.
+        $nothingAtAll = $this->messageOf($this->render(cards: []));
+        $nothingHere = $this->messageOf($this->render(cards: [], pastTheEnd: true));
+
+        $this->assertNotSame('', $nothingAtAll);
+        $this->assertNotSame($nothingAtAll, $nothingHere);
+    }
+
+    private function messageOf(string $html): string
+    {
+        preg_match('/meilifacetsResultsEmpty"[^>]*>([^<]*)/', $html, $found);
+
+        return trim($found[1] ?? '');
     }
 
     /** One clone source, so the client never carries markup of its own. */
@@ -100,15 +120,22 @@ final class ResultsComponentTest extends TestCase
     /**
      * @param  list<array<string, mixed>>  $cards
      */
-    private function render(bool $failed = false, array $cards = [], ?ItemList $items = null): string
+    private function render(bool $failed = false, array $cards = [], ?ItemList $items = null, bool $pastTheEnd = false): string
     {
-        $resolved = new readonly class($failed)
+        $resolved = new readonly class($failed, $pastTheEnd)
         {
-            public function __construct(private bool $failed) {}
+            public function __construct(private bool $failed, private bool $pastTheEnd) {}
 
             public function failed(): bool
             {
                 return $this->failed;
+            }
+
+            public function pagination(): Pagination
+            {
+                return $this->pastTheEnd
+                    ? new Pagination(9, 10, 40, 1000)
+                    : new Pagination(1, 10, 0, 1000);
             }
         };
 

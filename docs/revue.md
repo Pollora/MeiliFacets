@@ -1524,7 +1524,7 @@ aucune n'entre dans l'index. La règle de priorité `pg` > `paged` est vérifié
 et couverte par un test unitaire.
 
 
-### R-61 · 🟠 · ouvert · 2026-09-06 — une page au-delà de la dernière annonce « aucun résultat »
+### R-61 · 🟠 · **fermé le 2026-09-08** · ouvert le 2026-09-06 — une page au-delà de la dernière annonçait « aucun résultat »
 
 **Mesuré le 2026-09-06** : `/boutique?pg=2&categorie=cheveux` répond `200` et affiche « Aucun
 résultat n'a été trouvé. » Or la catégorie « cheveux » contient 14 produits — ils sont tous sur la
@@ -1553,9 +1553,33 @@ marquée courante ; après : « Précédent » pointe vers 4, la page 5 porte `a
 est masqué.
 
 Le clampage ne touche **que le widget** : la requête moteur lit `$state->page` dans `QueryPlan`,
-pas `Pagination::offset()`. La grille reste donc vide et le message reste « Aucun résultat » — la
-question posée ci-dessus, servir la dernière page ou distinguer les deux messages, **n'est pas
-tranchée**.
+pas `Pagination::offset()`. La grille restait donc vide et le message restait « Aucun résultat ».
+
+**Fermé le 2026-09-08 : le message dit laquelle des deux vérités.** Ni redirection, ni changement de
+code HTTP — la troisième voie du tableau ci-dessus, choisie en séance. `Pagination` garde côte à
+côte la page **demandée** (`asked`) et celle **qui existe** (`current`), et `isPastTheEnd()` répond
+vrai quand il y a des résultats mais pas sur cette page-là.
+
+**Mesuré le 2026-09-08** sur quatre cas :
+
+| URL | Message |
+| --- | --- |
+| `/boutique?pg=10000` | « Il n'y a rien sur cette page. » |
+| `/boutique?categorie=cheveux&pg=9` | « Il n'y a rien sur cette page. » |
+| `/boutique?categorie=inexistante` | « Aucun résultat n'a été trouvé. » |
+| `/boutique` | masqué |
+
+Le deuxième cas est celui qui comptait : il s'atteint **sans rien forger** — être en page 3, cocher
+une facette qui réduit le résultat à une page, partager le lien.
+
+**Ce qui a décidé** : `/boutique/page/10000/` répond déjà `404` par WordPress, et toute vue paginée
+est en `noindex, follow` (R-58). Le SEO n'était donc pas en jeu ; restait un visiteur devant une
+page morte, et un message qui lui mentait — il y a bien 17 produits, simplement pas là.
+
+⚠️ **Le client ne remplace pas ce texte.** `ResultsView` bascule l'attribut `hidden` du message, il
+n'en réécrit pas le contenu : après un retour arrière vers une URL forgée, le visiteur verrait le
+message du rendu serveur. Inatteignable par les boutons, qui sont bornés. À reprendre si le lot 3c-3
+publie un motif pour ce message, comme il le fera pour l'état d'attente.
 
 Lié à R-42 (`maxTotalHits`), qui produit le même symptôme pour une autre raison.
 
@@ -2749,6 +2773,31 @@ continuer à décider sur 76 produits sans variations.
   ne bouge pas de géométrie ; elle change de fond (`--meili-press`, 14%). Corollaire trouvé au
   passage : posée avant la requête de survol, la règle `:active` perdait à spécificité égale — le
   fond restait à 8% sous le doigt. Les états d'appui vont après.
+  **Les quatre autres boutons vérifiés dans la foulée**, et alignés sur la même règle : ils
+  reculaient de 3,3px (« Tout effacer »), 2,97px (« Appliquer »), 2,25px (« Suivant ») et 1px (un
+  numéro), ce qui décrochait les deux premiers de l'arête de colonne sur laquelle ils sont alignés —
+  et surtout laissait deux langages d'appui dans un même composant, un fond pour le tri et un recul
+  pour les autres. Un seul désormais : le fond. Mesuré après, les cinq à déplacement **nul** ;
+  transparent → 8% au survol → 14% à l'appui, et 0,15 → 0,30 pour le bouton plein.
+  **Survol et focus clavier passés au même crible**, trois trous trouvés : la **page courante** ne
+  réagissait pas au survol (8% au repos comme au survol) et une page survolée lui devenait
+  identique — elle passe à 14% au repos, 20% au survol ; la **ligne de facette** n'avait aucun
+  retour, seulement le curseur — tuile au survol, posée avec `margin: 0 -0.4em` pour que ni la case
+  ni le texte ne bougent (mesuré : case et légende toujours à `x = 69,5`) ; et la **case à cocher**
+  gardait l'anneau du système, bleu et de 1px, quand les cinq autres commandes ont l'anneau du
+  module — `2px solid currentColor`, décalé de 2px, non rogné (vérifié en parcourant la page au
+  `Tab`). Dernier point : la position du clavier dans la liste de tri valait 8%, comme le survol, donc
+  les deux étaient indiscernables quand la souris reposait sur une autre option ; elle passe à 14%.
+  **Les mêmes états au doigt** — ce qui marchait : les règles de survol sont bien hors jeu
+  (`(hover: hover) and (pointer: fine)` ne matche pas), rien ne reste collé après le tap, aucun
+  anneau de focus résiduel. Ce qui ne marchait pas : **aucun retour à l'appui**, parce que
+  `-webkit-tap-highlight-color` vaut `transparent` sur toute la page (hérité de `html`) et qu'iOS ne
+  déclenche pas `:active` sans écouteur tactile — c'était déjà vrai du temps du `scale`, personne ne
+  l'avait vu. Le module redéclare donc le flash natif à `var(--meili-press)` sur ses commandes ; sur
+  le bouton plein il devient blanc à 14% tout seul, `currentColor` y valant `Canvas`. Cibles portées
+  à `--meili-control: 2.9em` sous `(pointer: coarse)` : commandes et numéros de page à **40,6px**,
+  lignes de facette à **37,8px** (contre 33,6 et 35). Alignement conservé, case et légende à
+  `x = 12`, aucun débordement horizontal.
   Enfin, une taille est désormais décidée — `--meili-ui`, `0.875rem`, sur les commandes seules :
   hériter des 18px de Pluralia donnait des facettes plus grosses que ce qu'elles filtrent. Mesuré
   après : déclencheur et libellés à 14px, compteurs à 12.6px, titre de carte inchangé à 32px.
