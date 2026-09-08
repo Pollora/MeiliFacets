@@ -21,7 +21,6 @@ final readonly class FacetValues
         private TermLabels $labels,
         private TermScope $scope,
         private DefaultTerms $defaults,
-        private NameOrder $names,
     ) {}
 
     /**
@@ -112,11 +111,7 @@ final readonly class FacetValues
             return $order->compare(...);
         }
 
-        return match ($order) {
-            DisplayOrder::Count => null,
-            DisplayOrder::Name => $this->names->compare(...),
-            DisplayOrder::Declared => $this->following($declared),
-        };
+        return $order === DisplayOrder::Declared ? $this->following($declared) : null;
     }
 
     /**

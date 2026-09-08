@@ -73,7 +73,7 @@ final class FacetValuesTest extends TestCase
     #[Test]
     public function it_shows_the_values_in_the_order_the_facet_asked_for(): void
     {
-        $facet = new Facet('size', 'Volume', order: DisplayOrder::Name);
+        $facet = new Facet('size', 'Volume', order: new NameOrder);
         $values = $this->build(['500ml' => 9, '10ml' => 5, '50ml' => 1], $facet);
 
         $this->assertSame(['10ml', '50ml', '500ml'], array_map(static fn ($v): string => $v->slug, $values));
@@ -83,7 +83,7 @@ final class FacetValuesTest extends TestCase
     #[Test]
     public function it_folds_what_the_display_order_puts_last(): void
     {
-        $facet = new Facet('size', 'Volume', visible: 2, order: DisplayOrder::Name);
+        $facet = new Facet('size', 'Volume', visible: 2, order: new NameOrder);
         $values = $this->build(['b' => 9, 'z' => 8, 'a' => 1], $facet);
 
         $folded = array_column(array_filter($values, static fn ($v): bool => $v->folded), 'slug');
@@ -96,7 +96,7 @@ final class FacetValuesTest extends TestCase
     #[Test]
     public function it_spends_the_cap_on_the_count_and_the_fold_on_the_order(): void
     {
-        $facet = new Facet('size', 'Volume', visible: 1, cap: 2, order: DisplayOrder::Name);
+        $facet = new Facet('size', 'Volume', visible: 1, cap: 2, order: new NameOrder);
         $values = $this->build(['b' => 9, 'z' => 8, 'a' => 1], $facet);
 
         // "a" sorts first but counts last: the cap drops it before the order is applied.
@@ -122,7 +122,7 @@ final class FacetValuesTest extends TestCase
         $labels = new FakeTermLabels(['50ml' => '50ml', '5ml' => '5ml', '4g' => '4g']);
         $facet = new Facet('pa_contenance', 'Volume', order: DisplayOrder::Declared);
 
-        $values = new FacetValues($labels, new FakeTermScope, new FakeDefaultTerms, new NameOrder)
+        $values = new FacetValues($labels, new FakeTermScope, new FakeDefaultTerms)
             ->of($facet, ['4g' => 9, '50ml' => 5, '5ml' => 1], new ListingState);
 
         $this->assertSame(['50ml', '5ml', '4g'], array_map(static fn (FacetValue $v): string => $v->slug, $values));
@@ -135,7 +135,7 @@ final class FacetValuesTest extends TestCase
         $labels = new FakeTermLabels(['b' => 'B', 'a' => 'A']);
         $facet = new Facet('pa_contenance', 'Volume', order: DisplayOrder::Declared);
 
-        $values = new FacetValues($labels, new FakeTermScope, new FakeDefaultTerms, new NameOrder)
+        $values = new FacetValues($labels, new FakeTermScope, new FakeDefaultTerms)
             ->of($facet, ['orphan' => 9, 'a' => 5, 'b' => 1], new ListingState);
 
         $this->assertSame(['b', 'a', 'orphan'], array_map(static fn (FacetValue $v): string => $v->slug, $values));
@@ -143,7 +143,7 @@ final class FacetValuesTest extends TestCase
 
     private function values(): FacetValues
     {
-        return new FacetValues(new FakeTermLabels(['a' => 'Acme']), new FakeTermScope, new FakeDefaultTerms, new NameOrder);
+        return new FacetValues(new FakeTermLabels(['a' => 'Acme']), new FakeTermScope, new FakeDefaultTerms);
     }
 
     /**
@@ -164,8 +164,7 @@ final class FacetValuesTest extends TestCase
         $values = new FacetValues(
             new FakeTermLabels([]),
             new FakeTermScope(['product_cat' => ['b', 'c']]),
-            new FakeDefaultTerms,
-            new NameOrder
+            new FakeDefaultTerms
         )->of(
             new ChildTermsFacet('product_cat', 'Category', cap: 2),
             ['a' => 9, 'b' => 8, 'c' => 7, 'd' => 6],
@@ -219,8 +218,7 @@ final class FacetValuesTest extends TestCase
         return new FacetValues(
             new FakeTermLabels([]),
             new FakeTermScope,
-            new FakeDefaultTerms(['product_cat' => 'non-classe']),
-            new NameOrder
+            new FakeDefaultTerms(['product_cat' => 'non-classe'])
         );
     }
 

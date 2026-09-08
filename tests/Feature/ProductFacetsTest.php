@@ -8,6 +8,7 @@ use Modules\MeiliFacets\Contracts\ProductFacets;
 use Modules\MeiliFacets\Contracts\ProductSorts;
 use Modules\MeiliFacets\Enums\ProductTaxonomy;
 use Modules\MeiliFacets\Listing\Facet;
+use Modules\MeiliFacets\Listing\NameOrder;
 use Modules\MeiliFacets\Listing\ProductListing;
 use Modules\MeiliFacets\Listing\Sort;
 use Modules\MeiliFacets\Listing\WooCommerceFacets;
@@ -23,7 +24,7 @@ final class ProductFacetsTest extends TestCase
     {
         $taxonomies = array_map(
             static fn (Facet $facet): string => $facet->taxonomy,
-            new WooCommerceFacets()->all()
+            new WooCommerceFacets(new NameOrder)->all()
         );
 
         $this->assertSame([ProductTaxonomy::Category->value, ProductTaxonomy::Brand->value], $taxonomies);
@@ -49,7 +50,7 @@ final class ProductFacetsTest extends TestCase
     #[Test]
     public function it_takes_its_facets_and_its_sorts_from_two_places(): void
     {
-        $listing = new ProductListing(new WooCommerceFacets, $this->sorts('rating'));
+        $listing = new ProductListing(new WooCommerceFacets(new NameOrder), $this->sorts('rating'));
 
         $this->assertSame(['rating'], array_keys($listing->sorts()));
         $this->assertCount(2, $listing->facets());
@@ -58,7 +59,7 @@ final class ProductFacetsTest extends TestCase
     #[Test]
     public function it_builds_its_facets_once(): void
     {
-        $facets = new WooCommerceFacets;
+        $facets = new WooCommerceFacets(new NameOrder);
 
         $this->assertSame($facets->all(), $facets->all());
     }
