@@ -10,6 +10,8 @@ use Modules\MeiliFacets\Contracts\CardProjector;
 use Modules\MeiliFacets\Contracts\DefaultTerms;
 use Modules\MeiliFacets\Contracts\FacetCounter;
 use Modules\MeiliFacets\Contracts\IndexAttributes;
+use Modules\MeiliFacets\Contracts\ProductFacets;
+use Modules\MeiliFacets\Contracts\ProductSorts;
 use Modules\MeiliFacets\Contracts\SearchEngine;
 use Modules\MeiliFacets\Contracts\TermHierarchy;
 use Modules\MeiliFacets\Contracts\TermLabels;
@@ -24,6 +26,8 @@ use Modules\MeiliFacets\Indexing\WooCommerceCardProjector;
 use Modules\MeiliFacets\Indexing\WooCommerceIndexAttributes;
 use Modules\MeiliFacets\Indexing\WordPressTermHierarchy;
 use Modules\MeiliFacets\Listing\CurrentListing;
+use Modules\MeiliFacets\Listing\WooCommerceFacets;
+use Modules\MeiliFacets\Listing\WooCommerceSorts;
 use Modules\MeiliFacets\Listing\WordPressDefaultTerms;
 use Modules\MeiliFacets\Listing\WordPressTermLabels;
 use Modules\MeiliFacets\Listing\WordPressTermScope;
@@ -60,9 +64,14 @@ final class MeiliFacetsServiceProvider extends ModuleServiceProvider
         $this->app->bind(TermLabels::class, WordPressTermLabels::class);
         $this->app->scoped(TermScope::class, WordPressTermScope::class);
         $this->app->scoped(DefaultTerms::class, WordPressDefaultTerms::class);
+        // WordPress has not loaded its plugins here: `wc_get_product` does not exist yet, so the
+        // WooCommerce guard belongs inside the closure, never around the binding.
         $this->app->bind(IndexAttributes::class, fn (): IndexAttributes => $this->indexAttributes());
         $this->app->bindIf(CardProjector::class, fn (): CardProjector => $this->defaultCard());
         $this->app->bind(FacetCounter::class, DisjunctiveFacetCounter::class);
+        // Unguarded: `ProductListing` is their only consumer, and it refuses itself without WooCommerce.
+        $this->app->scopedIf(ProductFacets::class, WooCommerceFacets::class);
+        $this->app->scopedIf(ProductSorts::class, WooCommerceSorts::class);
 
         $this->app->singleton(ListingRegistry::class);
         $this->app->scoped(CurrentListing::class);
