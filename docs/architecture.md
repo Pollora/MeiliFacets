@@ -125,6 +125,47 @@ cochées dans l'écran MeiliScout, et le prix WooCommerce est stocké en chaîne
 plage et un tri numérique demandent une projection typée. Le prix, le stock et les variations
 restent donc un travail à part.
 
+## Ce que la boutique déclare
+
+Un module générique ne peut pas connaître les taxonomies d'une boutique. `pa_contenance` est à
+Pluralia ; `pa_couleur` sera à quelqu'un d'autre. Deux contrats portent donc ce qui change d'un
+projet à l'autre, sur le modèle de `CardProjector` :
+
+| Contrat | Défaut du module | Ce qu'il porte |
+| --- | --- | --- |
+| `Contracts\ProductFacets` | `WooCommerceFacets` — catégorie et marque | les taxonomies parcourues, leur libellé, leur ordre, leurs limites |
+| `Contracts\ProductSorts` | `WooCommerceSorts` — prix ↑↓ et nouveautés | les tris offerts |
+
+Les deux sont liés par **`scopedIf`** : un projet qui ne dit rien obtient un listing qui marche,
+un projet qui lie le sien gagne. Séparés exprès — donner la main sur les facettes sans obliger à
+redéclarer les tris. Pluralia y branche `App\Cms\Products\CatalogueFacets`, qui ajoute la
+contenance aux deux facettes du module.
+
+⚠️ Les deux liaisons ne sont **pas** gardées sur WooCommerce, contrairement à `IndexAttributes` et
+`CardProjector`. Ce n'est pas un oubli : `register()` s'exécute **avant** que WordPress ne charge
+ses extensions — mesuré le 2026-09-08, `function_exists('wc_get_product')` y vaut `false` — donc un
+`if` autour de la liaison choisirait toujours la mauvaise branche. C'est pour cette raison que les
+deux voisines enferment leur garde dans une closure, évaluée à la résolution. Ici aucune garde
+n'est nécessaire : `ProductListing` est le seul consommateur, et il se refuse lui-même.
+
+L'ordre des providers n'entre pas en jeu : si le projet lie en premier, le `scopedIf` du module se
+tait ; s'il lie après, son `bind` remplace. **Le projet doit lier avec `bind`/`scoped`, jamais
+`scopedIf`** — sinon c'est le premier arrivé qui gagne et l'ordre redevient significatif.
+
+Ce qui **reste** dans le module, parce qu'un défaut y est juste partout : la garde WooCommerce, le
+filtre de catalogue (`post_type`, `post_status`, `exclude-from-catalog`), le rayon courant lu de
+`is_tax()`, et la taille de page prise à `loop_shop_per_page`. Les réécrire par projet serait
+recopier quatre-vingt-dix lignes universellement correctes pour en changer trois.
+
+Les deux implémentations mémoïsent leur liste : `facets()` est lu à sept endroits par requête,
+`sorts()` à six, et rien ne les mettait en cache (`T-28`). ⚠️ Le cache retient aussi les libellés
+traduits — voir `decisions.md`. En PHP-FPM le processus meurt avec la requête, donc sans effet ;
+dans un worker de file, `ListingRegistry` étant un singleton, la liste survit d'un job au suivant.
+
+⚠️ Une couture s'ouvre **quand un projet en a besoin**, pas avant — sinon on finit avec un contrat
+par méthode. `baseFilter()` et `perPage()` n'en ont pas, et n'en auront que le jour où un projet
+butera dessus.
+
 ## Projection de la carte
 
 Le navigateur repeint une carte sans rien demander à WordPress, donc le document porte ce que la

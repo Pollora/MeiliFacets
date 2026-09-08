@@ -44,6 +44,8 @@ Voir aussi : [installation.md](installation.md) · [architecture.md](architectur
 | Documentation | **dans le module, `docs/`** — rapatriée depuis `docs/meilifacets/` du projet le 2026-09-07, avant le lot 7 : elle ne faisait que grossir, et chaque jour ajoutait des liens à réécrire |
 | Données de carte | projetées dans le document (champ `card`), pas recomposées côté client |
 | Point d'extension de la carte | contrat `CardProjector` avec une implémentation par défaut — jamais obligatoire |
+| Déclaration des facettes et des tris | contrats `ProductFacets` et `ProductSorts`, liés en `scopedIf` — le module donne un défaut WooCommerce, le projet le remplace sans patcher le module |
+| Libellés des facettes et des tris | **figés au premier appel** — les implémentations mémoïsent, `__()` compris. Le gain (`T-28`) vaut la contrainte : rien ne change de langue en cours de requête, et le processus meurt avec elle. Un worker de file qui survivrait à un changement de locale garderait les libellés du premier job |
 | Ancêtres de catégorie | la chaîne complète est indexée, pas seulement le terme assigné |
 | Compteurs de facettes | `multi-search` disjonctif, isolé derrière un point d'extension |
 | Envoi des recherches | derrière le contrat `SearchEngine` ; le client Meilisearch est injecté, jamais résolu statiquement |

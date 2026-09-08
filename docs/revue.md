@@ -2577,7 +2577,7 @@ Deux réponses, non exclusives :
   l'attribut est réglé sur *Nom (numérique)*. `intl` n'étant pas garanti sur un hébergement
   quelconque, il faut un `class_exists('Collator')` et deux comportements documentés.
 
-### R-88 · 🟠 · ouvert · 2026-09-08 — le module livre les facettes de Pluralia, et un projet ne peut pas déclarer les siennes
+### R-88 · 🟠 · **fermé le 2026-09-08** · ouvert le 2026-09-08 — le module livre les facettes de Pluralia, et un projet ne peut pas déclarer les siennes
 
 Relevé par Louis sur `ProductListing.php:27` (`private const string SIZE = 'pa_contenance';`).
 
@@ -2602,11 +2602,63 @@ son propre `Listing` — bute sur `ListingRegistry::add()`, qui indexe par `name
 projet nommée `products` entre en collision avec celle du module, et c'est l'ordre de découverte
 qui tranche. Ni conçu, ni documenté, ni testé.
 
-C'est l'énoncé précis de ce que `Q-07` pose en termes de dépendance WooCommerce. La réponse de fond
-y est déjà écrite : sortir `ProductListing` du module, vers le projet ou vers un pont
-`meilifacets-woocommerce`. **`T-41` en est un symptôme** — rendre l'*ordre* réglable par
-configuration n'a de sens que tant que le projet ne peut pas déclarer ses facettes ; s'il le peut,
-l'ordre vient avec elles et T-41 disparaît.
+C'est l'énoncé précis de ce que `Q-07` pose en termes de dépendance WooCommerce. **`T-41` en est un
+symptôme** — rendre l'*ordre* réglable par configuration n'a de sens que tant que le projet ne peut
+pas déclarer ses facettes ; s'il le peut, l'ordre vient avec elles.
+
+---
+
+**Corrigé le 2026-09-08 sans sortir `ProductListing` du module.** La réponse de fond de `Q-07`
+restait lourde ; le module avait déjà l'idiome qu'il fallait — `bindIf` sur `CardProjector`, « le
+module fournit un défaut, sauf si le projet a lié le sien ».
+
+Deux contrats, séparés pour donner la main **partiellement** :
+
+| Contrat | Défaut du module |
+| --- | --- |
+| `Contracts\ProductFacets` | `WooCommerceFacets` — catégorie et marque |
+| `Contracts\ProductSorts` | `WooCommerceSorts` — prix ↑↓, nouveautés |
+
+Liés en `scopedIf`. `ProductListing` ne fait plus que déléguer, et perd les deux littéraux de
+Pluralia ; `product_cat`, `product_brand` et `product_visibility` passent dans une énumération
+`ProductTaxonomy`. Côté projet, `App\Cms\Products\CatalogueFacets` déclare les trois facettes de
+la boutique, `pa_contenance` comprise, et `AppServiceProvider` la lie.
+
+**Ce que ça ferme au passage :**
+
+- **`T-28` pour moitié** — les deux implémentations mémoïsent. `facets()` est lu à **sept**
+  endroits par requête et `sorts()` à **six**, sans aucun cache : on passe de treize
+  reconstructions à deux ;
+- **le `catch (Throwable)` muet de `ListingDiscovery`** — une exception de projet dans ce chemin
+  faisait disparaître le listing et remontait sous la forme trompeuse « aucun listing déclaré ».
+  Un `ListingUnavailable` dédié marque le retrait volontaire (la garde WooCommerce) ; tout le reste
+  est désormais `report()`é.
+
+**Vérifié.** Suite complète : `OK (169 tests, 354 assertions)`. Et sur `/boutique`, les trois
+facettes rendues avec leurs libellés traduits, la contenance dans l'ordre de l'admin, et les tris
+du module :
+
+```
+product_cat « Catégorie » · product_brand « Marque » · pa_contenance « Contenance »
+Pertinence · Prix croissant · Prix décroissant · Nouveautés
+```
+
+**Trouvé en écrivant les tests, et non documenté jusqu'ici** : la suite du projet partage **une
+seule application** pour tout le run (gotcha 23 du `CLAUDE.md` racine, posé pour le `LogManager`).
+Corollaire non écrit : **les liaisons du conteneur fuient d'un test à l'autre.**
+
+⚠️ **Le premier correctif était pire que le défaut**, relevé par une revue contradictoire le jour
+même. Reposer les défauts dans `setUp()` remplaçait durablement le binding du projet pour **tous
+les tests suivants** : un test placé après la classe obtenait `WooCommerceFacets` au lieu de
+`CatalogueFacets`. Prouvé par une sonde, puis corrigé en ne touchant plus au conteneur du tout —
+les objets sont construits à la main (`new ProductListing($facets, $sorts)`), et la précédence de
+`scopedIf` est vérifiée dans `tests/Unit/ProductSeamBindingTest.php` sur un `Container` neuf, hors
+de l'application. La même sonde passe désormais.
+
+**Ce que ça ne ferme pas** : `Q-07` reste ouverte — `ProductListing` est toujours du WooCommerce
+dans un paquet générique, et la collision de nom dans `ListingRegistry` n'est toujours ni conçue ni
+testée. Elle est simplement devenue moins urgente : un projet n'a plus besoin de déclarer son
+propre `Listing` pour choisir ses facettes. `R-89` (ce qu'un gabarit rend) reste ouvert.
 
 ### R-89 · 🟠 · ouvert · 2026-09-08 — un gabarit ne peut pas choisir les facettes qu'il rend
 
@@ -2661,6 +2713,42 @@ vaut `1 + facettes multi-sélection tenues` (`QueryPlan::isCountedApart()` exige
 sélectionnée). À ce volume de catalogue, le coût marginal reste sous le bruit de mesure. Corollaire
 pour `R-88` : un back-office qui laisserait cocher douze facettes ne coûterait rien tant que le
 visiteur n'en tient qu'une ou deux.
+
+### R-90 · 🟡 · ouvert · 2026-09-08 — une facette sur une taxonomie non indexée rend tout le listing indisponible, sans la nommer
+
+Résiduel d'un constat de revue par ailleurs invalidé. L'indexation rend filtrables **toutes** les
+taxonomies attachées aux types indexés (`FacetedPostIndexable::resolveIndexedTaxonomies()`), donc
+une facette déclarée par un projet fonctionne sans réglage — c'est vérifié, et c'est ce qui
+invalidait le constat d'origine.
+
+Reste le cas étroit : une facette déclarée sur une taxonomie qui n'est attachée à **aucun** type
+indexé — faute de frappe, taxonomie d'un autre type de contenu, ou taxonomie enregistrée après le
+dernier rafraîchissement des réglages d'index. Meilisearch rejette alors la recherche entière,
+`ResolvedListing` attrape l'échec, et le visiteur voit la vue de repli « indisponible » **sans que
+rien ne nomme la facette fautive**.
+
+Ergonomie de diagnostic, pas défaut de comportement. Une garde au rendu — comparer les taxonomies
+déclarées à `filterableAttributes` et journaliser l'écart — coûterait un appel de réglages par
+rendu, donc à peser contre le chemin chaud.
+
+### R-91 · 🟡 · ouvert · 2026-09-08 — le garde-fou de la feuille de style recopie ce qu'il devrait vérifier
+
+Relevé par une revue contradictoire, sur des fichiers en cours de rédaction côté Louis
+(`resources/assets/css/meilifacets.css`, `tests/js/stylesheet.test.js`) : **non corrigé, consigné.**
+
+`stylesheet.test.js` énumère les hooks de commande dans un littéral qui est la copie de la liste du
+CSS. Un crochet oublié des deux côtés passe au vert : le test ne vérifie pas la couverture, il
+vérifie que deux listes identiques le sont. Le dériver de `Hook` ferait échouer l'oubli suivant.
+
+Deux symptômes déjà présents, mesurés :
+
+- `data-meili="more"` n'apparaît dans **aucun** sélecteur de la feuille — `grep -c` rend `0` sur
+  386 lignes. Le bouton de dépliage sort donc en `<button>` brut, sans `cursor: pointer` ni la
+  primitive partagée par les six autres commandes ;
+- `[data-meili="sort-option"][data-active]` (ligne 277) et `[data-meili="sort-option"]:hover`
+  (ligne 299) ont la **même** spécificité `0-2-0` — une requête média n'en ajoute pas — donc le
+  survol gagne. Au clavier, pointeur posé sur la liste, l'option active perd sa teinte au profit
+  de celle du survol : deux lignes se lisent « courante », aucune « sélectionnée ».
 
 ---
 
