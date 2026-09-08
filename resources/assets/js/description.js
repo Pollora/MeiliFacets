@@ -5,6 +5,7 @@
  * @property {string} taxonomy
  * @property {boolean} multiple  whether several values can be held at once
  * @property {number} cap        how many values a URL may carry for this facet
+ * @property {number} visible    how many values are read at once, the rest folded away
  *
  * @typedef {object} ListingDescription
  * @property {string} name
@@ -17,6 +18,7 @@
  * @property {Record<string, string>} reserved  names of sort, query and page
  * @property {string} countPattern              singular and plural forms, separated by a pipe
  * @property {string} filterPattern             the same, for the count of active filters
+ * @property {{more: string, less: string}} foldLabels  the fold button in each of its two states
  * @property {FacetDescription[]} facets
  * @property {'submit' | 'immediate'} apply
  *

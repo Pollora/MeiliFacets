@@ -20,9 +20,11 @@ enum Hook: string
     case Price = 'price';
 
     case Facets = 'facets';
+    case Facet = 'facet';
     case FacetValue = 'facet-value';
     case Input = 'input';
     case Count = 'count';
+    case More = 'more';
     case Apply = 'apply';
 
     case Pagination = 'pagination';

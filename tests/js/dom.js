@@ -4,6 +4,11 @@ import { Window } from 'happy-dom'
 
 const STYLESHEET = new URL('../../resources/assets/css/meilifacets.css', import.meta.url)
 
+/** Read from the client, so an increment never sends anyone editing fixtures. */
+const CONTRACT = /const VERSION = (\d+)/.exec(
+    readFileSync(new URL('../../resources/assets/js/contract.js', import.meta.url), 'utf8')
+)[1]
+
 /** Events are left alone: the listing extends the runtime's own EventTarget, which refuses any other. */
 const CLASSES = [
     'Element',
@@ -77,13 +82,15 @@ export const listingMarkup = ({ scroll = [] } = {}) => {
     const mark = (component) => (scroll.includes(component) ? 'data-meili-scroll' : '')
 
     return `
-<div data-listing="products" data-meili-contract="1">
+<div data-listing="products" data-meili-contract="${CONTRACT}">
     <div class="meilifacetsFacets" data-apply="submit" data-meili="facets" ${mark('facets')}>
-        <fieldset data-taxonomy="product_brand">
+        <fieldset data-taxonomy="product_brand" data-meili="facet">
             <ul>${facetValue('brand', 'acme', 'Acme')}${facetValue('brand', 'globex', 'Globex')}</ul>
+            <button type="button" aria-expanded="false" hidden data-meili="more">Show more</button>
         </fieldset>
-        <fieldset data-taxonomy="product_cat">
+        <fieldset data-taxonomy="product_cat" data-meili="facet">
             <ul>${facetValue('categorie', 'coats', 'Coats')}</ul>
+            <button type="button" aria-expanded="false" hidden data-meili="more">Show more</button>
         </fieldset>
         <button type="button" data-meili="apply">Apply filters</button>
     </div>

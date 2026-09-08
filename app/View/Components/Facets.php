@@ -25,6 +25,14 @@ final class Facets extends ListingComponent
         return trans_choice(':count result|:count results', $value->count, ['count' => $value->count]);
     }
 
+    /**
+     * @param  list<FacetValue>  $values
+     */
+    public function hasFoldedValues(array $values): bool
+    {
+        return array_any($values, static fn (FacetValue $value): bool => $value->folded);
+    }
+
     public function render(): View
     {
         return view('meilifacets::components.facets', [

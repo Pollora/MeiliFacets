@@ -1,7 +1,7 @@
+import { Contract } from './contract.js'
 import { countLabel } from './facet-counts.js'
 
 /**
- * @import { Contract } from './contract.js'
  * @import { ListingDescription } from './description.js'
  * @import { FacetCounts } from './facet-counts.js'
  * @import { ListingState } from './listing-state.js'
@@ -9,7 +9,6 @@ import { countLabel } from './facet-counts.js'
  * @typedef {{ host: HTMLElement, input: HTMLInputElement, label: Element | null, taxonomy: string }} Box
  */
 
-/** The boxes and their counts. */
 export class FacetsView {
     /** @type {Contract} */
     #contract
@@ -26,6 +25,21 @@ export class FacetsView {
      * @type {Box[] | null}
      */
     #boxed = null
+
+    /** @type {Map<string, Box[]> | null} */
+    #grouped = null
+
+    /** @type {Map<string, Element> | null} */
+    #blocked = null
+
+    /** @type {Map<string, Element> | null} */
+    #buttoned = null
+
+    /** @type {Set<string>} */
+    #unfolded = new Set()
+
+    /** @type {Map<Element, boolean>} */
+    #hasHits = new Map()
 
     /**
      * @param {Contract} contract
@@ -58,25 +72,151 @@ export class FacetsView {
      * @param {FacetCounts} counts
      */
     showCounts(counts) {
-        const distributions = new Map(
-            this.#description.facets.map((facet) => [facet.taxonomy, counts.of(facet)])
-        )
+        for (const facet of this.#description.facets) {
+            const distribution = counts.of(facet)
 
-        for (const box of this.#boxes()) {
-            this.#showCount(box, distributions.get(box.taxonomy)?.[box.input.value] ?? 0)
+            for (const box of this.#boxesOf(facet.taxonomy)) {
+                const hits = distribution[box.input.value] ?? 0
+
+                this.#showCount(box, hits)
+                this.#hasHits.set(box.host, hits > 0)
+            }
         }
+
+        this.#showFolds()
+    }
+
+    /**
+     * @param {Element} button
+     */
+    toggleFold(button) {
+        const taxonomy = this.#taxonomyIn(button)
+
+        if (taxonomy === undefined) {
+            return
+        }
+
+        if (this.#unfolded.has(taxonomy)) {
+            this.#unfolded.delete(taxonomy)
+        } else {
+            this.#unfolded.add(taxonomy)
+        }
+
+        this.#showFolds()
+    }
+
+    /** A value is read when it is held, or when it still has results and the fold has room for it. */
+    #showFolds() {
+        for (const facet of this.#description.facets) {
+            const expanded = this.#unfolded.has(facet.taxonomy)
+            let room = facet.visible
+            let read = 0
+
+            for (const { host, input } of this.#boxesOf(facet.taxonomy)) {
+                const counted = this.#hasHits.get(host) ?? true
+
+                host.hidden = ! input.checked && (! counted || (! expanded && room <= 0))
+                room -= counted ? 1 : 0
+                read += host.hidden ? 0 : 1
+            }
+
+            this.#showBlock(facet.taxonomy, read > 0)
+            this.#showFoldButton(facet.taxonomy, expanded, room < 0)
+        }
+    }
+
+    /**
+     * @param {string} taxonomy
+     * @param {boolean} readable
+     */
+    #showBlock(taxonomy, readable) {
+        const block = this.#blocks().get(taxonomy)
+
+        if (block instanceof HTMLElement) {
+            block.hidden = ! readable
+        }
+    }
+
+    /**
+     * @param {string} taxonomy
+     * @param {boolean} expanded
+     * @param {boolean} foldable
+     */
+    #showFoldButton(taxonomy, expanded, foldable) {
+        const button = this.#buttons().get(taxonomy)
+
+        if (!(button instanceof HTMLElement)) {
+            return
+        }
+
+        button.hidden = ! foldable
+
+        // Rewriting `aria-expanded` unchanged makes some screen readers announce the button again.
+        if (button.getAttribute('aria-expanded') !== String(expanded)) {
+            button.textContent = this.#description.foldLabels[expanded ? 'less' : 'more']
+            button.setAttribute('aria-expanded', String(expanded))
+        }
+    }
+
+    /**
+     * @param {string} taxonomy
+     * @returns {Box[]}
+     */
+    #boxesOf(taxonomy) {
+        if (this.#grouped === null) {
+            this.#grouped = new Map(this.#description.facets.map((facet) => [facet.taxonomy, []]))
+
+            for (const box of this.#boxes()) {
+                this.#grouped.get(box.taxonomy)?.push(box)
+            }
+        }
+
+        return this.#grouped.get(taxonomy) ?? []
+    }
+
+    /**
+     * @returns {Map<string, Element>}
+     */
+    #blocks() {
+        return this.#blocked ??= new Map(this.#contract.all('facet').flatMap((block) => {
+            const taxonomy = this.#taxonomyIn(block)
+
+            return taxonomy === undefined ? [] : [[taxonomy, block]]
+        }))
+    }
+
+    /**
+     * @returns {Map<string, Element>}
+     */
+    #buttons() {
+        return this.#buttoned ??= new Map([...this.#blocks()].flatMap(([taxonomy, block]) => {
+            const button = this.#contract.one('more', block)
+
+            return button === null ? [] : [[taxonomy, button]]
+        }))
+    }
+
+    /**
+     * A block names no taxonomy of its own: the boxes it holds name it for it.
+     *
+     * @param {Element | null} node
+     * @returns {string | undefined}
+     */
+    #taxonomyIn(node) {
+        const block = node?.closest(Contract.selector('facet')) ?? null
+        const input = block === null ? null : this.#contract.one('input', block)
+
+        return input instanceof HTMLInputElement ? this.taxonomyOf(input) : undefined
     }
 
     /**
      * @param {Box} box
      * @param {number} hits
      */
-    #showCount({ host, label }, hits) {
+    #showCount({ label }, hits) {
         if (label) {
             label.textContent = countLabel(this.#description.countPattern, hits)
         }
-
-        host.hidden = hits === 0
     }
 
     /**

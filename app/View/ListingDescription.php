@@ -39,6 +39,7 @@ final readonly class ListingDescription
             // The client has no catalogue of its own: the translated pattern travels with the description.
             'countPattern' => trans(':count result|:count results'),
             'filterPattern' => trans(':count active filter|:count active filters'),
+            'foldLabels' => ['more' => trans('Show more'), 'less' => trans('Show less')],
         ];
     }
 
@@ -52,6 +53,7 @@ final readonly class ListingDescription
                 'taxonomy' => $facet->taxonomy,
                 'multiple' => $facet->selection->allowsSeveralValues(),
                 'cap' => $facet->cap,
+                'visible' => $facet->visible,
             ],
             $listing->facets()
         );

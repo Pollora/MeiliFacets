@@ -9,9 +9,10 @@ import { listingMarkup, open } from './dom.js'
 const description = {
     params: { product_brand: 'brand', product_cat: 'categorie' },
     countPattern: ':count result|:count results',
+    foldLabels: { more: 'Show more', less: 'Show less' },
     facets: [
-        { taxonomy: 'product_brand', multiple: true, cap: 3 },
-        { taxonomy: 'product_cat', multiple: false, cap: 1 },
+        { taxonomy: 'product_brand', multiple: true, cap: 3, visible: 10 },
+        { taxonomy: 'product_cat', multiple: false, cap: 1, visible: 10 },
     ],
 }
 
@@ -65,6 +66,81 @@ describe('FacetsView', () => {
         view.showCounts(counts({ product_brand: { acme: 3, globex: 1 } }))
 
         assert.equal(host('globex').hidden, false)
+    })
+
+    /**
+     * The fold is the server's at first render and nobody's after: without this,
+     * the first search revealed every value the engine still counted.
+     */
+    it('folds again on every answer, keeping the ones that still have results', () => {
+        const narrow = new FacetsView(new Contract(root), { ...description, facets: [{ taxonomy: 'product_brand', multiple: true, cap: 3, visible: 1 }] })
+
+        narrow.showCounts(counts({ product_brand: { acme: 5, globex: 2 } }))
+
+        assert.equal(host('acme').hidden, false)
+        assert.equal(host('globex').hidden, true)
+    })
+
+    it('reads a facet in full once asked, and folds it back', () => {
+        const narrow = new FacetsView(new Contract(root), { ...description, facets: [{ taxonomy: 'product_brand', multiple: true, cap: 3, visible: 1 }] })
+        const button = root.querySelector(Contract.selector('more'))
+
+        narrow.toggleFold(button)
+        narrow.showCounts(counts({ product_brand: { acme: 5, globex: 2 } }))
+
+        assert.equal(host('globex').hidden, false)
+        assert.equal(button.getAttribute('aria-expanded'), 'true')
+        assert.equal(button.textContent, 'Show less')
+
+        narrow.toggleFold(button)
+        narrow.showCounts(counts({ product_brand: { acme: 5, globex: 2 } }))
+
+        assert.equal(host('globex').hidden, true)
+        assert.equal(button.textContent, 'Show more')
+    })
+
+    /** Unfolding asks the engine nothing: pressing before any search must not empty the list. */
+    it('reads a facet in full before any search has answered', () => {
+        const button = root.querySelector(Contract.selector('more'))
+
+        view.toggleFold(button)
+
+        assert.equal(box('acme').closest(Contract.selector('facet-value')).hidden, false)
+        assert.equal(box('coats').closest(Contract.selector('facet-value')).hidden, false)
+    })
+
+    /** A legend over nothing reads as a facet that lost its values, not as one that has none. */
+    it('hides a whole facet the answer emptied, and brings it back', () => {
+        const block = (value) => host(value).closest(Contract.selector('facet'))
+
+        view.showCounts(counts({ product_brand: { acme: 3, globex: 1 } }))
+
+        assert.equal(block('acme').hidden, false)
+        assert.equal(block('coats').hidden, true)
+
+        view.showCounts(counts({ product_brand: { acme: 3, globex: 1 }, product_cat: { coats: 2 } }))
+
+        assert.equal(block('coats').hidden, false)
+    })
+
+    /** A held value the visitor cannot see is a filter they cannot lift. */
+    it('never folds away a value the visitor holds', () => {
+        const narrow = new FacetsView(new Contract(root), { ...description, facets: [{ taxonomy: 'product_brand', multiple: true, cap: 3, visible: 1 }] })
+
+        box('globex').checked = true
+        narrow.showCounts(counts({ product_brand: { acme: 5, globex: 2 } }))
+
+        assert.equal(host('globex').hidden, false)
+    })
+
+    /** Nothing to unfold, nothing to press. */
+    it('hides the button when every value is read', () => {
+        const button = root.querySelector(Contract.selector('more'))
+
+        button.hidden = false
+        view.showCounts(counts({ product_brand: { acme: 5, globex: 2 } }))
+
+        assert.equal(button.hidden, true)
     })
 
     /** A count read off the wrong facet would show a brand's total on a category. */

@@ -1,7 +1,8 @@
 <div class="meilifacetsFacets" data-apply="{{ $applyMode }}" {{ $hook('facets') }} {{ $scrollMark() }}>
     @foreach ($listing->facets() as $facet)
         @php($values = $listing->valuesOf($facet))
-        <fieldset class="meilifacetsFacet" data-taxonomy="{{ $facet->taxonomy }}" @if ($values === []) hidden @endif>
+        <fieldset class="meilifacetsFacet" data-taxonomy="{{ $facet->taxonomy }}"
+                  @if ($values === []) hidden @endif {{ $hook('facet') }}>
             <legend class="meilifacetsFacetLabel">{{ $facet->label }}</legend>
             <ul class="meilifacetsFacetValues">
                 @foreach ($values as $value)
@@ -23,6 +24,10 @@
                     </li>
                 @endforeach
             </ul>
+            <button type="button" class="meilifacetsFacetMore" aria-expanded="false"
+                    @unless ($hasFoldedValues($values)) hidden @endunless {{ $hook('more') }}>
+                {{ __('Show more') }}
+            </button>
         </fieldset>
     @endforeach
     @if ($needsApplyButton)

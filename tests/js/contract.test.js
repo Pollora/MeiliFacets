@@ -1,9 +1,13 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { describe, it } from 'node:test'
 
 import { Contract } from '../../resources/assets/js/contract.js'
 
 const HOOK = /^\[data-meili="([^"]+)"\]$/
+
+/** Read from the client, so the fixtures follow an increment instead of failing on it. */
+const CONTRACT = Number(/const VERSION = (\d+)/.exec(readFileSync(new URL('../../resources/assets/js/contract.js', import.meta.url), 'utf8'))[1])
 
 /** Enough DOM for the one selector shape the contract builds. */
 class Node {
@@ -41,11 +45,13 @@ const complete = () => {
         new Node('results', [new Node('card')]),
         new Node('empty'),
         template('card', 'url', 'image', 'title', 'price'),
-        new Node('facets', [new Node('facet-value', [new Node('input'), new Node('count')])]),
+        new Node('facets', [
+            new Node('facet', [new Node('facet-value', [new Node('input'), new Node('count')]), new Node('more')]),
+        ]),
         new Node('pagination', [new Node('previous'), new Node('page'), new Node('next')]),
         new Node('sort', [new Node('sort-trigger'), new Node('sort-list', [new Node('sort-option')])]),
     ])
-    root.version = '1'
+    root.version = String(CONTRACT)
 
     return root
 }
@@ -57,13 +63,13 @@ describe('Contract', () => {
 
     it('refuses a version it does not speak', () => {
         const root = complete()
-        root.version = '2'
+        root.version = String(CONTRACT + 1)
 
-        assert.deepEqual(new Contract(root).breaches(), ['contract 2, expected 1'])
+        assert.deepEqual(new Contract(root).breaches(), [`contract ${CONTRACT + 1}, expected ${CONTRACT}`])
     })
 
     it('refuses an unversioned root before looking at anything else', () => {
-        assert.deepEqual(new Contract(new Node()).breaches(), ['contract absent, expected 1'])
+        assert.deepEqual(new Contract(new Node()).breaches(), [`contract absent, expected ${CONTRACT}`])
     })
 
     it('names every structural hook the theme dropped', () => {
@@ -85,6 +91,26 @@ describe('Contract', () => {
         root.children[3] = new Node('facets')
 
         assert.deepEqual(new Contract(root).breaches(), [])
+    })
+
+    // A leaf category and a filtered listing with no results both render a facet block holding nothing.
+    it('accepts a facet block the data left empty', () => {
+        const root = complete()
+        root.children[3] = new Node('facets', [new Node('facet', [new Node('more')])])
+
+        assert.deepEqual(new Contract(root).breaches(), [])
+    })
+
+    it('refuses a facet block without its fold button', () => {
+        const root = new Node(null, [
+            new Node('results', [new Node('card')]),
+            new Node('empty'),
+            template('card', 'url', 'image', 'title', 'price'),
+            new Node('facets', [new Node('facet', [new Node('facet-value', [new Node('input')])])]),
+        ])
+        root.version = String(CONTRACT)
+
+        assert.deepEqual(new Contract(root).breaches(), ['facet > more'])
     })
 
     it('refuses a facet value without its input', () => {

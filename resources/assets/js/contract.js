@@ -11,6 +11,7 @@ const RULES = [
     { host: null, hooks: ['results', 'card-template', 'empty'] },
     { host: 'card-template', hooks: ['card', 'url', 'image', 'title', 'price'] },
     { host: 'facet-value', hooks: ['input'] },
+    { host: 'facet', hooks: ['more'] },
     { host: 'pagination', hooks: ['page', 'previous', 'next'] },
     { host: 'sort', hooks: ['sort-trigger', 'sort-list', 'sort-option'] },
 ]

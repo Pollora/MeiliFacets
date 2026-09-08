@@ -84,6 +84,14 @@ export class ListingBinding {
      * @param {Event} event
      */
     #clicked(event) {
+        const more = this.#hookOf(event.target, 'more')
+
+        if (more !== null) {
+            this.#facets.toggleFold(more)
+
+            return
+        }
+
         if (this.#acted(event)) {
             this.#reveal(event)
         }
