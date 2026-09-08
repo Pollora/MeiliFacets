@@ -56,6 +56,7 @@ Voir aussi : [installation.md](installation.md) · [architecture.md](architectur
 | Valeurs par facette | 10 visibles, le reste rendu et replié, plafond par défaut à 30 |
 | Ce qui décide le plafond et le repli | le plafond sur le **compte** (c'est le moteur qui trie), le repli sur l'**ordre déclaré** — donc réordonner puis replier. *Renversé le 2026-09-08 : le repli se décidait sur le compte avant réordonnancement, ce que le client ne pouvait pas reproduire (`R-85`).* |
 | Tri des valeurs de facette | le moteur compte (`sortFacetValuesBy`), la facette déclare l'ordre d'affichage — `DisplayOrder`, ou un `ValueOrder` que le projet fournit |
+| Comparaison de `DisplayOrder::Name` | `Collator` avec `NUMERIC_COLLATION`, construit sur `get_locale()` — donc l'ordre suit la langue de WordPress, celle qui a produit les libellés, et non celle de Laravel. Sans `ext-intl`, repli sur `strnatcasecmp` : documenté, jamais silencieux. Conséquence assumée : `Name` devient sensible à la casse au niveau tertiaire, là où `strnatcasecmp` mettait `abc` et `ABC` à égalité |
 | Facette qui mélange les grandeurs | **on lit l'ordre que WooCommerce porte déjà** (`DisplayOrder::Declared`), on ne le devine pas depuis le libellé. *Renversé le 2026-09-08 — `MeasureOrder` analysait `15ml` au rendu ; supprimé.* |
 | Bouton de dépliage | rendu même quand il n'y a rien à déplier : le client le révèle, il n'en crée aucun |
 | Taille de page | dérivée du contexte au rendu, jamais recopiée en configuration |

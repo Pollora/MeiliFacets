@@ -2552,7 +2552,7 @@ places (donc l'affichage du bouton) reste calculé sur les valeurs comptées, in
 côté (« it_never_folds_away_a_value_the_url_holds », « never folds away a value the visitor
 holds »).
 
-### R-87 · 🟠 · ouvert · 2026-09-08 — `DisplayOrder::Name` classe mal les libellés accentués
+### R-87 · 🟠 · **fermé le 2026-09-08** · ouvert le 2026-09-08 — `DisplayOrder::Name` classe mal les libellés accentués
 
 `FacetValues` trie `Name` avec `strnatcasecmp`, qui compare des octets. En UTF-8 un `é` vaut deux
 octets qui tombent après tout l'ASCII : chaque mot accentué est rejeté à la fin de son groupe de
@@ -2567,15 +2567,72 @@ Collator fr_FR : Démaquillants · Déodorants · Diffuseurs · Dissolvants
 rend dès le rang 25, et la divergence court sur tout l'alphabet. `product_brand` (9 termes, sans
 accent en tête) est identique dans les deux ordres — le défaut ne se voyait pas là.
 
-Deux réponses, non exclusives :
+**Corrigé en réparant `Name`**, pas en basculant vers `Declared` : c'est un défaut, pas un choix
+d'ordre. `Declared` reste disponible et garde son sens — honorer un ordre posé au glisser-déposer.
 
-- **passer catégorie et marque à `DisplayOrder::Declared`** — zéro ligne, la collation de la base
-  range le français correctement, et un ordre posé dans l'admin serait honoré au passage
-  (WooCommerce rend `product_cat` triable par glisser-déposer) ;
-- **réparer `Name`** avec `Collator` quand `intl` est disponible, repli sur `strnatcasecmp` sinon.
-  `Name` existe pour le cas numérique (`10ml` avant `500ml`), que `Declared` ne sait faire que si
-  l'attribut est réglé sur *Nom (numérique)*. `intl` n'étant pas garanti sur un hébergement
-  quelconque, il faut un `class_exists('Collator')` et deux comportements documentés.
+**Trois fausses pistes écartées, chacune par la mesure :**
+
+| | Nombres | Accents FR | Suédois (`ä`/`ö` après `z`) |
+| --- | --- | --- | --- |
+| `strnatcasecmp` | ✅ | ❌ | ❌ |
+| `Collator` **sans réglage** | ❌ `100ml · 10ml · 9ml` | ✅ | ✅ |
+| `iconv('ASCII//TRANSLIT')` + `strnatcasecmp` | ✅ | ✅ | ❌ — fige le modèle français |
+| **`Collator` + `NUMERIC_COLLATION`** | ✅ | ✅ | ✅ |
+
+`Collator` avait d'abord été rejeté pour son classement des nombres, sans avoir essayé l'attribut
+qui existe exactement pour ça. Et le repli ASCII, proposé ensuite, code en dur un modèle de
+collation aussi sûrement qu'une locale écrite en clair — relevé en séance : le module doit rester
+compatible Polylang (`decisions.md` : « multilingue non implémenté, mais l'architecture doit le
+permettre sans refonte »).
+
+**Livré** : `Listing\NameOrder implements ValueOrder`, recevant un **`?Collator`** — pas une locale.
+Le provider lit `get_locale()` **dans la fermeture du binding**, jamais dans `register()` : Polylang
+pose la langue sur un crochet plus tardif, et une locale vide collationne en `en_US_POSIX`. Un seul
+`is_int()` couvre les deux replis.
+
+**Trois pièges mesurés, dont un qui faisait un `500` :**
+
+```
+compare("\xC3\x28", 'b')   → false   ← contre un type de retour `: int`, TypeError non rattrapé
+new Collator('xx_INVALID') → objet, ACTUAL=root      (repli silencieux)
+new Collator('!!!…!!!')    → IntlException           (donc try/catch)
+```
+
+**Pourquoi `get_locale()` et pas `app()->getLocale()`** : seul le premier porte la région, et la
+région décide. `fr_FR` et `fr` retombent tous deux sur la collation racine, mais pas `fr_CA` :
+
+```
+fr_FR → ACTUAL=root  : cote · coté · côte · côté
+fr_CA → ACTUAL=fr_CA : cote · côte · coté · côté     ← accents lus à rebours
+```
+
+Raison de fond, indépendante du multilingue : on trie des noms de termes WordPress, lus par
+`get_terms()`. C'est la locale qui a produit les chaînes qui doit les ranger.
+
+**Effet mesuré sur le site**, facette Catégorie : **31 positions sur 109** changent.
+
+```
+rang 36   avant: Diffuseurs à bâtonnets       après: Démaquillants & nettoyants
+rang 37   avant: Dissolvants                  après: Déodorants
+rang 39   avant: Déodorants                   après: Diffuseurs à bâtonnets
+```
+
+**Coût** : `Collator::compare()` vaut 0,121 µs la paire contre 0,029 µs pour `strnatcasecmp`, soit
+**+7 µs par facette** au plafond de trente — 0,005 % d'une page à 306 ms. `Collator::getSortKey()`
+en décoration-tri-restitution a été mesuré **1,8× plus lent** à ce volume (`usort` ne fait que
+quatre comparaisons par élément sur trente valeurs, quand une clé en coûte trois) : écarté.
+`sortWithSortKeys()` aussi — appelée sur autre chose que des chaînes, elle rend `true` sans rien
+trier, sans code d'erreur.
+
+**Conséquences écrites dans `decisions.md`** : `Name` devient sensible à la casse au niveau
+tertiaire ; l'ordre suit WordPress, pas Laravel ; sans `ext-intl` le repli est `strnatcasecmp`.
+L'extension est déclarée en `suggest`, jamais en `require` — l'exiger contredirait le constat
+lui-même.
+
+⚠️ **Ce qui reste ouvert** : les deux facettes du module en `Name` (catégorie, marque) sont
+purement textuelles. Savoir si Pluralia les garde en `Name` ou les passe à `Declared` — qui
+honorerait en plus un ordre posé dans l'admin — est une autre question, à ouvrir sous son propre
+numéro le jour où elle se pose.
 
 ### R-88 · 🟠 · **fermé le 2026-09-08** · ouvert le 2026-09-08 — le module livre les facettes de Pluralia, et un projet ne peut pas déclarer les siennes
 
