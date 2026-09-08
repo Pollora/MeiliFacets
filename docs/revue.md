@@ -2807,6 +2807,53 @@ Deux symptômes déjà présents, mesurés :
   survol gagne. Au clavier, pointeur posé sur la liste, l'option active perd sa teinte au profit
   de celle du survol : deux lignes se lisent « courante », aucune « sélectionnée ».
 
+### R-92 · 🟠 · **fermé le 2026-09-08** · ouvert le 2026-09-08 — le correctif de `R-87` était inerte, et son cas d'énumération était mal placé
+
+Deux défauts, trouvés en répondant à « as-tu réellement vérifié ? ». Non.
+
+**1. Le correctif ne s'exécutait pas.** `use Collator;` n'avait jamais été ajouté au provider — le
+remplacement visait `use Illuminate\Support\Facades\Blade;`, absent de ce fichier. Dans le
+namespace du provider, `Collator::class` résolvait `Modules\MeiliFacets\Providers\Collator`,
+`class_exists()` rendait `false`, et `collator()` sortait `null` dès sa première ligne.
+
+```
+app(NameOrder::class) → collateur : NULL — repli strnatcasecmp
+```
+
+**Rien ne l'a signalé** : `composer check` vert, 178 tests verts. Les tests unitaires de `NameOrder`
+fabriquent leur propre `Collator` ; ils prouvaient le comparateur, jamais son câblage. C'est la
+faute de `R-42` refaite à l'identique — mesurer le mécanisme et appeler ça une vérification.
+
+**Et la mesure vendue avec était trompeuse** : les « 31 positions sur 109 » portaient sur la liste
+à plat des catégories, que personne n'affiche. La facette catégorie est un `ChildTermsFacet`, elle
+ne montre qu'un niveau à la fois — et sur ce catalogue **aucun niveau ne change d'ordre**. Le
+correctif est juste ; son effet visible aujourd'hui est nul.
+
+**2. `DisplayOrder::Name` était un `ValueOrder` déguisé.** Les deux autres cas ne demandent rien —
+`Count` ne trie pas, `Declared` lit un ordre déjà présent. Seul `Name` avait besoin d'un
+collaborateur, ce qui forçait `FacetValues` — service générique traversé par tous les listings — à
+prendre une quatrième dépendance et à construire un collateur **à chaque rendu**, y compris quand
+aucune facette ne trie par nom.
+
+**Corrigé** : `Name` sort de l'énumération, `NameOrder` devient l'ordre qu'une facette déclare
+(`order: $this->names`). `FacetValues` perd sa dépendance, `comparing()` perd une branche et se
+réduit à une ligne, `DisplayOrder` ne garde que les deux cas autonomes, et le collateur n'est
+construit que si une liste de facettes le demande. Liaison passée de `bind` à `scoped` : une
+instance par requête au lieu d'une par résolution (5,48 µs mesurés).
+
+**Vérifié par le conteneur, pas par un script :**
+
+```
+liste résolue : App\Cms\Products\CatalogueFacets
+  product_cat → NameOrder · product_brand → NameOrder · pa_contenance → DisplayOrder::Declared
+NameOrder du conteneur : collateur présent (fr)
+même instance sur deux résolutions : true · la facette porte bien CE NameOrder : true
+```
+
+**Coût mesuré de la méthode incriminée** : `collator()` vaut **1,18 µs** à chaud — 0,0004 % d'une
+page à 306 ms. Le reproche « peu optimisé » ne portait pas sur le temps mais sur le couplage, et
+c'est celui-là qui est levé.
+
 ---
 
 ## 10. Questions ouvertes

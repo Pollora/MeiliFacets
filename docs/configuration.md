@@ -144,6 +144,8 @@ Des bindings du conteneur Laravel, à poser dans le `register()` d'un provider d
 | `FacetCounter` | `DisjunctiveFacetCounter` | comment les compteurs de facettes sont calculés | oui, `bind` |
 | `SearchEngine` | `MeilisearchEngine` | l'envoi des recherches au moteur | oui, `bind` |
 | `Listing` | `ProductListing` si WooCommerce | ce qu'un listing déclare | découverte automatique |
+| `ProductFacets` | `WooCommerceFacets` — catégorie et marque | les taxonomies que la boutique parcourt | oui, `scoped` |
+| `ProductSorts` | `WooCommerceSorts` — prix ↑↓, nouveautés | les tris offerts | oui, `scoped` |
 
 ```php
 $this->app->bind(CardProjector::class, ProductCardProjector::class);
@@ -209,7 +211,7 @@ Le module ne touche MeiliScout qu'à deux endroits, et jamais depuis sa logique 
 
 | Où | Ce qu'il y prend |
 | --- | --- |
-| `MeiliFacetsServiceProvider::searchEngine()` | le client de recherche et le nom de l'index |
+| `SearchServiceProvider::engine()` | le client de recherche et le nom de l'index |
 | `MeiliScoutBridge` | les filtres d'indexation, qui sont sa raison d'être |
 
 `MeilisearchEngine` reçoit son client par le constructeur : il ne connaît pas `ClientFactory`. Un
@@ -247,7 +249,8 @@ substituer par `meiliscout/indexables` à une priorité plus haute que celle du 
 alphabétiquement par défaut, ce qui ferait afficher à une facette plafonnée à dix valeurs les dix
 premières de l'alphabet plutôt que les dix plus représentées. C'est le réglage qui décide **quelles
 valeurs remontent** ; l'ordre dans lequel elles s'affichent se déclare par facette
-(`DisplayOrder::Count` ou `DisplayOrder::Name`), voir [architecture.md](architecture.md).
+(`DisplayOrder::Count`, `DisplayOrder::Declared` ou un `ValueOrder` comme `NameOrder`), voir
+[architecture.md](architecture.md).
 
 ## Filtres consommés chez MeiliScout
 
@@ -284,9 +287,12 @@ Un listing qui doit imposer son mode surcharge `applyMode()` au lieu de lire la 
 ## Déclarer un listing
 
 Une classe qui implémente `Listing`, découverte automatiquement dans `app/` et `Modules/*/app` :
-il n'y a rien à enregistrer. Elle porte ses facettes, ses tris et son filtre de base, lequel se
-calcule au rendu — c'est ce qui permet à `ProductListing` de retirer la facette catégorie sur une
-archive de catégorie, où le rayon est déjà porté par le chemin.
+il n'y a rien à enregistrer. Elle porte son filtre de base, qui se calcule au rendu — c'est ce qui
+permet à `ProductListing` d'ajouter le rayon courant aux clauses sur une archive de catégorie, où
+il est déjà porté par le chemin. Ses facettes et ses tris, en revanche, ne sont plus écrits dans la
+classe : ils viennent des contrats `ProductFacets` et `ProductSorts` ci-dessus, qu'un projet
+remplace sans toucher au module. La facette catégorie n'est pas retirée sur une archive de
+catégorie : `ChildTermsFacet` la **conserve et la restreint** au niveau courant.
 
 Un `Facet` déclare sa taxonomie, son libellé, son mode de sélection, sa limite visible, son
 plafond et s'il est de cardinalité élevée. Un **`ChildTermsFacet`** en est une variante pour une

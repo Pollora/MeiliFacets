@@ -125,6 +125,22 @@ cochées dans l'écran MeiliScout, et le prix WooCommerce est stocké en chaîne
 plage et un tri numérique demandent une projection typée. Le prix, le stock et les variations
 restent donc un travail à part.
 
+## Les providers
+
+`MeiliFacetsServiceProvider` est le point d'entrée que nwidart découvre. Il ne lie rien lui-même :
+il se déclare — nom, commandes, publication des assets, découverte des listings, cascade de vues du
+thème — et enregistre **un provider par couche**, calqué sur les espaces de noms du module.
+
+| Provider | Ce qu'il lie |
+| --- | --- |
+| `IndexingServiceProvider` | `IndexAttributes`, `CardProjector`, `TermHierarchy` — ce que le document porte |
+| `SearchServiceProvider` | `SearchEngine`, `BrowserConnection`, `EngineLimits`, `FacetCounter` — l'envoi des recherches |
+| `ListingServiceProvider` | les adaptateurs de termes, `NameOrder`, `ProductFacets`, `ProductSorts`, le registre |
+| `RenderingServiceProvider` | `ListingScript`, `CardSettings`, `Unavailable` — ce dont la page a besoin en plus. *Nommé ainsi et pas `ViewServiceProvider` : Laravel en charge déjà un du même nom court.* |
+
+Les fabriques privées restent avec leurs liaisons : c'est là que les réglages sont lus, avec leur
+défaut, comme la règle l'impose — jamais depuis un objet de domaine.
+
 ## Ce que la boutique déclare
 
 Un module générique ne peut pas connaître les taxonomies d'une boutique. `pa_contenance` est à
@@ -454,11 +470,18 @@ Deux besoins distincts, longtemps confondus dans un seul réglage :
 - **quelles valeurs remontent** — c'est le moteur qui tranche, en comptant. `sortFacetValuesBy`
   reste à `count` : sur deux cents marques, un tri alphabétique côté moteur ne ferait remonter que
   celles qui commencent par A, et le plafond de trente couperait le reste ;
-- **dans quel ordre on les lit** — c'est la facette qui le déclare, parmi trois ordres livrés :
-  `DisplayOrder::Count` (le défaut, pour une longue traîne), `DisplayOrder::Name` (tri naturel des
-  libellés, où « 10ml » précède « 500ml ») et `DisplayOrder::Declared`. **Un projet peut fournir le
-  sien** en passant un `Contracts\ValueOrder` à la place de l'énumération — le module ne décide pas
-  à sa place.
+- **dans quel ordre on les lit** — c'est la facette qui le déclare, de deux façons.
+  `DisplayOrder` porte les deux ordres qui n'ont besoin de rien : `Count` (le défaut, pour une
+  longue traîne) et `Declared`. Tout ordre qui a besoin d'un collaborateur est un
+  `Contracts\ValueOrder` — le module en livre un, `NameOrder`, et **un projet peut fournir le
+  sien**.
+
+`NameOrder` range les libellés **comme la langue du site le fait** : `Collator` d'ICU, construit sur
+`get_locale()` avec `NUMERIC_COLLATION`, donc `Démaquillants` avant `Diffuseurs` et `9ml` avant
+`10ml`. Sans `ext-intl` — déclarée en `suggest`, jamais en `require` — il retombe sur
+`strnatcasecmp`, qui range les accentués après tout l'ASCII. C'est pour cette raison qu'il est un
+`ValueOrder` et non un cas d'énumération : il porte un collateur, que seule une facette qui le
+demande fait construire.
 
 `Declared` lit **l'ordre que la taxonomie porte déjà**, sans rien deviner. WooCommerce laisse la
 boutique le régler par attribut — *Ordre personnalisé* (glisser-déposer), *Nom*, *Nom (numérique)*
