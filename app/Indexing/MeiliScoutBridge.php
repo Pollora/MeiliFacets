@@ -7,6 +7,7 @@ namespace Modules\MeiliFacets\Indexing;
 use Modules\MeiliFacets\Contracts\CardProjector;
 use Modules\MeiliFacets\Contracts\IndexAttributes;
 use Modules\MeiliFacets\Enums\DocumentField;
+use Modules\MeiliFacets\Search\EngineLimits;
 use Pollora\Attributes\Filter;
 use Pollora\MeiliScout\Contracts\Indexable;
 use Pollora\MeiliScout\Indexables\PostIndexable;
@@ -20,6 +21,7 @@ final class MeiliScoutBridge
         private readonly TermAncestry $ancestry,
         private readonly CardProjector $cards,
         private readonly IndexAttributes $attributes,
+        private readonly EngineLimits $limits,
     ) {}
 
     /**
@@ -76,7 +78,7 @@ final class MeiliScoutBridge
     // `meiliscout/indexables` runs on every indexed item, not once per request.
     private function facetedPosts(): FacetedPostIndexable
     {
-        return $this->facetedPosts ??= new FacetedPostIndexable($this->attributes);
+        return $this->facetedPosts ??= new FacetedPostIndexable($this->attributes, $this->limits);
     }
 
     private function needsFacetAttributes(Indexable $indexable): bool

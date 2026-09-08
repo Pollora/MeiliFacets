@@ -9,6 +9,8 @@ use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Enums\FacetingSetting;
 use Modules\MeiliFacets\Enums\FacetValueOrder;
 use Modules\MeiliFacets\Enums\IndexSetting;
+use Modules\MeiliFacets\Enums\PaginationSetting;
+use Modules\MeiliFacets\Search\EngineLimits;
 use Pollora\MeiliScout\Config\Settings;
 use Pollora\MeiliScout\Indexables\PostIndexable;
 
@@ -29,7 +31,10 @@ final class FacetedPostIndexable extends PostIndexable
     /** @var list<string>|null */
     private ?array $taxonomies = null;
 
-    public function __construct(private readonly IndexAttributes $attributes) {}
+    public function __construct(
+        private readonly IndexAttributes $attributes,
+        private readonly EngineLimits $limits,
+    ) {}
 
     /**
      * @return array<string, mixed>
@@ -56,6 +61,11 @@ final class FacetedPostIndexable extends PostIndexable
         $settings[IndexSetting::Faceting->value] = $this->facetingSettings(
             $settings[IndexSetting::Faceting->value] ?? []
         );
+
+        $settings[IndexSetting::Pagination->value] = [
+            ...$settings[IndexSetting::Pagination->value] ?? [],
+            PaginationSetting::MaxTotalHits->value => $this->limits->reachableHits,
+        ];
 
         return $settings;
     }

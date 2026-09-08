@@ -10,4 +10,5 @@ enum IndexSetting: string
     case SortableAttributes = 'sortableAttributes';
     case DisplayedAttributes = 'displayedAttributes';
     case Faceting = 'faceting';
+    case Pagination = 'pagination';
 }
