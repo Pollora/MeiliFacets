@@ -73,9 +73,12 @@ const sortOption = (value, label, selected) => `
 const pageButton = () => '<button type="button" value="" hidden data-meili="page"></button>'
 
 /** Mirrors what the Blade components render, hooks and initial hidden states included. */
-export const listingMarkup = () => `
+export const listingMarkup = ({ scroll = [] } = {}) => {
+    const mark = (component) => (scroll.includes(component) ? 'data-meili-scroll' : '')
+
+    return `
 <div data-listing="products" data-meili-contract="1">
-    <div class="meilifacetsFacets" data-apply="submit" data-meili="facets">
+    <div class="meilifacetsFacets" data-apply="submit" data-meili="facets" ${mark('facets')}>
         <fieldset data-taxonomy="product_brand">
             <ul>${facetValue('brand', 'acme', 'Acme')}${facetValue('brand', 'globex', 'Globex')}</ul>
         </fieldset>
@@ -85,10 +88,10 @@ export const listingMarkup = () => `
         <button type="button" data-meili="apply">Apply filters</button>
     </div>
 
-    <button type="button" class="meilifacetsReset" hidden data-meili="reset">Clear all</button>
+    <button type="button" class="meilifacetsReset" hidden data-meili="reset" ${mark('reset')}>Clear all</button>
     <span class="meilifacetsActiveFilters" hidden data-meili="active-filters">0 active filters</span>
 
-    <div class="meilifacetsSort" data-meili="sort">
+    <div class="meilifacetsSort" data-meili="sort" ${mark('sort')}>
         <label class="meilifacetsSortLabel" id="sort-label" for="sort-trigger">Sort by</label>
         <button type="button" class="meilifacetsSortTrigger" id="sort-trigger" role="combobox"
                 aria-haspopup="listbox" aria-expanded="false" aria-controls="sort-list"
@@ -113,9 +116,10 @@ export const listingMarkup = () => `
         </li>
     </template>
 
-    <nav class="meilifacetsPagination" hidden data-meili="pagination">
+    <nav class="meilifacetsPagination" hidden data-meili="pagination" ${mark('pagination')}>
         <button type="button" value="1" hidden data-meili="previous">Previous</button>
         ${Array.from({ length: 7 }, pageButton).join('')}
         <button type="button" value="1" hidden data-meili="next">Next</button>
     </nav>
 </div>`
+}

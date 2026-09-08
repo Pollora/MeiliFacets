@@ -127,8 +127,10 @@ export class ListingBinding {
      * @param {Event} event
      */
     #reveal(event) {
+        const asked = event.target instanceof Element && event.target.closest(Contract.SCROLL) !== null
+
         // `detail` is 0 on a click the keyboard raised, and non-zero on a real one.
-        if (/** @type {MouseEvent} */ (event).detail > 0) {
+        if (asked && /** @type {MouseEvent} */ (event).detail > 0) {
             // No `behavior`: the theme's `scroll-behavior` decides, reduced-motion guard included.
             this.#root.scrollIntoView({ block: 'start' })
         }

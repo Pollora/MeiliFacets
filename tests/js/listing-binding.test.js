@@ -218,45 +218,78 @@ describe('ListingBinding', () => {
     })
 
     describe('when a gesture replaces the grid', () => {
-        let scrolled
+        /** Each control is asked for on its own component, and answers for itself alone. */
+        const gestures = {
+            pagination: (r) => [...r.querySelectorAll(Contract.selector('page'))][1],
+            sort: (r) => [...r.querySelectorAll(Contract.selector('sort-option'))][1],
+            reset: (r) => r.querySelector(Contract.selector('reset')),
+            facets: (r) => r.querySelector(Contract.selector('apply')),
+        }
 
-        // The pagination carries no page number until the engine has answered once.
-        beforeEach(async () => {
+        const start = async (scroll) => {
+            ({ window, root } = open(listingMarkup({ scroll })))
+            client = new FakeClient()
+            history = new FakeHistory()
+            listing = new Listing(description, {}, { client, history })
+            new ListingBinding(root, new Contract(root), listing, description).start()
+
+            // The pagination carries no page number until the engine has answered once.
             client.answer = { results: { hits: [], totalHits: 25 } }
             await listing.apply()
-            scrolled = watchScrolling(root)
-        })
 
-        it('brings the visitor back to the top of the listing', () => {
-            click(window, [...root.querySelectorAll(Contract.selector('page'))][1])
+            return watchScrolling(root)
+        }
 
-            assert.deepEqual(scrolled, [{ block: 'start' }])
-        })
+        it('holds the page still on every control, by default', async () => {
+            const scrolled = await start([])
 
-        it('does the same for the apply button, the reset and a picked order', () => {
-            for (const node of [one('apply'), one('reset'), [...root.querySelectorAll(Contract.selector('sort-option'))][1]]) {
-                scrolled.length = 0
-                click(window, node)
-
-                assert.equal(scrolled.length, 1, node.getAttribute('data-meili'))
+            for (const reach of Object.values(gestures)) {
+                click(window, reach(root))
             }
+
+            assert.deepEqual(scrolled, [])
         })
+
+        for (const [component, reach] of Object.entries(gestures)) {
+            it(`brings the visitor back to the top when ${component} asks for it`, async () => {
+                const scrolled = await start([component])
+
+                click(window, reach(root))
+
+                assert.deepEqual(scrolled, [{ block: 'start' }])
+            })
+
+            it(`leaves ${component} alone while the others ask for it`, async () => {
+                const others = Object.keys(gestures).filter((name) => name !== component)
+                const scrolled = await start(others)
+
+                click(window, reach(root))
+
+                assert.deepEqual(scrolled, [])
+            })
+        }
 
         /** Opening the list is not a gesture on the grid: the page must hold still. */
-        it('holds still when the sort list is merely opened', () => {
+        it('holds still when the sort list is merely opened', async () => {
+            const scrolled = await start(['sort'])
+
             click(window, one('sort-trigger'))
 
             assert.deepEqual(scrolled, [])
         })
 
         /** The keyboard holds its place with the focus: moving the page would hide the button. */
-        it('leaves the page alone when the keyboard raised the click', () => {
-            clickFromKeyboard(window, [...root.querySelectorAll(Contract.selector('page'))][1])
+        it('leaves the page alone when the keyboard raised the click', async () => {
+            const scrolled = await start(['pagination'])
+
+            clickFromKeyboard(window, gestures.pagination(root))
 
             assert.deepEqual(scrolled, [])
         })
 
-        it('never moves the page for a ticked box', () => {
+        it('never moves the page for a ticked box', async () => {
+            const scrolled = await start(['facets'])
+
             tick(window, box('acme'))
 
             assert.deepEqual(scrolled, [])

@@ -1,5 +1,5 @@
 @if (count($choices) > 1)
-    <div class="meilifacetsSort" {{ $hook('sort') }}>
+    <div class="meilifacetsSort" {{ $hook('sort') }} {{ $scrollMark() }}>
         <label class="meilifacetsSortLabel" id="{{ $ids->sortLabel() }}" for="{{ $ids->sortTrigger() }}">
             {{ __('Sort by') }}
         </label>

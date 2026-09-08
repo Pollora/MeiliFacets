@@ -1,4 +1,4 @@
-<div class="meilifacetsFacets" data-apply="{{ $applyMode }}" {{ $hook('facets') }}>
+<div class="meilifacetsFacets" data-apply="{{ $applyMode }}" {{ $hook('facets') }} {{ $scrollMark() }}>
     @foreach ($listing->facets() as $facet)
         @php($values = $listing->valuesOf($facet))
         <fieldset class="meilifacetsFacet" data-taxonomy="{{ $facet->taxonomy }}" @if ($values === []) hidden @endif>

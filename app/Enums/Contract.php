@@ -12,6 +12,9 @@ final readonly class Contract
 
     public const string VERSION_ATTRIBUTE = 'data-meili-contract';
 
+    /** Opt-in, per component: absent means the page holds still, which is the default. */
+    public const string SCROLL_ATTRIBUTE = 'data-meili-scroll';
+
     /** Incremented whenever a hook is added, renamed or removed. */
     public const int VERSION = 1;
 

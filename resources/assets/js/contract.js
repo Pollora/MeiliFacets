@@ -1,5 +1,6 @@
 const ATTRIBUTE = 'data-meili'
 const VERSION_ATTRIBUTE = 'data-meili-contract'
+const SCROLL_ATTRIBUTE = 'data-meili-scroll'
 const VERSION = 1
 
 /**
@@ -24,6 +25,11 @@ export class Contract {
 
     static selector(hook) {
         return `[${ATTRIBUTE}="${hook}"]`
+    }
+
+    /** Opt-in, per component: a control the theme did not mark leaves the page where it is. */
+    static get SCROLL() {
+        return `[${SCROLL_ATTRIBUTE}]`
     }
 
     // Empty means the client may start; anything else names what to fix.

@@ -14,8 +14,9 @@ abstract class ListingComponent extends ContractComponent
 
     public ElementId $ids;
 
-    public function __construct(CurrentListing $listings, public string $name = '')
+    public function __construct(CurrentListing $listings, public string $name = '', bool $scroll = false)
     {
+        $this->scroll = $scroll;
         $this->listing = $name === '' ? $listings->sole() : $listings->named($name);
         $this->ids = new ElementId($this->listing->name());
     }

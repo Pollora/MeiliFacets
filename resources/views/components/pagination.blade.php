@@ -1,6 +1,6 @@
 {{-- Rendered even with nothing to paginate: the client fills these slots, it adds none. --}}
 <nav class="meilifacetsPagination" aria-label="{{ __('Pagination') }}"
-     @unless ($pagination->hasPages()) hidden @endunless {{ $hook('pagination') }}>
+     @unless ($pagination->hasPages()) hidden @endunless {{ $hook('pagination') }} {{ $scrollMark() }}>
     <button type="button" class="meilifacetsPaginationPrevious" value="{{ $pagination->previous() }}"
             @unless ($pagination->hasPrevious()) hidden @endunless {{ $hook('previous') }}>
         {{ __('Previous') }}

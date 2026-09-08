@@ -16,9 +16,9 @@ final class Sort extends ListingComponent
 
     public SortChoice $selected;
 
-    public function __construct(CurrentListing $listings, string $name = '')
+    public function __construct(CurrentListing $listings, string $name = '', bool $scroll = false)
     {
-        parent::__construct($listings, $name);
+        parent::__construct($listings, $name, $scroll);
 
         $this->choices = (new SortChoices($this->ids))->of($this->listing->sorts(), $this->listing->currentSort());
         $this->selected = $this->currentChoice();
