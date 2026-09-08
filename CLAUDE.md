@@ -55,6 +55,11 @@ are parsing at render time a string a human typed. `MeasureOrder` was both — i
 regex to order a facet, while WooCommerce had offered four ordering modes per attribute all along
 and applied them to every `get_terms()` (`R-81`, reversed the day it shipped).
 
+**A seam opens when a project needs it, not before.** What changes from one shop to the next goes
+behind a contract with a default the module binds with `bindIf`/`scopedIf` — `CardProjector`,
+`ProductFacets`, `ProductSorts` are the reference. What has a right answer everywhere stays in the
+module. One contract per method is the failure mode on the other side.
+
 Prefer fixing a dependency over working around it. MeiliScout has gaps; a small, upstreamable
 patch there beats a contortion here. `resolveIndexable()` in MeiliScout is the reference: three
 lines upstream instead of a workaround.
