@@ -392,3 +392,31 @@ un prix depuis une autre source injecterait ce qu'il veut. C'est R-26, ouvert.
 **Les classes CSS du module sont en camelCase** (`meilifacetsCardImage`), pas en BEM kebab-case
 comme celles du thème `pluralia` (`pluralia-product-card`). Choix assumé du projet, appliqué à
 tous les composants du module : ne pas réintroduire de tiret en ajoutant une vue.
+
+## Un filtre de MeiliScout ne peut pas être posé avant son plugin
+
+MeiliScout est un **plugin WordPress** : son `plugin.php` construit son application au moment de
+l'inclusion, pendant le chargement des plugins. Le module, lui, enregistre ses `#[Filter]` par la
+découverte d'attributs de Pollora, qui vient **après** — vérifié : `add_filter` existe déjà quand le
+provider du module démarre, donc WordPress et ses plugins sont chargés.
+
+Conséquence : **tout ce que MeiliScout résout dans un constructeur est résolu avant nous.** Ce fut
+le cas de l'indexable utilisé par l'indexation à l'unité (`R-79`), avec pour effet que chaque
+enregistrement d'article réécrivait les réglages d'index sans les nôtres — facettes filtrables et
+`metas._price` compris, donc listing vide jusqu'à la réindexation suivante.
+
+Corrigé en amont le 2026-09-08 : la résolution est devenue paresseuse. La règle reste vraie pour la
+suite — **ne jamais supposer qu'un filtre du module est en place quand MeiliScout construit ses
+objets**. Ce qui doit être substituable chez lui doit l'être au premier usage, pas à la
+construction.
+
+## MeiliScout est une dépendance du module, installée en plugin par le projet
+
+`Modules/MeiliFacets/composer.json` requiert `amphibee/meiliscout`, et le `merge-plugin` du projet
+inclut `Modules/*/composer.json` : la dépendance remonte donc au projet, qui l'installe en
+`type: wordpress-plugin` vers `public/content/plugins/meiliscout` grâce à ses `installer-paths`.
+
+Ce répertoire est ignoré par git **parce que c'est une sortie de Composer**. Ne pas le lire comme une
+installation manuelle, et surtout **ne rien y corriger à la main** : le correctif se fait dans le
+dépôt amont, puis `composer update amphibee/meiliscout` le rapatrie et fige la référence dans la
+`composer.lock` du projet.

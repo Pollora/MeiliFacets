@@ -985,7 +985,7 @@ Rien de ce qui est validé en local ne vaut engagement tant que la montée n'est
 `filterableAttributes` posés aujourd'hui sont explicites (pas de motif `facets.*`), donc a priori
 compatibles — a priori seulement.
 
-### R-42 · 🟠 · ouvert · 2026-09-06 — la pagination promet des pages que le moteur ne sert pas
+### R-42 · 🟠 · **fermé le 2026-09-08** · ouvert le 2026-09-06 — la pagination promet des pages que le moteur ne sert pas
 
 *Formulation corrigée le 2026-09-07 : elle était fausse.* Elle disait que `totalHits` plafonnait et
 que « rien ne le dit ». Mesuré sur 1.53.1 avec des index fabriqués pour l'occasion (détail dans
@@ -1012,8 +1012,16 @@ remonte dans MeiliScout, qui lit des options WordPress.
 
 ⚠️ **Fermé puis rouvert le même jour : la mesure ne portait que sur un chemin.** Interrogé sur la
 qualité de la vérification, j'ai refait la mesure sur le **chemin normal** — l'enregistrement d'un
-article, sans purge. Le réglage **n'est pas écrit** : `reachable_hits` à 1750, un `wp post update`,
-l'index reste à 1000. La cause est R-79, et elle est plus grave que R-42.
+article, sans purge. Le réglage n'était pas écrit : `reachable_hits` à 1750, un `wp post update`,
+l'index restait à 1000. La cause était R-79.
+
+**Refermé le 2026-09-08**, une fois R-79 corrigé en amont. Mesuré sur le chemin normal :
+`reachable_hits` à 3000, un simple `wp post update` **sans purge**, l'index déclare
+`{"maxTotalHits":3000}`. Le plafond suit la configuration sur les deux chemins.
+
+**Enseignement** : une vérification qui ne couvre qu'un chemin ne ferme rien. La première mesure
+portait sur `meiliscout index --clear`, qui recrée l'index — le chemin rare. Le chemin normal, un
+rédacteur qui publie, faisait exactement l'inverse.
 
 ⚠️ Contrepartie assumée : un `maxTotalHits` posé à la main sur l'index sera écrasé à la prochaine
 indexation. C'est vrai de tous les réglages que le module pose.
@@ -2137,7 +2145,7 @@ Sortie propre le jour où ça compte : publier la locale et passer par `Intl.Plu
 envoyer la forme choisie plutôt que le motif. Aucune des deux ne vaut d'être faite tant que rien
 ne l'affiche.
 
-### R-79 · 🔴 · ouvert · 2026-09-07 — enregistrer un article détruit les réglages d'index du module
+### R-79 · 🔴 · **fermé le 2026-09-08** · ouvert le 2026-09-07 — enregistrer un article détruisait les réglages d'index du module
 
 **Trouvé en vérifiant R-42 sur le chemin normal, et reproductible en trois commandes.**
 
@@ -2176,8 +2184,31 @@ contourner, comme `resolveIndexable()` l'a déjà été : rendre la résolution 
 `AbstractSingleIndexer`, c'est-à-dire sortir `$this->indexable = $this->createIndexable()` du
 constructeur pour la mémoïser dans un accesseur appelé après le démarrage. Trois lignes en amont.
 
-À défaut : réécrire les réglages depuis le module après chaque `save_post`, ce qui serait une
-rustine sur un défaut de séquence.
+**Corrigé en amont le 2026-09-08**, dans `AmphiBee/MeiliScout` sur `feat/meilifacets`
+(`2acf53a`) : la propriété passe en `?Indexable`, la résolution sort du constructeur, et un
+accesseur `indexable()` la mémoïse au premier usage — dix points d'appel redirigés, dans
+`AbstractSingleIndexer` et ses deux sous-classes.
+
+Le correctif prolonge celui du 2026-09-02, qui avait introduit `resolveIndexable()` : le geste
+était juste, il résolvait au mauvais instant.
+
+**Mesuré après mise à jour de la dépendance** — `composer update amphibee/meiliscout`, la
+`composer.lock` du projet passant de `1c59a05` à `2acf53a` :
+
+```
+après réindexation : facettes 14 · prix triable oui · plafond 1000
+après un save      : facettes 14 · prix triable oui · plafond 1000
+boutique           : 17 cartes
+```
+
+Avant, le premier `save` donnait `facettes 0 · prix triable NON · 0 carte`.
+
+**Rien à patcher à la main.** Le module requiert `amphibee/meiliscout` dans son propre
+`composer.json`, et le `merge-plugin` du projet inclut `Modules/*/composer.json` : la dépendance
+remonte donc au projet, qui l'installe en `type: wordpress-plugin` vers
+`public/content/plugins/meiliscout` par ses `installer-paths`. Ce répertoire est ignoré par git
+parce qu'il est **une sortie de Composer**, pas une source — ce qui avait d'abord été lu comme une
+installation manuelle, à tort.
 
 ### R-80 · ⚪ · **fermé le 2026-09-07, sans code** · ouvert le 2026-09-07 — un mouvement vers le bas soupçonné avant le retour en haut
 
@@ -2737,3 +2768,14 @@ continuer à décider sur 76 produits sans variations.
 
   **Enseignement** : la documentation vieillit plus vite que le code, et sans bruit. Trois documents
   décrivaient un module qui n'existait plus depuis le matin même.
+- **2026-09-08** — **R-79 et R-42 fermés**, par un correctif en amont. Enregistrer un seul article
+  détruisait les réglages d'index du module — facettes filtrables, `metas._price`, plafond — et
+  vidait la boutique jusqu'à la réindexation suivante. La cause était une **séquence** : MeiliScout
+  résout son indexable dans un constructeur, exécuté pendant le chargement des plugins, quand aucun
+  `#[Filter]` du module n'est encore posé. `AmphiBee/MeiliScout@2acf53a` rend la résolution
+  paresseuse ; la `composer.lock` du projet passe de `1c59a05` à `2acf53a`. Deux mesures avant/après
+  sur le même geste : `facettes 0 · prix triable NON · 0 carte` → `facettes 14 · prix triable oui ·
+  17 cartes`, et le plafond suit désormais la configuration sur les deux chemins d'indexation.
+  Deux pièges écrits dans `pieges.md` : la séquence de chargement, et le fait que le plugin installé
+  est une **sortie de Composer** — ce que j'avais d'abord lu comme une installation manuelle, en
+  concluant à tort qu'un patch local était la seule voie.
