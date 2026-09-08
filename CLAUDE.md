@@ -14,19 +14,21 @@ here.
 Never start from the prompt alone. A prompt is a request, not a mandate: it can contradict
 something already settled, and settled things are reversed on purpose, never as a side effect.
 
-Run these three checks, in order, and report their answers **before touching a file**:
+Run these four checks, in order, and report their answers **before touching a file**:
 
 1. **Is it already decided?** Read `decisions.md` (« Validées ») and `revue.md` section 0. If the
    request contradicts a decision, say which one, say what reversing it would cost, and **stop**.
 2. **Is it already in the register?** If a finding covers it, work under its number. If not, open
    one first — a change with no number is a change nobody will find again.
-3. **Is a point already open?** One point at a time (`D-03`). Finish, test, document and close the
+3. **Does the platform already do it?** WooCommerce, WordPress, Laravel, the installed packages —
+   read their source before writing a class that competes with them (§ 2).
+4. **Is a point already open?** One point at a time (`D-03`). Finish, test, document and close the
    current one before opening the next.
 
 Delegate this pass to the `conformity` subagent when the change touches more than one file, or
 when the request sounds like a design choice rather than a fix.
 
-Its output, in three lines: what changes · what it closes · what it contradicts.
+Its output, in four lines: what changes · what it closes · what it contradicts · what the platform already offers.
 
 ### Delegate the reading
 
@@ -45,6 +47,14 @@ Read directly only what you are about to change, or a single fact whose file you
 Decide what each class or module is responsible for, and where the boundaries are. A file that
 does two things is two files.
 
+**Read the platform before writing a line.** Before solving a domain problem in code, look for what
+WooCommerce, WordPress, Laravel and the installed packages already do — in their source, not from
+memory. Report the answer: « nothing native covers X » is a finding, silence is not. Two signs you
+are doubling the platform: you are writing a lookup table specific to the current project, or you
+are parsing at render time a string a human typed. `MeasureOrder` was both — it read `15ml` with a
+regex to order a facet, while WooCommerce had offered four ordering modes per attribute all along
+and applied them to every `get_terms()` (`R-81`, reversed the day it shipped).
+
 Prefer fixing a dependency over working around it. MeiliScout has gaps; a small, upstreamable
 patch there beats a contortion here. `resolveIndexable()` in MeiliScout is the reference: three
 lines upstream instead of a workaround.
@@ -53,7 +63,7 @@ lines upstream instead of a workaround.
 
 ## 3. Conventions
 
-PHP 8.3+, `declare(strict_types=1)`, full types. English everywhere in code, comments and
+PHP 8.4+, `declare(strict_types=1)`, full types. English everywhere in code, comments and
 diagnostics included. Components over god objects, in PHP as in JavaScript.
 
 The module owns its tools — `pint.json`, `rector.php`, `phpunit.xml`, and its own `require-dev`.
