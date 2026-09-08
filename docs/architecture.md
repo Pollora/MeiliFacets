@@ -413,17 +413,50 @@ Deux besoins distincts, longtemps confondus dans un seul réglage :
 - **quelles valeurs remontent** — c'est le moteur qui tranche, en comptant. `sortFacetValuesBy`
   reste à `count` : sur deux cents marques, un tri alphabétique côté moteur ne ferait remonter que
   celles qui commencent par A, et le plafond de trente couperait le reste ;
-- **dans quel ordre on les lit** — c'est la facette qui le déclare, via `DisplayOrder` :
-  `Count` (le défaut, pour une longue traîne) ou `Name`, un tri naturel où « 10ml » précède
-  « 500ml » au lieu de le suivre.
+- **dans quel ordre on les lit** — c'est la facette qui le déclare, parmi trois ordres livrés :
+  `DisplayOrder::Count` (le défaut, pour une longue traîne), `DisplayOrder::Name` (tri naturel des
+  libellés, où « 10ml » précède « 500ml ») et `DisplayOrder::Declared`. **Un projet peut fournir le
+  sien** en passant un `Contracts\ValueOrder` à la place de l'énumération — le module ne décide pas
+  à sa place.
 
-Le repli au-delà de dix valeurs est décidé **sur le compte**, avant réordonnancement : on affiche
-les dix mieux comptées, rangées par nom. Déplier insère les suivantes à leur place alphabétique.
+`Declared` lit **l'ordre que la taxonomie porte déjà**, sans rien deviner. WooCommerce laisse la
+boutique le régler par attribut — *Ordre personnalisé* (glisser-déposer), *Nom*, *Nom (numérique)*
+ou *Identifiant du terme* — et l'applique à **tous** les `get_terms()` par le filtre
+`get_terms_defaults` (`wc-term-functions.php`). `WordPressTermLabels` interrogeant déjà `get_terms()`,
+l'ordre arrive gratuitement : il suffit de le conserver au lieu de le jeter. C'est pour ça que
+`TermLabels::of()` promet ses clés **dans l'ordre de la taxonomie** — un tableau dont l'ordre est
+une donnée, pas un détail.
 
-⚠️ `Name` trie des libellés, pas des grandeurs. Une facette qui mélange les unités
-(`4g`, `5ml`, `30 sachets`) restera mélangée. Y répondre demanderait de suivre l'ordre défini par
-l'éditeur dans l'admin WooCommerce (glisser-déposer, stocké en `term_meta`) — non implémenté, et
-sans objet aujourd'hui puisque aucun ordre n'y est défini (13 termes, tous à zéro).
+C'est la seule réponse juste pour un attribut qui mélange les grandeurs : `pa_contenance` porte des
+ml, des g, des gélules, des sachets, des patchs et un `7x2ml`. Aucune règle automatique ne range
+correctement cet ensemble — lire la grandeur dans le libellé (`15ml` → 15 millilitres) revient à
+deviner au rendu ce que la boutique peut énoncer une fois. Un système de facettes qui a besoin
+d'une magnitude l'indexe comme **un nombre en unité canonique**, préparé à l'indexation depuis une
+donnée qui connaît son unité ; il ne l'extrait jamais d'un libellé saisi à la main.
+
+⚠️ Corollaire opérationnel : un attribut réglé sur *Ordre personnalisé* dont personne n'a glissé
+les termes retombe sur l'ordre alphabétique. `Declared` ne remplace pas la décision, il la sert.
+
+**Le plafond et le repli répondent à deux maîtres.** `cap` est dépensé sur le compte : c'est le
+moteur qui décide quelles valeurs survivent, et c'est juste — sur deux cents marques, on veut les
+plus peuplées. `visible` est dépensé sur l'ordre déclaré : les valeurs sont **réordonnées d'abord,
+repliées ensuite**, donc ce que le visiteur lit est la tête de l'ordre que la facette a demandé.
+Une valeur que l'URL tient échappe au repli où qu'elle tombe (`R-86`).
+
+Replier sur le compte, comme le module l'a fait jusqu'au 2026-09-08, rendait invisible l'ordre
+qu'on venait de déclarer — et surtout, le client ne pouvait pas reproduire cette règle : il ne
+connaît que l'ordre du DOM, pas le rang moteur. Les deux replis divergeaient donc dès que l'ordre
+n'était pas `Count`, et la première recherche remplaçait la liste par une autre (`R-83`, `R-85`).
+
+**Le client le décide à nouveau à chaque réponse**, sur les compteurs qui viennent d'arriver — sans
+quoi la première recherche révélait tout ce que le moteur comptait encore. Une valeur se lit quand
+**le visiteur la tient**, ou quand elle a des résultats **et** que le repli a encore de la place
+pour elle (`R-86`). Une facette dont plus rien ne se lit est masquée en entier, bloc et légende
+compris, comme le serveur le fait déjà quand elle n'a aucune valeur.
+
+Le bouton `more` demande à lire une facette en entier. Il n'interroge pas le moteur : rien n'a
+changé du côté des comptes. Son libellé et son `aria-expanded` suivent l'état, et il se masque
+quand il n'y a plus rien à déplier.
 
 ## Contrat `data-meili`
 
@@ -455,6 +488,8 @@ thème périmée dégrade donc vers le rendu serveur, jamais vers une interactio
 | `sort-trigger` | idem | le bouton qui ouvre la liste et affiche le tri courant |
 | `sort-list` | idem | la `listbox`, masquée à la fermeture |
 | `sort-option` | idem | une option, sa clé dans `data-value` |
+| `facet` | `<x-meilifacets::facets>` | un bloc de facette, ce qu'un thème peut rendre en liste dépliante |
+| `more` | idem | le bouton qui lit la facette en entier |
 | `reset` | `<x-meilifacets::reset>` | le bouton « tout effacer » |
 | `active-filters` | `<x-meilifacets::active-filters>` | le compteur de filtres actifs |
 
@@ -463,10 +498,13 @@ contrôle, jamais sur ce que la donnée décide :
 
 - toujours exigés : `results`, `card-template`, `empty`, et à l'intérieur du template `card`,
   `url`, `image`, `title`, `price` ;
-- exigés dès que leur hôte est rendu : `input` dans une `facet-value`, `page`/`previous`/`next`
-  dans une `pagination`, `sort-trigger`/`sort-list`/`sort-option` dans un `sort` ;
+- exigés dès que leur hôte est rendu : `input` dans une `facet-value`, `more` dans un `facet`,
+  `page`/`previous`/`next` dans une `pagination`,
+  `sort-trigger`/`sort-list`/`sort-option` dans un `sort` ;
 - optionnels : tout le reste. Un thème peut légitimement ne pas afficher de facettes, de tri ou
-  de compteurs — et un listing sans résultat ne rend aucune `facet-value`.
+  de compteurs — et un listing sans résultat ne rend aucune `facet-value`. **Un bloc `facet` vide
+  n'est donc pas une infraction** (`R-84`) : une catégorie feuille et une URL filtrée sans
+  résultat en produisent tous deux, et le client refusait alors de démarrer.
 
 **Trois exigences ne sont pas des crochets, et le contrat ne les voit donc pas.** Une vue surchargée
 qui les oublie casse le client sans qu'aucune infraction ne soit signalée :
@@ -477,10 +515,24 @@ qui les oublie casse le client sans qu'aucune infraction ne soit signalée :
 | `name="<paramètre d'URL de la taxonomie>"` sur l'`<input>` d'une facette | `FacetsView` ne sait retrouver la taxonomie que par ce nom : les cases deviennent inertes |
 | un élément racine unique dans le `<template>` de carte | le clonage rend `undefined` et la grille lève à chaque recherche |
 
-Ajouter, renommer ou retirer un crochet **incrémente `Contract::VERSION`** des deux côtés. C'est
-le seul mécanisme qui empêche les deux listes de diverger en silence. `ContractParityTest` fait le
-reste : il compare chaque crochet que le client adresse, les deux attributs du contrat, le préfixe
-de champ, le séparateur de valeurs, la borne de recherche et la première page.
+Ajouter, renommer ou retirer un crochet **incrémente `Contract::VERSION`** des deux côtés.
+
+**Ce que la version protège, exactement.** Les deux nombres viennent du module — le serveur écrit
+`Contract::version()`, le client compare à sa constante — donc un incrément les déplace ensemble et
+la comparaison continue de réussir. Elle ne détecte donc pas un thème périmé, mais **un client
+périmé face à un serveur à jour** : le navigateur qui garde un ancien `contract.js` en cache (R-70)
+annonce l'ancien numéro, ne le retrouve pas, et **refuse de démarrer** au lieu de chercher des
+crochets que son code ignore. C'est le seul cas, et il suffit à justifier la règle.
+
+**Ce qu'elle ne protège pas** : un thème qui a surchargé une vue et n'a pas suivi. La racine émet
+toujours la version du module, la comparaison passe, et il manque un crochet en silence — sauf si
+une règle de `contract.js` l'exige *à l'intérieur d'un hôte rendu*. C'est pourquoi `facet` exige
+`facet-value` **et** `more` : un bloc qui replie des valeurs sans offrir de les déplier est R-46,
+réintroduit.
+
+`ContractParityTest` fait le reste : il compare chaque crochet que le client adresse, les deux
+attributs du contrat, le préfixe de champ, le séparateur de valeurs, la borne de recherche et la
+première page.
 
 Les valeurs que le client doit lire voyagent dans des attributs natifs quand il en existe un —
 `value` sur les boutons de pagination, `data-value` sur une option de tri, `value`/`checked` sur

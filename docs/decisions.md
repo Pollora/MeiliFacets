@@ -52,7 +52,10 @@ Voir aussi : [installation.md](installation.md) · [architecture.md](architectur
 | Mode de sélection | déclaré par facette ; le disjonctif n'est produit que pour le multi-sélection |
 | Pagination | pages numérotées en query var, sans rechargement ; pas de « charger plus » |
 | Valeurs par facette | 10 visibles, le reste rendu et replié, plafond par défaut à 30 |
-| Tri des valeurs de facette | le moteur compte (`sortFacetValuesBy`), la facette déclare l'ordre d'affichage (`DisplayOrder`) |
+| Ce qui décide le plafond et le repli | le plafond sur le **compte** (c'est le moteur qui trie), le repli sur l'**ordre déclaré** — donc réordonner puis replier. *Renversé le 2026-09-08 : le repli se décidait sur le compte avant réordonnancement, ce que le client ne pouvait pas reproduire (`R-85`).* |
+| Tri des valeurs de facette | le moteur compte (`sortFacetValuesBy`), la facette déclare l'ordre d'affichage — `DisplayOrder`, ou un `ValueOrder` que le projet fournit |
+| Facette qui mélange les grandeurs | **on lit l'ordre que WooCommerce porte déjà** (`DisplayOrder::Declared`), on ne le devine pas depuis le libellé. *Renversé le 2026-09-08 — `MeasureOrder` analysait `15ml` au rendu ; supprimé.* |
+| Bouton de dépliage | rendu même quand il n'y a rien à déplier : le client le révèle, il n'en crée aucun |
 | Taille de page | dérivée du contexte au rendu, jamais recopiée en configuration |
 | Rendu serveur | applique les filtres de l'URL ; Varnish cache chaque combinaison 180 s |
 | Repli des paramètres d'URL | une taxonomie non mappée prend un préfixe, jamais son nom nu |

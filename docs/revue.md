@@ -1078,7 +1078,7 @@ maquette cliente). Sur l'archive produit, **ce bouton a disparu**.
 Ce n'est pas ce qui est livré. Trois issues : le listing rend la carte du thème, la wishlist
 devient un crochet du contrat, ou la disparition est assumée et écrite.
 
-### R-46 · 🟠 · ouvert · 2026-09-06 — les valeurs repliées n'ont aucun moyen d'être dépliées
+### R-46 · 🟠 · **fermé le 2026-09-08** (T-07) · ouvert le 2026-09-06 — les valeurs repliées n'avaient aucun moyen d'être dépliées
 
 `FacetValues` marque `folded` tout ce qui dépasse `visible` (10), la vue les rend avec `hidden`, et
 le cap est à 30. **Il n'existe aucun bouton « voir plus »**, aucun crochet correspondant dans
@@ -1849,7 +1849,20 @@ JavaScript. Ce n'est donc pas un défaut du module, c'est un piège d'environnem
 temps, toutes les vérifications `curl` de la revue ayant été faites en `http` par habitude. Elles
 restent valables pour le HTML servi ; elles ne disaient rien du JavaScript.
 
-À écrire dans `installation.md` : **en local, le site se consulte en `https`**.
+À écrire dans `installation.md` : **en local, le site se consulte en `https`**. *Fait.*
+
+**Complété le 2026-09-08 — on n'y arrive pas que par habitude : une URL avec slash final y mène.**
+
+```
+https://pluralia.ddev.site/boutique/    301 -> http://pluralia.ddev.site/boutique
+https://pluralia.ddev.site/panier/      301 -> http://pluralia.ddev.site/panier
+https://pluralia.ddev.site/mon-compte/  301 -> http://pluralia.ddev.site/mon-compte
+```
+
+La redirection canonique perd le schéma alors que `home` et `APP_URL` sont tous deux en `https` —
+un proxy de confiance / `X-Forwarded-Proto` non honoré. Un lien collé avec un slash final suffit
+donc à servir la page sans aucun JavaScript, sans erreur visible. Hors périmètre du module ; à
+traiter côté projet.
 
 ### R-69 · 🟡 · **fermé le 2026-09-07** (lot 3c-2) · ouvert le 2026-09-07 — la couche DOM n'a aucun test automatisé
 
@@ -2269,6 +2282,386 @@ cartes plus hautes.
 **Enseignement** : une mesure obtenue par un outil d'automatisation décrit l'outil autant que le
 site. Un clic de Playwright n'est pas un clic de visiteur tant qu'on ne l'a pas prouvé.
 
+### R-81 · 🟡 · **fermé le 2026-09-08, renversé le 2026-09-08** · ouvert le 2026-09-08 — une facette mélangeait trois grandeurs sur une seule échelle
+
+Relevé en séance sur `pa_contenance`, qui portait, dans cet ordre :
+
+```
+1L · 4g · 5ml · 7x2ml · 10ml · 15ml · 20g · 30 sachets · 30ml · 40ml · 50ml · 60 gélules · …
+```
+
+`DisplayOrder::Name` trie par `strnatcasecmp`, qui compare **le nombre en tête** : l'ordre était donc
+exactement celui demandé, et c'est la demande qui était incomplète. Un attribut WooCommerce écrit à
+la main porte couramment trois grandeurs — volume, masse, décompte — et un tri numérique les lit
+comme une seule échelle.
+
+**Deux sorties étaient possibles**, et la meilleure n'a pas été retenue : séparer l'attribut en
+trois taxonomies donnerait des facettes justes sans une ligne de code, et empêcherait de cocher
+« 50ml » et « 60 gélules » dans la même liste. Écarté en séance — le projet ne peut pas créer de
+taxonomies pour l'instant.
+
+**Livré.** `Contracts\ValueOrder` : un projet déclare l'ordre qu'il veut, à la place de
+l'énumération. `Facet::$order` accepte donc `DisplayOrder|ValueOrder`. `MeasureOrder`, livré avec,
+groupe par unité puis par quantité, ramène chaque échelon métrique dans sa famille, et **range à part ce
+qu'il ne sait pas lire** plutôt que de le deviner.
+
+**Mesuré, servi sur `/boutique`** :
+
+```
+4g · 20g · 100g · 180g · 200g · 60 gélules · 5ml · 10ml · … · 500ml · 1L · 60 patchs · 30 sachets · 7x2ml
+```
+
+Coût : **nul**. Un `usort` sur au plus `cap` valeurs déjà en mémoire, une fois par rendu serveur —
+et il n'y a qu'un rendu serveur, le filtrage se passant ensuite dans le navigateur. Le tri du
+moteur reste `count`, il ne décide que du plafond.
+
+⚠️ **Les décomptes s'intercalent entre les mesures** : `gélules` tombe entre `g` et `ml`, par ordre
+alphabétique d'unité. Déterministe, mais un lecteur attend peut-être les deux vraies mesures
+d'abord.
+
+---
+
+**Renversé le 2026-09-08, le jour même.** `Measure`, `MeasureOrder` et `ScaledUnit` sont supprimés.
+
+Deux signaux, l'un après l'autre. D'abord le tableau des unités : il ne portait que `l`, `cl`, `kg`,
+choisis d'après ce que Pluralia avait sous la main. Mesuré sur un jeu élargi —
+
+```
+2dl · 5dl · 4g · 1kg · 500mg · 5ml · 50ml · 1L
+```
+
+— `dl` et `mg` formaient chacun leur propre famille : quatre groupes là où il en fallait deux. Le
+compléter (`cl`, `dl`, `l`, `mg`, `kg`) n'était qu'un pansement : la table restait arbitraire et le
+module continuait de décider à la place de la boutique.
+
+**Ce qui n'avait pas été vérifié avant d'écrire une ligne : WooCommerce porte déjà la réponse.**
+`class-wc-admin-attributes.php:333` offre quatre modes d'ordre par attribut — *Ordre personnalisé*
+(glisser-déposer), *Nom*, *Nom (numérique)*, *Identifiant du terme* — et
+`wc_change_get_terms_defaults()` les applique à **tous** les `get_terms()` sur un attribut produit.
+Mesuré sur la base du projet :
+
+```
+orderby que WooCommerce impose : menu_order
+ordre rendu par get_terms()    : 100g · 10ml · 125ml · 180g · 1L · 200g · 20g · 30 sachets · 400ml …
+```
+
+Autrement dit `pa_contenance` était **déjà** réglé sur « ordre personnalisé » — la boutique avait
+déjà dit que l'ordre serait celui qu'elle pose — et personne n'avait encore glissé les termes, d'où
+le repli alphabétique.
+
+*(Une sonde de cette session cherchait la méta `order_pa_contenance` et la trouvait vide sur les 24
+termes ; la bonne clé est `order`. La conclusion tenait — c'est `get_terms()` qui la portait — mais
+la ligne était fausse et a été retirée.)*
+
+**Vérifié après livraison**, les 24 termes ayant été ordonnés dans l'admin entre-temps : la méta
+`order` va de 1 à 24, et `/boutique` rend cet ordre au caractère près.
+
+```
+admin  : 4g · 20g · 100g · 180g · 200g · 5ml · 10ml · 15ml · 40ml · 100ml · … · 1L · 30 sachets · 60 gélules · 60 patchs · 7x2ml · 250ml · 30ml · 50ml · 75ml
+rendu  : identique
+```
+
+Et c'est aussi ce que font les autres systèmes de facettes : la magnitude est **un champ numérique
+préparé à l'indexation**, jamais une grandeur extraite d'un libellé au rendu. Les facettes
+textuelles se rangent par compte, alphabétiquement, ou dans un ordre que quelqu'un a déclaré.
+
+**Livré à la place** : `DisplayOrder::Declared`, qui conserve l'ordre que `TermLabels::of()` reçoit
+déjà de `get_terms()` — le contrat le promet désormais explicitement. `Contracts\ValueOrder` reste,
+comme point d'extension pour un projet qui veut autre chose.
+
+**Coût assumé** : tant que les termes ne sont pas glissés dans Produits → Attributs → Configurer les
+termes, la facette s'affiche dans l'ordre alphabétique ci-dessus. Le module sert la décision, il ne
+la remplace pas.
+
+**Enseignement** : lire ce que la plateforme fait déjà avant d'écrire. Trois classes, deux fichiers
+de test et deux passages de revue ont porté sur du code qui n'avait pas lieu d'être.
+
+### R-82 · 🔴 · **fermé le 2026-09-08** · ouvert le 2026-09-08 — le repli ne survivait pas à la première recherche
+
+Trouvé en préparant T-07, et plus grave que l'absence du bouton : **le client ignorait le repli.**
+`FacetsView.showCounts()` posait `hidden` sur le seul critère du compte, écrasant la décision du
+serveur.
+
+**Mesuré**, sur `pa_contenance` et ses 24 valeurs :
+
+```
+au chargement                  10 visibles
+cocher puis décocher, Appliquer 24 visibles
+```
+
+Un aller-retour sans effet sur le résultat suffisait à tout déplier, définitivement, sans que le
+visiteur l'ait demandé.
+
+**Corrigé avec T-07.** Le repli est désormais un état que le client tient : `visible` voyage dans la
+description, et le client refait le repli à **chaque** réponse, sur les compteurs qui viennent
+d'arriver — une valeur se lit quand elle a des résultats et que le repli a encore de la place.
+
+⚠️ **La phrase « les deux règles sont identiques », écrite ici le 2026-09-08, était fausse au
+moment où elle a été écrite** : le serveur repliait au rang moteur *avant* de réordonner, le client
+dans l'ordre du DOM. Constat ouvert sous `R-85`, et **vraie depuis sa fermeture le même jour**.
+
+**Un piège rencontré en chemin, et écarté** : la première version faisait repeindre les compteurs au
+clic sur « Voir plus », avec une réponse vide faute de recherche préalable — donc **toutes les
+valeurs de toutes les facettes passaient à zéro et disparaissaient**. Déplier ne doit rien demander
+au moteur : rien n'a changé du côté des comptes. Un test le verrouille (« reads a facet in full
+before any search has answered »).
+
+### R-83 · 🟡 · **fermé le 2026-09-08** · ouvert le 2026-09-08 — replier au compte contredit un ordre déclaré
+
+Sur `pa_contenance`, les dix mieux comptées sont **toutes des millilitres** : l'ordre que la
+boutique a posé est invisible au premier coup d'œil, il faut déplier pour le voir.
+
+Le critère est juste pour une longue traîne de marques : on veut les plus peuplées. Il l'est moins
+pour un ordre que quelqu'un a déclaré, dont le visiteur attend de voir le début.
+
+*Réécrit le 2026-09-08 : le constat portait sur `MeasureOrder`, supprimé depuis (`R-81`). Il vaut
+tel quel pour `DisplayOrder::Declared`, et déjà pour `Name`.*
+
+Trois voies étaient possibles : ne rien replier quand l'ordre n'est pas `Count` ; replier après
+réordonnancement plutôt qu'avant ; ou laisser ainsi, le bouton résolvant le symptôme.
+
+**Tranché le 2026-09-08 : on réordonne, puis on replie.** « Bien sûr que les dix premiers éléments
+doivent être les dix premiers de l'ordre défini. » Fermé avec `R-85`, dont c'était la même racine.
+
+### R-84 · 🔴 · **fermé le 2026-09-08** · ouvert le 2026-09-08 — un bloc de facette vide mettait tout le client hors service
+
+La règle `{ host: 'facet', hooks: ['facet-value', 'more'] }`, ajoutée avec T-07, exigeait au moins
+une valeur dans un bloc de facette. Or `facets.blade.php` rend le `<fieldset>` — masqué — même
+quand la facette n'a aucune valeur, et `Contract.#breachesOf()` ne teste que le **premier** hôte
+`facet`.
+
+**Mesuré**, en exécutant le vrai `Contract` sur le markup du module :
+
+```
+première facette vide  -> ["facet > facet-value"]
+facette vide en second -> []
+```
+
+`listing-page.js` journalise l'infraction et passe le listing : plus de filtrage, plus de tri, plus
+de pagination. Deux cas réels et attendus le produisent — une catégorie feuille, où
+`ChildTermsFacet::within()` rend `[]` par conception, et une URL filtrée sans résultat, où le
+visiteur ne peut alors même plus retirer son filtre. Et le déclenchement dépend de l'ordre des
+facettes, donc le défaut est intermittent d'une page à l'autre.
+
+**La règle était fausse, pas la vue.** `architecture.md` pose que le contrat porte sur ce que le
+thème contrôle, jamais sur ce que la donnée décide — et la présence d'une `facet-value` est décidée
+par la donnée. Le même diff avait d'ailleurs déplacé `facet-value` vers les crochets « exigés »
+trois lignes au-dessus de la phrase qui dit l'inverse.
+
+**Corrigé** : la règle se réduit à `{ host: 'facet', hooks: ['more'] }`, `architecture.md` est
+remise d'accord avec elle-même, et un test couvre le bloc vide (« accepts a facet block the data
+left empty »). Vérifié après correction : `[]` dans les deux dispositions, et avec toutes les
+facettes vides.
+
+### R-85 · 🔴 · **fermé le 2026-09-08** · ouvert le 2026-09-08 — serveur et client ne replient pas le même ensemble
+
+Le serveur marque `folded` sur le **rang moteur** (`FacetValues::of()`), *puis* réordonne selon
+l'ordre déclaré. Le client (`FacetsView.#showFolds()`) replie dans l'**ordre du DOM**. Les deux
+règles ne coïncident que pour `DisplayOrder::Count`.
+
+**Mesuré**, sur une distribution de 16 valeurs mélangeant trois grandeurs :
+
+```
+ordre rendu   : 4g · 20g · 100g · 60 gélules · 5ml · 10ml · … · 1L · 30 sachets
+serveur montre: 5ml · 10ml · 15ml · 20ml · 30ml · 40ml · 50ml · 100ml · 250ml · 500ml
+client montre : 4g · 20g · 100g · 60 gélules · 5ml · 10ml · 15ml · 20ml · 30ml · 40ml
+```
+
+La première recherche, **même sans effet sur les résultats**, remplace la liste par une autre.
+
+**Le défaut est antérieur à T-07 et à R-81** : il touche déjà `DisplayOrder::Name`, livré et
+commité. Mesuré sur 14 marques :
+
+```
+serveur montre: quies · roge · svr · topicrem · uriage · vichy · weleda · xerus · yuka · zorro
+client montre : avene · bioderma · caudalie · ducray · quies · roge · svr · topicrem · uriage · vichy
+```
+
+**Reproduit sur le site**, `/boutique`, facette Contenance (24 valeurs) :
+
+```
+rendu serveur          : 10ml · 15ml · 30ml · 50ml · 75ml · 100ml · 150ml · 200ml · 400ml · 500ml
+après un aller-retour  : 4g · 20g · 100g · 180g · 200g · 60 gélules · 5ml · 10ml · 15ml · 30ml
+sur « Voir plus »
+```
+
+Deux voies, et la première renversait une décision validée (« le repli est décidé sur le compte,
+avant réordonnancement ») :
+
+- **replier après réordonnancement, côté serveur** — les deux règles deviennent identiques par
+  construction, et `R-83` se ferme au passage. Coût : sur une longue traîne triée par nom, on
+  montre les dix premières alphabétiquement au lieu des dix mieux comptées ;
+- **faire ranger le client au rang moteur** — il faudrait lui transmettre ce rang, que la
+  description ne publie pas ; le brut de `facetDistribution` ne suffit pas, le serveur l'ayant
+  filtré (`within()`, terme par défaut) et plafonné avant de classer.
+
+**Corrigé par la première**, tranchée le 2026-09-08. `FacetValues::of()` construit les valeurs sans
+repli, les réordonne, **puis** replie sur leur rang d'affichage — `folded()`. Le plafond, lui, reste
+dépensé sur le compte : c'est le moteur qui décide quelles valeurs survivent, jamais lesquelles se
+lisent. Une valeur tenue par l'URL échappe toujours au repli (`R-86`).
+
+**Vérifié après correction**, sur les deux jeux qui divergeaient :
+
+```
+Ordre déclaré (contenance)
+  serveur : 4g · 20g · 100g · 60 gélules · 5ml · 10ml · 15ml · 20ml · 30ml · 40ml
+  client  : identique
+
+Ordre par nom (marques)
+  serveur : avene · bioderma · caudalie · ducray · quies · roge · svr · topicrem · uriage · vichy
+  client  : identique
+```
+
+Deux tests verrouillent la distinction : « it_folds_what_the_display_order_puts_last » et
+« it_spends_the_cap_on_the_count_and_the_fold_on_the_order », où une valeur qui trie en tête mais
+compte en dernier est écartée par le plafond avant que l'ordre ne s'applique.
+
+**Recetté dans le navigateur** sur `pa_contenance`, dont les 24 termes sont désormais ordonnés dans
+l'admin. Rendu serveur de `/boutique` : les dix premiers de l'ordre, `4g · 20g · 100g · 180g ·
+200g · 5ml · 10ml · 15ml · 30ml · 40ml`. Puis, sur la même page, un filtre par marque côté client
+comparé au rendu serveur de la même URL :
+
+```
+/boutique?marque=aeris — rendu serveur   : 15ml · 30ml · 40ml · 50ml · 75ml · 100ml · 125ml
+/boutique puis « Aeris » coché, client   : identique
+```
+
+Sept valeurs et non dix : les dix-sept autres tombent à zéro, et le client les retire — c'est la
+part de la règle qu'il doit rejouer. « Voir plus » ouvre les 24 dans l'ordre, de `4g` à `7x2ml`.
+
+### R-86 · 🟠 · **fermé le 2026-09-08** · ouvert le 2026-09-08 — une valeur cochée pouvait disparaître de la vue tout en filtrant
+
+Trouvé en vérifiant T-07 dans le navigateur. Ni `FacetValues::of()` ni `FacetsView.#showFolds()`
+n'exemptaient du repli une valeur que l'URL tient.
+
+**Mesuré**, `/boutique`, après avoir coché `50ml` et validé :
+
+```
+url          ?contenance=50ml
+résultats    9 cartes
+case 50ml    checked = true, hors de vue (repliée)
+```
+
+Le visiteur voit neuf produits filtrés par un critère qu'il ne voit plus et ne peut plus décocher —
+il lui reste « Tout effacer », qui lève tous les filtres, ou « Voir plus ». Le défaut est visible
+d'autant plus vite que le repli est court.
+
+**Corrigé des deux côtés**, sous la même règle : *une valeur tenue est toujours lue.* Serveur,
+`$rank >= $facet->visible && ! $selected` ; client, `! input.checked && (…)`. Le décompte des
+places (donc l'affichage du bouton) reste calculé sur les valeurs comptées, inchangé. Un test par
+côté (« it_never_folds_away_a_value_the_url_holds », « never folds away a value the visitor
+holds »).
+
+### R-87 · 🟠 · ouvert · 2026-09-08 — `DisplayOrder::Name` classe mal les libellés accentués
+
+`FacetValues` trie `Name` avec `strnatcasecmp`, qui compare des octets. En UTF-8 un `é` vaut deux
+octets qui tombent après tout l'ASCII : chaque mot accentué est rejeté à la fin de son groupe de
+lettres.
+
+```
+strnatcasecmp  : Diffuseurs · Dissolvants · Démaquillants · Déodorants
+Collator fr_FR : Démaquillants · Déodorants · Diffuseurs · Dissolvants
+```
+
+**Mesuré sur le site**, facette Catégorie, 109 termes : l'ordre `Name` diverge de celui que MySQL
+rend dès le rang 25, et la divergence court sur tout l'alphabet. `product_brand` (9 termes, sans
+accent en tête) est identique dans les deux ordres — le défaut ne se voyait pas là.
+
+Deux réponses, non exclusives :
+
+- **passer catégorie et marque à `DisplayOrder::Declared`** — zéro ligne, la collation de la base
+  range le français correctement, et un ordre posé dans l'admin serait honoré au passage
+  (WooCommerce rend `product_cat` triable par glisser-déposer) ;
+- **réparer `Name`** avec `Collator` quand `intl` est disponible, repli sur `strnatcasecmp` sinon.
+  `Name` existe pour le cas numérique (`10ml` avant `500ml`), que `Declared` ne sait faire que si
+  l'attribut est réglé sur *Nom (numérique)*. `intl` n'étant pas garanti sur un hébergement
+  quelconque, il faut un `class_exists('Collator')` et deux comportements documentés.
+
+### R-88 · 🟠 · ouvert · 2026-09-08 — le module livre les facettes de Pluralia, et un projet ne peut pas déclarer les siennes
+
+Relevé par Louis sur `ProductListing.php:27` (`private const string SIZE = 'pa_contenance';`).
+
+**Étendue mesurée — plus étroite qu'il n'y paraît.** Deux littéraux seulement, dans tout le module,
+sont propres à Pluralia : `product_brand` et `pa_contenance`, tous deux dans `ProductListing`.
+`product_cat`, `product_visibility`, `exclude-from-catalog`, `post_type`, `post_status` sont des
+universaux WooCommerce/WordPress, pas des choix de projet.
+
+**L'indexation, elle, est déjà générique** : `FacetedPostIndexable::resolveIndexedTaxonomies()` lit
+`get_object_taxonomies()` des types indexés — **toutes** les taxonomies du site deviennent
+`facets.<taxonomie>` et filtrables, sans configuration. Un site avec `pa_couleur` l'a déjà dans son
+index.
+
+**Ce qui se passe sur un site sans ces taxonomies** : rien ne casse. La facette déclarée ne reçoit
+aucune distribution, `FacetValues::of()` rend `[]`, le `<fieldset>` sort masqué (c'est le cas de
+`R-84`), et elle ne coûte **aucune** requête supplémentaire — `QueryPlan::isCountedApart()` exige
+une valeur sélectionnée, qu'une facette vide n'a jamais.
+
+**Ce qui est impossible** : déclarer les facettes du site. La liste est figée dans
+`ProductListing::facets()`, du code du module. Et la porte de sortie théorique — le projet déclare
+son propre `Listing` — bute sur `ListingRegistry::add()`, qui indexe par `name()` : une classe de
+projet nommée `products` entre en collision avec celle du module, et c'est l'ordre de découverte
+qui tranche. Ni conçu, ni documenté, ni testé.
+
+C'est l'énoncé précis de ce que `Q-07` pose en termes de dépendance WooCommerce. La réponse de fond
+y est déjà écrite : sortir `ProductListing` du module, vers le projet ou vers un pont
+`meilifacets-woocommerce`. **`T-41` en est un symptôme** — rendre l'*ordre* réglable par
+configuration n'a de sens que tant que le projet ne peut pas déclarer ses facettes ; s'il le peut,
+l'ordre vient avec elles et T-41 disparaît.
+
+### R-89 · 🟠 · ouvert · 2026-09-08 — un gabarit ne peut pas choisir les facettes qu'il rend
+
+`facets.blade.php:2` boucle sur `$listing->facets()` sans filtre, et `ListingComponent` n'accepte
+que `name` et `scroll`. Un thème rend donc **toutes** les facettes déclarées, dans un seul `<div>`,
+ou aucune.
+
+Deux besoins déjà exprimés que ça bloque :
+
+- placer une facette ailleurs qu'avec les autres — un rayon en tête de page, le reste en colonne ;
+- la modale mobile où **chaque `fieldset` est un menu déroulant** (demandée en séance le
+  2026-09-08, avec T-07) : elle suppose de pouvoir rendre les blocs séparément.
+
+Aujourd'hui la seule issue est de surcharger la vue entière, ce qui fige le markup du module dans
+le thème et le décroche des versions suivantes du contrat.
+
+**Piège à ne pas rater dans le correctif** : le sous-ensemble doit être **de rendu seulement**. Une
+facette non rendue mais présente dans l'URL filtre toujours, et la description JSON doit continuer
+de la publier — sinon le client cesse de la compter. Le plan de requête ne doit donc pas voir la
+différence : `CurrentListing` partage une seule recherche par nom, deux composants d'une même page
+ne peuvent pas produire deux recherches.
+
+**Contrainte posée en séance le 2026-09-08 : aucun nom de taxonomie en dur dans un gabarit.**
+« Si on change de nom un jour ça sera la merde. » Le risque est borné — `product_cat` vit aussi
+dans `term_taxonomy`, dans les URLs `/categorie-produit/…` et dans l'index, et le renommer est une
+migration que `CLAUDE.md` § 6 encadre déjà — mais un gabarit n'a pas à porter ce nom.
+
+Deux cas, deux réponses :
+
+- **placer chaque facette** ne demande aucun identifiant : le slot expose la liste, le thème boucle
+  et habille (`@foreach ($facets as $facet)` autour d'un `<x-meilifacets::facet :facet="$facet" />`) ;
+- **n'en rendre que certaines** en demande un. Trois formes possibles — la taxonomie nue (casse en
+  silence), une constante de classe (`:taxonomy="ProductListing::CATEGORY"`, un FQCN dans une vue),
+  ou **un nom porté par la facette** (`new Facet('product_cat', __('Category'), name: 'category')`,
+  puis `<x-meilifacets::facet name="category" />`). La troisième suit l'habitude du module, qui
+  n'expose jamais une taxonomie et la mappe déjà (`url_parameters`). Réserve : ce serait un
+  **troisième** nom pour une même chose, après la taxonomie et le paramètre d'URL. Réutiliser le
+  paramètre d'URL comme identifiant l'éviterait, mais il est en français quand le code est en
+  anglais, et une taxonomie non mappée retombe sur `f_<taxonomie>`.
+
+**Mesuré le 2026-09-08 — déclarer des facettes ne coûte rien, en tenir coûte linéairement.**
+
+```
+0 facette tenue → 1 requête dans le multi-search   22 ms
+1 facette tenue → 2 requêtes                       18 ms
+2 facettes      → 3 requêtes                        8 ms
+3 facettes      → 4 requêtes                       10 ms
+```
+
+Une seule requête HTTP dans tous les cas — c'est un `multi-search`. Le nombre de requêtes internes
+vaut `1 + facettes multi-sélection tenues` (`QueryPlan::isCountedApart()` exige une valeur
+sélectionnée). À ce volume de catalogue, le coût marginal reste sous le bruit de mesure. Corollaire
+pour `R-88` : un back-office qui laisserait cocher douze facettes ne coûterait rien tant que le
+visiteur n'en tient qu'une ou deux.
+
 ---
 
 ## 10. Questions ouvertes
@@ -2551,6 +2944,47 @@ parallèle : il ne touche pas au rendu.
 | T-30 | Déplacer `Contract` hors de `Enums` | R-03 |
 | T-39 | Versionner les modules ES importés : un bundle au nom haché | R-70 | décidé le 2026-09-07, à faire |
 | T-40 | Ramener le regard en haut du listing après pagination et tri | R-73 | **fait** |
+| T-41 | Rendre l'ordre d'une facette réglable en configuration | Q-07 (partiel) | **différé après livraison** — décidé le 2026-09-08 |
+
+#### T-41 · Ordre d'une facette réglable en configuration
+
+**Différé volontairement le 2026-09-08 : à reprendre s'il reste du temps après la livraison.**
+
+Aujourd'hui l'ordre est une propriété de `Facet`, construite dans `ProductListing::facets()`, donc
+du code du module. Vérifié : `ResolvedListing::facets()` ne fait que renvoyer
+`$this->listing->facets()`, et le module ne compte qu'un seul `apply_filters` en tout — celui de
+WooCommerce, dans `PageSize`. **Ni le thème ni le projet ne peuvent demander « cette facette, par
+nombre de résultats »** sans surcharger la vue et trier dans le gabarit, ou sans redéclarer un
+`Listing` entier dont la victoire sur celui du module dépendrait de l'ordre de découverte.
+
+C'est un angle de `Q-07` : si le listing produit vivait côté projet, la question ne se poserait pas.
+
+**Forme retenue si on le fait** — la même que les six réglages existants : déclaré côté projet, lu
+**dans le provider** avec son défaut, injecté en objet de valeur.
+
+```php
+'facet_order' => ['pa_contenance' => 'declared', 'product_brand' => 'count'],
+```
+
+Deux conditions, sans lesquelles ça devient un piège :
+
+1. **`DisplayOrder` adossé à des chaînes** (`enum DisplayOrder: string`), pour que `tryFrom()` fasse
+   retomber une valeur inconnue sur le défaut au lieu de jeter ;
+2. **le listing lit le réglage au lieu d'être écrasé en douce** —
+   `order: $this->orders->of(self::SIZE, DisplayOrder::Declared)` plutôt qu'une surcharge
+   invisible. Une valeur écrite en code qu'un fichier ailleurs contredit sans le dire est
+   précisément ce que la session du 2026-09-08 a passé son temps à retirer.
+
+`ProductListing` étant construit par la découverte via le conteneur, l'injection par constructeur
+suffit : la règle « jamais de config lue depuis un objet de domaine » tient.
+
+**Limites à écrire dans `configuration.md` le jour où c'est livré** : la config nomme les trois
+ordres livrés, un `ValueOrder` sur mesure reste du code ; et la clé étant une taxonomie, elle est
+globale à tous les listings — sans objet avec un seul, à revoir avec deux.
+
+**Écarté au passage** : un filtre `meilifacets/facets`. Reconstruire une `Facet` dans un filtre
+oblige à réénumérer sept arguments de constructeur pour en changer un, et c'est un réglage, pas un
+comportement — les filtres sont pour le comportement.
 
 ---
 
@@ -2798,6 +3232,12 @@ continuer à décider sur 76 produits sans variations.
   à `--meili-control: 2.9em` sous `(pointer: coarse)` : commandes et numéros de page à **40,6px**,
   lignes de facette à **37,8px** (contre 33,6 et 35). Alignement conservé, case et légende à
   `x = 12`, aucun débordement horizontal.
+  **Dernier point de la série, signalé à l'œil et confirmé au calcul** : c'était le compteur, pas la
+  case. `align-items: flex-start` calait sa boîte plus courte (18,9px contre 21) en haut de la ligne,
+  donc son texte flottait 1,5px au-dessus de la ligne de base du libellé. La ligne centre désormais
+  ses trois éléments, la case seule gardant `align-self: flex-start` pour rester sur la première
+  ligne d'un libellé qui se replie. Mesuré : centres optiques du compteur et du libellé à **0,09px**,
+  case à **0,00px** de la bande de capitales.
   Enfin, une taille est désormais décidée — `--meili-ui`, `0.875rem`, sur les commandes seules :
   hériter des 18px de Pluralia donnait des facettes plus grosses que ce qu'elles filtrent. Mesuré
   après : déclencheur et libellés à 14px, compteurs à 12.6px, titre de carte inchangé à 32px.
