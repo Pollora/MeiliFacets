@@ -218,10 +218,26 @@ d'un bouton ne comprendrait pas ce qu'on lui demande.
 `FacetsView.showSelection()` repose chaque case sur ce que l'état retient — c'est ce qui rattrape
 une valeur écartée par un plafond, une remise à zéro et un retour arrière du navigateur.
 
-**Un geste qui remplace la grille ramène le haut du listing dans l'écran** — la pagination est en
-bas de plusieurs écrans de produits, et sans ça le visiteur lit la fin d'une page dont il n'a jamais
-vu le début. Pour un pointeur seulement : au clavier, le focus tient déjà la place, et déplacer la
-page sortirait de l'écran le bouton qu'on vient de presser.
+**Un geste qui remplace la grille peut ramener le haut du listing dans l'écran** — la pagination est
+en bas de plusieurs écrans de produits, et sans ça le visiteur lit la fin d'une page dont il n'a
+jamais vu le début.
+
+**Désactivé par défaut, demandé composant par composant** :
+
+```blade
+<x-meilifacets::pagination scroll />
+<x-meilifacets::sort />            {{-- ne déplace rien --}}
+```
+
+Le composant rend alors `data-meili-scroll`, et le client ne déplace la page que si le contrôle
+cliqué est à l'intérieur d'un élément qui le porte. Un thème peut donc le vouloir sur la pagination
+et pas sur le tri, ce que ni une clé de configuration ni un réglage global ne permettraient.
+
+L'attribut n'entre pas dans `VERSION` : son absence est le comportement par défaut, donc un thème
+écrit avant lui continue de fonctionner à l'identique.
+
+Pour un pointeur seulement : au clavier, le focus tient déjà la place, et déplacer la page sortirait
+de l'écran le bouton qu'on vient de presser.
 
 ⚠️ **Un thème à en-tête collant doit poser `scroll-margin-top` sur `[data-listing]`.** Le module ne
 peut pas connaître cette hauteur, et sans la marge le haut du listing atterrit sous l'en-tête.

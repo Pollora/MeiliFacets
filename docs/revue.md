@@ -985,7 +985,7 @@ Rien de ce qui est validé en local ne vaut engagement tant que la montée n'est
 `filterableAttributes` posés aujourd'hui sont explicites (pas de motif `facets.*`), donc a priori
 compatibles — a priori seulement.
 
-### R-42 · 🟠 · ouvert, **différé le 2026-09-07** · 2026-09-06 — la pagination promet des pages que le moteur ne sert pas
+### R-42 · 🟠 · ouvert · 2026-09-06 — la pagination promet des pages que le moteur ne sert pas
 
 *Formulation corrigée le 2026-09-07 : elle était fausse.* Elle disait que `totalHits` plafonnait et
 que « rien ne le dit ». Mesuré sur 1.53.1 avec des index fabriqués pour l'occasion (détail dans
@@ -995,12 +995,28 @@ que « rien ne le dit ». Mesuré sur 1.53.1 avec des index fabriqués pour l'oc
   2 500 documents, `totalHits: 1500` sur un filtre à 1 500 ;
 - **`totalHits` et `totalPages` ne sont pas plafonnés** — 1 570 et 157 sur 1 570 documents ;
 
-**Ajouté le 2026-09-07 (revue du lot 3c-2).** `engine.reachable_hits` **déclare** le plafond, il ne
-le **pose pas** : le module n'écrit jamais `pagination.maxTotalHits` sur l'index, et le réglage
-n'apparaît pas dans la liste de ceux qu'il pose. Les deux valeurs sont tenues à la main. Un projet
-qui monte le `maxTotalHits` de son index sans toucher la clé garde une pagination tronquée, en
-silence. Documenté en avertissement dans `configuration.md` ; à reprendre si le lot 6 ajoute un
-`meilifacets:doctor`, qui saurait comparer les deux.
+**Ajouté le 2026-09-07 (revue du lot 3c-2), puis fermé le même jour.** `engine.reachable_hits`
+**déclarait** le plafond sans le **poser** : le module n'écrivait jamais `pagination.maxTotalHits`
+sur l'index. Les deux valeurs étaient tenues à la main, et un projet qui montait le `maxTotalHits`
+de son index sans toucher la clé gardait une pagination tronquée, en silence.
+
+**Corrigé.** `FacetedPostIndexable::getIndexSettings()` écrit `pagination.maxTotalHits` depuis
+`EngineLimits`, par le même chemin que les quatre autres réglages du module. La clé de
+configuration est désormais la seule source.
+
+**Mesuré le 2026-09-07 sur le chemin de réindexation complète** : `reachable_hits` posé à 2500 →
+`meiliscout index --clear` → l'index déclare `{"maxTotalHits":2500}` et la description publiée au
+navigateur porte `"reachableHits":2500` ; remis au défaut → `{"maxTotalHits":1000}`. Deux tests
+`Feature` couvrent l'écriture, la suite `Unit` ne pouvant pas la porter — `getIndexSettings()`
+remonte dans MeiliScout, qui lit des options WordPress.
+
+⚠️ **Fermé puis rouvert le même jour : la mesure ne portait que sur un chemin.** Interrogé sur la
+qualité de la vérification, j'ai refait la mesure sur le **chemin normal** — l'enregistrement d'un
+article, sans purge. Le réglage **n'est pas écrit** : `reachable_hits` à 1750, un `wp post update`,
+l'index reste à 1000. La cause est R-79, et elle est plus grave que R-42.
+
+⚠️ Contrepartie assumée : un `maxTotalHits` posé à la main sur l'index sera écrasé à la prochaine
+indexation. C'est vrai de tous les réglages que le module pose.
 - **seules les pages le sont** : à 10 par page, la 100 sert 10 produits, la 101 en sert **zéro**, en
   répondant `200`. Le moteur annonce 157 pages et en refuse 57.
 
@@ -2121,6 +2137,83 @@ Sortie propre le jour où ça compte : publier la locale et passer par `Intl.Plu
 envoyer la forme choisie plutôt que le motif. Aucune des deux ne vaut d'être faite tant que rien
 ne l'affiche.
 
+### R-79 · 🔴 · ouvert · 2026-09-07 — enregistrer un article détruit les réglages d'index du module
+
+**Trouvé en vérifiant R-42 sur le chemin normal, et reproductible en trois commandes.**
+
+```
+réindexation complète  → filterableAttributes : […, facets.category, facets.product_cat, …]
+                         sortableAttributes   : [metas._price, post_date, post_title]
+                         la boutique rend 17 cartes
+
+wp post update <un produit>
+
+après                  → filterableAttributes : [post_type, post_status, terms.*]
+                         sortableAttributes   : [post_date, post_title]
+                         la boutique rend 0 carte, page d'indisponibilité
+```
+
+**Un seul enregistrement d'article suffit à casser le listing**, jusqu'à la prochaine réindexation
+complète. En production, c'est un rédacteur qui publie.
+
+**Cause, lue dans MeiliScout.** `AbstractSingleIndexer::__construct()` appelle `createIndexable()`,
+qui appelle `resolveIndexable()`, qui applique le filtre `meiliscout/indexables`. Or l'indexeur est
+construit dans `SingleIndexingServiceProvider::register()` — **avant** que la découverte d'attributs
+de Pollora n'ait enregistré les `#[Filter]` du module. Le filtre ne trouve donc personne, l'indexeur
+mémorise le `PostIndexable` nu pour toute la requête, et chaque `save_post` fait
+`ensureIndexExists()` → `updateSettings()` avec les réglages de base, qui écrasent les nôtres.
+
+Vérifié que le filtre lui-même est sain : sous `wp eval`, `apply_filters('meiliscout/indexables',
+[new PostIndexable])` rend bien `FacetedPostIndexable`, avec `facets.*` et le `maxTotalHits` du
+module. C'est l'**instant** de la résolution qui est faux, pas la résolution.
+
+**Antérieur au lot 3c-2** : les attributs de facettes sont posés depuis le lot 1, et rien n'a jamais
+enregistré d'article pendant une session de travail. Le correctif de R-42 n'a fait que rendre le
+défaut visible — il en a ajouté une troisième victime, `pagination.maxTotalHits`.
+
+**Sortie, dans l'ordre de préférence de `CLAUDE.md`** — corriger la dépendance plutôt que la
+contourner, comme `resolveIndexable()` l'a déjà été : rendre la résolution **paresseuse** dans
+`AbstractSingleIndexer`, c'est-à-dire sortir `$this->indexable = $this->createIndexable()` du
+constructeur pour la mémoïser dans un accesseur appelé après le démarrage. Trois lignes en amont.
+
+À défaut : réécrire les réglages depuis le module après chaque `save_post`, ce qui serait une
+rustine sur un défaut de séquence.
+
+### R-80 · ⚪ · **fermé le 2026-09-07, sans code** · ouvert le 2026-09-07 — un mouvement vers le bas soupçonné avant le retour en haut
+
+Signalé en séance après activation de `scroll` sur la pagination : « j'ai l'impression qu'il descend
+puis remonte ».
+
+**Reproduit d'abord, puis démenti.** Une première mesure, avec la pagination en partie sous la
+ligne de flottaison, donnait bien une descente :
+
+| Pagination visible | La page descendait de |
+| --- | --- |
+| 10 px | 23 px |
+| 30 px | 3 px |
+| 60 px et plus | 0 |
+
+J'en ai tiré une cause plausible — le navigateur amène un bouton cliqué dans la vue avant que le
+`click` ne parte — et un correctif : prendre le focus soi-même en `preventScroll`. **Les deux
+étaient faux.**
+
+Vérifié ensuite, pas à pas : un `focus()` nu sur ce bouton partiellement visible **ne déplace pas la
+page**. Et un clic à coordonnées réelles (`page.mouse.click`), qui n'amène rien dans la vue,
+donne `descendDe: 0` à 10, 25 et 120 px de visibilité. **La descente venait de Playwright**, qui
+fait défiler l'élément dans la vue avant de cliquer. Un artefact d'instrument, pas un défaut.
+
+Le correctif a été retiré : il défendait contre un cas qui n'existe pas — le défaut même que la
+journée a passé son temps à supprimer.
+
+**Ce qui est mesuré, et qui reste** : le défilement est monotone vers le haut sur les trois gestes
+(clic sur un numéro, « Précédent », « Suivant »), depuis le bas réel du document. Deux faits
+peuvent expliquer l'impression sans être des défauts : l'animation dure **1451 ms** sur 4788 px
+(R-73), et **la grille grandit de 160 px à 72 ms**, en plein vol, quand la nouvelle page a des
+cartes plus hautes.
+
+**Enseignement** : une mesure obtenue par un outil d'automatisation décrit l'outil autant que le
+site. Un clic de Playwright n'est pas un clic de visiteur tant qu'on ne l'a pas prouvé.
+
 ---
 
 ## 10. Questions ouvertes
@@ -2618,6 +2711,13 @@ continuer à décider sur 76 produits sans variations.
   jambage étant compensé en haut : écart entre le centre de la boîte et le centre des lettres ramené
   de 2,02px à **0,27px**, gouttières gauche et droite à 10,5px chacune. R-47 n'est pas fermé pour
   autant : une pastille bien centrée ne remplace pas des puces retirables.
+  **Le retour d'appui du déclencheur de tri est retiré.** Le `scale(0.99)` faisait rentrer chaque
+  bord de 0,98px (196 → 194,04px mesuré sous `Input.dispatchMouseEvent`), et le panneau, qui s'ouvre
+  au relâchement, arrivait à pleine largeur pendant que le déclencheur était encore rétréci : le
+  joint des deux bordures se décalait d'un pixel puis se recalait. Une commande soudée à un panneau
+  ne bouge pas de géométrie ; elle change de fond (`--meili-press`, 14%). Corollaire trouvé au
+  passage : posée avant la requête de survol, la règle `:active` perdait à spécificité égale — le
+  fond restait à 8% sous le doigt. Les états d'appui vont après.
   Enfin, une taille est désormais décidée — `--meili-ui`, `0.875rem`, sur les commandes seules :
   hériter des 18px de Pluralia donnait des facettes plus grosses que ce qu'elles filtrent. Mesuré
   après : déclencheur et libellés à 14px, compteurs à 12.6px, titre de carte inchangé à 32px.

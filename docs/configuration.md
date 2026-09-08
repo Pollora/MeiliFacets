@@ -54,16 +54,19 @@ Le module ne lit **jamais** `MEILI_PUBLIC_URL` ni `MEILI_SEARCH_KEY` : c'est au
 suffit (R-65) — `BrowserConnection::isConfigured()` répond `false`, aucun JavaScript n'est chargé,
 et rien ne le dit.
 
-⚠️ **`engine.reachable_hits` déclare une valeur, il ne la pose pas.** C'est le `maxTotalHits` du
-moteur, c'est-à-dire le nombre de résultats au-delà duquel Meilisearch répond `200` **sans aucun
-hit** — tout en continuant d'annoncer les pages qu'il refuse de servir. `Pagination` et son miroir
-`PageWindow` s'en servent pour ne jamais proposer une de ces pages.
+**`engine.reachable_hits` est le `maxTotalHits` du moteur** : le nombre de résultats au-delà duquel
+Meilisearch répond `200` **sans aucun hit**, tout en continuant d'annoncer les pages qu'il refuse de
+servir. `Pagination` et son miroir `PageWindow` s'en servent pour ne jamais proposer une de ces
+pages — et **le module l'écrit sur l'index**, à chaque `ensureIndexExists()`, comme les quatre
+autres réglages qu'il pose.
 
-Le module **n'écrit pas** ce réglage sur l'index : il n'apparaît pas dans le tableau des réglages
-posés, plus bas. Les deux valeurs sont donc tenues à la main, et un projet qui monte le
-`maxTotalHits` de son index sans toucher cette clé garde une pagination tronquée, en silence. La
-valeur par défaut `1000` est celle de Meilisearch lui-même — tant que personne n'y touche, les deux
-sont d'accord.
+La clé est donc la seule source : la changer et réindexer suffit. Vérifié le 2026-09-07 —
+`reachable_hits` à 2500, réindexation, l'index déclare `{"maxTotalHits":2500}` et la description
+publiée au navigateur porte `"reachableHits":2500`.
+
+⚠️ Corollaire : un `maxTotalHits` posé à la main sur l'index **sera écrasé** à la prochaine
+indexation. C'est vrai de tous les réglages que le module pose, et c'est le prix de n'avoir qu'une
+source.
 
 Facettes, filtres et total restent exacts au-delà du plafond : seules les pages sont concernées
 (mesuré, `R-42`).
@@ -176,6 +179,13 @@ recherche `WP_Query` de MeiliScout, qui reconstruit un `WP_Post` depuis le hit c
 Un plugin contribue les siens par `IndexAttributes::displayed()`, comme il contribue déjà ses
 attributs filtrables et triables.
 
+## Ce qui se règle sur un composant, pas en configuration
+
+Le retour du regard en haut du listing après un geste ne se déclare pas ici : il s'active
+**composant par composant**, par l'attribut `scroll` (`<x-meilifacets::pagination scroll />`). Une
+clé de configuration aurait imposé le même choix à la pagination, au tri et à la remise à zéro,
+alors qu'un thème veut couramment l'un sans les autres. Voir `architecture.md`.
+
 ## Ce qui est indexable
 
 Toute URL portant un paramètre du listing — facette, tri, page, recherche — sort en
@@ -227,6 +237,7 @@ directement — ce qui est indexé est filtrable.
 | `filterableAttributes` | ceux de MeiliScout, plus `facets.<taxonomie>` pour chaque taxonomie indexée, plus `metas._price` et `metas._stock_status` si WooCommerce est actif |
 | `sortableAttributes` | ceux de MeiliScout, plus `metas._price` si WooCommerce est actif |
 | `faceting.sortFacetValuesBy` | `count` pour toutes les facettes |
+| `pagination.maxTotalHits` | ce que `engine.reachable_hits` déclare |
 | `displayedAttributes` | ceux de MeiliScout, plus `card` et ce que `displayed_attributes` ajoute |
 
 Aucun point d'extension dédié : les changer demande d'étendre `FacetedPostIndexable` et de le
