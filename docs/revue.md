@@ -3003,9 +3003,10 @@ personne ne retrouve. État de départ : ouvert, sauf mention.
 | `R-100` | 🟢 | **fermé le 2026-09-09** | `Facets::render()` renvoie `''` au lieu de `shouldRender()`, ce qui écrit un fichier compilé vide |
 | `R-101` | 🟡 | **fermé le 2026-09-09** | les tests Feature assertaient le catalogue de facettes du projet hôte |
 | `R-102` | 🟡 | ouvert | le test du bouton de repli ne peut pas échouer |
-| `R-103` | 🟢 | ouvert | `forgetScopedInstances()` sans `tearDown()` symétrique |
+| `R-103` | 🟢 | **fermé le 2026-09-09** | `forgetScopedInstances()` sans `tearDown()` symétrique |
 | `R-104` | 🟡 | **fermé le 2026-09-09** | le bloc `R-89` du registre affirme le contraire de ce qui a été livré ; `configuration.md` ne documente pas la nouvelle API publique |
 | `R-105` | 🟡 | ouvert | la fixture `tests/js/dom.js` ne reflète plus le Blade (panneau absent) |
+| `R-107` | 🟡 | ouvert | le texte des contrôles est 2,3 px au-dessus du centre optique — métriques d'Epilogue, correction à placer côté thème |
 | `R-106` | 🟡 | ouvert | rien ne verrouille « le retrait est affaire de rendu seulement », que `R-89` nomme pourtant |
 
 ### R-97 · 🟠 · **fermé le 2026-09-09** · ouvert le 2026-09-09 — collision d'identifiants entre panneau et compteur
@@ -3114,6 +3115,59 @@ il assert l'absence du fichier compilé. Trois mutations passées — revenir à
 style branche ses règles. C'est exact, mais c'est le comportement — arbitré par Louis le
 2026-09-08 (« il ne faut pas d'élément sinon tu vas alourdir le DOM ») — et la conséquence sur le
 style appartient à `R-93`.
+
+---
+
+### R-103 · 🟢 · **fermé le 2026-09-09** · ouvert le 2026-09-09 — `forgetScopedInstances()` sans `tearDown()`
+
+La suite partage une seule application pour tout le run (gotcha 23 du `CLAUDE.md` projet), donc
+`FacetComponentTest` laissait derrière lui un `ResolvedListing` portant les facettes qu'il avait
+placées.
+
+**Le mécanisme décrit par la revue est faux, et la réalité est pire.** Elle annonçait un échec sur
+`Facet "category" is rendered twice`. Ce qui fuit est `$apart`, pas `$rendered` : `remainingFacets()`
+rend `[]` et le groupe sort **avec son bouton et aucune facette**, sans rien lever. Un test suivant
+obtient donc un résultat faux au lieu d'une erreur.
+
+Prouvé avant de corriger, par une sonde rendant `<x-meilifacets::facets />` sans réinitialiser :
+verte seule, rouge dans la suite complète.
+
+Correctif : `tearDown()` appelant `forgetScopedInstances()` **avant** `parent::tearDown()` — le
+`TestCase` du projet met `$this->app` à `null` juste après pour empêcher le `flush()`. La sonde est
+devenue `ListingStateIsolationTest`.
+
+**Limite écrite dans son docblock** : ce test ne vaut que si son fichier passe après ceux qui
+placent des facettes. Seul, il est vert dans les deux cas. C'est le seul test qui tue la mutation
+(retirer le `tearDown()` fait échouer la suite complète), mais il repose sur l'ordre alphabétique.
+
+---
+
+### R-107 · 🟡 · ouvert · 2026-09-09 — le texte des contrôles n'est pas au centre optique
+
+Relevé par Louis sur capture, cause confirmée par lui puis mesurée : **les métriques d'Epilogue**.
+À 14 px, la police déclare `ascent 11 px / descent 3 px` ; les libellés des contrôles (« Pertinence »,
+« Tout effacer ») n'ont aucun jambage, donc la réserve de 3 px reste vide et l'encre remonte.
+
+```
+encre à 11,53 px du haut · 13,86 px du bas  →  2,3 px trop haut
+```
+
+`align-items: center` centre la **boîte de ligne**, pas les glyphes.
+
+Ce n'est pas le `line-height`, mesuré dans les deux réglages : `1.2` donne 10,60 / 10,90 et `1`
+donne 10,50 / 11,00 — le demi-interligne est symétrique, il ne déplace rien. Le décalage précède le
+passage à `line-height: 1`.
+
+`text-box: trim-both cap alphabetic` est supporté mais **sans effet ici** : mesuré à 10,50 / 11,00
+en `inline-flex`, contre 12,16 / 9,34 en `inline-block`. La propriété s'applique aux boîtes de bloc,
+et dans un conteneur flex le texte est un élément anonyme. L'utiliser imposerait d'envelopper le
+libellé dans un `<span>` dans quatre vues.
+
+**Position proposée, non tranchée** : la correction appartient au thème. La feuille du module est
+une base neutre qui ne peut pas connaître le rapport ascent/descent de la police que le thème
+choisit ; une compensation en dur serait fausse pour toute autre police. Le seul geste défendable
+côté module serait d'envelopper le libellé dans un `<span>` **sans** correction, pour donner une
+prise au thème.
 
 ---
 

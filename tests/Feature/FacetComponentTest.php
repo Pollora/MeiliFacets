@@ -28,6 +28,14 @@ final class FacetComponentTest extends TestCase
         $this->app->forgetScopedInstances();
     }
 
+    /** Placed facets would otherwise reach a later class, which has no reason to expect them. */
+    protected function tearDown(): void
+    {
+        $this->app->forgetScopedInstances();
+
+        parent::tearDown();
+    }
+
     #[Test]
     public function it_hangs_the_hook_on_the_outermost_element(): void
     {
