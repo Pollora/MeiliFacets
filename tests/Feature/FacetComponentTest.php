@@ -92,6 +92,20 @@ final class FacetComponentTest extends TestCase
         $this->assertStringNotContainsString('data-meili="facets"', $rendered);
     }
 
+    /** A string return would have Blade compile, write and include a file that renders nothing. */
+    #[Test]
+    public function it_compiles_no_view_when_it_renders_nothing(): void
+    {
+        config(['meilifacets.apply_mode' => 'immediate']);
+        $empty = config('view.compiled').'/'.hash('xxh128', '').'.blade.php';
+        @unlink($empty);
+
+        $this->placingEveryFacet();
+        Blade::render('<x-meilifacets::facets />');
+
+        $this->assertFileDoesNotExist($empty);
+    }
+
     /** Unless it still holds the button that commits the filters. */
     #[Test]
     public function it_keeps_the_container_that_carries_the_apply_button(): void

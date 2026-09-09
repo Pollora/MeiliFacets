@@ -2983,7 +2983,7 @@ personne ne retrouve. État de départ : ouvert, sauf mention.
 | `R-97` | 🟠 | **fermé le 2026-09-09** | collision d'identifiants entre panneau et compteur |
 | `R-98` | 🟡 | ouvert | le composant `facet` n'émet jamais `{{ $attributes }}` : ni classe ni id sur une facette placée |
 | `R-99` | 🟡 | ouvert | `$scroll` est accepté puis ignoré par le composant `Facet` |
-| `R-100` | 🟢 | ouvert | `Facets::render()` renvoie `''` au lieu de `shouldRender()`, ce qui écrit un fichier compilé vide |
+| `R-100` | 🟢 | **fermé le 2026-09-09** | `Facets::render()` renvoie `''` au lieu de `shouldRender()`, ce qui écrit un fichier compilé vide |
 | `R-101` | 🟡 | **fermé le 2026-09-09** | les tests Feature assertaient le catalogue de facettes du projet hôte |
 | `R-102` | 🟡 | ouvert | le test du bouton de repli ne peut pas échouer |
 | `R-103` | 🟢 | ouvert | `forgetScopedInstances()` sans `tearDown()` symétrique |
@@ -3046,6 +3046,57 @@ toujours) mais est rattrapé par l'assertion littérale.
 
 **Réserve consignée** : `sanitize_title` est un filtre. Un plugin qui s'y branche pourrait rendre
 `--`. Le cœur ne le fait jamais et aucun plugin installé ici ne s'y branche.
+
+---
+
+### R-100 · 🟢 · **fermé le 2026-09-09** · ouvert le 2026-09-09 — `render()` renvoyait une chaîne vide au lieu d'utiliser `shouldRender()`
+
+Le comportement ne change pas : un groupe auquel aucune facette n'est affectée, et qui ne porte pas
+le bouton d'envoi, ne rend toujours rien. C'est le mécanisme qui change.
+
+`Component::render()` acceptait une chaîne, que Laravel traite comme un gabarit Blade **inline** :
+`extractBladeViewFromString()` en calcule l'empreinte xxh128, `createBladeViewFromString()` écrit un
+`.blade.php` dans `view.compiled`, et le rendu l'inclut. Pour la chaîne vide, cela donne
+`99aa06d3014798d86001c324468d497f.blade.php`, **0 octet**, inclus à chaque rendu pour ne rien
+produire.
+
+Deux corrections à ce que la revue en disait, mesurées :
+
+- l'écriture n'a pas lieu « à chaque rendu ». `static::$bladeViewCache` mémoïse par **processus** :
+  c'est une écriture par requête qui atteint la branche, pas par rendu. Vérifié dans les deux sens —
+  inode inchangé sur 200 rendus d'un même processus, inode déplacé entre trois processus, puisque
+  `Filesystem::replace()` passe par un fichier temporaire puis un `rename` ;
+- le garde-fou de Laravel `! is_file($viewFile) || filesize($viewFile) === 0` reste vrai à
+  perpétuité pour un contenu vide, donc le fichier est bien réécrit à chaque processus, jamais
+  réutilisé.
+
+Coût réel mesuré, médiane sur cinq séries de 200 rendus du groupe vide :
+
+| | par rendu du groupe vide |
+| --- | --- |
+| `return ''` | 53,8 µs (min 43,9 — max 78,5) |
+| `shouldRender()` | 17,1 µs (min 13,7 — max 55,8) |
+
+Une page ne rend ce groupe qu'une fois : le gain réel est de ~37 µs sur un TTFB médian de 264 ms,
+soit 0,014 %. **Et aucune page du site n'atteint la branche aujourd'hui** : `apply_mode` vaut
+`submit`, donc `needsButton()` est vrai et le conteneur est rendu dans tous les cas. Le retour de
+chaîne vide était du code mort en configuration courante.
+
+Ce qui justifie le changement n'est donc pas la performance : `render()` retrouve un type de retour
+honnête (`View`, plus `View|string`), la condition prend le nom que le framework lui donne
+(`CompilesComponents.php:73` compile littéralement `<?php if ($component->shouldRender()): ?>`, donc
+le garde-fou passe avant toute résolution de vue), et `storage/framework/views` cesse de porter un
+fichier de 0 octet.
+
+Le test (`it_compiles_no_view_when_it_renders_nothing`) verrouille le mécanisme et non la sortie :
+il assert l'absence du fichier compilé. Trois mutations passées — revenir à `return ''`, forcer
+`shouldRender()` à `true`, le forcer à `false` — les trois sont tuées.
+
+**Non traité ici, à sa place** : la revue ajoute que le garde-fou fait aussi disparaître
+`{{ $scrollMark() }}`, `data-apply` et l'ancre `[data-meili="facets"]` sur laquelle la feuille de
+style branche ses règles. C'est exact, mais c'est le comportement — arbitré par Louis le
+2026-09-08 (« il ne faut pas d'élément sinon tu vas alourdir le DOM ») — et la conséquence sur le
+style appartient à `R-93`.
 
 ---
 

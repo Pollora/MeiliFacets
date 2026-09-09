@@ -8,12 +8,13 @@ use Illuminate\Contracts\View\View;
 
 final class Facets extends ListingComponent
 {
-    public function render(): View|string
+    public function shouldRender(): bool
     {
-        if ($this->listing->remainingFacets() === [] && ! $this->listing->applyMode()->needsButton()) {
-            return '';
-        }
+        return $this->listing->remainingFacets() !== [] || $this->listing->applyMode()->needsButton();
+    }
 
+    public function render(): View
+    {
         return view('meilifacets::components.facets', [
             'applyMode' => $this->listing->applyMode()->value,
             'needsApplyButton' => $this->listing->applyMode()->needsButton(),
