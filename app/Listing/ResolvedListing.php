@@ -13,6 +13,7 @@ use Modules\MeiliFacets\Search\ListingSearch;
 use Modules\MeiliFacets\Search\SearchFailed;
 use Modules\MeiliFacets\Search\SearchResults;
 use Modules\MeiliFacets\Support\UrlParameters;
+use RuntimeException;
 
 final class ResolvedListing
 {
@@ -24,6 +25,15 @@ final class ResolvedListing
     private ?Pagination $pages = null;
 
     private bool $failed = false;
+
+    /** @var list<Facet>|null */
+    private ?array $facets = null;
+
+    /** @var array<string, true> names already on the page, whatever placed them */
+    private array $rendered = [];
+
+    /** @var array<string, true> names a template placed on their own */
+    private array $apart = [];
 
     public function __construct(
         private readonly Listing $listing,
@@ -73,7 +83,72 @@ final class ResolvedListing
      */
     public function facets(): array
     {
-        return $this->listing->facets();
+        return $this->facets ??= $this->refuseSharedNames($this->listing->facets());
+    }
+
+    /**
+     * @param  list<Facet>  $facets
+     * @return list<Facet>
+     */
+    private function refuseSharedNames(array $facets): array
+    {
+        $labels = [];
+
+        foreach ($facets as $facet) {
+            if (isset($labels[$facet->name])) {
+                throw new RuntimeException(sprintf(
+                    'Facets "%s" and "%s" answer to the same name "%s" in listing "%s". Declare `name:` on all but one of them.',
+                    $labels[$facet->name], $facet->label, $facet->name, $this->name(),
+                ));
+            }
+
+            $labels[$facet->name] = $facet->label;
+        }
+
+        return $facets;
+    }
+
+    public function facetNamed(string $name): Facet
+    {
+        return array_find($this->facets(), static fn (Facet $facet): bool => $facet->name === $name)
+            ?? throw new RuntimeException(
+                "No facet named \"{$name}\" in listing \"{$this->name()}\". Declared: ".
+                implode(', ', array_map(static fn (Facet $facet): string => $facet->name, $this->facets())).'.'
+            );
+    }
+
+    /**
+     * What `<x-meilifacets::facets>` shows: everything a template did not place on
+     * its own.
+     *
+     * @return list<Facet>
+     */
+    public function remainingFacets(): array
+    {
+        return array_values(array_filter(
+            $this->facets(),
+            fn (Facet $facet): bool => ! isset($this->apart[$facet->name])
+        ));
+    }
+
+    /** Designated by name, so the group leaves it alone. */
+    public function placeApart(Facet $facet): void
+    {
+        $this->apart[$facet->name] = true;
+
+        $this->place($facet);
+    }
+
+    public function place(Facet $facet): void
+    {
+        if (isset($this->rendered[$facet->name])) {
+            throw new RuntimeException(
+                "Facet \"{$facet->name}\" is rendered twice on this page: its inputs and ids "
+                .'would be duplicated. Place it on its own before <x-meilifacets::facets>, which shows what is left.'
+            );
+        }
+
+        $this->rendered[$facet->name] = true;
     }
 
     /**

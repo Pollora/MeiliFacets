@@ -20,8 +20,12 @@ final readonly class WordPressTermLabels implements TermLabels
             return [];
         }
 
-        // One query for the whole facet rather than one per value.
-        $terms = get_terms(['taxonomy' => $taxonomy, 'slug' => $slugs, 'hide_empty' => false]);
+        $terms = get_terms([
+            'taxonomy' => $taxonomy,
+            'slug' => $slugs,
+            'hide_empty' => false,
+            'update_term_meta_cache' => false,
+        ]);
 
         return is_array($terms) ? $this->named($terms) : [];
     }

@@ -244,6 +244,16 @@ de page. Coût habituel, assumé.
 **Meilisearch fournit le listing et les facettes.** Au premier rendu, PHP l'interroge pendant
 que la page se construit. Ensuite, chaque interaction de filtrage part du navigateur.
 
+### Ce que le compteur d'une valeur est, pour un lecteur d'écran
+
+Le compteur est relié à sa case par `aria-describedby`, **jamais** par `aria-labelledby` ni en
+faisant partie du libellé. Il change à chaque filtrage : le nommer ferait renommer, sous le
+curseur, la case qu'on est en train de lire. Décrit, il est annoncé après le nom et une
+actualisation n'est qu'une information de plus.
+
+Il est aussi écrit en toutes lettres (« 14 résultats », `trans_choice`) plutôt qu'en nombre nu
+collé au libellé, qu'un lecteur d'écran rendrait « 15ml 2 ».
+
 ## Transport
 
 **Le navigateur interroge Meilisearch en direct.** Aucun proxy PHP, aucune route
@@ -552,7 +562,7 @@ thème périmée dégrade donc vers le rendu serveur, jamais vers une interactio
 | `sort-trigger` | idem | le bouton qui ouvre la liste et affiche le tri courant |
 | `sort-list` | idem | la `listbox`, masquée à la fermeture |
 | `sort-option` | idem | une option, sa clé dans `data-value` |
-| `facet` | `<x-meilifacets::facets>` | un bloc de facette, ce qu'un thème peut rendre en liste dépliante |
+| `facet` | `<x-meilifacets::facet>` | un bloc de facette. **Le crochet va sur l'élément le plus extérieur** : c'est celui-là que le client masque quand la facette n'a plus rien à montrer, donc un thème qui enrobe le déplace avec lui |
 | `more` | idem | le bouton qui lit la facette en entier |
 | `reset` | `<x-meilifacets::reset>` | le bouton « tout effacer » |
 | `active-filters` | `<x-meilifacets::active-filters>` | le compteur de filtres actifs |

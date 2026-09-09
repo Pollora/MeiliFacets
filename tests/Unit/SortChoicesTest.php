@@ -53,9 +53,9 @@ final class SortChoicesTest extends TestCase
         $ids = array_column($this->choices->of($this->sorts(), null), 'id');
 
         $this->assertSame([
-            'meilifacets-products-sort-default',
-            'meilifacets-products-sort-price_asc',
-            'meilifacets-products-sort-newest',
+            'meilifacets-products-sort-option-default',
+            'meilifacets-products-sort-option-price_asc',
+            'meilifacets-products-sort-option-newest',
         ], $ids);
     }
 

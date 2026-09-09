@@ -241,9 +241,30 @@ directement — ce qui est indexé est filtrable.
 | `faceting.sortFacetValuesBy` | `count` pour toutes les facettes |
 | `pagination.maxTotalHits` | ce que `engine.reachable_hits` déclare |
 | `displayedAttributes` | ceux de MeiliScout, plus `card` et ce que `displayed_attributes` ajoute |
+| `faceting.maxValuesPerFacet` | **non écrit** — laissé au défaut du moteur, `100` |
 
 Aucun point d'extension dédié : les changer demande d'étendre `FacetedPostIndexable` et de le
 substituer par `meiliscout/indexables` à une priorité plus haute que celle du module.
+
+## Trois plafonds, et lequel coupe quoi
+
+Une facette qui ne montre pas toutes ses valeurs les a perdues à l'un de ces trois endroits. Ils
+s'appliquent **dans cet ordre**, et aucun ne dépend de la page affichée : `facetDistribution` est
+calculée par le moteur sur **tous** les documents qui correspondent au filtre, pas sur les résultats
+renvoyés — mesuré le 2026-09-08, distribution identique à `hitsPerPage` 1, 16 et 200.
+
+| Plafond | Défaut | Qui le pose | Ce qu'il coupe |
+| --- | --- | --- | --- |
+| `faceting.maxValuesPerFacet` | **100** | **le moteur** — le module ne l'écrit pas | les valeurs distinctes que `facetDistribution` renvoie, les **mieux comptées** d'abord grâce à `sortFacetValuesBy` |
+| `Facet::$cap` | 30 | la facette | ce que le module garde de ce qu'il a reçu |
+| `Facet::$visible` | 10 | la facette | ce qui est **lu** avant dépliage — le reste est rendu, jamais perdu |
+
+⚠️ **`cap` ne peut pas dépasser `maxValuesPerFacet`.** Une facette déclarée `cap: 200` en obtiendra
+cent, sans erreur ni avertissement : `array_slice()` sur cent éléments en rend cent. Sur une
+taxonomie de plusieurs centaines de termes — une marque, un ingrédient — c'est le plafond qui décide
+en dernier, et c'est le seul des trois que le module ne pose pas, donc le seul qu'on ne trouve pas
+en lisant son code. Le relever demande de l'écrire dans `faceting` via l'indexable, comme
+`sortFacetValuesBy`.
 
 `sortFacetValuesBy` à `count` n'est pas cosmétique — Meilisearch trie les valeurs
 alphabétiquement par défaut, ce qui ferait afficher à une facette plafonnée à dix valeurs les dix
@@ -308,6 +329,68 @@ parcourir un catalogue. Une facette dont le repli est un terme réel, choisi par
 `defaultTerm: DefaultTerm::Shown`. Écarter la valeur ne retire pas le contenu du listing. Le mode de sélection n'est pas cosmétique : seule une
 facette multi-sélection reçoit une recherche disjonctive, et seulement une fois qu'elle
 contraint réellement les résultats.
+
+## Placer les facettes dans un gabarit
+
+Deux composants, comme pour le tri et la remise à zéro : un qui place **une** facette, un qui prend
+**ce qui reste**.
+
+```blade
+@use('App\Cms\Products\ShopFacet')
+
+<x-meilifacets::listing>
+    <x-meilifacets::facet :facet="ShopFacet::Category" class="lg:col-span-2" scroll />
+    <x-meilifacets::facets />
+</x-meilifacets::listing>
+```
+
+⚠️ **Tout composant du module vit à l'intérieur de `<x-meilifacets::listing>`.** C'est lui qui rend
+`[data-listing]`, et le client s'attache une fois par racine : ce qui est posé dehors est rendu,
+stylé, cochable — et **inerte**. Cases sans effet, compteurs jamais rafraîchis, « Voir plus » qui ne
+déplie rien. La règle vaut pour `facet`, `facets`, `sort`, `reset`, `pagination`, `active-filters`
+et `results` sans exception. Un composant posé dehors est signalé au démarrage :
+
+```
+[meilifacets] the client binds inside [data-listing] only. Move inside <x-meilifacets::listing>: facet.
+```
+
+`<x-meilifacets::facets />` rend toutes les facettes qu'aucun `<x-meilifacets::facet>` n'a déjà
+placées, dans l'ordre déclaré. Placer une facette **après** le groupe lève : le groupe l'a déjà
+prise. Un groupe auquel il ne reste rien, et qui ne porte pas le bouton d'envoi, ne rend aucune
+balise.
+
+**Une facette n'est rendue qu'une fois par page.** Un second rendu lève une exception nommée plutôt
+que de dupliquer silencieusement les entrées et les identifiants qu'elles portent.
+
+### Nommer une facette
+
+Le composant désigne une facette par un nom que la facette porte elle-même, jamais par sa taxonomie
+— pour qu'aucun gabarit n'ait à connaître `product_cat` :
+
+```php
+new Facet('product_cat', __('Category'), name: ShopFacet::Category)
+```
+
+`name` accepte une chaîne ou un `BackedEnum`. Sans lui, la facette répond à sa taxonomie : rien
+n'est à déclarer pour démarrer. Ranger les noms dans une énumération évite qu'un gabarit porte une
+chaîne libre, et donne à l'analyse statique de quoi voir une faute de frappe. Au rendu, un nom
+inconnu lève en nommant les facettes déclarées, dans les deux formes.
+
+`<x-meilifacets::facet>` accepte aussi une déclaration directement (`:facet="$facet"`), ce dont se
+sert `<x-meilifacets::facets>` en interne.
+
+### Ce que le composant transmet
+
+Le sac d'attributs arrive sur le `<fieldset>` et fusionne avec la classe du module
+(`class="meilifacetsFacet lg:col-span-2"`), et `scroll` s'y déclare comme sur les autres composants.
+Une facette placée à part se comporte donc comme celles du groupe.
+
+### Surcharger le markup
+
+`components/facet.blade.php` est une vue à part entière : un thème la surcharge **seule** — pour un
+menu déroulant, une modale — sans figer le reste du markup du module ni se décrocher des versions
+suivantes du contrat. Le crochet `data-meili="facet"` est sur l'élément le plus extérieur, parce que
+c'est celui que le client masque : un thème qui enrobe doit déplacer le crochet avec lui.
 
 ## Vérifier les noms de paramètres
 

@@ -31,12 +31,23 @@ final readonly class ElementId
 
     public function sortOption(string $key): string
     {
-        return $this->of('sort', $key);
+        return $this->of('sort', 'option', $key);
     }
 
-    public function facetCount(string $taxonomy, string $value): string
+    public function facetPanel(string $facet): string
     {
-        return $this->of($taxonomy, $value);
+        return $this->facetScope($facet).'panel';
+    }
+
+    public function facetCount(string $facet, string $value): string
+    {
+        return $this->facetScope($facet).'count-'.$value;
+    }
+
+    /** `sanitize_title()` collapses hyphen runs, so no term slug ever holds `--`. */
+    private function facetScope(string $facet): string
+    {
+        return $this->of('facet', $facet).'--';
     }
 
     private function of(string ...$parts): string

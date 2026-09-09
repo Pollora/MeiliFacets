@@ -342,7 +342,6 @@ tenir deux états, et surtout elle laisse le visiteur devant une grille qui igno
 vient de cocher, avec « Appliquer » pour seul moyen de les faire coïncider. Le comportement retenu
 est aussi celui de la plupart des listes à facettes.
 
-
 ## 1. Constats — architecture et conception
 
 ### R-01 · 🟠 · ouvert · 2026-09-06 — `QueryPlan` est une classe qui a perdu son constructeur
@@ -383,7 +382,6 @@ et donnerait au passage la forme sérialisable dont le client JavaScript a besoi
 paramètre de constructeur qui n'est pas passé en attribut : l'injection est disponible, elle n'est
 pas utilisée. Effet direct : ces deux composants ne se testent qu'avec une application bootée.
 
-
 **Fermé le 2026-09-07** — par R-62, sans que ce constat soit mis à jour. Relevé par la passe de
 conformité de la documentation : le code qu'il décrit n'existe plus.
 ### R-05 · 🟠 · **fermé le 2026-09-07** · ouvert le 2026-09-06 — la configuration est lue depuis les objets de domaine
@@ -396,7 +394,6 @@ dépendance globale déguisée en valeur.
 Le contournement du piège nwidart (ne rien déclarer dans `config/config.php`, lire le défaut dans
 le code) est juste — c'est **l'endroit** de la lecture qui est discutable. Le provider est le seul
 qui devrait lire `config()`, comme il le fait déjà bien pour `DefaultCardProjector`.
-
 
 **Fermé le 2026-09-07** — par R-62, sans que ce constat soit mis à jour. Relevé par la passe de
 conformité de la documentation : le code qu'il décrit n'existe plus.
@@ -415,7 +412,7 @@ avertissement.
 Piste : séparer `Listing` (déclaratif, sans WordPress) d'un `ListingContext` résolu par requête, ou
 au minimum documenter le contrat temporel dans l'interface.
 
-### R-07 · 🟠 · ouvert · 2026-09-06 — `facets()` est appelée six fois par requête, sans mémoïsation
+### R-07 · 🟠 · **fermé le 2026-09-08** (R-88) · ouvert le 2026-09-06 — `facets()` est appelée six fois par requête, sans mémoïsation
 
 Sites d'appel relevés en lecture, pour un seul rendu : `StateReader::facets()`,
 `QueryPlan::fieldsCountedOnMain()`, `QueryPlan::facetClauses()` (une fois pour la requête
@@ -424,17 +421,36 @@ principale, plus une par facette comptée à part), `DisjunctiveFacetCounter::qu
 `ProductListing::facets()` refait un `is_tax()`, trois `__()` et trois `new Facet`. `sorts()` :
 trois sites.
 
+**Fermé par la couture de `R-88`.** `ProductFacets` et `ProductSorts` mémoïsent leur liste, et le
+recomptage du 2026-09-08 donne **sept** sites pour `facets()`, **six** pour `sorts()` : les appels
+restent, mais ils rendent un tableau déjà construit. Les `new Facet` et les `__()` ne se font plus
+qu'une fois par requête, les implémentations étant liées en `scoped`. Le `is_tax()` cité ici avait
+déjà quitté `facets()` pour `baseFilter()`.
+
 Rien de dramatique en volume absolu, mais c'est la règle « compter les appels, pas les lignes » du
 `CLAUDE.md` du module qui n'est pas tenue par le module lui-même. Une mémoïsation dans
 `ResolvedListing` (ou dans le `QueryPlan` de R-01) supprime le problème et le rend impossible à
 réintroduire.
 
-### R-08 · 🟡 · ouvert · 2026-09-06 — le provider fait six choses
+### R-08 · 🟡 · **fermé le 2026-09-08** · ouvert le 2026-09-06 — le provider fait six choses
 
 `MeiliFacetsServiceProvider` porte les bindings, l'enregistrement des listings, la déclaration de
 la discovery, la cascade de vues du thème, la publication des assets et les commandes. 147 lignes,
 lisibles, mais c'est le fichier que personne n'ose plus toucher. Trois providers (bindings,
 listings, vues/assets) coûteraient moins cher à faire évoluer.
+
+**Fait le 2026-09-08**, en quatre plutôt qu'en trois, calqués sur les espaces de noms du module :
+
+```
+avant :  1 fichier · 195 lignes · 19 liaisons · 10 méthodes
+après :  MeiliFacetsServiceProvider 83 · ListingServiceProvider 67
+         IndexingServiceProvider 48 · SearchServiceProvider 47 · RenderingServiceProvider 23
+```
+
+Le point d'entrée ne lie plus rien : il se déclare et enregistre les couches. Vérifié par le
+conteneur — **19 liaisons, 0 en échec**, la précédence `scopedIf` du projet survit au découpage, et
+le parcours de filtrage est recetté en navigateur. `RenderingServiceProvider` porte ce nom et pas
+`ViewServiceProvider` : Laravel en charge déjà un du même nom court.
 
 ---
 
@@ -576,7 +592,6 @@ repli, exactement dans le cas où celle-ci sert.
 marcher dessus ». Deux listings sur une page produisent donc des `id` dupliqués et un
 `aria-describedby` qui pointe vers le mauvais compteur. Un des deux composants applique la règle,
 l'autre non.
-
 
 **Fermé le 2026-09-07** — par R-62, sans que ce constat soit mis à jour. Relevé par la passe de
 conformité de la documentation : le code qu'il décrit n'existe plus.
@@ -746,7 +761,6 @@ Ici l'écriture était couverte, la lecture ne l'était pas, et le tableau du co
 client mais ne font pas partie de `Hook`, ne sont pas vérifiés par `Contract::breaches()` et ne
 figurent pas dans le tableau des crochets d'`architecture.md`. La règle « le client n'adresse que
 des crochets `data-meili` » est déjà entamée, sans que le mécanisme de version le voie.
-
 
 **Fermé le 2026-09-07** — par R-62, sans que ce constat soit mis à jour. Relevé par la passe de
 conformité de la documentation : le code qu'il décrit n'existe plus.
@@ -957,6 +971,27 @@ projet. Conséquences immédiates :
 - aucune revue de code du projet ne voit les changements du module ;
 - `docs/meilifacets/`, `config/meilifacets.php` et `themes/pluralia/.../archive-product.blade.php`
   évoluent dans un dépôt, le module dans l'autre, sans commit commun.
+
+**Instruit le 2026-09-08, différé en fin de projet** (`T-42`). Mesuré :
+
+```
+Modules/Wishlist    → 30 fichiers suivis par le projet
+Modules/MeiliFacets →  0
+origin du module    : git@github.com:Pollora/MeiliFacets.git   (47 commits, non poussés)
+```
+
+`modules_statuses.json` déclare `"MeiliFacets": true` et le `merge-plugin` cherche
+`Modules/*/composer.json` — mais **un clone du projet n'a pas le module** : une déclaration qui
+pointe dans le vide, et le listing disparaît. Sans conséquence tant qu'une seule personne y
+travaille ; bloquant dès la deuxième.
+
+Trois sorties, du plus léger au plus juste :
+
+| | Ce que ça donne | Ce que ça coûte |
+| --- | --- | --- |
+| `/Modules/MeiliFacets/` au `.gitignore` du projet | statut propre, piège du `git add -A` désamorcé | officialise que le projet n'est pas autonome |
+| vrai sous-module git | le projet enregistre le SHA, `clone --recursive` reconstruit | commandes de sous-module pour tous, **et il faut pousser les 47 commits d'abord** |
+| `composer require pollora/meilifacets` | le module va en `vendor/`, versionné par le lock | le plus lourd — mais c'est ce que le `README` du module annonce déjà, et la fin logique de `Q-01` |
 
 Ce point n'est pas une commodité : c'est ce qui empêche aujourd'hui de dire « voilà ce qui est
 livré ».
@@ -1263,7 +1298,6 @@ masqueraient** : `AppToResolveRector` (renommerait le service locator de R-04 au
 supprimer), `StringCastAssertStringContainsStringRector` (ajouterait des `(string)` plutôt que de
 typer le plan de R-02), plus deux qui nuisent à la lisibilité.
 
-
 ### R-56 · 🟡 · ouvert · 2026-09-06 — `check-parameters` ne détecte pas deux taxonomies mappées sur le même nom
 
 `ReservedParameters::conflicts()` teste chaque paramètre contre les query vars publiques de
@@ -1280,7 +1314,6 @@ prendre le nom `categorie`, puisqu'un listing ne mélange jamais les types de co
 qu'une seule des deux taxonomies est lue sur une page. **La vérification doit donc porter sur les
 facettes d'un même listing, pas sur la configuration entière** — ce qui change la nature de la
 commande : elle passe d'un contrôle de configuration à un contrôle par listing.
-
 
 ### R-57 · 🟡 · ouvert · 2026-09-06 — le client n'a aucune source de libellés
 
@@ -1306,7 +1339,6 @@ La sortie connue, si le besoin apparaît : projeter le couple slug → libellé 
 carte l'est déjà. À ne pas faire par anticipation — R-12 deviendrait bloquant, puisqu'un terme
 renommé rendrait le dictionnaire périmé.
 
-
 ### R-58 · 🟠 · **fermé le 2026-09-06** · ouvert le 2026-09-06 — un tri et une page numérotée entraient dans l'index
 
 `RobotsPolicy` ne déclenchait le `noindex` que sur une facette remplie. `?sort=price_asc` et
@@ -1331,7 +1363,6 @@ réservés y compris renommés. Vérifié en HTTP :
 | `/boutique?pg=2` | **index** | **noindex** |
 | `/?q=bonjour` | **noindex si `q` avait été inclus** | index |
 | `/?categorie=cheveux` | **noindex** | **index** |
-
 
 ### R-59 · 🔴 · **fermé le 2026-09-06** · ouvert le 2026-09-06 — chaque URL de listing émettait `noindex` **et** une canonique vers une autre URL
 
@@ -1397,7 +1428,6 @@ Vérifié en HTTP le 2026-09-06 :
 
 `RobotsPolicy` a été renommée **`IndexingPolicy`** : avec deux balises à sa charge, l'ancien nom
 était devenu faux.
-
 
 ### R-60 · 🔴 · **fermé le 2026-09-06** (B+) · ouvert le 2026-09-06 — deux paginations coexistaient, et c'est celle que le module ignore qui est indexée
 
@@ -1523,7 +1553,6 @@ Les quatre URLs dupliquées ont disparu : `/page/2` à `/page/5` servent quatre 
 aucune n'entre dans l'index. La règle de priorité `pg` > `paged` est vérifiée en conditions réelles
 et couverte par un test unitaire.
 
-
 ### R-61 · 🟠 · **fermé le 2026-09-08** · ouvert le 2026-09-06 — une page au-delà de la dernière annonçait « aucun résultat »
 
 **Mesuré le 2026-09-06** : `/boutique?pg=2&categorie=cheveux` répond `200` et affiche « Aucun
@@ -1582,7 +1611,6 @@ message du rendu serveur. Inatteignable par les boutons, qui sont bornés. À re
 publie un motif pour ce message, comme il le fera pour l'état d'attente.
 
 Lié à R-42 (`maxTotalHits`), qui produit le même symptôme pour une autre raison.
-
 
 ### R-62 · 🟠 · **fermé le 2026-09-06** · ouvert le 2026-09-06 — la couche vue portait des décisions qui ne lui appartenaient pas
 
@@ -1689,7 +1717,6 @@ qui a trouvé la panne. Deux unités neuves sont désormais testées (`ListingRe
 Après correction : `/boutique` 16 produits, `?categorie=cheveux` 14, `/page/2` la vraie page 2,
 robots et canoniques inchangés, 63 identifiants portant `meilifacets-products-…`, 128 tests verts.
 
-
 ### R-63 · ⚪ · **fermé le 2026-09-06** · ouvert le 2026-09-06 — un même concept portait deux noms
 
 `ListingState::isDefault()` existait depuis le lot 3b. `ResolvedListing::isPristine()` a été ajouté
@@ -1710,7 +1737,6 @@ défaut ? — quand « pristine » dit ce qui compte, que le visiteur n'a touch�
    `it_reports_an_untouched_listing_as_pristine` et assertait `isDefault()` : le nom du test disait
    déjà que le nom de la méthode était mauvais. Un écart entre le nom d'un test et celui de la
    méthode qu'il exerce est un constat en attente.
-
 
 ### R-64 · 🟡 · **fermé le 2026-09-06** · ouvert le 2026-09-06 — la catégorie par défaut était proposée comme un rayon
 
@@ -1771,7 +1797,6 @@ et 136 dans le projet.
 facette sans la ranger : elle n'est atteignable que par la boutique entière ou par une recherche.
 C'est une correction de contenu, pas de code.
 
-
 ### R-65 · 🟠 · ouvert · 2026-09-07 — une adresse de moteur sans schéma désactive tout, en silence
 
 `MEILI_PUBLIC_URL` est l'adresse que le navigateur utilise. Sur Clever Cloud, la forme naturelle
@@ -1812,7 +1837,6 @@ autonome, `Class "League\Uri\Uri" not found`. Ajouté explicitement.
 
 C'est l'argument contre « Laravel sera toujours là » : c'est vrai à l'exécution, et faux dès qu'on
 installe le module autrement — ce que la suite autonome fait à chaque exécution.
-
 
 ### R-67 · 🟠 · **fermé le 2026-09-07** · ouvert le 2026-09-07 — la racine du listing ne portait plus son nom
 
@@ -1884,7 +1908,6 @@ historique factices. 49 → 102 tests Node.
 Vérifié qu'ils mordent : en retirant le câblage de la pagination et l'appel à `showSelection()`,
 cinq tests tombent — dont les trois qui portent le correctif demandé.
 
-
 ### R-70 · 🟠 · ouvert · 2026-09-07 — seul le point d'entrée du client est versionné ; les dix-sept autres fichiers sont figés dans le navigateur
 
 **Mesuré le 2026-09-07.** `ListingScript` inscrit `listing-page.js?ver=<filemtime>` : le point
@@ -1916,7 +1939,30 @@ mécanisme non. Trois sorties possibles, aucune gratuite :
 | **Un bundle** (esbuild, Vite) en un fichier au nom haché | Une chaîne d'outils dans le module, là où il n'y a aujourd'hui que des fichiers servis tels quels |
 | **Publier sous un répertoire versionné** | Les imports relatifs héritent du répertoire, donc de la version. Le moins invasif ; demande de faire porter la version à l'étape de publication |
 
-**À décider — hors du lot 3c-2.** T-39.
+**Tranché le 2026-09-08 : publication dans un répertoire versionné.** Différé — une v1 part avant.
+
+`public/modules/meilifacets/<empreinte>/js/…` : les dix-huit fichiers changent d'URL d'un seul
+coup, **les imports relatifs héritent du répertoire** donc de la version, et rien ne bouge côté
+JavaScript. Les deux autres voies ont été écartées pour ce qu'elles coûtent :
+
+- la **carte d'imports** transforme `./listing.js` en `@meilifacets/listing`, que ni `node --test`
+  ni ESLint ne résolvent sans alias — les 147 tests Node passent tous par là ;
+- le **bundle** fait entrer une chaîne d'outils dans un module qui n'en a aucune, où les fichiers
+  sont servis tels quels.
+
+Le coût se concentre dans `publishAssets()` et `ListingScript`, qui doit connaître l'empreinte
+plutôt que d'appeler `filemtime()` sur l'entrée.
+
+⚠️ **Une inconnue avant de chiffrer l'urgence** : l'en-tête d'un an vient d'nginx en local. Ce que
+Clever Cloud sert sur `public/` n'a pas été vérifié. Si la production répond `no-cache`, le défaut
+reste réel mais cesse d'être bloquant.
+
+**Vérifié le 2026-09-08**, le mécanisme est intact : la page n'inscrit toujours qu'une URL versionnée
+(`listing-page.js?ver=1788877596`) et un import relatif répond `max-age=31536000, public`. Le défaut
+s'est manifesté deux fois dans la séance du jour — du JavaScript périmé débogué en croyant tester le
+neuf, contourné à la main par `?cb=`.
+
+T-39.
 
 ### R-71 · 🔴 · **fermé le 2026-09-07** (revue du lot 3c-2) · ouvert le 2026-09-07 — atteindre la dernière page jetait le clavier hors du document
 
@@ -2715,9 +2761,9 @@ de l'application. La même sonde passe désormais.
 **Ce que ça ne ferme pas** : `Q-07` reste ouverte — `ProductListing` est toujours du WooCommerce
 dans un paquet générique, et la collision de nom dans `ListingRegistry` n'est toujours ni conçue ni
 testée. Elle est simplement devenue moins urgente : un projet n'a plus besoin de déclarer son
-propre `Listing` pour choisir ses facettes. `R-89` (ce qu'un gabarit rend) reste ouvert.
+propre `Listing` pour choisir ses facettes. `R-89` (ce qu'un gabarit rend) est fermé depuis le 2026-09-09.
 
-### R-89 · 🟠 · ouvert · 2026-09-08 — un gabarit ne peut pas choisir les facettes qu'il rend
+### R-89 · 🟠 · **fermé le 2026-09-09** · livré le 2026-09-08 · ouvert le 2026-09-08 — un gabarit ne peut pas choisir les facettes qu'il rend
 
 `facets.blade.php:2` boucle sur `$listing->facets()` sans filtre, et `ListingComponent` n'accepte
 que `name` et `scroll`. Un thème rend donc **toutes** les facettes déclarées, dans un seul `<div>`,
@@ -2770,6 +2816,89 @@ vaut `1 + facettes multi-sélection tenues` (`QueryPlan::isCountedApart()` exige
 sélectionnée). À ce volume de catalogue, le coût marginal reste sous le bruit de mesure. Corollaire
 pour `R-88` : un back-office qui laisserait cocher douze facettes ne coûterait rien tant que le
 visiteur n'en tient qu'une ou deux.
+
+**Livré le 2026-09-08, complété le 2026-09-09, validé par Louis le 2026-09-09** sur constat d'usage :
+« j'ai bien les filtres qui sont ok même en étant détaché » — c'est-à-dire le point qui engageait le
+plus, une facette sortie du groupe qui filtre toujours. Deux modes de placement, et un nom porté par
+la facette. *Ce bloc remplace un bilan écrit le 2026-09-08 qui
+affirmait le contraire de ce qui a fini par être livré : « ni nom porté par la facette », « il n'y a
+rien à nommer », « le sous-ensemble n'a pas été livré ». Les trois étaient vrais de la première
+livraison et faux le lendemain (`R-104`).*
+
+**1 · La vue est découpée**, et un thème passe déjà devant la cascade de vues du module.
+
+```
+avant : facets.blade.php = conteneur + boucle + <fieldset> + bouton Appliquer
+après : facets.blade.php = conteneur + boucle + bouton Appliquer
+        facet.blade.php  = un <fieldset>
+```
+
+Un thème qui veut une facette en menu déroulant surcharge **`components/facet.blade.php` seule**,
+et hérite des versions suivantes du markup interne.
+
+**2 · Une facette porte un nom**, la troisième forme que le constat énumérait :
+
+```php
+new Facet('product_cat', __('Category'), name: ShopFacet::Category)
+```
+
+`string|BackedEnum`, avec repli sur la taxonomie quand rien n'est déclaré — donc rien à écrire pour
+démarrer. Un projet range ses noms dans une énumération (`App\Cms\Products\ShopFacet`), et **aucun
+nom de taxonomie n'apparaît dans un gabarit** : la contrainte posée en séance est tenue.
+
+**3 · Deux modes de placement**, comme `sort` et `reset` :
+
+```blade
+<x-meilifacets::facet :facet="ShopFacet::Category" class="lg:col-span-2" scroll />
+<x-meilifacets::facets />
+```
+
+Le premier place une facette où le thème veut ; le second prend **ce qui reste**
+(`ResolvedListing::remainingFacets()` filtre sur ce qu'un gabarit a placé à part). L'ordre est
+libre : une facette placée après le groupe lève, puisque le groupe l'a déjà prise.
+
+**Le sous-ensemble a donc bien été livré**, contrairement à ce que le bilan précédent disait —
+`facetNamed()`, `place()`, `placeApart()`, `remainingFacets()`.
+
+**4 · Une facette n'est rendue qu'une fois.** Deux blocs identiques dupliqueraient les entrées et
+les identifiants qu'elles portent, d'où une exception nommée plutôt qu'un doublon silencieux
+(demandé en séance : « il faut générer une erreur Laravel non ? »). Réserve ouverte : `R-95`.
+
+**5 · Ce qu'un gabarit passe arrive.** `{{ $attributes->class('meilifacetsFacet') }}` et
+`{{ $scrollMark() }}` sur le `<fieldset>` — ajoutés le 2026-09-09 par `R-98` et `R-99`, sans quoi
+déplacer une facette dans une case de grille précise ne servait à rien.
+
+**Deux contraintes de conception, venues de la séance :**
+
+- **le crochet `facet` est sur l'élément le plus extérieur**, parce que c'est lui que le client
+  masque (`R-84`). Un thème qui enrobe déplace le crochet avec lui — écrit dans la vue et couvert
+  par un test ;
+- **le panneau est animable**. Emil animera ces blocs, probablement en grille. La vue livre donc
+  `.meilifacetsFacetPanel` (la ligne de grille) et son enfant `.meilifacetsFacetPanelInner`
+  (`overflow: hidden`) : sans eux, animer imposait de réécrire toute la liste. Le panneau porte un
+  `id` (`ElementId::facetPanel()`) pour qu'une gâchette de thème y pointe son `aria-controls`.
+  `<details>` a été écarté : son ouverture n'est animable qu'avec du CSS très récent et inégalement
+  supporté.
+
+**Mesuré dans le navigateur**, en injectant le CSS qu'un thème écrirait :
+
+```
+panneau ouvert 259px → à mi-parcours 51px → fermé 0px → rouvert 259px
+```
+
+La collapse en `grid-template-rows: 1fr → 0fr` fonctionne sur le markup livré, sans une ligne de
+JavaScript. Vérifié aussi que le découpage n'a rien cassé : dépliage `10 → 24`, filtrage
+`?marque=aeris` à 10 cartes, et une facette vidée par la recherche masque bien son `<fieldset>`,
+légende comprise.
+
+⚠️ **Ce qui reste à faire côté feuille de style**, et qui n'est pas dans le module :
+`[data-meili][hidden] { display: none !important }` (`meilifacets.css:1`). Le `!important` oblige un
+thème à surenchérir pour reprendre `display`, donc pour animer. Le retirer suffit — la spécificité
+`0-2-0` bat déjà un reset de thème. Corollaire pour Emil : rendre visible dans l'arbre ce que
+`hidden` en sortait rend les cases repliées focalisables, d'où un `inert` sur le conteneur fermé.
+
+L'API publique qui en sort est documentée dans `configuration.md`, section « Placer les facettes
+dans un gabarit ».
 
 ### R-90 · 🟡 · ouvert · 2026-09-08 — une facette sur une taxonomie non indexée rend tout le listing indisponible, sans la nommer
 
@@ -2853,6 +2982,564 @@ même instance sur deux résolutions : true · la facette porte bien CE NameOrde
 **Coût mesuré de la méthode incriminée** : `collator()` vaut **1,18 µs** à chaud — 0,0004 % d'une
 page à 306 ms. Le reproche « peu optimisé » ne portait pas sur le temps mais sur le couplage, et
 c'est celui-là qui est levé.
+
+---
+
+### Revue de la PR #1 — `R-93` à `R-106`
+
+Quatorze constats relevés par une revue contradictoire sur la PR de placement de facettes
+(`R-89`), le 2026-09-09, plus deux ouverts en les traitant (`R-107`, `R-108`). Numérotés ici parce qu'un constat sans numéro est un constat que
+personne ne retrouve. État de départ : ouvert, sauf mention.
+
+| n° | gravité | état | constat |
+| --- | --- | --- | --- |
+| `R-93` | 🟡 | **fermé le 2026-09-09** | le style par défaut est porté par `[data-meili="facets"]` et ne suit pas une facette déplacée hors du groupe |
+| `R-94` | 🟡 | **fermé le 2026-09-09** | une facette placée hors de `[data-listing]` est inerte, sans avertissement |
+| `R-95` | 🟠 | **différé** — avec le rendu des filtres en mobile | rendre deux fois la même facette lève une exception qui sort un 500 sur toute la page |
+| `R-96` | 🟡 | **fermé le 2026-09-09** | `Facet::$name` sert d'identifiant sans unicité imposée : deux facettes sur une même taxonomie partagent un nom que personne n'a écrit |
+| `R-97` | 🟠 | **fermé le 2026-09-09** | collision d'identifiants entre panneau et compteur |
+| `R-98` | 🟡 | **fermé le 2026-09-09** | le composant `facet` n'émet jamais `{{ $attributes }}` : ni classe ni id sur une facette placée |
+| `R-99` | 🟡 | **fermé le 2026-09-09** | `$scroll` est accepté puis ignoré par le composant `Facet` |
+| `R-100` | 🟢 | **fermé le 2026-09-09** | `Facets::render()` renvoie `''` au lieu de `shouldRender()`, ce qui écrit un fichier compilé vide |
+| `R-101` | 🟡 | **fermé le 2026-09-09** | les tests Feature assertaient le catalogue de facettes du projet hôte |
+| `R-102` | 🟡 | **fermé le 2026-09-09** | le test du bouton de repli ne peut pas échouer |
+| `R-103` | 🟢 | **fermé le 2026-09-09** | `forgetScopedInstances()` sans `tearDown()` symétrique |
+| `R-104` | 🟡 | **fermé le 2026-09-09** | le bloc `R-89` du registre affirme le contraire de ce qui a été livré ; `configuration.md` ne documente pas la nouvelle API publique |
+| `R-105` | 🟡 | **fermé le 2026-09-09** | la fixture `tests/js/dom.js` ne reflète plus le Blade (panneau absent) |
+| `R-106` | 🟡 | **fermé le 2026-09-09** | rien ne verrouille « le retrait est affaire de rendu seulement », que `R-89` nomme pourtant |
+| `R-107` | 🟡 | **fermé le 2026-09-09** | le texte des contrôles est 2,3 px au-dessus du centre optique — inhérent au centrage d'une boîte de ligne, pas un défaut de la feuille |
+| `R-108` | 🟡 | **différé** — piste validée, à instruire plus tard | rien n'empêche la fixture JS de dériver à nouveau |
+
+### R-97 · 🟠 · **fermé le 2026-09-09** · ouvert le 2026-09-09 — collision d'identifiants entre panneau et compteur
+
+Deux défauts sous un seul constat, de portées très différentes.
+
+**Le premier était atteignable par un éditeur seul**, sans complicité du code : un terme slugué
+`panel` rendait `facetCount('product_brand', 'panel')` égal à `facetPanel('product_brand')` —
+`meilifacets-products-product_brand-panel`. L'`aria-describedby` de cette valeur résolvait vers le
+`<div>` du panneau entier au lieu de son compteur. Les deux méthodes clefaient par ailleurs sur la
+**taxonomie** alors que les facettes sont désormais clefées par **nom** (`R-89`) : deux facettes
+sur une même taxonomie collisionnaient sur tous leurs identifiants.
+
+Le même défaut latent existait dans la famille `sort`, que la revue n'avait pas vue : une clef de
+tri nommée `trigger` aurait volé l'identifiant du bouton. Corrigé du même coup — `sortOption()`
+porte maintenant son segment `option`, et la famille est injective par construction puisqu'elle
+n'a qu'une seule partie variable, en dernière position.
+
+**Le second était structurel** : `of()` joint avec `-`, caractère que les parties variables
+contiennent librement, donc les deux familles se recouvraient par construction. Prouvé sur la
+vraie classe après le premier correctif — `facetPanel('brand-value-x')` valait encore
+`facetCount('brand', 'x-panel')`. Exhaustivement, sur les noms et slugs composés des mots du
+gabarit : 480 collisions.
+
+Portée réelle mesurée avant de corriger : **aucune collision atteignable sur le site**. Il fallait
+réunir un nom de facette pathologique (`…-value`, écrit par un développeur dans son énumération) et
+un slug qui complète le motif. Les noms en place sont `category`, `brand`, `volume`. Le correctif
+ne répare donc rien d'observable : il ferme, pour un caractère, la catégorie de défauts entière
+dont le premier cas était l'instance.
+
+Correctif : la famille `facet` ferme le nom par `--`. `sanitize_title()` écrase les suites de
+tirets (`|-+|` → `-`) et rogne les extrémités, donc **aucun slug de terme ne contient `--`** —
+vérifié sur dix entrées hostiles, tirets insécables compris — et les trois chemins d'écriture d'un
+slug y passent (`wp_insert_term`, `wp_update_term`, `wp_unique_term_slug`). Le dernier `--` d'un
+identifiant est donc toujours celui qui ferme le nom de facette : la découpe est unique **même si
+un projet met `--` dans un nom**, puisqu'on lit depuis la droite. Aucune validation ajoutée nulle
+part.
+
+```
+meilifacets-products-facet-volume--panel
+meilifacets-products-facet-volume--count-100ml
+```
+
+Coût mesuré : +8 ns par identifiant (dans le bruit du micro-bench, `implode` reçoit la même
+arité), soit +0,3 µs sur les 41 identifiants d'une page `/boutique` dont le TTFB médian est de
+264 ms. Aucun appel WordPress ajouté : le slug arrive déjà assaini par l'indexation, la classe
+reste pure — ses seuls appels sortants sont `implode` et son propre `of()`. +1 octet par
+identifiant dans le HTML.
+
+Le test est devenu une propriété — « aucun identifiant n'est produit par deux éléments
+différents » — sur les noms et slugs assemblés à partir des mots du gabarit, noms contenant `--`
+compris. Trois mutations passées : revenir au tiret simple le tue, retirer le nom du listing le
+tue, et échanger le mot `count` contre `panel` le laisse vert **à juste titre** (la propriété tient
+toujours) mais est rattrapé par l'assertion littérale.
+
+**Réserve consignée** : `sanitize_title` est un filtre. Un plugin qui s'y branche pourrait rendre
+`--`. Le cœur ne le fait jamais et aucun plugin installé ici ne s'y branche.
+
+---
+
+### R-100 · 🟢 · **fermé le 2026-09-09** · ouvert le 2026-09-09 — `render()` renvoyait une chaîne vide au lieu d'utiliser `shouldRender()`
+
+Le comportement ne change pas : un groupe auquel aucune facette n'est affectée, et qui ne porte pas
+le bouton d'envoi, ne rend toujours rien. C'est le mécanisme qui change.
+
+`Component::render()` acceptait une chaîne, que Laravel traite comme un gabarit Blade **inline** :
+`extractBladeViewFromString()` en calcule l'empreinte xxh128, `createBladeViewFromString()` écrit un
+`.blade.php` dans `view.compiled`, et le rendu l'inclut. Pour la chaîne vide, cela donne
+`99aa06d3014798d86001c324468d497f.blade.php`, **0 octet**, inclus à chaque rendu pour ne rien
+produire.
+
+Deux corrections à ce que la revue en disait, mesurées :
+
+- l'écriture n'a pas lieu « à chaque rendu ». `static::$bladeViewCache` mémoïse par **processus** :
+  c'est une écriture par requête qui atteint la branche, pas par rendu. Vérifié dans les deux sens —
+  inode inchangé sur 200 rendus d'un même processus, inode déplacé entre trois processus, puisque
+  `Filesystem::replace()` passe par un fichier temporaire puis un `rename` ;
+- le garde-fou de Laravel `! is_file($viewFile) || filesize($viewFile) === 0` reste vrai à
+  perpétuité pour un contenu vide, donc le fichier est bien réécrit à chaque processus, jamais
+  réutilisé.
+
+Coût réel mesuré, médiane sur cinq séries de 200 rendus du groupe vide :
+
+| | par rendu du groupe vide |
+| --- | --- |
+| `return ''` | 53,8 µs (min 43,9 — max 78,5) |
+| `shouldRender()` | 17,1 µs (min 13,7 — max 55,8) |
+
+Une page ne rend ce groupe qu'une fois : le gain réel est de ~37 µs sur un TTFB médian de 264 ms,
+soit 0,014 %. **Et aucune page du site n'atteint la branche aujourd'hui** : `apply_mode` vaut
+`submit`, donc `needsButton()` est vrai et le conteneur est rendu dans tous les cas. Le retour de
+chaîne vide était du code mort en configuration courante.
+
+Ce qui justifie le changement n'est donc pas la performance : `render()` retrouve un type de retour
+honnête (`View`, plus `View|string`), la condition prend le nom que le framework lui donne
+(`CompilesComponents.php:73` compile littéralement `<?php if ($component->shouldRender()): ?>`, donc
+le garde-fou passe avant toute résolution de vue), et `storage/framework/views` cesse de porter un
+fichier de 0 octet.
+
+Le test (`it_compiles_no_view_when_it_renders_nothing`) verrouille le mécanisme et non la sortie :
+il assert l'absence du fichier compilé. Trois mutations passées — revenir à `return ''`, forcer
+`shouldRender()` à `true`, le forcer à `false` — les trois sont tuées.
+
+**Non traité ici, à sa place** : la revue ajoute que le garde-fou fait aussi disparaître
+`{{ $scrollMark() }}`, `data-apply` et l'ancre `[data-meili="facets"]` sur laquelle la feuille de
+style branche ses règles. C'est exact, mais c'est le comportement — arbitré par Louis le
+2026-09-08 (« il ne faut pas d'élément sinon tu vas alourdir le DOM ») — et la conséquence sur le
+style appartient à `R-93`.
+
+---
+
+### R-106 · 🟡 · **fermé le 2026-09-09** · ouvert le 2026-09-09 — rien ne verrouillait « le retrait est affaire de rendu seulement »
+
+**Cinq des sept points de lecture ne peuvent pas déraper**, contrairement à ce qu'annonçait la
+revue. `QueryPlan`, `ListingSearch`, `DisjunctiveFacetCounter` et `StateReader` reçoivent le contrat
+`Listing`, qui n'expose pas `remainingFacets()` — la méthode vit sur `ResolvedListing`. Le
+« rangement » redouté ne compilerait pas.
+
+La surface réelle est **une** classe : `ListingDescription::of(ResolvedListing $listing)`, à ses
+deux appels (`:58` pour le tableau des facettes, `:69` pour la carte des paramètres). C'est elle qui
+alimente le client, donc le comptage et les filtres d'URL des facettes que la page n'a pas montrées.
+
+Test : `it_still_publishes_a_facet_a_template_placed_apart`. Écrit d'abord dans la suite `Unit`, il
+a dû migrer en `Feature` — `ListingDescription` appelle `trans()` pour les motifs qui voyagent dans
+la description, donc il exige une application. Il lit ses noms et ses comptes à l'exécution, pour ne
+pas retomber dans `R-101`.
+
+Les deux mutations sont tuées.
+
+**Second point du constat, traité autrement.** La revue demandait de reporter dans
+`facet.blade.php` la justification d'accessibilité supprimée de `facets.blade.php` (« Described, not
+named… »). Ce serait contredire la règle de commentaires : une justification de conception va dans
+la documentation, pas dans une vue. Elle est donc écrite dans `architecture.md`, section « Ce que le
+compteur d'une valeur est, pour un lecteur d'écran » — et surtout **verrouillée par un test**,
+`it_describes_a_value_with_its_count_rather_than_naming_it`, ce qu'un commentaire n'aurait jamais
+fait. Deux mutations tuées : passer à `aria-labelledby`, retirer l'`id` du compteur.
+
+---
+
+### R-105 · 🟡 · **fermé le 2026-09-09** · ouvert le 2026-09-09 — la fixture JS ne reflétait plus le Blade
+
+`tests/js/dom.js` posait le `<ul>` et le bouton `more` directement dans le `<fieldset>`, alors que
+le Blade intercale `.meilifacetsFacetPanel` et `.meilifacetsFacetPanelInner` depuis `R-89`. Son
+docblock affirmait pourtant « Mirrors what the Blade components render ». Manquaient aussi la
+`<legend>`, les classes `meilifacetsFacet`, `meilifacetsFacetValues`, `meilifacetsFacetMore`, et le
+couple `aria-describedby` / `id` du compteur.
+
+Correctif : un helper `facetBlock()` calqué sur le rendu réel, relevé sur `/boutique` plutôt que
+réécrit de mémoire.
+
+**Ce que la correction n'a pas révélé, contrairement à ce qu'annonçait la revue.** Elle affirmait
+que la fixture périmée « explique que la régression CSS du constat 1 (`R-93`) soit passée
+inaperçue ». Les 147 tests JS restent verts après correction. La raison est ailleurs : la fixture ne
+contient **aucune facette hors du groupe**, et c'est cette condition-là que `R-93` exige. La
+corriger était nécessaire, ce n'est pas suffisant — l'ajout d'une facette hors groupe appartient au
+correctif de `R-93`, où il fera échouer les tests concernés.
+
+Vérifié au passage, ce qui étaie `R-93` : cinq règles portent le préfixe `[data-meili="facets"]`
+(`fieldset`, `legend`, `ul`, `:last-of-type`) et **aucune** ne vise `.meilifacetsFacetPanel`,
+`.meilifacetsFacetValues`, `.meilifacetsFacetMore` ni `.meilifacetsFacetLabel`. Une facette déplacée
+perd donc tout son style.
+
+`tests/js/stylesheet.test.js` n'a pas été touché — ses sélecteurs sont des descendants, l'insertion
+des deux `div` ne les casse pas.
+
+**Reste ouvert, sans numéro jusqu'ici** : une fixture écrite à la main dérive, c'est ce qui vient
+d'arriver. `R-108`.
+
+---
+
+### R-108 · 🟡 · **différé le 2026-09-09** · ouvert le 2026-09-09 — rien n'empêche la fixture JS de dériver à nouveau
+
+`tests/js/dom.js` est recopié à la main depuis le Blade, et la suite JS doit rester exécutable sans
+application hôte (`composer check`) — donc elle ne peut pas la générer. `R-105` a corrigé l'écart du
+jour ; le prochain changement de vue le recréera en silence, et les tests de feuille de style
+continueront de valider un markup mort.
+
+**Piste validée par Louis le 2026-09-09, à instruire plus tard** : un test de la suite `Feature`,
+côté PHP, qui lit `dom.js` et vérifie que les classes et crochets structurants qu'il emploie existent
+dans le rendu réel. C'est le seul pont possible sans faire dépendre la suite JS de PHP.
+
+**Limite connue d'avance, à peser au moment de le faire** : il attrape ce que la fixture *emploie et
+qui a disparu*, pas ce que le Blade a *ajouté et que la fixture ignore* — c'est-à-dire exactement le
+cas de `R-105`. Attraper celui-là imposerait de comparer les deux arbres, donc de générer la
+fixture, donc de faire dépendre `composer check` d'une application hôte. À reconsidérer avec `R-70`,
+qui touche déjà à la manière dont le client est livré.
+
+---
+
+### R-101 · 🟡 · **fermé le 2026-09-09** · ouvert le 2026-09-09 — les tests Feature assertaient le catalogue du projet hôte
+
+Le premier constat traité, avant même que les numéros n'existent — d'où cette entrée écrite après
+coup, en complétant le registre.
+
+Les tests de placement écrivaient en dur `3`, `category`, `brand`, `volume`, `product_cat`,
+`product_brand` et le nom de listing `products`. Tout cela vient de
+`App\Cms\Products\CatalogueFacets`, que Pluralia binde par-dessus `ProductFacets`
+(`AppServiceProvider:30`). Le `WooCommerceFacets` du module, lui, déclare deux facettes et n'en
+nomme aucune : leurs noms sont `product_cat` et `product_brand`. **Ajouter une quatrième facette à
+la boutique cassait la suite du module** — l'inverse de la règle du `CLAUDE.md` : « Pluralia is its
+test bed, not its owner. »
+
+Correctif en deux temps :
+
+- les tests `Feature` lisent noms et comptes **à l'exécution** — `$this->first()`,
+  `$this->declaredCount()`, `$listing->name()` — au lieu de les recopier ;
+- les règles de placement elles-mêmes ont quitté la suite `Feature` pour `Unit\FacetPlacementTest`,
+  qui monte un `ResolvedListing` sur des facettes **qu'il déclare lui-même** (`FakeListing`), sans
+  conteneur, sans Blade et sans Pluralia. Ce qui reste en `Feature` ne prouve qu'une chose : que le
+  composant demande bien au listing ce que la règle exige.
+
+Un test dépendait aussi d'un réglage du projet sans le dire :
+`it_renders_no_container_when_every_facet_was_placed_apart` n'était vert que parce que `apply_mode`
+valait `immediate`. Il pose désormais son `config([...])`, et un test complémentaire couvre le mode
+`submit`, où le bouton d'envoi retient le conteneur.
+
+---
+
+### R-102 · 🟡 · **fermé le 2026-09-09** · ouvert le 2026-09-09 — le test du bouton de repli ne pouvait pas échouer
+
+`it_keeps_the_fold_button_inside_the_panel` comparait deux `strpos` : le bouton apparaissait-il
+**après** la balise ouvrante du panneau. Sortir le bouton des deux `div` et le poser juste avant
+`</fieldset>` — la régression exacte que le nom du test annonce — garde l'offset supérieur.
+
+Vérifié avant de corriger, en appliquant cette mutation au Blade : **le test reste vert**.
+
+Correctif : l'assertion porte sur la containment, pas sur l'ordre. `Dom\HTMLDocument` (PHP 8.4)
+analyse le rendu, `querySelector('.meilifacetsFacetPanelInner')` isole le panneau, et le bouton est
+cherché **dans** ce nœud. Les deux messages d'échec nomment ce qui a cassé, ce qui répond au point
+secondaire du constat (un `assertGreaterThan(false, false)` ne disait pas que le panneau avait
+disparu).
+
+Deux mutations passées :
+
+```
+le bouton sort du panneau  → « The fold button sits outside the panel, so collapsing the facet leaves it behind. »
+le panneau disparaît       → « The facet renders no panel to collapse. »
+```
+
+**Dépendance à confirmer** : le test utilise `ext-dom`, extension du cœur de PHP mais non déclarée
+par le module. Elle n'est atteinte que par la suite `Feature`, qui exige déjà une application hôte —
+`composer check` et la suite `Unit` ne la touchent pas. À déclarer en `require-dev`, sur accord.
+
+---
+
+### R-103 · 🟢 · **fermé le 2026-09-09** · ouvert le 2026-09-09 — `forgetScopedInstances()` sans `tearDown()`
+
+La suite partage une seule application pour tout le run (gotcha 23 du `CLAUDE.md` projet), donc
+`FacetComponentTest` laissait derrière lui un `ResolvedListing` portant les facettes qu'il avait
+placées.
+
+**Le mécanisme décrit par la revue est faux, et la réalité est pire.** Elle annonçait un échec sur
+`Facet "category" is rendered twice`. Ce qui fuit est `$apart`, pas `$rendered` : `remainingFacets()`
+rend `[]` et le groupe sort **avec son bouton et aucune facette**, sans rien lever. Un test suivant
+obtient donc un résultat faux au lieu d'une erreur.
+
+Prouvé avant de corriger, par une sonde rendant `<x-meilifacets::facets />` sans réinitialiser :
+verte seule, rouge dans la suite complète.
+
+Correctif : `tearDown()` appelant `forgetScopedInstances()` **avant** `parent::tearDown()` — le
+`TestCase` du projet met `$this->app` à `null` juste après pour empêcher le `flush()`. La sonde est
+devenue `ListingStateIsolationTest`.
+
+**Limite écrite dans son docblock** : ce test ne vaut que si son fichier passe après ceux qui
+placent des facettes. Seul, il est vert dans les deux cas. C'est le seul test qui tue la mutation
+(retirer le `tearDown()` fait échouer la suite complète), mais il repose sur l'ordre alphabétique.
+
+---
+
+### R-107 · 🟡 · **fermé le 2026-09-09** · ouvert le 2026-09-09 — le texte des contrôles n'est pas au centre optique
+
+Relevé par Louis sur capture, cause confirmée par lui puis mesurée : **les métriques d'Epilogue**.
+À 14 px, la police déclare `ascent 11 px / descent 3 px` ; les libellés des contrôles (« Pertinence »,
+« Tout effacer ») n'ont aucun jambage, donc la réserve de 3 px reste vide et l'encre remonte.
+
+```
+encre à 11,53 px du haut · 13,86 px du bas  →  2,3 px trop haut
+```
+
+`align-items: center` centre la **boîte de ligne**, pas les glyphes.
+
+Ce n'est pas le `line-height`, mesuré dans les deux réglages : `1.2` donne 10,60 / 10,90 et `1`
+donne 10,50 / 11,00 — le demi-interligne est symétrique, il ne déplace rien. Le décalage précède le
+passage à `line-height: 1`.
+
+`text-box: trim-both cap alphabetic` est supporté mais **sans effet ici** : mesuré à 10,50 / 11,00
+en `inline-flex`, contre 12,16 / 9,34 en `inline-block`. La propriété s'applique aux boîtes de bloc,
+et dans un conteneur flex le texte est un élément anonyme. L'utiliser imposerait d'envelopper le
+libellé dans un `<span>` dans quatre vues.
+
+**Fermé le 2026-09-09 sur constat de Louis, sans changement de code.** La mesure qui l'a clos montre
+que le décalage ne dépend pas de la feuille mais du **mot** :
+
+| bouton | jambages | décalage |
+| --- | --- | --- |
+| « Pertinence » | 0,1 px | **−2,33 px** |
+| « Appliquer les filtres » | 3,1 px | **0,01 px** |
+| le même bouton, texte remplacé par « Prix apres » | 3,1 px | 0,59 px |
+
+Un texte sans jambage laisse vides les 3 px qu'Epilogue réserve en bas et remonte d'autant ; le même
+bouton avec un mot qui descend est centré au centième de pixel. C'est le comportement de tout
+centrage de boîte de ligne, sur n'importe quelle police et n'importe quel site — pas un défaut de la
+feuille du module.
+
+Le corriger vraiment demanderait de rogner à la hauteur de capitale (`text-box: trim-both cap
+alphabetic`), qui **ne s'applique pas dans un conteneur flex** : mesuré à `10,50 / 11,00` en
+`inline-flex` contre `12,16 / 9,34` en `inline-block`. Il faudrait envelopper le libellé dans un
+`<span>` dans quatre vues. À rouvrir seulement si la charte l'exige.
+
+---
+
+### R-94 · 🟡 · **fermé le 2026-09-09** · ouvert le 2026-09-09 — une facette placée hors du listing était inerte, sans un mot
+
+`R-89` a donné aux gabarits la liberté de placer une facette « où ils veulent ». La vraie règle est
+« où ils veulent **à l'intérieur de `[data-listing]`** », et cette contrainte n'était écrite nulle
+part ni vérifiée par personne — alors que le premier cas d'usage que `R-89` énonce, « un rayon en
+tête de page », est précisément celui qui casse.
+
+Mesuré dans le navigateur, facette de catégorie posée avant `<x-meilifacets::listing>` :
+
+| geste « Voir plus » | `aria-expanded` |
+| --- | --- |
+| facette **dans** la racine | `false` → **`true`** |
+| facette **hors** de la racine | `false` → `false` |
+
+Rendue, stylée, cochable, et totalement morte. Zéro avertissement : `Contract.#breachesOf()` rend
+`[]` dès que `this.one(host)` ne trouve rien **dans la racine**, donc ce qui est dehors lui est
+invisible par construction.
+
+*Première mesure écartée* : en mode `submit`, cocher une case ne filtre pas non plus **dans** le
+listing — « la case ne fait rien » ne prouvait rien. Seul le bouton de repli discrimine.
+
+**Aucun correctif côté serveur n'est possible** : Blade évalue le `$slot` avant le composant
+`listing` qui l'enveloppe, donc « rendu avant » ne dit rien sur « contenu dans ».
+
+Correctif en deux temps, le premier plus important que le second :
+
+1. **la règle est écrite** dans `configuration.md` — tout composant du module vit dans
+   `<x-meilifacets::listing>`, et la section « Placer les facettes » montre désormais l'imbrication.
+   La documentation livrée avec `R-104` ne mentionnait pas une seule fois `x-meilifacets::listing` :
+   elle documentait la liberté sans sa limite ;
+2. **le code la dit** — `Contract.orphans(document, roots)`, appelé au démarrage par
+   `listing-page.js`, sur le canal `console.error` qui sert déjà aux manquements au contrat. La
+   vérification est au niveau du document, là où `Contract` est scopé à une racine : c'est pour ça
+   qu'elle vit à côté de la boucle des racines et non dans `RULES`.
+
+Seules les racines orphelines sont nommées — les crochets qu'une facette égarée contient ne sont pas
+une seconde faute. Sur la page réelle : 17 éléments `data-meili` hors racine, **un** nom rapporté.
+
+```
+[meilifacets] the client binds inside [data-listing] only. Move inside <x-meilifacets::listing>: facet.
+```
+
+Quatre mutations tuées. *Deux d'entre elles avaient d'abord été rapportées « survivantes » à tort* :
+mon harnais ne vérifiait pas que le remplacement avait eu lieu, et l'une des mutations produisait un
+code invalide. Corrigé, elles tuent bien.
+
+**Rencontré en vérifiant, et déjà connu** : le navigateur exécutait encore l'ancien `contract.js`.
+`?ver=` porte le `filemtime` de `listing-page.js` seul ; ses imports relatifs n'ont aucune version et
+sont cachés indéfiniment. C'est exactement `R-70`, tranché et différé après la v1.
+
+---
+
+### R-96 · 🟡 · **fermé le 2026-09-09** · ouvert le 2026-09-09 — deux facettes pouvaient répondre au même nom
+
+`Facet::$name` retombe sur la taxonomie quand rien n'est déclaré, donc deux facettes sur une même
+taxonomie — un `ChildTermsFacet` et un `Facet` sur `product_cat`, par exemple — partageaient un nom
+que **personne n'avait écrit**.
+
+Trois symptômes, tous prouvés avant correction sur un `ResolvedListing` monté à la main :
+
+```
+noms déclarés               : product_cat, product_cat
+facetNamed('product_cat')   : rend la PREMIÈRE, la seconde est inatteignable
+après placeApart(la 1re)    : il reste 0 facette sur 2   ← la seconde disparaît en silence
+sans rien placer, le groupe : « Facet "product_cat" is rendered twice […] Place it on its own
+                               before <x-meilifacets::facets> »
+```
+
+Le dernier est le pire : le message accuse le gabarit d'une faute qui est dans la **déclaration**,
+et le remède qu'il propose ne peut pas marcher — placer la facette à part retire les deux.
+
+Correctif : `ResolvedListing::refuseSharedNames()`, à l'image de `ListingRegistry` pour les noms de
+listing. Le message nomme les deux **libellés**, seule chose qui distingue deux déclarations sur une
+même taxonomie, et indique la sortie :
+
+```
+Facets "Aisles" and "Shelves" answer to the same name "product_cat" in listing "products".
+Declare `name:` on all but one of them.
+```
+
+*Deux versions écartées en chemin, sur remarque de Louis.* Une première nommée `distinctlyNamed()` —
+un adjectif pour une garde qui lève. Une seconde qui sortait tôt par
+`count(array_unique($names)) === count($names)` puis identifiait la paire dans un second parcours :
+elle **triplait la méthode** pour un chemin normal mesuré à **0,11 µs** (3 facettes ; l'écart entre
+les deux approches n'apparaît qu'à 12 facettes, `−33 %`, soit 0,13 µs). La boucle simple identifie
+la paire gratuitement, au passage. 17 lignes, un seul parcours, `sprintf`, **un seul littéral** —
+`pint.json` n'impose aucune longueur de ligne et le module en porte déjà à 168 caractères, donc la
+concaténation ne servait qu'à couper une phrase en deux et à la rendre non-greppable. Le « pourquoi »
+qu'elle portait est dans `configuration.md`, pas dans un message d'erreur.
+
+`facets()` est désormais mémoïsé — non pour le temps (**4 appels par rendu de `/boutique`**,
+mesuré), mais pour que la validation tourne une fois et non quatre. **Cette mémoïsation n'est
+couverte par aucun test et ne peut pas l'être** : elle ne change rien d'observable ; la mutation qui
+la retire laisse la suite verte. Corollaire assumé : un `Listing` dont `facets()` varierait au cours
+d'une requête verrait sa première réponse figée — aucun n'en dépend, les quatre appels rendaient
+déjà la même chose.
+
+Deux tests, deux mutations tuées : la garde qui ne lève plus, la garde qui clefe sur la taxonomie
+plutôt que sur le nom. Le second test montre la sortie — nommer l'une des deux — et vérifie qu'elle
+fonctionne.
+
+---
+
+### R-93 · 🟡 · **fermé le 2026-09-09** · ouvert le 2026-09-09 — le style par défaut ne suivait pas une facette déplacée
+
+Quatre règles habillaient la facette depuis le **groupe** (`[data-meili="facets"] fieldset`,
+`… legend`, `… ul`, et l'échelle `--meili-ui`). Une facette placée ailleurs par un gabarit — ce que
+`R-89` vient d'autoriser — n'en recevait aucune.
+
+Mesuré dans un vrai navigateur, facette de catégorie posée hors du groupe :
+
+| | avant | après |
+| --- | --- | --- |
+| taille du texte | **16 px** (échelle de la page) | 14 px |
+| puces de la liste | **`disc`** | `none` |
+| graisse de la légende | **400** | 600 |
+
+S'y ajoutaient, mesurés sous happy-dom, le cadre et le remplissage que le navigateur pose sur un
+`<fieldset>` nu, et la marge basse.
+
+Correctif : les quatre règles s'accrochent à `[data-meili="facet"]`, le crochet que la facette porte
+elle-même. C'est ce que `decisions.md:184` demandait déjà — « la règle s'accroche à `data-meili`,
+jamais aux classes ». Seule reste au groupe `[data-meili="facets"] [data-meili="facet"]:last-of-type`,
+qui parle vraiment d'une position dans le groupe. La spécificité baisse de `0-2-0` à `0-1-0`, donc un
+thème surcharge plus facilement — dans le sens voulu.
+
+Tests : `tests/js/facet-placement.test.js`, quatre cas comparant une facette groupée et une facette
+placée. La fixture porte désormais une facette hors du groupe, ce que `R-105` avait identifié comme
+manquant. Les quatre échouaient avant le correctif ; chacune des quatre règles rescopées est tuée
+par au moins un test.
+
+**`tests/js/stylesheet.test.js` n'a pas été touché**, ses 147 cas restent verts.
+
+*Défaut corrigé en cours de route dans mon propre test* : il s'appelait « strips the bullets and the
+indent » en assertant `listStyleType` et `paddingInlineStart`, que happy-dom ne calcule pas — il
+rendait `''` des deux côtés et ne prouvait rien. Remplacés par `listStyle` et `paddingLeft`, les
+propriétés que le moteur résout et qu'emploie déjà `stylesheet.test.js`.
+
+---
+
+### R-95 · 🟠 · **différé le 2026-09-09** · ouvert le 2026-09-09 — rendre deux fois la même facette sort un 500 sur toute la page
+
+**Différé par Louis, à traiter avec le rendu des filtres en mobile** : c'est ce chantier qui dira si
+la modale est le même DOM présenté autrement ou un second rendu, donc si l'exception gêne.
+
+`ResolvedListing::place()` lève quand un nom est déjà rendu — voulu, demandé en séance (« il faut
+générer une erreur Laravel non ? »), et le seul comportement qui évite un doublon silencieux
+d'entrées et d'identifiants. Reste que l'exception traverse le rendu et sort un 500 sur la page
+entière, là où une facette dupliquée est une faute de gabarit, pas une panne de service.
+
+**Correction d'une affirmation portée par erreur dans ce registre le 2026-09-09** : il y était écrit
+que le Figma pouvait vouloir la même facette dans le panneau desktop **et** dans la modale mobile.
+Les deux frames relevées disent l'inverse — la catégorie est en pastilles en haut de page (`5-31`)
+et **n'est pas reprise** dans le panneau déplié (`6-169`), qui porte Type de peau, Besoin, Actifs,
+Texture, Utilisation, Confort, Formulation, Label, Marque, Prix. Aucune facette n'y apparaît deux
+fois : c'est exactement le modèle à deux modes livré par `R-89`.
+
+La question qui reste, plus étroite : **la modale mobile est-elle le même DOM présenté autrement, ou
+un second rendu ?** Aucune frame mobile relevée ne permet de trancher. Si c'est du CSS, l'exception
+ne gêne personne et le constat se ferme sans code.
+
+---
+
+### R-104 · 🟡 · **fermé le 2026-09-09** · ouvert le 2026-09-09 — le registre affirmait le contraire de ce qui a été livré
+
+Le bilan de `R-89` avait été écrit le 2026-09-08, après la première livraison — la vue découpée — et
+jamais repris quand le placement a été terminé le lendemain. Il affirmait trois choses que le diff
+contredisait : « ni nom porté par la facette », « il n'y a rien à nommer », « le sous-ensemble n'a
+pas été livré ». Les trois étaient exactes la veille. Il n'avait en outre aucun en-tête `### R-xx`
+et vivait sous `R-92`, à 150 lignes de l'entrée qu'il concluait.
+
+Correctif : le bilan est réécrit et rattaché à `### R-89`, en cinq points — la vue découpée, le nom
+porté par la facette, les deux modes de placement, l'unicité du rendu, et ce que le composant
+transmet (`R-98`/`R-99`). Il porte la mention de ce qu'il remplace, pour qu'une relecture ne croie
+pas à un oubli. L'état de `R-89` n'avait alors pas bougé ; il a été **validé le 2026-09-09**.
+
+L'API publique est documentée dans `configuration.md`, nouvelle section « Placer les facettes dans
+un gabarit » : les deux composants, le paramètre `name`, ce que le sac d'attributs transmet, et la
+surcharge de `components/facet.blade.php` seule.
+
+Vérifié en exécutant l'exemple exact de la documentation plutôt qu'en le relisant — la facette
+placée à part sort `class="meilifacetsFacet lg:col-span-2" … data-meili-scroll`, le groupe rend les
+deux autres dans l'ordre déclaré (`product_brand`, `pa_contenance`), template du thème restauré
+après la sonde.
+
+---
+
+### R-98 et R-99 · 🟡 · **fermés le 2026-09-09** · ouverts le 2026-09-09 — le composant `facet` jetait ce qu'un template lui donnait
+
+Deux numéros, un seul défaut, sur la même ligne de la même vue : traités ensemble sur accord de
+Louis, plutôt qu'en deux commits qui se seraient marchés dessus.
+
+```blade
+<x-meilifacets::facet :facet="ShopFacet::Brand" class="lg:col-span-2" scroll />
+```
+
+Ni la classe ni le `scroll` n'arrivaient. La classe tombait dans le sac d'attributs, que la vue
+n'émettait jamais ; `Facet::__construct` appelait `parent::__construct($listings, $name)` sans le
+troisième paramètre, et la vue n'émettait pas `$scrollMark()`.
+
+Conséquence concrète pour `R-89` : une facette déplacée dans une case de grille précise ne pouvait
+pas y être stylée, ce qui vidait le déplacement de son intérêt — et c'est précisément ce dont
+l'animation en grille a besoin. Pour `R-99`, la même facette se comportait différemment selon
+l'endroit où le template la posait, alors que les quatre autres composants (`facets`, `sort`,
+`reset`, `pagination`) portent tous `$scrollMark()`.
+
+Correctif : `{{ $attributes->class('meilifacetsFacet') }}` et `{{ $scrollMark() }}` sur le
+`<fieldset>`, `bool $scroll = false` transmis au parent. Le motif est celui de `card.blade.php`,
+déjà verrouillé par `CardComponentTest::it_merges_the_classes_the_caller_adds`.
+
+Vérifié sur `/categorie-produit/cheveux`, facette de catégorie placée à part :
+
+```
+<fieldset class="meilifacetsFacet lg:col-span-2" data-taxonomy="product_cat" data-meili="facet" data-meili-scroll>
+<fieldset class="meilifacetsFacet"               data-taxonomy="product_brand" data-meili="facet">
+```
+
+Les facettes du groupe restent inchangées, et ni `scroll` ni `class` ne fuient en attribut brut.
+
+Trois tests ajoutés, trois mutations passées : figer la classe, retirer `$scrollMark()` de la vue,
+cesser de transmettre `$scroll` — les trois sont tuées.
 
 ---
 
@@ -3134,9 +3821,10 @@ parallèle : il ne touche pas au rendu.
 | T-28 | Extraire un `QueryPlan` instanciable ; mémoïser `facets()` et `sorts()` | R-01, R-07 |
 | T-29 | Objet `SearchRequest` typé à la place du tableau de plan | R-02 |
 | T-30 | Déplacer `Contract` hors de `Enums` | R-03 |
-| T-39 | Versionner les modules ES importés : un bundle au nom haché | R-70 | décidé le 2026-09-07, à faire |
+| T-39 | Versionner les modules ES importés : publication dans un répertoire portant l'empreinte | R-70 | **différé après la v1** — voie tranchée le 2026-09-08 |
 | T-40 | Ramener le regard en haut du listing après pagination et tri | R-73 | **fait** |
 | T-41 | Rendre l'ordre d'une facette réglable en configuration | Q-07 (partiel) | **différé après livraison** — décidé le 2026-09-08 |
+| T-42 | Sortir le module du dépôt imbriqué : ignoré, sous-module ou paquet composer | R-38 | **différé en fin de projet** — décidé le 2026-09-08 |
 
 #### T-41 · Ordre d'une facette réglable en configuration
 
@@ -3460,3 +4148,41 @@ continuer à décider sur 76 produits sans variations.
   Deux pièges écrits dans `pieges.md` : la séquence de chargement, et le fait que le plugin installé
   est une **sortie de Composer** — ce que j'avais d'abord lu comme une installation manuelle, en
   concluant à tort qu'un patch local était la seule voie.
+- **2026-09-09** — **Revue contradictoire de la PR #1 traitée en entier.** Quatorze constats
+  numérotés `R-93` à `R-106` — ils n'existaient nulle part au registre pendant la première journée
+  de correction, ce qui était le vrai manque. Douze fermés, `R-95` différé avec le rendu mobile,
+  plus deux ouverts en chemin : `R-107` (fermé) et `R-108` (différé).
+
+  **Quatre constats étaient plus étroits que la revue ne l'annonçait, et le dire a compté autant que
+  le correctif.** `R-106` : cinq des sept points de lecture ne peuvent pas déraper, le contrat
+  `Listing` n'expose pas `remainingFacets()`, le « rangement » redouté ne compilerait pas. `R-103` :
+  ce qui fuit est `$apart` et non `$rendered`, donc le groupe sort **vide et silencieux** au lieu de
+  lever — pire que décrit. `R-105` : corriger la fixture n'a révélé aucune régression, la condition
+  qui manquait était une facette hors groupe, pas les deux `div`. `R-97` : le scénario nommé était
+  déclenchable par un éditeur, le résiduel structurel ne l'est que par un développeur.
+
+  **Trois correctifs ne réparent rien d'observable aujourd'hui** — `R-97`, `R-100`, `R-96` — et
+  c'est écrit dans chaque entrée. Ils ferment des classes de défauts, pas des pannes.
+
+  **`R-93` était le seul défaut visible sur la page** : quatre règles habillaient la facette depuis
+  le groupe, donc une facette déplacée sortait en 16 px avec des puces et le cadre d'un `<fieldset>`
+  nu. Corrigé en accrochant les règles à `[data-meili="facet"]`, ce que `decisions.md:184` demandait
+  déjà.
+
+  **`R-94` a révélé un trou dans ma propre documentation** : `configuration.md`, écrit la veille pour
+  `R-104`, ne contenait pas une fois `x-meilifacets::listing`. Il documentait la liberté de placer
+  une facette sans sa seule limite — être dans la racine, faute de quoi elle est inerte.
+
+  **Enseignement de méthode, payé cher.** Plusieurs corrections ont dû être corrigées : une méthode
+  triplée pour optimiser un chemin à 0,11 µs, des commentaires paraphrasant le code retirés en deux
+  passes, une affirmation sur le Figma écrite sans avoir rouvert les captures — elles disaient
+  l'inverse —, et un harnais de mutation qui rapportait « survivant » sans vérifier que la mutation
+  s'était appliquée. Trois réflexes en sortent : mesurer avant d'optimiser, relire ses propres
+  commentaires avec la table du `CLAUDE.md` avant de livrer, et faire échouer un test exprès avant
+  de le croire.
+- **2026-09-09** (suite) — **`R-89` validé et fermé.** Louis valide sur constat d'usage : « j'ai bien
+  les filtres qui sont ok même en étant détaché ». C'était le point qui engageait le plus — une
+  facette sortie du groupe doit continuer de filtrer, ce que `R-106` verrouille désormais par un
+  test. Les trois choix que la validation entérine : le nom porté par la facette (un troisième nom
+  pour une même chose, après la taxonomie et le paramètre d'URL), l'exception au double rendu
+  (`R-95`, différé), et le sous-ensemble arbitraire non livré faute de demandeur.

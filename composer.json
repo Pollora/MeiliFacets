@@ -18,7 +18,8 @@
         },
         {
             "name": "Louis Boulanger",
-            "email": "louis.boulanger.work@gmail.com"
+            "email": "louis.boulanger.work@gmail.com",
+            "homepage": "https://github.com/Loubal70"
         }
     ],
     "require": {
@@ -47,6 +48,7 @@
         }
     },
     "require-dev": {
+        "ext-dom": "*",
         "driftingly/rector-laravel": "^2.6",
         "laravel/pint": "^1.30",
         "phpunit/phpunit": "^12.5",
