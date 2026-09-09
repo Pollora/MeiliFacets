@@ -2860,9 +2860,7 @@ libre : une facette placée après le groupe lève, puisque le groupe l'a déjà
 
 **4 · Une facette n'est rendue qu'une fois.** Deux blocs identiques dupliqueraient les entrées et
 les identifiants qu'elles portent, d'où une exception nommée plutôt qu'un doublon silencieux
-(demandé en séance : « il faut générer une erreur Laravel non ? »). Réserve ouverte à confronter au
-Figma, où le panneau desktop et la modale mobile pourraient vouloir la même facette deux fois :
-`R-95`.
+(demandé en séance : « il faut générer une erreur Laravel non ? »). Réserve ouverte : `R-95`.
 
 **5 · Ce qu'un gabarit passe arrive.** `{{ $attributes->class('meilifacetsFacet') }}` et
 `{{ $scrollMark() }}` sur le `<fieldset>` — ajoutés le 2026-09-09 par `R-98` et `R-99`, sans quoi
@@ -2995,7 +2993,7 @@ personne ne retrouve. État de départ : ouvert, sauf mention.
 | --- | --- | --- | --- |
 | `R-93` | 🟡 | ouvert | le style par défaut est porté par `[data-meili="facets"]` et ne suit pas une facette déplacée hors du groupe |
 | `R-94` | 🟡 | ouvert | une facette placée hors de `[data-listing]` est inerte, sans avertissement |
-| `R-95` | 🟠 | ouvert | rendre deux fois la même facette lève une exception qui sort un 500 sur toute la page — à confronter au besoin Figma (panneau desktop **et** modale mobile) |
+| `R-95` | 🟠 | ouvert | rendre deux fois la même facette lève une exception qui sort un 500 sur toute la page |
 | `R-96` | 🟡 | ouvert | `Facet::$name` sert d'identifiant sans unicité imposée : deux facettes sur une même taxonomie partagent un nom que personne n'a écrit |
 | `R-97` | 🟠 | **fermé le 2026-09-09** | collision d'identifiants entre panneau et compteur |
 | `R-98` | 🟡 | **fermé le 2026-09-09** | le composant `facet` n'émet jamais `{{ $attributes }}` : ni classe ni id sur une facette placée |
@@ -3007,7 +3005,7 @@ personne ne retrouve. État de départ : ouvert, sauf mention.
 | `R-104` | 🟡 | **fermé le 2026-09-09** | le bloc `R-89` du registre affirme le contraire de ce qui a été livré ; `configuration.md` ne documente pas la nouvelle API publique |
 | `R-105` | 🟡 | **fermé le 2026-09-09** | la fixture `tests/js/dom.js` ne reflète plus le Blade (panneau absent) |
 | `R-107` | 🟡 | ouvert | le texte des contrôles est 2,3 px au-dessus du centre optique — métriques d'Epilogue, correction à placer côté thème |
-| `R-106` | 🟡 | ouvert | rien ne verrouille « le retrait est affaire de rendu seulement », que `R-89` nomme pourtant |
+| `R-106` | 🟡 | **fermé le 2026-09-09** | rien ne verrouille « le retrait est affaire de rendu seulement », que `R-89` nomme pourtant |
 
 ### R-97 · 🟠 · **fermé le 2026-09-09** · ouvert le 2026-09-09 — collision d'identifiants entre panneau et compteur
 
@@ -3115,6 +3113,34 @@ il assert l'absence du fichier compilé. Trois mutations passées — revenir à
 style branche ses règles. C'est exact, mais c'est le comportement — arbitré par Louis le
 2026-09-08 (« il ne faut pas d'élément sinon tu vas alourdir le DOM ») — et la conséquence sur le
 style appartient à `R-93`.
+
+---
+
+### R-106 · 🟡 · **fermé le 2026-09-09** · ouvert le 2026-09-09 — rien ne verrouillait « le retrait est affaire de rendu seulement »
+
+**Cinq des sept points de lecture ne peuvent pas déraper**, contrairement à ce qu'annonçait la
+revue. `QueryPlan`, `ListingSearch`, `DisjunctiveFacetCounter` et `StateReader` reçoivent le contrat
+`Listing`, qui n'expose pas `remainingFacets()` — la méthode vit sur `ResolvedListing`. Le
+« rangement » redouté ne compilerait pas.
+
+La surface réelle est **une** classe : `ListingDescription::of(ResolvedListing $listing)`, à ses
+deux appels (`:58` pour le tableau des facettes, `:69` pour la carte des paramètres). C'est elle qui
+alimente le client, donc le comptage et les filtres d'URL des facettes que la page n'a pas montrées.
+
+Test : `it_still_publishes_a_facet_a_template_placed_apart`. Écrit d'abord dans la suite `Unit`, il
+a dû migrer en `Feature` — `ListingDescription` appelle `trans()` pour les motifs qui voyagent dans
+la description, donc il exige une application. Il lit ses noms et ses comptes à l'exécution, pour ne
+pas retomber dans `R-101`.
+
+Les deux mutations sont tuées.
+
+**Second point du constat, traité autrement.** La revue demandait de reporter dans
+`facet.blade.php` la justification d'accessibilité supprimée de `facets.blade.php` (« Described, not
+named… »). Ce serait contredire la règle de commentaires : une justification de conception va dans
+la documentation, pas dans une vue. Elle est donc écrite dans `architecture.md`, section « Ce que le
+compteur d'une valeur est, pour un lecteur d'écran » — et surtout **verrouillée par un test**,
+`it_describes_a_value_with_its_count_rather_than_naming_it`, ce qu'un commentaire n'aurait jamais
+fait. Deux mutations tuées : passer à `aria-labelledby`, retirer l'`id` du compteur.
 
 ---
 
@@ -3239,6 +3265,26 @@ une base neutre qui ne peut pas connaître le rapport ascent/descent de la polic
 choisit ; une compensation en dur serait fausse pour toute autre police. Le seul geste défendable
 côté module serait d'envelopper le libellé dans un `<span>` **sans** correction, pour donner une
 prise au thème.
+
+---
+
+### R-95 · 🟠 · ouvert · 2026-09-09 — rendre deux fois la même facette sort un 500 sur toute la page
+
+`ResolvedListing::place()` lève quand un nom est déjà rendu — voulu, demandé en séance (« il faut
+générer une erreur Laravel non ? »), et le seul comportement qui évite un doublon silencieux
+d'entrées et d'identifiants. Reste que l'exception traverse le rendu et sort un 500 sur la page
+entière, là où une facette dupliquée est une faute de gabarit, pas une panne de service.
+
+**Correction d'une affirmation portée par erreur dans ce registre le 2026-09-09** : il y était écrit
+que le Figma pouvait vouloir la même facette dans le panneau desktop **et** dans la modale mobile.
+Les deux frames relevées disent l'inverse — la catégorie est en pastilles en haut de page (`5-31`)
+et **n'est pas reprise** dans le panneau déplié (`6-169`), qui porte Type de peau, Besoin, Actifs,
+Texture, Utilisation, Confort, Formulation, Label, Marque, Prix. Aucune facette n'y apparaît deux
+fois : c'est exactement le modèle à deux modes livré par `R-89`.
+
+La question qui reste, plus étroite : **la modale mobile est-elle le même DOM présenté autrement, ou
+un second rendu ?** Aucune frame mobile relevée ne permet de trancher. Si c'est du CSS, l'exception
+ne gêne personne et le constat se ferme sans code.
 
 ---
 

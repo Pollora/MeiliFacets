@@ -244,6 +244,16 @@ de page. Coût habituel, assumé.
 **Meilisearch fournit le listing et les facettes.** Au premier rendu, PHP l'interroge pendant
 que la page se construit. Ensuite, chaque interaction de filtrage part du navigateur.
 
+### Ce que le compteur d'une valeur est, pour un lecteur d'écran
+
+Le compteur est relié à sa case par `aria-describedby`, **jamais** par `aria-labelledby` ni en
+faisant partie du libellé. Il change à chaque filtrage : le nommer ferait renommer, sous le
+curseur, la case qu'on est en train de lire. Décrit, il est annoncé après le nom et une
+actualisation n'est qu'une information de plus.
+
+Il est aussi écrit en toutes lettres (« 14 résultats », `trans_choice`) plutôt qu'en nombre nu
+collé au libellé, qu'un lecteur d'écran rendrait « 15ml 2 ».
+
 ## Transport
 
 **Le navigateur interroge Meilisearch en direct.** Aucun proxy PHP, aucune route

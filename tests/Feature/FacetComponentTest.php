@@ -12,6 +12,7 @@ use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\Listing\Facet;
 use Modules\MeiliFacets\Listing\ResolvedListing;
 use Modules\MeiliFacets\View\ElementId;
+use Modules\MeiliFacets\View\ListingDescription;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -152,6 +153,37 @@ final class FacetComponentTest extends TestCase
 
         $this->assertStringContainsString('data-meili="facets"', $rendered);
         $this->assertStringContainsString('data-meili="apply"', $rendered);
+    }
+
+    /** Naming a box with a count would rename it under the cursor at every filtering. */
+    #[Test]
+    public function it_describes_a_value_with_its_count_rather_than_naming_it(): void
+    {
+        $input = HTMLDocument::createFromString($this->renderOne(), LIBXML_NOERROR)
+            ->querySelector('['.Contract::ATTRIBUTE.'="'.Hook::Input->value.'"]');
+
+        $this->assertNull($input->getAttribute('aria-labelledby'));
+        $this->assertSame(
+            $input->getAttribute('aria-describedby'),
+            $input->parentElement->querySelector('['.Contract::ATTRIBUTE.'="'.Hook::Count->value.'"]')->id
+        );
+    }
+
+    /**
+     * Placing is a rendering decision. The description feeds the browser client,
+     * which counts and filters on facets the page never showed.
+     */
+    #[Test]
+    public function it_still_publishes_a_facet_a_template_placed_apart(): void
+    {
+        $listing = $this->listing();
+        $description = $this->app->make(ListingDescription::class);
+
+        $before = $description->of($listing);
+        $listing->placeApart($this->first());
+
+        $this->assertSame($before, $description->of($listing));
+        $this->assertCount($this->declaredCount(), $description->of($listing)['facets']);
     }
 
     private function listing(): ResolvedListing
