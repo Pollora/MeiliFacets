@@ -23,7 +23,7 @@
     --meili-ease: cubic-bezier(0.23, 1, 0.32, 1);
     --meili-card: 15em;
     --meili-ui: 0.875rem;
-    --meili-control: 2.4em;
+    --meili-control: 2.25rem;
 }
 
 [data-meili="sort"],
@@ -127,7 +127,7 @@
     color: inherit;
     font: inherit;
     font-size: var(--meili-ui);
-    line-height: 1.2;
+    line-height: 1;
     min-height: var(--meili-control);
     padding: 0 0.85em;
     border: 1px solid var(--meili-edge);
@@ -329,7 +329,7 @@
 
 @media (pointer: coarse) {
     [data-listing] {
-        --meili-control: 2.9em;
+        --meili-control: 2.75rem;
     }
 
     [data-meili="facet-value"] label {
