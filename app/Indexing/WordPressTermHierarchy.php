@@ -39,6 +39,7 @@ final readonly class WordPressTermHierarchy implements TermHierarchy
             'taxonomy' => $taxonomy,
             'parent' => $termId,
             'hide_empty' => false,
+            'update_term_meta_cache' => false,
         ]);
 
         return is_array($terms)
