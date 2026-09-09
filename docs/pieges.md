@@ -431,3 +431,20 @@ Ce répertoire est ignoré par git **parce que c'est une sortie de Composer**. N
 installation manuelle, et surtout **ne rien y corriger à la main** : le correctif se fait dans le
 dépôt amont, puis `composer update amphibee/meiliscout` le rapatrie et fige la référence dans la
 `composer.lock` du projet.
+
+## Deux colonnes de date dans Action Scheduler
+
+La table `actionscheduler_actions` porte `scheduled_date_local` **et** `scheduled_date_gmt`. Les
+métadonnées de WooCommerce, elles, sont des horodatages **UTC** — `_sale_price_dates_from`,
+`_sale_price_dates_to`, et tout ce que `set_date_prop()` écrit (`abstract-wc-data.php` : un nombre
+est traité comme UTC, une chaîne comme heure locale du site puis convertie).
+
+Comparer `scheduled_date_local` à l'une de ces métadonnées fait apparaître un décalage qui n'existe
+pas : il vaut exactement le décalage du site. Constaté le 2026-09-09 en cadrant `prix.md` — **2
+heures annoncées, 0 seconde réelles**, sur un site en UTC+2. La conclusion fausse qui en découlait :
+« il existe une fenêtre où `is_on_sale()` dit oui mais `_price` vaut encore le prix normal ».
+WooCommerce planifie en réalité la bascule à la borne exacte.
+
+Corollaire pour l'admin : une promo « du 14 » commence à **minuit heure du site**, pas à minuit UTC —
+la boîte à métadonnées force `Y-m-d 00:00:00` et `Y-m-d 23:59:59` en heure locale avant conversion.
+
