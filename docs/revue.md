@@ -2761,9 +2761,9 @@ de l'application. La même sonde passe désormais.
 **Ce que ça ne ferme pas** : `Q-07` reste ouverte — `ProductListing` est toujours du WooCommerce
 dans un paquet générique, et la collision de nom dans `ListingRegistry` n'est toujours ni conçue ni
 testée. Elle est simplement devenue moins urgente : un projet n'a plus besoin de déclarer son
-propre `Listing` pour choisir ses facettes. `R-89` (ce qu'un gabarit rend) reste ouvert.
+propre `Listing` pour choisir ses facettes. `R-89` (ce qu'un gabarit rend) est fermé depuis le 2026-09-09.
 
-### R-89 · 🟠 · **livré le 2026-09-08, en attente de validation** · ouvert le 2026-09-08 — un gabarit ne peut pas choisir les facettes qu'il rend
+### R-89 · 🟠 · **fermé le 2026-09-09** · livré le 2026-09-08 · ouvert le 2026-09-08 — un gabarit ne peut pas choisir les facettes qu'il rend
 
 `facets.blade.php:2` boucle sur `$listing->facets()` sans filtre, et `ListingComponent` n'accepte
 que `name` et `scroll`. Un thème rend donc **toutes** les facettes déclarées, dans un seul `<div>`,
@@ -2817,8 +2817,10 @@ sélectionnée). À ce volume de catalogue, le coût marginal reste sous le brui
 pour `R-88` : un back-office qui laisserait cocher douze facettes ne coûterait rien tant que le
 visiteur n'en tient qu'une ou deux.
 
-**Livré le 2026-09-08, complété le 2026-09-09 — en attente de validation.** Deux modes de
-placement, et un nom porté par la facette. *Ce bloc remplace un bilan écrit le 2026-09-08 qui
+**Livré le 2026-09-08, complété le 2026-09-09, validé par Louis le 2026-09-09** sur constat d'usage :
+« j'ai bien les filtres qui sont ok même en étant détaché » — c'est-à-dire le point qui engageait le
+plus, une facette sortie du groupe qui filtre toujours. Deux modes de placement, et un nom porté par
+la facette. *Ce bloc remplace un bilan écrit le 2026-09-08 qui
 affirmait le contraire de ce qui a fini par être livré : « ni nom porté par la facette », « il n'y a
 rien à nommer », « le sous-ensemble n'a pas été livré ». Les trois étaient vrais de la première
 livraison et faux le lendemain (`R-104`).*
@@ -3491,7 +3493,7 @@ et vivait sous `R-92`, à 150 lignes de l'entrée qu'il concluait.
 Correctif : le bilan est réécrit et rattaché à `### R-89`, en cinq points — la vue découpée, le nom
 porté par la facette, les deux modes de placement, l'unicité du rendu, et ce que le composant
 transmet (`R-98`/`R-99`). Il porte la mention de ce qu'il remplace, pour qu'une relecture ne croie
-pas à un oubli. L'état de `R-89` n'a pas bougé : **livré, en attente de validation**.
+pas à un oubli. L'état de `R-89` n'avait alors pas bougé ; il a été **validé le 2026-09-09**.
 
 L'API publique est documentée dans `configuration.md`, nouvelle section « Placer les facettes dans
 un gabarit » : les deux composants, le paramètre `name`, ce que le sac d'attributs transmet, et la
@@ -4178,3 +4180,9 @@ continuer à décider sur 76 produits sans variations.
   s'était appliquée. Trois réflexes en sortent : mesurer avant d'optimiser, relire ses propres
   commentaires avec la table du `CLAUDE.md` avant de livrer, et faire échouer un test exprès avant
   de le croire.
+- **2026-09-09** (suite) — **`R-89` validé et fermé.** Louis valide sur constat d'usage : « j'ai bien
+  les filtres qui sont ok même en étant détaché ». C'était le point qui engageait le plus — une
+  facette sortie du groupe doit continuer de filtrer, ce que `R-106` verrouille désormais par un
+  test. Les trois choix que la validation entérine : le nom porté par la facette (un troisième nom
+  pour une même chose, après la taxonomie et le paramètre d'URL), l'exception au double rendu
+  (`R-95`, différé), et le sous-ensemble arbitraire non livré faute de demandeur.
