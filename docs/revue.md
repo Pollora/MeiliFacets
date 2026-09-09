@@ -3002,10 +3002,10 @@ personne ne retrouve. État de départ : ouvert, sauf mention.
 | `R-99` | 🟡 | **fermé le 2026-09-09** | `$scroll` est accepté puis ignoré par le composant `Facet` |
 | `R-100` | 🟢 | **fermé le 2026-09-09** | `Facets::render()` renvoie `''` au lieu de `shouldRender()`, ce qui écrit un fichier compilé vide |
 | `R-101` | 🟡 | **fermé le 2026-09-09** | les tests Feature assertaient le catalogue de facettes du projet hôte |
-| `R-102` | 🟡 | ouvert | le test du bouton de repli ne peut pas échouer |
+| `R-102` | 🟡 | **fermé le 2026-09-09** | le test du bouton de repli ne peut pas échouer |
 | `R-103` | 🟢 | **fermé le 2026-09-09** | `forgetScopedInstances()` sans `tearDown()` symétrique |
 | `R-104` | 🟡 | **fermé le 2026-09-09** | le bloc `R-89` du registre affirme le contraire de ce qui a été livré ; `configuration.md` ne documente pas la nouvelle API publique |
-| `R-105` | 🟡 | ouvert | la fixture `tests/js/dom.js` ne reflète plus le Blade (panneau absent) |
+| `R-105` | 🟡 | **fermé le 2026-09-09** | la fixture `tests/js/dom.js` ne reflète plus le Blade (panneau absent) |
 | `R-107` | 🟡 | ouvert | le texte des contrôles est 2,3 px au-dessus du centre optique — métriques d'Epilogue, correction à placer côté thème |
 | `R-106` | 🟡 | ouvert | rien ne verrouille « le retrait est affaire de rendu seulement », que `R-89` nomme pourtant |
 
@@ -3115,6 +3115,77 @@ il assert l'absence du fichier compilé. Trois mutations passées — revenir à
 style branche ses règles. C'est exact, mais c'est le comportement — arbitré par Louis le
 2026-09-08 (« il ne faut pas d'élément sinon tu vas alourdir le DOM ») — et la conséquence sur le
 style appartient à `R-93`.
+
+---
+
+### R-105 · 🟡 · **fermé le 2026-09-09** · ouvert le 2026-09-09 — la fixture JS ne reflétait plus le Blade
+
+`tests/js/dom.js` posait le `<ul>` et le bouton `more` directement dans le `<fieldset>`, alors que
+le Blade intercale `.meilifacetsFacetPanel` et `.meilifacetsFacetPanelInner` depuis `R-89`. Son
+docblock affirmait pourtant « Mirrors what the Blade components render ». Manquaient aussi la
+`<legend>`, les classes `meilifacetsFacet`, `meilifacetsFacetValues`, `meilifacetsFacetMore`, et le
+couple `aria-describedby` / `id` du compteur.
+
+Correctif : un helper `facetBlock()` calqué sur le rendu réel, relevé sur `/boutique` plutôt que
+réécrit de mémoire.
+
+**Ce que la correction n'a pas révélé, contrairement à ce qu'annonçait la revue.** Elle affirmait
+que la fixture périmée « explique que la régression CSS du constat 1 (`R-93`) soit passée
+inaperçue ». Les 147 tests JS restent verts après correction. La raison est ailleurs : la fixture ne
+contient **aucune facette hors du groupe**, et c'est cette condition-là que `R-93` exige. La
+corriger était nécessaire, ce n'est pas suffisant — l'ajout d'une facette hors groupe appartient au
+correctif de `R-93`, où il fera échouer les tests concernés.
+
+Vérifié au passage, ce qui étaie `R-93` : cinq règles portent le préfixe `[data-meili="facets"]`
+(`fieldset`, `legend`, `ul`, `:last-of-type`) et **aucune** ne vise `.meilifacetsFacetPanel`,
+`.meilifacetsFacetValues`, `.meilifacetsFacetMore` ni `.meilifacetsFacetLabel`. Une facette déplacée
+perd donc tout son style.
+
+`tests/js/stylesheet.test.js` n'a pas été touché — ses sélecteurs sont des descendants, l'insertion
+des deux `div` ne les casse pas.
+
+**Reste ouvert, sans numéro jusqu'ici** : une fixture écrite à la main dérive, c'est ce qui vient
+d'arriver. `R-108`.
+
+---
+
+### R-108 · 🟡 · ouvert · 2026-09-09 — rien n'empêche la fixture JS de dériver à nouveau
+
+`tests/js/dom.js` est recopié à la main depuis le Blade, et la suite JS doit rester exécutable sans
+application hôte (`composer check`) — donc elle ne peut pas la générer. `R-105` a corrigé l'écart du
+jour ; le prochain changement de vue le recréera en silence, et les tests de feuille de style
+continueront de valider un markup mort.
+
+Piste non instruite : un test de la suite `Feature`, côté PHP, qui lit `dom.js` et vérifie que les
+classes et crochets structurants qu'il emploie existent dans le rendu réel. C'est le seul pont
+possible sans faire dépendre la suite JS de PHP.
+
+---
+
+### R-102 · 🟡 · **fermé le 2026-09-09** · ouvert le 2026-09-09 — le test du bouton de repli ne pouvait pas échouer
+
+`it_keeps_the_fold_button_inside_the_panel` comparait deux `strpos` : le bouton apparaissait-il
+**après** la balise ouvrante du panneau. Sortir le bouton des deux `div` et le poser juste avant
+`</fieldset>` — la régression exacte que le nom du test annonce — garde l'offset supérieur.
+
+Vérifié avant de corriger, en appliquant cette mutation au Blade : **le test reste vert**.
+
+Correctif : l'assertion porte sur la containment, pas sur l'ordre. `Dom\HTMLDocument` (PHP 8.4)
+analyse le rendu, `querySelector('.meilifacetsFacetPanelInner')` isole le panneau, et le bouton est
+cherché **dans** ce nœud. Les deux messages d'échec nomment ce qui a cassé, ce qui répond au point
+secondaire du constat (un `assertGreaterThan(false, false)` ne disait pas que le panneau avait
+disparu).
+
+Deux mutations passées :
+
+```
+le bouton sort du panneau  → « The fold button sits outside the panel, so collapsing the facet leaves it behind. »
+le panneau disparaît       → « The facet renders no panel to collapse. »
+```
+
+**Dépendance à confirmer** : le test utilise `ext-dom`, extension du cœur de PHP mais non déclarée
+par le module. Elle n'est atteinte que par la suite `Feature`, qui exige déjà une application hôte —
+`composer check` et la suite `Unit` ne la touchent pas. À déclarer en `require-dev`, sur accord.
 
 ---
 

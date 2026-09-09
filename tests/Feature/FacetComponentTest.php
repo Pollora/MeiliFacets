@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Tests\Feature;
 
+use Dom\HTMLDocument;
 use Illuminate\Support\Facades\Blade;
 use Modules\MeiliFacets\Enums\Contract;
 use Modules\MeiliFacets\Enums\Hook;
@@ -71,11 +72,13 @@ final class FacetComponentTest extends TestCase
     #[Test]
     public function it_keeps_the_fold_button_inside_the_panel(): void
     {
-        $rendered = $this->renderOne();
+        $panel = HTMLDocument::createFromString($this->renderOne(), LIBXML_NOERROR)
+            ->querySelector('.meilifacetsFacetPanelInner');
 
-        $this->assertGreaterThan(
-            strpos($rendered, 'meilifacetsFacetPanelInner'),
-            strpos($rendered, Hook::More->attribute()->toHtml())
+        $this->assertNotNull($panel, 'The facet renders no panel to collapse.');
+        $this->assertNotNull(
+            $panel->querySelector('['.Contract::ATTRIBUTE.'="'.Hook::More->value.'"]'),
+            'The fold button sits outside the panel, so collapsing the facet leaves it behind.'
         );
     }
 
