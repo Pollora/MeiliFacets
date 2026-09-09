@@ -18,7 +18,8 @@
         },
         {
             "name": "Louis Boulanger",
-            "email": "louis.boulanger.work@gmail.com"
+            "email": "louis.boulanger.work@gmail.com",
+            "homepage": "https://github.com/Loubal70"
         }
     ],
     "require": {
