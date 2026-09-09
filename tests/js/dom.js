@@ -138,5 +138,6 @@ ${facetBlock('product_cat', 'category', 'Category', facetValue('categorie', 'coa
         ${Array.from({ length: 7 }, pageButton).join('')}
         <button type="button" value="1" hidden data-meili="next">Next</button>
     </nav>
+${facetBlock('pa_size', 'size', 'Size', facetValue('taille', 'm', 'Medium'))}
 </div>`
 }

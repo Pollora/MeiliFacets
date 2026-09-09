@@ -2991,7 +2991,7 @@ personne ne retrouve. État de départ : ouvert, sauf mention.
 
 | n° | gravité | état | constat |
 | --- | --- | --- | --- |
-| `R-93` | 🟡 | ouvert | le style par défaut est porté par `[data-meili="facets"]` et ne suit pas une facette déplacée hors du groupe |
+| `R-93` | 🟡 | **fermé le 2026-09-09** | le style par défaut est porté par `[data-meili="facets"]` et ne suit pas une facette déplacée hors du groupe |
 | `R-94` | 🟡 | ouvert | une facette placée hors de `[data-listing]` est inerte, sans avertissement |
 | `R-95` | 🟠 | ouvert | rendre deux fois la même facette lève une exception qui sort un 500 sur toute la page |
 | `R-96` | 🟡 | ouvert | `Facet::$name` sert d'identifiant sans unicité imposée : deux facettes sur une même taxonomie partagent un nom que personne n'a écrit |
@@ -3265,6 +3265,43 @@ une base neutre qui ne peut pas connaître le rapport ascent/descent de la polic
 choisit ; une compensation en dur serait fausse pour toute autre police. Le seul geste défendable
 côté module serait d'envelopper le libellé dans un `<span>` **sans** correction, pour donner une
 prise au thème.
+
+---
+
+### R-93 · 🟡 · **fermé le 2026-09-09** · ouvert le 2026-09-09 — le style par défaut ne suivait pas une facette déplacée
+
+Quatre règles habillaient la facette depuis le **groupe** (`[data-meili="facets"] fieldset`,
+`… legend`, `… ul`, et l'échelle `--meili-ui`). Une facette placée ailleurs par un gabarit — ce que
+`R-89` vient d'autoriser — n'en recevait aucune.
+
+Mesuré dans un vrai navigateur, facette de catégorie posée hors du groupe :
+
+| | avant | après |
+| --- | --- | --- |
+| taille du texte | **16 px** (échelle de la page) | 14 px |
+| puces de la liste | **`disc`** | `none` |
+| graisse de la légende | **400** | 600 |
+
+S'y ajoutaient, mesurés sous happy-dom, le cadre et le remplissage que le navigateur pose sur un
+`<fieldset>` nu, et la marge basse.
+
+Correctif : les quatre règles s'accrochent à `[data-meili="facet"]`, le crochet que la facette porte
+elle-même. C'est ce que `decisions.md:184` demandait déjà — « la règle s'accroche à `data-meili`,
+jamais aux classes ». Seule reste au groupe `[data-meili="facets"] [data-meili="facet"]:last-of-type`,
+qui parle vraiment d'une position dans le groupe. La spécificité baisse de `0-2-0` à `0-1-0`, donc un
+thème surcharge plus facilement — dans le sens voulu.
+
+Tests : `tests/js/facet-placement.test.js`, quatre cas comparant une facette groupée et une facette
+placée. La fixture porte désormais une facette hors du groupe, ce que `R-105` avait identifié comme
+manquant. Les quatre échouaient avant le correctif ; chacune des quatre règles rescopées est tuée
+par au moins un test.
+
+**`tests/js/stylesheet.test.js` n'a pas été touché**, ses 147 cas restent verts.
+
+*Défaut corrigé en cours de route dans mon propre test* : il s'appelait « strips the bullets and the
+indent » en assertant `listStyleType` et `paddingInlineStart`, que happy-dom ne calcule pas — il
+rendait `''` des deux côtés et ne prouvait rien. Remplacés par `listStyle` et `paddingLeft`, les
+propriétés que le moteur résout et qu'emploie déjà `stylesheet.test.js`.
 
 ---
 
