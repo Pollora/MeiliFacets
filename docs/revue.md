@@ -342,7 +342,6 @@ tenir deux états, et surtout elle laisse le visiteur devant une grille qui igno
 vient de cocher, avec « Appliquer » pour seul moyen de les faire coïncider. Le comportement retenu
 est aussi celui de la plupart des listes à facettes.
 
-
 ## 1. Constats — architecture et conception
 
 ### R-01 · 🟠 · ouvert · 2026-09-06 — `QueryPlan` est une classe qui a perdu son constructeur
@@ -383,7 +382,6 @@ et donnerait au passage la forme sérialisable dont le client JavaScript a besoi
 paramètre de constructeur qui n'est pas passé en attribut : l'injection est disponible, elle n'est
 pas utilisée. Effet direct : ces deux composants ne se testent qu'avec une application bootée.
 
-
 **Fermé le 2026-09-07** — par R-62, sans que ce constat soit mis à jour. Relevé par la passe de
 conformité de la documentation : le code qu'il décrit n'existe plus.
 ### R-05 · 🟠 · **fermé le 2026-09-07** · ouvert le 2026-09-06 — la configuration est lue depuis les objets de domaine
@@ -396,7 +394,6 @@ dépendance globale déguisée en valeur.
 Le contournement du piège nwidart (ne rien déclarer dans `config/config.php`, lire le défaut dans
 le code) est juste — c'est **l'endroit** de la lecture qui est discutable. Le provider est le seul
 qui devrait lire `config()`, comme il le fait déjà bien pour `DefaultCardProjector`.
-
 
 **Fermé le 2026-09-07** — par R-62, sans que ce constat soit mis à jour. Relevé par la passe de
 conformité de la documentation : le code qu'il décrit n'existe plus.
@@ -596,7 +593,6 @@ marcher dessus ». Deux listings sur une page produisent donc des `id` dupliqué
 `aria-describedby` qui pointe vers le mauvais compteur. Un des deux composants applique la règle,
 l'autre non.
 
-
 **Fermé le 2026-09-07** — par R-62, sans que ce constat soit mis à jour. Relevé par la passe de
 conformité de la documentation : le code qu'il décrit n'existe plus.
 ### R-16 · 🟡 · **fermé le 2026-09-06** · ouvert le 2026-09-06 — `RobotsPolicy` s'appliquait à toute page du site
@@ -765,7 +761,6 @@ Ici l'écriture était couverte, la lecture ne l'était pas, et le tableau du co
 client mais ne font pas partie de `Hook`, ne sont pas vérifiés par `Contract::breaches()` et ne
 figurent pas dans le tableau des crochets d'`architecture.md`. La règle « le client n'adresse que
 des crochets `data-meili` » est déjà entamée, sans que le mécanisme de version le voie.
-
 
 **Fermé le 2026-09-07** — par R-62, sans que ce constat soit mis à jour. Relevé par la passe de
 conformité de la documentation : le code qu'il décrit n'existe plus.
@@ -1303,7 +1298,6 @@ masqueraient** : `AppToResolveRector` (renommerait le service locator de R-04 au
 supprimer), `StringCastAssertStringContainsStringRector` (ajouterait des `(string)` plutôt que de
 typer le plan de R-02), plus deux qui nuisent à la lisibilité.
 
-
 ### R-56 · 🟡 · ouvert · 2026-09-06 — `check-parameters` ne détecte pas deux taxonomies mappées sur le même nom
 
 `ReservedParameters::conflicts()` teste chaque paramètre contre les query vars publiques de
@@ -1320,7 +1314,6 @@ prendre le nom `categorie`, puisqu'un listing ne mélange jamais les types de co
 qu'une seule des deux taxonomies est lue sur une page. **La vérification doit donc porter sur les
 facettes d'un même listing, pas sur la configuration entière** — ce qui change la nature de la
 commande : elle passe d'un contrôle de configuration à un contrôle par listing.
-
 
 ### R-57 · 🟡 · ouvert · 2026-09-06 — le client n'a aucune source de libellés
 
@@ -1346,7 +1339,6 @@ La sortie connue, si le besoin apparaît : projeter le couple slug → libellé 
 carte l'est déjà. À ne pas faire par anticipation — R-12 deviendrait bloquant, puisqu'un terme
 renommé rendrait le dictionnaire périmé.
 
-
 ### R-58 · 🟠 · **fermé le 2026-09-06** · ouvert le 2026-09-06 — un tri et une page numérotée entraient dans l'index
 
 `RobotsPolicy` ne déclenchait le `noindex` que sur une facette remplie. `?sort=price_asc` et
@@ -1371,7 +1363,6 @@ réservés y compris renommés. Vérifié en HTTP :
 | `/boutique?pg=2` | **index** | **noindex** |
 | `/?q=bonjour` | **noindex si `q` avait été inclus** | index |
 | `/?categorie=cheveux` | **noindex** | **index** |
-
 
 ### R-59 · 🔴 · **fermé le 2026-09-06** · ouvert le 2026-09-06 — chaque URL de listing émettait `noindex` **et** une canonique vers une autre URL
 
@@ -1437,7 +1428,6 @@ Vérifié en HTTP le 2026-09-06 :
 
 `RobotsPolicy` a été renommée **`IndexingPolicy`** : avec deux balises à sa charge, l'ancien nom
 était devenu faux.
-
 
 ### R-60 · 🔴 · **fermé le 2026-09-06** (B+) · ouvert le 2026-09-06 — deux paginations coexistaient, et c'est celle que le module ignore qui est indexée
 
@@ -1563,7 +1553,6 @@ Les quatre URLs dupliquées ont disparu : `/page/2` à `/page/5` servent quatre 
 aucune n'entre dans l'index. La règle de priorité `pg` > `paged` est vérifiée en conditions réelles
 et couverte par un test unitaire.
 
-
 ### R-61 · 🟠 · **fermé le 2026-09-08** · ouvert le 2026-09-06 — une page au-delà de la dernière annonçait « aucun résultat »
 
 **Mesuré le 2026-09-06** : `/boutique?pg=2&categorie=cheveux` répond `200` et affiche « Aucun
@@ -1622,7 +1611,6 @@ message du rendu serveur. Inatteignable par les boutons, qui sont bornés. À re
 publie un motif pour ce message, comme il le fera pour l'état d'attente.
 
 Lié à R-42 (`maxTotalHits`), qui produit le même symptôme pour une autre raison.
-
 
 ### R-62 · 🟠 · **fermé le 2026-09-06** · ouvert le 2026-09-06 — la couche vue portait des décisions qui ne lui appartenaient pas
 
@@ -1729,7 +1717,6 @@ qui a trouvé la panne. Deux unités neuves sont désormais testées (`ListingRe
 Après correction : `/boutique` 16 produits, `?categorie=cheveux` 14, `/page/2` la vraie page 2,
 robots et canoniques inchangés, 63 identifiants portant `meilifacets-products-…`, 128 tests verts.
 
-
 ### R-63 · ⚪ · **fermé le 2026-09-06** · ouvert le 2026-09-06 — un même concept portait deux noms
 
 `ListingState::isDefault()` existait depuis le lot 3b. `ResolvedListing::isPristine()` a été ajouté
@@ -1750,7 +1737,6 @@ défaut ? — quand « pristine » dit ce qui compte, que le visiteur n'a touch�
    `it_reports_an_untouched_listing_as_pristine` et assertait `isDefault()` : le nom du test disait
    déjà que le nom de la méthode était mauvais. Un écart entre le nom d'un test et celui de la
    méthode qu'il exerce est un constat en attente.
-
 
 ### R-64 · 🟡 · **fermé le 2026-09-06** · ouvert le 2026-09-06 — la catégorie par défaut était proposée comme un rayon
 
@@ -1811,7 +1797,6 @@ et 136 dans le projet.
 facette sans la ranger : elle n'est atteignable que par la boutique entière ou par une recherche.
 C'est une correction de contenu, pas de code.
 
-
 ### R-65 · 🟠 · ouvert · 2026-09-07 — une adresse de moteur sans schéma désactive tout, en silence
 
 `MEILI_PUBLIC_URL` est l'adresse que le navigateur utilise. Sur Clever Cloud, la forme naturelle
@@ -1852,7 +1837,6 @@ autonome, `Class "League\Uri\Uri" not found`. Ajouté explicitement.
 
 C'est l'argument contre « Laravel sera toujours là » : c'est vrai à l'exécution, et faux dès qu'on
 installe le module autrement — ce que la suite autonome fait à chaque exécution.
-
 
 ### R-67 · 🟠 · **fermé le 2026-09-07** · ouvert le 2026-09-07 — la racine du listing ne portait plus son nom
 
@@ -1923,7 +1907,6 @@ historique factices. 49 → 102 tests Node.
 
 Vérifié qu'ils mordent : en retirant le câblage de la pagination et l'appel à `showSelection()`,
 cinq tests tombent — dont les trois qui portent le correctif demandé.
-
 
 ### R-70 · 🟠 · ouvert · 2026-09-07 — seul le point d'entrée du client est versionné ; les dix-sept autres fichiers sont figés dans le navigateur
 
@@ -2834,6 +2817,89 @@ sélectionnée). À ce volume de catalogue, le coût marginal reste sous le brui
 pour `R-88` : un back-office qui laisserait cocher douze facettes ne coûterait rien tant que le
 visiteur n'en tient qu'une ou deux.
 
+**Livré le 2026-09-08, complété le 2026-09-09 — en attente de validation.** Deux modes de
+placement, et un nom porté par la facette. *Ce bloc remplace un bilan écrit le 2026-09-08 qui
+affirmait le contraire de ce qui a fini par être livré : « ni nom porté par la facette », « il n'y a
+rien à nommer », « le sous-ensemble n'a pas été livré ». Les trois étaient vrais de la première
+livraison et faux le lendemain (`R-104`).*
+
+**1 · La vue est découpée**, et un thème passe déjà devant la cascade de vues du module.
+
+```
+avant : facets.blade.php = conteneur + boucle + <fieldset> + bouton Appliquer
+après : facets.blade.php = conteneur + boucle + bouton Appliquer
+        facet.blade.php  = un <fieldset>
+```
+
+Un thème qui veut une facette en menu déroulant surcharge **`components/facet.blade.php` seule**,
+et hérite des versions suivantes du markup interne.
+
+**2 · Une facette porte un nom**, la troisième forme que le constat énumérait :
+
+```php
+new Facet('product_cat', __('Category'), name: ShopFacet::Category)
+```
+
+`string|BackedEnum`, avec repli sur la taxonomie quand rien n'est déclaré — donc rien à écrire pour
+démarrer. Un projet range ses noms dans une énumération (`App\Cms\Products\ShopFacet`), et **aucun
+nom de taxonomie n'apparaît dans un gabarit** : la contrainte posée en séance est tenue.
+
+**3 · Deux modes de placement**, comme `sort` et `reset` :
+
+```blade
+<x-meilifacets::facet :facet="ShopFacet::Category" class="lg:col-span-2" scroll />
+<x-meilifacets::facets />
+```
+
+Le premier place une facette où le thème veut ; le second prend **ce qui reste**
+(`ResolvedListing::remainingFacets()` filtre sur ce qu'un gabarit a placé à part). L'ordre est
+libre : une facette placée après le groupe lève, puisque le groupe l'a déjà prise.
+
+**Le sous-ensemble a donc bien été livré**, contrairement à ce que le bilan précédent disait —
+`facetNamed()`, `place()`, `placeApart()`, `remainingFacets()`.
+
+**4 · Une facette n'est rendue qu'une fois.** Deux blocs identiques dupliqueraient les entrées et
+les identifiants qu'elles portent, d'où une exception nommée plutôt qu'un doublon silencieux
+(demandé en séance : « il faut générer une erreur Laravel non ? »). Réserve ouverte à confronter au
+Figma, où le panneau desktop et la modale mobile pourraient vouloir la même facette deux fois :
+`R-95`.
+
+**5 · Ce qu'un gabarit passe arrive.** `{{ $attributes->class('meilifacetsFacet') }}` et
+`{{ $scrollMark() }}` sur le `<fieldset>` — ajoutés le 2026-09-09 par `R-98` et `R-99`, sans quoi
+déplacer une facette dans une case de grille précise ne servait à rien.
+
+**Deux contraintes de conception, venues de la séance :**
+
+- **le crochet `facet` est sur l'élément le plus extérieur**, parce que c'est lui que le client
+  masque (`R-84`). Un thème qui enrobe déplace le crochet avec lui — écrit dans la vue et couvert
+  par un test ;
+- **le panneau est animable**. Emil animera ces blocs, probablement en grille. La vue livre donc
+  `.meilifacetsFacetPanel` (la ligne de grille) et son enfant `.meilifacetsFacetPanelInner`
+  (`overflow: hidden`) : sans eux, animer imposait de réécrire toute la liste. Le panneau porte un
+  `id` (`ElementId::facetPanel()`) pour qu'une gâchette de thème y pointe son `aria-controls`.
+  `<details>` a été écarté : son ouverture n'est animable qu'avec du CSS très récent et inégalement
+  supporté.
+
+**Mesuré dans le navigateur**, en injectant le CSS qu'un thème écrirait :
+
+```
+panneau ouvert 259px → à mi-parcours 51px → fermé 0px → rouvert 259px
+```
+
+La collapse en `grid-template-rows: 1fr → 0fr` fonctionne sur le markup livré, sans une ligne de
+JavaScript. Vérifié aussi que le découpage n'a rien cassé : dépliage `10 → 24`, filtrage
+`?marque=aeris` à 10 cartes, et une facette vidée par la recherche masque bien son `<fieldset>`,
+légende comprise.
+
+⚠️ **Ce qui reste à faire côté feuille de style**, et qui n'est pas dans le module :
+`[data-meili][hidden] { display: none !important }` (`meilifacets.css:1`). Le `!important` oblige un
+thème à surenchérir pour reprendre `display`, donc pour animer. Le retirer suffit — la spécificité
+`0-2-0` bat déjà un reset de thème. Corollaire pour Emil : rendre visible dans l'arbre ce que
+`hidden` en sortait rend les cases repliées focalisables, d'où un `inert` sur le conteneur fermé.
+
+L'API publique qui en sort est documentée dans `configuration.md`, section « Placer les facettes
+dans un gabarit ».
+
 ### R-90 · 🟡 · ouvert · 2026-09-08 — une facette sur une taxonomie non indexée rend tout le listing indisponible, sans la nommer
 
 Résiduel d'un constat de revue par ailleurs invalidé. L'indexation rend filtrables **toutes** les
@@ -2919,55 +2985,6 @@ c'est celui-là qui est levé.
 
 ---
 
-**Livré le 2026-09-08, plus étroitement que le constat ne le proposait — non validé.** Ni slot, ni `only`, ni
-nom porté par la facette : la vue est **découpée**, et le thème passe déjà devant la cascade de
-vues du module.
-
-```
-avant : facets.blade.php = conteneur + boucle + <fieldset> + bouton Appliquer
-après : facets.blade.php = conteneur + boucle + bouton Appliquer
-        facet.blade.php  = un <fieldset>
-```
-
-Un thème qui veut une facette en menu déroulant surcharge **`components/facet.blade.php` seule**,
-et hérite des versions suivantes du markup interne. Aucun nom de taxonomie dans un gabarit — la
-contrainte posée en séance est tenue par construction, puisqu'il n'y a rien à nommer.
-
-**Le sous-ensemble n'a pas été livré** : « n'en rendre que certaines » n'a aucun demandeur, et
-`CLAUDE.md` § 2 dit qu'une couture s'ouvre quand un projet en a besoin. Le besoin réel — la modale
-mobile où chaque bloc est un déroulant — est couvert sans elle.
-
-**Deux contraintes de conception, venues de la séance :**
-
-- **le crochet `facet` est sur l'élément le plus extérieur**, parce que c'est lui que le client
-  masque (`R-84`). Un thème qui enrobe déplace le crochet avec lui — écrit dans la vue et couvert
-  par un test ;
-- **le panneau est animable**. Emil animera ces blocs, probablement en grille. La vue livre donc
-  `.meilifacetsFacetPanel` (la ligne de grille) et son enfant `.meilifacetsFacetPanelInner`
-  (`overflow: hidden`) : sans eux, animer imposait de réécrire toute la liste. Le panneau porte un
-  `id` (`ElementId::facetPanel()`) pour qu'une gâchette de thème y pointe son `aria-controls`.
-  `<details>` a été écarté : son ouverture n'est animable qu'avec du CSS très récent et inégalement
-  supporté.
-
-**Mesuré dans le navigateur**, en injectant le CSS qu'un thème écrirait :
-
-```
-panneau ouvert 259px → à mi-parcours 51px → fermé 0px → rouvert 259px
-```
-
-La collapse en `grid-template-rows: 1fr → 0fr` fonctionne sur le markup livré, sans une ligne de
-JavaScript. Vérifié aussi que le découpage n'a rien cassé : dépliage `10 → 24`, filtrage
-`?marque=aeris` à 10 cartes, et une facette vidée par la recherche masque bien son `<fieldset>`,
-légende comprise.
-
-⚠️ **Ce qui reste à faire côté feuille de style**, et qui n'est pas dans le module :
-`[data-meili][hidden] { display: none !important }` (`meilifacets.css:1`). Le `!important` oblige un
-thème à surenchérir pour reprendre `display`, donc pour animer. Le retirer suffit — la spécificité
-`0-2-0` bat déjà un reset de thème. Corollaire pour Emil : rendre visible dans l'arbre ce que
-`hidden` en sortait rend les cases repliées focalisables, d'où un `inert` sur le conteneur fermé.
-
----
-
 ### Revue de la PR #1 — `R-93` à `R-106`
 
 Quatorze constats relevés par une revue contradictoire sur la PR de placement de facettes
@@ -2987,7 +3004,7 @@ personne ne retrouve. État de départ : ouvert, sauf mention.
 | `R-101` | 🟡 | **fermé le 2026-09-09** | les tests Feature assertaient le catalogue de facettes du projet hôte |
 | `R-102` | 🟡 | ouvert | le test du bouton de repli ne peut pas échouer |
 | `R-103` | 🟢 | ouvert | `forgetScopedInstances()` sans `tearDown()` symétrique |
-| `R-104` | 🟡 | ouvert | le bloc `R-89` du registre affirme le contraire de ce qui a été livré ; `configuration.md` ne documente pas la nouvelle API publique |
+| `R-104` | 🟡 | **fermé le 2026-09-09** | le bloc `R-89` du registre affirme le contraire de ce qui a été livré ; `configuration.md` ne documente pas la nouvelle API publique |
 | `R-105` | 🟡 | ouvert | la fixture `tests/js/dom.js` ne reflète plus le Blade (panneau absent) |
 | `R-106` | 🟡 | ouvert | rien ne verrouille « le retrait est affaire de rendu seulement », que `R-89` nomme pourtant |
 
@@ -3097,6 +3114,30 @@ il assert l'absence du fichier compilé. Trois mutations passées — revenir à
 style branche ses règles. C'est exact, mais c'est le comportement — arbitré par Louis le
 2026-09-08 (« il ne faut pas d'élément sinon tu vas alourdir le DOM ») — et la conséquence sur le
 style appartient à `R-93`.
+
+---
+
+### R-104 · 🟡 · **fermé le 2026-09-09** · ouvert le 2026-09-09 — le registre affirmait le contraire de ce qui a été livré
+
+Le bilan de `R-89` avait été écrit le 2026-09-08, après la première livraison — la vue découpée — et
+jamais repris quand le placement a été terminé le lendemain. Il affirmait trois choses que le diff
+contredisait : « ni nom porté par la facette », « il n'y a rien à nommer », « le sous-ensemble n'a
+pas été livré ». Les trois étaient exactes la veille. Il n'avait en outre aucun en-tête `### R-xx`
+et vivait sous `R-92`, à 150 lignes de l'entrée qu'il concluait.
+
+Correctif : le bilan est réécrit et rattaché à `### R-89`, en cinq points — la vue découpée, le nom
+porté par la facette, les deux modes de placement, l'unicité du rendu, et ce que le composant
+transmet (`R-98`/`R-99`). Il porte la mention de ce qu'il remplace, pour qu'une relecture ne croie
+pas à un oubli. L'état de `R-89` n'a pas bougé : **livré, en attente de validation**.
+
+L'API publique est documentée dans `configuration.md`, nouvelle section « Placer les facettes dans
+un gabarit » : les deux composants, le paramètre `name`, ce que le sac d'attributs transmet, et la
+surcharge de `components/facet.blade.php` seule.
+
+Vérifié en exécutant l'exemple exact de la documentation plutôt qu'en le relisant — la facette
+placée à part sort `class="meilifacetsFacet lg:col-span-2" … data-meili-scroll`, le groupe rend les
+deux autres dans l'ordre déclaré (`product_brand`, `pa_contenance`), template du thème restauré
+après la sonde.
 
 ---
 

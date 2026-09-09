@@ -330,6 +330,56 @@ parcourir un catalogue. Une facette dont le repli est un terme réel, choisi par
 facette multi-sélection reçoit une recherche disjonctive, et seulement une fois qu'elle
 contraint réellement les résultats.
 
+## Placer les facettes dans un gabarit
+
+Deux composants, comme pour le tri et la remise à zéro : un qui place **une** facette, un qui prend
+**ce qui reste**.
+
+```blade
+@use('App\Cms\Products\ShopFacet')
+
+<x-meilifacets::facet :facet="ShopFacet::Category" class="lg:col-span-2" scroll />
+<x-meilifacets::facets />
+```
+
+`<x-meilifacets::facets />` rend toutes les facettes qu'aucun `<x-meilifacets::facet>` n'a déjà
+placées, dans l'ordre déclaré. Placer une facette **après** le groupe lève : le groupe l'a déjà
+prise. Un groupe auquel il ne reste rien, et qui ne porte pas le bouton d'envoi, ne rend aucune
+balise.
+
+**Une facette n'est rendue qu'une fois par page.** Un second rendu lève une exception nommée plutôt
+que de dupliquer silencieusement les entrées et les identifiants qu'elles portent.
+
+### Nommer une facette
+
+Le composant désigne une facette par un nom que la facette porte elle-même, jamais par sa taxonomie
+— pour qu'aucun gabarit n'ait à connaître `product_cat` :
+
+```php
+new Facet('product_cat', __('Category'), name: ShopFacet::Category)
+```
+
+`name` accepte une chaîne ou un `BackedEnum`. Sans lui, la facette répond à sa taxonomie : rien
+n'est à déclarer pour démarrer. Ranger les noms dans une énumération évite qu'un gabarit porte une
+chaîne libre, et donne à l'analyse statique de quoi voir une faute de frappe. Au rendu, un nom
+inconnu lève en nommant les facettes déclarées, dans les deux formes.
+
+`<x-meilifacets::facet>` accepte aussi une déclaration directement (`:facet="$facet"`), ce dont se
+sert `<x-meilifacets::facets>` en interne.
+
+### Ce que le composant transmet
+
+Le sac d'attributs arrive sur le `<fieldset>` et fusionne avec la classe du module
+(`class="meilifacetsFacet lg:col-span-2"`), et `scroll` s'y déclare comme sur les autres composants.
+Une facette placée à part se comporte donc comme celles du groupe.
+
+### Surcharger le markup
+
+`components/facet.blade.php` est une vue à part entière : un thème la surcharge **seule** — pour un
+menu déroulant, une modale — sans figer le reste du markup du module ni se décrocher des versions
+suivantes du contrat. Le crochet `data-meili="facet"` est sur l'élément le plus extérieur, parce que
+c'est celui que le client masque : un thème qui enrobe doit déplacer le crochet avec lui.
+
 ## Vérifier les noms de paramètres
 
 ```bash
