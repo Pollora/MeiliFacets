@@ -65,11 +65,24 @@ export const tick = (window, input) => {
 const facetValue = (name, value, label) => `
     <li class="meilifacetsFacetValue" data-meili="facet-value">
         <label>
-            <input type="checkbox" name="${name}" value="${value}" data-meili="input">
+            <input type="checkbox" name="${name}" value="${value}"
+                   aria-describedby="count-${name}-${value}" data-meili="input">
             <span class="meilifacetsFacetName">${label}</span>
-            <span class="meilifacetsFacetCount" data-meili="count">0 results</span>
+            <span class="meilifacetsFacetCount" id="count-${name}-${value}" data-meili="count">0 results</span>
         </label>
     </li>`
+
+const facetBlock = (taxonomy, name, label, values) => `
+        <fieldset class="meilifacetsFacet" data-taxonomy="${taxonomy}" data-meili="facet">
+            <legend class="meilifacetsFacetLabel">${label}</legend>
+            <div class="meilifacetsFacetPanel" id="panel-${name}">
+                <div class="meilifacetsFacetPanelInner">
+                    <ul class="meilifacetsFacetValues">${values}</ul>
+                    <button type="button" class="meilifacetsFacetMore" aria-expanded="false"
+                            hidden data-meili="more">Show more</button>
+                </div>
+            </div>
+        </fieldset>`
 
 const sortOption = (value, label, selected) => `
     <li class="meilifacetsSortOption" id="sort-${value || 'default'}" role="option"
@@ -77,21 +90,18 @@ const sortOption = (value, label, selected) => `
 
 const pageButton = () => '<button type="button" value="" hidden data-meili="page"></button>'
 
-/** Mirrors what the Blade components render, hooks and initial hidden states included. */
+/**
+ * Mirrors the structure the Blade components render — hooks, classes and initial
+ * hidden states. Identifiers are shortened: nothing here reads them.
+ */
 export const listingMarkup = ({ scroll = [] } = {}) => {
     const mark = (component) => (scroll.includes(component) ? 'data-meili-scroll' : '')
 
     return `
 <div data-listing="products" data-meili-contract="${CONTRACT}">
     <div class="meilifacetsFacets" data-apply="submit" data-meili="facets" ${mark('facets')}>
-        <fieldset data-taxonomy="product_brand" data-meili="facet">
-            <ul>${facetValue('brand', 'acme', 'Acme')}${facetValue('brand', 'globex', 'Globex')}</ul>
-            <button type="button" aria-expanded="false" hidden data-meili="more">Show more</button>
-        </fieldset>
-        <fieldset data-taxonomy="product_cat" data-meili="facet">
-            <ul>${facetValue('categorie', 'coats', 'Coats')}</ul>
-            <button type="button" aria-expanded="false" hidden data-meili="more">Show more</button>
-        </fieldset>
+${facetBlock('product_brand', 'brand', 'Brand', `${facetValue('brand', 'acme', 'Acme')}${facetValue('brand', 'globex', 'Globex')}`)}
+${facetBlock('product_cat', 'category', 'Category', facetValue('categorie', 'coats', 'Coats'))}
         <button type="button" data-meili="apply">Apply filters</button>
     </div>
 
