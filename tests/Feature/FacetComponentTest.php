@@ -30,7 +30,7 @@ final class FacetComponentTest extends TestCase
         $this->app->forgetScopedInstances();
     }
 
-    /** Placed facets would otherwise reach a later class, which has no reason to expect them. */
+    /** The suite shares one application: what is placed here would reach a later class. */
     protected function tearDown(): void
     {
         $this->app->forgetScopedInstances();
@@ -169,10 +169,7 @@ final class FacetComponentTest extends TestCase
         );
     }
 
-    /**
-     * Placing is a rendering decision. The description feeds the browser client,
-     * which counts and filters on facets the page never showed.
-     */
+    /** The description feeds the client, which counts and filters on facets the page never showed. */
     #[Test]
     public function it_still_publishes_a_facet_a_template_placed_apart(): void
     {

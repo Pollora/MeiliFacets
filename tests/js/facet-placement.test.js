@@ -3,10 +3,6 @@ import { beforeEach, describe, it } from 'node:test'
 
 import { listingMarkup, open } from './dom.js'
 
-/**
- * A template may place a facet anywhere in the listing. What it looks like must
- * not depend on where it was placed.
- */
 describe('a facet placed outside the group', () => {
     let window
     let grouped

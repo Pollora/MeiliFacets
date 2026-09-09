@@ -92,11 +92,6 @@ final class FacetPlacementTest extends TestCase
         $this->assertSame('product_tag', $listing->facetNamed('product_tag')->name);
     }
 
-    /**
-     * Two facets on one taxonomy share a name nobody wrote. Left alone, the first
-     * shadows the second, placing one removes both, and the group blames the
-     * template for a fault in the declaration.
-     */
     #[Test]
     public function it_refuses_two_facets_answering_to_the_same_name(): void
     {
@@ -109,7 +104,6 @@ final class FacetPlacementTest extends TestCase
         ])->facets();
     }
 
-    /** Naming one of them is the way out the message points to. */
     #[Test]
     public function it_takes_two_facets_on_one_taxonomy_once_a_name_tells_them_apart(): void
     {
