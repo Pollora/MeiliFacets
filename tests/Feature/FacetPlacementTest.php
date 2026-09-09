@@ -68,13 +68,32 @@ final class FacetPlacementTest extends TestCase
     #[Test]
     public function it_renders_no_container_when_every_facet_was_placed_apart(): void
     {
-        $rendered = Blade::render(
-            '<x-meilifacets::facet facet="category" /><x-meilifacets::facet facet="brand" />'
-            .'<x-meilifacets::facet facet="volume" /><x-meilifacets::facets />'
-        );
+        config(['meilifacets.apply_mode' => 'immediate']);
+
+        $rendered = $this->placeEveryFacetApart();
 
         $this->assertSame(3, $this->countFacets($rendered));
         $this->assertStringNotContainsString('data-meili="facets"', $rendered);
+    }
+
+    /** Unless it still holds the button that commits the filters. */
+    #[Test]
+    public function it_keeps_the_container_that_carries_the_apply_button(): void
+    {
+        config(['meilifacets.apply_mode' => 'submit']);
+
+        $rendered = $this->placeEveryFacetApart();
+
+        $this->assertStringContainsString('data-meili="facets"', $rendered);
+        $this->assertStringContainsString('data-meili="apply"', $rendered);
+    }
+
+    private function placeEveryFacetApart(): string
+    {
+        return Blade::render(
+            '<x-meilifacets::facet facet="category" /><x-meilifacets::facet facet="brand" />'
+            .'<x-meilifacets::facet facet="volume" /><x-meilifacets::facets />'
+        );
     }
 
     private function countFacets(string $rendered): int
