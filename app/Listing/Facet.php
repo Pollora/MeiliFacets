@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Listing;
 
+use BackedEnum;
 use Modules\MeiliFacets\Contracts\TermScope;
 use Modules\MeiliFacets\Contracts\ValueOrder;
 use Modules\MeiliFacets\Enums\DefaultTerm;
@@ -17,6 +18,9 @@ readonly class Facet
 
     public const int DEFAULT_CAP = 30;
 
+    /** What a template designates this facet by, so no view carries a taxonomy name. */
+    public string $name;
+
     public function __construct(
         public string $taxonomy,
         public string $label,
@@ -25,7 +29,14 @@ readonly class Facet
         public int $visible = self::DEFAULT_VISIBLE,
         public int $cap = self::DEFAULT_CAP,
         public DefaultTerm $defaultTerm = DefaultTerm::Hidden,
-    ) {}
+        string|BackedEnum $name = '',
+    ) {
+        $this->name = match (true) {
+            $name instanceof BackedEnum => (string) $name->value,
+            $name !== '' => $name,
+            default => $taxonomy,
+        };
+    }
 
     /**
      * Which of the values the engine returned this facet may show. A facet shows

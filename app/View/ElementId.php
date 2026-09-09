@@ -34,6 +34,11 @@ final readonly class ElementId
         return $this->of('sort', $key);
     }
 
+    public function facetPanel(string $taxonomy): string
+    {
+        return $this->of($taxonomy, 'panel');
+    }
+
     public function facetCount(string $taxonomy, string $value): string
     {
         return $this->of($taxonomy, $value);
