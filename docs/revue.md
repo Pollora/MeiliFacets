@@ -415,7 +415,7 @@ avertissement.
 Piste : séparer `Listing` (déclaratif, sans WordPress) d'un `ListingContext` résolu par requête, ou
 au minimum documenter le contrat temporel dans l'interface.
 
-### R-07 · 🟠 · ouvert · 2026-09-06 — `facets()` est appelée six fois par requête, sans mémoïsation
+### R-07 · 🟠 · **fermé le 2026-09-08** (R-88) · ouvert le 2026-09-06 — `facets()` est appelée six fois par requête, sans mémoïsation
 
 Sites d'appel relevés en lecture, pour un seul rendu : `StateReader::facets()`,
 `QueryPlan::fieldsCountedOnMain()`, `QueryPlan::facetClauses()` (une fois pour la requête
@@ -424,17 +424,36 @@ principale, plus une par facette comptée à part), `DisjunctiveFacetCounter::qu
 `ProductListing::facets()` refait un `is_tax()`, trois `__()` et trois `new Facet`. `sorts()` :
 trois sites.
 
+**Fermé par la couture de `R-88`.** `ProductFacets` et `ProductSorts` mémoïsent leur liste, et le
+recomptage du 2026-09-08 donne **sept** sites pour `facets()`, **six** pour `sorts()` : les appels
+restent, mais ils rendent un tableau déjà construit. Les `new Facet` et les `__()` ne se font plus
+qu'une fois par requête, les implémentations étant liées en `scoped`. Le `is_tax()` cité ici avait
+déjà quitté `facets()` pour `baseFilter()`.
+
 Rien de dramatique en volume absolu, mais c'est la règle « compter les appels, pas les lignes » du
 `CLAUDE.md` du module qui n'est pas tenue par le module lui-même. Une mémoïsation dans
 `ResolvedListing` (ou dans le `QueryPlan` de R-01) supprime le problème et le rend impossible à
 réintroduire.
 
-### R-08 · 🟡 · ouvert · 2026-09-06 — le provider fait six choses
+### R-08 · 🟡 · **fermé le 2026-09-08** · ouvert le 2026-09-06 — le provider fait six choses
 
 `MeiliFacetsServiceProvider` porte les bindings, l'enregistrement des listings, la déclaration de
 la discovery, la cascade de vues du thème, la publication des assets et les commandes. 147 lignes,
 lisibles, mais c'est le fichier que personne n'ose plus toucher. Trois providers (bindings,
 listings, vues/assets) coûteraient moins cher à faire évoluer.
+
+**Fait le 2026-09-08**, en quatre plutôt qu'en trois, calqués sur les espaces de noms du module :
+
+```
+avant :  1 fichier · 195 lignes · 19 liaisons · 10 méthodes
+après :  MeiliFacetsServiceProvider 83 · ListingServiceProvider 67
+         IndexingServiceProvider 48 · SearchServiceProvider 47 · RenderingServiceProvider 23
+```
+
+Le point d'entrée ne lie plus rien : il se déclare et enregistre les couches. Vérifié par le
+conteneur — **19 liaisons, 0 en échec**, la précédence `scopedIf` du projet survit au découpage, et
+le parcours de filtrage est recetté en navigateur. `RenderingServiceProvider` porte ce nom et pas
+`ViewServiceProvider` : Laravel en charge déjà un du même nom court.
 
 ---
 
@@ -957,6 +976,27 @@ projet. Conséquences immédiates :
 - aucune revue de code du projet ne voit les changements du module ;
 - `docs/meilifacets/`, `config/meilifacets.php` et `themes/pluralia/.../archive-product.blade.php`
   évoluent dans un dépôt, le module dans l'autre, sans commit commun.
+
+**Instruit le 2026-09-08, différé en fin de projet** (`T-42`). Mesuré :
+
+```
+Modules/Wishlist    → 30 fichiers suivis par le projet
+Modules/MeiliFacets →  0
+origin du module    : git@github.com:Pollora/MeiliFacets.git   (47 commits, non poussés)
+```
+
+`modules_statuses.json` déclare `"MeiliFacets": true` et le `merge-plugin` cherche
+`Modules/*/composer.json` — mais **un clone du projet n'a pas le module** : une déclaration qui
+pointe dans le vide, et le listing disparaît. Sans conséquence tant qu'une seule personne y
+travaille ; bloquant dès la deuxième.
+
+Trois sorties, du plus léger au plus juste :
+
+| | Ce que ça donne | Ce que ça coûte |
+| --- | --- | --- |
+| `/Modules/MeiliFacets/` au `.gitignore` du projet | statut propre, piège du `git add -A` désamorcé | officialise que le projet n'est pas autonome |
+| vrai sous-module git | le projet enregistre le SHA, `clone --recursive` reconstruit | commandes de sous-module pour tous, **et il faut pousser les 47 commits d'abord** |
+| `composer require pollora/meilifacets` | le module va en `vendor/`, versionné par le lock | le plus lourd — mais c'est ce que le `README` du module annonce déjà, et la fin logique de `Q-01` |
 
 Ce point n'est pas une commodité : c'est ce qui empêche aujourd'hui de dire « voilà ce qui est
 livré ».
@@ -1916,7 +1956,30 @@ mécanisme non. Trois sorties possibles, aucune gratuite :
 | **Un bundle** (esbuild, Vite) en un fichier au nom haché | Une chaîne d'outils dans le module, là où il n'y a aujourd'hui que des fichiers servis tels quels |
 | **Publier sous un répertoire versionné** | Les imports relatifs héritent du répertoire, donc de la version. Le moins invasif ; demande de faire porter la version à l'étape de publication |
 
-**À décider — hors du lot 3c-2.** T-39.
+**Tranché le 2026-09-08 : publication dans un répertoire versionné.** Différé — une v1 part avant.
+
+`public/modules/meilifacets/<empreinte>/js/…` : les dix-huit fichiers changent d'URL d'un seul
+coup, **les imports relatifs héritent du répertoire** donc de la version, et rien ne bouge côté
+JavaScript. Les deux autres voies ont été écartées pour ce qu'elles coûtent :
+
+- la **carte d'imports** transforme `./listing.js` en `@meilifacets/listing`, que ni `node --test`
+  ni ESLint ne résolvent sans alias — les 147 tests Node passent tous par là ;
+- le **bundle** fait entrer une chaîne d'outils dans un module qui n'en a aucune, où les fichiers
+  sont servis tels quels.
+
+Le coût se concentre dans `publishAssets()` et `ListingScript`, qui doit connaître l'empreinte
+plutôt que d'appeler `filemtime()` sur l'entrée.
+
+⚠️ **Une inconnue avant de chiffrer l'urgence** : l'en-tête d'un an vient d'nginx en local. Ce que
+Clever Cloud sert sur `public/` n'a pas été vérifié. Si la production répond `no-cache`, le défaut
+reste réel mais cesse d'être bloquant.
+
+**Vérifié le 2026-09-08**, le mécanisme est intact : la page n'inscrit toujours qu'une URL versionnée
+(`listing-page.js?ver=1788877596`) et un import relatif répond `max-age=31536000, public`. Le défaut
+s'est manifesté deux fois dans la séance du jour — du JavaScript périmé débogué en croyant tester le
+neuf, contourné à la main par `?cb=`.
+
+T-39.
 
 ### R-71 · 🔴 · **fermé le 2026-09-07** (revue du lot 3c-2) · ouvert le 2026-09-07 — atteindre la dernière page jetait le clavier hors du document
 
@@ -2717,7 +2780,7 @@ dans un paquet générique, et la collision de nom dans `ListingRegistry` n'est 
 testée. Elle est simplement devenue moins urgente : un projet n'a plus besoin de déclarer son
 propre `Listing` pour choisir ses facettes. `R-89` (ce qu'un gabarit rend) reste ouvert.
 
-### R-89 · 🟠 · ouvert · 2026-09-08 — un gabarit ne peut pas choisir les facettes qu'il rend
+### R-89 · 🟠 · **livré le 2026-09-08, en attente de validation** · ouvert le 2026-09-08 — un gabarit ne peut pas choisir les facettes qu'il rend
 
 `facets.blade.php:2` boucle sur `$listing->facets()` sans filtre, et `ListingComponent` n'accepte
 que `name` et `scroll`. Un thème rend donc **toutes** les facettes déclarées, dans un seul `<div>`,
@@ -2853,6 +2916,55 @@ même instance sur deux résolutions : true · la facette porte bien CE NameOrde
 **Coût mesuré de la méthode incriminée** : `collator()` vaut **1,18 µs** à chaud — 0,0004 % d'une
 page à 306 ms. Le reproche « peu optimisé » ne portait pas sur le temps mais sur le couplage, et
 c'est celui-là qui est levé.
+
+---
+
+**Livré le 2026-09-08, plus étroitement que le constat ne le proposait — non validé.** Ni slot, ni `only`, ni
+nom porté par la facette : la vue est **découpée**, et le thème passe déjà devant la cascade de
+vues du module.
+
+```
+avant : facets.blade.php = conteneur + boucle + <fieldset> + bouton Appliquer
+après : facets.blade.php = conteneur + boucle + bouton Appliquer
+        facet.blade.php  = un <fieldset>
+```
+
+Un thème qui veut une facette en menu déroulant surcharge **`components/facet.blade.php` seule**,
+et hérite des versions suivantes du markup interne. Aucun nom de taxonomie dans un gabarit — la
+contrainte posée en séance est tenue par construction, puisqu'il n'y a rien à nommer.
+
+**Le sous-ensemble n'a pas été livré** : « n'en rendre que certaines » n'a aucun demandeur, et
+`CLAUDE.md` § 2 dit qu'une couture s'ouvre quand un projet en a besoin. Le besoin réel — la modale
+mobile où chaque bloc est un déroulant — est couvert sans elle.
+
+**Deux contraintes de conception, venues de la séance :**
+
+- **le crochet `facet` est sur l'élément le plus extérieur**, parce que c'est lui que le client
+  masque (`R-84`). Un thème qui enrobe déplace le crochet avec lui — écrit dans la vue et couvert
+  par un test ;
+- **le panneau est animable**. Emil animera ces blocs, probablement en grille. La vue livre donc
+  `.meilifacetsFacetPanel` (la ligne de grille) et son enfant `.meilifacetsFacetPanelInner`
+  (`overflow: hidden`) : sans eux, animer imposait de réécrire toute la liste. Le panneau porte un
+  `id` (`ElementId::facetPanel()`) pour qu'une gâchette de thème y pointe son `aria-controls`.
+  `<details>` a été écarté : son ouverture n'est animable qu'avec du CSS très récent et inégalement
+  supporté.
+
+**Mesuré dans le navigateur**, en injectant le CSS qu'un thème écrirait :
+
+```
+panneau ouvert 259px → à mi-parcours 51px → fermé 0px → rouvert 259px
+```
+
+La collapse en `grid-template-rows: 1fr → 0fr` fonctionne sur le markup livré, sans une ligne de
+JavaScript. Vérifié aussi que le découpage n'a rien cassé : dépliage `10 → 24`, filtrage
+`?marque=aeris` à 10 cartes, et une facette vidée par la recherche masque bien son `<fieldset>`,
+légende comprise.
+
+⚠️ **Ce qui reste à faire côté feuille de style**, et qui n'est pas dans le module :
+`[data-meili][hidden] { display: none !important }` (`meilifacets.css:1`). Le `!important` oblige un
+thème à surenchérir pour reprendre `display`, donc pour animer. Le retirer suffit — la spécificité
+`0-2-0` bat déjà un reset de thème. Corollaire pour Emil : rendre visible dans l'arbre ce que
+`hidden` en sortait rend les cases repliées focalisables, d'où un `inert` sur le conteneur fermé.
 
 ---
 
@@ -3134,9 +3246,10 @@ parallèle : il ne touche pas au rendu.
 | T-28 | Extraire un `QueryPlan` instanciable ; mémoïser `facets()` et `sorts()` | R-01, R-07 |
 | T-29 | Objet `SearchRequest` typé à la place du tableau de plan | R-02 |
 | T-30 | Déplacer `Contract` hors de `Enums` | R-03 |
-| T-39 | Versionner les modules ES importés : un bundle au nom haché | R-70 | décidé le 2026-09-07, à faire |
+| T-39 | Versionner les modules ES importés : publication dans un répertoire portant l'empreinte | R-70 | **différé après la v1** — voie tranchée le 2026-09-08 |
 | T-40 | Ramener le regard en haut du listing après pagination et tri | R-73 | **fait** |
 | T-41 | Rendre l'ordre d'une facette réglable en configuration | Q-07 (partiel) | **différé après livraison** — décidé le 2026-09-08 |
+| T-42 | Sortir le module du dépôt imbriqué : ignoré, sous-module ou paquet composer | R-38 | **différé en fin de projet** — décidé le 2026-09-08 |
 
 #### T-41 · Ordre d'une facette réglable en configuration
 

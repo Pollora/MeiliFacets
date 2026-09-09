@@ -269,6 +269,17 @@ entre attributs d'une même déclinaison.**
 Mesure impossible à ce jour : la base locale contient 12 produits, tous simples, sans aucune
 variation, et le dump `staging-20260102.sql` n'en contient aucune non plus.
 
+**Une facette plafonne à cent valeurs avant que le module n'en voie une seule.**
+`faceting.maxValuesPerFacet` vaut `100` par défaut chez Meilisearch, et le module **ne l'écrit
+pas** — contrairement à `sortFacetValuesBy` et `pagination.maxTotalHits`, qu'il pose tous les deux.
+Sur une taxonomie de plusieurs centaines de termes, la distribution est donc tronquée aux cent
+mieux comptées avant même que `Facet::$cap` ne s'applique, et une facette déclarée `cap: 200` en
+rendra cent sans un mot. Vérifié le 2026-09-08 sur l'index du projet :
+`{"maxValuesPerFacet":100,"sortFacetValuesBy":{"*":"count"}}`.
+
+Ce n'est visible sur aucun catalogue de démonstration — `pa_contenance` remonte 24 valeurs — et
+c'est ce qui le rend piégeux : le jour où ça mord, rien dans le code du module ne l'explique.
+
 ## Relevés de l'audit du 2026-09-04
 
 Points rapportés par une revue externe du lot 3b, vérifiés ou marqués comme non vérifiés.

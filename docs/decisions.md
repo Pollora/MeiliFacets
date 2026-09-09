@@ -59,6 +59,7 @@ Voir aussi : [installation.md](installation.md) · [architecture.md](architectur
 | Comparaison par nom (`NameOrder`) | `Collator` avec `NUMERIC_COLLATION`, construit sur `get_locale()` — donc l'ordre suit la langue de WordPress, celle qui a produit les libellés, et non celle de Laravel. Sans `ext-intl`, repli sur `strnatcasecmp` : documenté, jamais silencieux. Conséquence assumée : `Name` devient sensible à la casse au niveau tertiaire, là où `strnatcasecmp` mettait `abc` et `ABC` à égalité |
 | Facette qui mélange les grandeurs | **on lit l'ordre que WooCommerce porte déjà** (`DisplayOrder::Declared`), on ne le devine pas depuis le libellé. *Renversé le 2026-09-08 — `MeasureOrder` analysait `15ml` au rendu ; supprimé.* |
 | Bouton de dépliage | rendu même quand il n'y a rien à déplier : le client le révèle, il n'en crée aucun |
+| Versionnement du client ES | **un répertoire portant l'empreinte**, pas un bundle ni une carte d'imports : les imports relatifs héritent de la version, le JavaScript ne bouge pas, et aucune chaîne d'outils n'entre dans le module. *Tranché le 2026-09-08 (`R-70`), différé après la v1.* |
 | Taille de page | dérivée du contexte au rendu, jamais recopiée en configuration |
 | Rendu serveur | applique les filtres de l'URL ; Varnish cache chaque combinaison 180 s |
 | Repli des paramètres d'URL | une taxonomie non mappée prend un préfixe, jamais son nom nu |

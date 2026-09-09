@@ -241,9 +241,30 @@ directement — ce qui est indexé est filtrable.
 | `faceting.sortFacetValuesBy` | `count` pour toutes les facettes |
 | `pagination.maxTotalHits` | ce que `engine.reachable_hits` déclare |
 | `displayedAttributes` | ceux de MeiliScout, plus `card` et ce que `displayed_attributes` ajoute |
+| `faceting.maxValuesPerFacet` | **non écrit** — laissé au défaut du moteur, `100` |
 
 Aucun point d'extension dédié : les changer demande d'étendre `FacetedPostIndexable` et de le
 substituer par `meiliscout/indexables` à une priorité plus haute que celle du module.
+
+## Trois plafonds, et lequel coupe quoi
+
+Une facette qui ne montre pas toutes ses valeurs les a perdues à l'un de ces trois endroits. Ils
+s'appliquent **dans cet ordre**, et aucun ne dépend de la page affichée : `facetDistribution` est
+calculée par le moteur sur **tous** les documents qui correspondent au filtre, pas sur les résultats
+renvoyés — mesuré le 2026-09-08, distribution identique à `hitsPerPage` 1, 16 et 200.
+
+| Plafond | Défaut | Qui le pose | Ce qu'il coupe |
+| --- | --- | --- | --- |
+| `faceting.maxValuesPerFacet` | **100** | **le moteur** — le module ne l'écrit pas | les valeurs distinctes que `facetDistribution` renvoie, les **mieux comptées** d'abord grâce à `sortFacetValuesBy` |
+| `Facet::$cap` | 30 | la facette | ce que le module garde de ce qu'il a reçu |
+| `Facet::$visible` | 10 | la facette | ce qui est **lu** avant dépliage — le reste est rendu, jamais perdu |
+
+⚠️ **`cap` ne peut pas dépasser `maxValuesPerFacet`.** Une facette déclarée `cap: 200` en obtiendra
+cent, sans erreur ni avertissement : `array_slice()` sur cent éléments en rend cent. Sur une
+taxonomie de plusieurs centaines de termes — une marque, un ingrédient — c'est le plafond qui décide
+en dernier, et c'est le seul des trois que le module ne pose pas, donc le seul qu'on ne trouve pas
+en lisant son code. Le relever demande de l'écrire dans `faceting` via l'indexable, comme
+`sortFacetValuesBy`.
 
 `sortFacetValuesBy` à `count` n'est pas cosmétique — Meilisearch trie les valeurs
 alphabétiquement par défaut, ce qui ferait afficher à une facette plafonnée à dix valeurs les dix
