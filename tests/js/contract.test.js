@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import { describe, it } from 'node:test'
 
 import { Contract } from '../../resources/assets/js/contract.js'
+import { open } from './dom.js'
 
 const HOOK = /^\[data-meili="([^"]+)"\]$/
 
@@ -147,5 +148,55 @@ describe('Contract', () => {
 
         assert.equal(contract.all('title', card).length, 1)
         assert.equal(contract.all('card').length, 1)
+    })
+})
+
+describe('a hook left outside every listing', () => {
+    const inDocument = (markup) => {
+        const { window } = open(markup)
+        const roots = [...window.document.querySelectorAll('[data-listing]')]
+
+        return Contract.orphans(window.document, roots)
+    }
+
+    it('is named once, and not through the hooks it contains', () => {
+        assert.deepEqual(
+            inDocument(`
+                <fieldset data-meili="facet"><input data-meili="input"></fieldset>
+                <fieldset data-meili="facet"><input data-meili="input"></fieldset>
+                <div data-listing="products" data-meili-contract="${CONTRACT}"></div>`),
+            ['facet']
+        )
+    })
+
+    it('is named alongside the other loose hooks it does not contain', () => {
+        assert.deepEqual(
+            inDocument(`
+                <fieldset data-meili="facet"></fieldset>
+                <button data-meili="reset"></button>
+                <div data-listing="products" data-meili-contract="${CONTRACT}"></div>`),
+            ['facet', 'reset']
+        )
+    })
+
+    it('is not named when it sits inside one', () => {
+        assert.deepEqual(
+            inDocument(`
+                <div data-listing="products" data-meili-contract="${CONTRACT}">
+                    <fieldset data-meili="facet"></fieldset>
+                </div>`),
+            []
+        )
+    })
+
+    it('is not named when it sits inside the second of two listings', () => {
+        assert.deepEqual(
+            inDocument(`
+                <div data-listing="products" data-meili-contract="${CONTRACT}"></div>
+                <div data-listing="articles" data-meili-contract="${CONTRACT}">
+                    <fieldset data-meili="facet"></fieldset>
+                </div>`),
+            []
+        )
     })
 })

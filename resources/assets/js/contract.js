@@ -28,6 +28,23 @@ export class Contract {
         return `[${ATTRIBUTE}="${hook}"]`
     }
 
+    /**
+     * `ListingBinding` attaches per root, so a hook outside every root renders,
+     * styles and ticks while doing nothing at all.
+     *
+     * @param {Document} document
+     * @param {Element[]} roots
+     * @returns {string[]}
+     */
+    static orphans(document, roots) {
+        const loose = [...document.querySelectorAll(`[${ATTRIBUTE}]`)]
+            .filter((node) => roots.every((root) => !root.contains(node)))
+
+        return [...new Set(loose
+            .filter((node) => !loose.some((other) => other !== node && other.contains(node)))
+            .map((node) => node.getAttribute(ATTRIBUTE)))]
+    }
+
     /** Opt-in, per component: a control the theme did not mark leaves the page where it is. */
     static get SCROLL() {
         return `[${SCROLL_ATTRIBUTE}]`

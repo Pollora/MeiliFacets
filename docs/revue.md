@@ -2992,7 +2992,7 @@ personne ne retrouve. État de départ : ouvert, sauf mention.
 | n° | gravité | état | constat |
 | --- | --- | --- | --- |
 | `R-93` | 🟡 | **fermé le 2026-09-09** | le style par défaut est porté par `[data-meili="facets"]` et ne suit pas une facette déplacée hors du groupe |
-| `R-94` | 🟡 | ouvert | une facette placée hors de `[data-listing]` est inerte, sans avertissement |
+| `R-94` | 🟡 | **fermé le 2026-09-09** | une facette placée hors de `[data-listing]` est inerte, sans avertissement |
 | `R-95` | 🟠 | ouvert | rendre deux fois la même facette lève une exception qui sort un 500 sur toute la page |
 | `R-96` | 🟡 | **fermé le 2026-09-09** | `Facet::$name` sert d'identifiant sans unicité imposée : deux facettes sur une même taxonomie partagent un nom que personne n'a écrit |
 | `R-97` | 🟠 | **fermé le 2026-09-09** | collision d'identifiants entre panneau et compteur |
@@ -3265,6 +3265,58 @@ une base neutre qui ne peut pas connaître le rapport ascent/descent de la polic
 choisit ; une compensation en dur serait fausse pour toute autre police. Le seul geste défendable
 côté module serait d'envelopper le libellé dans un `<span>` **sans** correction, pour donner une
 prise au thème.
+
+---
+
+### R-94 · 🟡 · **fermé le 2026-09-09** · ouvert le 2026-09-09 — une facette placée hors du listing était inerte, sans un mot
+
+`R-89` a donné aux gabarits la liberté de placer une facette « où ils veulent ». La vraie règle est
+« où ils veulent **à l'intérieur de `[data-listing]`** », et cette contrainte n'était écrite nulle
+part ni vérifiée par personne — alors que le premier cas d'usage que `R-89` énonce, « un rayon en
+tête de page », est précisément celui qui casse.
+
+Mesuré dans le navigateur, facette de catégorie posée avant `<x-meilifacets::listing>` :
+
+| geste « Voir plus » | `aria-expanded` |
+| --- | --- |
+| facette **dans** la racine | `false` → **`true`** |
+| facette **hors** de la racine | `false` → `false` |
+
+Rendue, stylée, cochable, et totalement morte. Zéro avertissement : `Contract.#breachesOf()` rend
+`[]` dès que `this.one(host)` ne trouve rien **dans la racine**, donc ce qui est dehors lui est
+invisible par construction.
+
+*Première mesure écartée* : en mode `submit`, cocher une case ne filtre pas non plus **dans** le
+listing — « la case ne fait rien » ne prouvait rien. Seul le bouton de repli discrimine.
+
+**Aucun correctif côté serveur n'est possible** : Blade évalue le `$slot` avant le composant
+`listing` qui l'enveloppe, donc « rendu avant » ne dit rien sur « contenu dans ».
+
+Correctif en deux temps, le premier plus important que le second :
+
+1. **la règle est écrite** dans `configuration.md` — tout composant du module vit dans
+   `<x-meilifacets::listing>`, et la section « Placer les facettes » montre désormais l'imbrication.
+   La documentation livrée avec `R-104` ne mentionnait pas une seule fois `x-meilifacets::listing` :
+   elle documentait la liberté sans sa limite ;
+2. **le code la dit** — `Contract.orphans(document, roots)`, appelé au démarrage par
+   `listing-page.js`, sur le canal `console.error` qui sert déjà aux manquements au contrat. La
+   vérification est au niveau du document, là où `Contract` est scopé à une racine : c'est pour ça
+   qu'elle vit à côté de la boucle des racines et non dans `RULES`.
+
+Seules les racines orphelines sont nommées — les crochets qu'une facette égarée contient ne sont pas
+une seconde faute. Sur la page réelle : 17 éléments `data-meili` hors racine, **un** nom rapporté.
+
+```
+[meilifacets] outside every [data-listing], so inert: facet.
+```
+
+Quatre mutations tuées. *Deux d'entre elles avaient d'abord été rapportées « survivantes » à tort* :
+mon harnais ne vérifiait pas que le remplacement avait eu lieu, et l'une des mutations produisait un
+code invalide. Corrigé, elles tuent bien.
+
+**Rencontré en vérifiant, et déjà connu** : le navigateur exécutait encore l'ancien `contract.js`.
+`?ver=` porte le `filemtime` de `listing-page.js` seul ; ses imports relatifs n'ont aucune version et
+sont cachés indéfiniment. C'est exactement `R-70`, tranché et différé après la v1.
 
 ---
 

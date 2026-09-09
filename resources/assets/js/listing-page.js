@@ -22,6 +22,12 @@ const start = () => {
         return
     }
 
+    const orphans = Contract.orphans(document, roots)
+
+    if (orphans.length > 0) {
+        console.error(`[meilifacets] outside every [${LISTING_ATTRIBUTE}], so inert: ${orphans.join(', ')}.`)
+    }
+
     const { connection, listings } = JSON.parse(data)
 
     for (const root of roots) {

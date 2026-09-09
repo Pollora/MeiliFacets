@@ -338,8 +338,20 @@ Deux composants, comme pour le tri et la remise à zéro : un qui place **une** 
 ```blade
 @use('App\Cms\Products\ShopFacet')
 
-<x-meilifacets::facet :facet="ShopFacet::Category" class="lg:col-span-2" scroll />
-<x-meilifacets::facets />
+<x-meilifacets::listing>
+    <x-meilifacets::facet :facet="ShopFacet::Category" class="lg:col-span-2" scroll />
+    <x-meilifacets::facets />
+</x-meilifacets::listing>
+```
+
+⚠️ **Tout composant du module vit à l'intérieur de `<x-meilifacets::listing>`.** C'est lui qui rend
+`[data-listing]`, et le client s'attache une fois par racine : ce qui est posé dehors est rendu,
+stylé, cochable — et **inerte**. Cases sans effet, compteurs jamais rafraîchis, « Voir plus » qui ne
+déplie rien. La règle vaut pour `facet`, `facets`, `sort`, `reset`, `pagination`, `active-filters`
+et `results` sans exception. Un composant posé dehors est signalé au démarrage :
+
+```
+[meilifacets] outside every [data-listing], so inert: facet, input.
 ```
 
 `<x-meilifacets::facets />` rend toutes les facettes qu'aucun `<x-meilifacets::facet>` n'a déjà
