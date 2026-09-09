@@ -1085,6 +1085,18 @@ R-61 — voir là-bas.
 
 ### R-43 · 🟠 · à trancher (Q-08) · 2026-09-06 — aucune facette prix ni disponibilité
 
+**Cadrage écrit le 2026-09-09 dans `docs/prix.md`** — cas, mesures et décisions à prendre. Deux
+choses y corrigent cette entrée :
+
+- son argument « le catalogue de recette n'en contient aucun » (produits variables) **est faux
+  aujourd'hui** : 64 simples, **8 variables**, 2 groupés, 2 externes ;
+- « une facette de tranches de prix » ne suit pas la plateforme : WooCommerce filtre par **min/max**
+  sur un **intervalle** par produit, pas par tranches sur un prix unique.
+
+Et un défaut bloquant, mesuré : pour un produit variable ou groupé, **seul le prix le plus bas est
+indexé**. `metas._price >= 40 AND <= 70` ne rend pas un produit vendu de 28 à 62 €. 10 produits sur
+76 sont concernés.
+
 **Vérifié** dans les réglages de l'index : `metas._price` et `metas._stock_status` sont filtrables,
 `metas._price` est triable. Aucune facette ne les utilise ; seuls deux tris de prix existent.
 
