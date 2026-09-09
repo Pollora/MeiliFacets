@@ -93,6 +93,35 @@ final class FacetPlacementTest extends TestCase
     }
 
     /**
+     * Two facets on one taxonomy share a name nobody wrote. Left alone, the first
+     * shadows the second, placing one removes both, and the group blames the
+     * template for a fault in the declaration.
+     */
+    #[Test]
+    public function it_refuses_two_facets_answering_to_the_same_name(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessageMatches('/Facets "Aisles" and "Shelves" answer to the same name "product_cat"/');
+
+        $this->listing([
+            new Facet('product_cat', 'Aisles'),
+            new Facet('product_cat', 'Shelves'),
+        ])->facets();
+    }
+
+    /** Naming one of them is the way out the message points to. */
+    #[Test]
+    public function it_takes_two_facets_on_one_taxonomy_once_a_name_tells_them_apart(): void
+    {
+        $listing = $this->listing([
+            new Facet('product_cat', 'Aisles', name: 'aisles'),
+            new Facet('product_cat', 'Shelves'),
+        ]);
+
+        $this->assertSame(['aisles', 'product_cat'], $this->namesOf($listing->facets()));
+    }
+
+    /**
      * @param  list<Facet>|null  $facets
      */
     private function listing(?array $facets = null): ResolvedListing

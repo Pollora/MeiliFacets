@@ -26,6 +26,9 @@ final class ResolvedListing
 
     private bool $failed = false;
 
+    /** @var list<Facet>|null */
+    private ?array $facets = null;
+
     /** @var array<string, true> names already on the page, whatever placed them */
     private array $rendered = [];
 
@@ -80,7 +83,29 @@ final class ResolvedListing
      */
     public function facets(): array
     {
-        return $this->listing->facets();
+        return $this->facets ??= $this->refuseSharedNames($this->listing->facets());
+    }
+
+    /**
+     * @param  list<Facet>  $facets
+     * @return list<Facet>
+     */
+    private function refuseSharedNames(array $facets): array
+    {
+        $labels = [];
+
+        foreach ($facets as $facet) {
+            if (isset($labels[$facet->name])) {
+                throw new RuntimeException(sprintf(
+                    'Facets "%s" and "%s" answer to the same name "%s" in listing "%s". Declare `name:` on all but one of them.',
+                    $labels[$facet->name], $facet->label, $facet->name, $this->name(),
+                ));
+            }
+
+            $labels[$facet->name] = $facet->label;
+        }
+
+        return $facets;
     }
 
     public function facetNamed(string $name): Facet

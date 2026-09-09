@@ -2994,7 +2994,7 @@ personne ne retrouve. État de départ : ouvert, sauf mention.
 | `R-93` | 🟡 | **fermé le 2026-09-09** | le style par défaut est porté par `[data-meili="facets"]` et ne suit pas une facette déplacée hors du groupe |
 | `R-94` | 🟡 | ouvert | une facette placée hors de `[data-listing]` est inerte, sans avertissement |
 | `R-95` | 🟠 | ouvert | rendre deux fois la même facette lève une exception qui sort un 500 sur toute la page |
-| `R-96` | 🟡 | ouvert | `Facet::$name` sert d'identifiant sans unicité imposée : deux facettes sur une même taxonomie partagent un nom que personne n'a écrit |
+| `R-96` | 🟡 | **fermé le 2026-09-09** | `Facet::$name` sert d'identifiant sans unicité imposée : deux facettes sur une même taxonomie partagent un nom que personne n'a écrit |
 | `R-97` | 🟠 | **fermé le 2026-09-09** | collision d'identifiants entre panneau et compteur |
 | `R-98` | 🟡 | **fermé le 2026-09-09** | le composant `facet` n'émet jamais `{{ $attributes }}` : ni classe ni id sur une facette placée |
 | `R-99` | 🟡 | **fermé le 2026-09-09** | `$scroll` est accepté puis ignoré par le composant `Facet` |
@@ -3265,6 +3265,57 @@ une base neutre qui ne peut pas connaître le rapport ascent/descent de la polic
 choisit ; une compensation en dur serait fausse pour toute autre police. Le seul geste défendable
 côté module serait d'envelopper le libellé dans un `<span>` **sans** correction, pour donner une
 prise au thème.
+
+---
+
+### R-96 · 🟡 · **fermé le 2026-09-09** · ouvert le 2026-09-09 — deux facettes pouvaient répondre au même nom
+
+`Facet::$name` retombe sur la taxonomie quand rien n'est déclaré, donc deux facettes sur une même
+taxonomie — un `ChildTermsFacet` et un `Facet` sur `product_cat`, par exemple — partageaient un nom
+que **personne n'avait écrit**.
+
+Trois symptômes, tous prouvés avant correction sur un `ResolvedListing` monté à la main :
+
+```
+noms déclarés               : product_cat, product_cat
+facetNamed('product_cat')   : rend la PREMIÈRE, la seconde est inatteignable
+après placeApart(la 1re)    : il reste 0 facette sur 2   ← la seconde disparaît en silence
+sans rien placer, le groupe : « Facet "product_cat" is rendered twice […] Place it on its own
+                               before <x-meilifacets::facets> »
+```
+
+Le dernier est le pire : le message accuse le gabarit d'une faute qui est dans la **déclaration**,
+et le remède qu'il propose ne peut pas marcher — placer la facette à part retire les deux.
+
+Correctif : `ResolvedListing::refuseSharedNames()`, à l'image de `ListingRegistry` pour les noms de
+listing. Le message nomme les deux **libellés**, seule chose qui distingue deux déclarations sur une
+même taxonomie, et indique la sortie :
+
+```
+Facets "Aisles" and "Shelves" answer to the same name "product_cat" in listing "products".
+Declare `name:` on all but one of them.
+```
+
+*Deux versions écartées en chemin, sur remarque de Louis.* Une première nommée `distinctlyNamed()` —
+un adjectif pour une garde qui lève. Une seconde qui sortait tôt par
+`count(array_unique($names)) === count($names)` puis identifiait la paire dans un second parcours :
+elle **triplait la méthode** pour un chemin normal mesuré à **0,11 µs** (3 facettes ; l'écart entre
+les deux approches n'apparaît qu'à 12 facettes, `−33 %`, soit 0,13 µs). La boucle simple identifie
+la paire gratuitement, au passage. 17 lignes, un seul parcours, `sprintf`, **un seul littéral** —
+`pint.json` n'impose aucune longueur de ligne et le module en porte déjà à 168 caractères, donc la
+concaténation ne servait qu'à couper une phrase en deux et à la rendre non-greppable. Le « pourquoi »
+qu'elle portait est dans `configuration.md`, pas dans un message d'erreur.
+
+`facets()` est désormais mémoïsé — non pour le temps (**4 appels par rendu de `/boutique`**,
+mesuré), mais pour que la validation tourne une fois et non quatre. **Cette mémoïsation n'est
+couverte par aucun test et ne peut pas l'être** : elle ne change rien d'observable ; la mutation qui
+la retire laisse la suite verte. Corollaire assumé : un `Listing` dont `facets()` varierait au cours
+d'une requête verrait sa première réponse figée — aucun n'en dépend, les quatre appels rendaient
+déjà la même chose.
+
+Deux tests, deux mutations tuées : la garde qui ne lève plus, la garde qui clefe sur la taxonomie
+plutôt que sur le nom. Le second test montre la sortie — nommer l'une des deux — et vérifie qu'elle
+fonctionne.
 
 ---
 
