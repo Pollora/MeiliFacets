@@ -351,7 +351,7 @@ déplie rien. La règle vaut pour `facet`, `facets`, `sort`, `reset`, `paginatio
 et `results` sans exception. Un composant posé dehors est signalé au démarrage :
 
 ```
-[meilifacets] outside every [data-listing], so inert: facet, input.
+[meilifacets] the client binds inside [data-listing] only. Move inside <x-meilifacets::listing>: facet.
 ```
 
 `<x-meilifacets::facets />` rend toutes les facettes qu'aucun `<x-meilifacets::facet>` n'a déjà

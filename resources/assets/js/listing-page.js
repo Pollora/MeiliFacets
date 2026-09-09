@@ -25,7 +25,9 @@ const start = () => {
     const orphans = Contract.orphans(document, roots)
 
     if (orphans.length > 0) {
-        console.error(`[meilifacets] outside every [${LISTING_ATTRIBUTE}], so inert: ${orphans.join(', ')}.`)
+        const move = `Move inside <x-meilifacets::listing> : ${orphans.join(', ')}.`
+
+        console.error(`[meilifacets] the client binds inside [${LISTING_ATTRIBUTE}] only. ${move}`)
     }
 
     const { connection, listings } = JSON.parse(data)

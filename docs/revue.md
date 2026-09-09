@@ -3358,7 +3358,7 @@ Seules les racines orphelines sont nommées — les crochets qu'une facette éga
 une seconde faute. Sur la page réelle : 17 éléments `data-meili` hors racine, **un** nom rapporté.
 
 ```
-[meilifacets] outside every [data-listing], so inert: facet.
+[meilifacets] the client binds inside [data-listing] only. Move inside <x-meilifacets::listing>: facet.
 ```
 
 Quatre mutations tuées. *Deux d'entre elles avaient d'abord été rapportées « survivantes » à tort* :
