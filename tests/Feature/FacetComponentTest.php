@@ -53,7 +53,7 @@ final class FacetComponentTest extends TestCase
         $listing = $this->listing();
 
         $this->assertStringContainsString(
-            'id="'.new ElementId($listing->name())->facetPanel($this->first()->taxonomy).'"',
+            'id="'.new ElementId($listing->name())->facetPanel($this->first()->name).'"',
             $this->renderOne()
         );
     }

@@ -2968,6 +2968,87 @@ thème à surenchérir pour reprendre `display`, donc pour animer. Le retirer su
 
 ---
 
+### Revue de la PR #1 — `R-93` à `R-106`
+
+Quatorze constats relevés par une revue contradictoire sur la PR de placement de facettes
+(`R-89`), le 2026-09-09. Numérotés ici parce qu'un constat sans numéro est un constat que
+personne ne retrouve. État de départ : ouvert, sauf mention.
+
+| n° | gravité | état | constat |
+| --- | --- | --- | --- |
+| `R-93` | 🟡 | ouvert | le style par défaut est porté par `[data-meili="facets"]` et ne suit pas une facette déplacée hors du groupe |
+| `R-94` | 🟡 | ouvert | une facette placée hors de `[data-listing]` est inerte, sans avertissement |
+| `R-95` | 🟠 | ouvert | rendre deux fois la même facette lève une exception qui sort un 500 sur toute la page — à confronter au besoin Figma (panneau desktop **et** modale mobile) |
+| `R-96` | 🟡 | ouvert | `Facet::$name` sert d'identifiant sans unicité imposée : deux facettes sur une même taxonomie partagent un nom que personne n'a écrit |
+| `R-97` | 🟠 | **fermé le 2026-09-09** | collision d'identifiants entre panneau et compteur |
+| `R-98` | 🟡 | ouvert | le composant `facet` n'émet jamais `{{ $attributes }}` : ni classe ni id sur une facette placée |
+| `R-99` | 🟡 | ouvert | `$scroll` est accepté puis ignoré par le composant `Facet` |
+| `R-100` | 🟢 | ouvert | `Facets::render()` renvoie `''` au lieu de `shouldRender()`, ce qui écrit un fichier compilé vide |
+| `R-101` | 🟡 | **fermé le 2026-09-09** | les tests Feature assertaient le catalogue de facettes du projet hôte |
+| `R-102` | 🟡 | ouvert | le test du bouton de repli ne peut pas échouer |
+| `R-103` | 🟢 | ouvert | `forgetScopedInstances()` sans `tearDown()` symétrique |
+| `R-104` | 🟡 | ouvert | le bloc `R-89` du registre affirme le contraire de ce qui a été livré ; `configuration.md` ne documente pas la nouvelle API publique |
+| `R-105` | 🟡 | ouvert | la fixture `tests/js/dom.js` ne reflète plus le Blade (panneau absent) |
+| `R-106` | 🟡 | ouvert | rien ne verrouille « le retrait est affaire de rendu seulement », que `R-89` nomme pourtant |
+
+### R-97 · 🟠 · **fermé le 2026-09-09** · ouvert le 2026-09-09 — collision d'identifiants entre panneau et compteur
+
+Deux défauts sous un seul constat, de portées très différentes.
+
+**Le premier était atteignable par un éditeur seul**, sans complicité du code : un terme slugué
+`panel` rendait `facetCount('product_brand', 'panel')` égal à `facetPanel('product_brand')` —
+`meilifacets-products-product_brand-panel`. L'`aria-describedby` de cette valeur résolvait vers le
+`<div>` du panneau entier au lieu de son compteur. Les deux méthodes clefaient par ailleurs sur la
+**taxonomie** alors que les facettes sont désormais clefées par **nom** (`R-89`) : deux facettes
+sur une même taxonomie collisionnaient sur tous leurs identifiants.
+
+Le même défaut latent existait dans la famille `sort`, que la revue n'avait pas vue : une clef de
+tri nommée `trigger` aurait volé l'identifiant du bouton. Corrigé du même coup — `sortOption()`
+porte maintenant son segment `option`, et la famille est injective par construction puisqu'elle
+n'a qu'une seule partie variable, en dernière position.
+
+**Le second était structurel** : `of()` joint avec `-`, caractère que les parties variables
+contiennent librement, donc les deux familles se recouvraient par construction. Prouvé sur la
+vraie classe après le premier correctif — `facetPanel('brand-value-x')` valait encore
+`facetCount('brand', 'x-panel')`. Exhaustivement, sur les noms et slugs composés des mots du
+gabarit : 480 collisions.
+
+Portée réelle mesurée avant de corriger : **aucune collision atteignable sur le site**. Il fallait
+réunir un nom de facette pathologique (`…-value`, écrit par un développeur dans son énumération) et
+un slug qui complète le motif. Les noms en place sont `category`, `brand`, `volume`. Le correctif
+ne répare donc rien d'observable : il ferme, pour un caractère, la catégorie de défauts entière
+dont le premier cas était l'instance.
+
+Correctif : la famille `facet` ferme le nom par `--`. `sanitize_title()` écrase les suites de
+tirets (`|-+|` → `-`) et rogne les extrémités, donc **aucun slug de terme ne contient `--`** —
+vérifié sur dix entrées hostiles, tirets insécables compris — et les trois chemins d'écriture d'un
+slug y passent (`wp_insert_term`, `wp_update_term`, `wp_unique_term_slug`). Le dernier `--` d'un
+identifiant est donc toujours celui qui ferme le nom de facette : la découpe est unique **même si
+un projet met `--` dans un nom**, puisqu'on lit depuis la droite. Aucune validation ajoutée nulle
+part.
+
+```
+meilifacets-products-facet-volume--panel
+meilifacets-products-facet-volume--count-100ml
+```
+
+Coût mesuré : +8 ns par identifiant (dans le bruit du micro-bench, `implode` reçoit la même
+arité), soit +0,3 µs sur les 41 identifiants d'une page `/boutique` dont le TTFB médian est de
+264 ms. Aucun appel WordPress ajouté : le slug arrive déjà assaini par l'indexation, la classe
+reste pure — ses seuls appels sortants sont `implode` et son propre `of()`. +1 octet par
+identifiant dans le HTML.
+
+Le test est devenu une propriété — « aucun identifiant n'est produit par deux éléments
+différents » — sur les noms et slugs assemblés à partir des mots du gabarit, noms contenant `--`
+compris. Trois mutations passées : revenir au tiret simple le tue, retirer le nom du listing le
+tue, et échanger le mot `count` contre `panel` le laisse vert **à juste titre** (la propriété tient
+toujours) mais est rattrapé par l'assertion littérale.
+
+**Réserve consignée** : `sanitize_title` est un filtre. Un plugin qui s'y branche pourrait rendre
+`--`. Le cœur ne le fait jamais et aucun plugin installé ici ne s'y branche.
+
+---
+
 ## 10. Questions ouvertes
 
 Rangées de la plus structurante à la plus locale. Une réponse ici ferme ou réoriente les constats

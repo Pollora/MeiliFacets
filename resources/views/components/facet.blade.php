@@ -1,11 +1,11 @@
 <fieldset class="meilifacetsFacet" data-taxonomy="{{ $facet->taxonomy }}"
           @if ($values === []) hidden @endif {{ $hook('facet') }}>
     <legend class="meilifacetsFacetLabel">{{ $facet->label }}</legend>
-    <div class="meilifacetsFacetPanel" id="{{ $ids->facetPanel($facet->taxonomy) }}">
+    <div class="meilifacetsFacetPanel" id="{{ $ids->facetPanel($facet->name) }}">
         <div class="meilifacetsFacetPanelInner">
             <ul class="meilifacetsFacetValues">
                 @foreach ($values as $value)
-                    @php($countId = $ids->facetCount($facet->taxonomy, $value->slug))
+                    @php($countId = $ids->facetCount($facet->name, $value->slug))
                     <li class="meilifacetsFacetValue" @if ($value->folded) hidden @endif {{ $hook('facet-value') }}>
                         <label>
                             <input type="{{ $inputType() }}"
