@@ -2986,14 +2986,14 @@ c'est celui-là qui est levé.
 ### Revue de la PR #1 — `R-93` à `R-106`
 
 Quatorze constats relevés par une revue contradictoire sur la PR de placement de facettes
-(`R-89`), le 2026-09-09. Numérotés ici parce qu'un constat sans numéro est un constat que
+(`R-89`), le 2026-09-09, plus deux ouverts en les traitant (`R-107`, `R-108`). Numérotés ici parce qu'un constat sans numéro est un constat que
 personne ne retrouve. État de départ : ouvert, sauf mention.
 
 | n° | gravité | état | constat |
 | --- | --- | --- | --- |
 | `R-93` | 🟡 | **fermé le 2026-09-09** | le style par défaut est porté par `[data-meili="facets"]` et ne suit pas une facette déplacée hors du groupe |
 | `R-94` | 🟡 | **fermé le 2026-09-09** | une facette placée hors de `[data-listing]` est inerte, sans avertissement |
-| `R-95` | 🟠 | ouvert | rendre deux fois la même facette lève une exception qui sort un 500 sur toute la page |
+| `R-95` | 🟠 | **différé** — avec le rendu des filtres en mobile | rendre deux fois la même facette lève une exception qui sort un 500 sur toute la page |
 | `R-96` | 🟡 | **fermé le 2026-09-09** | `Facet::$name` sert d'identifiant sans unicité imposée : deux facettes sur une même taxonomie partagent un nom que personne n'a écrit |
 | `R-97` | 🟠 | **fermé le 2026-09-09** | collision d'identifiants entre panneau et compteur |
 | `R-98` | 🟡 | **fermé le 2026-09-09** | le composant `facet` n'émet jamais `{{ $attributes }}` : ni classe ni id sur une facette placée |
@@ -3004,8 +3004,9 @@ personne ne retrouve. État de départ : ouvert, sauf mention.
 | `R-103` | 🟢 | **fermé le 2026-09-09** | `forgetScopedInstances()` sans `tearDown()` symétrique |
 | `R-104` | 🟡 | **fermé le 2026-09-09** | le bloc `R-89` du registre affirme le contraire de ce qui a été livré ; `configuration.md` ne documente pas la nouvelle API publique |
 | `R-105` | 🟡 | **fermé le 2026-09-09** | la fixture `tests/js/dom.js` ne reflète plus le Blade (panneau absent) |
-| `R-107` | 🟡 | ouvert | le texte des contrôles est 2,3 px au-dessus du centre optique — métriques d'Epilogue, correction à placer côté thème |
 | `R-106` | 🟡 | **fermé le 2026-09-09** | rien ne verrouille « le retrait est affaire de rendu seulement », que `R-89` nomme pourtant |
+| `R-107` | 🟡 | **fermé le 2026-09-09** | le texte des contrôles est 2,3 px au-dessus du centre optique — inhérent au centrage d'une boîte de ligne, pas un défaut de la feuille |
+| `R-108` | 🟡 | **différé** — piste validée, à instruire plus tard | rien n'empêche la fixture JS de dériver à nouveau |
 
 ### R-97 · 🟠 · **fermé le 2026-09-09** · ouvert le 2026-09-09 — collision d'identifiants entre panneau et compteur
 
@@ -3175,16 +3176,51 @@ d'arriver. `R-108`.
 
 ---
 
-### R-108 · 🟡 · ouvert · 2026-09-09 — rien n'empêche la fixture JS de dériver à nouveau
+### R-108 · 🟡 · **différé le 2026-09-09** · ouvert le 2026-09-09 — rien n'empêche la fixture JS de dériver à nouveau
 
 `tests/js/dom.js` est recopié à la main depuis le Blade, et la suite JS doit rester exécutable sans
 application hôte (`composer check`) — donc elle ne peut pas la générer. `R-105` a corrigé l'écart du
 jour ; le prochain changement de vue le recréera en silence, et les tests de feuille de style
 continueront de valider un markup mort.
 
-Piste non instruite : un test de la suite `Feature`, côté PHP, qui lit `dom.js` et vérifie que les
-classes et crochets structurants qu'il emploie existent dans le rendu réel. C'est le seul pont
-possible sans faire dépendre la suite JS de PHP.
+**Piste validée par Louis le 2026-09-09, à instruire plus tard** : un test de la suite `Feature`,
+côté PHP, qui lit `dom.js` et vérifie que les classes et crochets structurants qu'il emploie existent
+dans le rendu réel. C'est le seul pont possible sans faire dépendre la suite JS de PHP.
+
+**Limite connue d'avance, à peser au moment de le faire** : il attrape ce que la fixture *emploie et
+qui a disparu*, pas ce que le Blade a *ajouté et que la fixture ignore* — c'est-à-dire exactement le
+cas de `R-105`. Attraper celui-là imposerait de comparer les deux arbres, donc de générer la
+fixture, donc de faire dépendre `composer check` d'une application hôte. À reconsidérer avec `R-70`,
+qui touche déjà à la manière dont le client est livré.
+
+---
+
+### R-101 · 🟡 · **fermé le 2026-09-09** · ouvert le 2026-09-09 — les tests Feature assertaient le catalogue du projet hôte
+
+Le premier constat traité, avant même que les numéros n'existent — d'où cette entrée écrite après
+coup, en complétant le registre.
+
+Les tests de placement écrivaient en dur `3`, `category`, `brand`, `volume`, `product_cat`,
+`product_brand` et le nom de listing `products`. Tout cela vient de
+`App\Cms\Products\CatalogueFacets`, que Pluralia binde par-dessus `ProductFacets`
+(`AppServiceProvider:30`). Le `WooCommerceFacets` du module, lui, déclare deux facettes et n'en
+nomme aucune : leurs noms sont `product_cat` et `product_brand`. **Ajouter une quatrième facette à
+la boutique cassait la suite du module** — l'inverse de la règle du `CLAUDE.md` : « Pluralia is its
+test bed, not its owner. »
+
+Correctif en deux temps :
+
+- les tests `Feature` lisent noms et comptes **à l'exécution** — `$this->first()`,
+  `$this->declaredCount()`, `$listing->name()` — au lieu de les recopier ;
+- les règles de placement elles-mêmes ont quitté la suite `Feature` pour `Unit\FacetPlacementTest`,
+  qui monte un `ResolvedListing` sur des facettes **qu'il déclare lui-même** (`FakeListing`), sans
+  conteneur, sans Blade et sans Pluralia. Ce qui reste en `Feature` ne prouve qu'une chose : que le
+  composant demande bien au listing ce que la règle exige.
+
+Un test dépendait aussi d'un réglage du projet sans le dire :
+`it_renders_no_container_when_every_facet_was_placed_apart` n'était vert que parce que `apply_mode`
+valait `immediate`. Il pose désormais son `config([...])`, et un test complémentaire couvre le mode
+`submit`, où le bouton d'envoi retient le conteneur.
 
 ---
 
@@ -3239,7 +3275,7 @@ placent des facettes. Seul, il est vert dans les deux cas. C'est le seul test qu
 
 ---
 
-### R-107 · 🟡 · ouvert · 2026-09-09 — le texte des contrôles n'est pas au centre optique
+### R-107 · 🟡 · **fermé le 2026-09-09** · ouvert le 2026-09-09 — le texte des contrôles n'est pas au centre optique
 
 Relevé par Louis sur capture, cause confirmée par lui puis mesurée : **les métriques d'Epilogue**.
 À 14 px, la police déclare `ascent 11 px / descent 3 px` ; les libellés des contrôles (« Pertinence »,
@@ -3260,11 +3296,24 @@ en `inline-flex`, contre 12,16 / 9,34 en `inline-block`. La propriété s'appliq
 et dans un conteneur flex le texte est un élément anonyme. L'utiliser imposerait d'envelopper le
 libellé dans un `<span>` dans quatre vues.
 
-**Position proposée, non tranchée** : la correction appartient au thème. La feuille du module est
-une base neutre qui ne peut pas connaître le rapport ascent/descent de la police que le thème
-choisit ; une compensation en dur serait fausse pour toute autre police. Le seul geste défendable
-côté module serait d'envelopper le libellé dans un `<span>` **sans** correction, pour donner une
-prise au thème.
+**Fermé le 2026-09-09 sur constat de Louis, sans changement de code.** La mesure qui l'a clos montre
+que le décalage ne dépend pas de la feuille mais du **mot** :
+
+| bouton | jambages | décalage |
+| --- | --- | --- |
+| « Pertinence » | 0,1 px | **−2,33 px** |
+| « Appliquer les filtres » | 3,1 px | **0,01 px** |
+| le même bouton, texte remplacé par « Prix apres » | 3,1 px | 0,59 px |
+
+Un texte sans jambage laisse vides les 3 px qu'Epilogue réserve en bas et remonte d'autant ; le même
+bouton avec un mot qui descend est centré au centième de pixel. C'est le comportement de tout
+centrage de boîte de ligne, sur n'importe quelle police et n'importe quel site — pas un défaut de la
+feuille du module.
+
+Le corriger vraiment demanderait de rogner à la hauteur de capitale (`text-box: trim-both cap
+alphabetic`), qui **ne s'applique pas dans un conteneur flex** : mesuré à `10,50 / 11,00` en
+`inline-flex` contre `12,16 / 9,34` en `inline-block`. Il faudrait envelopper le libellé dans un
+`<span>` dans quatre vues. À rouvrir seulement si la charte l'exige.
 
 ---
 
@@ -3408,7 +3457,10 @@ propriétés que le moteur résout et qu'emploie déjà `stylesheet.test.js`.
 
 ---
 
-### R-95 · 🟠 · ouvert · 2026-09-09 — rendre deux fois la même facette sort un 500 sur toute la page
+### R-95 · 🟠 · **différé le 2026-09-09** · ouvert le 2026-09-09 — rendre deux fois la même facette sort un 500 sur toute la page
+
+**Différé par Louis, à traiter avec le rendu des filtres en mobile** : c'est ce chantier qui dira si
+la modale est le même DOM présenté autrement ou un second rendu, donc si l'exception gêne.
 
 `ResolvedListing::place()` lève quand un nom est déjà rendu — voulu, demandé en séance (« il faut
 générer une erreur Laravel non ? »), et le seul comportement qui évite un doublon silencieux
@@ -4094,3 +4146,35 @@ continuer à décider sur 76 produits sans variations.
   Deux pièges écrits dans `pieges.md` : la séquence de chargement, et le fait que le plugin installé
   est une **sortie de Composer** — ce que j'avais d'abord lu comme une installation manuelle, en
   concluant à tort qu'un patch local était la seule voie.
+- **2026-09-09** — **Revue contradictoire de la PR #1 traitée en entier.** Quatorze constats
+  numérotés `R-93` à `R-106` — ils n'existaient nulle part au registre pendant la première journée
+  de correction, ce qui était le vrai manque. Douze fermés, `R-95` différé avec le rendu mobile,
+  plus deux ouverts en chemin : `R-107` (fermé) et `R-108` (différé).
+
+  **Quatre constats étaient plus étroits que la revue ne l'annonçait, et le dire a compté autant que
+  le correctif.** `R-106` : cinq des sept points de lecture ne peuvent pas déraper, le contrat
+  `Listing` n'expose pas `remainingFacets()`, le « rangement » redouté ne compilerait pas. `R-103` :
+  ce qui fuit est `$apart` et non `$rendered`, donc le groupe sort **vide et silencieux** au lieu de
+  lever — pire que décrit. `R-105` : corriger la fixture n'a révélé aucune régression, la condition
+  qui manquait était une facette hors groupe, pas les deux `div`. `R-97` : le scénario nommé était
+  déclenchable par un éditeur, le résiduel structurel ne l'est que par un développeur.
+
+  **Trois correctifs ne réparent rien d'observable aujourd'hui** — `R-97`, `R-100`, `R-96` — et
+  c'est écrit dans chaque entrée. Ils ferment des classes de défauts, pas des pannes.
+
+  **`R-93` était le seul défaut visible sur la page** : quatre règles habillaient la facette depuis
+  le groupe, donc une facette déplacée sortait en 16 px avec des puces et le cadre d'un `<fieldset>`
+  nu. Corrigé en accrochant les règles à `[data-meili="facet"]`, ce que `decisions.md:184` demandait
+  déjà.
+
+  **`R-94` a révélé un trou dans ma propre documentation** : `configuration.md`, écrit la veille pour
+  `R-104`, ne contenait pas une fois `x-meilifacets::listing`. Il documentait la liberté de placer
+  une facette sans sa seule limite — être dans la racine, faute de quoi elle est inerte.
+
+  **Enseignement de méthode, payé cher.** Plusieurs corrections ont dû être corrigées : une méthode
+  triplée pour optimiser un chemin à 0,11 µs, des commentaires paraphrasant le code retirés en deux
+  passes, une affirmation sur le Figma écrite sans avoir rouvert les captures — elles disaient
+  l'inverse —, et un harnais de mutation qui rapportait « survivant » sans vérifier que la mutation
+  s'était appliquée. Trois réflexes en sortent : mesurer avant d'optimiser, relire ses propres
+  commentaires avec la table du `CLAUDE.md` avant de livrer, et faire échouer un test exprès avant
+  de le croire.
