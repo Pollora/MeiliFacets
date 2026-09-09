@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Tests\Feature;
 
 use Illuminate\Support\Facades\Blade;
+use Modules\MeiliFacets\Enums\Contract;
 use Modules\MeiliFacets\Enums\Hook;
 use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\Listing\Facet;
@@ -92,6 +93,30 @@ final class FacetComponentTest extends TestCase
         $this->assertStringNotContainsString('data-meili="facets"', $rendered);
     }
 
+    #[Test]
+    public function it_merges_the_classes_the_caller_adds(): void
+    {
+        $html = Blade::render($this->placing($this->first(), 'class="lg:col-span-2"'));
+
+        $this->assertStringContainsString('class="meilifacetsFacet lg:col-span-2"', $html);
+    }
+
+    /** A facet placed on its own brings the listing back into view like the group does. */
+    #[Test]
+    public function it_marks_the_facet_that_asks_to_scroll(): void
+    {
+        $this->assertStringContainsString(
+            Contract::SCROLL_ATTRIBUTE,
+            Blade::render($this->placing($this->first(), 'scroll'))
+        );
+    }
+
+    #[Test]
+    public function it_marks_nothing_when_the_facet_does_not_ask(): void
+    {
+        $this->assertStringNotContainsString(Contract::SCROLL_ATTRIBUTE, $this->renderOne());
+    }
+
     /** A string return would have Blade compile, write and include a file that renders nothing. */
     #[Test]
     public function it_compiles_no_view_when_it_renders_nothing(): void
@@ -138,9 +163,9 @@ final class FacetComponentTest extends TestCase
         return Blade::render($this->placing($this->first()));
     }
 
-    private function placing(Facet $facet): string
+    private function placing(Facet $facet, string $attributes = ''): string
     {
-        return '<x-meilifacets::facet facet="'.$facet->name.'" />';
+        return '<x-meilifacets::facet facet="'.$facet->name.'" '.$attributes.' />';
     }
 
     private function placingEveryFacet(): string

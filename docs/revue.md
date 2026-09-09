@@ -2981,8 +2981,8 @@ personne ne retrouve. État de départ : ouvert, sauf mention.
 | `R-95` | 🟠 | ouvert | rendre deux fois la même facette lève une exception qui sort un 500 sur toute la page — à confronter au besoin Figma (panneau desktop **et** modale mobile) |
 | `R-96` | 🟡 | ouvert | `Facet::$name` sert d'identifiant sans unicité imposée : deux facettes sur une même taxonomie partagent un nom que personne n'a écrit |
 | `R-97` | 🟠 | **fermé le 2026-09-09** | collision d'identifiants entre panneau et compteur |
-| `R-98` | 🟡 | ouvert | le composant `facet` n'émet jamais `{{ $attributes }}` : ni classe ni id sur une facette placée |
-| `R-99` | 🟡 | ouvert | `$scroll` est accepté puis ignoré par le composant `Facet` |
+| `R-98` | 🟡 | **fermé le 2026-09-09** | le composant `facet` n'émet jamais `{{ $attributes }}` : ni classe ni id sur une facette placée |
+| `R-99` | 🟡 | **fermé le 2026-09-09** | `$scroll` est accepté puis ignoré par le composant `Facet` |
 | `R-100` | 🟢 | **fermé le 2026-09-09** | `Facets::render()` renvoie `''` au lieu de `shouldRender()`, ce qui écrit un fichier compilé vide |
 | `R-101` | 🟡 | **fermé le 2026-09-09** | les tests Feature assertaient le catalogue de facettes du projet hôte |
 | `R-102` | 🟡 | ouvert | le test du bouton de repli ne peut pas échouer |
@@ -3097,6 +3097,43 @@ il assert l'absence du fichier compilé. Trois mutations passées — revenir à
 style branche ses règles. C'est exact, mais c'est le comportement — arbitré par Louis le
 2026-09-08 (« il ne faut pas d'élément sinon tu vas alourdir le DOM ») — et la conséquence sur le
 style appartient à `R-93`.
+
+---
+
+### R-98 et R-99 · 🟡 · **fermés le 2026-09-09** · ouverts le 2026-09-09 — le composant `facet` jetait ce qu'un template lui donnait
+
+Deux numéros, un seul défaut, sur la même ligne de la même vue : traités ensemble sur accord de
+Louis, plutôt qu'en deux commits qui se seraient marchés dessus.
+
+```blade
+<x-meilifacets::facet :facet="ShopFacet::Brand" class="lg:col-span-2" scroll />
+```
+
+Ni la classe ni le `scroll` n'arrivaient. La classe tombait dans le sac d'attributs, que la vue
+n'émettait jamais ; `Facet::__construct` appelait `parent::__construct($listings, $name)` sans le
+troisième paramètre, et la vue n'émettait pas `$scrollMark()`.
+
+Conséquence concrète pour `R-89` : une facette déplacée dans une case de grille précise ne pouvait
+pas y être stylée, ce qui vidait le déplacement de son intérêt — et c'est précisément ce dont
+l'animation en grille a besoin. Pour `R-99`, la même facette se comportait différemment selon
+l'endroit où le template la posait, alors que les quatre autres composants (`facets`, `sort`,
+`reset`, `pagination`) portent tous `$scrollMark()`.
+
+Correctif : `{{ $attributes->class('meilifacetsFacet') }}` et `{{ $scrollMark() }}` sur le
+`<fieldset>`, `bool $scroll = false` transmis au parent. Le motif est celui de `card.blade.php`,
+déjà verrouillé par `CardComponentTest::it_merges_the_classes_the_caller_adds`.
+
+Vérifié sur `/categorie-produit/cheveux`, facette de catégorie placée à part :
+
+```
+<fieldset class="meilifacetsFacet lg:col-span-2" data-taxonomy="product_cat" data-meili="facet" data-meili-scroll>
+<fieldset class="meilifacetsFacet"               data-taxonomy="product_brand" data-meili="facet">
+```
+
+Les facettes du groupe restent inchangées, et ni `scroll` ni `class` ne fuient en attribut brut.
+
+Trois tests ajoutés, trois mutations passées : figer la classe, retirer `$scrollMark()` de la vue,
+cesser de transmettre `$scroll` — les trois sont tuées.
 
 ---
 

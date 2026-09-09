@@ -22,8 +22,9 @@ final class Facet extends ListingComponent
         CurrentListing $listings,
         Declaration|BackedEnum|string $facet,
         string $name = '',
+        bool $scroll = false,
     ) {
-        parent::__construct($listings, $name);
+        parent::__construct($listings, $name, $scroll);
 
         if ($facet instanceof Declaration) {
             $this->facet = $facet;

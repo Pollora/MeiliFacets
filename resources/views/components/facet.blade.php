@@ -1,5 +1,5 @@
-<fieldset class="meilifacetsFacet" data-taxonomy="{{ $facet->taxonomy }}"
-          @if ($values === []) hidden @endif {{ $hook('facet') }}>
+<fieldset {{ $attributes->class('meilifacetsFacet') }} data-taxonomy="{{ $facet->taxonomy }}"
+          @if ($values === []) hidden @endif {{ $hook('facet') }} {{ $scrollMark() }}>
     <legend class="meilifacetsFacetLabel">{{ $facet->label }}</legend>
     <div class="meilifacetsFacetPanel" id="{{ $ids->facetPanel($facet->name) }}">
         <div class="meilifacetsFacetPanelInner">
