@@ -15,6 +15,8 @@ final readonly class ListingSearch
 
     private const string COUNT = 'count:';
 
+    private const string BOUNDS = 'bounds';
+
     public function __construct(
         private SearchEngine $engine,
         private FacetCounter $counter,
@@ -25,6 +27,9 @@ final readonly class ListingSearch
         $responses = $this->engine->multiSearch([
             self::RESULTS => QueryPlan::results($listing, $state),
             ...$this->countQueries($listing, $state),
+            ...QueryPlan::measuresPriceApart($listing, $state)
+                ? [self::BOUNDS => QueryPlan::priceBounds($listing, $state)]
+                : [],
         ]);
 
         $main = $responses[self::RESULTS] ?? [];
@@ -33,6 +38,7 @@ final readonly class ListingSearch
             array_values($main['hits'] ?? []),
             (int) ($main['totalHits'] ?? 0),
             $this->distributions($listing, $responses),
+            $this->facetStats($responses),
         );
     }
 
@@ -51,6 +57,15 @@ final readonly class ListingSearch
         }
 
         return $queries;
+    }
+
+    /**
+     * @param  array<string, array<string, mixed>>  $responses
+     * @return array<string, array<string, float>>
+     */
+    private function facetStats(array $responses): array
+    {
+        return ($responses[self::BOUNDS] ?? $responses[self::RESULTS] ?? [])['facetStats'] ?? [];
     }
 
     /**

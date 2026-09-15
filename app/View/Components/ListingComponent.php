@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\View\Components;
 
+use BackedEnum;
+use Modules\MeiliFacets\Contracts\Placeable;
 use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\Listing\ResolvedListing;
 use Modules\MeiliFacets\View\ElementId;
@@ -19,5 +21,11 @@ abstract class ListingComponent extends ContractComponent
         $this->scroll = $scroll;
         $this->listing = $name === '' ? $listings->sole() : $listings->named($name);
         $this->ids = new ElementId($this->listing->name());
+    }
+
+    /** A project names its filters in an enum; the listing looks them up by string. */
+    protected function designated(Placeable|BackedEnum|string $filter): Placeable|string
+    {
+        return $filter instanceof BackedEnum ? (string) $filter->value : $filter;
     }
 }

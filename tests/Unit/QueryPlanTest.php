@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Tests\Unit;
 
 use Modules\MeiliFacets\Listing\ListingState;
+use Modules\MeiliFacets\Listing\Range;
 use Modules\MeiliFacets\Search\DisjunctiveFacetCounter;
 use Modules\MeiliFacets\Search\QueryPlan;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeListing;
@@ -112,6 +113,47 @@ final class QueryPlanTest extends TestCase
         foreach ($apart as $taxonomy => $query) {
             $this->assertNotContains('facets.'.$taxonomy, $onMain);
         }
+    }
+
+    /**
+     * A range drawn from the set its own bounds filtered would narrow at every
+     * move, with no way back to the prices it just hid.
+     */
+    #[Test]
+    public function it_lifts_the_price_from_the_search_that_measures_its_bounds(): void
+    {
+        $listing = FakeListing::withPriceAndBrand();
+        $state = new ListingState(['product_brand' => ['acme']], price: new Range(55.0, 120.0));
+
+        $bounds = QueryPlan::priceBounds($listing, $state);
+
+        $this->assertStringNotContainsString('price.', $bounds['filter']);
+        $this->assertStringContainsString('post_type = "product"', $bounds['filter']);
+        $this->assertStringContainsString('facets.product_brand = "acme"', $bounds['filter']);
+        $this->assertSame(['price.min', 'price.max'], $bounds['facets']);
+        $this->assertSame(0, $bounds['hitsPerPage']);
+    }
+
+    #[Test]
+    public function it_measures_the_price_apart_only_once_a_range_is_held(): void
+    {
+        $priced = FakeListing::withPriceAndBrand();
+
+        $this->assertFalse(QueryPlan::measuresPriceApart($priced, new ListingState));
+        $this->assertTrue(QueryPlan::measuresPriceApart($priced, new ListingState(price: new Range(max: 120.0))));
+        $this->assertFalse(QueryPlan::measuresPriceApart($this->listing, new ListingState(price: new Range(max: 120.0))));
+    }
+
+    #[Test]
+    public function it_never_asks_the_main_search_for_bounds_it_measures_apart(): void
+    {
+        $listing = FakeListing::withPriceAndBrand();
+
+        $open = QueryPlan::results($listing, new ListingState)['facets'];
+        $held = QueryPlan::results($listing, new ListingState(price: new Range(55.0)))['facets'];
+
+        $this->assertSame(['facets.product_brand', 'price.min', 'price.max'], $open);
+        $this->assertSame(['facets.product_brand'], $held);
     }
 
     /**

@@ -114,6 +114,26 @@ describe('Contract', () => {
         assert.deepEqual(new Contract(root).breaches(), ['facet > more'])
     })
 
+    // A price control is placed like a facet and holds no values: a fold button
+    // there would exist only to satisfy this check.
+    it('asks no fold button of a block with nothing to fold', () => {
+        const root = complete()
+        const range = new Node('price-range', [new Node('price-track'), new Node('price-handle')])
+        root.children[3] = new Node('facets', [new Node('facet', [range])])
+
+        assert.deepEqual(new Contract(root).breaches(), [])
+    })
+
+    it('names a second block breaching, not only the first', () => {
+        const root = complete()
+        root.children[3] = new Node('facets', [
+            new Node('facet', [new Node('facet-value', [new Node('input')]), new Node('more')]),
+            new Node('facet', [new Node('facet-value', [new Node('input')])]),
+        ])
+
+        assert.deepEqual(new Contract(root).breaches(), ['facet > more'])
+    })
+
     it('refuses a facet value without its input', () => {
         const root = complete()
         root.children[3] = new Node('facets', [new Node('facet-value', [new Node('count')])])

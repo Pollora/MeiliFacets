@@ -5,7 +5,7 @@ import { Window } from 'happy-dom'
 const STYLESHEET = new URL('../../resources/assets/css/meilifacets.css', import.meta.url)
 
 /** Read from the client, so an increment never sends anyone editing fixtures. */
-const CONTRACT = /const VERSION = (\d+)/.exec(
+export const CONTRACT = /const VERSION = (\d+)/.exec(
     readFileSync(new URL('../../resources/assets/js/contract.js', import.meta.url), 'utf8')
 )[1]
 

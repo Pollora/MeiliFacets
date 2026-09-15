@@ -8,6 +8,7 @@ use Modules\MeiliFacets\Contracts\Listing;
 use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Listing\Facet;
 use Modules\MeiliFacets\Listing\ListingState;
+use Modules\MeiliFacets\Listing\PriceFilter;
 
 final readonly class QueryPlan
 {
@@ -23,8 +24,12 @@ final readonly class QueryPlan
             'filter' => FilterExpression::all([
                 ...$listing->baseFilter(),
                 ...self::facetClauses($listing, $state),
+                self::priceClause($listing, $state),
             ]),
-            'facets' => self::fieldsCountedOnMain($listing, $state),
+            'facets' => [
+                ...self::fieldsCountedOnMain($listing, $state),
+                ...self::measuresPriceApart($listing, $state) ? [] : self::priceFields($listing),
+            ],
             // `hitsPerPage`/`page` answer with `totalHits` and `totalPages`;
             // `limit`/`offset` only give an estimate, capped at maxTotalHits.
             'hitsPerPage' => $listing->perPage(),
@@ -35,6 +40,58 @@ final readonly class QueryPlan
         $sort = $listing->sorts()[$state->sort] ?? null;
 
         return $sort === null ? $query : [...$query, 'sort' => $sort->expressions];
+    }
+
+    /**
+     * The range must reach what the visitor could still choose, so its own
+     * constraint is lifted — the same reason a facet is counted with its own values
+     * freed. Without this, filtering narrows it with no way back.
+     *
+     * @return array<string, mixed>
+     */
+    public static function priceBounds(Listing $listing, ListingState $state): array
+    {
+        return [
+            'q' => $state->query,
+            'filter' => FilterExpression::all([
+                ...$listing->baseFilter(),
+                ...self::facetClauses($listing, $state),
+            ]),
+            'facets' => self::priceFields($listing),
+            'hitsPerPage' => self::NO_HIT,
+            'page' => ListingState::FIRST_PAGE,
+        ];
+    }
+
+    /** Lifting the price costs a search, so it is only asked when a range is held. */
+    public static function measuresPriceApart(Listing $listing, ListingState $state): bool
+    {
+        return ! $state->price->isEmpty() && self::priceFields($listing) !== [];
+    }
+
+    /** A listing that declares no range must not be filtered by one the URL happens to carry. */
+    private static function priceClause(Listing $listing, ListingState $state): string
+    {
+        return self::priceFields($listing) === []
+            ? ''
+            : FilterExpression::overlapping(PriceTax::excluding($state->price));
+    }
+
+    /**
+     * Only a listing that declares a price range pays for its bounds: asking the
+     * engine for them brings back a distribution of every distinct price too.
+     *
+     * @return list<string>
+     */
+    private static function priceFields(Listing $listing): array
+    {
+        foreach ($listing->filters() as $filter) {
+            if ($filter instanceof PriceFilter) {
+                return $filter->fields();
+            }
+        }
+
+        return [];
     }
 
     /**
@@ -50,6 +107,7 @@ final readonly class QueryPlan
             'filter' => FilterExpression::all([
                 ...$listing->baseFilter(),
                 ...self::facetClauses($listing, $state, $counted->taxonomy),
+                self::priceClause($listing, $state),
             ]),
             'facets' => [$counted->field()],
             'hitsPerPage' => self::NO_HIT,

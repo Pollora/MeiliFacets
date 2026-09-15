@@ -103,7 +103,32 @@ export class ListingQuery {
             }
         }
 
+        const price = this.#priceClause(state)
+
+        if (price !== '') {
+            clauses.push(price)
+        }
+
         return clauses.join(' AND ')
+    }
+
+    /**
+     * Two intervals overlap unless one ends before the other starts — the same test
+     * the server writes, so a filtered page and its first client search agree.
+     *
+     * @param {ListingState} state
+     */
+    #priceClause(state) {
+        const fields = this.#listing.priceFields
+
+        if (!fields) {
+            return ''
+        }
+
+        return [
+            state.price.max === null ? '' : `${fields.min} <= ${state.price.max}`,
+            state.price.min === null ? '' : `${fields.max} >= ${state.price.min}`,
+        ].filter(Boolean).join(' AND ')
     }
 
     #facetClause(facet, values) {

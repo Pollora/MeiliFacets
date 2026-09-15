@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Listing;
 
 use BackedEnum;
+use Modules\MeiliFacets\Contracts\Placeable;
 use Modules\MeiliFacets\Contracts\TermScope;
 use Modules\MeiliFacets\Contracts\ValueOrder;
 use Modules\MeiliFacets\Enums\DefaultTerm;
@@ -12,7 +13,7 @@ use Modules\MeiliFacets\Enums\DisplayOrder;
 use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Enums\SelectionMode;
 
-readonly class Facet
+readonly class Facet implements Placeable
 {
     public const int DEFAULT_VISIBLE = 10;
 

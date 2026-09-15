@@ -36,6 +36,10 @@ export class ListingUrl {
             query: params.get(this.#reserved.query) ?? '',
             sort: this.#declaredSort(params.get(this.#reserved.sort)),
             page: Number.parseInt(params.get(this.#reserved.page) ?? '1', 10),
+            price: {
+                min: params.get(this.#reserved.minPrice),
+                max: params.get(this.#reserved.maxPrice),
+            },
         })
     }
 
@@ -85,6 +89,12 @@ export class ListingUrl {
 
         if (state.page > 1) {
             params.set(this.#reserved.page, String(state.page))
+        }
+
+        for (const [bound, parameter] of [['min', this.#reserved.minPrice], ['max', this.#reserved.maxPrice]]) {
+            if (state.price[bound] !== null) {
+                params.set(parameter, String(state.price[bound]))
+            }
         }
 
         // Commas are legal in a query string: keeping them unescaped keeps the URL readable.

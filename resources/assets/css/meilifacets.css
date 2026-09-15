@@ -389,3 +389,210 @@
     }
 
 }
+
+/* ---------------------------------------------------------------- price */
+
+.meilifacetsHidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.meilifacetsRangeHead {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75em;
+    margin: 0;
+    font-weight: 600;
+}
+
+.meilifacetsRangeReadout {
+    font-variant-numeric: tabular-nums;
+}
+
+/* Room above the track for a tip to open without leaving the panel. */
+.meilifacetsRangeHead + .meilifacetsRange {
+    margin-top: 2.1em;
+}
+
+/* The padding keeps a handle sitting on a bound from hanging off the track. */
+.meilifacetsRange {
+    position: relative;
+    display: flex;
+    align-items: center;
+    height: 1.25em;
+    padding: 0 0.625em;
+    touch-action: none;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.meilifacetsRangeTrack {
+    position: relative;
+    width: 100%;
+    height: 0.375em;
+    border-radius: 999px;
+    background: var(--meili-rule);
+}
+
+.meilifacetsRangeFill {
+    position: absolute;
+    top: 0;
+    left: calc(var(--from, 0) * 100%);
+    width: calc((var(--to, 1) - var(--from, 0)) * 100%);
+    height: 100%;
+    border-radius: 999px;
+    background: currentColor;
+}
+
+.meilifacetsRangeHandle {
+    position: absolute;
+    top: 50%;
+    left: calc(var(--at, 0) * 100%);
+    width: 1.25em;
+    height: 1.25em;
+    padding: 0;
+    border: 2px solid Canvas;
+    border-radius: 999px;
+    background: currentColor;
+    cursor: grab;
+    transform: translate(-50%, -50%);
+    transition: transform 120ms var(--meili-ease);
+}
+
+.meilifacetsRangeHandle:active {
+    cursor: grabbing;
+}
+
+.meilifacetsRangeHandle:focus-visible {
+    transform: translate(-50%, -50%) scale(1.12);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .meilifacetsRangeHandle:hover {
+        transform: translate(-50%, -50%) scale(1.12);
+    }
+}
+
+.meilifacetsRangeTip {
+    position: absolute;
+    bottom: calc(100% + 0.55em);
+    left: 50%;
+    padding: 0.2em 0.45em;
+    border-radius: 0.25em;
+    background: CanvasText;
+    color: Canvas;
+    font-size: 0.75em;
+    line-height: 1.35;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-50%);
+    transition: opacity 120ms var(--meili-ease);
+}
+
+.meilifacetsRangeHandle:focus-visible .meilifacetsRangeTip {
+    opacity: 1;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .meilifacetsRangeHandle:hover .meilifacetsRangeTip {
+        opacity: 1;
+    }
+}
+
+.meilifacetsRangeBounds {
+    display: flex;
+    justify-content: space-between;
+    margin: 0.55em 0 0;
+    padding: 0 0.625em;
+    font-size: 0.9em;
+    font-variant-numeric: tabular-nums;
+    opacity: 0.6;
+}
+
+.meilifacetsPriceFields {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.5em;
+    margin-top: 0.5em;
+}
+
+.meilifacetsPriceField {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 0.35em;
+    min-width: 0;
+    font-size: 0.9em;
+}
+
+.meilifacetsPriceInput {
+    display: flex;
+    box-sizing: border-box;
+    align-items: center;
+    gap: 0.25em;
+    height: var(--meili-control);
+    padding: 0 0.5em;
+    border: 1px solid var(--meili-edge);
+    border-radius: 0.25em;
+    transition: border-color 150ms var(--meili-ease);
+}
+
+.meilifacetsPriceInput:focus-within {
+    border-color: currentColor;
+}
+
+.meilifacetsPriceInput > span {
+    opacity: 0.6;
+}
+
+.meilifacetsPriceField input {
+    width: 100%;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-variant-numeric: tabular-nums;
+}
+
+.meilifacetsPriceField input:focus {
+    outline: 0;
+}
+
+/* The spinners fight a two-field range: the bounds already say what is possible. */
+.meilifacetsPriceField input::-webkit-outer-spin-button,
+.meilifacetsPriceField input::-webkit-inner-spin-button {
+    margin: 0;
+    -webkit-appearance: none;
+}
+
+.meilifacetsPriceField input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+.meilifacetsPriceDash {
+    padding-bottom: 0.6em;
+    opacity: 0.6;
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+    .meilifacetsRangeHandle,
+    .meilifacetsRangeTip,
+    .meilifacetsPriceInput {
+        transition: none;
+    }
+}
+

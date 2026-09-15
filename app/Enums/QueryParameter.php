@@ -10,6 +10,8 @@ enum QueryParameter: string
     case Sort = 'sort';
     case Query = 'q';
     case Page = 'pg';
+    case MinPrice = 'min_price';
+    case MaxPrice = 'max_price';
 
     /** The key the browser reads it under, which is not the name it takes in a URL. */
     public function key(): string
@@ -18,6 +20,8 @@ enum QueryParameter: string
             self::Sort => 'sort',
             self::Query => 'query',
             self::Page => 'page',
+            self::MinPrice => 'minPrice',
+            self::MaxPrice => 'maxPrice',
         };
     }
 }

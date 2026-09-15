@@ -4,6 +4,7 @@ import { FacetsView } from './facets-view.js'
 import { FilterSummaryView } from './filter-summary-view.js'
 import { ListingQuery } from './listing-query.js'
 import { PaginationView } from './pagination-view.js'
+import { PriceControl } from './price-control.js'
 import { ResultsView } from './results-view.js'
 import { SortCombobox } from './sort-combobox.js'
 
@@ -33,6 +34,8 @@ export class ListingBinding {
     /** @type {SortCombobox} */
     #sort
 
+    #price
+
     /** @type {FilterSummaryView} */
     #summary
 
@@ -50,6 +53,7 @@ export class ListingBinding {
         this.#pagination = new PaginationView(contract, description)
         this.#sort = new SortCombobox(contract, (sort) => this.#listing.sortBy(sort))
         this.#summary = new FilterSummaryView(contract, description)
+        this.#price = new PriceControl(contract, description, (min, max) => this.#listing.priceBetween(min, max))
     }
 
     start() {
@@ -59,6 +63,7 @@ export class ListingBinding {
         this.#listing.addEventListener('results', (event) => this.#repaint(/** @type {CustomEvent} */ (event).detail))
         this.#listing.listenToHistory()
         this.#sort.start()
+        this.#price.start()
 
         return this
     }
@@ -162,6 +167,7 @@ export class ListingBinding {
     #moved({ state }) {
         this.#facets.showSelection(state)
         this.#sort.show(state)
+        this.#price.show(state)
         this.#summary.show(state)
     }
 

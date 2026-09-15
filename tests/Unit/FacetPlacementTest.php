@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Tests\Unit;
 
+use Modules\MeiliFacets\Contracts\Placeable;
 use Modules\MeiliFacets\Http\Unavailable;
 use Modules\MeiliFacets\Listing\Facet;
 use Modules\MeiliFacets\Listing\FacetValues;
@@ -101,7 +102,7 @@ final class FacetPlacementTest extends TestCase
         $this->listing([
             new Facet('product_cat', 'Aisles'),
             new Facet('product_cat', 'Shelves'),
-        ])->facets();
+        ])->filters();
     }
 
     #[Test]
@@ -112,7 +113,7 @@ final class FacetPlacementTest extends TestCase
             new Facet('product_cat', 'Shelves'),
         ]);
 
-        $this->assertSame(['aisles', 'product_cat'], $this->namesOf($listing->facets()));
+        $this->assertSame(['aisles', 'product_cat'], $this->namesOf($listing->filters()));
     }
 
     /**
@@ -135,11 +136,11 @@ final class FacetPlacementTest extends TestCase
     }
 
     /**
-     * @param  list<Facet>  $facets
+     * @param  list<Placeable>  $filters
      * @return list<string>
      */
-    private function namesOf(array $facets): array
+    private function namesOf(array $filters): array
     {
-        return array_map(static fn (Facet $facet): string => $facet->name, $facets);
+        return array_map(static fn (Placeable $filter): string => $filter->name, $filters);
     }
 }

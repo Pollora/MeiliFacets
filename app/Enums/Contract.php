@@ -15,7 +15,7 @@ final readonly class Contract
     /** Opt-in, per component: absent means the page holds still, which is the default. */
     public const string SCROLL_ATTRIBUTE = 'data-meili-scroll';
 
-    /** Incremented whenever a hook is added, renamed or removed. */
+    /** Incremented when a hook is renamed or removed, never when one is added. */
     public const int VERSION = 1;
 
     public static function version(): HtmlString

@@ -27,6 +27,10 @@ final readonly class StateReader
             $this->sort($listing, $query),
             $this->page($query),
             mb_substr($this->text($query, QueryParameter::Query), 0, self::MAX_QUERY_LENGTH),
+            new Range(
+                $this->bound($query, QueryParameter::MinPrice),
+                $this->bound($query, QueryParameter::MaxPrice),
+            ),
         );
     }
 
@@ -83,6 +87,20 @@ final readonly class StateReader
         $value = $query[$this->parameters->reserved($parameter)] ?? '';
 
         return is_string($value) ? trim($value) : '';
+    }
+
+    /** `1e400` is numeric, casts to `INF`, and `INF` is neither a price nor a filter. */
+    private function bound(array $query, QueryParameter $parameter): ?float
+    {
+        $written = $this->text($query, $parameter);
+
+        if (! is_numeric($written)) {
+            return null;
+        }
+
+        $bound = (float) $written;
+
+        return $bound >= 0.0 && is_finite($bound) ? $bound : null;
     }
 
     /**

@@ -5,11 +5,15 @@
     "Brand": "Marque",
     "Category": "Catégorie",
     "Clear all": "Tout effacer",
+    "From": "De",
+    "Highest price": "Prix le plus haut",
+    "Lowest price": "Prix le plus bas",
     "New arrivals": "Nouveautés",
     "Next": "Suivant",
     "No results found.": "Aucun résultat n’a été trouvé.",
     "Pagination": "Pagination",
     "Previous": "Précédent",
+    "Price": "Prix",
     "Price, high to low": "Prix décroissant",
     "Price, low to high": "Prix croissant",
     "Relevance": "Pertinence",
@@ -18,5 +22,6 @@
     "Show more": "Voir plus",
     "Sort by": "Trier par",
     "There is nothing on this page.": "Il n’y a rien sur cette page.",
+    "To": "À",
     "Volume": "Contenance"
 }

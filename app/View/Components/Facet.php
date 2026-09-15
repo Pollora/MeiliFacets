@@ -26,13 +26,7 @@ final class Facet extends ListingComponent
     ) {
         parent::__construct($listings, $name, $scroll);
 
-        if ($facet instanceof Declaration) {
-            $this->facet = $facet;
-            $this->listing->place($facet);
-        } else {
-            $this->facet = $this->listing->facetNamed($facet instanceof BackedEnum ? (string) $facet->value : $facet);
-            $this->listing->placeApart($this->facet);
-        }
+        $this->facet = $this->listing->placing($this->designated($facet), Declaration::class);
 
         $this->values = $this->listing->valuesOf($this->facet);
     }

@@ -23,10 +23,13 @@ export class ListingState {
     /** @type {number} */
     #page
 
+    #price
+
     /**
-     * @param {{ facets?: Record<string, string[]>, query?: string, sort?: string | null, page?: number }} [state]
+     * @param {{ facets?: Record<string, string[]>, query?: string, sort?: string | null, page?: number,
+     *           price?: { min: number | null, max: number | null } }} [state]
      */
-    constructor({ facets = {}, query = '', sort = null, page = FIRST_PAGE } = {}) {
+    constructor({ facets = {}, query = '', sort = null, page = FIRST_PAGE, price = {} } = {}) {
         this.#facets = Object.freeze(Object.fromEntries(
             Object.entries(facets)
                 .map(([taxonomy, values]) => [taxonomy, Object.freeze(ListingState.#tidy(values))])
@@ -37,6 +40,17 @@ export class ListingState {
         this.#query = [...query.trim()].slice(0, MAX_QUERY_LENGTH).join('')
         this.#sort = sort
         this.#page = Math.max(Math.trunc(page) || FIRST_PAGE, FIRST_PAGE)
+        this.#price = Object.freeze({
+            min: ListingState.#bound(price.min),
+            max: ListingState.#bound(price.max),
+        })
+    }
+
+    /** A negative price is not a price, and a non-number is not an answer. */
+    static #bound(value) {
+        const bound = typeof value === 'string' ? Number.parseFloat(value) : value
+
+        return typeof bound === 'number' && Number.isFinite(bound) && bound >= 0 ? bound : null
     }
 
     get facets() {
@@ -53,6 +67,18 @@ export class ListingState {
 
     get page() {
         return this.#page
+    }
+
+    get price() {
+        return this.#price
+    }
+
+    /**
+     * @param {number | null} min
+     * @param {number | null} max
+     */
+    pricedBetween(min, max) {
+        return this.with({ price: { min, max }, page: FIRST_PAGE })
     }
 
     /**
@@ -73,6 +99,8 @@ export class ListingState {
             && this.#query === ''
             && this.#sort === null
             && this.#page === FIRST_PAGE
+            && this.#price.min === null
+            && this.#price.max === null
     }
 
     /**
@@ -122,6 +150,7 @@ export class ListingState {
             query: this.#query,
             sort: this.#sort,
             page: this.#page,
+            price: { ...this.#price },
             ...changes,
         })
     }

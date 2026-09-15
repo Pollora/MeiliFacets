@@ -36,6 +36,13 @@ enum Hook: string
     case SortTrigger = 'sort-trigger';
     case SortList = 'sort-list';
     case SortOption = 'sort-option';
+    case PriceRange = 'price-range';
+    case PriceTrack = 'price-track';
+    case PriceHandle = 'price-handle';
+    case PriceTip = 'price-tip';
+    case PriceReadout = 'price-readout';
+    case PriceMin = 'price-min';
+    case PriceMax = 'price-max';
     case Reset = 'reset';
     case ActiveFilters = 'active-filters';
 

@@ -13,9 +13,19 @@ interface Listing
     public function name(): string;
 
     /**
+     * Term facets only: what the engine can count by value.
+     *
      * @return list<Facet>
      */
     public function facets(): array;
+
+    /**
+     * Everything a template may place, in declared order — facets and the price
+     * range alike.
+     *
+     * @return list<Placeable>
+     */
+    public function filters(): array;
 
     /**
      * @return array<string, Sort>

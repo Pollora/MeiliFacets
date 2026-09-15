@@ -11,9 +11,10 @@ const RULES = [
     { host: null, hooks: ['results', 'card-template', 'empty'] },
     { host: 'card-template', hooks: ['card', 'url', 'image', 'title', 'price'] },
     { host: 'facet-value', hooks: ['input'] },
-    { host: 'facet', hooks: ['more'] },
+    { host: 'facet', hooks: ['more'], whenHolding: 'facet-value' },
     { host: 'pagination', hooks: ['page', 'previous', 'next'] },
     { host: 'sort', hooks: ['sort-trigger', 'sort-list', 'sort-option'] },
+    { host: 'price-range', hooks: ['price-track', 'price-handle'] },
 ]
 
 /** Mirrors the Hook enum: the two lists diverging in silence is what VERSION guards against. */
@@ -69,16 +70,17 @@ export class Contract {
         return [...this.#scope(within).querySelectorAll(Contract.selector(hook))]
     }
 
-    #breachesOf({ host, hooks }) {
-        const scope = host === null ? this.#root : this.one(host)
+    // Every host, not just the first: a second one breaching would go unseen.
+    #breachesOf({ host, hooks, whenHolding }) {
+        const scopes = host === null ? [this.#root] : this.all(host)
 
-        if (!scope) {
-            return []
-        }
-
-        return hooks
-            .filter((hook) => this.one(hook, scope) === null)
-            .map((hook) => (host === null ? hook : `${host} > ${hook}`))
+        return scopes
+            .filter((scope) => whenHolding === undefined || this.one(whenHolding, scope) !== null)
+            .flatMap((scope) =>
+                hooks
+                    .filter((hook) => this.one(hook, scope) === null)
+                    .map((hook) => (host === null ? hook : `${host} > ${hook}`))
+            )
     }
 
     // A <template> keeps its markup in a fragment: querySelector on the tag finds nothing.

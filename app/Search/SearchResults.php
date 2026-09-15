@@ -11,11 +11,13 @@ final readonly class SearchResults
     /**
      * @param  list<array<string, mixed>>  $hits
      * @param  array<string, array<string, int>>  $distributions  taxonomy to slug to count
+     * @param  array<string, array<string, float>>  $facetStats  numeric field to its min and max
      */
     public function __construct(
         public array $hits,
         public int $total,
         public array $distributions,
+        public array $facetStats = [],
     ) {}
 
     /**

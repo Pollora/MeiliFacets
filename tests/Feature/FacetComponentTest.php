@@ -6,10 +6,12 @@ namespace Modules\MeiliFacets\Tests\Feature;
 
 use Dom\HTMLDocument;
 use Illuminate\Support\Facades\Blade;
+use Modules\MeiliFacets\Contracts\Placeable;
 use Modules\MeiliFacets\Enums\Contract;
 use Modules\MeiliFacets\Enums\Hook;
 use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\Listing\Facet;
+use Modules\MeiliFacets\Listing\PriceFilter;
 use Modules\MeiliFacets\Listing\ResolvedListing;
 use Modules\MeiliFacets\View\ElementId;
 use Modules\MeiliFacets\View\ListingDescription;
@@ -180,7 +182,7 @@ final class FacetComponentTest extends TestCase
         $listing->placeApart($this->first());
 
         $this->assertSame($before, $description->of($listing));
-        $this->assertCount($this->declaredCount(), $description->of($listing)['facets']);
+        $this->assertCount(count($listing->facets()), $description->of($listing)['facets']);
     }
 
     private function listing(): ResolvedListing
@@ -193,9 +195,10 @@ final class FacetComponentTest extends TestCase
         return $this->listing()->facets()[0];
     }
 
+    /** Everything the group renders, price range included. */
     private function declaredCount(): int
     {
-        return count($this->listing()->facets());
+        return count($this->listing()->filters());
     }
 
     private function renderOne(): string
@@ -211,9 +214,17 @@ final class FacetComponentTest extends TestCase
     private function placingEveryFacet(): string
     {
         return implode('', array_map(
-            fn (Facet $facet): string => Blade::render($this->placing($facet)),
-            $this->listing()->facets()
+            fn (Placeable $filter): string => Blade::render($this->placingApart($filter)),
+            $this->listing()->filters()
         ));
+    }
+
+    /** Each kind takes the component of its own kind, as `Facets` dispatches them. */
+    private function placingApart(Placeable $filter): string
+    {
+        $component = $filter instanceof PriceFilter ? 'price' : 'facet';
+
+        return '<x-meilifacets::'.$component.' facet="'.$filter->name.'" />';
     }
 
     private function countFacets(string $rendered): int

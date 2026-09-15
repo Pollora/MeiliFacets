@@ -84,6 +84,16 @@ export class Listing extends EventTarget {
     }
 
     /**
+     * A committed range, not a moving handle: dragging previews, releasing filters.
+     *
+     * @param {number | null} min
+     * @param {number | null} max
+     */
+    priceBetween(min, max) {
+        return this.#byMode(this.#state.pricedBetween(min, max))
+    }
+
+    /**
      * @param {string} query
      */
     search(query) {

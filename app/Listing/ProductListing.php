@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Listing;
 
 use Modules\MeiliFacets\Contracts\Listing;
+use Modules\MeiliFacets\Contracts\Placeable;
 use Modules\MeiliFacets\Contracts\ProductFacets;
 use Modules\MeiliFacets\Contracts\ProductSorts;
 use Modules\MeiliFacets\Enums\ApplyMode;
@@ -40,6 +41,14 @@ final readonly class ProductListing implements Listing
     }
 
     public function facets(): array
+    {
+        return array_values(array_filter(
+            $this->facets->all(),
+            static fn (Placeable $filter): bool => $filter instanceof Facet
+        ));
+    }
+
+    public function filters(): array
     {
         return $this->facets->all();
     }

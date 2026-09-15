@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\View;
 
 use Modules\MeiliFacets\Enums\DocumentField;
+use Modules\MeiliFacets\Enums\PriceField;
 use Modules\MeiliFacets\Enums\QueryParameter;
 use Modules\MeiliFacets\Listing\Facet;
+use Modules\MeiliFacets\Listing\PriceFilter;
 use Modules\MeiliFacets\Listing\ResolvedListing;
 use Modules\MeiliFacets\Listing\Sort;
 use Modules\MeiliFacets\Search\EngineLimits;
+use Modules\MeiliFacets\Support\Money;
 use Modules\MeiliFacets\Support\UrlParameters;
 
 /** The shape is the PHP/JavaScript contract, written once here and once in `description.js`. */
@@ -18,6 +21,7 @@ final readonly class ListingDescription
     public function __construct(
         private UrlParameters $parameters,
         private EngineLimits $limits,
+        private Money $money,
     ) {}
 
     /**
@@ -35,6 +39,8 @@ final readonly class ListingDescription
             'facets' => $this->facets($listing),
             'params' => $this->params($listing),
             'reserved' => $this->reserved(),
+            'priceFields' => $this->priceFields($listing),
+            'money' => $this->money->describe(),
             'sorts' => $this->sorts($listing->sorts()),
             // The client has no catalogue of its own: the translated pattern travels with the description.
             'countPattern' => trans(':count result|:count results'),
@@ -71,6 +77,26 @@ final readonly class ListingDescription
         }
 
         return $params;
+    }
+
+    /**
+     * The fields a range filters on, or nothing when no listing declares one: the
+     * client builds no clause it was not told about.
+     *
+     * @return array<string, string>|null
+     */
+    private function priceFields(ResolvedListing $listing): ?array
+    {
+        foreach ($listing->filters() as $filter) {
+            if ($filter instanceof PriceFilter) {
+                return [
+                    'min' => PriceField::Min->path(),
+                    'max' => PriceField::Max->path(),
+                ];
+            }
+        }
+
+        return null;
     }
 
     /**

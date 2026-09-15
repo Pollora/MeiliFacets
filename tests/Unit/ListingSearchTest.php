@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Tests\Unit;
 
 use Modules\MeiliFacets\Listing\ListingState;
+use Modules\MeiliFacets\Listing\Range;
 use Modules\MeiliFacets\Search\DisjunctiveFacetCounter;
 use Modules\MeiliFacets\Search\ListingSearch;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeListing;
@@ -17,6 +18,8 @@ final class ListingSearchTest extends TestCase
     private const string RESULTS = 'results';
 
     private const string COUNT = 'count:';
+
+    private const string BOUNDS = 'bounds';
 
     #[Test]
     public function it_sends_every_search_in_a_single_request(): void
@@ -59,6 +62,33 @@ final class ListingSearchTest extends TestCase
 
         $this->assertSame(['acme' => 2, 'globex' => 5], $results->distribution('product_brand'));
         $this->assertSame(['coats' => 2], $results->distribution('product_cat'));
+    }
+
+    #[Test]
+    public function it_reads_the_bounds_from_the_search_that_lifted_the_price(): void
+    {
+        $engine = new FakeSearchEngine([
+            self::RESULTS => ['facetStats' => ['price.min' => ['min' => 28.0], 'price.max' => ['max' => 109.0]]],
+            self::BOUNDS => ['facetStats' => ['price.min' => ['min' => 0.0], 'price.max' => ['max' => 199.0]]],
+        ]);
+        $state = new ListingState(price: new Range(55.0, 120.0));
+
+        $results = $this->searchWith($engine)->run(FakeListing::withPriceAndBrand(), $state);
+
+        $this->assertSame(['price.min' => ['min' => 0.0], 'price.max' => ['max' => 199.0]], $results->facetStats);
+    }
+
+    #[Test]
+    public function it_reads_the_bounds_off_the_main_response_while_no_range_is_held(): void
+    {
+        $engine = new FakeSearchEngine([
+            self::RESULTS => ['facetStats' => ['price.min' => ['min' => 0.0]]],
+        ]);
+
+        $results = $this->searchWith($engine)->run(FakeListing::withPriceAndBrand(), new ListingState);
+
+        $this->assertSame([self::RESULTS], array_keys($engine->received[0]));
+        $this->assertSame(['price.min' => ['min' => 0.0]], $results->facetStats);
     }
 
     #[Test]
