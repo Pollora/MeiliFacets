@@ -448,3 +448,27 @@ WooCommerce planifie en réalité la bascule à la borne exacte.
 Corollaire pour l'admin : une promo « du 14 » commence à **minuit heure du site**, pas à minuit UTC —
 la boîte à métadonnées force `Y-m-d 00:00:00` et `Y-m-d 23:59:59` en heure locale avant conversion.
 
+## Changer `filterable()` ou `sortable()` sans repousser les réglages casse le listing
+
+Les attributs filtrables et triables sont un **réglage de l'index**, pas une propriété du document.
+Modifier `IndexAttributes` ne suffit donc pas : tant que les réglages ne sont pas repoussés,
+Meilisearch refuse la requête — `Attribute \`price.min\` is not sortable` — `ResolvedListing` attrape
+l'échec, et le visiteur reçoit la vue « indisponible » **à la place de tout le listing**.
+
+Constaté le 2026-09-15 en changeant les tris de prix : réindexation faite *avant* le changement de
+`sortable()`, donc page vide et aucune erreur visible côté serveur. `wp meiliscout index` repousse
+les réglages en même temps que les documents ; une simple sauvegarde de produit, non.
+
+**Corollaire de déploiement** : livrer un lot qui touche `filterable()` ou `sortable()` **impose une
+réindexation**, sans quoi la boutique perd son listing en silence. À écrire dans la note de version.
+
+## Lire le prix d'une carte avec une expression régulière conclut de travers
+
+`card.price` porte le HTML de `get_price_html()`. Pour un produit en promotion il contient **deux**
+montants — l'ancien barré et le nouveau — et pour un produit variable une **fourchette**. Prendre le
+premier nombre, ou le plus grand, donne le prix barré : trois vérifications de tri ont conclu à un
+désordre inexistant le 2026-09-15 avant qu'un parcours du DOM ne rétablisse les faits.
+
+Vérifier un tri se fait contre l'index (`facetStats`, un filtre sur la valeur), jamais contre le
+rendu.
+
