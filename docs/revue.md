@@ -2997,6 +2997,349 @@ c'est celui-là qui est levé.
 
 ---
 
+### R-117 · 🔴 · **fermé le 2026-09-15** · ouvert le 2026-09-15 — la garde des paramètres refusait les défauts que le module s'était choisis
+
+`meilifacets:check-parameters` sortait en échec sur `min_price` et `max_price` : deux noms que
+`ReservedParameters` interdit, et que `D-h` a pourtant retenus comme défauts. Le lot ne pouvait pas
+passer une porte de déploiement qui lance cette commande, et les deux règles ne pouvaient pas tenir
+ensemble.
+
+**Ce qui reste réellement nuisible, mesuré le 2026-09-15** — avec `NativeFiltering` en place :
+
+| | état |
+| --- | --- |
+| WooCommerce filtre la requête principale en parallèle | **non** — `apply_filters('woocommerce_enable_post_clause_filtering', true, null)` rend `false` sur le site |
+| `is_filtered()` appelé par WooCommerce lui-même | **jamais** — zéro occurrence hors sa définition (`wc-conditional-functions.php:341`) |
+| widget de filtre de prix posé | **aucun** — `widget_woocommerce_price_filter` est vide, seules sidebars : `footer-widget`, `contact-widget` |
+
+Dommage résiduel aujourd'hui : nul. Mais le fil reste sous tension — poser un widget de prix
+WooCommerce, ou installer une extension qui appelle `is_filtered()`, le réveille sans un mot.
+
+**Tranché par Louis** : garder les noms et apprendre la mitigation à la garde, plutôt que renverser
+`D-h`. `ReservedParameters::acceptedFor()` distingue désormais une collision **assumée** d'une
+collision subie, et la commande avertit au lieu d'échouer.
+
+L'acceptation porte sur le **défaut**, pas sur le nom : elle ne vaut que tant que la borne répond
+encore à `min_price`/`max_price`. Un projet qui renomme une borne perd la compatibilité des liens
+WooCommerce **et** l'excuse — si une taxonomie vient alors prendre le nom libéré, la commande
+rebloque. Deux tests le tiennent.
+
+Ce que ça coûte, et qu'il faut se rappeler : la garde ne protège plus ces deux noms. C'est
+exactement l'exception que `D-h` disait vouloir éviter en refusant de les figer ; elle est ici
+assumée dans l'autre sens, avec sa raison écrite à l'endroit où la commande la répète.
+
+---
+
+### R-116 · 🟡 · **fermé le 2026-09-15** · ouvert le 2026-09-15 — la règle du contrat mettait l'ajout d'un crochet sur le même plan que son retrait
+
+`Contract.php:19` disait : « Incremented whenever a hook is **added**, renamed or removed ». Le lot
+prix ayant ajouté sept cas à `Hook`, j'ai incrémenté `Contract::VERSION` à `2`. **Louis a renversé**
+l'incrément le jour même, et il a raison :
+
+- **un ajout est additif.** Une surcharge de thème écrite en v1 ne rend pas le composant prix : rien
+  de ce qu'elle a copié ne cesse de fonctionner ;
+- **l'incrément achetait une panne plus large que celle qu'il évitait.** Un client ancien face à des
+  crochets nouveaux se contente de ne pas piloter le prix ; refuser de démarrer dégrade **tout** le
+  listing en rendu serveur, pour protéger une partie que le thème ne rendait pas ;
+- et le module est en cours de développement : rien n'est encore déployé qu'un numéro protégerait.
+
+Un renommage ou un retrait restent l'inverse : là, la surcharge ancienne adresse du vide, et le refus
+de démarrer est exactement ce qu'on veut.
+
+**Corrigé** : `VERSION` revient à `1` des deux côtés, et la règle écrite dans `Contract.php` distingue
+désormais l'ajout du renommage — c'est elle qui m'a induit en erreur, pas une inattention. Même
+distinction portée dans `architecture.md`.
+
+Deux défauts trouvés en chemin, qui tiennent indépendamment de l'incrément et sont **gardés** :
+
+- `tests/js/price-control.test.js` figeait `data-meili-contract="1"` à la main, là où `dom.js` et
+  `contract.test.js` lisent la version **dans la source du client** précisément pour qu'un incrément
+  n'envoie personne éditer des fixtures. `dom.js` exporte désormais `CONTRACT`, et le fichier du prix
+  l'utilise : le prochain incrément, quand il viendra, ne touchera aucune fixture ;
+- `PublishedAssetsTest::it_names_a_copy_left_behind_by_its_source` était fragile par construction : il
+  reculait la date de la copie publiée de 60 secondes en espérant passer sous celle de la source. Après
+  n'importe quel `module:publish`, toutes les copies sont neuves et ce pas fixe ne suffit plus — le test
+  échouait sans qu'aucun code de production ne soit en cause. Il se date maintenant sur la source.
+
+Et le tableau des crochets d'`architecture.md`, qui ignorait les sept du prix, les énumère.
+
+---
+
+### R-115 · 🟡 · ouvert · 2026-09-15 — le symbole monétaire est reconstruit sept fois par rendu
+
+`Money::symbol()` n'est pas mémoïsé, et sous lui `get_woocommerce_currency_symbol()` rebâtit un
+tableau d'environ 160 entrées puis relance `apply_filters('woocommerce_currency_symbols')` à chaque
+appel (`public/content/plugins/woocommerce/includes/wc-core-functions.php:531`). `wc_price()`
+l'appelle lui aussi (`wc-formatting-functions.php:647`).
+
+Comptage pour une facette prix montrant curseur **et** champs : 2 appels depuis la boucle de
+`components/price/fields.blade.php`, 4 par `wc_price()` — les deux bornes de `range.blade.php` et
+les deux poignées via `RangeHandle::written()` — et 1 par `ListingDescription.php:43`. Soit **sept
+constructions du tableau pour une page**, là où un mémo sur `Money` en laisse une.
+
+Le défaut précède le passage en composants anonymes ; il a été relevé en le faisant. Non corrigé
+parce que la mémoïsation suppose que la devise ne change pas en cours de requête, ce qui est vrai
+sur ce projet mais pas garanti sous un plugin multi-devise — à trancher, pas à rustiner.
+
+---
+
+### R-114 · 🟡 · ouvert · 2026-09-15 — deux façons de nommer un crochet, et le clivage est structurel
+
+Depuis le passage des sous-vues du prix en composants anonymes, le module a deux écritures pour
+émettre un crochet :
+
+```blade
+{{ $hook('price-range') }}                 {{-- 11 vues, 27 sites d'appel --}}
+{{ Hook::PriceRange->attribute() }}        {{-- components/price/range.blade.php --}}
+```
+
+Ce n'est pas un oubli : **un composant anonyme ne peut pas atteindre `$hook()`**, qui est une
+méthode de `ContractComponent`. Le clivage se répétera donc à chaque sous-vue extraite ensuite.
+
+Les deux formes sont équivalentes au rendu et aucune n'introduit de chaîne littérale — `$hook()`
+fait `Hook::from($name)`, qui lève sur un nom inconnu (`R-17`), là où le cas d'énumération est
+vérifié à la compilation. La seconde est même la plus sûre des deux.
+
+À trancher sous ce numéro plutôt que vue par vue : soit `$hook()` disparaît au profit de l'enum
+partout, soit il reste et les composants anonymes reçoivent leurs crochets en props.
+
+---
+
+### R-113 · 🟡 · **fermé le 2026-09-15** · ouvert le 2026-09-15 — les vues du prix vivaient là où le README ne promet rien
+
+`README.md:88-91` promet : « poser un fichier dans `<thème>/resources/views/modules/meilifacets/
+**components/**` suffit à en remplacer une ». C'était faux pour trois vues du lot prix, qui vivaient
+dans `resources/views/price/` et n'étaient donc surchargeables qu'à `.../modules/meilifacets/price/`,
+chemin qu'aucun document ne mentionne.
+
+Elles étaient tirées par `@include`, les trois seuls du module, et lisaient la portée implicite du
+composant parent — six noms (`$handles()`, `$parameter()`, `$shown()`, `$bounds()`, `$hook()`,
+`$money`) qu'aucune ne déclarait. Un thème voulant en remplacer une devait les deviner.
+
+**Corrigé** : elles sont devenues des composants anonymes sous `resources/views/components/price/`,
+chacun ouvrant sur `@props`. `parameter` et `shown` sont descendus sur `RangeHandle` — ils prenaient
+le même contexte à chaque appel — de sorte qu'aucune vue ne reçoit de fermeture en prop. Les trois
+points de surcharge sont désormais écrits dans `configuration.md`.
+
+Vérifié sur la page réelle, pas seulement en test : `/boutique` rend les huit crochets prix,
+`name="min_price" value="0" min="0" max="199"`, bornes 0,00 € – 199,00 €.
+
+Deux défauts trouvés en fermant, et corrigés dans la foulée :
+
+- `PriceComponentTest::render()` faisait `request()->merge($query)`, donc chaque test lisait les
+  paramètres du précédent. Un test attendant un champ vide recevait le `min_price=55` d'un test
+  antérieur. Remplacé par `replace()`.
+- le chemin « aucun résultat » n'était couvert par aucun test de vue. Il l'est : `<fieldset>` masqué,
+  la paire présente, les deux valeurs vides.
+
+---
+
+### R-112 · 🔴 · **fermé le 2026-09-15** · ouvert le 2026-09-15 — la bascule de promo change le prix sans que l'index le sache
+
+**Défaut amont, dans MeiliScout**, sur le même garde que `R-109`. Trois faits se composent :
+
+1. **WooCommerce ne passe pas par `save_post` pour une bascule de promo.**
+   `wc_apply_sale_state_for_product()` ne change qu'une seule prop, `price`
+   (`wc-product-functions.php:631`). `price` n'est pas dans la liste des onze props qui déclenchent
+   `wp_update_post()` (`class-wc-product-data-store-cpt.php:327`) : la branche `else` écrit
+   `post_modified` directement en base (`:369`). Le seul crochet que MeiliScout entende est
+   `updated_post_meta`, atteint parce que WooCommerce écrit `_price` à la main
+   (`wc-product-functions.php:638` et `:647`). Pour un produit variable c'est
+   `deleted_post_meta` + `added_post_meta`, via `sync_price()`.
+
+2. **La file Action Scheduler n'avance que sur une requête d'admin.**
+   `maybe_dispatch_async_request()` teste `is_admin()`
+   (`ActionScheduler_QueueRunner.php:141`), et Pollora désactive WP-Cron en dur
+   (`Bootstrap.php:336`), donc l'autre chemin est mort tant qu'aucun cron système ne prend le
+   relais : six visites de `/boutique` laissent l'action `pending`, un appel à `admin-ajax.php` la
+   termine. Mesuré le 2026-09-15.
+
+3. **Ce runner-là passe par `admin-ajax.php`, donc `DOING_AJAX`** — et
+   `SingleIndexingServiceProvider::shouldSkipPostOperation()` (`:395-397`) renvoie `true` dessus,
+   en silence.
+
+**Mesure, produit 362 « Huile Régénérante Nuit », promotion programmée qui démarre :**
+
+```
+avant          _price=46.00   index price.min=46
+appel admin-ajax.php?action=heartbeat  (aucun WP-CLI, aucun cron)
+après          _price=32.00   index price.min=46     ← l'index ment de 14 €
+```
+
+La même bascule rejouée **hors** `DOING_AJAX` (WP-CLI) amène bien l'index à 32. Le garde est le
+seul responsable.
+
+**Portée, bien plus large que les promotions.** Vérifié dans le cœur de WordPress le 2026-09-15.
+`DOING_AJAX` n'est qu'un drapeau de transport — un seul endroit le pose, `admin-ajax.php:16`. Le
+garde ne sélectionne donc pas une catégorie de contenu, il sélectionne une catégorie de tuyau :
+
+| Geste | Transport | Constante | Indexé |
+| --- | --- | --- | --- |
+| éditeur complet / blocs | REST | `REST_REQUEST` (`rest-api.php:466`) | oui |
+| modification groupée | `edit.php:193` → `bulk_edit_posts()` | — | oui |
+| modification rapide | `admin-ajax.php`, action `inline-save` | `DOING_AJAX` | **non** |
+| déclinaisons d'un produit variable | `admin-ajax.php`, `woocommerce_save_variations` | `DOING_AJAX` | **non** |
+| bascule de promo | `admin-ajax.php`, Action Scheduler | `DOING_AJAX` | **non** |
+
+**Le cas le plus grave n'est pas la promotion, c'est la déclinaison.** `save_variations` et
+`bulk_edit_variations` sont des actions AJAX de WooCommerce (`class-wc-ajax.php:206-207`,
+enregistrées en `wp_ajax_woocommerce_*`) : **changer le prix d'une déclinaison depuis la fiche
+produit ne met pas l'index à jour**. C'est le geste quotidien d'un gestionnaire de boutique, et
+quatre produits de ce catalogue sont variables. Mesuré sur le Sérum Hydratant, déclinaison haute
+passée de 62 € à 80 € dans le contexte AJAX :
+
+```
+base   parent min=28.00  max=80.00
+index  min=28   max=62      ← inchangé
+```
+
+**Aucun découpage plus fin n'est défendable.** Filtrer sur la seule action `inline-save` laisserait
+passer Action Scheduler et les déclinaisons, mais préserverait un défaut : le cœur montre qu'une
+modification rapide est un enregistrement **ordinaire** — `wp_ajax_inline_save()`
+(`ajax-actions.php:2061`) appelle `edit_post()` puis `wp_update_post()`, la même fonction que
+l'éditeur complet. Et la référence officielle de `save_post` énumère les gardes recommandés
+(révision, type de contenu, capacité, champs `$_POST`) **sans jamais mentionner `DOING_AJAX`**.
+
+Le commentaire du garde dit « to avoid indexing during quick saves » : l'intention était le coût,
+pas la justesse — et le coût se traite par l'indexation différée, pas par un refus d'indexer.
+
+**Correctif, écrit le 2026-09-15 dans `/Users/louis/Sites/MeiliScout`, branche `feat/meilifacets`,
+non commité.** `DOING_AJAX` n'est pas un motif de ne pas indexer ; il ne l'a jamais été. Le motif
+recherché à l'origine — ne pas indexer un brouillon automatique — est déjà couvert par les trois
+autres gardes, qui restent. Le garde est donc supprimé, et la raison écrite dans le docblock.
+
+Trois fichiers : `src/Providers/SingleIndexingServiceProvider.php` (le garde),
+`tests/Unit/Providers/SkipPostOperationTest.php` (trois tests, le premier tombe si on remet le
+garde), et `tests/Pest.php` — deux fichiers de test déclaraient chacun leur propre `WP_Post` avec
+des propriétés différentes, collision invisible tant qu'on ne les lance pas ensemble ; la classe
+est désormais déclarée une fois pour toute la suite.
+
+Suite amont : **14 échecs avant, 14 échecs après**, tous antérieurs (les tests `QueryBuilder`, et
+`ArchiveIntegrationTest` qui cherche une `TestCase` dans le mauvais espace de noms). Aucune
+régression.
+
+**Déployé** : commité et poussé par Louis en `a83fa4b`, tiré côté projet par
+`composer update amphibee/meiliscout`. **Ne jamais corriger dans
+`public/content/plugins/meiliscout/`**, qui est une sortie de Composer.
+
+**Vérifié après déploiement, sur les deux chemins qui échouaient :**
+
+```
+bascule de promo, par le vrai runner Action Scheduler (appel à admin-ajax.php)
+  base 46,00 → 32,00        index 46 → 32        ✓   (avant : l'index restait à 46)
+
+prix d'une déclinaison, contexte wp_ajax_woocommerce_save_variations
+  parent 28–80              index 28 → 80        ✓   (avant : l'index restait à 62)
+```
+
+**L'argument le plus court pour défendre le correctif**, trouvé en cherchant un découpage plus fin :
+le garde n'était appliqué qu'à la moitié du plugin. Les trois gestionnaires de posts passaient par
+`shouldSkipPostOperation()` (`:144`, `:204`, `:241`), les trois gestionnaires de termes non
+(`:271`, `:308`, `:344`). Sur le même écran et d'un même geste, modifier rapidement une catégorie
+réindexait, modifier rapidement un produit non. Une asymétrie, pas une politique.
+
+**À surveiller désormais** : les crochets de meta ne filtrent pas par clé, donc toute écriture de
+meta sur un contenu indexé réindexe. Le périmètre, le cas concret présent sur ce site (l'éditeur
+groupé de Yoast) et les deux contre-mesures sont dans `configuration.md`, « Toute écriture de meta
+réindexe ».
+
+**Effet de bord, et sa réponse — arbitré par Louis le 2026-09-15.** Indexer pendant l'AJAX, c'est
+aussi indexer pendant une modification groupée. La réponse n'est pas de regrouper les poussées en
+fin de requête, comme je l'avais d'abord proposé, mais d'activer l'**indexation différée** de
+MeiliScout : elle dédoublonne déjà, et sort le coût de la requête au lieu de le diviser par deux.
+Mesuré : sauvegarde à **3 ms au lieu de 36**, et **cinq sauvegardes d'affilée ne font qu'une entrée
+de file**. Chiffres et conditions dans `configuration.md`, « Indexation différée ».
+
+Attention à l'ordre : `shouldSkipPostOperation()` est appelé **avant** `isAsyncMode()`
+(`SingleIndexingServiceProvider.php:241` puis `:245`). Avec le garde en place, une bascule de promo
+n'est même pas mise en file. Ce correctif-ci est donc le préalable du différé, pas une alternative.
+
+**Fenêtre annexe, sans rapport avec le garde.** `price.onsale` vient de `is_on_sale()`, qui lit les
+dates en direct, alors que `price.min`/`price.max` viennent de `_price`, qui n'est réécrit que par
+la bascule. Entre l'heure de début d'une promotion et le passage de la file, l'index peut donc
+porter `onsale = true` avec le prix plein. WooCommerce vit la même incohérence de son côté
+(`wc_product_meta_lookup.onsale` reste à `0`). Sans conséquence aujourd'hui — aucun filtre ne lit
+`price.onsale` — mais à trancher avant d'en écrire un.
+
+---
+
+### R-111 · 🔴 · **fermé le 2026-09-15** · ouvert le 2026-09-15 — la piste de prix se coupait les jambes
+
+Signalé par Louis : « On m'affiche 55-199 ».
+
+Les bornes de la piste viennent de `facetStats`, calculé par le moteur **sur l'ensemble filtré —
+prix compris**. Filtrer resserrait donc la piste, et une piste resserrée ne rendait plus les prix
+qu'elle venait de masquer :
+
+```
+/boutique                             bornes 0,00 € – 199,00 €
+/boutique?min_price=55                bornes 28,00 € – 199,00 €   ← la piste s'est rétrécie
+/boutique?min_price=55&max_price=120  bornes 28,00 € – 109,00 €
+```
+
+C'est exactement le problème que le module résout déjà pour les facettes : `DisjunctiveFacetCounter`
+compte une facette **en levant sa propre contrainte**, sinon ses autres valeurs tombent à zéro. Le
+prix demandait le même geste.
+
+**Correctif.** `QueryPlan::pricing()` ajoute au `multiSearch` une recherche dédiée, filtrée par le
+filtre de base et les clauses de facettes mais **pas** par `FilterExpression::overlapping()`, sous
+la clé `pricing`. `ListingSearch::facetStats()` lit les bornes de cette réponse-là quand elle
+existe. `QueryPlan::isPricedApart()` ne paie cette recherche que lorsqu'une fourchette est tenue —
+et la requête principale cesse alors de demander des bornes qu'elle ne sert plus, ce qui évite
+aussi de rapatrier une distribution de tous les prix distincts pour rien.
+
+**Vérifié** — les bornes restent celles du catalogue atteignable, et le périmètre d'une catégorie
+continue de les resserrer, lui :
+
+```
+/boutique                               0,00 € – 199,00 €   17 cartes
+/boutique?min_price=55                  0,00 € – 199,00 €    8 cartes
+/boutique?min_price=55&max_price=120    0,00 € – 199,00 €    6 cartes
+/categorie-produit/cheveux?min_price=30   9,80 € – 59,00 €   5 cartes
+```
+
+Cinq tests, cinq mutations tuées : prix conservé dans la requête de bornes, mesure jamais faite à
+part, bornes lues sur la réponse principale, bornes calculées hors du périmètre des facettes,
+requête principale qui redemande les bornes en double.
+
+---
+
+### R-110 · 🟠 · ouvert · 2026-09-15 — le seul plafond que le module ne pose pas, et qui coupe en silence
+
+`faceting.maxValuesPerFacet` vaut **100**, le défaut du moteur. Le module ne l'écrit pas : c'est le
+seul des trois plafonds (`configuration.md`, « Trois plafonds ») qu'on ne trouve pas en lisant son
+code, et il tronque `facetDistribution` sans erreur ni avertissement.
+
+**Mesuré le 2026-09-15** : `product_cat` compte 109 termes en base et remonte **81 valeurs**, soit
+81 % du plafond. La marge est de dix-neuf catégories.
+
+**Le piège, qui interdit la solution évidente.** Écrire `maxValuesPerFacet = max(cap)` — 30
+aujourd'hui — semble naturel puisque `cap` ne peut de toute façon pas le dépasser. C'est faux : le
+moteur tronque **par compte global**, avant que `ChildTermsFacet::within()` n'intersecte avec les
+enfants du rayon courant. Une valeur peu comptée à l'échelle de la boutique peut être la seule qui
+compte sur sa page. Rangs des cinq enfants de « cheveux » dans la distribution triée :
+
+```
+soins-capillaires             9        plafond 100 → 5/5 survivent
+laver-preparer               11        plafond  81 → 5/5
+cheveux-accessoires          30        plafond  40 → 3/5
+coiffer-proteger             68        plafond  20 → 2/5
+cheveux-beaute-de-linterieur 70        plafond  10 → 1/5
+```
+
+Deux des cinq sont aux rangs 68 et 70 sur 81. Ils ne tiennent que parce que le catalogue est petit.
+Le plafond doit donc suivre la **taille de la taxonomie**, jamais `cap`.
+
+**Trois gestes, à traiter juste après le lot prix** (arbitré par Louis le 2026-09-15) :
+
+1. le module **écrit** le réglage au lieu de subir le défaut ;
+2. sa valeur se lit dans le provider avec son défaut, surchargeable — proposition : **1 000** ;
+3. **un garde-fou qui parle** quand une distribution revient pile au plafond : c'est le seul moment
+   où le module *sait* qu'il a peut-être perdu des valeurs. Les trois défauts trouvés ce jour —
+   `R-109`, la bascule de promo qui n'a pas lieu, la facette tronquée — ont en commun d'être muets.
+
+---
+
 ### R-109 · 🔴 · **fermé le 2026-09-15** · ouvert le 2026-09-15 — sauvegarder un produit lui fait perdre ses metas dans l'index
 
 **Défaut amont, dans MeiliScout.** Reproduit à volonté et en une commande :

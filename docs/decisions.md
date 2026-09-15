@@ -336,6 +336,21 @@ Le code écrit ses chaînes en anglais, sans domaine de texte, et le français v
 `Modules/MeiliFacets/lang/fr.json`, chargé par `registerTranslations()` du provider nwidart. Un
 `__('Brand')` non traduit sort en anglais, ce qui se voit ; il ne casse rien.
 
+### La paire de bornes voyage toujours, dessinée ou non (2026-09-15)
+
+Quelles que soient les parties déclarées — curseur, champs, aucune des deux — le composant prix rend
+ses deux `input`, visibles ou en `type="hidden"`. Ils portent le nom de paramètre d'URL courant et la
+borne en cours.
+
+Ce que ça achète : `price-control.js` n'a qu'un endroit où lire les noms et les valeurs, quelle que
+soit l'apparence choisie, et les trois vues du prix restent interchangeables sans que le client le
+sache.
+
+Ce que ça **n'achète pas**, et qu'il ne faut pas croire : ces `input` ne filtrent rien quand le
+script ne tourne pas. Le module ne rend aucun `<form>` depuis le lot 3b — sans JavaScript le listing
+est inerte, prix compris. L'affirmation inverse a circulé trois fois dans le code du lot prix ; elle
+est fausse.
+
 ### Contre-exemple
 
 `AmphiBee/MeiliSearchFacets` sert uniquement à cartographier le périmètre fonctionnel attendu.

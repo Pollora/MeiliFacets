@@ -539,7 +539,10 @@ design. Il adresse des **crochets** `data-meili="…"`, posés par les composant
 énumérés une seule fois côté PHP (`Enums\Hook`) et une seule fois côté JavaScript
 (`contract.js`).
 
-La racine du listing porte `data-meili-contract="1"`. Le client compare cette valeur à la sienne
+La racine du listing porte `data-meili-contract`, dont la valeur est `Contract::VERSION`. Elle ne
+monte pas quand un crochet s'ajoute — un ajout est additif, une surcharge plus ancienne continue de
+servir — mais quand un crochet est **renommé ou retiré**, cas où cette surcharge adresserait du
+vide. Le client compare cette valeur à la sienne
 et **refuse de démarrer** si elle diffère, ou si un crochet structurel manque : la page reste
 celle du serveur, entièrement fonctionnelle, et la console nomme ce qui manque. Une surcharge de
 thème périmée dégrade donc vers le rendu serveur, jamais vers une interaction à moitié morte.
@@ -564,6 +567,12 @@ thème périmée dégrade donc vers le rendu serveur, jamais vers une interactio
 | `sort-option` | idem | une option, sa clé dans `data-value` |
 | `facet` | `<x-meilifacets::facet>` | un bloc de facette. **Le crochet va sur l'élément le plus extérieur** : c'est celui-là que le client masque quand la facette n'a plus rien à montrer, donc un thème qui enrobe le déplace avec lui |
 | `more` | idem | le bouton qui lit la facette en entier |
+| `price-range` | `<x-meilifacets::price>` | la piste entière, porte `--from`/`--to` |
+| `price-track` | idem | la barre sur laquelle les poignées se déplacent |
+| `price-handle` | idem | une extrémité, son bord dans `data-bound` |
+| `price-tip` | idem | la bulle de valeur d'une poignée |
+| `price-readout` | idem | la plage écrite en toutes lettres, réécrite au glissement |
+| `price-min` `price-max` | idem | les deux `input` qui portent les bornes, visibles ou masqués |
 | `reset` | `<x-meilifacets::reset>` | le bouton « tout effacer » |
 | `active-filters` | `<x-meilifacets::active-filters>` | le compteur de filtres actifs |
 
@@ -574,7 +583,8 @@ contrôle, jamais sur ce que la donnée décide :
   `url`, `image`, `title`, `price` ;
 - exigés dès que leur hôte est rendu : `input` dans une `facet-value`, `more` dans un `facet`,
   `page`/`previous`/`next` dans une `pagination`,
-  `sort-trigger`/`sort-list`/`sort-option` dans un `sort` ;
+  `sort-trigger`/`sort-list`/`sort-option` dans un `sort`,
+  `price-track`/`price-handle` dans un `price-range` ;
 - optionnels : tout le reste. Un thème peut légitimement ne pas afficher de facettes, de tri ou
   de compteurs — et un listing sans résultat ne rend aucune `facet-value`. **Un bloc `facet` vide
   n'est donc pas une infraction** (`R-84`) : une catégorie feuille et une URL filtrée sans

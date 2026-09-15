@@ -290,6 +290,47 @@ décalée.
 
 ---
 
+## 4 quinquies. Recette de bout en bout, 2026-09-15
+
+Le filtre a été confronté à la base, pas seulement au rendu.
+
+**L'index dit la même chose que WooCommerce**, produit par produit. Les quatre produits variables du
+catalogue, dont `metas._price` ne porte que le prix le plus bas — la raison d'être de
+`price.min`/`price.max` :
+
+```
+ 420 Crème Nuit Régénérante        index 33.6 – 46.4    WooCommerce 33.60 – 46.40
+ 430 Eau de Parfum Néroli Solaire  index 55   – 109     WooCommerce 55.00 – 109.00
+ 436 Gel Douche Familial           index 12   – 15.2    WooCommerce 12.00 – 15.20
+ 416 Sérum Hydratant               index 28   – 62      WooCommerce 28.00 – 62.00
+```
+
+**C'est bien le prix en vigueur qui est indexé**, pas le prix barré. Vingt et un produits portent un
+`_sale_price` ; deux ont une fenêtre datée, l'une courante et l'autre expirée :
+
+```
+ 361 Crème Barrière Céramides   promo 25,50 € du 14/09 au 14/10, courante   index 25.5  onsale true
+ 362 Huile Régénérante Nuit     promo 32,00 € du 06/07 au 25/08, expirée    index 46    onsale false
+```
+
+**Et le filtre répond en conséquence**, sur la boutique réelle :
+
+```
+361  fourchette 24–27 (le prix promo)          → trouvé
+361  fourchette 33–35 (le prix barré)          → absent
+362  fourchette 31–33 (l'ancien prix promo)    → absent
+362  fourchette 45–47 (le prix courant)        → trouvé
+416  fourchette 28–30 (déclinaison basse)      → trouvé
+416  fourchette 60–64 (déclinaison haute)      → trouvé
+416  fourchette 40–45 (entre les deux)         → trouvé   ← le chevauchement, voulu
+416  fourchette 70–90 (au-delà)                → absent
+```
+
+**L'indexation en direct d'une bascule programmée, elle, ne marche pas** — et le défaut n'est pas
+dans le module. Voir `R-112` : la file Action Scheduler passe par `admin-ajax.php`, et le garde
+`DOING_AJAX` de MeiliScout y refuse l'indexation sans rien dire. Rejouée hors de ce contexte, la
+bascule met bien l'index à jour ; le chemin réel, non.
+
 ## 5. Ce qu'il faudrait décider
 
 **D-a · La forme du filtre — ✅ tranché le 2026-09-15 : min/max, façon WooCommerce**, en réutilisant

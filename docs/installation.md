@@ -126,13 +126,41 @@ copiés dans `public/`.
 ddev exec php artisan module:publish MeiliFacets
 ```
 
-À rejouer **à chaque déploiement** et après toute modification de
+À rejouer **à chaque déploiement, à chaque mise à jour du module**, et après toute modification de
 `Modules/MeiliFacets/resources/assets/`. `public/modules/` est ignoré par git : c'est de la sortie
 publiée, pas de la source.
 
-Oubliée, la publication rend le listing **entièrement inerte** : `ListingScript::require()` sort
-sans rien faire quand `public/modules/meilifacets/js/listing-page.js` est absent, donc aucun filtre
-ne répond — et les éléments que le module masque par `hidden` réapparaissent à l'écran.
+⚠️ **`vendor:publish --tag=meilifacets-assets` sans `--force` ne fait rien** : Laravel saute les
+fichiers qui existent déjà, sans le dire. `module:publish`, lui, écrase — vérifié le 2026-09-15.
+
+### Deux pannes, et la seconde est muette
+
+**Publication absente** : le listing est **entièrement inerte**. `ListingScript::require()` sort
+sans rien faire quand `public/modules/meilifacets/js/listing-page.js` manque, donc aucun filtre ne
+répond — et les éléments que le module masque par `hidden` réapparaissent. Voyant, donc trouvé vite.
+
+**Publication périmée** : bien plus dangereux. Le navigateur reçoit l'ancienne feuille de style et
+l'ancien client, qui s'exécutent sans erreur contre un HTML rendu par le nouveau code. Constaté le
+2026-09-15 : le CSS servi lisait encore `var(--low, 0)` / `var(--high, 1)` alors que la vue écrivait
+`--from` / `--to` ; les défauts du CSS s'appliquaient et **la barre de la fourchette se peignait
+entière**. Rien dans les journaux, rien dans la console.
+
+```bash
+ddev exec php artisan meilifacets:check-assets
+```
+
+Compare chaque fichier source à sa copie publiée et sort en code 1 dès qu'une copie manque ou
+est plus ancienne. **À enchaîner après la publication dans un script de déploiement, et à mettre en
+intégration continue** — c'est le seul garde-fou contre la panne muette.
+
+### Le cache de page doit être vidé aussi
+
+Republier ne suffit pas si un cache sert une copie minifiée. Avec WP Rocket, `?ver=` suit le
+`filemtime` du fichier publié, mais la version minifiée dans `content/cache/min/` garde la sienne :
+
+```bash
+rm -rf public/content/cache/min public/content/cache/wp-rocket
+```
 
 ⚠️ **En local, le site se consulte en `https`.** Les assets sont inscrits avec le schéma déclaré
 par `home`/`siteurl` ; une page ouverte en `http` voit ses propres scripts comme une autre origine

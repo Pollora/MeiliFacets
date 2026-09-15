@@ -83,8 +83,9 @@ No literal string or number that carries meaning — an enum for a closed set, c
 one. A hook name, a document field, a query parameter and an index setting are all closed sets.
 
 Overridable settings are read with their default in the **provider**, never declared in
-`config/config.php` and never read from a domain object: nwidart's merge makes the module win over
-the project, and `config:cache` drops the module's file entirely.
+`config/config.php` and never read from a domain object: nwidart merges with
+`array_replace_recursive($project, $module)` (`ModuleServiceProvider.php:172`), so a key the module
+declares there **wins over the project's, recursively, and cannot be overridden**.
 
 ### Comments
 

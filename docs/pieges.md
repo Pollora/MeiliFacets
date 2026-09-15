@@ -472,3 +472,56 @@ désordre inexistant le 2026-09-15 avant qu'un parcours du DOM ne rétablisse le
 Vérifier un tri se fait contre l'index (`facetStats`, un filtre sur la valeur), jamais contre le
 rendu.
 
+
+## Action Scheduler n'avance que sur une requête d'admin
+
+`ActionScheduler_QueueRunner::maybe_dispatch_async_request()` teste `is_admin()`
+(`ActionScheduler_QueueRunner.php:141`) avant de lancer son runner asynchrone. WP-Cron est le seul
+autre chemin, et **Pollora le désactive en dur** — `Constant::queue('DISABLE_WP_CRON', true)`,
+`Bootstrap.php:336`, sans condition et sur tous les environnements, sans rien mettre à la place.
+Conséquence, mesurée le 2026-09-15 : **six visites de `/boutique` laissent une action `pending`**,
+un seul appel à `admin-ajax.php` la termine.
+
+Ce n'est donc pas une particularité du poste de développement : c'est le comportement par défaut de
+tout site Pollora. Il faut un cron système sur `wp-cron.php`, ou le lancer à la main — voir
+`configuration.md`, « Le cron doit tourner ». Arbitré par Louis le 2026-09-15 : la préprod a bien un
+cron actif, le local se lance à la main, et l'exigence est écrite dans la documentation.
+
+Deux corollaires :
+
+- **Vérifier une bascule programmée en visitant le front ne prouve rien.** Il faut une requête
+  d'admin — `admin-ajax.php` suffit, même déconnecté — ou `wp action-scheduler run`, qui n'emprunte
+  pas le même chemin (voir ci-dessous).
+- **Le runner réel passe par `admin-ajax.php`, donc `DOING_AJAX` est vrai** pendant tout ce qu'il
+  exécute. Un code qui se protège de « l'AJAX » se protège donc aussi de la file. C'est `R-112`.
+  `wp action-scheduler run` ne reproduit **pas** ce contexte : un test qui passe en WP-CLI ne dit
+  rien du comportement en production.
+
+Et `wp cron event list` ne montre rien de tout cela : `woocommerce_scheduled_sales` est planifié
+par `as_schedule_recurring_action()` (`class-woocommerce.php:1709`), pas par WP-Cron —
+`wp_next_scheduled('woocommerce_scheduled_sales')` répond `false` sur un site où la promo bascule
+très bien. La file se lit dans `actionscheduler_actions`.
+
+## `module:publish-config MeiliFacets --force` détruit la configuration du projet
+
+La commande existe et vise bien `config/meilifacets.php` :
+
+```
+$ ddev exec php artisan module:publish-config MeiliFacets
+   INFO  Publishing [config] assets.
+  File [config/meilifacets.php] already exists ....................... SKIPPED
+```
+
+Sans `--force` elle ne fait rien, puisque le fichier existe. **Avec `--force`, elle l'écrase par
+`Modules/MeiliFacets/config/config.php`** — qui ne contient que `['name' => 'MeiliFacets']`. Le
+projet perdrait `browser`, `apply_mode`, `price_parts` et `url_parameters` d'un coup, sans
+avertissement.
+
+C'est la conséquence directe de la règle inverse, écrite en tête de `config/config.php` : **une clé
+déclarée là ne peut pas être surchargée par le projet**, parce que la fusion de nwidart fait gagner
+le module. Les réglages surchargeables sont donc lus avec leur défaut **dans le provider**, et
+documentés dans `configuration.md` — jamais déclarés dans `config/config.php`.
+
+Autrement dit, il n'y a **rien à publier** : `config/meilifacets.php` côté projet n'est pas une
+copie du fichier du module, c'est un fichier que le projet écrit lui-même, dont le module ne connaît
+aucune clé à l'avance. La commande n'a pas d'usage ici, et son `--force` est un piège.

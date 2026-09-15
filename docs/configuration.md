@@ -205,6 +205,154 @@ Un paramètre étranger au module ne déclenche rien : `?utm_source=news` reste 
 **Pas de canonique** vers le chemin nu en plus : un `noindex` et une canonique pointant ailleurs
 sont deux signaux contradictoires.
 
+## ⚠️ Le cron doit tourner, sinon l'index diverge en silence
+
+**Exigence de déploiement, à vérifier sur chaque environnement.** Rien dans le module ni dans
+MeiliScout ne prévient si elle n'est pas remplie : l'index se contente de vieillir.
+
+Pollora **désactive WP-Cron en dur**, sur tous les environnements :
+
+```php
+// vendor/pollora/framework/src/WordPress/Bootstrap.php:336
+Constant::queue('DISABLE_WP_CRON', true);
+```
+
+Sans condition, et sans rien mettre à la place — l'attribut `#[Schedule]` de Pollora enregistre
+pourtant ses tâches avec `wp_schedule_event()` (`ScheduleDiscovery.php:342`), c'est-à-dire le cron
+qu'il vient d'éteindre. Il faut donc qu'un cron **système** pique `wp-cron.php`, ou que quelqu'un
+lance les évènements dus à la main.
+
+Deux files, deux conséquences distinctes :
+
+| File | Ce qui s'arrête sans elle |
+| --- | --- |
+| **WP-Cron** | l'indexation différée de MeiliScout (`meiliscout_process_async_queue`, `meiliscout_process_indexation`) |
+| **Action Scheduler** | les bascules de promotion WooCommerce (`wc_product_start_scheduled_sale`, `woocommerce_scheduled_sales`) — donc les prix, donc le filtre de prix |
+
+Action Scheduler ne dépend pas de WP-Cron : il se déclenche aussi tout seul, mais **uniquement sur
+une requête d'administration** (`is_admin()`, `ActionScheduler_QueueRunner.php:141`), par une requête
+en boucle locale vers `admin-ajax.php`. Sur un environnement derrière une auth HTTP Basic, cette
+boucle prend un `401` et la file se bloque — à vérifier en préprod.
+
+**En local**, où aucun cron ne tourne, les deux se lancent à la main :
+
+```bash
+ddev wp cron event run --due-now                  # tout ce qui est dû
+ddev wp cron event run meiliscout_process_async_queue
+ddev wp action-scheduler run                       # les bascules de promo
+```
+
+**Le diagnostic qui dit tout de suite si le cron est mort** — si la colonne de droite est vieille de
+plusieurs jours, rien ne tourne :
+
+```bash
+ddev wp cron event list --fields=hook,next_run_gmt --format=csv | sort -t, -k2 | head -5
+```
+
+## Indexation différée : ce qu'elle coûte et ce qu'elle rapporte
+
+Réglage MeiliScout, **désactivé par défaut** : `meiliscout_async_indexing` (option
+`meiliscout/meiliscout_async_indexing`, ou la variable d'environnement / constante
+`MEILISCOUT_ASYNC_INDEXING`, qui gagnent sur la base).
+
+Mesuré le 2026-09-15 sur ce projet, sur une modification de prix :
+
+| | synchrone (défaut) | différé |
+| --- | --- | --- |
+| durée de la sauvegarde | **36 ms** | **3 ms** |
+| appels HTTP vers Meilisearch | 2 par sauvegarde | 0 dans la requête |
+| 5 sauvegardes d'affilée | 10 appels | **1 entrée de file** |
+| fraîcheur de l'index | immédiate | jusqu'à 5 min (`meiliscout/async_indexing_delay`) |
+| si le cron ne tourne pas | index à jour | **index jamais mis à jour** |
+
+Deux poussées par sauvegarde parce que WooCommerce écrit `_regular_price` puis `_price`, et que les
+crochets de MeiliScout ne filtrent pas par clé : les deux envoient le même document. Le différé
+dédoublonne, c'est là qu'est l'essentiel du gain.
+
+La dernière ligne est la raison pour laquelle ce réglage ne s'active pas sans avoir vérifié la
+section précédente.
+
+## ⚠️ Toute écriture de meta réindexe — ce qu'il faut surveiller
+
+Depuis `R-112` (MeiliScout `a83fa4b`), plus rien n'exempte les requêtes AJAX de l'indexation. C'est
+la correction voulue, mais elle rend visible un comportement qui ne l'était pas : les crochets de
+MeiliScout sont branchés sur `updated_post_meta`, `added_post_meta` et `deleted_post_meta` **sans
+filtrer par clé**. Une écriture de meta, quelle qu'elle soit, sur un contenu indexé, réindexe le
+document entier.
+
+Ce que ça coûte, mesuré le 2026-09-15 : **~16 ms par poussée**, et une modification de prix en écrit
+deux (`_regular_price` puis `_price`).
+
+**Le périmètre exact sur ce projet** — `meiliscout/indexed_post_types` vaut `post`, `page`,
+`product`. Les pièces jointes n'y sont pas : Imagify et les optimisations d'images ne déclenchent
+rien.
+
+**Ce qui est à surveiller**, c'est un plugin qui écrit des metas en AJAX sur un contenu indexé. Le
+cas présent ici : l'éditeur groupé de Yoast (`wp_ajax_wpseo_save_title`,
+`wpseo_save_all_titles`, `wpseo_save_all_descriptions` — `wordpress-seo/admin/ajax.php:96`, `:246`,
+`:261`) écrit des metas sur `post` et `page`. Chaque champ enregistré réindexe désormais son
+document.
+
+**Les deux contre-mesures**, dans l'ordre :
+
+1. **l'indexation différée** — section précédente : ramène la sauvegarde à ~3 ms et dédoublonne ;
+2. **`meiliscout/skip_indexing`** — le seul filtre que MeiliScout expose, pour couper l'indexation
+   dans un contexte précis et identifié :
+
+   ```php
+   add_filter('meiliscout/skip_indexing', fn (bool $skip): bool => $skip
+       || (wp_doing_ajax() && str_starts_with((string) ($_REQUEST['action'] ?? ''), 'wpseo_')));
+   ```
+
+   À n'écrire que sur un cas constaté, jamais par précaution : c'est exactement le raisonnement qui
+   avait produit le garde `DOING_AJAX`, et dix-huit mois plus tard plus personne ne savait pourquoi
+   les prix ne suivaient pas.
+
+## WooCommerce ne filtre plus la requête principale en parallèle
+
+**`min_price`, `max_price` et `filter_*` sont lus directement dans `$_GET` par
+WooCommerce**, qui s'en sert pour filtrer la requête principale en SQL
+(`class-wc-query.php:588`, puis `:604-607`). Sur une page rendue par le module, ce travail est
+intégralement perdu — et il laisse `found_posts` rétréci par un filtre que la page n'affiche pas.
+Mesuré le 2026-09-15 sur `/boutique?min_price=55&max_price=120` : **5 au lieu de 74**.
+
+Le module désarme donc les deux clauses, par le filtre officiel que WooCommerce expose depuis 9.9 :
+
+```php
+// app/Search/NativeFiltering.php
+#[Filter('woocommerce_enable_post_clause_filtering')]
+public function leaveTheMainQueryAlone(): bool { return false; }
+```
+
+**Portée exacte.** Le crochet n'existe que pendant une requête produit — `add_filter('posts_clauses',
+…)` est posé dans `WC_Query::product_query()`, appelée depuis `pre_get_posts` pour ces requêtes-là
+seulement. Il est donc inerte sur tout autre listing, et sur un site sans WooCommerce.
+
+| Ce qui est désarmé | Ce qui ne l'est pas |
+| --- | --- |
+| « Filtrer par prix » natif (`min_price`, `max_price`) | le filtre par note (`rating_filter`), qui est une `meta_query` |
+| la navigation à facettes par attribut (`filter_*`) | le tri, la visibilité, le stock, les archives de catégorie, la recherche |
+| | la requête principale elle-même, qui tourne toujours |
+
+**Ce que ça coûte en performance : rien.** Mesuré, cache chaud : 0 requête SQL de différence,
+0,19 ms contre 0,27 ms. Le gain est la cohérence de `found_posts`, pas la vitesse.
+
+⚠️ **Désarmer la clause n'empêche pas WooCommerce de voir les noms.** Quatre autres lecteurs
+subsistent, tous cosmétiques mais réels : `wc_is_filtered()`
+(`wc-conditional-functions.php:341`), les liens que les widgets recopient
+(`abstract-wc-widget.php:339-344`), le widget « Filtrer par prix » qui se dessine depuis eux
+(`class-wc-widget-price-filter.php:119-120`) et le widget « Filtres actifs »
+(`class-wc-widget-layered-nav-filters.php:48-49`). Un projet qui affiche l'un de ces widgets à côté
+d'un listing MeiliFacets les verra réagir. C'est ce que `meilifacets:check-parameters` continue de
+signaler, et la seule façon de le supprimer entièrement reste de renommer les deux paramètres.
+
+**Pour un projet qui veut garder le filtrage natif** — un thème qui rend encore la boucle
+WooCommerce quelque part — il suffit de reprendre la main après le module :
+
+```php
+add_filter('woocommerce_enable_post_clause_filtering', '__return_true', 20);
+```
+
 ## Une seule frontière avec MeiliScout
 
 Le module ne touche MeiliScout qu'à deux endroits, et jamais depuis sa logique métier :
@@ -391,6 +539,33 @@ Une facette placée à part se comporte donc comme celles du groupe.
 menu déroulant, une modale — sans figer le reste du markup du module ni se décrocher des versions
 suivantes du contrat. Le crochet `data-meili="facet"` est sur l'élément le plus extérieur, parce que
 c'est celui que le client masque : un thème qui enrobe doit déplacer le crochet avec lui.
+
+### Les trois sous-vues du prix
+
+Le composant prix assemble trois vues surchargeables une par une, sous le même chemin :
+
+| Vue | Rendue quand | Ce qu'elle reçoit |
+| --- | --- | --- |
+| `components/price/range.blade.php` | `PricePart::Slider` est déclaré | `label`, `readout`, `fill`, `handles`, `bounds`, `money` |
+| `components/price/fields.blade.php` | `PricePart::Fields` est déclaré | `handles`, `bounds`, `money` |
+| `components/price/hidden.blade.php` | `PricePart::Fields` ne l'est pas | `handles` |
+
+Ce sont des composants anonymes : chacun ouvre sur `@props` et ne reçoit **que** ce qui y est
+déclaré — il n'hérite pas de la portée du composant parent. Une surcharge qui a besoin d'un crochet
+le nomme par son cas d'énumération, `@use(Modules\MeiliFacets\Enums\Hook)` puis
+`{{ Hook::PriceRange->attribute() }}`, et non par la fermeture `$hook()` du parent, hors de portée
+ici.
+
+### Les bornes de prix gardent les noms de WooCommerce
+
+`min_price` et `max_price` sont les défauts du module **et** les noms que WooCommerce lit dans
+`$_GET`. C'est voulu : un lien écrit pour WooCommerce pilote le module sans traduction.
+`NativeFiltering` l'empêche de filtrer la requête principale en parallèle ; ses widgets et
+`is_filtered()` voient encore ces noms.
+
+`meilifacets:check-parameters` les signale donc en **avertissement**, sans échouer. Renommer une
+borne sous `query_parameters` est permis : on y perd la compatibilité des liens, et la garde
+redevient absolue sur le nom libéré.
 
 ## Vérifier les noms de paramètres
 
