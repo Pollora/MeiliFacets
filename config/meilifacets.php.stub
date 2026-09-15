@@ -34,6 +34,11 @@ return [
     // Caps the last reachable page, and costs memory on the engine.
     'engine' => [
         'reachable_hits' => 1000,
+
+        // Values a facet may return. The engine caps at 100 on its own and cuts by global
+        // count, before a facet narrows to the aisle being looked at. Raise it for a large
+        // taxonomy; reindex to push it.
+        'max_facet_values' => 1000,
     ],
 
     // Document fields returned beyond the card: each one travels with every hit.

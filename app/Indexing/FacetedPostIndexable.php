@@ -100,12 +100,13 @@ final class FacetedPostIndexable extends PostIndexable
      */
     private function facetingSettings(array $faceting): array
     {
-        // Meilisearch orders facet values alphabetically by default.
+        // Meilisearch orders facet values alphabetically by default, and caps them at 100.
         return [
             ...$faceting,
             FacetingSetting::SortValuesBy->value => [
                 self::ALL_FACETS => FacetValueOrder::ByCount->value,
             ],
+            FacetingSetting::MaxValuesPerFacet->value => $this->limits->maxFacetValues,
         ];
     }
 

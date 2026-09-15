@@ -10,6 +10,7 @@ use Modules\MeiliFacets\Enums\ApplyMode;
 use Modules\MeiliFacets\Enums\QueryParameter;
 use Modules\MeiliFacets\Http\Unavailable;
 use Modules\MeiliFacets\Search\EngineLimits;
+use Modules\MeiliFacets\Search\FacetTruncated;
 use Modules\MeiliFacets\Search\FilterExpression;
 use Modules\MeiliFacets\Search\ListingSearch;
 use Modules\MeiliFacets\Search\SearchFailed;
@@ -215,7 +216,14 @@ final class ResolvedListing
      */
     public function valuesOf(Facet $facet): array
     {
-        return $this->values->of($facet, $this->results()->distribution($facet->taxonomy), $this->state);
+        $distribution = $this->results()->distribution($facet->taxonomy);
+
+        // The last moment the module still knows: `of()` narrows and slices the distribution.
+        if ($this->limits->looksTruncated(count($distribution))) {
+            report(FacetTruncated::at($facet->taxonomy, count($distribution)));
+        }
+
+        return $this->values->of($facet, $distribution, $this->state);
     }
 
     public function pagination(): Pagination

@@ -389,7 +389,7 @@ directement — ce qui est indexé est filtrable.
 | `faceting.sortFacetValuesBy` | `count` pour toutes les facettes |
 | `pagination.maxTotalHits` | ce que `engine.reachable_hits` déclare |
 | `displayedAttributes` | ceux de MeiliScout, plus `card` et ce que `displayed_attributes` ajoute |
-| `faceting.maxValuesPerFacet` | **non écrit** — laissé au défaut du moteur, `100` |
+| `faceting.maxValuesPerFacet` | ce que `engine.max_facet_values` déclare |
 
 Aucun point d'extension dédié : les changer demande d'étendre `FacetedPostIndexable` et de le
 substituer par `meiliscout/indexables` à une priorité plus haute que celle du module.
@@ -403,16 +403,22 @@ renvoyés — mesuré le 2026-09-08, distribution identique à `hitsPerPage` 1, 
 
 | Plafond | Défaut | Qui le pose | Ce qu'il coupe |
 | --- | --- | --- | --- |
-| `faceting.maxValuesPerFacet` | **100** | **le moteur** — le module ne l'écrit pas | les valeurs distinctes que `facetDistribution` renvoie, les **mieux comptées** d'abord grâce à `sortFacetValuesBy` |
+| `faceting.maxValuesPerFacet` | **1 000** | le module, par `engine.max_facet_values` | les valeurs distinctes que `facetDistribution` renvoie, les **mieux comptées** d'abord grâce à `sortFacetValuesBy` |
 | `Facet::$cap` | 30 | la facette | ce que le module garde de ce qu'il a reçu |
 | `Facet::$visible` | 10 | la facette | ce qui est **lu** avant dépliage — le reste est rendu, jamais perdu |
 
-⚠️ **`cap` ne peut pas dépasser `maxValuesPerFacet`.** Une facette déclarée `cap: 200` en obtiendra
-cent, sans erreur ni avertissement : `array_slice()` sur cent éléments en rend cent. Sur une
-taxonomie de plusieurs centaines de termes — une marque, un ingrédient — c'est le plafond qui décide
-en dernier, et c'est le seul des trois que le module ne pose pas, donc le seul qu'on ne trouve pas
-en lisant son code. Le relever demande de l'écrire dans `faceting` via l'indexable, comme
-`sortFacetValuesBy`.
+⚠️ **`cap` ne peut pas dépasser `maxValuesPerFacet`.** Une facette déclarée `cap: 2000` en obtiendra
+mille, sans erreur : `array_slice()` sur mille éléments en rend mille. Sur une taxonomie de plusieurs
+milliers de termes, c'est le plafond qui décide en dernier.
+
+**Ne le calez pas sur `cap`.** Le moteur tronque par **compte global**, avant qu'une facette ne
+restreigne aux enfants du rayon courant : une valeur peu comptée à l'échelle de la boutique peut
+être la seule qui compte sur sa page. Le plafond suit la **taille de la taxonomie**, jamais `cap`.
+
+Depuis le 2026-09-15 le module l'écrit et se plaint quand une distribution revient pile dessus —
+`FacetTruncated`, dans le canal d'erreurs de l'application. Il se plaint aussi sur **100**, le défaut
+du moteur : entre une mise en production et sa réindexation, l'index coupe encore là où le module
+demande déjà plus.
 
 `sortFacetValuesBy` à `count` n'est pas cosmétique — Meilisearch trie les valeurs
 alphabétiquement par défaut, ce qui ferait afficher à une facette plafonnée à dix valeurs les dix

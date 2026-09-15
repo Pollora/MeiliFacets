@@ -3333,7 +3333,46 @@ requête principale qui redemande les bornes en double.
 
 ---
 
-### R-110 · 🟠 · ouvert · 2026-09-15 — le seul plafond que le module ne pose pas, et qui coupe en silence
+### R-110 · 🟠 · **fermé le 2026-09-15** · ouvert le 2026-09-15 — le seul plafond que le module ne pose pas, et qui coupe en silence
+
+**Les trois gestes sont livrés.**
+
+1. Le module **écrit** `faceting.maxValuesPerFacet`. Constaté sur l'index après réindexation :
+   `{"maxValuesPerFacet":1000,"sortFacetValuesBy":{"*":"count"}}`.
+2. La valeur se lit dans `SearchServiceProvider` sous `engine.max_facet_values`, défaut
+   `EngineLimits::DEFAULT_MAX_FACET_VALUES`. **`EngineLimits` étendu plutôt qu'un objet dédié** :
+   c'est le seul précédent exact — il porte déjà `pagination.maxTotalHits`, se lit en provider et
+   descend jusqu'à l'indexable. Un objet séparé n'achetait qu'une pureté de couche, contre une
+   sixième dépendance à `MeiliScoutBridge`.
+3. Le garde-fou vit dans `ResolvedListing::valuesOf()`, dernier instant où le module tient encore la
+   distribution brute : juste après, `FacetValues::of()` restreint puis tranche, et l'information
+   est perdue. Il émet `FacetTruncated` par `report()`, là où `report()` vivait déjà.
+
+**Deux choix qui méritent d'être écrits.**
+
+`ResolvedListing` recevait **déjà** `EngineLimits` : le seuil du garde vient donc du même objet que
+ce qui est écrit sur l'index, sans dépendance nouvelle. C'est la leçon de `R-91` — un garde-fou qui
+recopie la valeur qu'il devrait dériver ne vérifie rien.
+
+Le garde se déclenche aussi sur **100**, le défaut du moteur. Sans ça il serait aveugle exactement
+quand il sert le plus : entre le déploiement du code et la réindexation, l'index coupe encore à 100
+pendant que le module compare déjà à 1 000.
+
+**`R-90` n'a pas été joint**, malgré le même diagnostic — « le module sait, et ne dit rien ».
+`D-03` veut un point à la fois ; `R-110` ne coûte qu'un `count()` quand `R-90` demande un appel de
+réglages par rendu, non mesuré. Coupler le geste gratuit au geste cher aurait retardé le gratuit.
+Si `R-90` réclame un canal partagé, l'extraire d'un seul appelant sera trivial.
+
+**Mesuré après coup** : distributions inchangées — `product_cat` 81, `pa_contenance` 24,
+`product_brand` 9 — page intacte, aucun `FacetTruncated` émis à tort.
+
+**Ce que le garde ne couvre pas**, et qui est assumé : deux listings sur une page parlent deux fois ;
+une taxonomie qui utilise pile le plafond déclenche un faux positif, ce que le message dit
+lui-même ; et une fois le client aux commandes, plus aucun PHP ne voit la distribution (`R-57`).
+
+---
+
+### R-110 · cadrage d'origine
 
 `faceting.maxValuesPerFacet` vaut **100**, le défaut du moteur. Le module ne l'écrit pas : c'est le
 seul des trois plafonds (`configuration.md`, « Trois plafonds ») qu'on ne trouve pas en lisant son
