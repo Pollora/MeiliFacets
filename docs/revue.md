@@ -1083,7 +1083,36 @@ R-61 — voir là-bas.
 
 ## 9. Constats — fonctionnel manquant ou oublié
 
-### R-43 · 🟠 · à trancher (Q-08) · 2026-09-06 — aucune facette prix ni disponibilité
+### R-43 · 🟠 · **fermé le 2026-09-15** · ouvert le 2026-09-06 — aucune facette prix ni disponibilité
+
+**Le prix est livré** (commit `885daff`) : `PriceFilter` compose une piste et deux champs, les bornes
+viennent de `facetStats` et suivent le filtrage, le filtre teste le **chevauchement** de l'intervalle
+d'un produit avec la plage demandée.
+
+Le défaut bloquant que cette entrée nommait — « pour un produit variable, seul le prix le plus bas
+est indexé » — est levé par `8fda131`. Vérifié sur l'index par un filtre qui ne peut pas répondre
+autrement :
+
+```
+price.min <= 28 AND price.max >= 62   →  1 produit
+```
+
+Un produit ne croise ces deux bornes que si son intervalle est indexé ; avec le seul prix le plus
+bas, la réponse serait zéro.
+
+Deux choses de cette entrée ne sont **pas** livrées, et c'est délibéré :
+
+- **les tranches de prix** qu'elle proposait sont renversées par `D-a` (`prix.md`) — WooCommerce
+  résout la question en min/max, et inventer une forme que la plateforme traite autrement est le
+  travers de `R-81` ;
+- **la disponibilité** est différée par `D-f`, et le stock par variation par `D-g`, tous deux datés
+  du 2026-09-15. Rien ne se perd en fermant ici : les deux volets portent leur propre décision.
+
+Le cadrage d'origine est conservé ci-dessous.
+
+---
+
+**Cadrage d'origine, 2026-09-06**
 
 **Cadrage écrit le 2026-09-09 dans `docs/prix.md`** — cas, mesures et décisions à prendre. Deux
 choses y corrigent cette entrée :
@@ -4022,6 +4051,13 @@ Les attributs sont déjà filtrables et triables. Livrer une facette de tranches
 « en stock » maintenant donne de la valeur immédiate ; le risque est de la refaire quand les
 variations arriveront. *Cite : R-43.*
 
+**Répondu le 2026-09-15 — ni l'un ni l'autre.** La question supposait qu'il fallait choisir entre
+servir les produits simples tôt et attendre les variations. `D-b` a supprimé le choix : l'intervalle
+par produit a été indexé **d'abord**, le filtre livré par-dessus, donc juste dès le premier jour pour
+les 76 produits — variables compris. Livrer avant aurait été faux pour dix d'entre eux, et silencieux.
+La forme a changé aussi : min/max et non des tranches (`D-a`). La disponibilité, elle, est bien
+différée (`D-f`).
+
 **Q-09 · La recherche texte : on livre le champ, ou on retire `q` du lecteur d'état ?**
 L'état intermédiaire actuel — le paramètre agit sans que rien ne l'affiche — est le pire des trois.
 *Cite : R-44.*
@@ -4207,8 +4243,8 @@ parallèle : il ne touche pas au rendu.
 
 ### Puis, dans l'ordre des lots
 
-- **Lot 4** — prix, stock, variations. À rouvrir avec Q-08 : les produits simples peuvent être
-  servis avant.
+- **Lot 4** — prix, stock, variations. **Moitié prix livrée** le 2026-09-15 (`R-43` fermé) ;
+  restent le stock et les variations, différés par `D-f` et `D-g`.
 - **Lot 5** — recherche et suggestions. Prérequis : Q-09, et `searchableAttributes` (R-27).
 - **Lot 6** — diagnostics. `meilifacets:doctor`, canal de log, messages avec `errorCode` /
   `errorLink`.

@@ -200,9 +200,15 @@ prix ni stock propres : il a ceux de ses variations.
 - Hooks WooCommerce de stock, que les hooks de meta ne couvrent pas.
 - Choix du calcul des compteurs de facettes, à la lumière du catalogue réel.
 
+**Moitié prix livrée le 2026-09-15** (`R-43`) : l'intervalle est indexé par produit et le filtre
+teste son chevauchement avec la plage demandée, donc un produit variable est trouvé par n'importe
+laquelle de ses variations. Restent le **stock** et la remontée d'une variation vers son parent,
+différés par `D-f` et `D-g`.
+
 **Recette —** filtrer par prix renvoie le produit avec la variation correspondante et non la
 fourchette entière ; un filtre croisé contenance et prix ne produit aucun faux positif ; une
-commande qui décrémente un stock met l'index à jour.
+commande qui décrémente un stock met l'index à jour. **Le troisième point n'est pas atteint** : le
+stock n'est pas du lot livré.
 
 ## Lot 5 — Recherche et suggestions
 
