@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Indexing;
 
 use Modules\MeiliFacets\Contracts\IndexAttributes;
+use Modules\MeiliFacets\Enums\PriceField;
 use Modules\MeiliFacets\Enums\ProductMeta;
 
 final readonly class WooCommerceIndexAttributes implements IndexAttributes
@@ -14,7 +15,7 @@ final readonly class WooCommerceIndexAttributes implements IndexAttributes
      */
     public function filterable(): array
     {
-        return ProductMeta::paths();
+        return [...ProductMeta::paths(), ...PriceField::paths()];
     }
 
     /**
@@ -22,7 +23,7 @@ final readonly class WooCommerceIndexAttributes implements IndexAttributes
      */
     public function sortable(): array
     {
-        return [ProductMeta::Price->path()];
+        return [PriceField::Min->path(), PriceField::Max->path()];
     }
 
     /**

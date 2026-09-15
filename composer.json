@@ -84,6 +84,9 @@
         "lint:js": "Check the browser client for dead code and unused imports."
     },
     "config": {
-        "sort-packages": true
+        "sort-packages": true,
+        "allow-plugins": {
+            "php-http/discovery": true
+        }
     }
 }

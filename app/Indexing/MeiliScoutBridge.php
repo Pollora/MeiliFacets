@@ -20,6 +20,7 @@ final class MeiliScoutBridge
     public function __construct(
         private readonly TermAncestry $ancestry,
         private readonly CardProjector $cards,
+        private readonly ProductPriceProjector $prices,
         private readonly IndexAttributes $attributes,
         private readonly EngineLimits $limits,
     ) {}
@@ -54,6 +55,22 @@ final class MeiliScoutBridge
     public function addCard(array $document, WP_Post $post): array
     {
         $document[DocumentField::Card->value] = $this->cards->project($post);
+
+        return $document;
+    }
+
+    /**
+     * @param  array<string, mixed>  $document
+     * @return array<string, mixed>
+     */
+    #[Filter('meiliscout/post/document')]
+    public function addPrice(array $document, WP_Post $post): array
+    {
+        $price = $this->prices->project($post);
+
+        if ($price !== []) {
+            $document[DocumentField::Price->value] = $price;
+        }
 
         return $document;
     }
