@@ -147,7 +147,34 @@ jamais, faute d'être indexée.
 `_price` est revenu à `46.00`, et l'index affiche `46,00 €`. La bascule de fin a bien eu lieu et a
 bien réindexé.
 
-**Donc, en une phrase** : l'affichage se corrige tout seul au moment de la bascule. Ce qui manque
+⚠️ **Démenti mesuré le 2026-09-15.** La promo de #361 devait s'ouvrir la veille. Constaté :
+
+```
+wc_product_start_scheduled_sale   pending   2026-09-14 13:27:02   ← échéance passée
+_price = 34.00   _sale_price = 25.50   is_on_sale() = OUI
+index : 34,00 €
+```
+
+La bascule **n'a pas eu lieu**, et l'action est toujours en attente plus de 24 h après. Cause, sur cet
+environnement : `DISABLE_WP_CRON` vaut `true` et `action_scheduler_run_queue` est **absent** du cron
+WP. Dernière exécution le 2026-09-09 ; **15 actions en retard**.
+
+Ce n'est pas un défaut du module, c'est une panne d'ordonnanceur — mais elle démontre ce que la suite
+de ce paragraphe affirmait trop vite. **Rien ne garantit la bascule.** Et pendant qu'elle manque,
+**WooCommerce est incohérent avec lui-même** : la fiche produit affiche le badge et le prix barré
+(`is_on_sale()`, calculé à la volée), tandis que le panier, le tri et le filtre facturent 34 € (`_price`,
+figé). Le listing, lui, est d'accord avec le panier.
+
+**Conséquence pour la conception** : suivre `_price` et le drapeau figé, c'est être d'accord avec ce
+qui sera facturé. Suivre les dates, c'est être d'accord avec le badge — donc promettre une remise que
+le panier n'applique pas. La première divergence est visible et sans conséquence financière ; la
+seconde est un litige.
+
+**À faire côté exploitation, indépendamment du module** : un vrai cron système sur
+`action_scheduler_run_queue`, ou WP-Cron réactivé. Sans lui, les promos planifiées ne s'appliquent
+jamais — ni dans le listing, ni dans le panier.
+
+**Donc, en une phrase** : quand la bascule a lieu, l'affichage se corrige tout seul. Ce qui manque
 n'est pas la fraîcheur, c'est que **le prix promo et ses dates ne sont pas indexés du tout** — donc
 aucune facette « en promotion », aucun tri sur la remise, aucun filtre « promos qui commencent
 bientôt ».
@@ -265,32 +292,97 @@ décalée.
 
 ## 5. Ce qu'il faudrait décider
 
-**D-a · La forme du filtre.** Min/max façon WooCommerce, en réutilisant `min_price`/`max_price`, ou
-tranches déclarées par le projet ? La première suit la plateforme et hérite de son vocabulaire
-d'URL ; la seconde est plus simple à rendre mais n'existe nulle part en amont.
+**D-a · La forme du filtre — ✅ tranché le 2026-09-15 : min/max, façon WooCommerce**, en réutilisant
+`min_price`/`max_price`. On hérite du vocabulaire d'URL de la plateforme, une URL reste lisible par
+un autre outil, et c'est ce que fait FacetWP. Les tranches auraient été une invention du module ;
+elles restent constructibles au-dessus d'un min/max indexé, l'inverse est faux.
 
-**D-b · Le préalable d'indexation.** Un filtre juste suppose d'indexer un **intervalle** par produit
-(`min_price`/`max_price`), comme la table `wc_product_meta_lookup` le fait déjà. Sans ce préalable,
-le filtre est faux pour 1 produit sur 8. Est-ce dans le lot, ou est-ce que le filtre attend ?
+**D-b · Le préalable d'indexation — ✅ tranché le 2026-09-15 : dans le lot.** L'intervalle par produit
+est indexé d'abord, puis le filtre est livré par-dessus. Le filtre est donc juste dès le premier jour,
+pour les 76 produits. Livrer le filtre avant aurait été faux pour 10 d'entre eux **et silencieux** —
+la forme exacte de défaut que `R-109` vient de coûter une matinée à débusquer.
 
-**D-c · La borne du curseur.** `facetStats` de Meilisearch rend min et max sur l'ensemble filtré,
-l'équivalent exact du `MIN()/MAX()` de WooCommerce. Le module ne le demande pas encore ; l'ajouter
-touche `ListingSearch` et la description JSON.
+**D-c · Les bornes du curseur — ✅ tranché le 2026-09-15 : `facetStats`.** L'équivalent exact du
+`SELECT MIN()/MAX()` du widget natif, rendu par le moteur avec les résultats, sans requête
+supplémentaire. Vérifié sur l'index réel avant de trancher :
 
-**D-d · La facette « en promotion ».** Un **drapeau** dérivé de `is_on_sale()` à l'indexation, à
-l'image de la colonne `onsale` de `wc_product_meta_lookup` — pas les dates (§ 4 quater). Besoin
-distinct du filtre par prix : à traiter séparément ou pas du tout.
+```
+tout le catalogue   →  { min: 0, max: 199 }
+facets.product_brand = aeris  →  { min: 9.5, max: 36 }   (10 produits)
+```
 
-**D-e · Les taxes.** Reprendre la conversion de WooCommerce, ou décider que le module ne filtre que
-sur le prix stocké et documenter l'écart en boutique TTC.
+Les bornes suivent donc le filtrage courant. L'ajouter touche `ListingSearch` et la description JSON.
+À noter : `min: 0` est réel — un produit du catalogue est gratuit, le curseur doit l'accepter.
 
-**D-f · La disponibilité.** `metas._stock_status` est déjà filtrable et personne ne s'en sert. Deux
-formes possibles, comme chez FacetWP : deux valeurs (le réassort compte comme disponible) ou trois.
-Livrable sans préalable **pour les produits simples** ; pour les variables, elle hérite du § 4 bis.
+**D-d · La facette « en promotion » — ✅ tranché le 2026-09-15 : oui, dans ce lot, en drapeau.**
+Dérivé de `is_on_sale()` à l'indexation, à l'image de la colonne `onsale` de
+`wc_product_meta_lookup` — pas les dates (§ 4 quater). Le coût marginal est faible puisque le lot
+touche déjà l'indexation et impose une réindexation. 14 produits sont en promotion aujourd'hui.
 
-**D-g · Le stock au niveau de la variation.** Faut-il indexer la disponibilité par variation, pour
-qu'une facette de variation ne propose pas une valeur épuisée ? C'est ce que la littérature appelle
-la bonne pratique, et cela change la forme du document indexé, pas seulement ses champs.
+⚠️ **Précision d'implémentation** : `_onsale` n'existe pas en base — la colonne `onsale` ne vit que
+dans la table de correspondance. Comme `min_price` et `max_price`, c'est un champ **dérivé**, pas une
+meta. Le module a déjà le mécanisme : `MeiliScoutBridge` ajoute `facets` et `card` par
+`#[Filter('meiliscout/post/document')]`, dont le docblock note qu'il « runs inside
+`formatForIndexing()`, so it applies on every indexing path » — exactement la garantie que `R-109` a
+restaurée. Étendre `ProductMeta` serait le mauvais outil : il mappe des clés de meta réelles.
+
+**D-i · Où vivent les champs dérivés — ✅ tranché le 2026-09-15 : sous un champ `price` du module.**
+
+```json
+{
+  "ID": 416,
+  "card":   { "title": "…", "price": "<del>…" },
+  "facets": { "product_cat": ["…"] },
+  "metas":  { "_price": 28, "_stock_status": "instock" },
+  "price":  { "min": 28, "max": 62, "onsale": false }
+}
+```
+
+Le module possède déjà `card` et `facets`, posés par ses propres filtres ; `price` les rejoint. Trois
+valeurs calculées qui se présenteraient comme des metas tromperaient le prochain lecteur — aucune
+n'existe dans `postmeta`. Et la racine du document appartient à MeiliScout (`url`, `terms`) : y poser
+des champs exposerait à une collision avec un nom futur du paquet amont.
+
+Le filtre s'écrit alors `price.min <= :max AND price.max >= :min`, la transposition directe du
+`NOT (max_saisi < min_produit OR min_saisi > max_produit)` de WooCommerce.
+
+**D-e · Les taxes — ✅ tranché le 2026-09-15 : reprendre la conversion de WooCommerce.** Quand les
+prix sont stockés HT et affichés TTC, il retire la taxe des bornes saisies avant de filtrer
+(`class-wc-query.php:800-810`, via `WC_Tax::calc_inclusive_tax` et le filtre
+`woocommerce_price_filter_widget_tax_class`). Le module fait pareil, pour qu'un curseur « jusqu'à
+50 € » porte sur le prix que le visiteur voit.
+
+Dormant sur Pluralia — `wc_tax_enabled()` est `false`, prix stockés HT, affichage HT — donc **rien
+ne le testera ici**. À couvrir par un test unitaire sur la conversion elle-même plutôt que par le
+rendu, et à écrire dans `configuration.md`.
+
+**D-h · Les paramètres d'URL — ✅ tranché le 2026-09-15 : `min_price` et `max_price` en défauts
+renommables**, deux cas de plus dans `QueryParameter`.
+
+Le choix initial était de les figer, pour qu'un lien WooCommerce natif fonctionne toujours. Il
+contredisait `decisions.md:67` — « `sort`, `q`, `pg` : en anglais, **le projet les habille** » — que
+`UrlParameters::reserved()` applique littéralement. Signalé à Louis, qui a laissé la décision au
+module ; elle est donc prise **pour la cohérence** :
+
+- les figer aurait demandé deux réservés qui, seuls, refusent d'être habillés — une exception à
+  écrire, à justifier et à se rappeler ;
+- renverser la décision aurait retiré aux projets une faculté déjà promise sur trois paramètres ;
+- les défauts restent `min_price`/`max_price`, donc un lien WooCommerce marche **tant qu'un projet
+  ne renomme rien** — et un projet qui francise son URL assume cette perte, exactement comme il
+  l'assume déjà en renommant `sort`.
+
+Conséquence gratuite : `meilifacets:check-parameters` refusera qu'une taxonomie se mappe sur ces
+noms, puisque `UrlParameters::taxonomies()` écarte déjà les réservés.
+
+**D-f · La disponibilité — ⏸ différée le 2026-09-15**, avec le reste du stock. `metas._stock_status`
+est déjà filtrable et personne ne s'en sert. Deux formes possibles, comme chez FacetWP : deux valeurs
+(le réassort compte comme disponible) ou trois. Livrable sans préalable **pour les produits
+simples** ; pour les variables, elle hérite du § 4 bis.
+
+**D-g · Le stock au niveau de la variation — ⏸ différée le 2026-09-15.** Faut-il indexer la
+disponibilité par variation, pour qu'une facette de variation ne propose pas une valeur épuisée ?
+C'est ce que la littérature appelle la bonne pratique, et cela change la forme du document indexé,
+pas seulement ses champs. À reprendre avec `D-f` et le mode « gestion par quantité » (§ 4 bis).
 
 ---
 

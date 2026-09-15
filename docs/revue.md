@@ -2997,6 +2997,55 @@ c'est celui-là qui est levé.
 
 ---
 
+### R-109 · 🔴 · **fermé le 2026-09-15** · ouvert le 2026-09-15 — sauvegarder un produit lui fait perdre ses metas dans l'index
+
+**Défaut amont, dans MeiliScout.** Reproduit à volonté et en une commande :
+
+```
+avant                        : #116 a ses metas — 72 produits filtrables
+wc_get_product(116)->save()  : #116 n'a plus ses metas — 71
+```
+
+`PostIndexable::getMetaData()` boucle sur `$this->metaKeys`, qui n'est peuplé que dans trois
+chemins : `getItems()` (indexation complète), `preloadBatchData()` (par lots) et le setter
+`setMetaKeys()`. **Aucun ne s'exécute sur une mise à jour d'un seul document.** La boucle parcourt
+donc un tableau vide, `$document['metas']` vaut `[]`, et le champ disparaît du document
+(`PostIndexable.php:357`).
+
+Conséquences, toutes silencieuses :
+
+- **tout produit modifié depuis la dernière indexation complète sort de tous les filtres de prix et
+  de stock** — `metas._price` et `metas._stock_status` n'existent plus sur son document ;
+- rien ne se voit à l'écran : la carte reste juste, puisque `card` est reconstruit correctement ;
+- trouvé en vérifiant une promo planifiée, ce qui explique pourquoi les trois produits touchés par
+  une bascule de promo (#361, #362, #411) étaient les seuls produits sans metas de l'index.
+
+**Ça bloque le filtre de prix** (`R-43`) : une facette de prix serait fausse pour tout produit édité
+depuis la dernière réindexation complète, sans que rien ne le signale.
+
+**Corrigé en amont** : `AmphiBee/MeiliScout@26eb035`, « fix(indexing): resolve meta keys when
+indexing a single document ». Les trois copies de la résolution sont ramenées à un
+`resolveMetaKeys()` partagé, appelé aussi dans le chemin unitaire que rien ne précédait. La
+`composer.lock` du projet passe de `2acf53a` à `26eb035`. `CLAUDE.md` § 2 : « prefer fixing a
+dependency over working around it » ; `resolveIndexable()` est le précédent.
+
+Un test amont l'accompagne, écrit pour échouer d'abord — `SingleDocumentMetaTest`. La suite de
+MeiliScout était déjà rouge sur `2acf53a` (`ArchiveIntegrationTest` ne charge pas, la classe
+`Pollora\MeiliScout\Tests\TestCase` n'existe pas) : **14 échecs / 16 réussis** avant, **14 / 17**
+après. Mêmes échecs, un test de plus.
+
+Vérifié sur le site après `composer update`, patch manuel retiré :
+
+```
+avant : 72 produits filtrables · #362 absent
+après une sauvegarde de #362 : 73 · #362 présent
+```
+
+**Résiduel** : #361 et #411 restent sans metas dans l'index, abîmés avant le correctif et jamais
+resauvegardés depuis. Une réindexation complète — ou une simple modification — les répare.
+
+---
+
 ### Revue de la PR #1 — `R-93` à `R-106`
 
 Quatorze constats relevés par une revue contradictoire sur la PR de placement de facettes
