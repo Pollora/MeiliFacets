@@ -12,6 +12,7 @@ const VALUE_TEXT = 'aria-valuetext'
 const VALUE_MIN = 'aria-valuemin'
 const VALUE_MAX = 'aria-valuemax'
 const BOUND = 'data-bound'
+const ACTIVE_HANDLE = 'data-active'
 
 /** Keyed by end, never by position: a missing input would shift the other one's meaning. */
 const ENDS = ['min', 'max']
@@ -218,8 +219,19 @@ export class PriceControl {
      * @param {PointerEvent} event
      */
     #grab(handle, event) {
-        this.#dragging = handle
+        this.#hold(handle)
         this.#track?.setPointerCapture(event.pointerId)
+    }
+
+    /**
+     * `:active` stays on the handle that was pressed, while a crossing hands the drag to the other.
+     *
+     * @param {HTMLElement | null} handle
+     */
+    #hold(handle) {
+        this.#dragging?.removeAttribute(ACTIVE_HANDLE)
+        this.#dragging = handle
+        handle?.setAttribute(ACTIVE_HANDLE, '')
     }
 
     /**
@@ -241,7 +253,7 @@ export class PriceControl {
             return
         }
 
-        this.#dragging = null
+        this.#hold(null)
 
         if (this.#pending !== null) {
             this.#receive(this.#pending.span)
@@ -309,7 +321,7 @@ export class PriceControl {
         this.#paint(low, high)
 
         if (crossed && this.#dragging !== null) {
-            this.#dragging = this.#handles[grabbed === 'min' ? 'max' : 'min']
+            this.#hold(this.#handles[grabbed === 'min' ? 'max' : 'min'])
         }
     }
 

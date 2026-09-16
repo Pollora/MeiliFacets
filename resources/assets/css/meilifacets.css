@@ -471,8 +471,8 @@
     cursor: grabbing;
 }
 
-.meilifacetsRangeHandle:active,
-.meilifacetsRangeHandle:focus-visible {
+.meilifacetsRangeHandle:focus-visible,
+[data-meili="price-handle"][data-active] {
     transform: translate(-50%, -50%) scale(1.12);
 }
 
@@ -500,8 +500,8 @@
     transition: opacity 120ms var(--meili-ease);
 }
 
-.meilifacetsRangeHandle:active .meilifacetsRangeTip,
-.meilifacetsRangeHandle:focus-visible .meilifacetsRangeTip {
+.meilifacetsRangeHandle:focus-visible .meilifacetsRangeTip,
+[data-meili="price-handle"][data-active] [data-meili="price-tip"] {
     opacity: 1;
 }
 

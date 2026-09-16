@@ -224,3 +224,43 @@ describe('a price range whose bounds arrive while a handle is held', () => {
         assert.deepEqual(price.committed, [[55, 120]])
     })
 })
+
+describe('a price range dragged across itself', () => {
+    const dragged = () => {
+        const price = control({ min: 55, max: 120 })
+        price.track().getBoundingClientRect = () => ({ left: 0, width: 199, top: 0, height: 10 })
+
+        const at = (type, node, clientX) => node.dispatchEvent(new price.window.PointerEvent(type, { bubbles: true, pointerId: 1, clientX }))
+
+        return { price, at }
+    }
+
+    it('marks the handle being dragged, and only that one', () => {
+        const { price, at } = dragged()
+
+        at('pointerdown', price.handle('min'), 55)
+
+        assert.equal(price.handle('min').hasAttribute('data-active'), true)
+        assert.equal(price.handle('max').hasAttribute('data-active'), false)
+    })
+
+    it('moves the mark to the other handle once they cross', () => {
+        const { price, at } = dragged()
+
+        at('pointerdown', price.handle('min'), 55)
+        at('pointermove', price.track(), 150)
+
+        assert.deepEqual(price.held(), ['120', '150'])
+        assert.equal(price.handle('min').hasAttribute('data-active'), false)
+        assert.equal(price.handle('max').hasAttribute('data-active'), true)
+    })
+
+    it('clears the mark on release', () => {
+        const { price, at } = dragged()
+
+        at('pointerdown', price.handle('min'), 55)
+        at('pointerup', price.track(), 55)
+
+        assert.equal(price.handle('min').hasAttribute('data-active'), false)
+    })
+})

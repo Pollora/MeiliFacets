@@ -3104,7 +3104,7 @@ tester, puis ouvrir le navigateur.
 
 ---
 
-### R-120 · 🟡 · **fermé le 2026-09-16** · ouvert le 2026-09-16 — la bulle de valeur disparaissait pendant le glissé
+### R-120 · 🟡 · **refermé le 2026-09-16** · rouvert et ouvert le 2026-09-16 — la bulle de valeur disparaissait pendant le glissé
 
 La bulle d'une poignée ne s'affichait qu'au survol ou au focus clavier. Dès qu'on tire, le pointeur
 quitte la poignée : plus de survol, et un clic souris ne donne pas `:focus-visible`. La valeur
@@ -3122,9 +3122,24 @@ vérifierait la présence du sélecteur dans la feuille recopierait ce qu'il pr�
 travers de `R-91`. La vérification est celle du navigateur, écrite ci-dessus.
 
 **Passes.** Lisibilité : deux sélecteurs ajoutés à des règles existantes. Commentaires : aucun.
-Performance : aucune règle nouvelle. Sécurité : sans objet. Contexte : sur écran tactile, `:active`
-s'applique aussi pendant le contact dans Chromium et Firefox ; Safari iOS ne l'applique que si la
-page écoute les événements tactiles, ce que fait déjà la piste (`pointerdown`).
+Performance : aucune règle nouvelle. Sécurité : sans objet.
+
+**Rouvert le même jour — le correctif était faux au croisement.** La passe de conformité l'a signalé,
+Chromium l'a confirmé : quand la poignée tirée dépasse l'autre, `#moveTo()` passe la main à cette
+autre poignée, mais `:active` reste sur celle qu'on a pressée. Mesuré en tirant la basse au-delà de
+la haute : pointeur à 80 %, poignée haute à 159 € **sans** bulle, poignée basse immobile à 59 € **avec**
+bulle. L'affirmation précédente sur Safari iOS n'avait, elle, jamais été mesurée : retirée.
+
+**Corrigé avec le précédent du module** : `data-active`, écrit par le client hors contrat, comme sur
+l'option de tri (`decisions.md`, « `data-active` est écrit par le client… »). `PriceControl::#hold()`
+le pose sur la poignée réellement tirée, le déplace au croisement, le retire au relâchement. La règle
+CSS s'accroche désormais au crochet — `[data-meili="price-handle"][data-active]` — comme l'exige la
+décision « la règle s'accroche à `data-meili`, jamais aux classes ». `:active` ne reste que pour le
+curseur.
+
+Vérifié dans Chromium, même geste : avant le croisement, bulle sur la basse (30 €) ; après, sur la
+haute (159 €) et plus sur la basse ; relâché, aucune. Et cette fois testable : trois tests JS — la
+marque posée sur la seule poignée tirée, déplacée au croisement, retirée au relâchement.
 
 ---
 
