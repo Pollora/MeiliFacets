@@ -66,8 +66,21 @@ final class PriceRangeTest extends TestCase
             'price.max' => ['min' => 4.5, 'max' => 199.0],
         ]);
 
-        $this->assertEqualsWithDelta(4.5, $bounds->min, PHP_FLOAT_EPSILON);
+        $this->assertEqualsWithDelta(4.0, $bounds->min, PHP_FLOAT_EPSILON);
         $this->assertEqualsWithDelta(199.0, $bounds->max, PHP_FLOAT_EPSILON);
+    }
+
+    /** A handle only rests on whole units: an end left at 46.40 would put the product priced there out of reach. */
+    #[Test]
+    public function it_widens_its_bounds_to_whole_units_as_woocommerce_does(): void
+    {
+        $bounds = new PriceFilter('Price')->boundsFrom([
+            'price.min' => ['min' => 9.8, 'max' => 40.0],
+            'price.max' => ['min' => 12.0, 'max' => 46.4],
+        ]);
+
+        $this->assertEqualsWithDelta(9.0, $bounds->min, PHP_FLOAT_EPSILON);
+        $this->assertEqualsWithDelta(47.0, $bounds->max, PHP_FLOAT_EPSILON);
     }
 
     /** A listing whose engine reported nothing must not draw a range from nowhere. */

@@ -3026,6 +3026,35 @@ c'est celui-là qui est levé.
 
 ---
 
+### R-119 · 🟠 · **fermé le 2026-09-16** · ouvert le 2026-09-16 — la piste de prix arrondit ses extrémités, et perd le produit qui s'y trouve
+
+Les bornes de la piste sont les `facetStats` brutes — 9,80 €, 43,40 €, 46,40 € — mais une poignée ne
+se pose que sur un entier (`Math.round` dans `PriceControl::#moveTo()`). Pousser la poignée haute au
+bout sur une borne à 46,40 € envoie donc `46`, et le produit à 46,40 € disparaît du filtre qui
+prétend tout couvrir. Même chose en bas : une borne à 43,40 € devient 43, ce qui ne perd rien, mais
+une borne à 9,80 € arrondie à 10 perd le produit à 9,80 €.
+
+**Ce que fait la plateforme.** WooCommerce arrondit les bornes **vers l'extérieur**, jamais les
+poignées : `floor` pour le minimum, `ceil` pour le maximum — à l'entier dans le bloc
+(`ProductFilterPrice.php:219-220`), au pas dans le widget (`class-wc-widget-price-filter.php:111-112`).
+La piste couvre alors toujours les prix extrêmes, et une poignée entière ne peut pas en sortir.
+
+**Corrigé à la source**, dans `PriceFilter::boundsFrom()` : `floor` sur le minimum, `ceil` sur le
+maximum. Le client lit ses bornes dans les `aria-valuemin`/`aria-valuemax` que le serveur rend, donc
+une correction suffit aux deux. Les poignées gardent leur pas entier ; c'est la piste qui s'élargit.
+
+Vérifié dans Chromium sur `?marque=aeris` (prix de 9,50 à 46,40 €) : piste **9 – 47 €**, poignées
+ramenées au bout par `Home` et `End` puis appliquées, les 10 produits restent, dont les deux
+extrêmes. Un test : 9,8 → 9 et 46,4 → 47 ; le test existant passe de 4,5 à 4.
+
+⚠️ Quand le client remesurera lui-même ses bornes (point suivant du lot), il devra arrondir **de la
+même façon** : sinon la piste change de largeur entre le rendu serveur et le premier clic.
+
+**Passes.** Lisibilité : une expression. Commentaires : aucun ajouté au code. Performance : deux
+appels natifs par rendu. Sécurité : valeurs du moteur, typées `float`. Contexte : aucun.
+
+---
+
 ### R-118 · 🟠 · **fermé le 2026-09-16** · ouvert le 2026-09-16 — une poignée de prix garde sa valeur périmée après une saisie ou une remise à zéro
 
 Reproduit dans Chromium, au clavier seul : saisir `90` dans « À », revenir sur la poignée haute,

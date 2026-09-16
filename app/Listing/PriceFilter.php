@@ -52,6 +52,6 @@ final readonly class PriceFilter implements Placeable
         $max = $stats[PriceField::Max->path()]['max'] ?? null;
 
         // One end alone draws nothing, and leaves the other reading `aria-valuemax=""`.
-        return $min === null || $max === null ? new Range : new Range($min, $max);
+        return $min === null || $max === null ? new Range : new Range(floor($min), ceil($max));
     }
 }
