@@ -87,16 +87,9 @@ final readonly class ListingDescription
      */
     private function priceFields(ResolvedListing $listing): ?array
     {
-        foreach ($listing->filters() as $filter) {
-            if ($filter instanceof PriceFilter) {
-                return [
-                    'min' => PriceField::Min->path(),
-                    'max' => PriceField::Max->path(),
-                ];
-            }
-        }
-
-        return null;
+        return PriceFilter::isDeclaredAmong($listing->filters())
+            ? ['min' => PriceField::Min->path(), 'max' => PriceField::Max->path()]
+            : null;
     }
 
     /**

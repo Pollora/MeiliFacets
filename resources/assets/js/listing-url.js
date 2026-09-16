@@ -14,6 +14,9 @@ export class ListingUrl {
     /** @type {string[]} */
     #sorts
 
+    /** @type {boolean} */
+    #readsPrice
+
     /**
      * @param {ListingDescription} description
      */
@@ -21,6 +24,7 @@ export class ListingUrl {
         this.#reserved = description.reserved
         this.#parameters = description.facets.map((facet) => [facet, description.params[facet.taxonomy]])
         this.#sorts = Object.keys(description.sorts)
+        this.#readsPrice = Boolean(description.priceFields)
     }
 
     /**
@@ -36,10 +40,9 @@ export class ListingUrl {
             query: params.get(this.#reserved.query) ?? '',
             sort: this.#declaredSort(params.get(this.#reserved.sort)),
             page: Number.parseInt(params.get(this.#reserved.page) ?? '1', 10),
-            price: {
-                min: params.get(this.#reserved.minPrice),
-                max: params.get(this.#reserved.maxPrice),
-            },
+            price: this.#readsPrice
+                ? { min: params.get(this.#reserved.minPrice), max: params.get(this.#reserved.maxPrice) }
+                : {},
         })
     }
 

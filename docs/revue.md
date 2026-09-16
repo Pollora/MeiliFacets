@@ -3026,6 +3026,38 @@ c'est celui-là qui est levé.
 
 ---
 
+### R-124 · 🟡 · **fermé le 2026-09-16** · ouvert le 2026-09-16 — un listing sans filtre de prix lit quand même la plage dans l'URL
+
+`StateReader` (PHP) et `ListingUrl::toState()` (JS) lisent `min_price`/`max_price` quel que soit le
+listing. Sur un listing qui ne déclare aucun `PriceFilter`, `QueryPlan` n'écrit aucune clause de prix
+— mais l'état porte la plage : le listing n'est plus « vierge », passe en `noindex`, affiche « Tout
+effacer », et depuis `R-123` compterait un filtre actif. Une URL `?min_price=20` fait donc tout cela
+sans filtrer quoi que ce soit.
+
+`CLAUDE.md` § 4 le demande explicitement : rien de ce qui dépend du prix ne doit agir quand le listing
+ne le déclare pas (`R-09`).
+
+**Corrigé des deux côtés** : `StateReader` ne lit la plage que si le listing déclare un `PriceFilter`,
+`ListingUrl` que si la description porte `priceFields` — ce que le serveur ne publie que dans ce cas.
+
+La recherche du `PriceFilter` parmi les filtres d'un listing existait en deux boucles identiques
+(`QueryPlan`, `ListingDescription`) et en aurait eu une troisième. Elle vit désormais sur la classe :
+`PriceFilter::among()` pour qui veut le filtre, `isDeclaredAmong()` pour qui ne veut qu'un oui ou un
+non — ce second nom évite l'`! … instanceof` que Rector impose sur une comparaison à `null`. Le contrat
+`Listing`, qu'un projet implémente, n'a pas bougé.
+
+Vérifié : `/boutique?min_price=20&max_price=30`, listing qui déclare un prix, lit toujours la plage
+(badge « 1 filtre actif », champs 20 et 30). Aucun listing du site ne déclare **pas** de prix : ce cas
+est porté par deux tests PHP (sans prix → plage vide, listing vierge, zéro filtre ; avec prix → plage
+lue) et un test JS.
+
+**Passes.** Lisibilité : `StateReader::read()` délègue la plage à `price()`, et deux boucles sont
+remplacées par une recherche nommée. Commentaires : aucun ajouté. Performance : une boucle courte sur les
+filtres déclarés, une fois par lecture d'état. Sécurité : moins d'entrée lue, pas plus. Contexte : c'est
+le point — rien du prix n'agit sans déclaration.
+
+---
+
 ### R-123 · 🟡 · **fermé le 2026-09-16** · ouvert le 2026-09-16 — une plage de prix ne compte pas parmi les filtres actifs
 
 Reproduit dans Chromium : `?min_price=60&max_price=199` appliqué, le badge dit « 0 filtres actifs »

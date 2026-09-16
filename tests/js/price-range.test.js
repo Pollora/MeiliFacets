@@ -61,6 +61,12 @@ describe('a price range in the URL', () => {
     })
 
     /** Zero is a bound a shop can hold: a free product must stay reachable. */
+    it('reads no range for a listing that declares none', () => {
+        const without = new ListingUrl({ ...description, priceFields: null })
+
+        assert.deepEqual(without.toState('?min_price=20&max_price=60').price, { min: null, max: null })
+    })
+
     it('keeps a bound of zero', () => {
         assert.equal(url.toSearch(new ListingState({ price: { min: 0 } })), '?min_price=0')
         assert.deepEqual(url.toState('?min_price=0').price.min, 0)

@@ -27,10 +27,22 @@ final readonly class StateReader
             $this->sort($listing, $query),
             $this->page($query),
             mb_substr($this->text($query, QueryParameter::Query), 0, self::MAX_QUERY_LENGTH),
-            new Range(
-                $this->bound($query, QueryParameter::MinPrice),
-                $this->bound($query, QueryParameter::MaxPrice),
-            ),
+            $this->price($listing, $query),
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $query
+     */
+    private function price(Listing $listing, array $query): Range
+    {
+        if (! PriceFilter::isDeclaredAmong($listing->filters())) {
+            return new Range;
+        }
+
+        return new Range(
+            $this->bound($query, QueryParameter::MinPrice),
+            $this->bound($query, QueryParameter::MaxPrice),
         );
     }
 

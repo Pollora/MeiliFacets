@@ -24,6 +24,28 @@ final readonly class PriceFilter implements Placeable
         $this->name = $name instanceof BackedEnum ? (string) $name->value : $name;
     }
 
+    /**
+     * @param  list<Placeable>  $filters
+     */
+    public static function among(array $filters): ?self
+    {
+        foreach ($filters as $filter) {
+            if ($filter instanceof self) {
+                return $filter;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  list<Placeable>  $filters
+     */
+    public static function isDeclaredAmong(array $filters): bool
+    {
+        return self::among($filters) instanceof self;
+    }
+
     public function shows(PricePart $part): bool
     {
         return in_array($part, $this->parts, true);

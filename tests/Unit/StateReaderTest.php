@@ -157,6 +157,25 @@ final class StateReaderTest extends TestCase
     }
 
     #[Test]
+    public function it_reads_no_range_for_a_listing_that_declares_none(): void
+    {
+        $state = $this->reader->read(FakeListing::withBrandAndCategory(), ['min_price' => '20', 'max_price' => '60']);
+
+        $this->assertTrue($state->price->isEmpty());
+        $this->assertTrue($state->isPristine());
+        $this->assertSame(0, $state->activeFilterCount());
+    }
+
+    #[Test]
+    public function it_reads_the_range_a_listing_declares(): void
+    {
+        $state = $this->reader->read(FakeListing::withPriceAndBrand(), ['min_price' => '20', 'max_price' => '60']);
+
+        $this->assertEqualsWithDelta(20.0, $state->price->min, PHP_FLOAT_EPSILON);
+        $this->assertEqualsWithDelta(60.0, $state->price->max, PHP_FLOAT_EPSILON);
+    }
+
+    #[Test]
     public function it_counts_a_price_range_as_one_filter_whatever_its_ends(): void
     {
         $this->assertSame(1, new ListingState(price: new Range(20.0, 60.0))->activeFilterCount());

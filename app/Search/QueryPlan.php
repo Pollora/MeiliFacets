@@ -85,13 +85,7 @@ final readonly class QueryPlan
      */
     private static function priceFields(Listing $listing): array
     {
-        foreach ($listing->filters() as $filter) {
-            if ($filter instanceof PriceFilter) {
-                return $filter->fields();
-            }
-        }
-
-        return [];
+        return PriceFilter::among($listing->filters())?->fields() ?? [];
     }
 
     /**
