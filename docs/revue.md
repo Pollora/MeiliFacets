@@ -3026,6 +3026,30 @@ c'est celui-là qui est levé.
 
 ---
 
+### R-120 · 🟡 · **fermé le 2026-09-16** · ouvert le 2026-09-16 — la bulle de valeur disparaissait pendant le glissé
+
+La bulle d'une poignée ne s'affichait qu'au survol ou au focus clavier. Dès qu'on tire, le pointeur
+quitte la poignée : plus de survol, et un clic souris ne donne pas `:focus-visible`. La valeur
+restait donc invisible **pendant** le glissé — le seul moment où on la cherche des yeux. Mesuré dans
+Chromium : `opacity: 0` au milieu d'un glissé.
+
+**Corrigé en CSS seul**, sans attribut d'état ni changement de contrat. Un élément reste `:active`
+tant que le bouton est enfoncé, même quand le pointeur s'en éloigne et que la piste a capturé le
+pointeur — vérifié à 40 px sous la poignée : `:active` vrai, `:hover` faux, bulle à `opacity: 1`
+affichant la valeur courante. Le module utilisait déjà `:active` comme état de glissé
+(`cursor: grabbing`) ; la bulle et le grossissement de la poignée suivent ce précédent.
+
+**Pas de test automatisé, délibérément.** `happy-dom` ne simule pas `:active`, et un test qui
+vérifierait la présence du sélecteur dans la feuille recopierait ce qu'il prétend vérifier — le
+travers de `R-91`. La vérification est celle du navigateur, écrite ci-dessus.
+
+**Passes.** Lisibilité : deux sélecteurs ajoutés à des règles existantes. Commentaires : aucun.
+Performance : aucune règle nouvelle. Sécurité : sans objet. Contexte : sur écran tactile, `:active`
+s'applique aussi pendant le contact dans Chromium et Firefox ; Safari iOS ne l'applique que si la
+page écoute les événements tactiles, ce que fait déjà la piste (`pointerdown`).
+
+---
+
 ### R-119 · 🟠 · **fermé le 2026-09-16** · ouvert le 2026-09-16 — la piste de prix arrondit ses extrémités, et perd le produit qui s'y trouve
 
 Les bornes de la piste sont les `facetStats` brutes — 9,80 €, 43,40 €, 46,40 € — mais une poignée ne

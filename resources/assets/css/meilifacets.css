@@ -471,6 +471,7 @@
     cursor: grabbing;
 }
 
+.meilifacetsRangeHandle:active,
 .meilifacetsRangeHandle:focus-visible {
     transform: translate(-50%, -50%) scale(1.12);
 }
@@ -499,6 +500,7 @@
     transition: opacity 120ms var(--meili-ease);
 }
 
+.meilifacetsRangeHandle:active .meilifacetsRangeTip,
 .meilifacetsRangeHandle:focus-visible .meilifacetsRangeTip {
     opacity: 1;
 }
