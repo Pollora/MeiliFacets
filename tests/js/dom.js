@@ -57,6 +57,15 @@ export const press = (window, node, key) => {
     node.dispatchEvent(new window.KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }))
 }
 
+export const release = (window, node, key) => {
+    node.dispatchEvent(new window.KeyboardEvent('keyup', { key, bubbles: true, cancelable: true }))
+}
+
+export const stroke = (window, node, key) => {
+    press(window, node, key)
+    release(window, node, key)
+}
+
 export const tick = (window, input) => {
     input.checked = !input.checked
     input.dispatchEvent(new window.Event('change', { bubbles: true }))

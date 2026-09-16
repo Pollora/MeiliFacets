@@ -5,7 +5,7 @@ import { Contract } from '../../resources/assets/js/contract.js'
 import { ListingQuery } from '../../resources/assets/js/listing-query.js'
 import { PriceBounds } from '../../resources/assets/js/price-bounds.js'
 import { PriceControl } from '../../resources/assets/js/price-control.js'
-import { CONTRACT, open, press } from './dom.js'
+import { CONTRACT, open, press, release, stroke } from './dom.js'
 
 const description = {
     money: { format: '%2$s %1$s', symbol: '€', decimals: 2, decimal: ',', thousand: ' ' },
@@ -74,7 +74,7 @@ describe('a price range on the keyboard', () => {
     it('steps a handle and commits where it landed', () => {
         const price = control({ min: 55, max: 120 })
 
-        press(price.window, price.handle('min'), 'ArrowRight')
+        stroke(price.window, price.handle('min'), 'ArrowRight')
 
         assert.deepEqual(price.held(), ['56', '120'])
         assert.deepEqual(price.committed, [[56, 120]])
@@ -83,10 +83,10 @@ describe('a price range on the keyboard', () => {
     it('goes to each end with Home and End', () => {
         const price = control({ min: 55, max: 120 })
 
-        press(price.window, price.handle('min'), 'Home')
+        stroke(price.window, price.handle('min'), 'Home')
         assert.deepEqual(price.held(), ['0', '120'])
 
-        press(price.window, price.handle('max'), 'End')
+        stroke(price.window, price.handle('max'), 'End')
         assert.deepEqual(price.held(), ['0', '199'])
     })
 
@@ -97,19 +97,19 @@ describe('a price range on the keyboard', () => {
      */
     it('still moves when both ends sit on the same value', () => {
         const top = control({ min: 199, max: 199 })
-        press(top.window, top.handle('max'), 'ArrowLeft')
+        stroke(top.window, top.handle('max'), 'ArrowLeft')
         assert.deepEqual(top.held(), ['198', '199'])
 
         const bottom = control({ min: 0, max: 0 })
-        press(bottom.window, bottom.handle('min'), 'ArrowRight')
+        stroke(bottom.window, bottom.handle('min'), 'ArrowRight')
         assert.deepEqual(bottom.held(), ['0', '1'])
     })
 
     it('never leaves what the catalogue can reach', () => {
         const price = control({ min: 0, max: 199 })
 
-        press(price.window, price.handle('min'), 'ArrowLeft')
-        press(price.window, price.handle('max'), 'ArrowRight')
+        stroke(price.window, price.handle('min'), 'ArrowLeft')
+        stroke(price.window, price.handle('max'), 'ArrowRight')
 
         assert.deepEqual(price.held(), ['0', '199'])
     })
@@ -117,7 +117,7 @@ describe('a price range on the keyboard', () => {
     it('writes what the shop writes, in the tip and in the readout', () => {
         const price = control({ min: 55, max: 120 })
 
-        press(price.window, price.handle('min'), 'ArrowRight')
+        stroke(price.window, price.handle('min'), 'ArrowRight')
 
         assert.equal(price.handle('min').querySelector('[data-meili="price-tip"]').textContent, '56,00 €')
         assert.equal(price.readout(), '56,00 € – 120,00 €')
@@ -137,7 +137,7 @@ describe('a price range shown a state it did not set itself', () => {
         const price = control({ min: 0, max: 199 })
 
         price.show(null, 90)
-        press(price.window, price.handle('max'), 'ArrowLeft')
+        stroke(price.window, price.handle('max'), 'ArrowLeft')
 
         assert.deepEqual(price.held(), ['0', '89'])
         assert.deepEqual(price.committed, [[null, 89]])
@@ -169,7 +169,7 @@ describe('a price range whose bounds the engine measured again', () => {
         price.showBounds({ min: 43, max: 199 })
 
         assert.equal(price.handle('min').getAttribute('aria-valuemin'), '43')
-        press(price.window, price.handle('min'), 'Home')
+        stroke(price.window, price.handle('min'), 'Home')
         assert.deepEqual(price.held(), ['43', '199'])
     })
 
@@ -269,8 +269,8 @@ describe('a price bound left on the edge of the rail', () => {
     it('is not a filter, so it is not committed', () => {
         const price = control({ min: 55, max: 120 })
 
-        press(price.window, price.handle('max'), 'End')
-        press(price.window, price.handle('min'), 'Home')
+        stroke(price.window, price.handle('max'), 'End')
+        stroke(price.window, price.handle('min'), 'Home')
 
         assert.deepEqual(price.committed, [[55, null], [null, null]])
     })
@@ -278,7 +278,7 @@ describe('a price bound left on the edge of the rail', () => {
     it('still commits a bound one step inside the edge', () => {
         const price = control({ min: 0, max: 199 })
 
-        press(price.window, price.handle('max'), 'ArrowLeft')
+        stroke(price.window, price.handle('max'), 'ArrowLeft')
 
         assert.deepEqual(price.committed, [[null, 198]])
     })
@@ -353,5 +353,31 @@ describe('a price bound typed across the other one', () => {
         typed(window, root, 'price-min', '120')
 
         assert.deepEqual(committed, [[120, 120]])
+    })
+})
+
+describe('a price handle moved from the keyboard', () => {
+    it('moves on every press, and commits once the key is let go', () => {
+        const price = control({ min: 55, max: 120 })
+
+        for (let i = 0; i < 3; i++) {
+            press(price.window, price.handle('min'), 'ArrowRight')
+        }
+
+        assert.deepEqual(price.held(), ['58', '120'])
+        assert.deepEqual(price.committed, [])
+
+        release(price.window, price.handle('min'), 'ArrowRight')
+
+        assert.deepEqual(price.committed, [[58, 120]])
+    })
+
+    it('commits nothing when a key that moves nothing is let go', () => {
+        const price = control({ min: 55, max: 120 })
+
+        release(price.window, price.handle('min'), 'Shift')
+        release(price.window, price.handle('min'), 'Tab')
+
+        assert.deepEqual(price.committed, [])
     })
 })

@@ -3026,6 +3026,42 @@ c'est celui-là qui est levé.
 
 ---
 
+### R-129 · 🟡 · **fermé le 2026-09-16** · ouvert le 2026-09-16 — en mode `immediate`, chaque flèche lance une recherche
+
+`PriceControl::#stepped()` déplace la poignée **et** valide à chaque `keydown`. En mode `immediate`, dix
+appuis — ou une flèche maintenue, qui répète le `keydown` — donnent dix recherches et dix réécritures
+d'URL. Les recherches périmées sont annulées (`SearchSuperseded`), donc la grille reste juste ; le coût
+est dans le moteur, et dans `history.replaceState`, dont Safari limite le débit.
+
+**Ce que fait la plateforme.** Le curseur du bloc WooCommerce bouge à chaque `input` et ne filtre qu'au
+relâchement : `data-wp-on--keyup="actions.navigate"`, comme `mouseup` et `touchend`
+(`ProductFilterPriceSlider.php:131,143`).
+
+**Tranché par Louis le 2026-09-16 : au relâchement de la touche, comme WooCommerce.**
+
+**Corrigé** : `#stepped()` ne fait plus que déplacer la poignée au `keydown` ; `#steppedOff()` valide au
+`keyup`, et seulement pour une touche qui déplace quelque chose — relâcher `Shift` ou `Tab` ne valide rien.
+Une flèche maintenue ne valide qu'une fois. Le mode `submit` n'en est pas changé pour le visiteur : la
+recherche y attend toujours « Appliquer ».
+
+**Vérifié dans Chrome, sur le code publié, mode `submit`** : dix `keydown` amènent la poignée haute à 189 ;
+« Appliquer » sans relâchement n'écrit rien ; après le `keyup`, « Appliquer » écrit `?max_price=189`.
+
+**Non vérifié en navigateur, et pourquoi** : le comptage des recherches en mode `immediate`. La
+description a bien été basculée en `immediate` par interception de la réponse, mais l'entrée clavier de
+CDP (`Input.dispatchKeyEvent`) n'atteint pas la page dans Chrome headless — la poignée ne bouge pas, même
+focalisée — et le navigateur Playwright est resté bloqué après les interceptions. Le chemin est le même
+`#commitFields()` → `Listing::priceBetween()` → `#byMode()` que les autres gestes, et deux tests JS tiennent
+le changement : poignée déplacée à chaque appui sans validation, validation unique au relâchement ; rien
+validé au relâchement d'une touche qui ne déplace rien. Les tests existants passent désormais par
+`stroke()` (appui puis relâchement), ajouté à `dom.js` avec `release()`.
+
+**Passes.** Lisibilité : un écouteur et une méthode de trois lignes. Commentaires : une ligne, la
+répétition du `keydown` sur une touche maintenue. Performance : une recherche par relâchement au lieu d'une
+par répétition. Sécurité : aucune. Contexte : aucun.
+
+---
+
 ### R-128 · 🟡 · **fermé le 2026-09-16** · ouvert le 2026-09-16 — le style du prix visait des classes, et une vue surchargée le perdait
 
 `decisions.md` : « la règle s'accroche à `data-meili`, jamais aux classes : ce sont les crochets qu'un

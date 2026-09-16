@@ -149,6 +149,7 @@ export class PriceControl {
             this.#inputs[end]?.addEventListener('change', () => this.#commitFields())
             handle?.addEventListener('pointerdown', (event) => this.#grab(handle, event))
             handle?.addEventListener('keydown', (event) => this.#stepped(handle, event))
+            handle?.addEventListener('keyup', (event) => this.#steppedOff(handle, event))
         }
 
         this.#track?.addEventListener('pointermove', (event) => this.#drag(event))
@@ -309,7 +310,18 @@ export class PriceControl {
 
         event.preventDefault()
         this.#moveTo(handle, to)
-        this.#commitFields()
+    }
+
+    /**
+     * A held key repeats its `keydown`: the range commits once, when the key is let go.
+     *
+     * @param {HTMLElement} handle
+     * @param {KeyboardEvent} event
+     */
+    #steppedOff(handle, event) {
+        if (this.#steppedTo(handle, event) !== undefined) {
+            this.#commitFields()
+        }
     }
 
     /**
