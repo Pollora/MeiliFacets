@@ -305,3 +305,53 @@ describe('a price bound left on the edge of the rail', () => {
         assert.deepEqual(committed, [[null, null], [null, 30]])
     })
 })
+
+describe('a price bound typed across the other one', () => {
+    const typed = (window, root, hook, value) => {
+        const input = root.querySelector(`[data-meili="${hook}"]`)
+        input.value = value
+        input.dispatchEvent(new window.Event('change', { bubbles: true }))
+    }
+
+    it('is refused beside a rail, and the field goes back to the range held', () => {
+        const { window, root } = open(markup({ min: 55, max: 120 }))
+        const committed = []
+        const priceControl = new PriceControl(new Contract(root), description, (min, max) => committed.push([min, max]))
+        priceControl.start()
+        priceControl.show({ price: { min: 55, max: 120 } })
+
+        typed(window, root, 'price-min', '150')
+
+        assert.deepEqual(committed, [])
+        assert.equal(root.querySelector('[data-meili="price-min"]').value, '55')
+    })
+
+    it('is refused without a rail too, and the field goes back to what it showed', () => {
+        const { window, root } = open(`
+            <div data-listing data-meili-contract="${CONTRACT}">
+              <fieldset data-meili="facet">
+                <input data-meili="price-min" type="number" name="min_price" value="" min="0" max="199">
+                <input data-meili="price-max" type="number" name="max_price" value="" min="0" max="199">
+              </fieldset>
+            </div>`)
+        const committed = []
+        const priceControl = new PriceControl(new Contract(root), description, (min, max) => committed.push([min, max]))
+        priceControl.start()
+        priceControl.show({ price: { min: null, max: 30 } })
+
+        typed(window, root, 'price-min', '80')
+
+        assert.deepEqual(committed, [])
+        assert.equal(root.querySelector('[data-meili="price-min"]').value, '')
+    })
+
+    it('still lets both ends meet on a single price', () => {
+        const { window, root } = open(markup({ min: 55, max: 120 }))
+        const committed = []
+        new PriceControl(new Contract(root), description, (min, max) => committed.push([min, max])).start()
+
+        typed(window, root, 'price-min', '120')
+
+        assert.deepEqual(committed, [[120, 120]])
+    })
+})

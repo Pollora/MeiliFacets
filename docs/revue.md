@@ -3026,6 +3026,36 @@ c'est celui-là qui est levé.
 
 ---
 
+### R-125 · 🟡 · **fermé le 2026-09-16** · ouvert le 2026-09-16 — une borne saisie peut croiser l'autre, et la plage ne filtre plus rien
+
+Les poignées ne peuvent pas produire une plage inversée : `#moveTo()` range toujours la basse sous la
+haute. Les champs, si : taper 100 dans « De » puis 20 dans « À » valide `min_price=100&max_price=20`.
+Aucun produit ne chevauche un intervalle vide, la grille se vide, et rien ne dit pourquoi.
+
+**Ce que fait la plateforme.** Le bloc de filtre de prix de WooCommerce ignore la borne qui croiserait
+l'autre et garde la précédente (`product-filter-price.js`, `setPrice` : un minimum n'est pris que
+`t < maxPrice`, un maximum que `t > minPrice`). Il écarte aussi une valeur hors de la piste — ce que le
+module fait déjà, en la traitant comme une borne ouverte (`R-122`).
+
+**Corrigé comme la plateforme** : une saisie qui croiserait l'autre borne n'est pas validée, et le champ
+reprend ce qu'il affichait — `PriceControl` retient la dernière valeur écrite dans chaque champ
+(`#fill()`), qu'elle vienne d'un `show()` ou d'une poignée. **Un écart assumé** : WooCommerce refuse
+aussi l'égalité (`t < maxPrice`), le module l'accepte, parce que ses poignées peuvent déjà se rejoindre
+sur un seul prix et que la saisie doit dire la même chose qu'elles.
+
+Une URL inversée venue de l'extérieur reste servie telle quelle, vide : même limite que celle écrite
+pour `R-122` — seules les URL que le module écrit sont canoniques.
+
+Vérifié dans Chromium sur `?max_price=60` : 100 saisi dans « De » → champ revenu à 0, URL inchangée ;
+20 saisi → `?min_price=20&max_price=60`. Trois tests JS : refus avec piste, refus sans piste (le champ
+revient vide), égalité acceptée.
+
+**Passes.** Lisibilité : l'écriture des champs passe par un seul `#fill()`, qui retient ce qu'il écrit ;
+`#write()` s'y réduit. Commentaires : aucun. Performance : une comparaison à la validation. Sécurité :
+aucune. Contexte : aucun.
+
+---
+
 ### R-124 · 🟡 · **fermé le 2026-09-16** · ouvert le 2026-09-16 — un listing sans filtre de prix lit quand même la plage dans l'URL
 
 `StateReader` (PHP) et `ListingUrl::toState()` (JS) lisent `min_price`/`max_price` quel que soit le

@@ -66,6 +66,9 @@ export class PriceControl {
     /** @type {{ span: Span | null } | null} */
     #pending = null
 
+    /** @type {Record<string, string>} */
+    #shown = { min: '', max: '' }
+
     /**
      * @param {Contract} contract
      * @param {ListingDescription} description
@@ -93,11 +96,7 @@ export class PriceControl {
         }
 
         for (const end of ENDS) {
-            const input = this.#inputs[end]
-
-            if (input !== null) {
-                input.value = this.#fieldValue(state, end, held[end])
-            }
+            this.#fill(end, this.#fieldValue(state, end, held[end]))
         }
 
         this.#describe(held.min, held.max)
@@ -136,6 +135,7 @@ export class PriceControl {
         for (const end of ENDS) {
             this.#inputs[end] = this.#contract.one(`price-${end}`)
             this.#boundLabels[end] = this.#contract.one(`price-bounds-${end}`)
+            this.#shown[end] = this.#inputs[end]?.value ?? ''
         }
 
         this.#block = (this.#inputs.min ?? this.#inputs.max)?.closest(Contract.selector('facet')) ?? null
@@ -220,6 +220,12 @@ export class PriceControl {
 
     #commitFields() {
         const [min, max] = ENDS.map((end) => this.#asked(end))
+
+        if (min !== null && max !== null && min > max) {
+            ENDS.forEach((end) => this.#fill(end, this.#shown[end]))
+
+            return
+        }
 
         this.#commit(min, max)
     }
@@ -404,12 +410,20 @@ export class PriceControl {
      * @param {number} max
      */
     #write(min, max) {
-        for (const [end, value] of [['min', min], ['max', max]]) {
-            const input = this.#inputs[end]
+        this.#fill('min', String(min))
+        this.#fill('max', String(max))
+    }
 
-            if (input !== null) {
-                input.value = String(value)
-            }
+    /**
+     * @param {string} end
+     * @param {string} value
+     */
+    #fill(end, value) {
+        const input = this.#inputs[end]
+
+        if (input !== null) {
+            input.value = value
+            this.#shown[end] = value
         }
     }
 
