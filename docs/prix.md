@@ -356,6 +356,9 @@ Les bornes suivent donc le filtrage courant. L'ajouter touche `ListingSearch` et
 À noter : `min: 0` est réel — un produit du catalogue est gratuit, le curseur doit l'accepter.
 
 **D-d · La facette « en promotion » — ✅ tranché le 2026-09-15 : oui, dans ce lot, en drapeau.**
+**Amendé le 2026-09-16** (`decisions.md`, « Promotions est une option du tri qui filtre ») : ni facette ni
+`is_on_sale()` — une option « Promotions » du menu de tri, sur le prix réellement facturé ; 20 produits.
+Le paragraphe ci-dessous est l'état du 2026-09-15.
 Dérivé de `is_on_sale()` à l'indexation, à l'image de la colonne `onsale` de
 `wc_product_meta_lookup` — pas les dates (§ 4 quater). Le coût marginal est faible puisque le lot
 touche déjà l'indexation et impose une réindexation. 14 produits sont en promotion aujourd'hui.

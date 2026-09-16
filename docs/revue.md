@@ -3026,6 +3026,50 @@ c'est celui-là qui est levé.
 
 ---
 
+### R-130 · 🟠 · **fermé le 2026-09-16** · ouvert le 2026-09-16 — `price.onsale` suit le badge, pas le panier
+
+Préalable de l'option « Promotions » (décision du 2026-09-16, `decisions.md`), comme l'intervalle de
+prix l'a été du filtre (`D-b`). `ProductPriceProjector` indexe `is_on_sale()`, qui lit les dates de promo
+à la volée ; la décision retient le prix **réellement facturé** — le drapeau figé de WooCommerce, prix promo
+renseigné et égal au prix courant (`class-wc-product-data-store-cpt.php`, colonne `onsale`), qu'appliquent
+aussi ses propres listes « en promotion » (`wc_get_product_ids_on_sale()`, Store API `on_sale`).
+
+Mesuré sur Pluralia :
+
+| définition | produits |
+| --- | --- |
+| drapeau figé, produits eux-mêmes | 16 |
+| + parents dont une variation visible est en promo | 20 |
+| `is_on_sale()`, l'index actuel | 21 |
+
+L'écart restant est le lot groupé #444, dont un enfant est remisé : **tranché par Louis, un lot n'est pas
+en promotion**, comme dans les listes de WooCommerce.
+
+Le test actuel, `it_follows_woocommerce_on_whether_a_product_is_on_sale`, compare au `is_on_sale()` que
+la projection appelle elle-même : il ne peut pas échouer (`R-102`), et son docblock énonce la règle
+rejetée.
+
+**Corrigé.** `ProductPriceProjector::isBilledOnSale()` : pour un produit simple ou externe, la formule de la
+colonne `onsale` — `wc_format_decimal()` des deux côtés, prix promo non vide et égal au prix courant —
+**lue sur les metas**, pas dans la table de correspondance, que WooCommerce rafraîchit après avoir écrit
+`_price` et donc après l'indexation qu'elle déclenche ; pour un produit variable, la même formule sur ses
+variations visibles (l'ensemble de `sync_price()`, donc celui de `price.min`/`max`), leurs metas chargées
+en une requête ; pour un lot groupé, jamais.
+
+**Tests réécrits** : la référence est désormais la liste de WooCommerce lui-même
+(`get_on_sale_products()`, produits et parents des variations) — l'ancien code échoue sur #444 ; et un
+produit construit dans la fenêtre de `R-112`, prix promo renseigné mais prix courant resté plein :
+`is_on_sale()` vrai, projeté hors promotion.
+
+Réindexé, puis mesuré sur le moteur : `price.onsale` → `{"true": 20, "false": 56}`.
+
+**Passes.** Lisibilité : deux méthodes privées, trois cas nommés. Commentaires : deux lignes, la règle
+de la plateforme et la raison de lire les metas. Performance : une requête de metas par produit variable
+indexé, aucune pour les autres. Sécurité : aucune entrée extérieure. Contexte : WooCommerce absent,
+`project()` rend déjà `[]` avant.
+
+---
+
 ### R-129 · 🟡 · **fermé le 2026-09-16** · ouvert le 2026-09-16 — en mode `immediate`, chaque flèche lance une recherche
 
 `PriceControl::#stepped()` déplace la poignée **et** valide à chaque `keydown`. En mode `immediate`, dix

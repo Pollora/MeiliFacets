@@ -7,6 +7,8 @@ namespace Modules\MeiliFacets\Indexing;
 use Modules\MeiliFacets\Enums\PriceField;
 use Modules\MeiliFacets\Support\WooCommerce;
 use WC_Product;
+use WC_Product_Grouped;
+use WC_Product_Variable;
 use WP_Post;
 
 /**
@@ -41,7 +43,36 @@ final readonly class ProductPriceProjector
         return [
             PriceField::Min->value => (float) reset($prices),
             PriceField::Max->value => (float) end($prices),
-            PriceField::OnSale->value => $product->is_on_sale(),
+            PriceField::OnSale->value => $this->isBilledOnSale($product),
         ];
+    }
+
+    /** What WooCommerce lists as on sale: a variation lists its parent, a grouped product is never listed. */
+    private function isBilledOnSale(WC_Product $product): bool
+    {
+        if ($product instanceof WC_Product_Grouped) {
+            return false;
+        }
+
+        if (! $product instanceof WC_Product_Variable) {
+            return $this->carriesSalePrice($product->get_id());
+        }
+
+        $children = $product->get_visible_children();
+        update_meta_cache('post', $children);
+
+        return array_any($children, $this->carriesSalePrice(...));
+    }
+
+    /**
+     * The `onsale` lookup column, read off the metas: that table is refreshed after `_price`
+     * is written, and the product is indexed in between.
+     */
+    private function carriesSalePrice(int $id): bool
+    {
+        $price = wc_format_decimal(get_post_meta($id, '_price', true));
+        $sale = wc_format_decimal(get_post_meta($id, '_sale_price', true));
+
+        return (bool) $sale && $price === $sale;
     }
 }

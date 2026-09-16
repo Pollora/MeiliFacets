@@ -8,7 +8,9 @@ use Modules\MeiliFacets\Enums\PriceField;
 use Modules\MeiliFacets\Indexing\ProductPriceProjector;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
+use WC_Data_Store;
 use WC_Product;
+use WC_Product_Simple;
 use WP_Post;
 
 /**
@@ -47,16 +49,38 @@ final class ProductPriceProjectionTest extends TestCase
         }
     }
 
-    /** `is_on_sale()` reads the children; the `onsale` lookup column does not. */
+    /** WooCommerce's own list: a variation on sale lists its parent, a grouped product is never listed. */
     #[Test]
-    public function it_follows_woocommerce_on_whether_a_product_is_on_sale(): void
+    public function it_puts_on_sale_exactly_what_woocommerce_lists_as_on_sale(): void
     {
+        $rows = WC_Data_Store::load('product')->get_on_sale_products();
+        $listed = [...array_column($rows, 'id'), ...array_column($rows, 'parent_id')];
+
         foreach ($this->products() as $product) {
             $this->assertSame(
-                $product->is_on_sale(),
+                in_array((string) $product->get_id(), array_map(strval(...), $listed), true),
                 $this->project($product)[PriceField::OnSale->value],
                 $this->say($product)
             );
+        }
+    }
+
+    /** R-112: the sale has begun by its dates, but the price billed has not switched yet. */
+    #[Test]
+    public function it_leaves_off_sale_a_product_still_billed_at_full_price(): void
+    {
+        $product = new WC_Product_Simple;
+        $product->set_name('Sale not switched yet, for the test');
+        $product->set_regular_price('30');
+        $product->set_sale_price('20');
+        $product->save();
+        update_post_meta($product->get_id(), '_price', '30');
+
+        try {
+            $this->assertTrue(wc_get_product($product->get_id())->is_on_sale());
+            $this->assertFalse($this->project(wc_get_product($product->get_id()))[PriceField::OnSale->value]);
+        } finally {
+            $product->delete(true);
         }
     }
 
@@ -64,7 +88,7 @@ final class ProductPriceProjectionTest extends TestCase
     #[Test]
     public function it_projects_nothing_for_a_product_that_carries_no_price(): void
     {
-        $product = new \WC_Product_Simple;
+        $product = new WC_Product_Simple;
         $product->set_name('Priceless, for the test');
         $product->save();
 

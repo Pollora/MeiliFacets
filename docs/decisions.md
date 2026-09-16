@@ -391,6 +391,31 @@ visibles, avec leur contour natif.
 
 Coût : une vue surchargée garde un curseur qui fonctionne et se voit, mais repart de rangées nues.
 
+### « Promotions » est une option du tri qui filtre (2026-09-16)
+
+Tranché par Louis. Amende `D-d` (`prix.md`), qui prévoyait une facette « en promotion » en drapeau,
+dérivée de `is_on_sale()`.
+
+- **Le sens** : le prix réellement facturé — le drapeau figé de WooCommerce, prix promo renseigné et
+  égal au prix courant (`class-wc-product-data-store-cpt.php`), calculé variation par variation pour un
+  produit variable. Un produit ne remonte donc que si le panier le facturera en promotion, et le filtre
+  dit la même chose que le filtre de prix, qui lit lui aussi le prix courant. `is_on_sale()`, qui lit
+  les dates à la volée, suivrait le badge au lieu du panier pendant la fenêtre décrite par `R-112`.
+- **La place** : une option **« Promotions »** du menu de tri, pas une case ni une facette.
+- **Le comportement** : la choisir n'affiche que les produits en promotion et remplace le tri en cours
+  (ordre de pertinence). Exclusive comme toute option de tri : elle ne compte pas parmi les filtres
+  actifs, et choisir un autre tri la retire. On ne peut pas trier les promotions par prix.
+- **Aucun compte** affiché.
+- **Affichée seulement si** le listing déclare un prix, WooCommerce est actif, et au moins un produit
+  de la sélection courante est en promotion.
+- **Un lot groupé n'est jamais en promotion**, même quand un de ses produits l'est — comme dans les listes
+  de WooCommerce ; le produit remisé remonte lui-même. Un produit variable l'est dès qu'une de ses
+  variations visibles l'est (20 produits sur Pluralia le 2026-09-16, contre 21 selon `is_on_sale()`).
+- **Placée en dernier** dans le menu, après les tris qui ne filtrent pas.
+
+Coûts : une projection à réécrire et une réindexation ; un tri qui porte un filtre, ce que le modèle ne
+savait pas faire ; et une option que le visiteur ne peut pas combiner avec un tri par prix.
+
 ### Contre-exemple
 
 `AmphiBee/MeiliSearchFacets` sert uniquement à cartographier le périmètre fonctionnel attendu.
