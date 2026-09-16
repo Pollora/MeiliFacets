@@ -3026,6 +3026,33 @@ c'est celui-là qui est levé.
 
 ---
 
+### R-127 · 🟡 · **fermé le 2026-09-16** · ouvert le 2026-09-16 — une piste d'un seul prix reste dessinée
+
+Quand tous les produits filtrés ont le même prix entier — une marque à un seul produit à 20,00 € —
+les bornes élargies valent 20–20. La piste est dessinée sans largeur : deux poignées superposées qui ne
+peuvent aller nulle part, et deux champs qui n'acceptent que 20.
+
+**Ce que fait la plateforme.** WooCommerce masque tout le filtre de prix dans ce cas :
+`ProductFilterPrice.php:158` (`$min_range === $max_range` → wrapper `hidden`) et
+`ProductFilterPriceSlider.php:45` (même test → rien n'est rendu). Un prix à 20,40 € donne 20–21 : la piste
+a une largeur et reste dessinée.
+
+**Corrigé des deux côtés, là où les bornes naissent** : `PriceFilter::boundsFrom()` et `PriceBounds.of()`
+ne rendent aucune borne quand les extrémités élargies se rejoignent. Le bloc se masque alors par le
+chemin déjà prévu pour « aucun résultat » — `hidden` côté serveur, `#receive()` côté client.
+
+Vérifié dans Chromium sur `/categorie-produit/parfum`, où Avril n'a qu'un produit, à 38,00 € : cocher
+Avril masque le bloc sans recharger ; décocher le réaffiche ; la même URL rendue par le serveur le masque
+aussi ; et depuis ce rendu masqué — bornes vides dans le HTML — décocher Avril rend la piste à 19–199 €,
+poignées aux extrémités. Un test PHP et un test JS : 20–20 masqué, 20–20,40 dessiné en 20–21.
+
+**Passes.** Lisibilité : une condition de plus à l'endroit qui décide déjà qu'il n'y a rien à dessiner.
+Commentaires : aucun ajouté. Performance : aucune. Sécurité : aucune. Contexte : une plage tenue dans
+l'URL sur un listing à prix unique n'est plus modifiable depuis le bloc masqué ; « Tout effacer » reste
+disponible — même limite chez WooCommerce.
+
+---
+
 ### R-126 · 🟡 · **fermé le 2026-09-16** · ouvert le 2026-09-16 — le client écrit une borne de prix en notation exponentielle
 
 `FilterExpression::number()` écrit une borne à quatre décimales au plus, sans exposant. `ListingQuery`

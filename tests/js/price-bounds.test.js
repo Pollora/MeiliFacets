@@ -25,6 +25,11 @@ describe('price bounds read off the answers', () => {
         assert.deepEqual(new PriceBounds({ [ListingQuery.RESULTS]: stats(9.8, 46.4) }).of(fields), { min: 9, max: 47 })
     })
 
+    it('reads none over a single price, and a span over a price with cents', () => {
+        assert.equal(new PriceBounds({ [ListingQuery.RESULTS]: stats(20, 20) }).of(fields), null)
+        assert.deepEqual(new PriceBounds({ [ListingQuery.RESULTS]: stats(20, 20.4) }).of(fields), { min: 20, max: 21 })
+    })
+
     it('reads none when the engine measured nothing', () => {
         assert.equal(new PriceBounds({ [ListingQuery.RESULTS]: { hits: [] } }).of(fields), null)
     })

@@ -83,6 +83,15 @@ final class PriceRangeTest extends TestCase
         $this->assertEqualsWithDelta(47.0, $bounds->max, PHP_FLOAT_EPSILON);
     }
 
+    #[Test]
+    public function it_draws_no_range_over_a_single_price(): void
+    {
+        $filter = new PriceFilter('Price');
+
+        $this->assertTrue($filter->boundsFrom(['price.min' => ['min' => 20.0], 'price.max' => ['max' => 20.0]])->isEmpty());
+        $this->assertFalse($filter->boundsFrom(['price.min' => ['min' => 20.0], 'price.max' => ['max' => 20.4]])->isEmpty());
+    }
+
     /** A listing whose engine reported nothing must not draw a range from nowhere. */
     #[Test]
     public function it_has_no_bounds_when_the_engine_reported_none(): void

@@ -29,8 +29,10 @@ export class PriceBounds {
         const min = response.facetStats?.[fields.min]?.min
         const max = response.facetStats?.[fields.max]?.max
 
-        return typeof min === 'number' && typeof max === 'number'
-            ? { min: Math.floor(min), max: Math.ceil(max) }
-            : null
+        if (typeof min !== 'number' || typeof max !== 'number' || Math.floor(min) === Math.ceil(max)) {
+            return null
+        }
+
+        return { min: Math.floor(min), max: Math.ceil(max) }
     }
 }
