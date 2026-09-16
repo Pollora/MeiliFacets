@@ -6,7 +6,6 @@
 </p>
 <div class="meilifacetsRange" style="--from: {{ $fill->from }}; --to: {{ $fill->to }}" {{ Hook::PriceRange->attribute() }}>
     <div class="meilifacetsRangeTrack" {{ Hook::PriceTrack->attribute() }}>
-        <div class="meilifacetsRangeFill" aria-hidden="true"></div>
         @foreach ($handles as $handle)
             <button type="button" role="slider" class="meilifacetsRangeHandle"
                     style="--at: {{ $handle->at }}"

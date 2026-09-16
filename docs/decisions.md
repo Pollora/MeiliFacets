@@ -373,6 +373,24 @@ Ce que ça coûte, assumé :
   tel quel : le serveur lit l'état avant de connaître les bornes, il ne peut pas savoir que 0 est le
   bord.
 
+### Le contrôle de prix s'habille par ses crochets, sa mise en page par ses classes (2026-09-16)
+
+Tranché par Louis. La règle « le style s'accroche à `data-meili`, jamais aux classes » vaut pour le prix
+comme pour la liste de tri : piste, poignées, bulle, lecture, extrémités et champs sont stylés par
+leurs crochets, qu'un thème garde en surchargeant la vue. Le remplissage de la piste est dessiné par un
+dégradé sur `price-track`, piloté par `--from`/`--to`, ce qui supprime un élément sans crochet.
+
+**Exception écrite** : les rangées qui disposent le contrôle — en-tête, ligne des bornes, rangée des
+champs, boîte « champ + symbole », tiret — gardent leurs classes. Ce sont des choix de mise en page,
+qu'un thème qui surcharge la vue reprend. Leur donner des crochets aurait ajouté six entrées au contrat
+pour de la seule disposition.
+
+Une conséquence voulue : la remise à zéro des champs (ni bordure ni contour de focus) ne s'applique
+**qu'à l'intérieur** de la boîte qui dessine le focus. Un thème qui retire cette boîte garde des champs
+visibles, avec leur contour natif.
+
+Coût : une vue surchargée garde un curseur qui fonctionne et se voit, mais repart de rangées nues.
+
 ### Contre-exemple
 
 `AmphiBee/MeiliSearchFacets` sert uniquement à cartographier le périmètre fonctionnel attendu.

@@ -3026,6 +3026,40 @@ c'est celui-là qui est levé.
 
 ---
 
+### R-128 · 🟡 · **fermé le 2026-09-16** · ouvert le 2026-09-16 — le style du prix visait des classes, et une vue surchargée le perdait
+
+`decisions.md` : « la règle s'accroche à `data-meili`, jamais aux classes : ce sont les crochets qu'un
+thème garde en surchargeant une vue ». Tout le CSS du prix visait `.meilifacetsRange*` et
+`.meilifacetsPrice*`. Un thème qui surcharge `components/price/range.blade.php` avec ses propres classes
+— ce que `configuration.md` documente depuis `R-113` — obtenait une piste sans hauteur, des poignées
+dans le flux et une bulle toujours visible. C'est le défaut de `R-93`, pour le prix.
+
+L'amendement du 2026-09-07 (« ce que le module rend, il l'habille ») ne l'autorisait pas : il dit que
+le module livre l'apparence de ce qu'il fabrique, pas qu'il la livre sur des classes. La liste de tri,
+l'autre contrôle fabriqué, est d'ailleurs stylée par ses crochets.
+
+**Tranché par Louis le 2026-09-16** : le contrôle sur ses crochets, la mise en page sur ses classes —
+voir `decisions.md`. Aucun crochet ajouté. Le remplissage est un dégradé sur `price-track` ; sa `div`,
+qui n'avait pas de crochet, est retirée de la vue.
+
+**Tests** : `tests/js/price-stylesheet.test.js`, sur le modèle de `R-93` — le même contrôle rendu avec
+les classes du module, puis avec celles d'un thème. Rail, poignées et bulles comparés propriété par
+propriété ; chiffres tabulaires vérifiés sur chaque crochet. Les trois échouaient avant la réécriture.
+Une première version du troisième passait **pour une mauvaise raison** : happy-dom n'hérite pas
+`font-variant-numeric`, donc la comparaison était vide des deux côtés — réécrite pour vérifier la
+valeur sur l'élément.
+
+happy-dom ne calcule pas `linear-gradient` : le remplissage est vérifié dans Chromium. Plage 40–120 €,
+puis poignée haute tirée à 159 € — rendu identique à l'avant, bulle comprise.
+
+**Passes.** Lisibilité : les règles du contrôle forment un bloc, les rangées un autre. Commentaires :
+un en-tête ajouté puis retiré — il justifiait le choix, c'est la décision écrite ; restent deux raisons
+techniques (la marge qui laisse la bulle s'ouvrir, la remise à zéro limitée à la boîte). Performance :
+une `div` de moins par piste. Sécurité : sans objet. Contexte : un champ sorti de sa boîte garde son
+contour de focus.
+
+---
+
 ### R-127 · 🟡 · **fermé le 2026-09-16** · ouvert le 2026-09-16 — une piste d'un seul prix reste dessinée
 
 Quand tous les produits filtrés ont le même prix entier — une marque à un seul produit à 20,00 € —
