@@ -96,7 +96,7 @@ export class ListingUrl {
 
         for (const [bound, parameter] of [['min', this.#reserved.minPrice], ['max', this.#reserved.maxPrice]]) {
             if (state.price[bound] !== null) {
-                params.set(parameter, String(state.price[bound]))
+                params.set(parameter, ListingState.boundTo(state.price[bound]))
             }
         }
 

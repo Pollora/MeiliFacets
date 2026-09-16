@@ -4,6 +4,9 @@
 
 export const FIRST_PAGE = 1
 
+// `String(1e-7)` is `1e-7`, which the engine refuses; the server writes `%.4F` without trailing zeros.
+const BOUND = new Intl.NumberFormat('en-US', { useGrouping: false, maximumFractionDigits: 4 })
+
 /** A query string is public input: the bound keeps a crafted URL cheap. */
 const MAX_QUERY_LENGTH = 200
 
@@ -174,5 +177,12 @@ export class ListingState {
      */
     static valuesTo(values) {
         return [...values].join(VALUE_SEPARATOR)
+    }
+
+    /**
+     * @param {number} bound
+     */
+    static boundTo(bound) {
+        return BOUND.format(bound)
     }
 }

@@ -1,5 +1,5 @@
 import { facetField } from './description.js'
-import { FIRST_PAGE } from './listing-state.js'
+import { FIRST_PAGE, ListingState } from './listing-state.js'
 
 /**
  * @import { FacetDescription, ListingDescription } from './description.js'
@@ -168,8 +168,8 @@ export class ListingQuery {
         }
 
         return [
-            state.price.max === null ? '' : `${fields.min} <= ${state.price.max}`,
-            state.price.min === null ? '' : `${fields.max} >= ${state.price.min}`,
+            state.price.max === null ? '' : `${fields.min} <= ${ListingState.boundTo(state.price.max)}`,
+            state.price.min === null ? '' : `${fields.max} >= ${ListingState.boundTo(state.price.min)}`,
         ].filter(Boolean).join(' AND ')
     }
 

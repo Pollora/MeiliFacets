@@ -3026,6 +3026,38 @@ c'est celui-là qui est levé.
 
 ---
 
+### R-126 · 🟡 · **fermé le 2026-09-16** · ouvert le 2026-09-16 — le client écrit une borne de prix en notation exponentielle
+
+`FilterExpression::number()` écrit une borne à quatre décimales au plus, sans exposant. `ListingQuery`
+l'interpole telle que JavaScript la convertit en chaîne. Pour les prix courants, c'est la même chose ;
+aux extrêmes, non :
+
+| borne | serveur | client |
+| --- | --- | --- |
+| `0.0000001` | `0` | `1e-7` |
+| `1e21` | `1000000000000000000000` | `1e+21` |
+
+Meilisearch refuse `price.max >= 1e-7` : une URL `?min_price=0.0000001`, que `ListingState` accepte
+parce que c'est un prix positif, rend la page côté serveur puis fait échouer la première recherche du
+client. C'est la règle écrite en tête de `listing-query.js` qui est rompue.
+
+**Corrigé** : `ListingState.boundTo()` écrit une borne comme `FilterExpression::number()` — quatre
+décimales au plus, sans séparateur de milliers, jamais d'exposant — par un `Intl.NumberFormat` créé une
+fois. Il sert au filtre **et** à l'URL : le parcours avait montré la même fuite dans l'adresse réécrite
+par le client (`min_price=1e-7`), que le serveur relisait sans erreur mais qui donnait deux écritures à un
+même état. Il vit à côté de `valuesTo()`, qui écrit déjà les valeurs de facettes dans l'URL.
+
+Vérifié dans Chromium sur `?min_price=0.0000001&max_price=60`, puis Aeris coché : filtre envoyé
+`price.max >= 0`, aucune réponse d'erreur du moteur, URL réécrite `?marque=aeris&min_price=0&max_price=60`.
+Deux tests JS, filtre et URL.
+
+**Passes.** Lisibilité : une méthode statique, deux appelants. Commentaires : une ligne, l'anomalie du
+moteur. Performance : un formateur créé au chargement du module. Sécurité : la sortie ne contient que des
+chiffres et un point. Contexte : le format est celui du moteur, pas celui de la langue du visiteur — c'est
+voulu, la locale d'affichage reste l'affaire de `Money`.
+
+---
+
 ### R-125 · 🟡 · **fermé le 2026-09-16** · ouvert le 2026-09-16 — une borne saisie peut croiser l'autre, et la plage ne filtre plus rien
 
 Les poignées ne peuvent pas produire une plage inversée : `#moveTo()` range toujours la basse sous la

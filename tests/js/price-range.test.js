@@ -67,6 +67,12 @@ describe('a price range in the URL', () => {
         assert.deepEqual(without.toState('?min_price=20&max_price=60').price, { min: null, max: null })
     })
 
+    it('writes a bound as the filter does, never in exponent notation', () => {
+        const url = new ListingUrl(description)
+
+        assert.equal(url.toSearch(new ListingState({ price: { min: 0.0000001, max: 12.5 } })), '?min_price=0&max_price=12.5')
+    })
+
     it('keeps a bound of zero', () => {
         assert.equal(url.toSearch(new ListingState({ price: { min: 0 } })), '?min_price=0')
         assert.deepEqual(url.toState('?min_price=0').price.min, 0)
@@ -80,6 +86,12 @@ describe('a price range in the search', () => {
         const { filter } = query.plan(new ListingState({ price: { min: 40, max: 70 } })).results
 
         assert.equal(filter, 'post_type = "product" AND price.min <= 70 AND price.max >= 40')
+    })
+
+    it('writes a bound as the server writes it, never in exponent notation', () => {
+        const { filter } = query.plan(new ListingState({ price: { min: 0.0000001, max: 1e21 } })).results
+
+        assert.equal(filter, 'post_type = "product" AND price.min <= 1000000000000000000000 AND price.max >= 0')
     })
 
     it('leaves an open end unconstrained', () => {
