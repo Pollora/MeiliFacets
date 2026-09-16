@@ -3026,6 +3026,84 @@ c'est celui-là qui est levé.
 
 ---
 
+### R-121 · 🟠 · **fermé le 2026-09-16** · ouvert le 2026-09-16 — le client ne remesure jamais les bornes de prix
+
+Reproduit dans Chromium : sur `/boutique`, cocher Maison Solaire puis appliquer. La grille se
+filtre, mais la piste reste à **0 – 199 €**. Rechargée, la même URL affiche **43,40 – 199 €** : le
+serveur mesure, le client non.
+
+Le serveur fait une recherche de bornes qui lève la contrainte de prix (`QueryPlan::priceBounds()`,
+`measuresPriceApart()`, clé `bounds`, `R-111`), et sinon demande les champs de prix sur la recherche
+principale. `ListingQuery` ne fait ni l'un ni l'autre : `PriceControl` lit ses bornes **une fois**,
+dans les `aria-valuemin`/`aria-valuemax` du rendu serveur. Dès le premier geste, la piste, la ligne
+des bornes, les limites des champs et le `hidden` du bloc ne suivent plus le filtrage. C'est la règle
+écrite en tête de `listing-query.js` qui est rompue : « the same state must produce the same searches
+on both sides, or the grid contradicts itself between render and first click ».
+
+**Corrigé, en miroir du serveur.**
+
+- `ListingQuery` ajoute la recherche `bounds` dès qu'une plage est tenue, contrainte de prix levée, et
+  demande sinon les champs de prix sur la recherche principale — mêmes clés, mêmes tableaux `facets`
+  dans le même ordre que `QueryPlan` et `ListingSearch` ;
+- `PriceBounds` lit les `facetStats` dans la réponse qui les a mesurées, élargies à l'unité entière
+  comme `PriceFilter::boundsFrom()` depuis `R-119` — sur le modèle de `FacetCounts` ;
+- `PriceControl::showBounds()` reçoit ces bornes : limites des poignées, ligne sous la piste, limites
+  des champs visibles, `hidden` du bloc. `show()` ramène une borne tenue dans les bornes, comme
+  `Price::effective()` côté serveur.
+
+La ligne sous la piste n'avait aucun crochet. Deux s'ajoutent, **`price-bounds-min`** et
+**`price-bounds-max`**, nommés sur `$bounds` côté serveur. Un premier jet les appelait `price-floor` et
+`price-ceiling`, mais ces mots désignent déjà, dans `RangeHandle`, les limites d'**une** poignée : les
+laisser entrer dans le contrat aurait figé deux sens pour un nom. `Contract::VERSION` reste à 1 : un
+crochet ajouté n'incrémente pas (`R-116`).
+
+Vérifié dans Chromium sur le code publié : Maison Solaire → piste et champs à **43 – 199 €** sans
+recharger ; plage posée dessous → bornes inchangées ; marque retirée → **0 – 199 €**, plage conservée.
+
+**Les cinq passes** (revue déléguée), et ce qui en a été fait :
+
+- *Lisibilité* — nommage revu avant commit (ci-dessus) ; la constante `BOUNDS` de `PriceControl`, qui
+  croisait `ListingQuery.BOUNDS`, devient `ENDS` et `#reachable` devient `#bounds` ; la recherche de
+  bornes partage désormais la jointure `#joined()` des autres ; `page: 1` littéral remplacé par
+  `FIRST_PAGE`, exporté de `listing-state.js` (et repris dans `#counting`, qui avait le même
+  littéral) ; `showBounds()` délègue à `#receive()`, qui seul écrit le `hidden` et les bornes ; les
+  champs `type="hidden"` ne reçoivent plus de `min`/`max`/`placeholder` que le serveur ne leur donne
+  pas ; `state.selected()` n'est plus appelé deux fois par facette.
+- *Commentaires* — cinq ajoutés au premier jet, cinq supprimés : deux justifiaient `R-111`/`R-119`,
+  deux redisaient le nom d'un test ou d'une aide, et deux `@typedef` recopiaient des formes déjà
+  annotées, désormais importées. Deux lignes ajoutées ensuite, conformes à la table : le report d'une
+  réponse sous une poignée tenue (contournement), la réécriture d'un `aria-valuetext` identique qu'un
+  lecteur d'écran peut annoncer de nouveau (anomalie amont).
+- *Performance* — `showBounds()` réécrivait tout à chaque réponse, et `show()` tournait deux fois par
+  clic : il ne repeint plus que si les bornes ont bougé, et un attribut n'est écrit que s'il change.
+  Ce qui s'ajoute est inévitable : sans plage tenue, la recherche principale demande les deux champs
+  de prix, seule façon d'obtenir `facetStats` — le serveur fait de même.
+- *Sécurité* — rien : aucun nombre de l'URL dans la recherche de bornes, valeurs du moteur filtrées
+  par `typeof`, écrites en `textContent`.
+- *Contexte* — **un vrai défaut introduit, corrigé** : une réponse arrivée pendant qu'on tient une
+  poignée la ramenait au dernier état validé, sous le doigt. Elle est désormais mise en attente et
+  appliquée au relâchement. Deux tests : poignée intacte pendant la tenue, bornes prises au relâchement.
+  Et le branchement `#repaint` → `showBounds` n'était couvert par rien — supprimer la ligne laissait la
+  suite verte ; un test de `ListingBinding` le tient.
+
+**Constats de la revue laissés tels quels, avec leur raison :**
+
+- une borne tenue hors des nouvelles bornes s'affiche ramenée, et un geste suivant la valide telle
+  quelle — le serveur rend déjà la même valeur, et c'est le coût que Louis a accepté en tranchant
+  qu'une borne posée au bord ne filtre pas (point suivant) ;
+- sur une boutique TTC, cette borne ramenée est un prix HT que le serveur relit comme TTC — dormant ici
+  (`woocommerce_calc_taxes = no`), traité avec la décision sur les taxes ;
+- une vue de prix surchargée avant ce changement n'a pas les deux crochets : sa ligne sous la piste
+  reste figée, sans signal — coût accepté par `R-116`, les crochets restent optionnels ;
+- deux blocs prix dans une même racine : seul le premier est branché — limite antérieure (`R-95`,
+  `R-48`).
+
+La vérification navigateur du premier jet avait porté sur une copie publiée **avant** la dernière
+retouche, et la suite `Modules` était rouge pour cette raison : l'ordre est désormais publier, puis
+tester, puis ouvrir le navigateur.
+
+---
+
 ### R-120 · 🟡 · **fermé le 2026-09-16** · ouvert le 2026-09-16 — la bulle de valeur disparaissait pendant le glissé
 
 La bulle d'une poignée ne s'affichait qu'au survol ou au focus clavier. Dès qu'on tire, le pointeur

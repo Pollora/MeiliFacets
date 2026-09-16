@@ -20,5 +20,5 @@
     </div>
 </div>
 <p class="meilifacetsRangeBounds">
-    <span>{{ $money->of($bounds->min) }}</span><span>{{ $money->of($bounds->max) }}</span>
+    <span {{ Hook::PriceBoundsMin->attribute() }}>{{ $money->of($bounds->min) }}</span><span {{ Hook::PriceBoundsMax->attribute() }}>{{ $money->of($bounds->max) }}</span>
 </p>

@@ -1,4 +1,5 @@
 import { facetField } from './description.js'
+import { FIRST_PAGE } from './listing-state.js'
 
 /**
  * @import { FacetDescription, ListingDescription } from './description.js'
@@ -10,6 +11,7 @@ import { facetField } from './description.js'
 const ESCAPED = /[\\"]/g
 const RESULTS = 'results'
 const COUNT = 'count:'
+const BOUNDS = 'bounds'
 const NO_HIT = 0
 
 /**
@@ -31,6 +33,10 @@ export class ListingQuery {
         return RESULTS
     }
 
+    static get BOUNDS() {
+        return BOUNDS
+    }
+
     static countKey(taxonomy) {
         return COUNT + taxonomy
     }
@@ -45,6 +51,10 @@ export class ListingQuery {
             }
         }
 
+        if (this.#measuresPriceApart(state)) {
+            queries[BOUNDS] = this.#priceBounds(state)
+        }
+
         return queries
     }
 
@@ -53,7 +63,10 @@ export class ListingQuery {
         const request = {
             q: state.query,
             filter: this.#filter(state, null),
-            facets: this.#fieldsCountedOnMain(state),
+            facets: [
+                ...this.#fieldsCountedOnMain(state),
+                ...this.#measuresPriceApart(state) ? [] : this.#priceFieldList(),
+            ],
             hitsPerPage: perPage,
             page: state.page,
         }
@@ -77,8 +90,34 @@ export class ListingQuery {
             filter: this.#filter(state, facet.taxonomy),
             facets: [facetField(facet)],
             hitsPerPage: NO_HIT,
-            page: 1,
+            page: FIRST_PAGE,
         }
+    }
+
+    /**
+     * @param {ListingState} state
+     */
+    #priceBounds(state) {
+        return {
+            q: state.query,
+            filter: this.#joined([...this.#baseClauses(), ...this.#facetClauses(state, null)]),
+            facets: this.#priceFieldList(),
+            hitsPerPage: NO_HIT,
+            page: FIRST_PAGE,
+        }
+    }
+
+    /**
+     * @param {ListingState} state
+     */
+    #measuresPriceApart(state) {
+        return (state.price.min !== null || state.price.max !== null) && this.#priceFieldList().length > 0
+    }
+
+    #priceFieldList() {
+        const fields = this.#listing.priceFields
+
+        return fields ? [fields.min, fields.max] : []
     }
 
     #isCountedApart(facet, state) {
@@ -93,23 +132,26 @@ export class ListingQuery {
 
     // OR within a facet, AND across facets.
     #filter(state, except) {
-        const clauses = this.#listing.filter ? [this.#listing.filter] : []
+        return this.#joined([...this.#baseClauses(), ...this.#facetClauses(state, except), this.#priceClause(state)])
+    }
 
-        for (const facet of this.#listing.facets) {
+    /**
+     * @param {string[]} clauses
+     */
+    #joined(clauses) {
+        return clauses.filter((clause) => clause !== '').join(' AND ')
+    }
+
+    #baseClauses() {
+        return this.#listing.filter ? [this.#listing.filter] : []
+    }
+
+    #facetClauses(state, except) {
+        return this.#listing.facets.flatMap((facet) => {
             const values = state.selected(facet.taxonomy)
 
-            if (facet.taxonomy !== except && values.length > 0) {
-                clauses.push(this.#facetClause(facet, values))
-            }
-        }
-
-        const price = this.#priceClause(state)
-
-        if (price !== '') {
-            clauses.push(price)
-        }
-
-        return clauses.join(' AND ')
+            return facet.taxonomy !== except && values.length > 0 ? [this.#facetClause(facet, values)] : []
+        })
     }
 
     /**

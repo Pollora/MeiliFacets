@@ -1,7 +1,8 @@
+import { Contract } from './contract.js'
 import { Money } from './money.js'
 
 /**
- * @import { Contract } from './contract.js'
+ * @import { PriceBounds } from './price-bounds.js'
  * @import { ListingDescription } from './description.js'
  * @import { ListingState } from './listing-state.js'
  */
@@ -12,8 +13,8 @@ const VALUE_MIN = 'aria-valuemin'
 const VALUE_MAX = 'aria-valuemax'
 const BOUND = 'data-bound'
 
-/** Keyed by bound, never by position: a missing input would shift the other one's meaning. */
-const BOUNDS = ['min', 'max']
+/** Keyed by end, never by position: a missing input would shift the other one's meaning. */
+const ENDS = ['min', 'max']
 
 /** @typedef {{ min: number, max: number }} Span */
 
@@ -31,6 +32,9 @@ export class PriceControl {
     /** @type {Money} */
     #money
 
+    /** @type {ListingDescription['priceFields']} */
+    #fields
+
     /** @type {HTMLElement | null} */
     #track = null
 
@@ -40,17 +44,26 @@ export class PriceControl {
     /** @type {HTMLElement | null} */
     #readout = null
 
+    /** @type {HTMLElement | null} */
+    #block = null
+
     /** @type {Record<string, HTMLButtonElement | null>} */
     #handles = { min: null, max: null }
 
     /** @type {Record<string, HTMLInputElement | null>} */
     #inputs = { min: null, max: null }
 
+    /** @type {Record<string, HTMLElement | null>} */
+    #boundLabels = { min: null, max: null }
+
     /** @type {Span} */
-    #reachable = { min: 0, max: 0 }
+    #bounds = { min: 0, max: 0 }
 
     /** @type {HTMLElement | null} */
     #dragging = null
+
+    /** @type {{ span: Span | null } | null} */
+    #pending = null
 
     /**
      * @param {Contract} contract
@@ -60,6 +73,7 @@ export class PriceControl {
     constructor(contract, description, commit) {
         this.#contract = contract
         this.#money = new Money(description.money ?? null)
+        this.#fields = description.priceFields ?? null
         this.#commit = commit
     }
 
@@ -73,20 +87,39 @@ export class PriceControl {
      */
     show(state) {
         const held = {
-            min: state.price.min ?? this.#reachable.min,
-            max: state.price.max ?? this.#reachable.max,
+            min: this.#clamped(state.price.min ?? this.#bounds.min),
+            max: this.#clamped(state.price.max ?? this.#bounds.max),
         }
 
-        for (const bound of BOUNDS) {
-            const input = this.#inputs[bound]
+        for (const end of ENDS) {
+            const input = this.#inputs[end]
 
             if (input !== null) {
-                input.value = this.#fieldValue(state, bound, held[bound])
+                input.value = this.#fieldValue(state, end, held[end])
             }
         }
 
         this.#describe(held.min, held.max)
         this.#paint(held.min, held.max)
+    }
+
+    /**
+     * @param {PriceBounds} bounds
+     * @param {ListingState} state
+     */
+    showBounds(bounds, state) {
+        const span = bounds.of(this.#fields)
+
+        // A repaint under a held handle would pull it back to the last committed range.
+        if (this.#dragging !== null) {
+            this.#pending = { span }
+
+            return
+        }
+
+        if (this.#receive(span)) {
+            this.show(state)
+        }
     }
 
     // Looked up once: a drag reaches for these on every pointer move.
@@ -99,18 +132,20 @@ export class PriceControl {
             this.#handles[handle.getAttribute(BOUND) ?? ''] = handle
         }
 
-        for (const bound of BOUNDS) {
-            this.#inputs[bound] = this.#contract.one(`price-${bound}`)
+        for (const end of ENDS) {
+            this.#inputs[end] = this.#contract.one(`price-${end}`)
+            this.#boundLabels[end] = this.#contract.one(`price-bounds-${end}`)
         }
 
-        this.#reachable = this.#reachableBounds()
+        this.#block = (this.#inputs.min ?? this.#inputs.max)?.closest(Contract.selector('facet')) ?? null
+        this.#bounds = this.#renderedBounds()
     }
 
     #listen() {
-        for (const bound of BOUNDS) {
-            const handle = this.#handles[bound]
+        for (const end of ENDS) {
+            const handle = this.#handles[end]
 
-            this.#inputs[bound]?.addEventListener('change', () => this.#commitFields())
+            this.#inputs[end]?.addEventListener('change', () => this.#commitFields())
             handle?.addEventListener('pointerdown', (event) => this.#grab(handle, event))
             handle?.addEventListener('keydown', (event) => this.#stepped(handle, event))
         }
@@ -121,11 +156,30 @@ export class PriceControl {
     }
 
     /** @returns {Span} */
-    #reachableBounds() {
+    #renderedBounds() {
         return {
             min: Number.parseFloat(this.#handles.min?.getAttribute(VALUE_MIN) || '0'),
             max: Number.parseFloat(this.#handles.max?.getAttribute(VALUE_MAX) || '0'),
         }
+    }
+
+    /**
+     * @param {Span | null} span
+     * @returns {boolean} whether the rail now spans something it did not
+     */
+    #receive(span) {
+        if (this.#block !== null) {
+            this.#block.hidden = span === null
+        }
+
+        if (span === null || (span.min === this.#bounds.min && span.max === this.#bounds.max)) {
+            return false
+        }
+
+        this.#bounds = span
+        this.#writeBounds(span)
+
+        return true
     }
 
     #hasSlider() {
@@ -136,22 +190,22 @@ export class PriceControl {
      * Beside the control a field always shows a figure; alone, an empty one is an open end.
      *
      * @param {ListingState} state
-     * @param {string} bound
+     * @param {string} end
      * @param {number} mirrored
      */
-    #fieldValue(state, bound, mirrored) {
+    #fieldValue(state, end, mirrored) {
         if (this.#hasSlider()) {
             return String(mirrored)
         }
 
-        const asked = bound === 'min' ? state.price.min : state.price.max
+        const asked = end === 'min' ? state.price.min : state.price.max
 
         return asked === null ? '' : String(asked)
     }
 
     #commitFields() {
-        const [min, max] = BOUNDS.map((bound) => {
-            const written = this.#inputs[bound]?.value ?? ''
+        const [min, max] = ENDS.map((end) => {
+            const written = this.#inputs[end]?.value ?? ''
 
             return written === '' ? null : Number.parseFloat(written)
         })
@@ -179,7 +233,7 @@ export class PriceControl {
         const box = this.#track.getBoundingClientRect()
         const ratio = Math.min(Math.max((event.clientX - box.left) / box.width, 0), 1)
 
-        this.#moveTo(this.#dragging, this.#reachable.min + ratio * this.#span())
+        this.#moveTo(this.#dragging, this.#bounds.min + ratio * this.#span())
     }
 
     #release() {
@@ -188,6 +242,12 @@ export class PriceControl {
         }
 
         this.#dragging = null
+
+        if (this.#pending !== null) {
+            this.#receive(this.#pending.span)
+            this.#pending = null
+        }
+
         this.#commitFields()
     }
 
@@ -223,8 +283,8 @@ export class PriceControl {
             ArrowDown: now - step,
             ArrowRight: now + step,
             ArrowUp: now + step,
-            Home: this.#reachable.min,
-            End: this.#reachable.max,
+            Home: this.#bounds.min,
+            End: this.#bounds.max,
         }[event.key]
     }
 
@@ -236,7 +296,7 @@ export class PriceControl {
         const grabbed = handle.getAttribute(BOUND) === 'min' ? 'min' : 'max'
         const held = this.#held()
         const other = grabbed === 'min' ? held.max : held.min
-        const value = Math.round(Math.min(Math.max(to, this.#reachable.min), this.#reachable.max))
+        const value = Math.round(this.#clamped(to))
 
         // Clamping a handle against the other pins both once they meet. They may
         // cross instead, and the one that does takes the end it crossed into.
@@ -258,18 +318,18 @@ export class PriceControl {
      * @param {number} max
      */
     #describe(min, max) {
-        this.#describeHandle('min', min, this.#reachable.min, max)
-        this.#describeHandle('max', max, min, this.#reachable.max)
+        this.#describeHandle('min', min, this.#bounds.min, max)
+        this.#describeHandle('max', max, min, this.#bounds.max)
     }
 
     /**
-     * @param {string} bound
+     * @param {string} end
      * @param {number} value
      * @param {number} floor
      * @param {number} ceiling
      */
-    #describeHandle(bound, value, floor, ceiling) {
-        const handle = this.#handles[bound]
+    #describeHandle(end, value, floor, ceiling) {
+        const handle = this.#handles[end]
 
         if (handle === null) {
             return
@@ -277,15 +337,28 @@ export class PriceControl {
 
         const written = this.#money.of(value)
 
-        handle.setAttribute(VALUE_NOW, String(value))
-        handle.setAttribute(VALUE_TEXT, written)
-        handle.setAttribute(VALUE_MIN, String(floor))
-        handle.setAttribute(VALUE_MAX, String(ceiling))
+        this.#setAttribute(handle, VALUE_NOW, String(value))
+        this.#setAttribute(handle, VALUE_TEXT, written)
+        this.#setAttribute(handle, VALUE_MIN, String(floor))
+        this.#setAttribute(handle, VALUE_MAX, String(ceiling))
 
         const tip = this.#contract.one('price-tip', handle)
 
-        if (tip !== null) {
+        if (tip !== null && tip.textContent !== written) {
             tip.textContent = written
+        }
+    }
+
+    /**
+     * Rewriting an unchanged `aria-valuetext` can make a screen reader announce it again.
+     *
+     * @param {Element} element
+     * @param {string} name
+     * @param {string} value
+     */
+    #setAttribute(element, name, value) {
+        if (element.getAttribute(name) !== value) {
+            element.setAttribute(name, value)
         }
     }
 
@@ -294,13 +367,40 @@ export class PriceControl {
      * @param {number} max
      */
     #write(min, max) {
-        for (const [bound, value] of [['min', min], ['max', max]]) {
-            const input = this.#inputs[bound]
+        for (const [end, value] of [['min', min], ['max', max]]) {
+            const input = this.#inputs[end]
 
             if (input !== null) {
                 input.value = String(value)
             }
         }
+    }
+
+    /**
+     * @param {Span} span
+     */
+    #writeBounds(span) {
+        for (const end of ENDS) {
+            const label = this.#boundLabels[end]
+            const input = this.#inputs[end]
+
+            if (label !== null) {
+                label.textContent = this.#money.of(span[end])
+            }
+
+            if (input !== null && input.type !== 'hidden') {
+                input.min = String(span.min)
+                input.max = String(span.max)
+                input.placeholder = String(span[end])
+            }
+        }
+    }
+
+    /**
+     * @param {number} value
+     */
+    #clamped(value) {
+        return Math.min(Math.max(value, this.#bounds.min), this.#bounds.max)
     }
 
     /** @returns {Span} */
@@ -312,7 +412,7 @@ export class PriceControl {
     }
 
     #span() {
-        return this.#reachable.max - this.#reachable.min
+        return this.#bounds.max - this.#bounds.min
     }
 
     /**
@@ -322,7 +422,7 @@ export class PriceControl {
     #paint(min, max) {
         const span = this.#span()
         const ratio = (value) =>
-            span <= 0 ? 0 : Math.min(Math.max((value - this.#reachable.min) / span, 0), 1)
+            span <= 0 ? 0 : Math.min(Math.max((value - this.#bounds.min) / span, 0), 1)
 
         this.#range?.style.setProperty('--from', String(ratio(min)))
         this.#range?.style.setProperty('--to', String(ratio(max)))

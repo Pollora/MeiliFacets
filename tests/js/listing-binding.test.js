@@ -77,6 +77,23 @@ class FakeClient {
 
 const hit = (title) => ({ card: { title, url: `https://example.test/${title}` } })
 
+const priceBlock = `
+    <fieldset data-meili="facet">
+      <div data-meili="price-range">
+        <div data-meili="price-track">
+          <button data-meili="price-handle" data-bound="min" aria-valuemin="0" aria-valuemax="199" aria-valuenow="0">
+            <span data-meili="price-tip"></span>
+          </button>
+          <button data-meili="price-handle" data-bound="max" aria-valuemin="0" aria-valuemax="199" aria-valuenow="199">
+            <span data-meili="price-tip"></span>
+          </button>
+        </div>
+      </div>
+      <span data-meili="price-bounds-min">0,00 €</span><span data-meili="price-bounds-max">199,00 €</span>
+      <input data-meili="price-min" type="number" name="min_price" value="0">
+      <input data-meili="price-max" type="number" name="max_price" value="199">
+    </fieldset>`
+
 describe('ListingBinding', () => {
     let window
     let root
@@ -307,5 +324,30 @@ describe('ListingBinding', () => {
 
         assert.equal(box('acme').checked, false)
         assert.equal(box('globex').checked, true)
+    })
+})
+
+describe('ListingBinding with a price range', () => {
+    it('draws the bounds the engine measured for the filtered listing', async () => {
+        const { root } = open(listingMarkup())
+        const priced = {
+            ...description,
+            reserved: { ...description.reserved, minPrice: 'min_price', maxPrice: 'max_price' },
+            priceFields: { min: 'price.min', max: 'price.max' },
+            money: { format: '%2$s %1$s', symbol: '€', decimals: 2, decimal: ',', thousand: ' ' },
+        }
+        root.querySelector('[data-meili="facets"]').insertAdjacentHTML('afterbegin', priceBlock)
+        const client = new FakeClient()
+        const listing = new Listing(priced, {}, { client, history: new FakeHistory() })
+        new ListingBinding(root, new Contract(root), listing, priced).start()
+
+        client.answer = {
+            results: { hits: [], totalHits: 7, facetStats: { 'price.min': { min: 43.4, max: 190 }, 'price.max': { min: 45, max: 199 } } },
+        }
+        await listing.apply()
+
+        const ends = [...root.querySelectorAll('[data-meili^="price-bounds-"]')].map((end) => end.textContent)
+        assert.deepEqual(ends, ['43,00 €', '199,00 €'])
+        assert.equal(root.querySelector('[data-bound="min"]').getAttribute('aria-valuemin'), '43')
     })
 })

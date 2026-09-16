@@ -2,7 +2,7 @@
  * @import { FacetDescription } from './description.js'
  */
 
-const FIRST_PAGE = 1
+export const FIRST_PAGE = 1
 
 /** A query string is public input: the bound keeps a crafted URL cheap. */
 const MAX_QUERY_LENGTH = 200

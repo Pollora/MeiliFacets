@@ -82,6 +82,34 @@ describe('a price range in the search', () => {
         assert.equal(filter, 'post_type = "product" AND price.max >= 40')
     })
 
+    it('asks the main search for the bounds while no range is held', () => {
+        const plan = query.plan(new ListingState())
+
+        assert.deepEqual(plan.results.facets, ['facets.product_brand', 'price.min', 'price.max'])
+        assert.equal(plan[ListingQuery.BOUNDS], undefined)
+    })
+
+    it('measures the bounds apart, with the range lifted, once one is held', () => {
+        const plan = query.plan(new ListingState({ facets: { product_brand: ['aeris'] }, price: { min: 40 } }))
+
+        assert.deepEqual(plan.results.facets, [])
+        assert.deepEqual(plan[ListingQuery.BOUNDS], {
+            q: '',
+            filter: 'post_type = "product" AND facets.product_brand = "aeris"',
+            facets: ['price.min', 'price.max'],
+            hitsPerPage: 0,
+            page: 1,
+        })
+    })
+
+    it('asks for no bounds when no listing declares a range', () => {
+        const without = new ListingQuery({ ...description, priceFields: null })
+        const plan = without.plan(new ListingState({ price: { min: 40 } }))
+
+        assert.deepEqual(plan.results.facets, ['facets.product_brand'])
+        assert.equal(plan[ListingQuery.BOUNDS], undefined)
+    })
+
     it('writes no clause when no listing declares a range', () => {
         const without = new ListingQuery({ ...description, priceFields: null })
         const { filter } = without.plan(new ListingState({ price: { min: 40, max: 70 } })).results

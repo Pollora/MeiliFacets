@@ -572,6 +572,7 @@ thème périmée dégrade donc vers le rendu serveur, jamais vers une interactio
 | `price-handle` | idem | une extrémité, son bord dans `data-bound` |
 | `price-tip` | idem | la bulle de valeur d'une poignée |
 | `price-readout` | idem | la plage écrite en toutes lettres, réécrite au glissement |
+| `price-bounds-min` `price-bounds-max` | idem | les deux extrémités sous la piste, réécrites quand le filtrage déplace les bornes |
 | `price-min` `price-max` | idem | les deux `input` qui portent les bornes, visibles ou masqués |
 | `reset` | `<x-meilifacets::reset>` | le bouton « tout effacer » |
 | `active-filters` | `<x-meilifacets::active-filters>` | le compteur de filtres actifs |

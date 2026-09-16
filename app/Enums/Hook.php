@@ -41,6 +41,8 @@ enum Hook: string
     case PriceHandle = 'price-handle';
     case PriceTip = 'price-tip';
     case PriceReadout = 'price-readout';
+    case PriceBoundsMin = 'price-bounds-min';
+    case PriceBoundsMax = 'price-bounds-max';
     case PriceMin = 'price-min';
     case PriceMax = 'price-max';
     case Reset = 'reset';

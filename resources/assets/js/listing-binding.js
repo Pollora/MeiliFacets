@@ -4,6 +4,7 @@ import { FacetsView } from './facets-view.js'
 import { FilterSummaryView } from './filter-summary-view.js'
 import { ListingQuery } from './listing-query.js'
 import { PaginationView } from './pagination-view.js'
+import { PriceBounds } from './price-bounds.js'
 import { PriceControl } from './price-control.js'
 import { ResultsView } from './results-view.js'
 import { SortCombobox } from './sort-combobox.js'
@@ -179,6 +180,7 @@ export class ListingBinding {
 
         this.#results.show((results.hits ?? []).map((/** @type {any} */ hit) => hit.card ?? {}))
         this.#facets.showCounts(new FacetCounts(answers))
+        this.#price.showBounds(new PriceBounds(answers), state)
         this.#pagination.show(state, results.totalHits ?? 0)
     }
 
