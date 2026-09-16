@@ -3026,6 +3026,39 @@ c'est celui-là qui est levé.
 
 ---
 
+### R-122 · 🟡 · **fermé le 2026-09-16** · ouvert le 2026-09-16 — une poignée laissée au bord écrit quand même sa borne dans l'URL
+
+Reproduit dans Chromium : poignée haute ramenée de 199 à 198 au clavier, appliquer → l'URL devient
+`?min_price=0&max_price=198`. Le `min_price=0` ne filtre rien, puisque 0 est le bord de la piste.
+« Pas de minimum » a donc deux URL — `?max_price=198` et `?min_price=0&max_price=198` — alors que
+`listing-state.js` pose qu'un état n'en a qu'une, sans quoi un cache le garde deux fois. Et une piste
+laissée entière au bord (0–199) écrit une plage qui ne filtre rien du tout.
+
+**Ce que fait la plateforme.** Le bloc de filtre de prix de WooCommerce retire la borne qui repose sur
+le bord (`price-filter-frontend.js` : `r >= max ? undefined : r`, `e <= min ? undefined : e`, puis
+suppression du paramètre). Ce bord suit la même mesure que le reste du filtrage : il bouge quand une
+autre facette change.
+
+**Tranché par Louis le 2026-09-16 : retirer, comme WooCommerce.** Voir `decisions.md`.
+
+**Corrigé** dans `PriceControl::#asked()`, seul endroit qui connaît les bornes au moment de valider :
+une borne égale au bord — ou au-delà — part comme `null`. Sans piste dessinée, les bornes se lisaient
+sur les poignées absentes et valaient 0–0, ce qui aurait fait de toute saisie une borne « au bord » :
+elles se lisent désormais sur les `min`/`max` que le serveur pose sur les champs, et restent ouvertes
+quand rien ne les dit.
+
+Vérifié dans Chromium : poignée haute à 198 → `?max_price=198` ; basse à 1 → `?min_price=1&max_price=198` ;
+les deux ramenées au bord → URL vide ; saisie de 199 dans « À » → URL vide ; sous Aeris, poignée haute
+poussée à 47 → `?marque=aeris`. Trois tests JS, dont le mode champs seuls ; un test existant attendait
+`[0, 89]` et attend désormais `[null, 89]`, ce qui est exactement le changement.
+
+**Passes.** Lisibilité : `#commitFields()` délègue à `#asked()`, 10 lignes ; `#number()` factorise la
+lecture tolérante des deux attributs. Commentaires : une ligne, la raison des bornes ouvertes. Performance :
+une comparaison par borne à la validation. Sécurité : la valeur saisie reste relue par `ListingState`,
+qui refuse ce qui n'est pas un prix. Contexte : aucun.
+
+---
+
 ### R-121 · 🟠 · **fermé le 2026-09-16** · ouvert le 2026-09-16 — le client ne remesure jamais les bornes de prix
 
 Reproduit dans Chromium : sur `/boutique`, cocher Maison Solaire puis appliquer. La grille se

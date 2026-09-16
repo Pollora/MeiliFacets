@@ -351,6 +351,28 @@ script ne tourne pas. Le module ne rend aucun `<form>` depuis le lot 3b — sans
 est inerte, prix compris. L'affirmation inverse a circulé trois fois dans le code du lot prix ; elle
 est fausse.
 
+### Une borne posée au bord de la piste n'est pas un filtre (2026-09-16)
+
+Tranché par Louis, sur la plateforme : le bloc de filtre de prix de WooCommerce retire une borne qui
+repose sur l'extrémité mesurée (`price-filter-frontend.js`). Le module fait de même au moment de
+valider — poignée, clavier ou saisie : une borne égale au bord n'est ni écrite dans l'URL ni envoyée
+au moteur (`R-122`).
+
+Ce que ça achète : « pas de minimum » n'a plus qu'une URL, une piste laissée entière ne pose ni
+`noindex` ni entrée de cache pour rien, et le compteur de filtres actifs peut compter une plage sans
+compter une plage qui ne filtre rien.
+
+Ce que ça coûte, assumé :
+
+- **le bord bouge avec les autres facettes.** Une poignée poussée au bout sous « Aeris » (bord 47 €) ne
+  retient rien : retirer la marque rend la piste entière, pas 0–47 €. C'est aussi le comportement de
+  WooCommerce ;
+- **une borne tenue hors des nouvelles bornes** s'affiche ramenée au bord ; le geste suivant la valide
+  donc comme « pas de borne ». Le serveur rend déjà la même valeur ;
+- **seules les URL que le module écrit sont canoniques.** Un lien extérieur `?min_price=0` reste servi
+  tel quel : le serveur lit l'état avant de connaître les bornes, il ne peut pas savoir que 0 est le
+  bord.
+
 ### Contre-exemple
 
 `AmphiBee/MeiliSearchFacets` sert uniquement à cartographier le périmètre fonctionnel attendu.

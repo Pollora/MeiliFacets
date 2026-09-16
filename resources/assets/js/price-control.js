@@ -156,12 +156,26 @@ export class PriceControl {
         this.#track?.addEventListener('pointercancel', () => this.#release())
     }
 
-    /** @returns {Span} */
+    /**
+     * Unknown bounds stay open, so no bound is mistaken for an edge.
+     *
+     * @returns {Span}
+     */
     #renderedBounds() {
         return {
-            min: Number.parseFloat(this.#handles.min?.getAttribute(VALUE_MIN) || '0'),
-            max: Number.parseFloat(this.#handles.max?.getAttribute(VALUE_MAX) || '0'),
+            min: this.#number(this.#handles.min?.getAttribute(VALUE_MIN) ?? this.#inputs.min?.getAttribute('min'), -Infinity),
+            max: this.#number(this.#handles.max?.getAttribute(VALUE_MAX) ?? this.#inputs.max?.getAttribute('max'), Infinity),
         }
+    }
+
+    /**
+     * @param {string | null | undefined} written
+     * @param {number} unknown
+     */
+    #number(written, unknown) {
+        const value = Number.parseFloat(written ?? '')
+
+        return Number.isFinite(value) ? value : unknown
     }
 
     /**
@@ -205,13 +219,24 @@ export class PriceControl {
     }
 
     #commitFields() {
-        const [min, max] = ENDS.map((end) => {
-            const written = this.#inputs[end]?.value ?? ''
+        const [min, max] = ENDS.map((end) => this.#asked(end))
 
-            return written === '' ? null : Number.parseFloat(written)
-        })
+        this.#commit(min, max)
+    }
 
-        this.#commit(min ?? null, max ?? null)
+    /**
+     * @param {string} end
+     * @returns {number | null}
+     */
+    #asked(end) {
+        const written = this.#inputs[end]?.value ?? ''
+        const value = written === '' ? null : Number.parseFloat(written)
+
+        if (value === null) {
+            return null
+        }
+
+        return (end === 'min' ? value <= this.#bounds.min : value >= this.#bounds.max) ? null : value
     }
 
     /**

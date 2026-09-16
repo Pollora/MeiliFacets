@@ -140,7 +140,7 @@ describe('a price range shown a state it did not set itself', () => {
         press(price.window, price.handle('max'), 'ArrowLeft')
 
         assert.deepEqual(price.held(), ['0', '89'])
-        assert.deepEqual(price.committed, [[0, 89]])
+        assert.deepEqual(price.committed, [[null, 89]])
     })
 
     it('announces the ends again once the range is cleared', () => {
@@ -262,5 +262,46 @@ describe('a price range dragged across itself', () => {
         at('pointerup', price.track(), 55)
 
         assert.equal(price.handle('min').hasAttribute('data-active'), false)
+    })
+})
+
+describe('a price bound left on the edge of the rail', () => {
+    it('is not a filter, so it is not committed', () => {
+        const price = control({ min: 55, max: 120 })
+
+        press(price.window, price.handle('max'), 'End')
+        press(price.window, price.handle('min'), 'Home')
+
+        assert.deepEqual(price.committed, [[55, null], [null, null]])
+    })
+
+    it('still commits a bound one step inside the edge', () => {
+        const price = control({ min: 0, max: 199 })
+
+        press(price.window, price.handle('max'), 'ArrowLeft')
+
+        assert.deepEqual(price.committed, [[null, 198]])
+    })
+
+    it('finds the edges on the fields when no rail is drawn', () => {
+        const { window, root } = open(`
+            <div data-listing data-meili-contract="${CONTRACT}">
+              <fieldset data-meili="facet">
+                <input data-meili="price-min" type="number" name="min_price" value="" min="9" max="47">
+                <input data-meili="price-max" type="number" name="max_price" value="" min="9" max="47">
+              </fieldset>
+            </div>`)
+        const committed = []
+        new PriceControl(new Contract(root), description, (min, max) => committed.push([min, max])).start()
+
+        const typed = (hook, value) => {
+            const input = root.querySelector(`[data-meili="${hook}"]`)
+            input.value = value
+            input.dispatchEvent(new window.Event('change', { bubbles: true }))
+        }
+        typed('price-min', '9')
+        typed('price-max', '30')
+
+        assert.deepEqual(committed, [[null, null], [null, 30]])
     })
 })
