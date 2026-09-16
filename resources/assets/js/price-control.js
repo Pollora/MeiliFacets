@@ -8,6 +8,8 @@ import { Money } from './money.js'
 
 const VALUE_NOW = 'aria-valuenow'
 const VALUE_TEXT = 'aria-valuetext'
+const VALUE_MIN = 'aria-valuemin'
+const VALUE_MAX = 'aria-valuemax'
 const BOUND = 'data-bound'
 
 /** Keyed by bound, never by position: a missing input would shift the other one's meaning. */
@@ -83,6 +85,7 @@ export class PriceControl {
             }
         }
 
+        this.#describe(held.min, held.max)
         this.#paint(held.min, held.max)
     }
 
@@ -120,8 +123,8 @@ export class PriceControl {
     /** @returns {Span} */
     #reachableBounds() {
         return {
-            min: Number.parseFloat(this.#handles.min?.getAttribute('aria-valuemin') || '0'),
-            max: Number.parseFloat(this.#handles.max?.getAttribute('aria-valuemax') || '0'),
+            min: Number.parseFloat(this.#handles.min?.getAttribute(VALUE_MIN) || '0'),
+            max: Number.parseFloat(this.#handles.max?.getAttribute(VALUE_MAX) || '0'),
         }
     }
 
@@ -239,9 +242,11 @@ export class PriceControl {
         // cross instead, and the one that does takes the end it crossed into.
         const crossed = grabbed === 'min' ? value > other : value < other
 
-        this.#showBound('min', Math.min(value, other))
-        this.#showBound('max', Math.max(value, other))
-        this.#paint(Math.min(value, other), Math.max(value, other))
+        const [low, high] = [Math.min(value, other), Math.max(value, other)]
+
+        this.#describe(low, high)
+        this.#write(low, high)
+        this.#paint(low, high)
 
         if (crossed && this.#dragging !== null) {
             this.#dragging = this.#handles[grabbed === 'min' ? 'max' : 'min']
@@ -249,26 +254,52 @@ export class PriceControl {
     }
 
     /**
+     * @param {number} min
+     * @param {number} max
+     */
+    #describe(min, max) {
+        this.#describeHandle('min', min, this.#reachable.min, max)
+        this.#describeHandle('max', max, min, this.#reachable.max)
+    }
+
+    /**
      * @param {string} bound
      * @param {number} value
+     * @param {number} floor
+     * @param {number} ceiling
      */
-    #showBound(bound, value) {
-        const written = this.#money.of(value)
+    #describeHandle(bound, value, floor, ceiling) {
         const handle = this.#handles[bound]
 
-        handle?.setAttribute(VALUE_NOW, String(value))
-        handle?.setAttribute(VALUE_TEXT, written)
+        if (handle === null) {
+            return
+        }
 
-        const tip = handle === null ? null : this.#contract.one('price-tip', handle)
+        const written = this.#money.of(value)
+
+        handle.setAttribute(VALUE_NOW, String(value))
+        handle.setAttribute(VALUE_TEXT, written)
+        handle.setAttribute(VALUE_MIN, String(floor))
+        handle.setAttribute(VALUE_MAX, String(ceiling))
+
+        const tip = this.#contract.one('price-tip', handle)
 
         if (tip !== null) {
             tip.textContent = written
         }
+    }
 
-        const input = this.#inputs[bound]
+    /**
+     * @param {number} min
+     * @param {number} max
+     */
+    #write(min, max) {
+        for (const [bound, value] of [['min', min], ['max', max]]) {
+            const input = this.#inputs[bound]
 
-        if (input !== null) {
-            input.value = String(value)
+            if (input !== null) {
+                input.value = String(value)
+            }
         }
     }
 

@@ -3026,6 +3026,42 @@ c'est celui-là qui est levé.
 
 ---
 
+### R-118 · 🟠 · **fermé le 2026-09-16** · ouvert le 2026-09-16 — une poignée de prix garde sa valeur périmée après une saisie ou une remise à zéro
+
+Reproduit dans Chromium, au clavier seul : saisir `90` dans « À », revenir sur la poignée haute,
+appuyer sur `←`.
+
+| étape | position à l'écran | `aria-valuenow` | champs |
+| --- | --- | --- | --- |
+| saisie 90, `Tab` | 0,45 | **199** | 0 / 90 |
+| `←` sur la poignée haute | **0,99** | 198 | **0 / 198** |
+
+La poignée se déplace à l'écran mais croit valoir 199 : la flèche repart de là et **écrase la
+saisie**. Même chose après « Tout effacer » : poignées revenues aux extrémités à l'écran, annoncées
+à leur ancienne valeur. Un lecteur d'écran entend donc une valeur que la page n'affiche pas.
+
+Cause : `PriceControl::show()` repeint la position, le remplissage et la lecture, mais n'appelle
+jamais `#showBound()`, seul endroit qui écrit `aria-valuenow`, `aria-valuetext` et la bulle. Aucun
+test ne regardait ces attributs après un `show()`.
+
+**Corrigé.** `show()` et `#moveTo()` passent désormais par `#describe()`, qui écrit la valeur, son
+texte, la bulle **et** les limites de chaque poignée — `aria-valuemax` de la basse suit la haute,
+`aria-valuemin` de la haute suit la basse, ce que le rendu serveur posait déjà et que le client
+laissait se périmer. L'écriture des champs est séparée (`#write()`) : sans piste, un champ vide
+signifie une borne ouverte et `show()` ne doit pas y écrire un nombre.
+
+Vérifié dans Chromium avec le même parcours : saisie 90, `←` → **89** ; « Tout effacer » → poignées
+annoncées 0 et 199. Quatre tests JS : la valeur annoncée après `show()`, la flèche qui repart de la
+saisie, les extrémités après remise à zéro, les limites croisées.
+
+**Passes.** Lisibilité : `#showBound()` faisait deux choses (décrire la poignée, écrire le champ),
+scindé ; `#describeHandle()` fait 20 lignes, dont huit d'écriture d'attributs sans branche. Commentaires :
+aucun ajouté. Performance : quatre `setAttribute` de plus par déplacement, sur deux éléments déjà
+en main, sans requête. Sécurité : valeurs numériques issues de l'état, écrites par `setAttribute` et
+`textContent`, jamais en HTML. Contexte et i18n : les montants passent par `Money`, comme avant.
+
+---
+
 ### R-117 · 🔴 · **fermé le 2026-09-15** · ouvert le 2026-09-15 — la garde des paramètres refusait les défauts que le module s'était choisis
 
 `meilifacets:check-parameters` sortait en échec sur `min_price` et `max_price` : deux noms que
