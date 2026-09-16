@@ -89,9 +89,11 @@ export class ListingState {
         return this.#facets[taxonomy] ?? []
     }
 
-    /** Mirrors ListingState on the server: only ticked values count as filters. */
+    /** Mirrors ListingState on the server: a range counts once, whatever its ends. */
     activeFilterCount() {
-        return Object.values(this.#facets).reduce((total, values) => total + values.length, 0)
+        const ticked = Object.values(this.#facets).reduce((total, values) => total + values.length, 0)
+
+        return ticked + (this.#price.min === null && this.#price.max === null ? 0 : 1)
     }
 
     isPristine() {

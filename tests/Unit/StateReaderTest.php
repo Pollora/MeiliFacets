@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Tests\Unit;
 
 use Modules\MeiliFacets\Listing\ListingState;
+use Modules\MeiliFacets\Listing\Range;
 use Modules\MeiliFacets\Listing\StateReader;
 use Modules\MeiliFacets\Support\UrlParameters;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeListing;
@@ -153,6 +154,14 @@ final class StateReaderTest extends TestCase
 
         $this->assertSame(3, $state->activeFilterCount());
         $this->assertFalse($state->isPristine());
+    }
+
+    #[Test]
+    public function it_counts_a_price_range_as_one_filter_whatever_its_ends(): void
+    {
+        $this->assertSame(1, new ListingState(price: new Range(20.0, 60.0))->activeFilterCount());
+        $this->assertSame(1, new ListingState(price: new Range(max: 60.0))->activeFilterCount());
+        $this->assertSame(3, new ListingState(['brand' => ['acme', 'globex']], price: new Range(min: 20.0))->activeFilterCount());
     }
 
     #[Test]

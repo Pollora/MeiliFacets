@@ -3026,6 +3026,30 @@ c'est celui-là qui est levé.
 
 ---
 
+### R-123 · 🟡 · **fermé le 2026-09-16** · ouvert le 2026-09-16 — une plage de prix ne compte pas parmi les filtres actifs
+
+Reproduit dans Chromium : `?min_price=60&max_price=199` appliqué, le badge dit « 0 filtres actifs »
+pendant que « Tout effacer » s'affiche. `ListingState::activeFilterCount()`, en PHP comme en
+JavaScript, ne compte que les valeurs de facettes cochées ; `isPristine()` inclut pourtant le prix.
+Le visiteur voit donc un bouton pour effacer des filtres que le compteur dit absents.
+
+Nommer la plage (« jusqu'à 25 € ») reste l'affaire de `R-47`. Ici, il s'agit de la compter.
+
+**Corrigé des deux côtés** : une plage compte pour **un** filtre, qu'elle tienne une borne ou deux — comme
+WooCommerce la présente en un seul libellé. Depuis `R-122`, une borne posée au bord n'entre plus dans
+l'état : le compteur ne peut donc pas compter une plage qui ne filtre rien.
+
+Vérifié dans Chromium : plage seule → « 1 filtre actif » ; plage et Aeris → « 2 filtres actifs » ; la
+même URL rendue par le serveur → « 2 filtres actifs ». Un test PHP et un test JS, sur les trois formes :
+deux bornes, une seule, et avec des facettes.
+
+**Passes.** Lisibilité : une expression de chaque côté. Commentaires : le commentaire JS disait « seules
+les valeurs cochées comptent », devenu faux, réécrit. Performance : aucune. Sécurité : aucune. Contexte :
+un listing qui ne déclare aucun prix lit pourtant `min_price` dans l'URL et le compterait — défaut
+antérieur, point suivant.
+
+---
+
 ### R-122 · 🟡 · **fermé le 2026-09-16** · ouvert le 2026-09-16 — une poignée laissée au bord écrit quand même sa borne dans l'URL
 
 Reproduit dans Chromium : poignée haute ramenée de 199 à 198 au clavier, appliquer → l'URL devient

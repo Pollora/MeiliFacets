@@ -35,11 +35,17 @@ describe('ListingState, against StateReader', () => {
         assert.deepEqual(ListingState.valuesFrom('b,a,b'), ['a', 'b'])
     })
 
-    it('counts only ticked values as filters', () => {
+    it('counts ticked values as filters, never the sort or the page', () => {
         const state = new ListingState({ facets: { brand: ['a', 'b'], cat: ['x'] }, sort: 'price', page: 3 })
 
         assert.equal(state.activeFilterCount(), 3)
         assert.equal(state.isPristine(), false)
         assert.equal(new ListingState().isPristine(), true)
+    })
+
+    it('counts a price range as one filter, whatever its ends', () => {
+        assert.equal(new ListingState({ price: { min: 20, max: 60 } }).activeFilterCount(), 1)
+        assert.equal(new ListingState({ price: { max: 60 } }).activeFilterCount(), 1)
+        assert.equal(new ListingState({ facets: { brand: ['a', 'b'] }, price: { min: 20 } }).activeFilterCount(), 3)
     })
 })
