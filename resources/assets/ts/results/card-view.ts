@@ -1,11 +1,7 @@
 import type { Contract } from '../shared/contract.ts'
 import type { Card } from '../shared/description.ts'
 
-/**
- * Writes one projected card into a node the theme rendered. The document is a
- * store of its own: a field can be missing, so an element the card says nothing
- * about is hidden rather than left showing what the previous card held.
- */
+/** Writes one projected card into a node the theme rendered. */
 export class CardView {
     #contract: Contract
 
@@ -36,7 +32,6 @@ export class CardView {
         const source = card.image_url
 
         node.hidden = typeof source !== 'string' || source === ''
-        // Mirrors CardImage::from().
         node.alt = this.#textOf(card.image_alt) || this.#textOf(card.title)
 
         if (!node.hidden) {

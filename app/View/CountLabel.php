@@ -17,19 +17,19 @@ final class CountLabel
     /** @var array<string, MessageFormatter> */
     private array $formatters = [];
 
+    /** @var array<string, string> */
+    private array $tags = [];
+
     /**
      * @param  Closure(): string  $siteLocale
      */
     public function __construct(private readonly Closure $siteLocale) {}
 
-    /** `Intl.PluralRules` throws on tags ICU tolerates, `pt_PT_ao90` or `C`: only the language and its region travel. */
-    public function locale(): string
+    public function languageTag(): string
     {
-        if (preg_match('/^([a-z]{2,3})(?:[_-]([A-Z]{2}))?(?:[_-]|$)/', ($this->siteLocale)(), $parts) !== 1) {
-            return self::FALLBACK_LOCALE;
-        }
+        $locale = ($this->siteLocale)();
 
-        return isset($parts[2]) ? $parts[1].'-'.$parts[2] : $parts[1];
+        return $this->tags[$locale] ??= $this->tagOf($locale);
     }
 
     public function of(string $pattern, int $count): string
@@ -41,13 +41,25 @@ final class CountLabel
 
     private function formOf(int $count): int
     {
+        $tag = $this->languageTag();
+
         if (! class_exists(MessageFormatter::class)) {
-            return min(new MessageSelector()->getPluralIndex(str_replace('-', '_', $this->locale()), $count), 1);
+            // Laravel's table agrees with CLDR on French and English, not on 111 other locales.
+            return min(new MessageSelector()->getPluralIndex(str_replace('-', '_', $tag), $count), 1);
         }
 
-        $locale = $this->locale();
-        $this->formatters[$locale] ??= new MessageFormatter($locale, self::FORM_OF_COUNT);
+        $this->formatters[$tag] ??= new MessageFormatter($tag, self::FORM_OF_COUNT);
 
-        return (int) $this->formatters[$locale]->format(['n' => $count]);
+        return (int) $this->formatters[$tag]->format(['n' => $count]);
+    }
+
+    /** `Intl.PluralRules` throws on tags ICU tolerates, `pt_PT_ao90` or `C`: only the language and its region travel. */
+    private function tagOf(string $locale): string
+    {
+        if (preg_match('/^([a-z]{2,3})(?:[_-]([A-Z]{2}))?(?:[_-]|$)/', $locale, $parts) !== 1) {
+            return self::FALLBACK_LOCALE;
+        }
+
+        return isset($parts[2]) ? $parts[1].'-'.$parts[2] : $parts[1];
     }
 }

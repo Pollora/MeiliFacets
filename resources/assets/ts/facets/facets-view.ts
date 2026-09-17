@@ -18,7 +18,6 @@ export class FacetsView {
     #countLabel: CountLabel
     #taxonomies: Map<string, string>
 
-    /** Facet values are never recreated: the same nodes answer for the life of the page. */
     #boxed: Box[] | null = null
     #grouped: Map<string, Box[]> | null = null
     #blocked: Map<string, Element> | null = null
@@ -48,7 +47,7 @@ export class FacetsView {
             const distribution = counts.of(facet)
 
             for (const box of this.#boxesOf(facet.taxonomy)) {
-                const hits = distribution[box.input.value] ?? 0
+                const hits = Object.hasOwn(distribution, box.input.value) ? distribution[box.input.value] ?? 0 : 0
 
                 this.#showCount(box, hits)
                 this.#hasHits.set(box.host, hits > 0)
@@ -90,7 +89,6 @@ export class FacetsView {
         this.#showFoldButton(facet.taxonomy, expanded, values.some(({ folds }) => folds))
     }
 
-    /** Mirrors FacetValues::folded(). */
     #foldOf(facet: FacetDescription) {
         let rank = 0
 
@@ -156,7 +154,7 @@ export class FacetsView {
         }))
     }
 
-    /** A block names no taxonomy of its own: the boxes it holds name it for it. */
+    /** A block's taxonomy is no hook: the boxes it holds name it. */
     #taxonomyIn(node: Element | null): string | undefined {
         const block = node?.closest(Contract.selector('facet')) ?? null
         const input = block === null ? null : this.#contract.one('input', block)
@@ -170,7 +168,6 @@ export class FacetsView {
         }
     }
 
-    /** A value the listing does not declare is markup the theme added: left alone. */
     #boxes(): Box[] {
         return this.#boxed ??= this.#contract.all('facet-value').flatMap((host) => this.#box(host))
     }

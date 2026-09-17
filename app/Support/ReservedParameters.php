@@ -19,17 +19,19 @@ final class ReservedParameters
         'ref', 'refid', 'refsrc', 'ver', 'view',
     ];
 
-    /**
-     * Names WooCommerce reads straight from `$_GET` (`class-wc-query.php:316-318`).
-     * `NativeFiltering` stops it filtering the main query, but not seeing the names:
-     * `wc_is_filtered()` (`wc-conditional-functions.php:341`) and its widgets still act on them.
-     */
+    /** `WC_Query` reads these from `$_GET`, and `is_filtered()` the price and rating ones, `NativeFiltering` or not. */
     private const array READ_FROM_GET = [
         'min_price', 'max_price', 'rating_filter', 'orderby',
     ];
 
     /** The same source treats anything starting with this as one of its own. */
     private const string FILTER_PREFIX = 'filter_';
+
+    private const string QUERY_VARS_FILTER = 'query_vars';
+
+    private const string INIT_ACTION = 'init';
+
+    private const string PARSE_REQUEST_ACTION = 'parse_request';
 
     /** @var list<string>|null */
     private ?array $wordPress = null;
@@ -83,7 +85,7 @@ final class ReservedParameters
     public function reason(string $parameter): ?string
     {
         if (in_array($parameter, self::READ_FROM_GET, true) || str_starts_with($parameter, self::FILTER_PREFIX)) {
-            return 'read from $_GET by WooCommerce: its widgets and wc_is_filtered() act on it';
+            return 'read from $_GET by WooCommerce: its query, its widgets or is_filtered() act on it';
         }
 
         if (in_array($parameter, $this->wordPress(), true)) {
@@ -135,18 +137,18 @@ final class ReservedParameters
             return $this->declaredQueryVars();
         }
 
-        return apply_filters('query_vars', $this->declaredQueryVars());
+        return apply_filters(self::QUERY_VARS_FILTER, $this->declaredQueryVars());
     }
 
     /** Filtered before `init`, WooCommerce keeps its filter parameters for good, without the product taxonomies. */
     private function wordPressHasInitialised(): bool
     {
-        return function_exists('did_action') && did_action('init') > 0;
+        return function_exists('did_action') && did_action(self::INIT_ACTION) > 0;
     }
 
     /** `WP::parse_request()` applies `query_vars` itself, and the console never parses a request. */
     private function requestWasParsed(): bool
     {
-        return did_action('parse_request') > 0;
+        return did_action(self::PARSE_REQUEST_ACTION) > 0;
     }
 }

@@ -44,6 +44,13 @@ describe('FacetsView', () => {
         facets: [{ taxonomy: 'product_brand', multiple: true, cap: 3, visible: 1, counts }],
     }))
 
+    it('counts nothing for a value the answer does not name, whatever its slug', () => {
+        box('globex').setAttribute('value', 'constructor')
+        view.showCounts(counts({ product_brand: { acme: 3 } }))
+
+        assert.equal(find(host('constructor'), Contract.selector('count')).textContent, '0 results')
+    })
+
     it('ticks the boxes the state holds, and unticks the others', () => {
         box('globex').checked = true
 

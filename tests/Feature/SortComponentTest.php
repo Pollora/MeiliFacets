@@ -11,7 +11,6 @@ use Modules\MeiliFacets\Contracts\SearchEngine;
 use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\Listing\ResolvedListing;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeSearchEngine;
-use Modules\MeiliFacets\View\ListingDescription;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -63,15 +62,6 @@ final class SortComponentTest extends TestCase
         request()->replace(['sort' => self::PROMOTIONS]);
 
         $this->assertFalse($this->promotions(onSale: 0)->hasAttribute('hidden'));
-    }
-
-    #[Test]
-    public function it_tells_the_client_which_field_promotions_filter_on(): void
-    {
-        $description = $this->app->make(ListingDescription::class)->of($this->listing());
-
-        $this->assertSame(['field' => 'price.onsale', 'value' => 'true'], ((array) $description['sortFilters'])[self::PROMOTIONS]);
-        $this->assertSame([], $description['sorts'][self::PROMOTIONS]);
     }
 
     private function promotions(int $onSale): Element

@@ -1,10 +1,8 @@
 import { FilterExpression } from '../shared/filter-expression.ts'
-import { RESULTS } from '../shared/plan.ts'
 
 import type { ListingState } from '../listing/listing-state.ts'
 import type { SortFilterDescription } from '../shared/description.ts'
 import type { FilterQuery } from '../shared/filter-query.ts'
-import type { Answers } from '../shared/search-client.ts'
 
 /** The browser's copy of `Search\\SortQuery`. */
 export class SortQuery implements FilterQuery {
@@ -34,9 +32,7 @@ export class SortQuery implements FilterQuery {
         return filter === undefined ? '' : FilterExpression.equals(filter.field, filter.value)
     }
 
-    matchesIn(answers: Answers): Record<string, number> {
-        const distribution = answers[RESULTS]?.facetDistribution ?? {}
-
+    matchesIn(distribution: Partial<Record<string, Record<string, number>>>): Record<string, number> {
         return Object.fromEntries(Object.entries(this.#filters).map(([sort, { field, value }]) => [sort, distribution[field]?.[value] ?? 0]))
     }
 }

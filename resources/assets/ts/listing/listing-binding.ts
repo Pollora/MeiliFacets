@@ -144,7 +144,7 @@ export class ListingBinding {
         this.#results.show((results.hits ?? []).map((hit) => hit.card ?? {}), pageWindow)
         this.#facets.showCounts(new FacetCounts(answers))
         this.#price.showBounds(answers, state)
-        this.#sort.showMatches(this.#sortQuery.matchesIn(answers), state)
+        this.#sort.showMatches(this.#sortQuery.matchesIn(results.facetDistribution ?? {}), state)
         this.#pagination.show(pageWindow)
     }
 

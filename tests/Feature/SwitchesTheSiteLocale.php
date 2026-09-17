@@ -23,4 +23,22 @@ trait SwitchesTheSiteLocale
             remove_filter('locale', $filter);
         }
     }
+
+    /**
+     * @template T
+     *
+     * @param  callable(): T  $read
+     * @return T
+     */
+    protected function underLocales(string $laravel, string $wordPress, callable $read): mixed
+    {
+        $appLocale = app()->getLocale();
+        app()->setLocale($laravel);
+
+        try {
+            return $this->underSiteLocale($wordPress, $read);
+        } finally {
+            app()->setLocale($appLocale);
+        }
+    }
 }

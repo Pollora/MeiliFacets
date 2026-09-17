@@ -26,7 +26,7 @@ final readonly class SortChoices
 
         foreach ($sorts as $value => $sort) {
             $choice = $this->choice($value, $sort->label, $current);
-            $choices[] = $this->visible($choice, $sort, $matches[$value] ?? 0);
+            $choices[] = $this->hiddenIfEmpty($choice, $sort, $matches[$value] ?? 0);
         }
 
         return $choices;
@@ -42,7 +42,7 @@ final readonly class SortChoices
         );
     }
 
-    private function visible(SortChoice $choice, Sort $sort, int $matches): SortChoice
+    private function hiddenIfEmpty(SortChoice $choice, Sort $sort, int $matches): SortChoice
     {
         if ($choice->selected) {
             return $choice;

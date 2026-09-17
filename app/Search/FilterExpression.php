@@ -32,7 +32,7 @@ final readonly class FilterExpression
         }
 
         $clauses = array_map(
-            static fn (string $value): string => $facet->field().' = '.self::quote($value),
+            static fn (string $value): string => self::equals($facet->field(), $value),
             $values
         );
 

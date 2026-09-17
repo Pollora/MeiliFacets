@@ -80,7 +80,7 @@ final readonly class ListingSearch
      */
     private function unfilteredQueries(Listing $listing, ListingState $state): array
     {
-        return $this->isNarrowed($listing, $state) && $listing->facets() !== [] ? [self::UNFILTERED => QueryPlan::unfiltered($listing)] : [];
+        return $listing->facets() !== [] && $this->isNarrowed($listing, $state) ? [self::UNFILTERED => QueryPlan::unfiltered($listing)] : [];
     }
 
     private function isNarrowed(Listing $listing, ListingState $state): bool

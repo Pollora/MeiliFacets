@@ -26,6 +26,8 @@ use Tests\TestCase;
  */
 final class FacetComponentTest extends TestCase
 {
+    use SwitchesTheSiteLocale;
+
     private const string NOTHING_MATCHES = 'qqxxzzww-aucun-produit-ne-correspond';
 
     /** What a page placed lives as long as its listing, and the suite shares one application. */
@@ -163,6 +165,15 @@ final class FacetComponentTest extends TestCase
     }
 
     /** Naming a box with a count would rename it under the cursor at every filtering. */
+    #[Test]
+    public function it_counts_a_value_in_the_language_wordpress_translates_in(): void
+    {
+        $html = $this->underLocales('fr', 'en_US', fn (): string => $this->renderOne());
+
+        $this->assertMatchesRegularExpression('/\\d+ results?\\b/', $html);
+        $this->assertStringNotContainsString('résultat', $html);
+    }
+
     #[Test]
     public function it_describes_a_value_with_its_count_rather_than_naming_it(): void
     {

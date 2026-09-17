@@ -9,6 +9,7 @@ use Locale;
 use Modules\MeiliFacets\Listing\FacetValue;
 use Modules\MeiliFacets\Listing\NameOrder;
 use Modules\MeiliFacets\Support\SiteCollator;
+use Modules\MeiliFacets\Support\SiteLocale;
 use Modules\MeiliFacets\View\CountLabel;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -22,7 +23,7 @@ final class SiteLocaleTest extends TestCase
     {
         $countLabel = $this->app->make(CountLabel::class);
 
-        $this->assertSame('de-DE', $this->underSiteLocale('de_DE', $countLabel->locale(...)));
+        $this->assertSame('de-DE', $this->underSiteLocale('de_DE', $countLabel->languageTag(...)));
         $this->assertSame('1 Ergebnis', $this->underSiteLocale('de_DE', fn (): string => $countLabel->of(':count Ergebnis|:count Ergebnisse', 1)));
         $this->assertSame('2 Ergebnisse', $this->underSiteLocale('de_DE', fn (): string => $countLabel->of(':count Ergebnis|:count Ergebnisse', 2)));
     }
@@ -48,5 +49,11 @@ final class SiteLocaleTest extends TestCase
         $this->assertInstanceOf(Collator::class, $german);
         $this->assertSame('de', Locale::getPrimaryLanguage($german->getLocale(Locale::VALID_LOCALE)));
         $this->assertSame($german, $this->underSiteLocale('de_DE', $collators->current(...)));
+    }
+
+    #[Test]
+    public function it_speaks_laravels_language_when_wordpress_names_none(): void
+    {
+        $this->assertSame($this->app->getLocale(), $this->underSiteLocale('', SiteLocale::current(...)));
     }
 }

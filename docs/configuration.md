@@ -338,7 +338,7 @@ seulement. Il est donc inerte sur tout autre listing, et sur un site sans WooCom
 0,19 ms contre 0,27 ms. Le gain est la cohérence de `found_posts`, pas la vitesse.
 
 ⚠️ **Désarmer la clause n'empêche pas WooCommerce de voir les noms.** Quatre autres lecteurs
-subsistent, tous cosmétiques mais réels : `wc_is_filtered()`
+subsistent, tous cosmétiques mais réels : `is_filtered()`
 (`wc-conditional-functions.php:341`), les liens que les widgets recopient
 (`abstract-wc-widget.php:339-344`), le widget « Filtrer par prix » qui se dessine depuis eux
 (`class-wc-widget-price-filter.php:119-120`) et le widget « Filtres actifs »
@@ -404,7 +404,7 @@ renvoyés — mesuré le 2026-09-08, distribution identique à `hitsPerPage` 1, 
 | Plafond | Défaut | Qui le pose | Ce qu'il coupe |
 | --- | --- | --- | --- |
 | `faceting.maxValuesPerFacet` | **1 000** | le module, par `engine.max_facet_values` | les valeurs distinctes que `facetDistribution` renvoie, les **mieux comptées** d'abord grâce à `sortFacetValuesBy` |
-| `Facet::$cap` | 30 | la facette | ce que le module garde de ce qu'il a reçu |
+| `Facet::$cap` | 30 | la facette | ce que le module garde de ce qu'il a reçu — sur une page filtrée, jusqu'à deux fois `cap` (listing non filtré et sélection) plus les valeurs cochées |
 | `Facet::$visible` | 10 | la facette | ce qui est **lu** avant dépliage — le reste est rendu, jamais perdu |
 
 ⚠️ **`cap` ne peut pas dépasser `maxValuesPerFacet`.** Une facette déclarée `cap: 2000` en obtiendra

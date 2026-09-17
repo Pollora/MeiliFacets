@@ -62,10 +62,10 @@ final readonly class ProductListing implements Listing
             return $sorts;
         }
 
-        return array_filter($sorts, $this->needsNoPrice(...));
+        return array_filter($sorts, $this->isOfferedWithoutPrice(...));
     }
 
-    private function needsNoPrice(Sort $sort): bool
+    private function isOfferedWithoutPrice(Sort $sort): bool
     {
         return ! $sort->filtersOn(PriceField::OnSale->path());
     }

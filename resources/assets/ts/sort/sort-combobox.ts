@@ -1,5 +1,6 @@
 import { Contract } from '../shared/contract.ts'
 import { ListboxKeys } from './listbox-keys.ts'
+import { ShownOptions } from './shown-options.ts'
 import { TypeAhead } from './type-ahead.ts'
 
 import type { ListingState } from '../listing/listing-state.ts'
@@ -144,30 +145,18 @@ export class SortCombobox {
     }
 
     #pressed(event: KeyboardEvent) {
-        const shown = this.#options.filter((option) => !option.hidden)
-        const position = { active: this.#rankIn(shown, this.#active), selected: this.#rankIn(shown, this.#selectedIndex()), last: shown.length - 1 }
+        const shown = new ShownOptions(this.#options)
+        const position = shown.position(this.#active, this.#selectedIndex())
         const move = this.#isOpen
             ? ListboxKeys.whileOpen(event.key, position)
             : ListboxKeys.whileClosed(event.key, position)
         const handled = move === null
             ? this.#typedAhead(event, shown, position.active)
-            : this.#perform({ ...move, index: this.#indexOf(shown, move.index) })
+            : this.#perform({ ...move, index: shown.indexAt(move.index) ?? this.#active })
 
         if (handled) {
             event.preventDefault()
         }
-    }
-
-    #rankIn(shown: HTMLElement[], index: number) {
-        const option = this.#options[index]
-
-        return option === undefined ? 0 : Math.max(shown.indexOf(option), 0)
-    }
-
-    #indexOf(shown: HTMLElement[], rank: number) {
-        const option = shown[Math.min(Math.max(rank, 0), shown.length - 1)]
-
-        return option === undefined ? this.#active : this.#options.indexOf(option)
     }
 
     #perform({ action, index, passesThrough = false }: ListboxMove) {
@@ -183,15 +172,16 @@ export class SortCombobox {
         return !passesThrough
     }
 
-    #typedAhead(event: KeyboardEvent, shown: HTMLElement[], active: number) {
+    #typedAhead(event: KeyboardEvent, shown: ShownOptions, active: number) {
         if (!TypeAhead.accepts(event)) {
             return false
         }
 
-        const found = this.#typeAhead.find(event.key, shown.map((option) => this.#labelOf(option)), active)
+        const found = this.#typeAhead.find(event.key, shown.labels((option) => this.#labelOf(option)), active)
+        const index = found === undefined ? undefined : shown.indexAt(found)
 
-        if (found !== undefined) {
-            this.#perform({ action: this.#isOpen ? 'activate' : 'open', index: this.#indexOf(shown, found) })
+        if (index !== undefined) {
+            this.#perform({ action: this.#isOpen ? 'activate' : 'open', index })
         }
 
         return true

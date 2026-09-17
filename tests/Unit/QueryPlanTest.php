@@ -65,7 +65,7 @@ final class QueryPlanTest extends TestCase
     }
 
     #[Test]
-    public function it_counts_what_a_filtering_sort_would_keep_on_the_main_search(): void
+    public function it_asks_the_main_search_for_the_field_a_sort_filters_on(): void
     {
         $this->assertContains('price.onsale', QueryPlan::results(FakeListing::withPromotions(), new ListingState)['facets']);
         $this->assertNotContains('price.onsale', QueryPlan::results($this->listing, new ListingState)['facets']);

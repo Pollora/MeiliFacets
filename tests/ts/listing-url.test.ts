@@ -42,6 +42,15 @@ describe('ListingUrl', () => {
         assert.equal(url.toSearch(new ListingState({ facets: { product_brand: [] }, page: 1 })), '')
     })
 
+    it('writes nothing for a facet the server published no parameter for', () => {
+        const unnamed = new ListingUrl(described({ ...listing, params: { product_brand: 'brand' } }))
+
+        assert.equal(
+            unnamed.toSearch(new ListingState({ facets: { product_brand: ['acme'], pa_size: ['large'] }, page: 1 })),
+            '?brand=acme'
+        )
+    })
+
     it('writes each facet under its parameter, commas left readable', () => {
         const search = url.toSearch(new ListingState({
             facets: { product_brand: ['acme', 'globex'], pa_size: ['large'] },

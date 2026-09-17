@@ -51,14 +51,7 @@ final class ActiveFiltersComponentTest extends TestCase
     #[Test]
     public function it_resolves_as_a_component_and_speaks_the_language_wordpress_translates_in(): void
     {
-        $appLocale = $this->app->getLocale();
-        $this->app->setLocale('fr');
-
-        try {
-            $html = $this->underSiteLocale('en_US', fn (): string => Blade::render('<x-meilifacets::active-filters />'));
-        } finally {
-            $this->app->setLocale($appLocale);
-        }
+        $html = $this->underLocales('fr', 'en_US', fn (): string => Blade::render('<x-meilifacets::active-filters />'));
 
         $this->assertStringContainsString('0 active filters', $html);
     }

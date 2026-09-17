@@ -17,6 +17,8 @@ final class ListingDescriptionTest extends TestCase
     use RequestsAnAddress;
     use SwitchesTheSiteLocale;
 
+    private const string PROMOTIONS = 'on_sale';
+
     /** The suite shares one application: a query left behind would reach a later class. */
     protected function tearDown(): void
     {
@@ -72,14 +74,7 @@ final class ListingDescriptionTest extends TestCase
     #[Test]
     public function it_hands_over_its_labels_in_the_language_wordpress_translates_the_page_in(): void
     {
-        $appLocale = $this->app->getLocale();
-        $this->app->setLocale('fr');
-
-        try {
-            $description = $this->underSiteLocale('en_US', fn (): array => $this->describedWith([]));
-        } finally {
-            $this->app->setLocale($appLocale);
-        }
+        $description = $this->underLocales('fr', 'en_US', fn (): array => $this->describedWith([]));
 
         $this->assertSame('en-US', $description['locale']);
         $this->assertSame('Show more', $description['foldLabels']['more']);
@@ -92,7 +87,6 @@ final class ListingDescriptionTest extends TestCase
         $this->assertSame('{}', json_encode($this->describedWith([])['state']['facets']));
     }
 
-    /** WooCommerce declares `min_price` through the `query_vars` filter, which the console never runs. */
     #[Test]
     public function it_hands_over_what_wordpress_read_less_the_listings_own_parameters(): void
     {
@@ -117,6 +111,19 @@ final class ListingDescriptionTest extends TestCase
         }
 
         $this->assertSame('s=&post_type=product', $pageQuery);
+    }
+
+    #[Test]
+    public function it_tells_the_client_which_field_promotions_filter_on(): void
+    {
+        if (! array_key_exists(self::PROMOTIONS, $this->listing()->sorts())) {
+            $this->markTestSkipped('The host listing declares no price filter, so it offers no promotions.');
+        }
+
+        $description = $this->app->make(ListingDescription::class)->of($this->listing());
+
+        $this->assertSame(['field' => 'price.onsale', 'value' => 'true'], ((array) $description['sortFilters'])[self::PROMOTIONS]);
+        $this->assertSame([], $description['sorts'][self::PROMOTIONS]);
     }
 
     /**

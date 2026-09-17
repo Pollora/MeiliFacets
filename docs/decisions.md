@@ -47,7 +47,7 @@ Voir aussi : [installation.md](installation.md) · [architecture.md](architectur
 | Déclaration des facettes et des tris | contrats `ProductFacets` et `ProductSorts`, liés en `scopedIf` — le module donne un défaut WooCommerce, le projet le remplace sans patcher le module |
 | Libellés des facettes et des tris | **figés au premier appel** — les implémentations mémoïsent, `__()` compris. Le gain (`T-28`) vaut la contrainte : rien ne change de langue en cours de requête, et le processus meurt avec elle. Un worker de file qui survivrait à un changement de locale garderait les libellés du premier job |
 | Ancêtres de catégorie | la chaîne complète est indexée, pas seulement le terme assigné |
-| Compteurs de facettes | `multi-search` disjonctif, isolé derrière un point d'extension |
+| Compteurs de facettes | `multi-search` disjonctif, isolé derrière un point d'extension (`FacetCounter`) |
 | Envoi des recherches | derrière le contrat `SearchEngine` ; le client Meilisearch est injecté, jamais résolu statiquement |
 | Repli `503` | objet `Unavailable` lié en `scoped`, pas d'état statique |
 | `displayedAttributes` | restreint à `ID` et `card` par défaut, ouvert par `meilifacets.displayed_attributes` ; `'*'` rouvre tout |
@@ -411,6 +411,18 @@ visibles, avec leur contour natif.
 
 Coût : une vue surchargée garde un curseur qui fonctionne et se voit, mais repart de rangées nues.
 
+### Une borne se valide au relâchement de la touche (2026-09-16)
+
+Tranché par Louis, comme le curseur de prix de WooCommerce, qui ne filtre qu'au `keyup`
+(`ProductFilterPriceSlider.php:131,143`). Au clavier, la poignée bouge à chaque `keydown` ; la plage n'est
+validée qu'au `keyup`, et seulement pour une touche qui déplace une poignée (`R-129`).
+
+Ce que ça achète : en mode `immediate`, une recherche et une réécriture d'URL par geste, au lieu d'une par
+répétition d'une flèche maintenue.
+
+Ce que ça coûte : en mode `immediate`, la grille ne suit une flèche maintenue qu'une fois la touche
+relâchée ; en mode `submit`, « Appliquer » pressé avant le relâchement n'écrit rien.
+
 ### « Promotions » est une option du tri qui filtre (2026-09-16)
 
 Tranché par Louis. Amende `D-d` (`prix.md`), qui prévoyait une facette « en promotion » en drapeau,
@@ -495,6 +507,11 @@ Ce que ça coûte :
   voit qu'en navigateur, ce que la définition de « fini » exige déjà ;
 - `module:publish` copie tout `resources/assets`, sources TypeScript comprises : elles sont servies
   dans `public/` sans être chargées.
+- **un lint qui lit les types** (`recommendedTypeChecked`, `projectService`), tranché par Louis le
+  2026-09-16 avec `exactOptionalPropertyTypes` et `noImplicitOverride` dans `tsconfig.json` (`R-133`). Il
+  a trouvé un défaut de `CardPainter` et trois lectures JSON non typées ; en échange, ESLint construit le
+  programme TypeScript à chaque passage, et les appels de `node:test` y sont déclarés sûrs
+  (`allowForKnownSafeCalls`) plutôt que signalés 236 fois.
 
 ### Le client se charge en priorité basse, surchargeable par filtre (2026-09-16)
 
@@ -507,6 +524,39 @@ n'est pas validée par le module, WordPress le fait et retombe sur `auto`.
 Ce que ça achète : 232 ms de LCP en « 4G lente » sur `/boutique` (`R-134`). Ce que ça coûte : le listing
 se lie 75 ms plus tard sur le même réseau, rien en local. Premier filtre que le module déclare : les autres
 points d'extension sont des contrats du conteneur.
+
+### Le client échappe au Delay JS de WP Rocket (2026-09-16)
+
+Tranché par Louis (`R-134`). Activé, le Delay JS de WP Rocket réécrit un `type="module"` en
+`text/rocketlazyloadscript` et ne l'exécute qu'au premier geste du visiteur (`DelayJS/HTML.php:219-263`) :
+le listing resterait inerte jusque-là. `ListingScript::excludeFromDelayedScripts()` ajoute le chemin du
+paquet à `rocket_delay_js_exclusions`, brut : WP Rocket y échappe lui-même `+`, `?ver` et `#`, et un chemin
+passé par `preg_quote` casserait sa regex.
+
+Ce que ça coûte : le paquet s'exécute au chargement, y compris pour un visiteur qui ne touche à rien — la
+priorité basse ci-dessus limite ce qu'il prend au rendu. Le module connaît le nom d'un filtre de WP Rocket,
+sans effet quand l'extension est absente.
+
+### Le client se range par fonctionnalité, sous des règles de taille (2026-09-16)
+
+Demandé par Louis (chantier « qualité du JavaScript », `R-136`), valeurs validées par lui dans la
+proposition du chantier. Les sources du client sont rangées par fonctionnalité — `shared`, `listing`,
+`facets`, `price`, `sort`, `results`, `pagination` — et ESLint y impose 200 lignes par fichier, 20 par
+fonction, une complexité de 8, trois paramètres et aucun ternaire imbriqué, lignes vides et commentaires
+non comptés. Chaque filtre apporte sa part de la requête sous le même nom des deux côtés (`FilterQuery`,
+`FacetQuery`, `PriceQuery`) ; `FacetCounter` reste le point d'extension du comptage.
+
+Ce que ça achète : une fonctionnalité nouvelle ajoute ses fichiers et sa `FilterQuery` au lieu de modifier
+les mêmes fichiers centraux, et aucun fichier du client ne grossit au-delà des règles sans que
+`composer check` échoue.
+
+Ce que ça coûte :
+
+- **20 lignes par fonction, quand `CLAUDE.md` en demande « ~15 »** : la passe de lisibilité continue de
+  relever l'écart ;
+- **une API retirée** : `QueryPlan::counting()`, `priceBounds()`, `isCountedApart()` et
+  `measuresPriceApart()` n'existent plus. Un projet qui remplace `FacetCounter` écrit
+  `QueryPlan::apart($listing, $state, new FacetQuery($facet))`.
 
 ### Le client part de l'état que le serveur a lu (2026-09-17)
 

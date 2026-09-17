@@ -44,15 +44,30 @@ final class CountLabelTest extends TestCase
     #[Test]
     public function it_hands_the_browser_a_tag_it_accepts(): void
     {
-        $this->assertSame('pt-BR', new CountLabel(fn (): string => 'pt_BR')->locale());
-        $this->assertSame('pt-PT', new CountLabel(fn (): string => 'pt_PT_ao90')->locale());
-        $this->assertSame('zh', new CountLabel(fn (): string => 'zh_Hans_CN')->locale());
-        $this->assertSame('en', new CountLabel(fn (): string => 'C')->locale());
+        $this->assertSame('pt-BR', new CountLabel(fn (): string => 'pt_BR')->languageTag());
+        $this->assertSame('pt-PT', new CountLabel(fn (): string => 'pt_PT_ao90')->languageTag());
+        $this->assertSame('zh', new CountLabel(fn (): string => 'zh_Hans_CN')->languageTag());
+        $this->assertSame('en', new CountLabel(fn (): string => 'C')->languageTag());
     }
 
     #[Test]
     public function it_falls_back_to_the_one_form_a_pattern_carries(): void
     {
         $this->assertSame('4', new CountLabel(fn (): string => 'en')->of(':count', 4));
+    }
+
+    #[Test]
+    public function it_tags_each_language_the_site_switches_to(): void
+    {
+        $locale = 'de_DE';
+        $countLabel = new CountLabel(function () use (&$locale): string {
+            return $locale;
+        });
+
+        $this->assertSame('de-DE', $countLabel->languageTag());
+
+        $locale = 'pt_BR';
+
+        $this->assertSame('pt-BR', $countLabel->languageTag());
     }
 }

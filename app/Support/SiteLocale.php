@@ -6,9 +6,11 @@ namespace Modules\MeiliFacets\Support;
 
 final readonly class SiteLocale
 {
-    /** WordPress declares `get_locale()` only once installed: Pollora stops loading it on a site without a database. */
+    /** As `CoreWordPressTranslator::locale()`: without a database Pollora loads neither `get_locale()` nor the object cache. */
     public static function current(): string
     {
-        return function_exists('get_locale') ? get_locale() : app()->getLocale();
+        $locale = function_exists('get_locale') && function_exists('wp_cache_get') ? get_locale() : '';
+
+        return $locale === '' ? app()->getLocale() : $locale;
     }
 }

@@ -22,7 +22,7 @@ final class ReservedParametersTest extends TestCase
     }
 
     #[Test]
-    public function it_refuses_the_whole_family_of_attribute_filters(): void
+    public function it_refuses_every_name_under_woocommerce_filter_prefix(): void
     {
         $this->assertNotNull(new ReservedParameters()->reason('filter_contenance'));
     }

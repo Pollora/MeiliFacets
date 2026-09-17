@@ -372,7 +372,8 @@ le préfixe signale un mapping à faire, pas un état normal.
 Les paramètres réservés au module — page, tri, recherche — prennent des défauts **en anglais**
 (`pg`, `sort`, `q`), que le projet habille comme il habille les taxonomies. Trois d'entre eux
 sont interdits sans qu'aucun test d'URL ne le révèle : `page`, `paged` et `order` sont des query
-vars WordPress. La validation d'un nom se fait contre `$wp->public_query_vars` et contre la liste
+vars WordPress. La validation d'un nom se fait contre les query vars publiques, filtre `query_vars`
+compris, et contre la liste
 que Varnish efface, dans la commande de diagnostic — jamais sur le chemin d'une requête.
 
 **Pagination** : pages numérotées en query var, sans rechargement. Les pages au-delà de la

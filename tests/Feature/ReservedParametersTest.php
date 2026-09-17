@@ -8,10 +8,20 @@ use Closure;
 use Modules\MeiliFacets\Support\ReservedParameters;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
+use WooCommerce;
 
 final class ReservedParametersTest extends TestCase
 {
     private const string PROBE = 'meilifacets_probe';
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        if (! class_exists(WooCommerce::class)) {
+            $this->markTestSkipped('The names these tests expect are declared by WooCommerce.');
+        }
+    }
 
     #[Test]
     public function it_adds_the_query_vars_plugins_declare_through_the_filter(): void
@@ -20,13 +30,23 @@ final class ReservedParametersTest extends TestCase
 
         $this->assertContains('min_price', $names);
         $this->assertContains('checkout-link', $names);
+    }
+
+    #[Test]
+    public function it_lists_each_name_once(): void
+    {
+        $names = new ReservedParameters()->wordPress();
+
         $this->assertSame(array_values(array_unique($names)), $names);
     }
 
     #[Test]
     public function it_names_the_price_bounds_for_what_woocommerce_reads_even_once_they_are_query_vars(): void
     {
-        $this->assertStringContainsString('$_GET', (string) new ReservedParameters()->reason('min_price'));
+        $reserved = new ReservedParameters;
+
+        $this->assertContains('min_price', $reserved->wordPress());
+        $this->assertStringContainsString('$_GET', (string) $reserved->reason('min_price'));
     }
 
     #[Test]
