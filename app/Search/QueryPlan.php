@@ -9,6 +9,7 @@ use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Listing\Facet;
 use Modules\MeiliFacets\Listing\ListingState;
 use Modules\MeiliFacets\Listing\PriceFilter;
+use Modules\MeiliFacets\Listing\SortFilter;
 
 final readonly class QueryPlan
 {
@@ -20,12 +21,21 @@ final readonly class QueryPlan
     public static function filterQueries(Listing $listing): array
     {
         $price = PriceFilter::among($listing->filters());
+        $sortQuery = self::sortQuery($listing);
 
         // Asking the engine for price bounds brings back a distribution of every distinct price too.
         return [
             ...array_map(static fn (Facet $facet): FilterQuery => new FacetQuery($facet), $listing->facets()),
             ...$price instanceof PriceFilter ? [new PriceQuery($price)] : [],
+            ...$sortQuery instanceof SortQuery ? [$sortQuery] : [],
         ];
+    }
+
+    public static function sortQuery(Listing $listing): ?SortQuery
+    {
+        $filters = SortFilter::carriedBy($listing->sorts());
+
+        return $filters === [] ? null : new SortQuery($filters);
     }
 
     /**

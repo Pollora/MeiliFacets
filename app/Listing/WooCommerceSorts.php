@@ -19,6 +19,7 @@ final class WooCommerceSorts implements ProductSorts
             'price_asc' => new Sort(__('Price, low to high'), [PriceField::Min->path().':asc']),
             'price_desc' => new Sort(__('Price, high to low'), [PriceField::Max->path().':desc']),
             'newest' => new Sort(__('New arrivals'), ['post_date:desc']),
+            'on_sale' => Sort::filtering(__('On sale'), SortFilter::whereTrue(PriceField::OnSale->path())),
         ];
     }
 }

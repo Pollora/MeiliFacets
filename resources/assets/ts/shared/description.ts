@@ -17,6 +17,11 @@ export interface PriceFields {
     max: string
 }
 
+export interface SortFilterDescription {
+    field: string
+    value: string
+}
+
 export interface MoneyFormat {
     format: string
     symbol: string
@@ -42,6 +47,8 @@ export interface ListingDescription {
     attributes: string[]
     /** key to engine sort expressions */
     sorts: Record<string, string[]>
+    /** sort key to the filter it carries */
+    sortFilters: Readonly<Record<string, SortFilterDescription>>
     /** taxonomy to URL parameter */
     params: Record<string, string>
     reserved: Record<'sort' | 'query' | 'page' | 'minPrice' | 'maxPrice', string>

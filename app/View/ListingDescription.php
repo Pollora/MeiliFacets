@@ -14,6 +14,7 @@ use Modules\MeiliFacets\Listing\ListingState;
 use Modules\MeiliFacets\Listing\PriceFilter;
 use Modules\MeiliFacets\Listing\ResolvedListing;
 use Modules\MeiliFacets\Listing\Sort;
+use Modules\MeiliFacets\Listing\SortFilter;
 use Modules\MeiliFacets\Search\EngineLimits;
 use Modules\MeiliFacets\Support\Money;
 use Modules\MeiliFacets\Support\UrlParameters;
@@ -50,6 +51,7 @@ final readonly class ListingDescription
             'priceFields' => $this->priceFields($listing),
             'money' => $this->money->describe(),
             'sorts' => $this->sorts($listing->sorts()),
+            'sortFilters' => (object) $this->sortFilters($listing->sorts()),
             'countPattern' => __(':count result|:count results'),
             'filterPattern' => __(':count active filter|:count active filters'),
             'foldLabels' => ['more' => __('Show more'), 'less' => __('Show less')],
@@ -151,5 +153,14 @@ final readonly class ListingDescription
     private function sorts(array $sorts): array
     {
         return array_map(static fn (Sort $sort): array => $sort->expressions, $sorts);
+    }
+
+    /**
+     * @param  array<string, Sort>  $sorts
+     * @return array<string, array<string, string>>
+     */
+    private function sortFilters(array $sorts): array
+    {
+        return array_map(static fn (SortFilter $filter): array => $filter->describe(), SortFilter::carriedBy($sorts));
     }
 }

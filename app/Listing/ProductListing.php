@@ -10,6 +10,7 @@ use Modules\MeiliFacets\Contracts\ProductFacets;
 use Modules\MeiliFacets\Contracts\ProductSorts;
 use Modules\MeiliFacets\Enums\ApplyMode;
 use Modules\MeiliFacets\Enums\DocumentField;
+use Modules\MeiliFacets\Enums\PriceField;
 use Modules\MeiliFacets\Enums\ProductTaxonomy;
 use Modules\MeiliFacets\Search\FilterExpression;
 use Modules\MeiliFacets\Support\WooCommerce;
@@ -55,7 +56,18 @@ final readonly class ProductListing implements Listing
 
     public function sorts(): array
     {
-        return $this->sorts->all();
+        $sorts = $this->sorts->all();
+
+        if (PriceFilter::isDeclaredAmong($this->filters())) {
+            return $sorts;
+        }
+
+        return array_filter($sorts, $this->needsNoPrice(...));
+    }
+
+    private function needsNoPrice(Sort $sort): bool
+    {
+        return ! $sort->filtersOn(PriceField::OnSale->path());
     }
 
     public function baseFilter(): array

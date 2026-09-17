@@ -44,6 +44,9 @@ final class ResolvedListing
     /** @var array<string, list<FacetValue>> */
     private array $valuesByFacet = [];
 
+    /** @var array<string, Sort>|null */
+    private ?array $sorts = null;
+
     public function __construct(
         private readonly Listing $listing,
         private readonly ListingState $state,
@@ -294,12 +297,20 @@ final class ResolvedListing
      */
     public function sorts(): array
     {
-        return $this->listing->sorts();
+        return $this->sorts ??= $this->listing->sorts();
     }
 
     public function currentSort(): ?string
     {
         return $this->state->sort;
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    public function sortMatches(): array
+    {
+        return $this->results()->sortMatches;
     }
 
     public function offset(): int

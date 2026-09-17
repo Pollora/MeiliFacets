@@ -145,7 +145,7 @@ Des bindings du conteneur Laravel, à poser dans le `register()` d'un provider d
 | `SearchEngine` | `MeilisearchEngine` | l'envoi des recherches au moteur | oui, `bind` |
 | `Listing` | `ProductListing` si WooCommerce | ce qu'un listing déclare | découverte automatique |
 | `ProductFacets` | `WooCommerceFacets` — catégorie et marque | les taxonomies que la boutique parcourt | oui, `scoped` |
-| `ProductSorts` | `WooCommerceSorts` — prix ↑↓, nouveautés | les tris offerts | oui, `scoped` |
+| `ProductSorts` | `WooCommerceSorts` — prix ↑↓, nouveautés, « Promotions » (`on_sale`, offert seulement si le listing déclare un prix) | les tris offerts | oui, `scoped` |
 
 ```php
 $this->app->bind(CardProjector::class, ProductCardProjector::class);

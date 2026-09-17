@@ -69,8 +69,26 @@ export class SortCombobox {
 
         const selected = this.#options.find((option) => this.#valueOf(option) === current)
 
+        if (selected) {
+            selected.hidden = false
+        }
+
         if (this.#trigger && selected) {
             this.#trigger.textContent = selected.textContent
+        }
+    }
+
+    showMatches(matches: Readonly<Record<string, number>>, state: ListingState) {
+        const current = state.sort ?? DEFAULT_VALUE
+
+        for (const option of this.#options) {
+            const value = this.#valueOf(option)
+
+            option.hidden = value !== current && matches[value] === 0
+        }
+
+        if (this.#isOpen && this.#options[this.#active]?.hidden === true) {
+            this.#activate(this.#selectedIndex())
         }
     }
 
@@ -126,15 +144,30 @@ export class SortCombobox {
     }
 
     #pressed(event: KeyboardEvent) {
-        const position = { active: this.#active, selected: this.#selectedIndex(), last: this.#options.length - 1 }
+        const shown = this.#options.filter((option) => !option.hidden)
+        const position = { active: this.#rankIn(shown, this.#active), selected: this.#rankIn(shown, this.#selectedIndex()), last: shown.length - 1 }
         const move = this.#isOpen
             ? ListboxKeys.whileOpen(event.key, position)
             : ListboxKeys.whileClosed(event.key, position)
-        const handled = move === null ? this.#typedAhead(event) : this.#perform(move)
+        const handled = move === null
+            ? this.#typedAhead(event, shown, position.active)
+            : this.#perform({ ...move, index: this.#indexOf(shown, move.index) })
 
         if (handled) {
             event.preventDefault()
         }
+    }
+
+    #rankIn(shown: HTMLElement[], index: number) {
+        const option = this.#options[index]
+
+        return option === undefined ? 0 : Math.max(shown.indexOf(option), 0)
+    }
+
+    #indexOf(shown: HTMLElement[], rank: number) {
+        const option = shown[Math.min(Math.max(rank, 0), shown.length - 1)]
+
+        return option === undefined ? this.#active : this.#options.indexOf(option)
     }
 
     #perform({ action, index, passesThrough = false }: ListboxMove) {
@@ -150,15 +183,15 @@ export class SortCombobox {
         return !passesThrough
     }
 
-    #typedAhead(event: KeyboardEvent) {
+    #typedAhead(event: KeyboardEvent, shown: HTMLElement[], active: number) {
         if (!TypeAhead.accepts(event)) {
             return false
         }
 
-        const found = this.#typeAhead.find(event.key, this.#options.map((option) => this.#labelOf(option)), this.#active)
+        const found = this.#typeAhead.find(event.key, shown.map((option) => this.#labelOf(option)), active)
 
         if (found !== undefined) {
-            this.#perform({ action: this.#isOpen ? 'activate' : 'open', index: found })
+            this.#perform({ action: this.#isOpen ? 'activate' : 'open', index: this.#indexOf(shown, found) })
         }
 
         return true
@@ -184,7 +217,7 @@ export class SortCombobox {
         const option = event.target instanceof Element
             ? event.target.closest(Contract.selector('sort-option'))
             : null
-        const index = option instanceof HTMLElement ? this.#options.indexOf(option) : -1
+        const index = option instanceof HTMLElement && !option.hidden ? this.#options.indexOf(option) : -1
 
         if (index !== -1) {
             this.#pick(index)

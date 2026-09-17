@@ -1,14 +1,11 @@
 import { facetField } from '../shared/description.ts'
+import { FilterExpression } from '../shared/filter-expression.ts'
 
 import type { FilterQuery } from '../shared/filter-query.ts'
 import type { ListingState } from '../listing/listing-state.ts'
 import type { FacetDescription } from '../shared/description.ts'
 
 const COUNT = 'count:'
-
-// One pass over both characters: escaping them in sequence would let a value
-// ending in a backslash close the string.
-const ESCAPED = /[\\"]/g
 
 /** The browser's copy of `Search\\FacetQuery`. */
 export class FacetQuery implements FilterQuery {
@@ -36,12 +33,8 @@ export class FacetQuery implements FilterQuery {
 
     clause(state: ListingState) {
         const field = facetField(this.#facet)
-        const clauses = state.selected(this.#facet.taxonomy).map((value) => `${field} = ${this.#escape(value)}`)
+        const clauses = state.selected(this.#facet.taxonomy).map((value) => FilterExpression.equals(field, value))
 
         return clauses.length > 1 ? `(${clauses.join(' OR ')})` : clauses.join('')
-    }
-
-    #escape(value: string) {
-        return `"${value.replace(ESCAPED, '\\$&')}"`
     }
 }

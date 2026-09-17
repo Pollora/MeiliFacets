@@ -11,18 +11,21 @@ use Modules\MeiliFacets\Enums\SelectionMode;
 use Modules\MeiliFacets\Listing\Facet;
 use Modules\MeiliFacets\Listing\PriceFilter;
 use Modules\MeiliFacets\Listing\Sort;
+use Modules\MeiliFacets\Listing\SortFilter;
 
 final readonly class FakeListing implements Listing
 {
     /**
      * @param  list<Placeable>  $facets
      * @param  list<string>  $baseFilter
+     * @param  array<string, Sort>|null  $sorts
      */
     public function __construct(
         private array $facets = [],
         private array $baseFilter = [],
         private int $perPage = 16,
         private string $name = 'fake',
+        private ?array $sorts = null,
     ) {}
 
     public static function named(string $name): self
@@ -44,6 +47,14 @@ final readonly class FakeListing implements Listing
             new Facet('product_brand', 'Brand'),
             new PriceFilter('Price'),
         ], ['post_type = "product"']);
+    }
+
+    public static function withPromotions(): self
+    {
+        return new self([new Facet('product_brand', 'Brand'), new PriceFilter('Price')], ['post_type = "product"'], sorts: [
+            'price_asc' => new Sort('Price', ['metas._price:asc']),
+            'on_sale' => Sort::filtering('On sale', SortFilter::whereTrue('price.onsale')),
+        ]);
     }
 
     public function name(): string
@@ -72,7 +83,7 @@ final readonly class FakeListing implements Listing
      */
     public function sorts(): array
     {
-        return ['price_asc' => new Sort('Price', ['metas._price:asc'])];
+        return $this->sorts ?? ['price_asc' => new Sort('Price', ['metas._price:asc'])];
     }
 
     /**

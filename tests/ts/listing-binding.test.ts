@@ -333,3 +333,29 @@ describe('ListingBinding with a price range', () => {
         assert.equal(find(root, '[data-bound="min"]').getAttribute('aria-valuemin'), '43')
     })
 })
+
+describe('ListingBinding with a sort that filters', () => {
+    it('hides the option once the engine says it would keep nothing, and keeps it while in use', async () => {
+        const { root } = open(listingMarkup())
+        const promoted = described({
+            ...description,
+            sorts: { ...description.sorts, on_sale: [] },
+            sortFilters: { on_sale: { field: 'price.onsale', value: 'true' } },
+        })
+        find(root, Contract.selector('sort-list')).insertAdjacentHTML('beforeend', `
+            <li id="sort-on_sale" role="option" data-value="on_sale" aria-selected="false" data-meili="sort-option">On sale</li>`)
+        const client = new FakeClient()
+        const listing = new Listing(promoted, connection, { filterQueries: filterQueriesOf(promoted), client, history: new FakeHistory() })
+        new ListingBinding(new Contract(root), listing, promoted).start()
+
+        client.answer = { results: { hits: [], totalHits: 4, facetDistribution: { 'price.onsale': { false: 4 } } } }
+        await listing.apply()
+
+        assert.equal(find(root, '[data-value="on_sale"]').hidden, true)
+
+        listing.sortBy('on_sale')
+        await Promise.resolve()
+
+        assert.equal(find(root, '[data-value="on_sale"]').hidden, false)
+    })
+})

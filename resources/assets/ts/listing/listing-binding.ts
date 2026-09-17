@@ -8,6 +8,7 @@ import { PriceControl } from '../price/price-control.ts'
 import { ResultsView } from '../results/results-view.ts'
 import { RESULTS } from '../shared/plan.ts'
 import { SortCombobox } from '../sort/sort-combobox.ts'
+import { SortQuery } from '../sort/sort-query.ts'
 
 import type { ListingDescription } from '../shared/description.ts'
 import type { ListingState } from './listing-state.ts'
@@ -24,6 +25,7 @@ export class ListingBinding {
     #sort: SortCombobox
     #price: PriceControl
     #summary: FilterSummaryView
+    #sortQuery: SortQuery
 
     constructor(contract: Contract, listing: Listing, description: ListingDescription) {
         this.#root = contract.root
@@ -33,6 +35,7 @@ export class ListingBinding {
         this.#facets = new FacetsView(contract, description)
         this.#pagination = new PaginationView(contract)
         this.#sort = new SortCombobox(contract, (sort) => this.#listing.sortBy(sort))
+        this.#sortQuery = new SortQuery(description.sortFilters)
         this.#summary = new FilterSummaryView(contract, description)
         this.#price = new PriceControl(contract, description, (min, max) => this.#listing.priceBetween(min, max))
     }
@@ -141,6 +144,7 @@ export class ListingBinding {
         this.#results.show((results.hits ?? []).map((hit) => hit.card ?? {}), pageWindow)
         this.#facets.showCounts(new FacetCounts(answers))
         this.#price.showBounds(answers, state)
+        this.#sort.showMatches(this.#sortQuery.matchesIn(answers), state)
         this.#pagination.show(pageWindow)
     }
 

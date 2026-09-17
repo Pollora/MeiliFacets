@@ -4,6 +4,8 @@ import { describe, it } from 'node:test'
 import { filterQueriesOf } from '../../resources/assets/ts/filter-queries.ts'
 import { ListingQuery } from '../../resources/assets/ts/listing/listing-query.ts'
 import { ListingState } from '../../resources/assets/ts/listing/listing-state.ts'
+import { FacetQuery } from '../../resources/assets/ts/facets/facet-query.ts'
+import { PriceQuery } from '../../resources/assets/ts/price/price-query.ts'
 import { RESULTS } from '../../resources/assets/ts/shared/plan.ts'
 import { described } from './fixtures.ts'
 
@@ -139,5 +141,35 @@ describe('ListingQuery', () => {
     it('restricts the retrieved attributes when the listing names them', () => {
         assert.deepEqual(build({}, { attributes: ['card'] }).attributesToRetrieve, ['card'])
         assert.equal(build({}).attributesToRetrieve, undefined)
+    })
+})
+
+describe('ListingQuery with a sort that filters', () => {
+    const promoted: Partial<ListingDescription> = {
+        sorts: { price_asc: ['metas._price:asc'], on_sale: [] },
+        priceFields: { min: 'price.min', max: 'price.max' },
+        sortFilters: { on_sale: { field: 'price.onsale', value: 'true' } },
+    }
+
+    it('filters every search by it, as the server does', () => {
+        const queries = plan({ facets: { product_brand: ['aeris'] }, sort: 'on_sale', price: { min: 20 } }, promoted)
+
+        for (const key of [RESULTS, FacetQuery.keyFor('product_brand'), PriceQuery.KEY]) {
+            assert.match(queries[key]?.filter ?? '', / AND price\.onsale = "true"/)
+        }
+
+        assert.deepEqual(queries[RESULTS].sort, [])
+    })
+
+    it('asks the main search what it would keep', () => {
+        assert.deepEqual(build({}, promoted).facets, ['facets.product_brand', 'facets.pa_size', 'price.min', 'price.max', 'price.onsale'])
+    })
+
+    it('filters nothing for a sort that only orders', () => {
+        assert.doesNotMatch(build({ sort: 'price_asc' }, promoted).filter ?? '', /onsale/)
+    })
+
+    it('filters nothing for a sort key the prototype carries', () => {
+        assert.doesNotMatch(build({ sort: 'constructor' }, promoted).filter ?? '', /undefined/)
     })
 })

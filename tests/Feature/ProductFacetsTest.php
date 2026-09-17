@@ -9,10 +9,13 @@ use Modules\MeiliFacets\Contracts\ProductSorts;
 use Modules\MeiliFacets\Enums\ProductTaxonomy;
 use Modules\MeiliFacets\Listing\Facet;
 use Modules\MeiliFacets\Listing\NameOrder;
+use Modules\MeiliFacets\Listing\PriceFilter;
 use Modules\MeiliFacets\Listing\ProductListing;
 use Modules\MeiliFacets\Listing\Sort;
+use Modules\MeiliFacets\Listing\StateReader;
 use Modules\MeiliFacets\Listing\WooCommerceFacets;
 use Modules\MeiliFacets\Listing\WooCommerceSorts;
+use Modules\MeiliFacets\Support\UrlParameters;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -31,9 +34,9 @@ final class ProductFacetsTest extends TestCase
     }
 
     #[Test]
-    public function it_ships_a_sort_by_price_and_by_date(): void
+    public function it_ships_sorts_by_price_by_date_and_one_for_promotions(): void
     {
-        $this->assertSame(['price_asc', 'price_desc', 'newest'], array_keys(new WooCommerceSorts()->all()));
+        $this->assertSame(['price_asc', 'price_desc', 'newest', 'on_sale'], array_keys(new WooCommerceSorts()->all()));
     }
 
     #[Test]
@@ -73,6 +76,28 @@ final class ProductFacetsTest extends TestCase
             public function all(): array
             {
                 return [new Facet($this->taxonomy, 'Given')];
+            }
+        };
+    }
+
+    #[Test]
+    public function it_offers_promotions_only_on_a_listing_that_declares_a_price(): void
+    {
+        $withoutPrice = new ProductListing(new WooCommerceFacets(new NameOrder), new WooCommerceSorts);
+        $withPrice = new ProductListing($this->facetsWithPrice(), new WooCommerceSorts);
+
+        $this->assertArrayNotHasKey('on_sale', $withoutPrice->sorts());
+        $this->assertArrayHasKey('on_sale', $withPrice->sorts());
+        $this->assertNull(new StateReader(new UrlParameters([]))->read($withoutPrice, ['sort' => 'on_sale'])->sort);
+    }
+
+    private function facetsWithPrice(): ProductFacets
+    {
+        return new readonly class implements ProductFacets
+        {
+            public function all(): array
+            {
+                return [new PriceFilter('Price')];
             }
         };
     }

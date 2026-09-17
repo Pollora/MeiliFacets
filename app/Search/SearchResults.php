@@ -13,6 +13,7 @@ final readonly class SearchResults
      * @param  array<string, array<string, int>>  $distributions  taxonomy to slug to count
      * @param  array<string, array<string, float>>  $facetStats  numeric field to its min and max
      * @param  array<string, array<string, int>>  $unfilteredDistributions  taxonomy to slug to count, before any visitor filter; empty when there was none
+     * @param  array<string, int>  $sortMatches  filtering sort to the hits it would keep
      */
     public function __construct(
         public array $hits,
@@ -20,6 +21,7 @@ final readonly class SearchResults
         public array $distributions,
         public array $facetStats = [],
         public array $unfilteredDistributions = [],
+        public array $sortMatches = [],
     ) {}
 
     /**

@@ -432,6 +432,14 @@ dérivée de `is_on_sale()`.
   de WooCommerce ; le produit remisé remonte lui-même. Un produit variable l'est dès qu'une de ses
   variations visibles l'est (20 produits sur Pluralia le 2026-09-16, contre 21 selon `is_on_sale()`).
 - **Placée en dernier** dans le menu, après les tris qui ne filtrent pas.
+- **Les comptes et les bornes suivent la grille** (tranché par Louis le 2026-09-17) : sous « Promotions »,
+  les compteurs des facettes et les bornes du prix ne comptent que les produits en promotion ; une valeur
+  sans promotion passe à 0 et se masque. Le filtre entre dans toutes les recherches, principale, comptes à
+  part et bornes (`Search\SortQuery`, `sort/sort-query.ts`).
+- **Visible tant qu'elle est choisie** (tranché par Louis le même jour), même quand plus aucun produit de
+  la sélection n'est en promotion : le menu nomme le tri en cours, la grille dit « Aucun résultat ».
+- **Clé d'URL `on_sale`**, comme `price_asc` ou `newest`. Un tri qui filtre restreint le listing : la page
+  compte aussi le listing non filtré, pour que revenir à un autre tri ramène toutes les valeurs.
 
 Coûts : une projection à réécrire et une réindexation ; un tri qui porte un filtre, ce que le modèle ne
 savait pas faire ; et une option que le visiteur ne peut pas combiner avec un tri par prix.

@@ -3525,7 +3525,7 @@ fonction testée, `listing-page.ts` absent du rapport — antérieur à la conve
 
 ---
 
-### R-131 · 🟠 · ouvert · 2026-09-16 — aucune option « Promotions » : un tri ne sait pas filtrer
+### R-131 · 🟠 · **fermé le 2026-09-17** · ouvert le 2026-09-16 — aucune option « Promotions » : un tri ne sait pas filtrer
 
 Décision du 2026-09-16 (`decisions.md`, « Promotions est une option du tri qui filtre ») : une option du
 menu de tri qui n'affiche que les produits en promotion, remplace le tri, n'apparaît que si le listing
@@ -3542,6 +3542,34 @@ une option masquée y resterait atteignable par les flèches et la saisie au vol
 restructuré. Deux comportements y ont été codés sans décision et attendent Louis : le filtre
 « Promotions » appliqué aux comptes des facettes et aux bornes du prix, et l'option jamais masquée
 quand elle est en cours.
+
+**Repris le 2026-09-17** sur le client TypeScript. Louis a tranché les deux comportements : les comptes et
+les bornes suivent la grille, l'option reste visible tant qu'elle est choisie. Porté depuis le stash :
+`Sort::filtering()`, `SortFilter`, `WooCommerceSorts`, `ProductListing::sorts()` (sans prix, pas de
+promotions), `SortChoices` et la vue (option rendue `hidden` quand elle ne garderait rien). Réécrit sur le
+modèle actuel : `Search\SortQuery` et `sort/sort-query.ts` sont des `FilterQuery` comme `PriceQuery`, donc le
+filtre entre dans la recherche principale, les comptes à part et les bornes sans code de plus ; « ce que la
+sélection garderait » se lit sur la distribution `price.onsale` de la recherche principale. Relevé par la
+conformité et corrigé : une page servie en `?sort=on_sale` seul ne comptait pas le listing non filtré, et
+revenir à un autre tri aurait perdu les marques sans promotion — la recherche non filtrée part désormais
+dès qu'un filtre, tri compris, restreint le listing. Clavier : les flèches, `Home`/`End` et la saisie au vol
+ne parcourent que les options visibles ; un clic sur une option masquée est ignoré. Tests : `QueryPlanTest`,
+`ListingSearchTest`, `SortChoicesTest`, `SortComponentTest`, `ProductFacetsTest`, `listing-query.test.ts`,
+`sort-combobox.test.ts`, `listing-binding.test.ts` ; dix mutations, toutes tuées. Vu dans Chrome : choisir
+« Promotions » → 16 cartes, 7 marques sur 9 avec leurs comptes de promotions, bornes 8–199 € au lieu de 0–199 € ;
+cocher Nord Sel → option toujours affichée, grille vide ; revenir en « Pertinence » → 9 marques, option
+masquée ; `End` au clavier s'arrête sur « Nouveautés ». Par `curl` : `/boutique?marque=nord-sel` et
+`?marque=terra-nova` rendent l'option masquée.
+
+Cinq passes : un défaut clavier réel — une réponse qui masquait l'option active pendant que la liste était
+ouverte laissait `Tab` choisir « Pertinence » ; le clavier revient désormais sur le tri en cours (test
+ajouté). Aussi : trois noms pour « ce qu'un tri garderait » → `matchesIn`/`sortMatches` ; la même
+`SortQuery` construite deux fois côté serveur → `QueryPlan::sortQuery()` ; `SortChoices::of()` sans
+comptes masquait toutes les options filtrantes → paramètre obligatoire ; `sortFilters` publié en `[]` →
+objet ; `ResolvedListing::sorts()` mémoïsé ; deux commentaires supprimés ; quatre passages de
+`architecture.md` mis à jour (champ filtrable, tri qui restreint, option `hidden`, vue surchargée).
+Laissé en l'état : `ListingBinding` construit sa `SortQuery` à côté de celle du plan, comme
+`PriceControl` construit sa `PriceQuery`.
 
 ---
 

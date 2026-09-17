@@ -138,3 +138,89 @@ describe('SortCombobox', () => {
         assert.equal(option(0).getAttribute('aria-selected'), 'true')
     })
 })
+
+describe('SortCombobox with a sort that filters', () => {
+    let window: TestWindow
+    let root: Element
+    let picked: (string | null)[]
+    let combobox: SortCombobox
+
+    beforeEach(() => {
+        ({ window, root } = open(listingMarkup()))
+        find(root, Contract.selector('sort-list')).insertAdjacentHTML('beforeend', `
+            <li id="sort-on_sale" role="option" data-value="on_sale" aria-selected="false" data-meili="sort-option">On sale</li>`)
+        picked = []
+        combobox = new SortCombobox(new Contract(root), (sort) => picked.push(sort)).start()
+    })
+
+    const trigger = () => find(root, Contract.selector('sort-trigger'))
+    const promotions = () => find(root, '[data-value="on_sale"]')
+    const active = () => trigger().getAttribute('aria-activedescendant')
+
+    it('hides it when it would keep nothing', () => {
+        combobox.showMatches({ on_sale: 0 }, new ListingState())
+
+        assert.equal(promotions().hidden, true)
+    })
+
+    it('shows it when it would keep something', () => {
+        combobox.showMatches({ on_sale: 3 }, new ListingState())
+
+        assert.equal(promotions().hidden, false)
+    })
+
+    it('never hides it while it is the sort in use', () => {
+        combobox.showMatches({ on_sale: 0 }, new ListingState({ sort: 'on_sale' }))
+
+        assert.equal(promotions().hidden, false)
+    })
+
+    it('shows it again once the state picks it, as a way back through history does', () => {
+        combobox.showMatches({ on_sale: 0 }, new ListingState())
+        combobox.show(new ListingState({ sort: 'on_sale' }))
+
+        assert.equal(promotions().hidden, false)
+    })
+
+    it('never lands on it from the keyboard while it is hidden', () => {
+        combobox.showMatches({ on_sale: 0 }, new ListingState())
+
+        press(window, trigger(), 'End')
+        assert.equal(active(), 'sort-newest')
+
+        press(window, trigger(), 'ArrowDown')
+        assert.equal(active(), 'sort-newest')
+
+        press(window, trigger(), 'Escape')
+        press(window, trigger(), 'o')
+        assert.notEqual(active(), 'sort-on_sale')
+    })
+
+    it('reaches it from the keyboard once it shows', () => {
+        combobox.showMatches({ on_sale: 3 }, new ListingState())
+
+        press(window, trigger(), 'End')
+
+        assert.equal(active(), 'sort-on_sale')
+    })
+
+    it('moves the keyboard back to the sort in use when an answer hides the option it was on', () => {
+        combobox.show(new ListingState({ sort: 'price_asc' }))
+        combobox.showMatches({ on_sale: 3 }, new ListingState({ sort: 'price_asc' }))
+        press(window, trigger(), 'End')
+
+        combobox.showMatches({ on_sale: 0 }, new ListingState({ sort: 'price_asc' }))
+        press(window, trigger(), 'Tab')
+
+        assert.deepEqual(picked, ['price_asc'])
+    })
+
+    it('ignores a click on it while it is hidden', () => {
+        combobox.showMatches({ on_sale: 0 }, new ListingState())
+        click(window, trigger())
+
+        click(window, promotions())
+
+        assert.deepEqual(picked, [])
+    })
+})

@@ -17,14 +17,16 @@ final readonly class SortChoices
 
     /**
      * @param  array<string, Sort>  $sorts
+     * @param  array<string, int>  $matches  filtering sort to the hits it would keep
      * @return list<SortChoice>
      */
-    public function of(array $sorts, ?string $current): array
+    public function of(array $sorts, ?string $current, array $matches): array
     {
         $choices = [$this->choice(self::DEFAULT_VALUE, __('Relevance'), $current)];
 
         foreach ($sorts as $value => $sort) {
-            $choices[] = $this->choice($value, $sort->label, $current);
+            $choice = $this->choice($value, $sort->label, $current);
+            $choices[] = $this->visible($choice, $sort, $matches[$value] ?? 0);
         }
 
         return $choices;
@@ -38,5 +40,16 @@ final readonly class SortChoices
             $this->ids->sortOption($value === self::DEFAULT_VALUE ? self::DEFAULT_ID : $value),
             $value === ($current ?? self::DEFAULT_VALUE),
         );
+    }
+
+    private function visible(SortChoice $choice, Sort $sort, int $matches): SortChoice
+    {
+        if ($choice->selected) {
+            return $choice;
+        }
+
+        $matchesNothing = $sort->isFiltering() && $matches === 0;
+
+        return $matchesNothing ? $choice->hide() : $choice;
     }
 }

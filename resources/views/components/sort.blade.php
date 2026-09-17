@@ -17,7 +17,7 @@
                 <li class="meilifacetsSortOption" id="{{ $choice->id }}" role="option"
                     data-value="{{ $choice->value }}"
                     aria-selected="{{ $choice->selected ? 'true' : 'false' }}"
-                    {{ $hook('sort-option') }}>{{ $choice->label }}</li>
+                    @if ($choice->hidden) hidden @endif {{ $hook('sort-option') }}>{{ $choice->label }}</li>
             @endforeach
         </ul>
     </div>

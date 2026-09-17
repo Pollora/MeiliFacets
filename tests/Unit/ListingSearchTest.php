@@ -133,6 +133,39 @@ final class ListingSearchTest extends TestCase
     }
 
     #[Test]
+    public function it_counts_what_each_filtering_sort_would_keep(): void
+    {
+        $engine = new FakeSearchEngine([self::RESULTS => ['facetDistribution' => ['price.onsale' => ['true' => 7, 'false' => 40]]]]);
+
+        $results = $this->searchWith($engine)->run(FakeListing::withPromotions(), new ListingState);
+
+        $this->assertSame(['on_sale' => 7], $results->sortMatches);
+    }
+
+    #[Test]
+    public function it_counts_nothing_kept_when_the_engine_reports_no_match(): void
+    {
+        $engine = new FakeSearchEngine([self::RESULTS => ['facetDistribution' => ['price.onsale' => ['false' => 47]]]]);
+
+        $results = $this->searchWith($engine)->run(FakeListing::withPromotions(), new ListingState);
+
+        $this->assertSame(['on_sale' => 0], $results->sortMatches);
+    }
+
+    #[Test]
+    public function it_counts_the_unfiltered_listing_under_a_sort_that_filters(): void
+    {
+        $engine = new FakeSearchEngine;
+        $listing = FakeListing::withPromotions();
+
+        $this->searchWith($engine)->run($listing, new ListingState(sort: 'price_asc'));
+        $this->searchWith($engine)->run($listing, new ListingState(sort: 'on_sale'));
+
+        $this->assertNotContains(self::UNFILTERED, array_keys($engine->received[0]));
+        $this->assertContains(self::UNFILTERED, array_keys($engine->received[1]));
+    }
+
+    #[Test]
     public function it_survives_an_engine_answering_nothing(): void
     {
         $results = $this->searchWith(new FakeSearchEngine)->run(FakeListing::withBrandAndCategory(), new ListingState);

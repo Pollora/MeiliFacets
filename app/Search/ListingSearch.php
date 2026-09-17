@@ -38,6 +38,7 @@ final readonly class ListingSearch
             $this->distributions($listing, $responses),
             $this->facetStats($responses),
             $this->unfilteredDistributions($listing, $responses),
+            $this->sortMatches($listing, $main),
         );
     }
 
@@ -79,7 +80,25 @@ final readonly class ListingSearch
      */
     private function unfilteredQueries(Listing $listing, ListingState $state): array
     {
-        return $state->isNarrowed() && $listing->facets() !== [] ? [self::UNFILTERED => QueryPlan::unfiltered($listing)] : [];
+        return $this->isNarrowed($listing, $state) && $listing->facets() !== [] ? [self::UNFILTERED => QueryPlan::unfiltered($listing)] : [];
+    }
+
+    private function isNarrowed(Listing $listing, ListingState $state): bool
+    {
+        if ($state->query !== '') {
+            return true;
+        }
+
+        return array_any(QueryPlan::filterQueries($listing), static fn (FilterQuery $filter): bool => $filter->clause($state) !== '');
+    }
+
+    /**
+     * @param  array<string, mixed>  $main
+     * @return array<string, int>
+     */
+    private function sortMatches(Listing $listing, array $main): array
+    {
+        return QueryPlan::sortQuery($listing)?->matchesIn($main['facetDistribution'] ?? []) ?? [];
     }
 
     /**

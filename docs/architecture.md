@@ -150,7 +150,7 @@ projet à l'autre, sur le modèle de `CardProjector` :
 | Contrat | Défaut du module | Ce qu'il porte |
 | --- | --- | --- |
 | `Contracts\ProductFacets` | `WooCommerceFacets` — catégorie et marque | les taxonomies parcourues, leur libellé, leur ordre, leurs limites |
-| `Contracts\ProductSorts` | `WooCommerceSorts` — prix ↑↓ et nouveautés | les tris offerts |
+| `Contracts\ProductSorts` | `WooCommerceSorts` — prix ↑↓, nouveautés et « Promotions », un tri qui filtre (`Sort::filtering()`, dont le champ doit être filtrable : il entre aussi dans les `facets` de chaque recherche principale) | les tris offerts |
 
 Les deux sont liés par **`scopedIf`** : un projet qui ne dit rien obtient un listing qui marche,
 un projet qui lie le sien gagne. Séparés exprès — donner la main sur les facettes sans obliger à
@@ -442,7 +442,7 @@ il n'invente pas.
 **Les valeurs de facettes suivent la même règle.** Une page filtrée rend les valeurs que le listing
 non filtré propose, en plus des siennes, chaque liste sous le plafond de la facette, et celles que le
 visiteur tient — le serveur compte le listing non filtré sous le seul filtre de base, dans le même
-multi-search, et seulement quand un filtre, une recherche ou un prix le restreint. Celles qui
+multi-search, et seulement quand un filtre, une recherche, un prix ou un tri qui filtre le restreint. Celles qui
 n'ont plus de résultat sont rendues masquées : « Tout effacer » les révèle sans que le client ait rien
 à créer. La description publie les comptes rendus (`facets[].counts`), que le client lit tant qu'il
 n'a pas cherché lui-même.
@@ -594,7 +594,7 @@ thème périmée dégrade donc vers le rendu serveur, jamais vers une interactio
 | `sort` | `<x-meilifacets::sort>` | le conteneur du tri |
 | `sort-trigger` | idem | le bouton qui ouvre la liste et affiche le tri courant |
 | `sort-list` | idem | la `listbox`, masquée à la fermeture |
-| `sort-option` | idem | une option, sa clé dans `data-value` |
+| `sort-option` | idem | une option, sa clé dans `data-value` ; rendue `hidden` quand un tri qui filtre ne garderait rien, sauf s'il est choisi |
 | `facet` | `<x-meilifacets::facet>` | un bloc de facette. **Le crochet va sur l'élément le plus extérieur** : c'est celui-là que le client masque quand la facette n'a plus rien à montrer, donc un thème qui enrobe le déplace avec lui |
 | `more` | idem | le bouton qui lit la facette en entier |
 | `price-range` | `<x-meilifacets::price>` | la piste entière, porte `--from`/`--to` |
@@ -621,7 +621,7 @@ contrôle, jamais sur ce que la donnée décide :
   n'est donc pas une infraction** (`R-84`) : une catégorie feuille et une URL filtrée sans
   résultat en produisent tous deux, et le client refusait alors de démarrer.
 
-**Quatre exigences ne sont pas des crochets, et le contrat ne les voit donc pas.** Une vue surchargée
+**Cinq exigences ne sont pas des crochets, et le contrat ne les voit donc pas.** Une vue surchargée
 qui les oublie casse le client sans qu'aucune infraction ne soit signalée :
 
 | Ce qu'une vue doit rendre | Ce qui casse sinon |
@@ -630,6 +630,7 @@ qui les oublie casse le client sans qu'aucune infraction ne soit signalée :
 | `name="<paramètre d'URL de la taxonomie>"` sur l'`<input>` d'une facette | `FacetsView` ne sait retrouver la taxonomie que par ce nom : les cases deviennent inertes |
 | un élément racine unique dans le `<template>` de carte | le clonage rend `undefined` et la grille lève à chaque recherche |
 | `hidden` sur le bloc `facet` tant que `$hasReadableValues()` est faux, et non plus quand `$values === []` | une page filtrée rend aussi les valeurs sans résultat : la légende reste affichée au-dessus de rien jusqu'à la première recherche |
+| `hidden` sur une option de tri quand `$choice->hidden` | « Promotions » reste proposée jusqu'à la première recherche du client et mène à une grille vide |
 
 Ajouter, renommer ou retirer un crochet **incrémente `Contract::VERSION`** des deux côtés.
 

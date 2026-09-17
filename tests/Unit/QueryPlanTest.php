@@ -7,6 +7,8 @@ namespace Modules\MeiliFacets\Tests\Unit;
 use Modules\MeiliFacets\Listing\ListingState;
 use Modules\MeiliFacets\Listing\PriceFilter;
 use Modules\MeiliFacets\Listing\Range;
+use Modules\MeiliFacets\Listing\Sort;
+use Modules\MeiliFacets\Listing\SortFilter;
 use Modules\MeiliFacets\Search\DisjunctiveFacetCounter;
 use Modules\MeiliFacets\Search\FilterQuery;
 use Modules\MeiliFacets\Search\PriceQuery;
@@ -46,6 +48,46 @@ final class QueryPlanTest extends TestCase
         $this->assertSame('', $query['q']);
         $this->assertSame(['facets.product_brand', 'facets.product_cat'], $query['facets']);
         $this->assertSame(0, $query['hitsPerPage']);
+    }
+
+    #[Test]
+    public function it_filters_every_search_by_a_sort_that_filters(): void
+    {
+        $listing = FakeListing::withPromotions();
+        $state = new ListingState(['product_brand' => ['acme']], 'on_sale', price: new Range(min: 20.0));
+        $filters = QueryPlan::filterQueries($listing);
+
+        foreach ([QueryPlan::results($listing, $state), QueryPlan::apart($listing, $state, $filters[0]), QueryPlan::apart($listing, $state, $filters[1])] as $query) {
+            $this->assertStringContainsString('price.onsale = "true"', $query['filter']);
+        }
+
+        $this->assertSame([], QueryPlan::results($listing, $state)['sort']);
+    }
+
+    #[Test]
+    public function it_counts_what_a_filtering_sort_would_keep_on_the_main_search(): void
+    {
+        $this->assertContains('price.onsale', QueryPlan::results(FakeListing::withPromotions(), new ListingState)['facets']);
+        $this->assertNotContains('price.onsale', QueryPlan::results($this->listing, new ListingState)['facets']);
+    }
+
+    #[Test]
+    public function it_asks_once_for_a_field_several_sorts_filter_on(): void
+    {
+        $listing = new FakeListing([], [], sorts: [
+            'on_sale' => Sort::filtering('On sale', SortFilter::whereTrue('price.onsale')),
+            'on_sale_too' => Sort::filtering('On sale again', SortFilter::whereTrue('price.onsale')),
+        ]);
+
+        $this->assertSame(['price.onsale'], QueryPlan::results($listing, new ListingState)['facets']);
+    }
+
+    #[Test]
+    public function it_filters_nothing_for_a_sort_that_only_orders(): void
+    {
+        $query = QueryPlan::results(FakeListing::withPromotions(), new ListingState(sort: 'price_asc'));
+
+        $this->assertStringNotContainsString('price.onsale', $query['filter']);
     }
 
     #[Test]
