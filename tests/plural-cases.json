@@ -1,0 +1,67 @@
+[
+    {
+        "locale": "fr",
+        "count": 0,
+        "form": 0
+    },
+    {
+        "locale": "fr",
+        "count": 1,
+        "form": 0
+    },
+    {
+        "locale": "fr",
+        "count": 2,
+        "form": 1
+    },
+    {
+        "locale": "en",
+        "count": 0,
+        "form": 1
+    },
+    {
+        "locale": "en",
+        "count": 1,
+        "form": 0
+    },
+    {
+        "locale": "en",
+        "count": 2,
+        "form": 1
+    },
+    {
+        "locale": "pt",
+        "count": 0,
+        "form": 0
+    },
+    {
+        "locale": "pt-PT",
+        "count": 0,
+        "form": 1
+    },
+    {
+        "locale": "ru",
+        "count": 1,
+        "form": 0
+    },
+    {
+        "locale": "ru",
+        "count": 5,
+        "form": 1
+    },
+    {
+        "locale": "ru",
+        "count": 21,
+        "form": 0
+    },
+    {
+        "locale": "ja",
+        "count": 1,
+        "form": 1
+    },
+    {
+        "locale": "ar",
+        "count": 0,
+        "form": 1
+    }
+]

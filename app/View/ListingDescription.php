@@ -7,7 +7,10 @@ namespace Modules\MeiliFacets\View;
 use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Enums\PriceField;
 use Modules\MeiliFacets\Enums\QueryParameter;
+use Modules\MeiliFacets\Http\PageAddress;
 use Modules\MeiliFacets\Listing\Facet;
+use Modules\MeiliFacets\Listing\FacetValue;
+use Modules\MeiliFacets\Listing\ListingState;
 use Modules\MeiliFacets\Listing\PriceFilter;
 use Modules\MeiliFacets\Listing\ResolvedListing;
 use Modules\MeiliFacets\Listing\Sort;
@@ -15,13 +18,15 @@ use Modules\MeiliFacets\Search\EngineLimits;
 use Modules\MeiliFacets\Support\Money;
 use Modules\MeiliFacets\Support\UrlParameters;
 
-/** The shape is the PHP/JavaScript contract, written once here and once in `description.js`. */
+/** The shape is the PHP/JavaScript contract, written once here and once in `description.ts`. */
 final readonly class ListingDescription
 {
     public function __construct(
         private UrlParameters $parameters,
         private EngineLimits $limits,
         private Money $money,
+        private PageAddress $page,
+        private CountLabel $countLabel,
     ) {}
 
     /**
@@ -29,6 +34,9 @@ final readonly class ListingDescription
      */
     public function of(ResolvedListing $listing): array
     {
+        $params = $this->params($listing);
+        $reserved = $this->reserved();
+
         return [
             'name' => $listing->name(),
             'filter' => $listing->baseFilter(),
@@ -37,8 +45,8 @@ final readonly class ListingDescription
             'attributes' => [DocumentField::Card->value],
             'apply' => $listing->applyMode()->value,
             'facets' => $this->facets($listing),
-            'params' => $this->params($listing),
-            'reserved' => $this->reserved(),
+            'params' => $params,
+            'reserved' => $reserved,
             'priceFields' => $this->priceFields($listing),
             'money' => $this->money->describe(),
             'sorts' => $this->sorts($listing->sorts()),
@@ -46,6 +54,25 @@ final readonly class ListingDescription
             'countPattern' => trans(':count result|:count results'),
             'filterPattern' => trans(':count active filter|:count active filters'),
             'foldLabels' => ['more' => trans('Show more'), 'less' => trans('Show less')],
+            'locale' => $this->countLabel->locale,
+            'state' => $this->state($listing->state()),
+            'pagePath' => $this->page->path(),
+            'pageQuery' => $this->page->queryWithout([...array_values($params), ...array_values($reserved)]),
+        ];
+    }
+
+    /**
+     * @return array{facets: object, query: string, sort: ?string, page: int, price: array{min: ?float, max: ?float}}
+     */
+    private function state(ListingState $state): array
+    {
+        return [
+            // An empty array is written `[]`, which the client reads as a list, not as taxonomies.
+            'facets' => (object) $state->facets,
+            'query' => $state->query,
+            'sort' => $state->sort,
+            'page' => $state->page,
+            'price' => ['min' => $state->price->min, 'max' => $state->price->max],
         ];
     }
 
@@ -55,14 +82,26 @@ final readonly class ListingDescription
     private function facets(ResolvedListing $listing): array
     {
         return array_map(
-            static fn (Facet $facet): array => [
+            fn (Facet $facet): array => [
                 'taxonomy' => $facet->taxonomy,
                 'multiple' => $facet->selection->allowsSeveralValues(),
                 'cap' => $facet->cap,
                 'visible' => $facet->visible,
+                'counts' => (object) $this->countsOf($listing, $facet),
             ],
             $listing->facets()
         );
+    }
+
+    /**
+     * @return array<string, int> slug to count, for the values the page renders
+     */
+    private function countsOf(ResolvedListing $listing, Facet $facet): array
+    {
+        return array_column(array_map(
+            static fn (FacetValue $value): array => [$value->slug, $value->count],
+            $listing->valuesOf($facet),
+        ), 1, 0);
     }
 
     /**

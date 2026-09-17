@@ -1,8 +1,10 @@
 @if ($listing->failed())
     <x-meilifacets::unavailable />
 @else
+    @php($pastTheEnd = $listing->pagination()->isPastTheEnd())
     <p class="meilifacetsResultsEmpty" @unless ($cards === []) hidden @endunless {{ $hook('empty') }}>
-        {{ $listing->pagination()->isPastTheEnd() ? __('There is nothing on this page.') : __('No results found.') }}
+        <span @if ($pastTheEnd) hidden @endif {{ $hook('no-results') }}>{{ __('No results found.') }}</span>
+        <span @unless ($pastTheEnd) hidden @endunless {{ $hook('past-the-end') }}>{{ __('There is nothing on this page.') }}</span>
     </p>
 
     <ul class="meilifacetsResults" @if ($cards === []) hidden @endif {{ $hook('results') }}>

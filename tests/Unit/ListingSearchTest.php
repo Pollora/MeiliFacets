@@ -21,6 +21,8 @@ final class ListingSearchTest extends TestCase
 
     private const string BOUNDS = 'bounds';
 
+    private const string UNFILTERED = 'unfiltered';
+
     #[Test]
     public function it_sends_every_search_in_a_single_request(): void
     {
@@ -30,7 +32,46 @@ final class ListingSearchTest extends TestCase
         $this->searchWith($engine)->run(FakeListing::withBrandAndCategory(), $state);
 
         $this->assertSame(1, $engine->calls);
-        $this->assertSame([self::RESULTS, self::COUNT.'product_brand'], array_keys($engine->received[0]));
+        $this->assertSame([self::RESULTS, self::COUNT.'product_brand', self::UNFILTERED], array_keys($engine->received[0]));
+    }
+
+    #[Test]
+    public function it_counts_the_unfiltered_listing_only_once_a_visitor_narrows_it(): void
+    {
+        $engine = new FakeSearchEngine;
+        $listing = FakeListing::withBrandAndCategory();
+
+        $this->searchWith($engine)->run($listing, new ListingState(sort: 'price_asc', page: 3));
+        $this->searchWith($engine)->run($listing, new ListingState(query: 'coat'));
+
+        $this->assertSame([self::RESULTS], array_keys($engine->received[0]));
+        $this->assertSame([self::RESULTS, self::UNFILTERED], array_keys($engine->received[1]));
+    }
+
+    #[Test]
+    public function it_reads_what_the_unfiltered_listing_offers_apart_from_the_counts(): void
+    {
+        $engine = new FakeSearchEngine([
+            self::RESULTS => ['facetDistribution' => ['facets.product_cat' => ['coats' => 2]]],
+            self::UNFILTERED => ['facetDistribution' => ['facets.product_cat' => ['coats' => 4, 'hats' => 3]]],
+        ]);
+
+        $results = $this->searchWith($engine)->run(FakeListing::withBrandAndCategory(), new ListingState(query: 'coat'));
+
+        $this->assertSame(['coats' => 2], $results->distribution('product_cat'));
+        $this->assertSame(['coats' => 4, 'hats' => 3], $results->unfilteredDistribution('product_cat'));
+    }
+
+    #[Test]
+    public function it_has_no_unfiltered_distribution_for_a_listing_nobody_narrowed(): void
+    {
+        $engine = new FakeSearchEngine([
+            self::RESULTS => ['facetDistribution' => ['facets.product_cat' => ['coats' => 2]]],
+        ]);
+
+        $results = $this->searchWith($engine)->run(FakeListing::withBrandAndCategory(), new ListingState);
+
+        $this->assertNull($results->unfilteredDistribution('product_cat'));
     }
 
     #[Test]

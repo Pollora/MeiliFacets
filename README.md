@@ -104,10 +104,15 @@ est dans [architecture.md](docs/architecture.md).
 Depuis la racine du module, sans projet hôte ni moteur :
 
 ```bash
-composer check   # formatage, Rector, tests PHP autonomes et client navigateur
+composer check   # formatage, Rector, tests PHP autonomes, types et tests du client, paquet à jour
 composer test    # les seuls tests PHP, suite Unit
 npm test         # le seul client navigateur
+composer build   # reconstruit resources/assets/dist/listing.js après une modification du client
 ```
+
+Node 24.12 au moins, **sur la machine, pas dans ddev** : un `node_modules` ne sert que le système qui
+l'a installé (esbuild et TypeScript 7 y déposent un binaire propre au système), et le module n'en tient
+qu'un. `npm install`, `npm test` et `composer check` se lancent donc depuis la machine.
 
 Les tests `Feature` rendent des vues Blade et demandent donc une application : ils ne passent que
 depuis le projet, `vendor/bin/phpunit --testsuite Modules`.

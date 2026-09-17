@@ -74,11 +74,17 @@ final readonly class StateReader
     private function values(mixed $raw, Facet $facet): array
     {
         $values = explode(self::VALUE_SEPARATOR, is_string($raw) ? $raw : '');
-        $values = array_values(array_unique(array_filter(array_map(trim(...), $values), strlen(...))));
+        $values = array_values(array_unique(array_filter(array_map(trim(...), $values), $this->isReadable(...))));
 
-        sort($values);
+        sort($values, SORT_STRING);
 
         return array_slice($values, 0, $facet->selection->allowsSeveralValues() ? $facet->cap : 1);
+    }
+
+    /** A value that is not UTF-8 cannot be encoded into a search: the engine client would throw. */
+    private function isReadable(string $value): bool
+    {
+        return $value !== '' && mb_check_encoding($value, 'UTF-8');
     }
 
     /**

@@ -1650,6 +1650,7 @@ page morte, et un message qui lui mentait — il y a bien 17 produits, simplemen
 n'en réécrit pas le contenu : après un retour arrière vers une URL forgée, le visiteur verrait le
 message du rendu serveur. Inatteignable par les boutons, qui sont bornés. À reprendre si le lot 3c-3
 publie un motif pour ce message, comme il le fera pour l'état d'attente.
+*Repris le 2026-09-16 sous R-137 (#5) : Blade rend les deux messages, le client révèle le bon.*
 
 Lié à R-42 (`maxTotalHits`), qui produit le même symptôme pour une autre raison.
 
@@ -1949,7 +1950,7 @@ historique factices. 49 → 102 tests Node.
 Vérifié qu'ils mordent : en retirant le câblage de la pagination et l'appel à `showSelection()`,
 cinq tests tombent — dont les trois qui portent le correctif demandé.
 
-### R-70 · 🟠 · ouvert · 2026-09-07 — seul le point d'entrée du client est versionné ; les dix-sept autres fichiers sont figés dans le navigateur
+### R-70 · 🟠 · **fermé le 2026-09-16** (`R-132`) · ouvert le 2026-09-07 — seul le point d'entrée du client est versionné ; les dix-sept autres fichiers sont figés dans le navigateur
 
 **Mesuré le 2026-09-07.** `ListingScript` inscrit `listing-page.js?ver=<filemtime>` : le point
 d'entrée porte bien un cache-buster. Ses imports, eux, sont **relatifs** (`./listing-binding.js`) et
@@ -2004,6 +2005,11 @@ s'est manifesté deux fois dans la séance du jour — du JavaScript périmé d�
 neuf, contourné à la main par `?cb=`.
 
 T-39.
+
+**Fermé le 2026-09-16 par `R-132`**, sans la voie tranchée le 2026-09-08 : Louis a retenu l'empaquetage
+(`decisions.md`, « Le client est écrit en TypeScript et livré empaqueté »). La page n'inscrit plus qu'un
+fichier, `dist/listing.js?ver=…`, qui n'importe rien : il n'existe plus d'import relatif à versionner.
+Vérifié dans Chrome, cache vidé : une seule requête pour le client.
 
 ### R-71 · 🔴 · **fermé le 2026-09-07** (revue du lot 3c-2) · ouvert le 2026-09-07 — atteindre la dernière page jetait le clavier hors du document
 
@@ -3023,6 +3029,494 @@ même instance sur deux résolutions : true · la facette porte bien CE NameOrde
 **Coût mesuré de la méthode incriminée** : `collator()` vaut **1,18 µs** à chaud — 0,0004 % d'une
 page à 306 ms. Le reproche « peu optimisé » ne portait pas sur le temps mais sur le couplage, et
 c'est celui-là qui est levé.
+
+---
+
+### R-140 · 🟡 · ouvert · 2026-09-17 — Pollora casse la redirection canonique de `//chemin`
+
+`//boutique` répond 200 au lieu d'un 301 vers `/boutique`. WordPress redirigerait (`canonical.php:716-717`
+réduit les `//`), mais le filtre `user_trailingslashit` de Pollora
+(`vendor/pollora/framework/src/Permalink/Infrastructure/Providers/PermalinkServiceProvider.php:54`) passe
+le chemin à `Uri` (`src/Support/Uri.php:28`), dont `parse_url('//boutique')` lit `boutique` comme un hôte : la
+redirection devient `https://pluralia.ddev.siteboutique`, que la garde anti-chaîne annule. Côté module,
+`pagePath` écrit déjà `/boutique` ; correctif à proposer en amont (§2). Ne couvre pas `//?s=…`, que
+`redirect_canonical` ignore. Trouvé par la passe de conformité des reliquats de `R-137`.
+
+### R-139 · 🟡 · ouvert · 2026-09-17 — `check-parameters` ne voit pas les query vars ajoutées par filtre
+
+`meilifacets:check-parameters` compare les noms du module à `$wp->public_query_vars`. En console, Pollora
+n'appelle jamais `wp()` (`vendor/pollora/framework/src/WordPress/Bootstrap.php:62-66`), donc le filtre
+`query_vars` n'est pas appliqué : 74 noms au lieu de 95 sur une requête HTTP (mesuré). WooCommerce y ajoute
+`min_price`, `max_price`, `rating_filter`, `filter_*`, `query_type_*` ; `brands`, `categories`, `tags` et
+`checkout-link` passeraient la commande tout en entrant en collision en HTTP. Faux par conséquence :
+la docblock « `min_price` never reaches `public_query_vars` » de `ReservedParameters` et de son test, et les
+« 74 query vars » de `configuration.md` et `pieges.md`. Trouvé par la passe de conformité de `R-137` #6.
+
+### R-138 · 🟡 · ouvert · 2026-09-17 — les libellés publiés au client ignorent les traductions de WordPress
+
+`ListingDescription` publie `countPattern`, `filterPattern` et `foldLabels` par `trans()`, qui ne lit que
+le catalogue Laravel. Blade écrit les mêmes chaînes avec `__()`, qui consulte ensuite le domaine `default`
+de WordPress. Sans effet en français, où le module fournit le catalogue ; dans une langue qu'il ne
+traduit pas, le client afficherait l'anglais là où le serveur prendrait la traduction du cœur. Trouvé par
+la passe « contexte » de `R-137` #5. `View\CountLabel` (même jour) lit aussi ses motifs par `trans()`, pour rester sur
+la locale Laravel qu'il publie au client : le changement de fonction se fera pour tous ces libellés ensemble.
+
+### R-137 · 🟠 · **fermé le 2026-09-17** · ouvert le 2026-09-16 — le client et le serveur divergent encore sur quinze règles
+
+Audit demandé par Louis le 2026-09-16 (« d'autres choses divergent par rapport au serveur ? »), en deux
+volets exécutés des deux côtés sur les mêmes entrées : lecture de l'URL et plan de requête (57 chaînes
+de requête, `StateReader`/`ListingSearch` contre `ListingUrl`/`ListingQuery`), puis rendu (20 parcours
+dans Chrome, chaque grille repeinte comparée au rendu serveur de la même URL ; 50 583 montants et ratios
+comparés). Aucun des écarts ci-dessous n'est couvert par un test.
+
+**Visibles par un visiteur ordinaire**
+
+| # | Écart | Constaté |
+| --- | --- | --- |
+| 1 | Le client ignore `/page/N` : le serveur lit `paged`, le client seulement `pg` | `/boutique/page/2`, cocher une marque : l'URL devient `/boutique/page/2?marque=aeris`, recharger affiche « Il n'y a rien sur cette page » ; Retour ramène la page 1 au lieu de la 2 |
+| 2 | Une valeur de facette absente du premier rendu ne revient jamais (le client ne crée pas de nœud) | `/boutique?marque=aeris` puis « Tout effacer » : 4 catégories sur 5, 7 contenances sur 24, plus de « Voir plus » — contredit par la décision « le client révèle, il n'en crée aucun », qui prévoyait de rouvrir « si le catalogue réel le montre » |
+| 3 | « Voir plus » apparaît alors que rien n'est replié : le client compte les valeurs cochées dans la place disponible | `/categorie-produit/visage`, déplier, cocher trois contenances, Appliquer : bouton « Voir moins » qui ne fait qu'inverser son libellé ; aucun bouton côté serveur |
+| 4 | Une valeur cochée tombée à 0 : le client l'affiche « 0 résultats » (règle de pluriel anglaise), le serveur ne la rend pas du tout et le visiteur ne peut plus la décocher | `/boutique?marque=nord-sel`, prix mini 150 |
+| 5 | Le message « aucun résultat » n'est jamais réécrit (le serveur en choisit un parmi deux) | `/boutique?pg=99`, prix mini 1000 : « Il n'y a rien sur cette page » au lieu de « Aucun résultat » |
+| 6 | Sur une recherche produit, le client efface les paramètres qui ne sont pas à lui | `/?s=creme&post_type=product`, trier : l'URL devient `/?sort=newest`, qui sert l'accueil |
+
+**URL fabriquées à la main**
+
+| # | Écart |
+| --- | --- |
+| 7 | Une valeur de facette en UTF-8 invalide (`?marque=%FF`) fait échouer l'encodage JSON côté serveur : page « moteur indisponible » et une erreur journalisée à chaque appel ; le client cherche normalement |
+| 8 | Bornes de prix : `12,5`, `12abc`, `0x1A` refusées par le serveur (`is_numeric`), lues 12 ou 0 par le client (`parseFloat`) ; `-0` écrit `>= -0` côté client, que Meilisearch n'interprète pas comme `>= 0` (un produit gratuit perdu) |
+| 9 | Paramètre répété : le serveur garde le dernier, le client le premier |
+| 10 | Page `1e3` : 1000 côté serveur, 1 côté client ; tri non rogné côté client ; espaces Unicode rognés côté client seulement ; ordre des valeurs numériques |
+
+**Cosmétique ou inatteignable aujourd'hui** : texte masqué du badge à zéro (`R-78`) ; chiffres périmés
+dans un bloc de prix masqué ; les quatre premières images perdent `eager`/`high` après une recherche
+(voulu, verrouillé par `CardComponentTest`) ; format de prix sans WooCommerce ; `visible: 0` ; cas de
+champs de carte absents du catalogue ; `q` en UTF-8 invalide ; bornes `1e300` ; flottants écrits par
+Blade ; plafond de facette à 0 ; noms de paramètre contenant un point.
+
+**Déjà connus** : taxes retirées côté serveur seulement (`D-e`, sans effet sur Pluralia, taxes
+désactivées) ; `alt` `'0'`.
+
+**Identiques** (vérifiés en exécutant) : échappement, assemblage et ordre des clauses, recherches à part,
+tri, lecture des valeurs de facette, requête texte, page (hors cas ci-dessus), prix (hors cas ci-dessus),
+formatage des bornes, compteurs, pagination, contrôle de prix et ses attributs, tri, badge, cartes.
+
+**Corrigé le 2026-09-16**, sans décision à prendre (« corrige ceux où tu n'as pas besoin de moi ») —
+chaque correction a un test, vérifié en échec sans elle :
+
+| # | Correction | Test | Vu dans Chrome |
+| --- | --- | --- | --- |
+| 1 | *Première version :* `ListingUrl` lisait `/page/N` avec un motif `/page/` en dur. *Depuis le 2026-09-17 :* le serveur publie le chemin de la première page (`pagePath`, `Http\PageAddress::path()`, soit `get_pagenum_link(1)`), qui suit le vrai nom du segment de pagination et retire les barres de tête ; le client écrit ce chemin puis ses paramètres, la page en `pg` | `PageAddressTest` (segment renommé, `//boutique/page/2`, `//?s=creme`, permaliens fixés en mémoire), `ListingDescriptionTest`, `listing.test.ts`, `listing-url.test.ts` | `/boutique/page/2` : page 2 marquée ; Suivant puis Retour ramène la page 2 ; cocher une marque donne `/boutique?marque=aeris`, page 1 |
+| 3 | `FacetsView` ne compte plus les valeurs cochées dans la place disponible : même règle que `FacetValues::folded()` | `facets-view.test.ts` | `/categorie-produit/visage`, trois contenances repliées cochées : 13 valeurs, aucun bouton, comme le serveur ; trois visibles cochées : 10 valeurs et « Voir plus » des deux côtés |
+| 5 | Blade rend les deux messages, chacun sous son crochet (`no-results`, `past-the-end`), l'un masqué ; `ResultsView` révèle celui de `PageWindow.isPastTheEnd`, copie de `Pagination::isPastTheEnd()` ajoutée aux cas partagés `tests/pagination-cases.json`. Le client n'écrit aucun texte : une première version réécrivait le contenu de `empty` et aurait effacé le markup d'une vue surchargée (passe « contexte ») | `ResultsComponentTest`, `listing-binding.test.ts`, `page-window.test.ts`, `PaginationTest` | `/boutique?pg=99` puis prix mini 1000 : « Aucun résultat n'a été trouvé. » ; retour sur `?pg=99` : « Il n'y a rien sur cette page. » |
+| 6 | *Première version, retirée le 2026-09-17 :* tout paramètre que le listing ne possède pas était recopié, `add-to-cart` et `utm_*` compris. *Depuis :* seuls les paramètres que WordPress a lus pour construire la page, publiés par le serveur tels qu'envoyés (`Http\PageAddress`), hors ceux du listing et `paged`. Une version intermédiaire lisait `request()->query()`, déjà rogné et vidé par les middlewares : `/?s=&post_type=product` perdait `s=` et le premier geste servait la boutique (trouvé par les cinq passes). Trois relectures au total : la deuxième a fait tester l'exclusion d'un nom de facette devenu query var publique, que rien ne protégeait, rendu `pageQuery` obligatoire et suivi `arg_separator.input` ; la troisième, sur ces corrections, trois retouches de commentaires et de test. Mutations : 7, toutes tuées | `PageAddressTest`, `ListingDescriptionTest`, `listing-url.test.ts`, `listing.test.ts` | `/boutique?add-to-cart=999999&utm_source=news`, cocher une marque : `/boutique?marque=aeris` ; `/?s=creme&post_type=product&utm_source=news`, trier : `/?sort=price_asc&s=creme&post_type=product` (16 cartes) ; `/?s=&post_type=product&utm_source=news`, trier : `/?sort=price_asc&s=&post_type=product`, toujours une recherche au rechargement ; `/boutique?min_price=10&utm_source=x` publie `pageQuery` vide |
+| 7 | `StateReader` écarte une valeur qui n'est pas de l'UTF-8, le client une valeur que le décodage a remplacée par U+FFFD | `StateReaderTest`, `listing-url.test.ts` | `/boutique?marque=%FF` : 200, 16 cartes ; `?marque=aeris,%FF` filtre sur aeris |
+| 8–10 | *Première version, retirée le 2026-09-17 :* le client lisait l'URL avec une copie en TypeScript des règles de PHP (`url-text.ts`). *Depuis :* le client ne tire plus aucun état d'une URL, il part de l'état publié par le serveur (`state` dans la description) ; valeurs triées par octet côté serveur (`SORT_STRING`) ; `-0` tenu pour `0` | `StateReaderTest` (18 URL tapées à la main, `assertSame`), `ListingDescriptionTest`, `tests/url-writing-cases.json` lu des deux côtés | `/boutique?marque=nord-sel,aeris,aeris&pg=abc&sort=inconnu` : état publié `aeris, nord-sel`, page 1, pas de tri ; cocher `avril` écrit `?marque=aeris,avril,nord-sel` |
+| 11 | Retour et Suivant : l'état est rangé dans l'entrée d'historique, sous le nom du listing, et restauré sans réécrire l'entrée ; une entrée qu'aucun listing n'a écrite reçoit l'état affiché à la même adresse, recharge la page sinon ; pas de recherche vers un état déjà affiché | `browser-history.test.ts` (10 cas, onglet simulé), `listing.test.ts` | `/boutique/page/2`, Suivant, tri, Retour : adresse `/boutique/page/2` gardée, page 2, Pertinence ; lien d'évitement `#main`, Retour, Suivant : ni rechargement ni recherche ; entrée d'un autre script à une autre adresse : rechargement, le serveur relit `?marque=aeris` |
+
+`composer check` vert (215 tests PHP, 254 tests du client), suite `Modules` verte (294 tests).
+
+**Cinq passes sur #5** :
+- lisibilité : un `PageWindow` nommé `pages`, déjà le nom de son nombre de pages et des boutons → `pageWindow` ; `show()` mêlait grille et message → `#showEmpty()` ;
+- commentaires : deux ajoutés qui redisaient le code, supprimés ; `ListingDescription` citait `description.js` → `.ts` ;
+- performance et sécurité : rien ;
+- contexte : la première version réécrivait le contenu de `empty` et publiait les messages par `trans()`, là où Blade passe par `__()`. Corrigé en rendant les deux messages dans Blade.
+
+Trouvé au passage et **non corrigé** : `countPattern`, `filterPattern` et `foldLabels` publiés par `trans()` là où Blade écrit `__()` — ouvert sous `R-138`.
+
+**Retrait de `url-text.ts` (#8–10, #11), 2026-09-17.** Décision de Louis écrite dans `decisions.md`. Conformité
+passée avant le code : elle a relevé que l'entrée servie devait recevoir son état au démarrage (sinon le
+Retour mesuré en `R-74` régressait), qu'une entrée d'un autre script peut porter un état non nul, et qu'une
+page peut porter plusieurs listings. Cinq passes avant l'annonce :
+- lisibilité : un effet de bord caché dans un argument (`#recording`), trois verbes pour « enregistrer »,
+  le format d'une entrée connu de `Listing` et de `BrowserHistory` → `record()`, un seul propriétaire ;
+  `StateChanges` dérivé de `StateDescription` ;
+- commentaires : sept supprimés, trois faux corrigés, dont une phrase de `decisions.md` sur l'ordre de tri
+  (JavaScript compare des unités UTF-16, PHP des octets : même ordre pour tout slug WordPress) ;
+- performance : une recherche relancée vers un état déjà affiché → évitée ;
+- sécurité : un tri pris par le prototype (`constructor`) → `Object.hasOwn` ;
+- contexte : rognage de la recherche et rejet d'une valeur vide perdus avec `url-text.ts` → rétablis sur
+  les gestes ; `"facets":[]` publié pour une sélection vide → objet. Le constat « le Delay JS de WP Rocket
+  vide l'état » est faux : ses seuls `replaceState` sont dans le script d'administration.
+
+Quatre défauts de test relevés par la même passe (un test d'ancre qui passait sans enregistrer l'ancre,
+`replace`, un seul écouteur, l'entrée suivie au retour) → corrigés ; 24 mutations, toutes tuées. Le premier
+passage dans Chrome montrait encore des recherches en trop : le document HTML était en cache
+(`max-age=3600`) et chargeait l'ancien paquet. Revérifié après rechargement.
+
+**Reliquats, 2026-09-17.** Le motif `/page/` en dur et `//boutique` (le listing ne répondait plus :
+`replaceState` levait sur une URL lue comme un hôte) sont réglés côté module par `pagePath` ; la redirection
+canonique de `//boutique`, cassée par Pollora, reste ouverte sous `R-140` ; un test manquant sur le
+repli (une valeur cochée compte dans la place avant « Voir plus ») est ajouté. Conformité avant le code ;
+cinq passes : un commentaire déplacé, la règle « le numéro de page est au listing » écrite à deux endroits
+→ regroupée dans `PageAddress`, des tests qui ne passaient que grâce à la structure de permaliens de
+Pluralia → structure fixée en mémoire (`RequestsAnAddress`). **Incident** : pour vérifier les permaliens
+simples, l'agent de revue a enregistré une structure vide en base (~3 min) ; restaurés : l'option, la
+config WP Rocket, les 24 indexables Yoast (`ddev wp yoast index`). Vérifié dans Chrome : `//boutique`, filtrer
+→ `/boutique?marque=aeris` ; `/boutique/page/2`, Suivant → `/boutique?pg=3`, Retour → `/boutique/page/2`.
+
+Restent connus, non traités ici : la limite de Safari sur `replaceState` (100 appels en 30 s, non mesurée) ; une requête `q` en UTF-8 invalide est publiée
+convertie par `wp_json_encode`.
+
+**#2 et #4, 2026-09-17.** Louis a retenu l'option C pour #2, puis tranché #4 (« Affichée »), que C
+obligeait à trancher. Le serveur compte chaque facette sous le seul filtre de base quand le visiteur a
+restreint le listing (`QueryPlan::unfiltered()`, clé `unfiltered`, `ListingState::isNarrowed()`), rend
+toutes ces valeurs (`FacetValues`) et masque celles qui n'ont plus de résultat ; une valeur sans résultat
+ne prend pas de place dans le repli ; une valeur tenue reste affichée, même à 0, et une valeur tenue que
+le plafond écartait est ajoutée. La description publie les comptes rendus (`facets[].counts`) et la langue
+(`locale`) : le client choisit « 0 résultat » par `Intl.PluralRules`. Tests : `ListingSearchTest`,
+`FacetValuesTest`, `FacetComponentTest`, `ListingDescriptionTest`, `facets-view.test.ts`,
+`count-label.test.ts`. Pluriels : Louis a retenu la règle CLDR des deux côtés — `View\CountLabel` (ICU,
+repli sur la table de Laravel sans `ext-intl`) et `CountLabel` côté client, vérifiés sur
+`tests/plural-cases.json`. Trois relectures : la deuxième a trouvé le plafond appliqué à la seule liste non
+filtrée, qui faisait disparaître d'une page restreinte des valeurs ayant des résultats (union des deux
+listes plafonnées), 111 locales où `Intl.PluralRules` divergeait de `trans_choice()` (d'où la décision
+CLDR), et un `RangeError` sur une locale comme `pt_PT_ao90` ; la troisième, un test qui ne protégeait pas
+les valeurs tenues hors des deux plafonds, un repli sans `ext-intl` qui aurait écrit « 0 résultats », un
+motif ICU relu à chaque appel. Mutations : quinze, toutes tuées. Conformité avant le code (deux passes, la première
+bloquée par le watchdog et relancée). Vu dans Chrome : `/boutique?marque=aeris` rend 5 catégories et 24
+contenances (4 et 7 visibles) ; « Voir plus » avant toute recherche ne révèle aucune valeur vide ; « Tout
+effacer » → 5 catégories, 24 contenances dont 10 lisibles et « Voir plus ». `/boutique?marque=nord-sel`,
+prix mini 150 : « Nord Sel » cochée, « 0 résultat » côté client comme dans le rendu serveur, décochable.
+Par `curl` : aucune page filtrée ne rend plus de valeurs que sa page non filtrée ; `?q=` sans résultat
+masque tous les blocs.
+
+---
+
+### R-136 · 🟠 · **fermé le 2026-09-16** · ouvert le 2026-09-16 — le client et le plan de requête sont rangés par couche, pas par fonctionnalité
+
+Constat du 2026-09-16, partagé avec Louis : chaque fonctionnalité nouvelle modifie les mêmes fichiers
+centraux (`listing-query`, `listing-binding`, `QueryPlan`, `ListingDescription`), `price-control.ts`
+fait 405 lignes pour une seule classe, et rien n'empêche un fichier de grossir. Point 2 du chantier
+« qualité du JavaScript », demandé par Louis : règles de découpage, rangement par fonctionnalité,
+découpage des deux grosses classes, contributions de chaque filtre à la requête des deux côtés.
+
+**Règles ajoutées** (ESLint, sources du client) : 200 lignes par fichier, 20 par fonction, complexité 8,
+trois paramètres, pas de ternaire imbriqué — lignes vides et commentaires non comptés. Premier passage :
+17 dépassements dans 11 fichiers, dont `price-control.ts` (301 lignes utiles), `sort-combobox.ts`
+(`#pressedOpen` 28 lignes), `listing-url.ts` (`toSearch` 26 lignes), `page-window.ts` (5 paramètres).
+
+**Contrainte gardée** : `FacetCounter` reste le point d'extension du comptage (`decisions.md`).
+
+**Fait**, étape par étape, tests verts à chaque étape :
+
+1. **Dossiers** : `shared` (contrat, description, client de recherche), `listing`, `facets`, `price`,
+   `sort`, `results`, `pagination` ; le point d'entrée reste à la racine. `git mv`, historique gardé ;
+   `ContractParityTest` lit le client récursivement.
+2. **Contributions à la requête**, des deux côtés, sous les mêmes noms : `FilterQuery` (clé, champs,
+   clause, mesure à part), `FacetQuery`, `PriceQuery`. `ListingQuery` et `QueryPlan` ne font
+   qu'assembler ; le comptage d'une facette et la mesure des bornes, écrits deux fois, deviennent une
+   seule règle (`apart()` : toutes les clauses sauf la sienne). Les clés `count:` et `bounds` vont chez
+   leur filtre, `RESULTS` dans `shared/search-client.ts`. `FacetCounter` inchangé.
+3. **Prix** : `price-control.ts` (405 lignes) devient `range.ts` (miroir de `Listing\Range`, `clamp()` et
+   `ratio()` compris), `price-inputs.ts`, `price-slider.ts` (`PricePart::Slider`), `slider-drag.ts`,
+   `slider-keys.ts` et un `price-control.ts` qui les orchestre (203 lignes). Les 71 tests du prix passent
+   sans modification de leurs cas.
+4. **Tri** : `listbox-keys.ts` (ce que veut dire une touche, sans DOM), `type-ahead.ts`,
+   `sort-combobox.ts` (le menu).
+5. **Reste** : `ListingPage` remplace la fonction du point d'entrée ; `PageWindow` prend un objet nommé
+   comme le constructeur de `Pagination` (`asked`) ; `ListingBinding` prend trois arguments (le contrat
+   porte sa racine) ; méthodes découpées dans `ListingState`, `ListingUrl`, `FacetsView`.
+
+**Deux écarts de comportement, voulus** : `Money` passe par `Intl.NumberFormat.formatToParts()` au lieu
+d'une regex de groupement — un demi-centime s'arrondit désormais comme `number_format()` de WooCommerce
+(1,005 → « 1,01 », `toFixed()` donnait « 1,00 »), test ajouté ; `Range::ratio()` arrondit à quatre
+décimales comme le serveur, donc `--from`/`--to` s'écrivent comme au premier rendu.
+
+**Non fait, et pourquoi** : `ListingDescription` reste une classe — elle est déjà l'assembleur de la forme
+publiée, une méthode par partie, et `shared/description.ts` en est le miroir en un seul fichier ; la
+disperser éparpillerait le contrat que ces deux fichiers tiennent ensemble.
+
+**Revue** (`module-review`, comportement comparé à HEAD : 160 plans PHP, 1 005 plans et URL du client,
+99 étapes du tri, 28 du prix — identiques hors écarts voulus). Suites données :
+
+- *Vocabulaire* — un nom par concept, celui du serveur : une seule `Range` (`shared/range.ts`, bornes
+  nullables comme `Listing\Range`) remplace `Span`, `PriceRange` et la classe à bornes infinies ; les
+  bornes lues dans les réponses passent dans `PriceQuery.boundsFrom()` (miroir de
+  `PriceFilter::boundsFrom()`, `Range` vide plutôt que `null`) ; `PriceBound` comme l'énumération ;
+  `#fill` (`View\Fill`), `floor`/`ceiling` (`View\RangeHandle`), `writeBounds`/`renderedBound` ;
+  `held` ne désigne plus deux choses (`SliderDrag.grabbed`) ; `QueryPlan::filterQueries()` et
+  `#filterQueries`/`#filterExpression` côté client, pour ne plus confondre avec `Listing::filters()` ;
+  cas de pagination partagés renommés `asked`/`current`, comme `Pagination`.
+- *Dépendances* — `listing/` n'importe plus `facets/` ni `price/` : les `FilterQuery` sont assemblées au
+  point d'entrée (`filter-queries.ts`) et données au `Listing` ; `RESULTS`/`Plan`, `countLabel`,
+  `FilterQuery` et `Range` vont dans `shared/`. Le filtre soulevé est reconnu par sa clé des deux côtés.
+- *Bornes inconnues* — elles valent `null` au lieu de ±∞ : une vue surchargée sans bornes n'écrit plus
+  « ∞ € » ni `--from: NaN`, et Début/Fin n'y déplacent rien (test ajouté).
+- *Bug trouvé en écrivant le test de `Range`*, **des deux côtés** : avec une seule borne,
+  `clamp()` ne ramenait pas une valeur sous le minimum (`Range(min: 12.5)->clamp(5)` rendait 5).
+  Inatteignable côté serveur (bornes complètes ou vides), atteignable côté client ; corrigé à
+  l'identique, cas ajouté à `PriceRangeTest`, qui échoue sur l'ancien code.
+- *Tests ajoutés* — ratio non terminal (`0.2764`), grand pas avec Maj (échoue sans lui), facette
+  comptée à part qui garde la plage tenue (PHP et TypeScript), bornes inconnues ; `price-range.test.ts`
+  devient `price-filtering.test.ts`, `PriceQueryTest` porte ce que `QueryPlanTest` testait de
+  `PriceQuery`.
+- *Commentaires* — cinq faux corrigés ou retirés, six retirés (justifications, paraphrases, histoire).
+- *API retirée, à signaler* — `QueryPlan::counting()`, `priceBounds()`, `isCountedApart()`,
+  `measuresPriceApart()` n'existent plus ; un projet qui remplace `FacetCounter` écrit
+  `QueryPlan::apart($listing, $state, new FacetQuery($facet))`. Le contrat `FacetCounter` est inchangé.
+- *Refusé, par écrit* — `max-lines-per-function` reste à 20 : c'est la valeur validée par Louis dans la
+  proposition du chantier ; `CLAUDE.md` dit « ~15 » et la passe de lisibilité continue de le relever.
+  Assets republiés avant la suite `Modules` (la revue l'avait trouvée rouge sur une copie périmée).
+
+**Mesuré** (après la revue) : ESLint vert ; 227 tests Node, couverture 95,3 % des lignes, 92,3 % des
+branches (94,7 / 91,1 avant le point) ; 195 tests `Unit`, 273 `Modules`. Dans Chrome, sur
+`/boutique?marque=aeris&max_price=44` : grille du serveur (plan PHP) identique à celle de la première
+recherche du client (plan TypeScript) ; plan envoyé = résultats, comptage de la marque sans sa clause,
+bornes sans la clause du prix ; tri au clavier et saisie au vol, poignée au clavier et glissée,
+remise à zéro, pagination, retour, sans erreur.
+
+---
+
+### R-135 · 🟡 · **fermé le 2026-09-16** · ouvert le 2026-09-16 — le client efface le texte alternatif que le serveur a rendu
+
+Constaté pendant la recette de `R-133`, antérieur à la conversion. Le thème écrit
+`$card['image_alt'] ?: $card['title']` (`parts/posts/post-card.blade.php`), le client
+`card.image_alt ?? card.title` : un `image_alt` indexé vide — le cas de « Crème Hydratante Riche » — donne
+le titre au premier rendu et un `alt` vide dès la première recherche. L'image perd son nom pour un lecteur
+d'écran.
+
+**Corrigé** (demandé par Louis) : le rendu du module suit `CardImage::from()` — `image_alt ?: titre` — et
+`CardView` fait désormais de même (`image_alt || titre`). Écart résiduel assumé : PHP tient aussi la chaîne
+`'0'` pour vide, pas JavaScript. Test ajouté, qui échoue sur l'ancienne règle. Vérifié dans Chrome sur
+`/boutique?marque=aeris` : « Crème Hydratante Riche » garde son `alt` après deux tris, aucune image de la
+grille n'a d'`alt` vide.
+
+---
+
+### R-134 · 🟠 · **fermé le 2026-09-16** · ouvert le 2026-09-16 — le chargement du client n'a été confronté ni à la priorité de WordPress ni au Delay JS de WP Rocket
+
+Relevé par la vérification des sources à jour demandée par Louis (septembre 2026). Tranché par Louis le
+2026-09-16 : mesurer la priorité, exclure le client du Delay JS.
+
+**Delay JS — corrigé.** Activée, cette option de WP Rocket réécrit un `type="module"` en
+`text/rocketlazyloadscript` et ne l'exécute qu'au premier geste du visiteur (`DelayJS/HTML.php:219-263`) :
+le listing resterait inerte jusque-là. Désactivée localement, son réglage ailleurs n'est pas connu.
+`ListingScript::excludeFromDelayedScripts()` ajoute le chemin du paquet aux exclusions
+(`rocket_delay_js_exclusions`), brut comme les intégrations de WP Rocket le font : il échappe lui-même `+`,
+`?ver` et `#`, et un chemin déjà passé par `preg_quote` casserait la regex en silence s'il en contenait un.
+Deux tests `Feature` construisent une balise de module avec `wp_get_script_tag()`, appliquent à chaque
+exclusion l'échappement puis la correspondance de WP Rocket (`HTML.php:120-131`, `:221`) : le client est
+exclu, un autre module ne l'est pas. Le premier échoue sans l'attribut `#[Filter]`. Vérifié aussi, par la
+revue, sur la vraie balise de `/boutique`, avec un autre hôte (CDN) et sous le chemin minifié de WP Rocket.
+
+**Passes** (`module-review`, R-133 et R-134 ensemble). *Lisibilité* : le second test annonçait « every
+other script » et n'appelait pas le filtre — renommé et passé par `apply_filters` comme le premier ; les
+noms de hooks restent écrits en dur, comme les neuf attributs du module — question pour tout le module,
+pas pour ce point. *Commentaires* : ligne de test inexacte (elle sautait l'échappement) corrigée, docblock
+`array<mixed>` supprimé, commentaire de `bundle.ts` rendu caduc par npm 11.19 supprimé, phrase du docblock
+de `ListingScript` précisée. *Performance* : rien. *Sécurité* : double échappement latent retiré (voir
+ci-dessus). *Contexte* : coût de la version de Node figée dans ddev écrit dans `decisions.md` ; formulations
+de R-133 et de `decisions.md` rectifiées (écart de `CardPainter`, lockfile, `bundle.ts`).
+
+**Priorité — mesurée, puis appliquée.** WordPress charge ses propres modules en `fetchpriority="low"`, le
+contenu étant rendu par le serveur (note 6.9). Page `/boutique` servie en statique, seule la balise
+changeant, médianes :
+
+| | `auto` (actuel) | `low` |
+| --- | --- | --- |
+| local (9 passes) : LCP / client lié | 128 ms / 68 ms | 132 ms / 69 ms |
+| « 4G lente », 150 ms, 1,6 Mbit/s (7 passes) : LCP | 1 428 ms | 1 196 ms |
+| id. : client reçu / client lié (`DOMContentLoaded`) | 552 ms / 1 475 ms | 1 538 ms / 1 550 ms |
+
+`low` gagne 232 ms de LCP en réseau lent et lie le listing 75 ms plus tard. Limite : scripts du serveur
+Vite retirés des deux variantes, donc sans la concurrence d'un thème en production.
+
+**Tranché par Louis le 2026-09-16** : la meilleure configuration, surchargeable par filtre. `ListingScript`
+inscrit le module en `low`, lu à travers `meilifacets/script_fetchpriority` (`decisions.md`,
+`configuration.md`). Deux tests `Feature` impriment les modules d'un registre `WP_Script_Modules` neuf :
+`fetchpriority="low"` par défaut, `high` quand un filtre le demande ; tous deux échouent si la priorité
+n'est pas transmise.
+
+---
+
+### R-133 · 🟠 · **fermé le 2026-09-16** · ouvert le 2026-09-16 — outillage du client en retard sur ses sources à jour
+
+Relevé par la vérification des sources à jour demandée par Louis (notes de version TypeScript 6 et 7,
+typescript-eslint, ESLint 10, calendrier Node). Tranché par Louis le 2026-09-16 : points 1 à 4 appliqués.
+
+**Node.** 24.1.0 sur la machine (retrait des types encore expérimental, un avertissement par fichier de
+test), 24.18.0 dans ddev (sans le correctif de sécurité de 24.18.1). Passés tous deux en 24.21.0 : `nvm
+install 24` (l'alias par défaut `24` suit), et `nodejs_version: "24.21.0"` dans `.ddev/config.yaml` du
+projet — `"24"` restait sur la version de l'image, même après reconstruction. `engines` : `>=24.12`.
+
+**TypeScript.** Paquets aux noms officiels : `@typescript/native` (7) et `typescript` →
+`@typescript/typescript6` ; l'alias `typescript-7` était celui que l'équipe TypeScript a retiré de son
+annonce (typescript-go#4567). `tsconfig.json` ajoute `exactOptionalPropertyTypes` et `noImplicitOverride`
+(proposés par `tsc --init` en 7.0) et retire `DOM.Iterable`, inclus dans `DOM` depuis 6.0 ; les tests sont
+vérifiés en `nodenext`, comme Node les exécute. Zéro erreur, sans rien changer au code.
+
+**Lint typé** (`recommendedTypeChecked`, `projectService`), que typescript-eslint « recommande
+fortement ». Trouvé et corrigé :
+
+- `CardPainter` écrivait `String(valeur ?? '')` : un champ de carte ni texte ni nombre s'affichait tel que
+  JavaScript le convertit — « [object Object] », « true », ou les éléments d'un tableau joints par des
+  virgules. Il s'écrit désormais vide — **seul écart de comportement**, sur une donnée que
+  `DefaultCardProjector` n'émet pas (chaînes et entiers seulement) ; chaîne vide, `'0'`, `0` et `null`
+  s'écrivent comme avant. Test ajouté, qui échoue sur l'ancien code ;
+- trois lectures JSON (`listing-page.ts`, `search-client.ts`) arrivaient en `any` : leur forme est
+  désormais déclarée (`as`), rien n'est vérifié à l'exécution ;
+- tests : doublure qui rejetait une valeur non typée, table de pagination lue en `any`, type de propriété
+  CSS qui comprenait les méthodes.
+
+Les appels `describe`/`it` de `node:test` sont déclarés sûrs (`allowForKnownSafeCalls`) au lieu de
+236 alertes.
+
+**Vérifié** : `composer check` vert sur la machine (Node 24.21, sans avertissement), 219 tests Node,
+269 tests `Modules` ; paquet reconstruit et publié ; dans Chrome, marque, tri au clavier, poignée au
+clavier, remise à zéro, pagination, sans erreur.
+
+`CardPainter` est renommée `CardView` le même jour, à la demande de Louis : `show()`, comme les autres vues
+du client qui remplissent le balisage du serveur (`ResultsView`, `FacetsView`, `PaginationView`).
+
+**Un `node_modules` par système, pas deux** : npm 11.19, désormais des deux côtés, ne garde que les
+binaires du système qui installe, quelle que soit l'option (`--os`, dépendances optionnelles explicites,
+`--force`). **Tranché par Louis le 2026-09-16 : pas de second `node_modules`.** L'outillage Node du module
+s'installe et tourne sur la machine ; ddev ne sert qu'au PHP (`decisions.md`, `README.md`).
+
+---
+
+### R-132 · 🟠 · **fermé le 2026-09-16** · ouvert le 2026-09-16 — les types du client ne sont vérifiés par rien, et le client part en vingt et un fichiers
+
+Mesuré le 2026-09-16, avant toute modification :
+
+- `jsconfig.json` déclare `strict` et `checkJs`, mais aucune commande ne l'exécute. `tsc --noEmit` y
+  trouve **56 erreurs dans le code livré**, 560 avec les tests — dont la plage de prix, déclarée en
+  nombres, que `listing-url.js` remplit de chaînes ;
+- le navigateur charge **21 fichiers** non minifiés : 79,2 Ko, 25,1 Ko une fois chacun compressé ;
+- seul le point d'entrée porte un `?ver=` : c'est `R-70`, qui s'est reproduit ce matin sur
+  `listing-binding.js`.
+
+**Tranché par Louis le 2026-09-16** (`decisions.md`, « Le client est écrit en TypeScript et livré
+empaqueté ») : sources en TypeScript, un seul fichier construit et commité.
+
+Premier des trois points du chantier « qualité du JavaScript » validé le même jour, un à la fois :
+
+1. **ce point** — outillage, conversion fichier pour fichier sans changer la structure, erreurs de
+   type corrigées, empaquetage ;
+2. garde-fous ESLint (taille de fichier et de méthode, complexité, paramètres) et rangement par
+   fonctionnalité, qui découpe `price-control` et `sort-combobox` ;
+3. performance du client, mesurée avant et après.
+
+`R-131` est mis en pause pour ne pas mêler les deux chantiers dans les mêmes fichiers.
+
+**Corrigé.** Fichier pour fichier, sans toucher à la structure (point 2) :
+
+- sources et tests renommés par `git mv` en `.ts` ; types JSDoc convertis par les correctifs du
+  compilateur lui-même, puis repris à la main : `strict`, `noUncheckedIndexedAccess`,
+  `erasableSyntaxOnly`, `verbatimModuleSyntax`. Aucun `any` ; les réponses du moteur ont un type
+  (`SearchAnswer`, `Plan`), la description aussi (`reserved` nomme ses cinq clés) ;
+- `Listing` dépend de `HistorySeam` et `SearchSeam` — ce qu'il appelle réellement — plutôt que des
+  classes : les doublures de test s'y conforment sans cast ;
+- tests : le faux `Node` du test du contrat est remplacé par le DOM de happy-dom, mêmes cas ;
+  `FakeHistory` et `FakeClient`, recopiés dans deux fichiers, n'existent plus qu'une fois
+  (`tests/ts/fixtures.ts`) ; `described()` refuse une description de test mal formée, ce qui a
+  complété trois fixtures sur ce que PHP publie réellement (`filter: ''` au lieu de `null`) ;
+- ESLint lit le TypeScript ; ses règles recommandées ont fait réécrire six expressions employées comme
+  instructions (`a ? b() : c()`, `a && b()`) en `if` ;
+- `composer check` ajoute la vérification des types, des seuils de couverture (94 % des lignes, 90 %
+  des branches et des fonctions, sous les 94,7 / 91,1 / 93,1 mesurés) et la conformité du paquet
+  commité ; `ListingScript` sert `dist/listing.js`.
+
+**Deux écarts de comportement, et pourquoi.** `ListingUrl` ignore une facette sans paramètre d'URL au
+lieu de lire un paramètre nommé « undefined », et `ResultsView` saute une carte dont le gabarit n'a
+pas d'élément au lieu de peindre la carte précédente. Les deux cas sont impossibles tant que PHP publie
+un paramètre par facette et que la règle `card-template` du contrat tient.
+
+**Régression attrapée par les tests pendant la conversion** : un remplacement mécanique avait écrit
+`split(' | ')` pour `split('|')` dans `countLabel` — « 1 result|1 results » ; corrigé avant livraison.
+
+**Mesuré après**, Chrome, cache vidé : une requête pour le client au lieu de vingt et une, **8,8 Ko
+transférés** (8,5 Ko compressés, 24,5 Ko décompressés) au lieu de 25,1 Ko compressés. 217 tests Node,
+193 tests `Unit`, 267 tests `Modules`.
+
+**Performance comparée**, même page `/boutique` servie en statique, seule la balise du script changeant
+(client de HEAD contre paquet), scripts de développement du thème retirés des deux, Chrome, médianes :
+
+| | 21 fichiers (HEAD) | paquet |
+| --- | --- | --- |
+| à froid, local (9 passes) : client reçu / `DOMContentLoaded` | 88 ms / 98 ms | 24 ms / 66 ms |
+| cache chaud, local (5 passes) : client reçu / `DOMContentLoaded` | 57 ms / 65 ms | 16 ms / 54 ms |
+| à froid, réseau « 4G lente » 150 ms, 1,6 Mbit/s (5 passes) : client reçu / `DOMContentLoaded` | 1 560 ms / 1 746 ms | 552 ms / 1 327 ms |
+| temps JavaScript de la page (`ScriptDuration`), local / 4G lente | 27 ms / 51 ms | 25 ms / 47 ms |
+| recherche : clic sur « Appliquer » → grille peinte (9 passes), dont moteur | 36 ms, 8 ms | 35 ms, 7 ms |
+
+Le gain est au chargement et vient du nombre d'allers-retours : les imports se découvrent en cascade,
+chacun attend le précédent. L'exécution et la recherche ne changent pas, ce qui est attendu — le code
+exécuté est le même.
+
+**Vérifié dans Chrome, sur le code publié** : marque et « Appliquer », tri à la souris puis au clavier,
+poignée au clavier puis glissée à la souris (`data-active` posé), remise à zéro, pagination, retour
+arrière ; aucune erreur en console.
+
+**Passes** (`module-review`) :
+
+- *Lisibilité.* Retenu et corrigé : le repli de `open()` sur `document.body`, qui laissait une fixture
+  sans racine se lier en silence (séparé en `load()` et `open()`) ; `described(object)` sans contrôle ;
+  `Plan` qui réécrivait la clé `results` ; l'ensemble `min`/`max` écrit trois fois dans
+  `PriceControl` (`ENDS` porte le type) ; `#find()` à 25 lignes (découpé) ; les signatures de rappel
+  répétées (`Commit`, `Choose`) ; le type `Card` que le transport importait d'une vue (déplacé dans
+  `description.ts`) ; deux noms pour la version du contrat en test ; la clé de facette écrite à la main
+  et un sélecteur `:has()` répété (`facetField()`, `closestHook()`) ; `:nth-child` qui comptait aussi
+  ce qui n'est pas une option (`nth()`).
+- *Commentaires.* 340 lignes de balises JSDoc retirées des sources. Supprimés : huit descriptions de
+  la description qui redisaient le nom, et trois commentaires ajoutés en test. **Gardés, par écrit** :
+  six descriptions de membres de `description.ts` (`cap`, `visible`, `reachableHits`, `sorts`,
+  `params`, `countPattern`) — ce sont les `@property` de la forme publiée par PHP, déjà présentes avant,
+  qui disent ce que le type ne dit pas ; et les lignes antérieures de `page-window.ts` et
+  `PriceControl::#receive`, que ce point ne touche pas.
+- *Performance.* Rien. Une requête au lieu de vingt et une ; `ListingState.with()` ne clone plus les
+  facettes, que le constructeur recopie de toute façon ; les raisons d'échec d'une recherche ne sont
+  plus réallouées à chaque échec.
+- *Sécurité.* Rien : `#escape` inchangé, aucun secret dans le paquet.
+- *Contexte.* Retenu et corrigé :
+  - **`Contract.one()`/`all()` ne rendaient plus que des éléments HTML**, ce qui refusait un crochet
+    posé sur du SVG. Écart non décidé, donc retiré : ils rendent tout élément, comme avant, et chaque
+    vue garde ses propres vérifications. Le contrôle de prix accepte une poignée, une piste ou un rail
+    SVG. Seule contrainte nouvelle : les deux champs du prix doivent être des `<input>`, ce que
+    `architecture.md` exigeait déjà ;
+  - `build:check` masquait un échec d'esbuild derrière « ne correspond pas aux sources » ;
+  - la décision ne mentionnait pas TypeScript 7 ;
+  - `R-70` et `T-39` restaient ouverts ;
+  - un docblock de `PaginationTest` citait encore `tests/js` ;
+  - aucune version minimale de Node n'était déclarée (`engines`, 22.18).
+
+  **Refusé, par écrit** : les copies `ts/` que `PublishedAssets` surveille sont publiées par la même
+  commande que le paquet, donc périmées ensemble ; coût déjà écrit dans la décision.
+
+**Rouvert le jour même par Louis : `composer check` KO sur sa machine.** Les dépendances avaient été
+installées depuis ddev, donc pour Linux seulement : TypeScript 7 échouait sur
+`Unable to resolve @typescript/typescript-darwin-arm64`, et `node_modules/.bin/esbuild` était un
+exécutable Linux (code 126). Mesuré : une installation depuis ddev (npm 11.16) retire les binaires
+macOS, une installation depuis la machine (npm 11.3) garde ceux de Linux. Corrigé : dépendances
+installées depuis la machine, et le paquet construit par l'API d'esbuild (`bundle.ts`), qui résout le
+binaire du système courant — ce qui remplace aussi les deux commandes esbuild qui répétaient leurs
+options. `engines` passe à Node 24, celui des deux environnements. `composer check` vert sur la
+machine et dans ddev ; paquet reconstruit identique à l'octet.
+
+**Constaté, hors de ce point** : `search-client.ts` couvert à 60 %, `browser-history.ts` sans aucune
+fonction testée, `listing-page.ts` absent du rapport — antérieur à la conversion.
+
+---
+
+### R-131 · 🟠 · ouvert · 2026-09-16 — aucune option « Promotions » : un tri ne sait pas filtrer
+
+Décision du 2026-09-16 (`decisions.md`, « Promotions est une option du tri qui filtre ») : une option du
+menu de tri qui n'affiche que les produits en promotion, remplace le tri, n'apparaît que si le listing
+déclare un prix, que WooCommerce est actif et qu'il reste des promotions dans la sélection. Le drapeau
+est indexé depuis `R-130`.
+
+Ce que le modèle ne sait pas faire aujourd'hui : `Sort` ne porte que des expressions de tri ; la
+description envoyée au client les publie en tableau nu (`sorts`) ; rien ne compte ce qu'une option
+retiendrait ; le menu rend toutes ses options sans condition, et sa navigation clavier ignore `hidden` —
+une option masquée y resterait atteignable par les flèches et la saisie au vol.
+
+**En pause depuis le 2026-09-16**, pour `R-132` : le travail, non commité, est remisé dans
+`git stash` (« wip(R-131): Promotions sort filter, paused for R-132 ») et sera repris sur le client
+restructuré. Deux comportements y ont été codés sans décision et attendent Louis : le filtre
+« Promotions » appliqué aux comptes des facettes et aux bornes du prix, et l'option jamais masquée
+quand elle est en cours.
 
 ---
 
@@ -4774,7 +5268,7 @@ parallèle : il ne touche pas au rendu.
 | T-28 | Extraire un `QueryPlan` instanciable ; mémoïser `facets()` et `sorts()` | R-01, R-07 |
 | T-29 | Objet `SearchRequest` typé à la place du tableau de plan | R-02 |
 | T-30 | Déplacer `Contract` hors de `Enums` | R-03 |
-| T-39 | Versionner les modules ES importés : publication dans un répertoire portant l'empreinte | R-70 | **différé après la v1** — voie tranchée le 2026-09-08 |
+| T-39 | Versionner les modules ES importés : publication dans un répertoire portant l'empreinte | R-70 | **sans objet** — remplacé par l'empaquetage le 2026-09-16 (`R-132`) |
 | T-40 | Ramener le regard en haut du listing après pagination et tri | R-73 | **fait** |
 | T-41 | Rendre l'ordre d'une facette réglable en configuration | Q-07 (partiel) | **différé après livraison** — décidé le 2026-09-08 |
 | T-42 | Sortir le module du dépôt imbriqué : ignoré, sous-module ou paquet composer | R-38 | **différé en fin de projet** — décidé le 2026-09-08 |

@@ -12,6 +12,8 @@ enum Hook: string
     case Results = 'results';
     case CardTemplate = 'card-template';
     case Empty = 'empty';
+    case NoResults = 'no-results';
+    case PastTheEnd = 'past-the-end';
 
     case Card = 'card';
     case Url = 'url';

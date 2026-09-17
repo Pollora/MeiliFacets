@@ -220,12 +220,15 @@ Modules/MeiliFacets/
 │   └── View/        composants Blade et description publiée au navigateur
 ├── resources/
 │   ├── assets/css/  la seule feuille de style du module
-│   ├── assets/js/   client de recherche navigateur
+│   ├── assets/ts/   client de recherche navigateur, en TypeScript, rangé par fonctionnalité :
+│   │                listing, facets, price, sort, results, pagination, et shared pour ce que
+│   │                plusieurs partagent (contrat, description, plan, étendue de prix, transport)
+│   ├── assets/dist/ le même client empaqueté et commité, seul fichier que la page charge
 │   └── views/       vues Blade, toutes surchargeables par le thème
 ├── lang/            catalogue JSON, chargé par le provider
 ├── tests/Unit/      suite `Unit`, autonome : ni WordPress ni moteur
 ├── tests/Feature/   suite `Feature`, rend des vues, ne passe que depuis le projet
-├── tests/js/        lanceur intégré de Node, happy-dom pour la couche DOM
+├── tests/ts/        lanceur intégré de Node, happy-dom pour la couche DOM
 ├── config/config.php
 └── CLAUDE.md        règles de travail sur ce module
 ```
@@ -251,7 +254,7 @@ faisant partie du libellé. Il change à chaque filtrage : le nommer ferait reno
 curseur, la case qu'on est en train de lire. Décrit, il est annoncé après le nom et une
 actualisation n'est qu'une information de plus.
 
-Il est aussi écrit en toutes lettres (« 14 résultats », `trans_choice`) plutôt qu'en nombre nu
+Il est aussi écrit en toutes lettres (« 14 résultats », `View\CountLabel`) plutôt qu'en nombre nu
 collé au libellé, qu'un lecteur d'écran rendrait « 15ml 2 ».
 
 ## Transport
@@ -264,7 +267,8 @@ Il n'y a pas de mode de repli par PHP : c'est le seul transport.
 ## Front
 
 **Aucun framework front.** Le client est un jeu de classes ES sans dépendance, livré par le module
-et chargé en `type="module"` depuis `public/modules/meilifacets/`. Pas de TypeScript.
+et chargé en `type="module"` depuis `public/modules/meilifacets/dist/listing.js`. Il est écrit en
+TypeScript et empaqueté par esbuild en un seul module (`decisions.md`, 2026-09-16).
 
 > Corrigé le 2026-09-06. Ce document annonçait Alpine.js. Le contrat `data-meili` fait désormais
 > le travail de liaison qu'Alpine devait faire : le garder imposerait au thème de conserver deux
@@ -381,6 +385,27 @@ Ces noms sont figés en configuration plutôt que dérivés du libellé de la ta
 partent dans des URLs indexées, et ne doivent pas changer parce qu'un éditeur a renommé un
 libellé en back-office.
 
+**Qui lit l'URL : le serveur, seul.** `StateReader` la lit au rendu et la description du listing
+publie ce qu'il a lu (`state`). Le client part de cet état et n'en tire jamais un d'une adresse. Il écrit
+l'URL à chaque recherche — le chemin de la première page que le serveur publie (`pagePath`,
+`get_pagenum_link(1)`), puis ses paramètres, la page en `pg` ; `replaceState`, `pushState` pour une page — et
+range son état dans
+l'entrée, sous le nom du listing (`history.state.meilifacets`) ; l'entrée servie reçoit le sien au
+démarrage. Retour et Suivant restaurent cet état sans réécrire l'entrée : l'adresse et son fragment
+restent ceux du visiteur. Une entrée qu'aucun listing n'a écrite — une ancre, un autre script —
+reçoit l'état affiché si l'adresse n'a pas changé ; sinon la page se recharge et le serveur la lit.
+
+Après ses propres paramètres, le client réécrit ceux que WordPress a lus pour construire la page — les
+paires de la query string brute dont PHP nomme le paramètre dans `$wp->public_query_vars`, hors ceux du
+listing et hors `paged` —, que la description publie telles que le visiteur les a envoyées (`pageQuery`,
+`Http\PageAddress`). Pas `request()->query()` : les middlewares de Laravel rognent les valeurs et retirent les
+vides, et `?s=` reste une recherche pour WordPress. Une recherche produit garde donc `s` et
+`post_type` ; `add-to-cart`, `utm_*` et tout ce que WordPress ne lit pas disparaissent au premier geste.
+
+Les valeurs d'une facette sont triées dans le même ordre des deux côtés pour tout slug WordPress
+(par octet côté serveur, par unité UTF-16 côté client). `tests/url-writing-cases.json` vérifie que ce
+que le client écrit, le serveur le relit à l'identique.
+
 ## Carte produit et mise à jour du DOM
 
 Trois exigences, dans cet ordre :
@@ -400,7 +425,7 @@ Trois exigences, dans cet ordre :
 | Élément | Traitement | Pourquoi |
 | --- | --- | --- |
 | Cartes de résultats | clonées depuis un `<template>` rendu par le même composant Blade | personne n'a le focus dans la grille pendant un filtrage |
-| Valeurs de facettes | nœuds stables, masquées quand leur compte tombe à zéro | le focus est sur la case qu'on vient de cocher ; les recréer éjecte l'utilisateur clavier |
+| Valeurs de facettes | nœuds stables, celles que le listing non filtré propose en plus des siennes, chacune sous le plafond, masquées quand leur compte tombe à zéro | le focus est sur la case qu'on vient de cocher ; les recréer éjecte l'utilisateur clavier |
 | Pagination | fenêtre de taille fixe, slots vides rendus puis remplis | le nombre de pages varie avec les filtres |
 
 Le markup reste celui du thème dans les deux cas : le `<template>` est produit par le composant
@@ -414,11 +439,13 @@ client **compte** ce qu'il trouve au lieu de le supposer, donc une vue surcharg�
 obtient une fenêtre de cinq. C'est le prix de la règle « le markup appartient au thème » : le client révèle,
 il n'invente pas.
 
-**Limite connue, non résolue** : une valeur de facette dont le compte est nul n'est pas dans la
-distribution, donc pas dans le HTML — le client ne peut pas la faire réapparaître quand un autre
-filtre est relâché. Le comptage disjonctif couvre le cas courant (relâcher une valeur de la
-facette elle-même) ; le cas croisé demanderait un `<template>` par facette, à décider si le besoin
-se présente.
+**Les valeurs de facettes suivent la même règle.** Une page filtrée rend les valeurs que le listing
+non filtré propose, en plus des siennes, chaque liste sous le plafond de la facette, et celles que le
+visiteur tient — le serveur compte le listing non filtré sous le seul filtre de base, dans le même
+multi-search, et seulement quand un filtre, une recherche ou un prix le restreint. Celles qui
+n'ont plus de résultat sont rendues masquées : « Tout effacer » les révèle sans que le client ait rien
+à créer. La description publie les comptes rendus (`facets[].counts`), que le client lit tant qu'il
+n'a pas cherché lui-même.
 
 ### Boutons, pas des liens
 
@@ -464,8 +491,8 @@ bouton.
 
 Trois conséquences, toutes assumées :
 
-- l'URL reste la source de l'état, mais elle est écrite par `history.pushState`, plus par le
-  navigateur qui suit un lien. `ListingUrls` a donc disparu : il n'existe plus qu'une seule
+- l'URL reste la source de l'état — le serveur la lit et publie ce qu'il a lu —, mais elle est
+  écrite par `history.pushState`, plus par le navigateur qui suit un lien. `ListingUrls` a donc disparu : il n'existe plus qu'une seule
   implémentation de la construction d'URL, côté client, au lieu de deux à tenir alignées ;
 - sans JavaScript, le listing servi est complet et lisible mais **inerte**. C'était déjà le cas
   des facettes, qui n'ont pas de formulaire depuis le lot 3b : les liens de tri et de pagination
@@ -513,7 +540,8 @@ les termes retombe sur l'ordre alphabétique. `Declared` ne remplace pas la déc
 
 **Le plafond et le repli répondent à deux maîtres.** `cap` est dépensé sur le compte : c'est le
 moteur qui décide quelles valeurs survivent, et c'est juste — sur deux cents marques, on veut les
-plus peuplées. `visible` est dépensé sur l'ordre déclaré : les valeurs sont **réordonnées d'abord,
+plus peuplées ; sur une page filtrée, il est dépensé deux fois, sur le compte du listing non filtré et
+sur celui de la page. `visible` est dépensé sur l'ordre déclaré, parmi les valeurs qui ont des résultats : les valeurs sont **réordonnées d'abord,
 repliées ensuite**, donc ce que le visiteur lit est la tête de l'ordre que la facette a demandé.
 Une valeur que l'URL tient échappe au repli où qu'elle tombe (`R-86`).
 
@@ -525,8 +553,9 @@ n'était pas `Count`, et la première recherche remplaçait la liste par une aut
 **Le client le décide à nouveau à chaque réponse**, sur les compteurs qui viennent d'arriver — sans
 quoi la première recherche révélait tout ce que le moteur comptait encore. Une valeur se lit quand
 **le visiteur la tient**, ou quand elle a des résultats **et** que le repli a encore de la place
-pour elle (`R-86`). Une facette dont plus rien ne se lit est masquée en entier, bloc et légende
-compris, comme le serveur le fait déjà quand elle n'a aucune valeur.
+pour elle (`R-86`) ; une valeur sans résultat ne prend pas de place dans le repli, côté serveur comme
+côté client. Une facette dont plus rien ne se lit est masquée en entier, bloc et légende compris,
+comme le serveur le fait quand aucune de ses valeurs ne se lit.
 
 Le bouton `more` demande à lire une facette en entier. Il n'interroge pas le moteur : rien n'a
 changé du côté des comptes. Son libellé et son `aria-expanded` suivent l'état, et il se masque
@@ -537,7 +566,7 @@ quand il n'y a plus rien à déplier.
 Le client n'adresse jamais une classe : les classes appartiennent au thème et changent avec le
 design. Il adresse des **crochets** `data-meili="…"`, posés par les composants Blade et
 énumérés une seule fois côté PHP (`Enums\Hook`) et une seule fois côté JavaScript
-(`contract.js`).
+(`contract.ts`).
 
 La racine du listing porte `data-meili-contract`, dont la valeur est `Contract::VERSION`. Elle ne
 monte pas quand un crochet s'ajoute — un ajout est additif, une surcharge plus ancienne continue de
@@ -552,10 +581,11 @@ thème périmée dégrade donc vers le rendu serveur, jamais vers une interactio
 | `results` | `<x-meilifacets::results>` | la liste que le client repeint |
 | `card-template` | idem | `<template>` cloné pour chaque résultat |
 | `empty` | idem | message « aucun résultat », révélé ou masqué |
+| `no-results` `past-the-end` | idem, dans `empty` | les deux raisons, rendues toutes deux : le client révèle celle de `Pagination::isPastTheEnd()`. Facultatifs — une vue qui n'en rend pas garde son message |
 | `card` | idem | un résultat |
 | `url` `image` `title` `price` | `<x-meilifacets::card>` | les valeurs écrites dans une carte |
 | `facets` | `<x-meilifacets::facets>` | le conteneur qui écoute les changements |
-| `facet-value` | idem | une valeur, masquée quand son compte tombe à zéro |
+| `facet-value` | idem | une valeur, rendue même sans résultat, masquée quand son compte tombe à zéro sauf si le visiteur la tient |
 | `input` | idem | la case ou le bouton radio qui porte la valeur |
 | `count` | idem | le compte réécrit à chaque recherche |
 | `apply` | idem | le bouton « appliquer », en mode `submit` |
@@ -587,11 +617,11 @@ contrôle, jamais sur ce que la donnée décide :
   `sort-trigger`/`sort-list`/`sort-option` dans un `sort`,
   `price-track`/`price-handle` dans un `price-range` ;
 - optionnels : tout le reste. Un thème peut légitimement ne pas afficher de facettes, de tri ou
-  de compteurs — et un listing sans résultat ne rend aucune `facet-value`. **Un bloc `facet` vide
+  de compteurs — et une catégorie feuille ne rend aucune `facet-value`. **Un bloc `facet` vide
   n'est donc pas une infraction** (`R-84`) : une catégorie feuille et une URL filtrée sans
   résultat en produisent tous deux, et le client refusait alors de démarrer.
 
-**Trois exigences ne sont pas des crochets, et le contrat ne les voit donc pas.** Une vue surchargée
+**Quatre exigences ne sont pas des crochets, et le contrat ne les voit donc pas.** Une vue surchargée
 qui les oublie casse le client sans qu'aucune infraction ne soit signalée :
 
 | Ce qu'une vue doit rendre | Ce qui casse sinon |
@@ -599,19 +629,20 @@ qui les oublie casse le client sans qu'aucune infraction ne soit signalée :
 | `data-listing="<nom>"` sur la racine | le client ne trouve aucun listing et sort **sans un mot** — le seul démarrage raté silencieux |
 | `name="<paramètre d'URL de la taxonomie>"` sur l'`<input>` d'une facette | `FacetsView` ne sait retrouver la taxonomie que par ce nom : les cases deviennent inertes |
 | un élément racine unique dans le `<template>` de carte | le clonage rend `undefined` et la grille lève à chaque recherche |
+| `hidden` sur le bloc `facet` tant que `$hasReadableValues()` est faux, et non plus quand `$values === []` | une page filtrée rend aussi les valeurs sans résultat : la légende reste affichée au-dessus de rien jusqu'à la première recherche |
 
 Ajouter, renommer ou retirer un crochet **incrémente `Contract::VERSION`** des deux côtés.
 
 **Ce que la version protège, exactement.** Les deux nombres viennent du module — le serveur écrit
 `Contract::version()`, le client compare à sa constante — donc un incrément les déplace ensemble et
 la comparaison continue de réussir. Elle ne détecte donc pas un thème périmé, mais **un client
-périmé face à un serveur à jour** : le navigateur qui garde un ancien `contract.js` en cache (R-70)
+périmé face à un serveur à jour** : le navigateur qui garde un ancien client en cache
 annonce l'ancien numéro, ne le retrouve pas, et **refuse de démarrer** au lieu de chercher des
 crochets que son code ignore. C'est le seul cas, et il suffit à justifier la règle.
 
 **Ce qu'elle ne protège pas** : un thème qui a surchargé une vue et n'a pas suivi. La racine émet
 toujours la version du module, la comparaison passe, et il manque un crochet en silence — sauf si
-une règle de `contract.js` l'exige *à l'intérieur d'un hôte rendu*. C'est pourquoi `facet` exige
+une règle de `contract.ts` l'exige *à l'intérieur d'un hôte rendu*. C'est pourquoi `facet` exige
 `facet-value` **et** `more` : un bloc qui replie des valeurs sans offrir de les déplier est R-46,
 réintroduit.
 

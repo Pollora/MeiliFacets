@@ -10,6 +10,7 @@ use Modules\MeiliFacets\Enums\InputType;
 use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\Listing\Facet as Declaration;
 use Modules\MeiliFacets\Listing\FacetValue;
+use Modules\MeiliFacets\View\CountLabel;
 
 final class Facet extends ListingComponent
 {
@@ -20,6 +21,7 @@ final class Facet extends ListingComponent
 
     public function __construct(
         CurrentListing $listings,
+        private readonly CountLabel $countLabel,
         Declaration|BackedEnum|string $facet,
         string $name = '',
         bool $scroll = false,
@@ -36,18 +38,19 @@ final class Facet extends ListingComponent
         return InputType::forSelection($this->facet->selection)->value;
     }
 
-    /**
-     * Spelled out rather than left as a bare number beside the label, where a
-     * screen reader would read "15ml 2".
-     */
     public function countLabel(FacetValue $value): string
     {
-        return trans_choice(':count result|:count results', $value->count, ['count' => $value->count]);
+        return $this->countLabel->of(trans(':count result|:count results'), $value->count);
     }
 
     public function hasFoldedValues(): bool
     {
-        return array_any($this->values, static fn (FacetValue $value): bool => $value->folded);
+        return array_any($this->values, static fn (FacetValue $value): bool => $value->folded && $value->count > 0);
+    }
+
+    public function hasReadableValues(): bool
+    {
+        return array_any($this->values, static fn (FacetValue $value): bool => ! $value->folded);
     }
 
     public function render(): View

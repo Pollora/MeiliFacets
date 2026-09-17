@@ -37,6 +37,11 @@ final readonly class ListingState
         return array_sum(array_map(count(...), $this->facets)) + ($this->price->isEmpty() ? 0 : 1);
     }
 
+    public function isNarrowed(): bool
+    {
+        return $this->facets !== [] || $this->query !== '' || ! $this->price->isEmpty();
+    }
+
     public function isPristine(): bool
     {
         return $this->facets === []

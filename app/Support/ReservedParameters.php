@@ -6,10 +6,7 @@ namespace Modules\MeiliFacets\Support;
 
 use Modules\MeiliFacets\Enums\QueryParameter;
 
-/**
- * Names a listing parameter must never take. Checked by the console command,
- * never on a request: the answer only changes when configuration does.
- */
+/** Names a listing parameter must never take. */
 final readonly class ReservedParameters
 {
     /**

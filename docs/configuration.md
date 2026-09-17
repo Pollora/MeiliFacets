@@ -437,6 +437,19 @@ valeurs remontent** ; l'ordre dans lequel elles s'affichent se déclare par face
 Le premier est appliqué **à l'intérieur** de `formatForIndexing()`, donc sur tous les chemins
 d'indexation. Un projet peut s'y brancher à son tour ; sa priorité décide de l'ordre.
 
+## Priorité de chargement du client
+
+Le module charge son script en `fetchpriority="low"` : la page est rendue par le serveur, le navigateur
+télécharge d'abord ce qu'elle affiche. Mesuré sur `/boutique` en réseau lent : LCP 232 ms plus tôt, listing
+lié 75 ms plus tard (`R-134`). Un projet choisit une autre valeur par filtre :
+
+```php
+add_filter('meilifacets/script_fetchpriority', fn (): string => 'auto');
+```
+
+Valeurs admises par WordPress : `high`, `low`, `auto`. Une autre valeur est refusée par WordPress
+lui-même, qui le signale (`_doing_it_wrong`) et charge en `auto`.
+
 ## Quand la recherche part
 
 `apply_mode` décide si cocher une case cherche aussitôt ou attend une validation :

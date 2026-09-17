@@ -9,7 +9,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-/** Read here and by `tests/js/page-window.test.js`: the two copies answered differently until a shared table said so. */
+/** Read here and by `tests/ts/page-window.test.ts`: the two copies answered differently until a shared table said so. */
 final class PaginationTest extends TestCase
 {
     /** Far above anything these cases count: the engine's own cap is a case of its own. */
@@ -22,11 +22,12 @@ final class PaginationTest extends TestCase
     #[Test]
     public function it_answers_the_shared_cases(array $case): void
     {
-        $pagination = new Pagination($case['current'], $case['perPage'], $case['total'], $case['reachable']);
+        $pagination = new Pagination($case['asked'], $case['perPage'], $case['total'], $case['reachable']);
 
         $this->assertSame(Pagination::SLOTS, $case['slotCount'], 'the shared cases expect another window width');
         $this->assertSame($case['pages'], $pagination->pages(), 'pages');
-        $this->assertSame($case['resolvedCurrent'], $pagination->current, 'current');
+        $this->assertSame($case['current'], $pagination->current, 'current');
+        $this->assertSame($case['isPastTheEnd'], $pagination->isPastTheEnd(), 'isPastTheEnd');
         $this->assertSame($case['hasPages'], $pagination->hasPages(), 'hasPages');
         $this->assertSame($case['hasPrevious'], $pagination->hasPrevious(), 'hasPrevious');
         $this->assertSame($case['hasNext'], $pagination->hasNext(), 'hasNext');

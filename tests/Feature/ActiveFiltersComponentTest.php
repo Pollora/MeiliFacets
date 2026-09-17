@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Tests\Feature;
 
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\HtmlString;
+use Modules\MeiliFacets\View\CountLabel;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -29,6 +31,21 @@ final class ActiveFiltersComponentTest extends TestCase
         );
     }
 
+    #[Test]
+    public function it_resolves_as_a_component_and_labels_its_count_by_the_language_rule(): void
+    {
+        $this->app->forgetScopedInstances();
+
+        $html = Blade::render('<x-meilifacets::active-filters />');
+
+        $this->assertStringContainsString(
+            $this->app->make(CountLabel::class)->of(trans(':count active filter|:count active filters'), 0),
+            $html
+        );
+
+        $this->app->forgetScopedInstances();
+    }
+
     /** Rendered even at zero: the client reveals it, it creates nothing. */
     #[Test]
     public function it_is_rendered_and_hidden_when_nothing_is_filtered(): void
@@ -43,7 +60,7 @@ final class ActiveFiltersComponentTest extends TestCase
     {
         return (string) view('meilifacets::components.active-filters', [
             'count' => $count,
-            'label' => trans_choice(':count active filter|:count active filters', $count),
+            'label' => $this->app->make(CountLabel::class)->of(trans(':count active filter|:count active filters'), $count),
             'hook' => fn (string $name): HtmlString => new HtmlString('data-meili="'.$name.'"'),
         ])->render();
     }

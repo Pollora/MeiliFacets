@@ -18,7 +18,9 @@ final readonly class Range
 
     public function clamp(float $value): float
     {
-        return min(max($value, $this->min ?? $value), $this->max ?? $value);
+        $floored = max($value, $this->min ?? $value);
+
+        return min($floored, $this->max ?? $floored);
     }
 
     /** Without a span, and without a value, everything sits at the start. */

@@ -9,10 +9,12 @@ use Illuminate\Support\Facades\Blade;
 use Modules\MeiliFacets\Contracts\Placeable;
 use Modules\MeiliFacets\Enums\Contract;
 use Modules\MeiliFacets\Enums\Hook;
+use Modules\MeiliFacets\Enums\QueryParameter;
 use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\Listing\Facet;
 use Modules\MeiliFacets\Listing\PriceFilter;
 use Modules\MeiliFacets\Listing\ResolvedListing;
+use Modules\MeiliFacets\Support\UrlParameters;
 use Modules\MeiliFacets\View\ElementId;
 use Modules\MeiliFacets\View\ListingDescription;
 use PHPUnit\Framework\Attributes\Test;
@@ -24,6 +26,8 @@ use Tests\TestCase;
  */
 final class FacetComponentTest extends TestCase
 {
+    private const string NOTHING_MATCHES = 'qqxxzzww-aucun-produit-ne-correspond';
+
     /** What a page placed lives as long as its listing, and the suite shares one application. */
     protected function setUp(): void
     {
@@ -35,6 +39,7 @@ final class FacetComponentTest extends TestCase
     /** The suite shares one application: what is placed here would reach a later class. */
     protected function tearDown(): void
     {
+        request()->query->replace([]);
         $this->app->forgetScopedInstances();
 
         parent::tearDown();
@@ -171,6 +176,38 @@ final class FacetComponentTest extends TestCase
         );
     }
 
+    /** The client only reveals what the page carries: a value a filter emptied stays on it, hidden. */
+    #[Test]
+    public function it_keeps_every_value_on_a_narrowed_page_and_hides_those_without_results(): void
+    {
+        $offered = count($this->listing()->valuesOf($this->first()));
+
+        $document = $this->renderedUnder([$this->reserved(QueryParameter::Query) => self::NOTHING_MATCHES]);
+        $values = $document->querySelectorAll($this->hooked(Hook::FacetValue));
+
+        $this->assertGreaterThan(0, $offered);
+        $this->assertCount($offered, $values);
+        $this->assertSame([true], array_values(array_unique(array_map(static fn ($value): bool => $value->hasAttribute('hidden'), iterator_to_array($values)))));
+        $this->assertTrue($document->querySelector($this->hooked(Hook::Facet))->hasAttribute('hidden'));
+        $this->assertTrue($document->querySelector($this->hooked(Hook::More))->hasAttribute('hidden'));
+    }
+
+    #[Test]
+    public function it_shows_a_held_value_that_has_no_result_left(): void
+    {
+        $held = $this->listing()->valuesOf($this->first())[0]->slug;
+
+        $document = $this->renderedUnder([
+            $this->reserved(QueryParameter::Query) => self::NOTHING_MATCHES,
+            $this->app->make(UrlParameters::class)->for($this->first()->taxonomy) => $held,
+        ]);
+        $input = $document->querySelector('input[value="'.$held.'"]');
+
+        $this->assertTrue($input->hasAttribute('checked'));
+        $this->assertFalse($input->closest($this->hooked(Hook::FacetValue))->hasAttribute('hidden'));
+        $this->assertFalse($document->querySelector($this->hooked(Hook::Facet))->hasAttribute('hidden'));
+    }
+
     /** The description feeds the client, which counts and filters on facets the page never showed. */
     #[Test]
     public function it_still_publishes_a_facet_a_template_placed_apart(): void
@@ -181,7 +218,7 @@ final class FacetComponentTest extends TestCase
         $before = $description->of($listing);
         $listing->placeApart($this->first());
 
-        $this->assertSame($before, $description->of($listing));
+        $this->assertSame(json_encode($before), json_encode($description->of($listing)));
         $this->assertCount(count($listing->facets()), $description->of($listing)['facets']);
     }
 
@@ -199,6 +236,27 @@ final class FacetComponentTest extends TestCase
     private function declaredCount(): int
     {
         return count($this->listing()->filters());
+    }
+
+    /**
+     * @param  array<string, string>  $query
+     */
+    private function renderedUnder(array $query): HTMLDocument
+    {
+        $this->app->forgetScopedInstances();
+        request()->query->replace($query);
+
+        return HTMLDocument::createFromString($this->renderOne(), LIBXML_NOERROR);
+    }
+
+    private function reserved(QueryParameter $parameter): string
+    {
+        return $this->app->make(UrlParameters::class)->reserved($parameter);
+    }
+
+    private function hooked(Hook $hook): string
+    {
+        return '['.Contract::ATTRIBUTE.'="'.$hook->value.'"]';
     }
 
     private function renderOne(): string

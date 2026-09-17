@@ -117,9 +117,11 @@ final class PriceRangeTest extends TestCase
     #[Test]
     public function it_lets_an_end_it_does_not_hold_constrain_nothing(): void
     {
-        $this->assertSame([199.0, 5.0, 5.0], [
+        $this->assertSame([199.0, 12.5, 5.0, 26.0, 5.0], [
             new Range(min: 12.5)->clamp(199.0),
+            new Range(min: 12.5)->clamp(5.0),
             new Range(max: 26.0)->clamp(5.0),
+            new Range(max: 26.0)->clamp(199.0),
             new Range()->clamp(5.0),
         ]);
     }

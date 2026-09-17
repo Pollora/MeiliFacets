@@ -41,11 +41,14 @@ final class ResolvedListing
     /** @var array<string, true> names a template placed on their own */
     private array $apart = [];
 
+    /** @var array<string, list<FacetValue>> */
+    private array $valuesByFacet = [];
+
     public function __construct(
         private readonly Listing $listing,
         private readonly ListingState $state,
         private readonly ListingSearch $search,
-        private readonly FacetValues $values,
+        private readonly FacetValues $facetValues,
         private readonly UrlParameters $parameters,
         private readonly Unavailable $unavailable,
         private readonly EngineLimits $limits,
@@ -216,14 +219,24 @@ final class ResolvedListing
      */
     public function valuesOf(Facet $facet): array
     {
-        $distribution = $this->results()->distribution($facet->taxonomy);
+        return $this->valuesByFacet[$facet->name] ??= $this->resolveValues($facet);
+    }
 
-        // The last moment the module still knows: `of()` narrows and slices the distribution.
-        if ($this->limits->looksTruncated(count($distribution))) {
-            report(FacetTruncated::at($facet->taxonomy, count($distribution)));
+    /**
+     * @return list<FacetValue>
+     */
+    private function resolveValues(Facet $facet): array
+    {
+        $results = $this->results();
+        $distribution = $results->distribution($facet->taxonomy);
+        $unfiltered = $results->unfilteredDistribution($facet->taxonomy);
+        $received = max(count($distribution), count($unfiltered ?? []));
+
+        if ($this->limits->looksTruncated($received)) {
+            report(FacetTruncated::at($facet->taxonomy, $received));
         }
 
-        return $this->values->of($facet, $distribution, $this->state);
+        return $this->facetValues->of($facet, $distribution, $this->state, $unfiltered);
     }
 
     public function pagination(): Pagination

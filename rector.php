@@ -6,6 +6,7 @@ use Rector\CodeQuality\Rector\FuncCall\SortCallLikeNamedArgsRector;
 use Rector\Config\RectorConfig;
 use Rector\PHPUnit\CodeQuality\Rector\MethodCall\StringCastAssertStringContainsStringRector;
 use Rector\TypeDeclaration\Rector\FuncCall\AddArrayFunctionClosureParamTypeRector;
+use RectorLaravel\Rector\ArrayDimFetch\ServerVariableToRequestFacadeRector;
 use RectorLaravel\Rector\FuncCall\AppToResolveRector;
 use RectorLaravel\Set\LaravelSetList;
 
@@ -28,6 +29,8 @@ return RectorConfig::configure()
         StringCastAssertStringContainsStringRector::class,
         // Reorders named arguments, which reads as a change where nothing changed.
         SortCallLikeNamedArgsRector::class,
+        // `get_pagenum_link()` reads `$_SERVER` itself; the facade reads Laravel's copy.
+        ServerVariableToRequestFacadeRector::class => [__DIR__.'/tests/Feature/RequestsAnAddress.php'],
     ])
     // Rector writes fully qualified names in inferred types; the codebase imports everything.
     ->withImportNames(importShortClasses: false)

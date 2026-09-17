@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Tests\Unit;
 
 use Modules\MeiliFacets\Listing\ListingState;
+use Modules\MeiliFacets\Listing\PriceFilter;
 use Modules\MeiliFacets\Listing\Range;
 use Modules\MeiliFacets\Search\DisjunctiveFacetCounter;
+use Modules\MeiliFacets\Search\FilterQuery;
+use Modules\MeiliFacets\Search\PriceQuery;
 use Modules\MeiliFacets\Search\QueryPlan;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeListing;
 use PHPUnit\Framework\Attributes\Test;
@@ -31,6 +34,18 @@ final class QueryPlanTest extends TestCase
         $this->assertSame('post_type = "product"', $query['filter']);
         $this->assertSame(16, $query['hitsPerPage']);
         $this->assertSame(1, $query['page']);
+    }
+
+    /** A value that survives only in the base filter's slugs would reach the page, hidden but readable in the source. */
+    #[Test]
+    public function it_counts_the_unfiltered_listing_under_its_base_filter_alone(): void
+    {
+        $query = QueryPlan::unfiltered($this->listing);
+
+        $this->assertSame('post_type = "product"', $query['filter']);
+        $this->assertSame('', $query['q']);
+        $this->assertSame(['facets.product_brand', 'facets.product_cat'], $query['facets']);
+        $this->assertSame(0, $query['hitsPerPage']);
     }
 
     #[Test]
@@ -125,7 +140,7 @@ final class QueryPlanTest extends TestCase
         $listing = FakeListing::withPriceAndBrand();
         $state = new ListingState(['product_brand' => ['acme']], price: new Range(55.0, 120.0));
 
-        $bounds = QueryPlan::priceBounds($listing, $state);
+        $bounds = QueryPlan::apart($listing, $state, $this->priceOf($listing));
 
         $this->assertStringNotContainsString('price.', $bounds['filter']);
         $this->assertStringContainsString('post_type = "product"', $bounds['filter']);
@@ -135,13 +150,24 @@ final class QueryPlanTest extends TestCase
     }
 
     #[Test]
-    public function it_measures_the_price_apart_only_once_a_range_is_held(): void
+    public function it_keeps_the_held_range_on_the_search_that_counts_a_facet_apart(): void
     {
-        $priced = FakeListing::withPriceAndBrand();
+        $listing = FakeListing::withPriceAndBrand();
+        $state = new ListingState(['product_brand' => ['acme']], price: new Range(max: 120.0));
+        $brand = QueryPlan::filterQueries($listing)[0];
 
-        $this->assertFalse(QueryPlan::measuresPriceApart($priced, new ListingState));
-        $this->assertTrue(QueryPlan::measuresPriceApart($priced, new ListingState(price: new Range(max: 120.0))));
-        $this->assertFalse(QueryPlan::measuresPriceApart($this->listing, new ListingState(price: new Range(max: 120.0))));
+        $counting = QueryPlan::apart($listing, $state, $brand);
+
+        $this->assertStringContainsString('price.min <= 120', $counting['filter']);
+        $this->assertStringNotContainsString('facets.product_brand', $counting['filter']);
+    }
+
+    #[Test]
+    public function it_plans_no_price_for_a_listing_that_declares_none(): void
+    {
+        $prices = array_filter(QueryPlan::filterQueries($this->listing), static fn (FilterQuery $filter): bool => $filter instanceof PriceQuery);
+
+        $this->assertSame([], $prices);
     }
 
     #[Test]
@@ -167,5 +193,14 @@ final class QueryPlanTest extends TestCase
 
         $this->assertSame([], (new DisjunctiveFacetCounter)->queries($this->listing, $state));
         $this->assertContains('facets.product_cat', QueryPlan::results($this->listing, $state)['facets']);
+    }
+
+    private function priceOf(FakeListing $listing): PriceQuery
+    {
+        $price = PriceFilter::among($listing->filters());
+
+        $this->assertInstanceOf(PriceFilter::class, $price);
+
+        return new PriceQuery($price);
     }
 }

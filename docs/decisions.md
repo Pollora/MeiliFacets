@@ -12,7 +12,7 @@ Voir aussi : [installation.md](installation.md) · [architecture.md](architectur
 | Listing et facettes | Meilisearch |
 | Transport | le navigateur interroge Meilisearch en direct — **aucun proxy PHP, aucun repli** |
 | Front | classes ES sans dépendance, livrées par le module, markup entièrement surchargeable par le thème |
-| Langage | JavaScript, **pas de TypeScript** |
+| Langage | **TypeScript** pour le client navigateur, limité à la syntaxe effaçable. *Renversé le 2026-09-16 : c'était « JavaScript, pas de TypeScript », avec des types en JSDoc que rien ne vérifiait — 56 erreurs dans le code livré.* |
 | Intégration | composants Blade ; bloc Gutenberg envisagé plus tard |
 | Chargement | état de chargement dans le composant listing, seuils calibrés sur la mesure |
 | URLs | chemins natifs WooCommerce conservés, filtres en query vars |
@@ -35,7 +35,7 @@ Voir aussi : [installation.md](installation.md) · [architecture.md](architectur
 | Indexation des URLs de listing | `noindex, follow` sur toute URL portant **un paramètre de listing rempli** — facette, tri, recherche ou page — et **uniquement sur une page d'archive ou de recherche** ; **pas** de canonique vers le chemin nu. *Élargi le 2026-09-06 : un tri et une page étaient indexables, ce qui laissait entrer des doublons ; la garde de contexte a rendu l'élargissement sûr.* |
 | Canonique d'une URL de listing | **supprimée** quand le module pose `noindex` — une canonique désigne deux URLs comme une seule page, et l'associer à un `noindex` revient à dire de cette page unique qu'elle ne doit pas être indexée. Filtre `wpseo_canonical` à la priorité 20, pour passer après l'intégration WooCommerce de Yoast. Inerte sans Yoast |
 | Pagination native de WordPress | `/page/N` **sert la vraie page N** — le listing lit `paged` en repli de `pg` — et reste en `noindex`, sans canonique et sans `rel="next"`/`"prev"`. Les deux paginations coexistaient sans se connaître : `/page/2` à `/page/5` servaient quatre fois la première page, en `index`, avec une canonique auto-référente et une chaîne `rel="next"` qui les liait toutes. *Tranché le 2026-09-06 après analyse dédiée (R-60).* |
-| Forme canonique d'une URL | valeurs triées et dédupliquées des deux côtés — sans quoi `?marque=a,b` et `?marque=b,a` sont deux entrées Varnish pour un même état |
+| Forme canonique d'une URL | valeurs triées octet par octet et dédupliquées des deux côtés — sans quoi `?marque=a,b` et `?marque=b,a` sont deux entrées Varnish pour un même état. *Octet par octet depuis le 2026-09-17 : le client n'a plus à reconnaître un nombre.* |
 | Entrées non validées | un tri absent de `sorts()` est ignoré, une facette est plafonnée à son `cap`, la recherche à 200 caractères — un paramètre libre est un vecteur de saturation du cache |
 | Défense de `hidden` | contre-règle CSS dans la feuille publiée, sur ses classes **et** sur `[data-meili]` — ce qu'une vue surchargée conserve |
 | Feuille de style du module | livre l'apparence par défaut du **tri**, de la **colonne de facettes** et de ses **boutons** — neutre : ni police, ni taille absolue, ni couleur de marque ; seule la grille de résultats reste nue. Le thème surcharge les mêmes sélecteurs `data-meili` ou désinscrit la feuille |
@@ -60,7 +60,7 @@ Voir aussi : [installation.md](installation.md) · [architecture.md](architectur
 | Facette qui mélange les grandeurs | **on lit l'ordre que WooCommerce porte déjà** (`DisplayOrder::Declared`), on ne le devine pas depuis le libellé. *Renversé le 2026-09-08 — `MeasureOrder` analysait `15ml` au rendu ; supprimé.* |
 | Hauteur des contrôles | `--meili-control` en `rem` — `2.25rem` (36 px), `2.75rem` (44 px) au pointeur grossier, la cible que demande WCAG 2.5.5. *Était `2.4em`, soit 33,6 px : un multiplicateur sur la propre `font-size` du bouton tombe sur une valeur bâtarde. Coût du `rem` : un thème qui grossit `--meili-ui` n'agrandit plus les contrôles — la hauteur d'un contrôle est une contrainte d'ergonomie, pas une conséquence de la taille du texte. Tranché le 2026-09-09.* |
 | Bouton de dépliage | rendu même quand il n'y a rien à déplier : le client le révèle, il n'en crée aucun |
-| Versionnement du client ES | **un répertoire portant l'empreinte**, pas un bundle ni une carte d'imports : les imports relatifs héritent de la version, le JavaScript ne bouge pas, et aucune chaîne d'outils n'entre dans le module. *Tranché le 2026-09-08 (`R-70`), différé après la v1.* |
+| Livraison du client ES | **un seul module empaqueté** par esbuild, minifié, **commité** dans `resources/assets/dist/` et versionné par `?ver=` comme aujourd'hui. *Renversé le 2026-09-16 : c'était un répertoire portant l'empreinte (`R-70`, 2026-09-08), écarté pour ne faire entrer aucune chaîne d'outils ; la performance du client est devenue une priorité.* |
 | Taille de page | dérivée du contexte au rendu, jamais recopiée en configuration |
 | Rendu serveur | applique les filtres de l'URL ; Varnish cache chaque combinaison 180 s |
 | Repli des paramètres d'URL | une taxonomie non mappée prend un préfixe, jamais son nom nu |
@@ -301,7 +301,7 @@ du changement relève de l'état d'attente, au lot 3c-3.
 ### `happy-dom` en dépendance de développement (2026-09-07)
 
 Validé sous `R-69`, installé au lot 3c-2. La couche DOM était recettée à la main dans un
-navigateur : cela prouvait qu'elle marchait ce jour-là et ne protégeait de rien. `tests/js/dom.js`
+navigateur : cela prouvait qu'elle marchait ce jour-là et ne protégeait de rien. `tests/ts/dom.ts`
 monte un document et reproduit le balisage des composants Blade, crochets et états `hidden`
 compris.
 
@@ -316,7 +316,7 @@ comparée à `Contract::VERSION`. Version différente ou crochet structurel manq
 ne démarre pas, la console nomme ce qui manque, la page servie reste celle du serveur.
 
 Le refus ne porte que sur ce que le thème contrôle. `facet-value`, `count`, `sort`, `apply` sont
-optionnels : leur absence peut venir de la donnée (un listing sans résultat n'a aucune valeur de
+optionnels : leur absence peut venir de la donnée (une catégorie feuille n'a aucune valeur de
 facette) ou d'un choix de thème légitime. Exiger leur présence rendrait le module inutilisable sur
 un thème qui n'affiche pas de compteurs.
 
@@ -326,9 +326,29 @@ badge, nav de pagination, sept slots de page) ; et un `<template>` de carte est 
 page, soit une carte vide en plus dans le HTML. C'est le coût de la règle « le markup appartient
 au thème » : sans lui, le client porterait sa propre copie du markup.
 
-**Limite assumée** : une valeur de facette absente du HTML parce que son compte est nul ne peut
-pas réapparaître côté client. Le comptage disjonctif couvre le cas courant. Le cas croisé
-demanderait un `<template>` par facette — à rouvrir si le catalogue réel le montre.
+**Une valeur de facette est rendue dès que le listing non filtré la propose** (2026-09-17, option C
+de `R-137` #2, choisie par Louis). Sur une page filtrée, le serveur compte en plus chaque facette sous
+le seul filtre de base, dans le même multi-search, et rend ces valeurs en plus des siennes, chaque liste
+sous le plafond de la facette ; celles qui n'ont plus
+de résultat sont masquées par `hidden` et ne prennent pas de place dans le repli, des deux côtés. La
+description publie les comptes rendus, pour que le client sache avant sa première recherche quelles
+valeurs sont vides. Une valeur que le visiteur tient reste affichée, même à 0 (`R-137` #4, tranché par
+Louis le même jour) : « 0 résultat », au singulier en français. Serveur et client choisissent la forme
+d'un compte par la règle CLDR de la langue (tranché par Louis le même jour) : ICU côté PHP
+(`View\CountLabel` ; sans `ext-intl`, repli sur la table de Laravel, identique pour le français et l'anglais), `Intl.PluralRules` côté navigateur,
+vérifiés sur la même table (`tests/plural-cases.json`). Rien ne change en français ni en anglais ; dans
+d'autres langues le serveur n'écrit plus comme `trans_choice()` (portugais à 0, russe, japonais…), mais
+toujours comme le client. Deux formes seulement, des deux côtés : le russe écrit 2 à 4 comme 5, là où `trans_choice()`
+en offrait trois. *Remplace la « limite assumée » : une valeur absente du premier rendu ne pouvait
+pas revenir, et « Tout effacer » depuis `/boutique?marque=aeris` laissait 4 catégories sur 5 et 7
+contenances sur 24.* Coût mesuré : une recherche de plus seulement quand le visiteur a filtré ou cherché, +1,4 ms
+côté moteur ; +356 octets compressés sur `/boutique?marque=aeris`. Une page filtrée porte au plus deux fois
+le plafond d'une facette, plus les valeurs que le visiteur tient. En ordre `Count`, les valeurs d'une page
+filtrée suivent le compte du listing non filtré. Une vue de facette surchargée garde ses valeurs sans
+résultat masquées — elles arrivent `folded`, le drapeau qui pose déjà `hidden` —, mais doit masquer son
+bloc sur `$hasReadableValues()` plutôt que sur `$values === []`. Non mis en cache : la recherche non
+filtrée est refaite à chaque page restreinte, et son coût suit la taille du catalogue, pas celle de la
+page.
 
 ### Chaînes d'interface (2026-09-03)
 
@@ -415,6 +435,125 @@ dérivée de `is_on_sale()`.
 
 Coûts : une projection à réécrire et une réindexation ; un tri qui porte un filtre, ce que le modèle ne
 savait pas faire ; et une option que le visiteur ne peut pas combiner avec un tri par prix.
+
+### Le client est écrit en TypeScript et livré empaqueté (2026-09-16)
+
+Tranché par Louis. Renverse deux décisions : « JavaScript, pas de TypeScript » et le répertoire portant
+l'empreinte de `R-70`. Les deux vont ensemble : le navigateur ne lit pas le TypeScript, et un fichier
+unique n'a plus d'imports relatifs à versionner.
+
+- **Sources** : `resources/assets/ts/`, tests dans `tests/ts/`. Vérification stricte des types par
+  TypeScript 7 dans `composer check`.
+- **Syntaxe effaçable seulement** (`erasableSyntaxOnly`) : ni `enum`, ni `namespace`, ni propriété
+  déclarée dans le constructeur. Node retire les types sans compiler, donc les tests s'exécutent sur
+  les sources, sans étape de construction.
+- **Livraison** : esbuild produit `resources/assets/dist/listing.js`, un seul module ES minifié, commité.
+  Aucun Node n'est nécessaire pour déployer le module, ni pour un projet qui le réutilise.
+  `composer check` reconstruit le paquet à côté et échoue si le fichier commité diffère.
+- **Version** : `?ver=` issu de `filemtime()`, comme avant. Le défaut de `R-70` venait des imports
+  relatifs, qu'un fichier unique n'a plus. Ni nom haché ni manifeste : rien à lire à chaque requête, et
+  une page gardée en cache qui cite l'ancienne URL reçoit le nouveau fichier au lieu d'un 404.
+
+Ce que ça achète : les types font partie du code et sont vérifiés ; un téléchargement au lieu de
+vingt et un ; 8,5 Ko compressés au lieu de 25,1 ; `R-70` fermé.
+
+Ce que ça coûte :
+
+- **une étape de construction** : toute modification des sources demande `composer build` avant
+  publication. Un oubli fait échouer `composer check`, jamais le site en silence ;
+- **un fichier généré dans le dépôt**, dont le diff n'est pas relisible et qui se reconstruit en cas
+  de conflit plutôt que de se fusionner ;
+- **cinq dépendances de développement** : `esbuild`, `typescript-eslint` (sans lui, ESLint ne lit pas
+  le TypeScript), `@types/node` (les tests importent `node:test`), et **deux TypeScript** — la 7 sous
+  `@typescript/native`, qui vérifie les types, et la 6 sous `typescript` (paquet officiel
+  `@typescript/typescript6`) pour `typescript-eslint`, qui n'accepte pas encore la 7 et lit l'API
+  JavaScript que la 7 ne fournit plus. Tranché par Louis le même jour, sur la dernière version stable ;
+  noms alignés le 2026-09-16 sur ceux que l'équipe TypeScript publie (`R-133`). La 7 est appelée par
+  son chemin : `node_modules/.bin/tsc` pointe vers `@typescript/old`, le vrai compilateur 6 que
+  l'enveloppe `@typescript/typescript6` charge et que npm remonte à la racine. `~6.0.2` fixe donc
+  l'enveloppe, et seul le lockfile fixe le compilateur. La 6 disparaît
+  quand `typescript-eslint` prend la 7 (7.1 attendue en novembre 2026). `esbuild` est épinglé à la
+  version exacte, sans quoi une mise à jour changerait le fichier construit ;
+- **Node 24.12 au moins** (`engines`), la version où le retrait des types devient stable ; 24.21.0 sur
+  la machine et dans ddev. **Dans ddev la version est figée** (`nodejs_version: "24.21.0"`) : `"24"`
+  restait sur celle de l'image. Chaque correctif de Node demande donc de monter ce numéro à la main,
+  sans quoi ddev et la machine divergent de nouveau ;
+- **un `node_modules` ne sert qu'un système** : esbuild et TypeScript 7 déposent un binaire par
+  système, et npm 11.19 ne garde que celui du système qui installe. **Tranché par Louis le 2026-09-16 :
+  pas de second `node_modules`** — l'outillage Node du module s'installe et tourne sur la machine,
+  `composer check` compris ; ddev ne sert qu'au PHP (`--testsuite Modules`). `bundle.ts` construit et vérifie le
+  paquet avec les mêmes options, sans les répéter dans deux commandes ;
+- **les tests Node lisent les sources, pas le fichier livré** : un défaut propre à l'empaquetage ne se
+  voit qu'en navigateur, ce que la définition de « fini » exige déjà ;
+- `module:publish` copie tout `resources/assets`, sources TypeScript comprises : elles sont servies
+  dans `public/` sans être chargées.
+
+### Le client se charge en priorité basse, surchargeable par filtre (2026-09-16)
+
+Tranché par Louis : « la meilleure configuration possible, avec la possibilité de la surcharger par un
+filtre ». Le script est inscrit en `fetchpriority="low"`, comme WordPress inscrit ses propres modules
+depuis 6.9 : le listing est rendu par le serveur, le script ne fait que l'enrichir. Le filtre
+`meilifacets/script_fetchpriority` (`ListingScript::PRIORITY_FILTER`) rend la main au projet ; la valeur
+n'est pas validée par le module, WordPress le fait et retombe sur `auto`.
+
+Ce que ça achète : 232 ms de LCP en « 4G lente » sur `/boutique` (`R-134`). Ce que ça coûte : le listing
+se lie 75 ms plus tard sur le même réseau, rien en local. Premier filtre que le module déclare : les autres
+points d'extension sont des contrats du conteneur.
+
+### Le client part de l'état que le serveur a lu (2026-09-17)
+
+Tranché par Louis : « je te fais confiance pour retirer url texte comme tu l'as proposé ». Le client
+ne tire plus aucun état d'une URL :
+
+- au chargement, il part de l'état que `StateReader` a lu, publié dans la description (`state`) ;
+- chaque entrée d'historique qu'un listing écrit porte son état, et l'entrée servie reçoit le sien au
+  démarrage. Retour et Suivant le restaurent sans réécrire l'entrée ;
+- une entrée qu'aucun listing n'a écrite reçoit l'état affiché si l'adresse est la même, et recharge
+  la page sinon ;
+- les valeurs sont triées par octet côté serveur (`sort($values, SORT_STRING)`) et par unité UTF-16
+  côté client (`sort()`). Même ordre pour tout slug WordPress, que `sanitize_title_with_dashes` réduit à
+  `[%a-z0-9_-]` ; les deux ne divergent que sur une valeur tapée à la main mêlant un caractère au-delà de
+  U+FFFF et un caractère entre U+E000 et U+FFFF, qui ne désigne aucun terme.
+
+Ce que ça supprime : `url-text.ts`, copie en TypeScript de `trim()`, `is_numeric()`, `(int)` et
+`sort()` de PHP, qui aurait divergé en silence au premier changement de ces règles, et toute la lecture
+d'URL du client. Les cas partagés portent désormais sur ce que le client écrit et que le serveur relit.
+
+Ce que ça coûte :
+
+- deux valeurs purement numériques changent d'ordre dans l'URL (`10,9` au lieu de `9,10`), et une facette
+  à valeur unique forgée avec deux valeurs garde l'autre. Aucun slug numérique sur Pluralia (mesuré) ;
+- un Retour vers une entrée écrite par un autre script, à une autre adresse, recharge la page ;
+
+La sécurité ne change pas : la lecture d'URL du client ne protégeait rien, le verrou reste côté moteur
+(`R-28`, `Q-03`).
+
+### Le client réécrit l'adresse que WordPress a lue, jamais la sienne (2026-09-17)
+
+Tranché par Louis : ne garder que les paramètres que WordPress lit lui-même pour construire la page.
+Le serveur publie, octet pour octet, les paires de la query string brute dont le nom figure dans
+`$wp->public_query_vars` — la liste de la plateforme, filtre `query_vars` compris —, hors les noms du
+listing et hors `paged`, que le listing lit quand son propre paramètre de page manque. Le client les
+réécrit après les siens, dans l'ordre de la requête.
+
+Le chemin suit la même règle : le serveur publie celui de la première page, `get_pagenum_link(1)` — la
+fonction de la pagination de WordPress et de WooCommerce —, qui retire le segment de pagination sous son
+vrai nom et les barres de tête. Le client n'interprète plus aucun chemin : le numéro de page passe du
+chemin à `pg`, `//boutique` devient `/boutique`.
+
+Ce que ça corrige : `add-to-cart` ne survit plus à un geste — chaque rechargement remettait le produit
+au panier —, ni `utm_*`, que Varnish n'efface qu'en tête d'URL. Une recherche produit garde `s` et
+`post_type`.
+
+Ce que ça coûte :
+
+- lecture littérale : `orderby`, `order`, `filter_*` ou `query_type_*` restent quand la requête les
+  porte, puisque WordPress ou WooCommerce les lisent. Aucun n'agit sur la grille, servie par le moteur ;
+- deux listings d'une même page : l'un efface de l'URL les facettes de l'autre, comme avant `R-137` #6.
+  Les noms réservés (`pg`, `sort`…) étant communs, une URL partagée ne portait déjà qu'un état.
+- le chemin dépend de ce que les filtres `get_pagenum_link` et `user_trailingslashit` en font, et hérite
+  d'un défaut du cœur : le segment n'est pas ancré, une page `/shop-page` découpée par `<!--nextpage-->`
+  deviendrait `/shop-`. Aucun cas sur Pluralia.
 
 ### Contre-exemple
 

@@ -7,6 +7,7 @@ namespace Modules\MeiliFacets\Providers;
 use Illuminate\Support\ServiceProvider;
 use Modules\MeiliFacets\Http\Unavailable;
 use Modules\MeiliFacets\View\CardSettings;
+use Modules\MeiliFacets\View\CountLabel;
 use Modules\MeiliFacets\View\ListingScript;
 
 /** What the page needs beyond the listing itself: its script, its cards, its fallback. */
@@ -16,6 +17,7 @@ final class RenderingServiceProvider extends ServiceProvider
     {
         $this->app->scoped(Unavailable::class);
         $this->app->scoped(ListingScript::class);
+        $this->app->bind(CountLabel::class, fn (): CountLabel => new CountLabel($this->app->getLocale()));
         $this->app->bind(CardSettings::class, fn (): CardSettings => new CardSettings(
             (int) config('meilifacets.card.eager', CardSettings::DEFAULT_EAGER)
         ));

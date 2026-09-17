@@ -8,14 +8,13 @@ use Modules\MeiliFacets\Contracts\FacetCounter;
 use Modules\MeiliFacets\Contracts\Listing;
 use Modules\MeiliFacets\Contracts\SearchEngine;
 use Modules\MeiliFacets\Listing\ListingState;
+use Modules\MeiliFacets\Listing\PriceFilter;
 
 final readonly class ListingSearch
 {
     private const string RESULTS = 'results';
 
-    private const string COUNT = 'count:';
-
-    private const string BOUNDS = 'bounds';
+    private const string UNFILTERED = 'unfiltered';
 
     public function __construct(
         private SearchEngine $engine,
@@ -27,9 +26,8 @@ final readonly class ListingSearch
         $responses = $this->engine->multiSearch([
             self::RESULTS => QueryPlan::results($listing, $state),
             ...$this->countQueries($listing, $state),
-            ...QueryPlan::measuresPriceApart($listing, $state)
-                ? [self::BOUNDS => QueryPlan::priceBounds($listing, $state)]
-                : [],
+            ...$this->boundsQueries($listing, $state),
+            ...$this->unfilteredQueries($listing, $state),
         ]);
 
         $main = $responses[self::RESULTS] ?? [];
@@ -39,6 +37,7 @@ final readonly class ListingSearch
             (int) ($main['totalHits'] ?? 0),
             $this->distributions($listing, $responses),
             $this->facetStats($responses),
+            $this->unfilteredDistributions($listing, $responses),
         );
     }
 
@@ -53,10 +52,53 @@ final readonly class ListingSearch
         $queries = [];
 
         foreach ($this->counter->queries($listing, $state) as $taxonomy => $query) {
-            $queries[self::COUNT.$taxonomy] = $query;
+            $queries[FacetQuery::keyFor($taxonomy)] = $query;
         }
 
         return $queries;
+    }
+
+    /**
+     * @return array<string, array<string, mixed>>
+     */
+    private function boundsQueries(Listing $listing, ListingState $state): array
+    {
+        $price = PriceFilter::among($listing->filters());
+
+        if (! $price instanceof PriceFilter) {
+            return [];
+        }
+
+        $query = new PriceQuery($price);
+
+        return $query->isMeasuredApart($state) ? [$query->key() => QueryPlan::apart($listing, $state, $query)] : [];
+    }
+
+    /**
+     * @return array<string, array<string, mixed>>
+     */
+    private function unfilteredQueries(Listing $listing, ListingState $state): array
+    {
+        return $state->isNarrowed() && $listing->facets() !== [] ? [self::UNFILTERED => QueryPlan::unfiltered($listing)] : [];
+    }
+
+    /**
+     * @param  array<string, array<string, mixed>>  $responses
+     * @return array<string, array<string, int>>
+     */
+    private function unfilteredDistributions(Listing $listing, array $responses): array
+    {
+        if (! isset($responses[self::UNFILTERED])) {
+            return [];
+        }
+
+        $distributions = [];
+
+        foreach ($listing->facets() as $facet) {
+            $distributions[$facet->taxonomy] = $responses[self::UNFILTERED]['facetDistribution'][$facet->field()] ?? [];
+        }
+
+        return $distributions;
     }
 
     /**
@@ -65,7 +107,7 @@ final readonly class ListingSearch
      */
     private function facetStats(array $responses): array
     {
-        return ($responses[self::BOUNDS] ?? $responses[self::RESULTS] ?? [])['facetStats'] ?? [];
+        return ($responses[PriceQuery::KEY] ?? $responses[self::RESULTS] ?? [])['facetStats'] ?? [];
     }
 
     /**
@@ -77,7 +119,7 @@ final readonly class ListingSearch
         $distributions = [];
 
         foreach ($listing->facets() as $facet) {
-            $response = $responses[self::COUNT.$facet->taxonomy] ?? $responses[self::RESULTS] ?? [];
+            $response = $responses[FacetQuery::keyFor($facet->taxonomy)] ?? $responses[self::RESULTS] ?? [];
             $distributions[$facet->taxonomy] = $response['facetDistribution'][$facet->field()] ?? [];
         }
 

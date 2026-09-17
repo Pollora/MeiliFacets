@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Tests\Unit;
 
+use FilesystemIterator;
 use Generator;
 use Modules\MeiliFacets\Enums\Contract;
 use Modules\MeiliFacets\Enums\DocumentField;
@@ -14,6 +15,8 @@ use Modules\MeiliFacets\View\ListingScript;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 
 /**
  * The same contract is written twice, once per language. Nothing but this makes
@@ -21,16 +24,16 @@ use PHPUnit\Framework\TestCase;
  */
 final class ContractParityTest extends TestCase
 {
-    private const string CLIENT = __DIR__.'/../../resources/assets/js';
+    private const string CLIENT = __DIR__.'/../../resources/assets/ts';
 
     private const string STYLESHEET = __DIR__.'/../../resources/assets/css/meilifacets.css';
 
     #[Test]
     public function both_sides_claim_the_same_contract_version(): void
     {
-        preg_match('/const VERSION = (\d+)/', $this->read('contract.js'), $found);
+        preg_match('/const VERSION = (\d+)/', $this->read('shared/contract.ts'), $found);
 
-        $this->assertSame((string) Contract::VERSION, $found[1] ?? '', 'contract.js and Contract::VERSION disagree.');
+        $this->assertSame((string) Contract::VERSION, $found[1] ?? '', 'contract.ts and Contract::VERSION disagree.');
     }
 
     /** A hook the client addresses and PHP does not declare is a hook nothing renders. */
@@ -54,7 +57,7 @@ final class ContractParityTest extends TestCase
     #[Test]
     public function both_sides_name_the_script_module_the_same(): void
     {
-        $this->assertStringContainsString("'".ListingScript::MODULE."'", $this->read('listing-page.js'));
+        $this->assertStringContainsString("'".ListingScript::MODULE."'", $this->read('listing-page.ts'));
     }
 
     /**
@@ -66,12 +69,12 @@ final class ContractParityTest extends TestCase
      */
     public static function twins(): Generator
     {
-        yield 'markup attribute' => ['contract.js', "ATTRIBUTE = '([^']*)'", Contract::ATTRIBUTE];
-        yield 'version attribute' => ['contract.js', "VERSION_ATTRIBUTE = '([^']*)'", Contract::VERSION_ATTRIBUTE];
-        yield 'facet field prefix' => ['description.js', "FACET_FIELD_PREFIX = '([^']*)'", DocumentField::Facets->value.'.'];
-        yield 'value separator' => ['listing-state.js', "VALUE_SEPARATOR = '([^']*)'", StateReader::VALUE_SEPARATOR];
-        yield 'query bound' => ['listing-state.js', 'MAX_QUERY_LENGTH = (\d+)', (string) StateReader::MAX_QUERY_LENGTH];
-        yield 'first page' => ['listing-state.js', 'FIRST_PAGE = (\d+)', (string) ListingState::FIRST_PAGE];
+        yield 'markup attribute' => ['shared/contract.ts', "ATTRIBUTE = '([^']*)'", Contract::ATTRIBUTE];
+        yield 'version attribute' => ['shared/contract.ts', "VERSION_ATTRIBUTE = '([^']*)'", Contract::VERSION_ATTRIBUTE];
+        yield 'facet field prefix' => ['shared/description.ts', "FACET_FIELD_PREFIX = '([^']*)'", DocumentField::Facets->value.'.'];
+        yield 'value separator' => ['listing/listing-state.ts', "VALUE_SEPARATOR = '([^']*)'", StateReader::VALUE_SEPARATOR];
+        yield 'query bound' => ['listing/listing-state.ts', 'MAX_QUERY_LENGTH = (\d+)', (string) StateReader::MAX_QUERY_LENGTH];
+        yield 'first page' => ['listing/listing-state.ts', 'FIRST_PAGE = (\d+)', (string) ListingState::FIRST_PAGE];
     }
 
     #[DataProvider('twins')]
@@ -87,7 +90,7 @@ final class ContractParityTest extends TestCase
     #[Test]
     public function the_stylesheet_marks_the_option_the_client_points_at(): void
     {
-        preg_match("/ACTIVE_OPTION = '([^']*)'/", $this->read('sort-combobox.js'), $found);
+        preg_match("/ACTIVE_OPTION = '([^']*)'/", $this->read('sort/sort-combobox.ts'), $found);
 
         $this->assertNotSame('', $found[1] ?? '');
         $this->assertStringContainsString('['.$found[1].']', (string) file_get_contents(self::STYLESHEET));
@@ -122,7 +125,14 @@ final class ContractParityTest extends TestCase
      */
     private function clientFiles(): array
     {
-        return array_map(basename(...), glob(self::CLIENT.'/*.js') ?: []);
+        $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator(self::CLIENT, FilesystemIterator::SKIP_DOTS));
+        $client = [];
+
+        foreach ($files as $file) {
+            $client[] = substr($file->getPathname(), strlen(self::CLIENT) + 1);
+        }
+
+        return $client;
     }
 
     private function read(string $file): string

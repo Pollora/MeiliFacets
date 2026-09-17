@@ -115,6 +115,66 @@ final class FacetValuesTest extends TestCase
         $this->assertSame([false, true, false], array_map(static fn (FacetValue $v): bool => $v->folded, $values));
     }
 
+    #[Test]
+    public function it_keeps_every_value_the_unfiltered_listing_offers_hidden_without_results(): void
+    {
+        $values = $this->values()->of(new Facet('brand', 'Brand'), ['a' => 2], new ListingState(['cat' => ['x']]), ['a' => 5, 'b' => 4]);
+
+        $this->assertSame(['a', 'b'], array_map(static fn (FacetValue $v): string => $v->slug, $values));
+        $this->assertSame([2, 0], array_map(static fn (FacetValue $v): int => $v->count, $values));
+        $this->assertSame([false, true], array_map(static fn (FacetValue $v): bool => $v->folded, $values));
+    }
+
+    #[Test]
+    public function it_shows_a_held_value_that_has_no_result_left(): void
+    {
+        $values = $this->values()->of(new Facet('brand', 'Brand'), ['a' => 2], new ListingState(['brand' => ['b']]), ['a' => 5, 'b' => 4]);
+
+        $this->assertSame([false, false], array_map(static fn (FacetValue $v): bool => $v->folded, $values));
+    }
+
+    #[Test]
+    public function it_gives_the_visible_places_to_values_with_results(): void
+    {
+        $facet = new Facet('brand', 'Brand', visible: 1);
+        $values = $this->values()->of($facet, ['b' => 3, 'c' => 1], new ListingState(['cat' => ['x']]), ['a' => 9, 'b' => 8, 'c' => 7]);
+
+        $this->assertSame(['a', 'b', 'c'], array_map(static fn (FacetValue $v): string => $v->slug, $values));
+        $this->assertSame([true, false, true], array_map(static fn (FacetValue $v): bool => $v->folded, $values));
+    }
+
+    #[Test]
+    public function it_keeps_a_held_value_both_caps_left_out(): void
+    {
+        $facet = new Facet('brand', 'Brand', cap: 1);
+        $values = $this->values()->of($facet, ['c' => 5, 'b' => 3], new ListingState(['brand' => ['b', 'forged']]), ['a' => 9, 'b' => 8]);
+
+        $this->assertSame(['a', 'c', 'b'], array_map(static fn (FacetValue $v): string => $v->slug, $values));
+    }
+
+    #[Test]
+    public function it_keeps_the_values_the_narrowed_page_counts_beyond_the_unfiltered_cap(): void
+    {
+        $facet = new Facet('brand', 'Brand', cap: 2);
+        $values = $this->values()->of($facet, ['tail' => 4], new ListingState(query: 'zebra'), ['big' => 90, 'mid' => 50, 'tail' => 4]);
+
+        $this->assertSame(['big', 'mid', 'tail'], array_map(static fn (FacetValue $v): string => $v->slug, $values));
+        $this->assertSame([true, true, false], array_map(static fn (FacetValue $v): bool => $v->folded, $values));
+    }
+
+    #[Test]
+    public function it_never_shows_a_held_value_its_scope_or_fallback_leaves_out(): void
+    {
+        $values = $this->withFallback()->of(
+            new Facet('product_cat', 'Category'),
+            ['a' => 2],
+            new ListingState(['product_cat' => ['non-classe']]),
+            ['a' => 5, 'non-classe' => 9],
+        );
+
+        $this->assertSame(['a'], array_map(static fn (FacetValue $v): string => $v->slug, $values));
+    }
+
     /** The taxonomy already carries an order a shop set; the module reads it rather than inventing one. */
     #[Test]
     public function it_shows_the_values_in_the_order_the_taxonomy_declares(): void
