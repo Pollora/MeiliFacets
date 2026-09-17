@@ -592,9 +592,10 @@ redevient absolue sur le nom libéré.
 ddev exec php artisan meilifacets:check-parameters
 ```
 
-Compare chaque paramètre aux 74 query vars publiques de WordPress **et** à la liste que Varnish
-efface. La commande ne tourne jamais sur une requête : la réponse ne change qu'avec la
-configuration.
+Compare chaque paramètre aux query vars publiques de WordPress, filtre `query_vars` compris — 95 noms
+sur Pluralia, dont ceux que WooCommerce déclare pour ses filtres de produits — **et** à la liste que
+Varnish efface. La réponse change avec la configuration, mais aussi avec les attributs, les taxonomies
+et les extensions actives : relancer la commande après en avoir ajouté.
 
 ## Ce qui n'est pas configurable
 

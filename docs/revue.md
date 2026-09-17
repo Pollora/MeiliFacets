@@ -3045,7 +3045,7 @@ redirection devient `https://pluralia.ddev.siteboutique`, que la garde anti-cha�
 `pagePath` écrit déjà `/boutique` ; correctif à proposer en amont (§2). Ne couvre pas `//?s=…`, que
 `redirect_canonical` ignore. Trouvé par la passe de conformité des reliquats de `R-137`.
 
-### R-139 · 🟡 · ouvert · 2026-09-17 — `check-parameters` ne voit pas les query vars ajoutées par filtre
+### R-139 · 🟡 · **fermé le 2026-09-17** · ouvert le 2026-09-17 — `check-parameters` ne voit pas les query vars ajoutées par filtre
 
 `meilifacets:check-parameters` compare les noms du module à `$wp->public_query_vars`. En console, Pollora
 n'appelle jamais `wp()` (`vendor/pollora/framework/src/WordPress/Bootstrap.php:62-66`), donc le filtre
@@ -3054,6 +3054,22 @@ n'appelle jamais `wp()` (`vendor/pollora/framework/src/WordPress/Bootstrap.php:6
 `checkout-link` passeraient la commande tout en entrant en collision en HTTP. Faux par conséquence :
 la docblock « `min_price` never reaches `public_query_vars` » de `ReservedParameters` et de son test, et les
 « 74 query vars » de `configuration.md` et `pieges.md`. Trouvé par la passe de conformité de `R-137` #6.
+
+**Corrigé** : `ReservedParameters::wordPress()` applique le filtre `query_vars` lui-même tant qu'aucune
+requête n'a été analysée (`did_action('parse_request')`) ; sur une requête, `WP::parse_request()` l'a déjà fait
+et la liste est reprise telle quelle. Jamais avant `init` : `Params` de WooCommerce
+(`src/Internal/ProductFilters/Params.php`) garde en statique, pour tout le processus, les paramètres de filtre
+de ses taxonomies de produits (`categories`, `brands`, `filter_essentiel`…), que `get_taxonomies()` ne
+connaît qu'après `init`. La liste lue avant `init` n'est pas gardée ; celle d'après est dédoublonnée (117
+entrées filtrées, 95 noms) et gardée pour l'instance. Le motif des bornes de prix est testé avant les query
+vars, pour rester « lu dans `$_GET` par WooCommerce » maintenant qu'elles y figurent. Sur une requête,
+`pageQuery` est inchangé ; sur Pluralia la commande passe toujours (`min_price`, `max_price` acceptées par
+`D-h`). Tests : `Feature\ReservedParametersTest` (liste filtrée sans doublon, motif des bornes, liste d'une
+requête analysée non refiltrée, liste relue une fois `init` passé) et `CheckParametersCommandTest` (verte sur
+la configuration du projet, rouge sur `checkout-link`, que seul le filtre déclare) ; six mutations tuées
+(filtre, dédoublonnage, garde `parse_request`, garde `init`, liste d'avant `init` gardée, ordre des motifs).
+Le test de la commande l'enregistre lui-même : chaque test finit par `Artisan::forgetBootstrappers()`, et
+l'application partagée n'enregistre les commandes des modules qu'une fois.
 
 ### R-138 · 🟡 · **fermé le 2026-09-17** · ouvert le 2026-09-17 — les libellés publiés au client ignorent les traductions de WordPress
 

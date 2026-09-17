@@ -11,10 +11,6 @@ use PHPUnit\Framework\TestCase;
 
 final class ReservedParametersTest extends TestCase
 {
-    /**
-     * `min_price` never reaches `public_query_vars`: WooCommerce reads it straight
-     * from `$_GET` on the main query, which is where a product listing lives.
-     */
     #[Test]
     public function it_refuses_a_name_a_plugin_reads_from_the_query_string(): void
     {

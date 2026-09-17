@@ -111,11 +111,13 @@ Deux points distincts, qu'il ne faut pas confondre : `attributesToRetrieve` règ
 **Un nom de taxonomie est une query var publique.** Vérifié sur ce projet :
 `/boutique?product_cat=visage` fait passer la grille servie de 12 à 8 produits — WordPress
 filtre déjà sa propre requête. `product_brand`, `product_cat`, `product_tag`, `contenu`,
-`essentiel` et `pluralia_selection` sont tous dans les 74 entrées de `$wp->public_query_vars`,
-avec `page`, `paged`, `p`, `order` et `orderby`. Un paramètre de filtre portant l'un de ces noms
-produit un double filtrage silencieux, WordPress d'un côté et Meilisearch de l'autre. Vérifier
-un nom contre `$wp->public_query_vars`, jamais en testant une URL : `?page=2` répond `200`
-aujourd'hui sans que rien ne garantisse qu'il le fera demain.
+`essentiel` et `pluralia_selection` sont tous des query vars publiques, avec `page`, `paged`, `p`,
+`order` et `orderby`. Un paramètre de filtre portant l'un de ces noms produit un double filtrage
+silencieux, WordPress d'un côté et Meilisearch de l'autre. Vérifier un nom avec
+`meilifacets:check-parameters`, jamais en testant une URL — `?page=2` répond `200` aujourd'hui sans que
+rien ne garantisse qu'il le fera demain — ni en lisant `$wp->public_query_vars` en console : le
+filtre `query_vars` n'y est jamais appliqué, la propriété y tient 74 noms au lieu de 95 et manque
+`categories`, `brands` ou `checkout-link` (`R-139`).
 
 **L'archive produit affiche 16 produits, pas `posts_per_page`.** WooCommerce dérive
 `loop_shop_per_page` de 4 colonnes × 4 lignes ; l'option WordPress vaut 10 et ne sert pas ici.
