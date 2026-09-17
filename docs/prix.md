@@ -390,6 +390,15 @@ des champs exposerait à une collision avec un nom futur du paquet amont.
 Le filtre s'écrit alors `price.min <= :max AND price.max >= :min`, la transposition directe du
 `NOT (max_saisi < min_produit OR min_saisi > max_produit)` de WooCommerce.
 
+**D-j · Un prix vidé n'est pas un prix — ✅ tranché le 2026-09-17 par Louis** (`R-148`). Vider le prix d'un
+produit dans l'admin enregistre `_price = ''` (`class-wc-product-data-store-cpt.php:876`), que le module
+projetait à 0. Le module écarte désormais la valeur vide : le produit n'a pas de `price`, n'entre dans
+aucune plage et ne tire plus le curseur à 0. Un `0` saisi reste 0 (`D-c` : un produit gratuit est réel).
+
+Ce que ça coûte : le module s'écarte de WooCommerce, dont la table de correspondance range ce produit à 0
+et le liste sous « jusqu'à 10 € » ; en tri « prix croissant », il passe en fin de liste au lieu d'être en
+tête ; les documents déjà indexés gardent 0 jusqu'à leur réindexation.
+
 **D-e · Les taxes — ✅ tranché le 2026-09-15 : reprendre la conversion de WooCommerce.** Quand les
 prix sont stockés HT et affichés TTC, il retire la taxe des bornes saisies avant de filtrer
 (`class-wc-query.php:800-810`, via `WC_Tax::calc_inclusive_tax` et le filtre
@@ -399,6 +408,19 @@ prix sont stockés HT et affichés TTC, il retire la taxe des bornes saisies ava
 Dormant sur Pluralia — `wc_tax_enabled()` est `false`, prix stockés HT, affichage HT — donc **rien
 ne le testera ici**. À couvrir par un test unitaire sur la conversion elle-même plutôt que par le
 rendu, et à écrire dans `configuration.md`.
+
+**D-e, complété le 2026-09-17 — tranché par Louis : bornes affichées TTC, règle de taxe publiée au
+client** (`R-146`). La décision ne visait que les bornes saisies, et seul le serveur les convertissait :
+le client filtrait sur la valeur brute, et le curseur montrait des bornes HT. Désormais le serveur publie
+au client la règle qu'il applique (taux standard de la classe `woocommerce_price_filter_widget_tax_class`,
+comme `class-wc-query.php:800-810`), le client convertit les bornes saisies comme lui, et les deux côtés
+ajoutent la taxe aux bornes mesurées avant de les afficher, comme le widget classique
+(`class-wc-widget-price-filter.php:101-107`). Les blocs WooCommerce, eux, affichent les bornes brutes : le
+module suit le widget, parce que D-e veut qu'un curseur porte sur le prix que le visiteur voit.
+
+Ce que ça coûte : la description publiée change, donc `Contract::VERSION` monte des deux côtés ; le client
+calcule en flottants, l'accord avec le serveur tient au centime près ; la règle est celle du taux standard,
+comme le widget classique, pas celle des blocs qui convertissent par classe de taxe et par `tax_status`.
 
 **D-h · Les paramètres d'URL — ✅ tranché le 2026-09-15 : `min_price` et `max_price` en défauts
 renommables**, deux cas de plus dans `QueryParameter`.

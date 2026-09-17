@@ -613,6 +613,19 @@ Ce que ça coûte :
   d'un défaut du cœur : le segment n'est pas ancré, une page `/shop-page` découpée par `<!--nextpage-->`
   deviendrait `/shop-`. Aucun cas sur Pluralia.
 
+### Le filtrage natif n'est désarmé que sur les pages qu'un listing déclare (2026-09-17)
+
+Tranché par Louis (`R-147`). `NativeFiltering` désarmait le filtrage de WooCommerce sur toute requête
+produit principale, qu'un listing du module soit rendu ou non : une archive qui garde la boucle de
+WooCommerce et ses widgets aurait ignoré `min_price`, `max_price` et `filter_*` sans rien dire. Louis voulait
+le limiter aux pages où la vue place `meilifacets:listing` ; ce n'est pas détectable à temps, Pollora lançant
+la requête principale (`wp()`) avant de choisir la route et de rendre la vue. Chaque listing déclare donc les
+pages WordPress qu'il sert, et le filtre ne désarme que la requête principale de celles-là.
+
+Ce que ça coûte : une méthode de plus dans le contrat `Listing`, qu'un projet implémente ; une vue qui place
+un listing sur une page qu'il ne déclare pas y retrouve le filtrage natif en parallèle, avec son
+`found_posts` rétréci ; la déclaration dit où le listing est prévu, pas où il est rendu.
+
 ### Contre-exemple
 
 `AmphiBee/MeiliSearchFacets` sert uniquement à cartographier le périmètre fonctionnel attendu.

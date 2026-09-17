@@ -3051,6 +3051,45 @@ c'est celui-là qui est levé.
 
 ---
 
+### R-149 · 🟠 · ouvert · 2026-09-17 — une archive de marque affiche tout le catalogue
+
+`/marque/aeris` rend 16 cartes sur 5 pages et une plage de 0 à 199 €, comme `/boutique` ; `/boutique?marque=aeris`
+en rend 10, de 9 à 47 € (mesuré par `curl` le 2026-09-17). `ProductListing::currentAisle()` ne lit que
+`product_cat` : sur une archive de marque, le filtre de base ne porte pas le terme du chemin. Trouvé par la
+passe de conformité des retours de la PR #2.
+
+### R-148 · 🟡 · ouvert · 2026-09-17 — un produit dont le prix a été vidé est indexé à 0
+
+Retour de revue sur la PR #2, vérifié par la passe de conformité. Vider le prix d'un produit simple ou
+externe enregistre `_price = ''` (`class-wc-product-data-store-cpt.php:876`, seulement quand un champ de prix
+change) ; `get_post_meta(…, false)` rend `['']`, qui passe la garde `[] ===` de
+`ProductPriceProjector.php:39`, et `(float) ''` vaut 0. Le produit entre dans toute plage bornée en haut et
+tire le minimum mesuré à 0. Le test existant ne couvre pas ce cas : un produit créé sans prix n'a aucune
+ligne `_price`. Produits variables et groupés non concernés. Aucun produit touché sur Pluralia. Tranché par
+Louis : `D-j` (`prix.md`).
+
+### R-147 · 🟡 · ouvert · 2026-09-17 — `NativeFiltering` désarme toute requête produit principale
+
+Retour de revue sur la PR #2, vérifié par la passe de conformité. `NativeFiltering::leaveTheMainQueryAlone()`
+rend `false` sans condition : sur toute archive produit, WooCommerce ne filtre plus par prix ni par attribut
+(`class-wc-query.php:787`, `Filterer.php:70`), qu'un listing du module soit rendu ou non. La portée écrite
+est fausse deux fois : le docblock et `configuration.md` la disent « inerte sur tout autre listing », et
+`filter_*` n'est désarmé que si la table de correspondance des attributs est active
+(`class-wc-query.php:915-917`). L'exemple de retour arrière, `__return_true` global, annule la protection
+partout. Aucun effet sur Pluralia (aucun widget de prix natif). Tranché par Louis : `decisions.md`, « Le
+filtrage natif n'est désarmé que sur les pages qu'un listing déclare ».
+
+### R-146 · 🟠 · ouvert · 2026-09-17 — sur une boutique TTC, le client filtre et le curseur borne en HT
+
+Retour de revue sur la PR #2, vérifié par la passe de conformité. `PriceQuery` retire la taxe des bornes
+saisies (`PriceTax::excluding()`, `D-e`), `price-query.ts` non : le client ne reçoit aucune donnée de taxe,
+et son docblock promet « the same test the server writes ». Charger `?max_price=50` filtre à ≤ 41,67 HT à
+20 %, tout geste du client à ≤ 50. Les bornes affichées restent HT des deux côtés, alors que le widget
+classique leur ajoute la taxe : une saisie entre le maximum HT et le maximum TTC est prise pour le bord et ne
+filtre rien. `D-e` demandait aussi de l'écrire dans `configuration.md`, jamais fait. Déjà relevé sans numéro
+(`R-137` « Déjà connus », `R-121`). Dormant sur Pluralia (taxes désactivées). Tranché par Louis : `D-e`
+complété (`prix.md`).
+
 ### R-145 · 🟡 · ouvert · 2026-09-17 — suites des passes rejouées sur les points fermés du lot
 
 Relevés par les cinq passes rejouées le 2026-09-17 sur `R-120`, `R-135`, `R-136`, `R-137` et `R-138`, et
