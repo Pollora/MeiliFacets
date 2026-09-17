@@ -13,6 +13,23 @@ use Tests\TestCase;
 /** A bare digit names nothing: the badge has to say what it counts. */
 final class ActiveFiltersComponentTest extends TestCase
 {
+    use SwitchesTheSiteLocale;
+
+    /** The suite shares one application: a listing resolved here would reach a later class. */
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->app->forgetScopedInstances();
+    }
+
+    protected function tearDown(): void
+    {
+        $this->app->forgetScopedInstances();
+
+        parent::tearDown();
+    }
+
     #[Test]
     public function it_names_what_it_counts(): void
     {
@@ -32,18 +49,18 @@ final class ActiveFiltersComponentTest extends TestCase
     }
 
     #[Test]
-    public function it_resolves_as_a_component_and_labels_its_count_by_the_language_rule(): void
+    public function it_resolves_as_a_component_and_speaks_the_language_wordpress_translates_in(): void
     {
-        $this->app->forgetScopedInstances();
+        $appLocale = $this->app->getLocale();
+        $this->app->setLocale('fr');
 
-        $html = Blade::render('<x-meilifacets::active-filters />');
+        try {
+            $html = $this->underSiteLocale('en_US', fn (): string => Blade::render('<x-meilifacets::active-filters />'));
+        } finally {
+            $this->app->setLocale($appLocale);
+        }
 
-        $this->assertStringContainsString(
-            $this->app->make(CountLabel::class)->of(trans(':count active filter|:count active filters'), 0),
-            $html
-        );
-
-        $this->app->forgetScopedInstances();
+        $this->assertStringContainsString('0 active filters', $html);
     }
 
     /** Rendered even at zero: the client reveals it, it creates nothing. */
@@ -60,7 +77,7 @@ final class ActiveFiltersComponentTest extends TestCase
     {
         return (string) view('meilifacets::components.active-filters', [
             'count' => $count,
-            'label' => $this->app->make(CountLabel::class)->of(trans(':count active filter|:count active filters'), $count),
+            'label' => $this->app->make(CountLabel::class)->of(__(':count active filter|:count active filters'), $count),
             'hook' => fn (string $name): HtmlString => new HtmlString('data-meili="'.$name.'"'),
         ])->render();
     }

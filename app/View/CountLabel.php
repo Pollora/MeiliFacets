@@ -4,24 +4,32 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\View;
 
+use Closure;
 use Illuminate\Translation\MessageSelector;
 use MessageFormatter;
 
-final readonly class CountLabel
+final class CountLabel
 {
     private const string FALLBACK_LOCALE = 'en';
 
-    /** Form 0 for the CLDR category `one`, form 1 for every other. */
     private const string FORM_OF_COUNT = '{n, plural, one{0} other{1}}';
 
-    public string $locale;
+    /** @var array<string, MessageFormatter> */
+    private array $formatters = [];
 
-    private ?MessageFormatter $formatter;
+    /**
+     * @param  Closure(): string  $siteLocale
+     */
+    public function __construct(private readonly Closure $siteLocale) {}
 
-    public function __construct(private string $appLocale)
+    /** `Intl.PluralRules` throws on tags ICU tolerates, `pt_PT_ao90` or `C`: only the language and its region travel. */
+    public function locale(): string
     {
-        $this->locale = $this->tagOf($appLocale);
-        $this->formatter = class_exists(MessageFormatter::class) ? new MessageFormatter($this->locale, self::FORM_OF_COUNT) : null;
+        if (preg_match('/^([a-z]{2,3})(?:[_-]([A-Z]{2}))?(?:[_-]|$)/', ($this->siteLocale)(), $parts) !== 1) {
+            return self::FALLBACK_LOCALE;
+        }
+
+        return isset($parts[2]) ? $parts[1].'-'.$parts[2] : $parts[1];
     }
 
     public function of(string $pattern, int $count): string
@@ -33,21 +41,13 @@ final readonly class CountLabel
 
     private function formOf(int $count): int
     {
-        if ($this->formatter instanceof MessageFormatter) {
-            return (int) $this->formatter->format(['n' => $count]);
+        if (! class_exists(MessageFormatter::class)) {
+            return min(new MessageSelector()->getPluralIndex(str_replace('-', '_', $this->locale()), $count), 1);
         }
 
-        // Without `ext-intl`, Laravel's own table: it agrees with CLDR on the forms French and English use.
-        return min(new MessageSelector()->getPluralIndex($this->appLocale, $count), 1);
-    }
+        $locale = $this->locale();
+        $this->formatters[$locale] ??= new MessageFormatter($locale, self::FORM_OF_COUNT);
 
-    /** `Intl.PluralRules` throws on tags ICU tolerates, `pt_PT_ao90` or `C`: only the language and its region travel. */
-    private function tagOf(string $locale): string
-    {
-        if (preg_match('/^([a-z]{2,3})(?:[_-]([A-Z]{2}))?(?:[_-]|$)/', $locale, $parts) !== 1) {
-            return self::FALLBACK_LOCALE;
-        }
-
-        return isset($parts[2]) ? $parts[1].'-'.$parts[2] : $parts[1];
+        return (int) $this->formatters[$locale]->format(['n' => $count]);
     }
 }

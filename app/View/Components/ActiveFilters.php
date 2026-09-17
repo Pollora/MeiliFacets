@@ -21,7 +21,7 @@ final class ActiveFilters extends ListingComponent
 
         return view('meilifacets::components.active-filters', [
             'count' => $count,
-            'label' => $this->countLabel->of(trans(':count active filter|:count active filters'), $count),
+            'label' => $this->countLabel->of(__(':count active filter|:count active filters'), $count),
         ]);
     }
 }

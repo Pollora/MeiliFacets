@@ -176,7 +176,6 @@ final class FacetComponentTest extends TestCase
         );
     }
 
-    /** The client only reveals what the page carries: a value a filter emptied stays on it, hidden. */
     #[Test]
     public function it_keeps_every_value_on_a_narrowed_page_and_hides_those_without_results(): void
     {

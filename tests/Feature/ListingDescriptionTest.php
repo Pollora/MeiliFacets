@@ -15,6 +15,7 @@ use Tests\TestCase;
 final class ListingDescriptionTest extends TestCase
 {
     use RequestsAnAddress;
+    use SwitchesTheSiteLocale;
 
     /** The suite shares one application: a query left behind would reach a later class. */
     protected function tearDown(): void
@@ -53,7 +54,6 @@ final class ListingDescriptionTest extends TestCase
         $this->assertSame('/boutique', $this->describedWith([])['pagePath']);
     }
 
-    /** Before its first search, the client knows which values the page hid for having no result. */
     #[Test]
     public function it_hands_over_the_counts_of_the_values_the_page_renders(): void
     {
@@ -67,6 +67,23 @@ final class ListingDescriptionTest extends TestCase
 
         $this->assertSame($expected, (array) $description['facets'][0]['counts']);
         $this->assertMatchesRegularExpression('/^[a-z]{2,3}(-[A-Za-z0-9]+)*$/', $description['locale']);
+    }
+
+    #[Test]
+    public function it_hands_over_its_labels_in_the_language_wordpress_translates_the_page_in(): void
+    {
+        $appLocale = $this->app->getLocale();
+        $this->app->setLocale('fr');
+
+        try {
+            $description = $this->underSiteLocale('en_US', fn (): array => $this->describedWith([]));
+        } finally {
+            $this->app->setLocale($appLocale);
+        }
+
+        $this->assertSame('en-US', $description['locale']);
+        $this->assertSame('Show more', $description['foldLabels']['more']);
+        $this->assertSame(':count result|:count results', $description['countPattern']);
     }
 
     #[Test]

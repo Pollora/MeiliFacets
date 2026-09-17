@@ -148,8 +148,8 @@ MeiliFacets est donc **le premier composant de ce projet à viser une vérificat
 n'y avait pas de convention à suivre : il y en a une à poser.
 
 Limite acceptée : le repli renvoie sa clé sans appliquer de remplacement. Aucun `__()` du module ne
-passe aujourd'hui de placeholder — `trans_choice()` est employé pour les pluriels, et son seul
-appel est dans `Facets`, qui relève de la suite `Feature`. Le jour où un test autonome portera sur
+passe aujourd'hui de placeholder — les pluriels passent par `View\CountLabel`, qui remplace `:count`
+lui-même. Le jour où un test autonome portera sur
 une chaîne à placeholder, c'est I-10 qu'il faudra ouvrir, pas étendre le repli à l'aveugle.
 
 ### D-07 — La catégorie reste une facette, mais contextuelle : `ChildTermsFacet`
@@ -2251,7 +2251,10 @@ Deux sorties, et ce n'est pas au module de choisir :
 code ne change ; `decisions.md` porte désormais la clause « et ils emportent avec eux les filtres en
 attente », et dit ce que l'autre branche aurait coûté.
 
-### R-78 · ⚪ · ouvert · 2026-09-07 — la règle du pluriel est anglaise des deux côtés, les chaînes ne le sont pas
+### R-78 · ⚪ · **fermé le 2026-09-17** · ouvert le 2026-09-07 — la règle du pluriel est anglaise des deux côtés, les chaînes ne le sont pas
+
+**Fermé par `R-137` #4** : serveur et client choisissent la forme par la règle CLDR de la langue
+(`View\CountLabel` en PHP, `CountLabel` en TypeScript), vérifiés sur `tests/plural-cases.json`. « 0 filtre actif » des deux côtés.
 
 `countLabel()` choisit la forme sur `count === 1`. C'est la règle anglaise. Le serveur, lui, passe
 par `trans_choice`, dont la règle suit la locale — et le français range **zéro avec le singulier**.
@@ -3052,14 +3055,36 @@ n'appelle jamais `wp()` (`vendor/pollora/framework/src/WordPress/Bootstrap.php:6
 la docblock « `min_price` never reaches `public_query_vars` » de `ReservedParameters` et de son test, et les
 « 74 query vars » de `configuration.md` et `pieges.md`. Trouvé par la passe de conformité de `R-137` #6.
 
-### R-138 · 🟡 · ouvert · 2026-09-17 — les libellés publiés au client ignorent les traductions de WordPress
+### R-138 · 🟡 · **fermé le 2026-09-17** · ouvert le 2026-09-17 — les libellés publiés au client ignorent les traductions de WordPress
 
-`ListingDescription` publie `countPattern`, `filterPattern` et `foldLabels` par `trans()`, qui ne lit que
-le catalogue Laravel. Blade écrit les mêmes chaînes avec `__()`, qui consulte ensuite le domaine `default`
-de WordPress. Sans effet en français, où le module fournit le catalogue ; dans une langue qu'il ne
-traduit pas, le client afficherait l'anglais là où le serveur prendrait la traduction du cœur. Trouvé par
-la passe « contexte » de `R-137` #5. `View\CountLabel` (même jour) lit aussi ses motifs par `trans()`, pour rester sur
-la locale Laravel qu'il publie au client : le changement de fonction se fera pour tous ces libellés ensemble.
+`ListingDescription` publiait `countPattern`, `filterPattern` et `foldLabels` par `trans()`, et `Facet` et
+`ActiveFilters` traduisaient leurs motifs de compte de la même façon, en `app()->getLocale()`. Blade écrit
+les mêmes chaînes avec `__()`, qui lit le catalogue Laravel **dans la locale de WordPress** (`get_locale()`),
+puis le domaine `default`. Trouvé par la passe « contexte » de `R-137` #5.
+
+**Ce que la conformité a montré** : la divergence tient d'abord à la locale, pas au domaine `default`. Sur
+Pluralia les six chaînes sortent identiques (`APP_LOCALE=fr`, WordPress en `fr_FR`) ; sur un hôte resté en
+`APP_LOCALE=en`, Blade écrirait « Voir plus » et le client « Show more », « 3 results ».
+
+**Corrigé** : les motifs et libellés passent par `__()` (`ListingDescription`, `Facet::countLabel()`, qui ne
+traduit son motif qu'une fois par facette, `ActiveFilters`). `View\CountLabel` et le collator de `NameOrder`
+lisent la locale au moment où ils servent, par `Support\SiteLocale` ; seuls les objets coûteux sont gardés,
+un formateur ICU et un collator par locale (`SiteCollator`).
+
+**Repris après les cinq passes** : une première version lisait la locale une fois, à la construction. Or le
+module résout `CountLabel` et `NameOrder` dès le démarrage de l'application, par la découverte de
+`ListingScript` et `ProductListing` : la langue était figée avant que Polylang la fixe (mesuré). Le
+collator de `NameOrder` l'était déjà avant ce point. La garde `function_exists('get_locale')`, retirée
+comme inutile, a été remise : sur un site sans base de données, Pollora ne charge pas `l10n.php` et la
+découverte échouait (`DB_HOST=null php artisan --version`, trois erreurs ; aucune depuis).
+
+Tests : `SiteLocaleTest` résout d'abord `CountLabel` et `NameOrder` par le conteneur, change la langue
+ensuite (`sv_SE` et `de_DE` rangent « äpple » et « zebra » à l'inverse), et attend la nouvelle ;
+`ListingDescriptionTest` et `ActiveFiltersComponentTest` règlent Laravel sur `fr` et WordPress sur
+`en_US`, et attendent l'anglais. Six mutations, toutes tuées. Une troisième passe a relevé que le repli
+sans `ext-intl` recevait la locale brute (`de_DE_formal`), inconnue de `MessageSelector` : il reçoit
+désormais `langue_RÉGION`. Ce repli n'est pas testable là où `ext-intl` est chargé. Aucun texte visible ne change sur Pluralia ;
+`locale` publié passe de `fr` à `fr-FR`, même règle de pluriel.
 
 ### R-137 · 🟠 · **fermé le 2026-09-17** · ouvert le 2026-09-16 — le client et le serveur divergent encore sur quinze règles
 

@@ -335,7 +335,7 @@ description publie les comptes rendus, pour que le client sache avant sa premiè
 valeurs sont vides. Une valeur que le visiteur tient reste affichée, même à 0 (`R-137` #4, tranché par
 Louis le même jour) : « 0 résultat », au singulier en français. Serveur et client choisissent la forme
 d'un compte par la règle CLDR de la langue (tranché par Louis le même jour) : ICU côté PHP
-(`View\CountLabel` ; sans `ext-intl`, repli sur la table de Laravel, identique pour le français et l'anglais), `Intl.PluralRules` côté navigateur,
+(`View\CountLabel`, sur la locale de WordPress que `__()` traduit, lue au moment où elle sert pour suivre Polylang ; sans `ext-intl`, repli sur la table de Laravel, identique pour le français et l'anglais), `Intl.PluralRules` côté navigateur,
 vérifiés sur la même table (`tests/plural-cases.json`). Rien ne change en français ni en anglais ; dans
 d'autres langues le serveur n'écrit plus comme `trans_choice()` (portugais à 0, russe, japonais…), mais
 toujours comme le client. Deux formes seulement, des deux côtés : le russe écrit 2 à 4 comme 5, là où `trans_choice()`

@@ -19,6 +19,8 @@ final class Facet extends ListingComponent
     /** @var list<FacetValue> */
     public array $values;
 
+    private ?string $countPattern = null;
+
     public function __construct(
         CurrentListing $listings,
         private readonly CountLabel $countLabel,
@@ -40,7 +42,9 @@ final class Facet extends ListingComponent
 
     public function countLabel(FacetValue $value): string
     {
-        return $this->countLabel->of(trans(':count result|:count results'), $value->count);
+        $this->countPattern ??= __(':count result|:count results');
+
+        return $this->countLabel->of($this->countPattern, $value->count);
     }
 
     public function hasFoldedValues(): bool

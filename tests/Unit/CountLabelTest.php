@@ -26,7 +26,7 @@ final class CountLabelTest extends TestCase
     {
         $expected = explode('|', str_replace(':count', (string) $case['count'], self::PATTERN))[$case['form']];
 
-        $this->assertSame($expected, new CountLabel($case['locale'])->of(self::PATTERN, $case['count']));
+        $this->assertSame($expected, new CountLabel(fn (): string => $case['locale'])->of(self::PATTERN, $case['count']));
     }
 
     /**
@@ -44,15 +44,15 @@ final class CountLabelTest extends TestCase
     #[Test]
     public function it_hands_the_browser_a_tag_it_accepts(): void
     {
-        $this->assertSame('pt-BR', new CountLabel('pt_BR')->locale);
-        $this->assertSame('pt-PT', new CountLabel('pt_PT_ao90')->locale);
-        $this->assertSame('zh', new CountLabel('zh_Hans_CN')->locale);
-        $this->assertSame('en', new CountLabel('C')->locale);
+        $this->assertSame('pt-BR', new CountLabel(fn (): string => 'pt_BR')->locale());
+        $this->assertSame('pt-PT', new CountLabel(fn (): string => 'pt_PT_ao90')->locale());
+        $this->assertSame('zh', new CountLabel(fn (): string => 'zh_Hans_CN')->locale());
+        $this->assertSame('en', new CountLabel(fn (): string => 'C')->locale());
     }
 
     #[Test]
     public function it_falls_back_to_the_one_form_a_pattern_carries(): void
     {
-        $this->assertSame('4', new CountLabel('en')->of(':count', 4));
+        $this->assertSame('4', new CountLabel(fn (): string => 'en')->of(':count', 4));
     }
 }
