@@ -497,6 +497,47 @@ parcourir un catalogue. Une facette dont le repli est un terme réel, choisi par
 facette multi-sélection reçoit une recherche disjonctive, et seulement une fois qu'elle
 contraint réellement les résultats.
 
+### Personnaliser le menu « Trier par »
+
+Aucun filtre WordPress : un projet lie sa propre implémentation de `ProductSorts`, comme Pluralia le
+fait pour `ProductFacets` (`CatalogueFacets`, dans `AppServiceProvider`). Elle peut partir de la liste
+du module plutôt que la réécrire — ici, sans « Nouveautés » :
+
+```php
+use Illuminate\Support\Arr;
+use Modules\MeiliFacets\Contracts\ProductSorts;
+use Modules\MeiliFacets\Listing\WooCommerceSorts;
+
+final class CatalogueSorts implements ProductSorts
+{
+    public function __construct(private readonly WooCommerceSorts $defaults) {}
+
+    public function all(): array
+    {
+        return Arr::except($this->defaults->all(), ['newest']);
+    }
+}
+```
+
+```php
+// dans le provider du projet
+$this->app->scoped(ProductSorts::class, CatalogueSorts::class);
+```
+
+Les clés sont les valeurs du paramètre `sort` dans l'URL : `price_asc`, `price_desc`, `newest`,
+`on_sale`. Un tri ajouté est un `Sort`, comme ceux de `WooCommerceSorts`. Vérifié sur Pluralia le
+2026-09-17 : la liste passe de `price_asc`, `price_desc`, `newest`, `on_sale` à `price_asc`,
+`price_desc`, `on_sale`.
+
+Trois choses restent hors de cette liste :
+
+- **« Pertinence »** est ajoutée en tête par le module (`SortChoices`) : elle ne se retire ni ne se
+  déplace, seul son libellé (`Relevance`) passe par les traductions ;
+- **la liste vaut pour tout `ProductListing`**, pas pour une page en particulier ;
+- **« Promotions » est retirée** d'un listing qui ne déclare pas de prix, quelle que soit la liste
+  liée. Là où elle est offerte, elle est masquée quand aucun produit n'est en promotion, sauf si
+  c'est le tri choisi (`R-131`).
+
 ## Placer les facettes dans un gabarit
 
 Deux composants, comme pour le tri et la remise à zéro : un qui place **une** facette, un qui prend
