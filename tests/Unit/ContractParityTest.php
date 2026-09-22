@@ -36,6 +36,16 @@ final class ContractParityTest extends TestCase
         $this->assertSame((string) Contract::VERSION, $found[1] ?? '', 'contract.ts and Contract::VERSION disagree.');
     }
 
+    /** The client compares this attribute: written under the wrong name, it refuses to start on every listing. */
+    #[Test]
+    public function the_root_announces_its_version_where_the_client_reads_it(): void
+    {
+        preg_match("/VERSION_ATTRIBUTE = '([^']*)'/", $this->read('shared/contract.ts'), $attribute);
+        preg_match('/const VERSION = (\d+)/', $this->read('shared/contract.ts'), $version);
+
+        $this->assertSame(($attribute[1] ?? '').'="'.($version[1] ?? '').'"', (string) Contract::version());
+    }
+
     /** A hook the client addresses and PHP does not declare is a hook nothing renders. */
     #[Test]
     public function every_hook_the_client_addresses_is_declared_in_php(): void
@@ -69,8 +79,9 @@ final class ContractParityTest extends TestCase
      */
     public static function twins(): Generator
     {
-        yield 'markup attribute' => ['shared/contract.ts', "ATTRIBUTE = '([^']*)'", Contract::ATTRIBUTE];
-        yield 'version attribute' => ['shared/contract.ts', "VERSION_ATTRIBUTE = '([^']*)'", Contract::VERSION_ATTRIBUTE];
+        yield 'markup attribute' => ['shared/contract.ts', "ATTRIBUTE = '([^']*)'", Contract::Attribute->value];
+        yield 'version attribute' => ['shared/contract.ts', "VERSION_ATTRIBUTE = '([^']*)'", Contract::VersionAttribute->value];
+        yield 'scroll attribute' => ['shared/contract.ts', "SCROLL_ATTRIBUTE = '([^']*)'", Contract::ScrollAttribute->value];
         yield 'facet field prefix' => ['shared/description.ts', "FACET_FIELD_PREFIX = '([^']*)'", DocumentField::Facets->value.'.'];
         yield 'value separator' => ['listing/listing-state.ts', "VALUE_SEPARATOR = '([^']*)'", StateReader::VALUE_SEPARATOR];
         yield 'query bound' => ['listing/listing-state.ts', 'MAX_QUERY_LENGTH = (\d+)', (string) StateReader::MAX_QUERY_LENGTH];

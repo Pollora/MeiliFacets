@@ -383,10 +383,22 @@ et donnerait au passage la forme sérialisable dont le client JavaScript a besoi
 une troisième fois `'q'`, `'filter'`, `'facets'`, `'hitsPerPage'` et `'page'` en littéraux, comme `results()`
 et `apart()`.
 
-### R-03 · ⚪ · ouvert · 2026-09-06 — `Contract` n'est pas une énumération et vit dans `app/Enums/`
+### R-03 · ⚪ · **fermé le 2026-09-22** · ouvert le 2026-09-06 — `Contract` n'est pas une énumération et vit dans `app/Enums/`
 
 `Modules\MeiliFacets\Enums\Contract` est une `final readonly class`. Elle appartient à
 `app/View/` ou à un `app/Contract/` dédié, avec `Hook`.
+
+**Fermé le 2026-09-22**, relevé par Louis (« n'est pas un enum, normal ?? »). Tranché avec lui : au lieu
+de déplacer la classe, en faire **un vrai enum**. Les trois attributs sont un ensemble fermé, ce que
+`CLAUDE.md` §3 met en énumération, et un déplacement vers `app/View/` aurait fait dépendre `Enums\Hook` de la
+couche de rendu. Cas nommés comme leurs jumeaux du client — `Attribute` (`data-meili`), `VersionAttribute`
+(`data-meili-contract`), `ScrollAttribute` (`data-meili-scroll`) — après que les passes ont relevé que
+`Version`, `VERSION` et `version()` ne différaient que par la casse, et que `Contract::Hook` côtoyait l'enum
+`Hook` ; `VERSION` et `version()` restent. Aucune valeur ne change, le client non plus. `ContractParityTest`
+compare désormais `data-meili-scroll`, écrit des deux côtés sans que rien les confronte, et l'attribut que
+`version()` pose sur la racine, qu'aucun test ne vérifiait — deux mutations tuées. Passes : le commentaire
+du cas de défilement est retiré (il justifiait un choix, écrit dans `architecture.md`) ; les tests réutilisent
+leurs assistants de sélecteur au lieu de le recopier.
 
 ### R-04 · 🟡 · **fermé le 2026-09-07** · ouvert le 2026-09-06 — service locator dans les composants Blade
 
@@ -6046,7 +6058,7 @@ parallèle : il ne touche pas au rendu.
 | T-27 | Fermer la dette `product_tag => tag` (déjà corrigée en config) | R-36 | **fait** |
 | T-28 | Extraire un `QueryPlan` instanciable ; mémoïser `facets()` et `sorts()` | R-01, R-07 | moitié faite — mémoïsation faite, `QueryPlan` toujours statique |
 | T-29 | Objet `SearchRequest` typé à la place du tableau de plan | R-02 | à faire |
-| T-30 | Déplacer `Contract` hors de `Enums` | R-03 |
+| T-30 | Déplacer `Contract` hors de `Enums` | R-03 | **fait autrement** — `Contract` devient un enum (2026-09-22) |
 | T-39 | Versionner les modules ES importés : publication dans un répertoire portant l'empreinte | R-70 | **sans objet** — remplacé par l'empaquetage le 2026-09-16 (`R-132`) |
 | T-40 | Ramener le regard en haut du listing après pagination et tri | R-73 | **fait** |
 | T-41 | Rendre l'ordre d'une facette réglable en configuration | Q-07 (partiel) | **différé après livraison** — décidé le 2026-09-08 |

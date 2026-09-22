@@ -20,6 +20,6 @@ abstract class ContractComponent extends Component
 
     public function scrollMark(): HtmlString
     {
-        return new HtmlString($this->scroll ? Contract::SCROLL_ATTRIBUTE : '');
+        return new HtmlString($this->scroll ? Contract::ScrollAttribute->value : '');
     }
 }

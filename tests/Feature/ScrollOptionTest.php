@@ -6,6 +6,7 @@ namespace Modules\MeiliFacets\Tests\Feature;
 
 use Illuminate\Support\HtmlString;
 use Modules\MeiliFacets\Enums\Contract;
+use Modules\MeiliFacets\Enums\Hook;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -18,13 +19,13 @@ final class ScrollOptionTest extends TestCase
     #[Test]
     public function it_marks_nothing_by_default(): void
     {
-        $this->assertStringNotContainsString(Contract::SCROLL_ATTRIBUTE, $this->render(false));
+        $this->assertStringNotContainsString(Contract::ScrollAttribute->value, $this->render(false));
     }
 
     #[Test]
     public function it_marks_the_component_that_asks(): void
     {
-        $this->assertStringContainsString(Contract::SCROLL_ATTRIBUTE, $this->render(true));
+        $this->assertStringContainsString(Contract::ScrollAttribute->value, $this->render(true));
     }
 
     private function render(bool $scroll): string
@@ -37,8 +38,8 @@ final class ScrollOptionTest extends TestCase
                     return false;
                 }
             },
-            'hook' => fn (string $name): HtmlString => new HtmlString('data-meili="'.$name.'"'),
-            'scrollMark' => fn (): HtmlString => new HtmlString($scroll ? Contract::SCROLL_ATTRIBUTE : ''),
+            'hook' => fn (string $name): HtmlString => Hook::from($name)->attribute(),
+            'scrollMark' => fn (): HtmlString => new HtmlString($scroll ? Contract::ScrollAttribute->value : ''),
         ])->render();
     }
 }

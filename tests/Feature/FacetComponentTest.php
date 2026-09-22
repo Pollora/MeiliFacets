@@ -87,7 +87,7 @@ final class FacetComponentTest extends TestCase
 
         $this->assertNotNull($panel, 'The facet renders no panel to collapse.');
         $this->assertNotNull(
-            $panel->querySelector('['.Contract::ATTRIBUTE.'="'.Hook::More->value.'"]'),
+            $panel->querySelector($this->hooked(Hook::More)),
             'The fold button sits outside the panel, so collapsing the facet leaves it behind.'
         );
     }
@@ -127,7 +127,7 @@ final class FacetComponentTest extends TestCase
     public function it_marks_the_facet_that_asks_to_scroll(): void
     {
         $this->assertStringContainsString(
-            Contract::SCROLL_ATTRIBUTE,
+            Contract::ScrollAttribute->value,
             Blade::render($this->placing($this->first(), 'scroll'))
         );
     }
@@ -135,7 +135,7 @@ final class FacetComponentTest extends TestCase
     #[Test]
     public function it_marks_nothing_when_the_facet_does_not_ask(): void
     {
-        $this->assertStringNotContainsString(Contract::SCROLL_ATTRIBUTE, $this->renderOne());
+        $this->assertStringNotContainsString(Contract::ScrollAttribute->value, $this->renderOne());
     }
 
     /** A string return would have Blade compile, write and include a file that renders nothing. */
@@ -178,12 +178,12 @@ final class FacetComponentTest extends TestCase
     public function it_describes_a_value_with_its_count_rather_than_naming_it(): void
     {
         $input = HTMLDocument::createFromString($this->renderOne(), LIBXML_NOERROR)
-            ->querySelector('['.Contract::ATTRIBUTE.'="'.Hook::Input->value.'"]');
+            ->querySelector($this->hooked(Hook::Input));
 
         $this->assertNull($input->getAttribute('aria-labelledby'));
         $this->assertSame(
             $input->getAttribute('aria-describedby'),
-            $input->parentElement->querySelector('['.Contract::ATTRIBUTE.'="'.Hook::Count->value.'"]')->id
+            $input->parentElement->querySelector($this->hooked(Hook::Count))->id
         );
     }
 
@@ -266,7 +266,7 @@ final class FacetComponentTest extends TestCase
 
     private function hooked(Hook $hook): string
     {
-        return '['.Contract::ATTRIBUTE.'="'.$hook->value.'"]';
+        return '['.Contract::Attribute->value.'="'.$hook->value.'"]';
     }
 
     private function renderOne(): string

@@ -52,6 +52,6 @@ enum Hook: string
 
     public function attribute(): HtmlString
     {
-        return new HtmlString(Contract::ATTRIBUTE.'="'.$this->value.'"');
+        return new HtmlString(Contract::Attribute->value.'="'.$this->value.'"');
     }
 }

@@ -6,6 +6,7 @@ namespace Modules\MeiliFacets\Tests\Feature;
 
 use Dom\Element;
 use Dom\HTMLDocument;
+use Dom\ParentNode;
 use Illuminate\Support\Facades\Blade;
 use Modules\MeiliFacets\Contracts\SearchEngine;
 use Modules\MeiliFacets\Enums\Contract;
@@ -120,11 +121,11 @@ final class PriceComponentTest extends TestCase
     #[Test]
     public function it_is_a_facet_host_with_nothing_to_fold(): void
     {
-        $facet = $this->render([PricePart::Fields])->querySelector('['.Contract::ATTRIBUTE.'="'.Hook::Facet->value.'"]');
+        $facet = $this->one($this->render([PricePart::Fields]), Hook::Facet);
 
         $this->assertNotNull($facet);
-        $this->assertNull($facet->querySelector('['.Contract::ATTRIBUTE.'="'.Hook::More->value.'"]'));
-        $this->assertNull($facet->querySelector('['.Contract::ATTRIBUTE.'="'.Hook::FacetValue->value.'"]'));
+        $this->assertNull($this->one($facet, Hook::More));
+        $this->assertNull($this->one($facet, Hook::FacetValue));
     }
 
     #[Test]
@@ -156,9 +157,9 @@ final class PriceComponentTest extends TestCase
         return HTMLDocument::createFromString('<div>'.$markup.'</div>', LIBXML_NOERROR);
     }
 
-    private function one(HTMLDocument $document, Hook $hook): ?Element
+    private function one(ParentNode $within, Hook $hook): ?Element
     {
-        return $document->querySelector('['.Contract::ATTRIBUTE.'="'.$hook->value.'"]');
+        return $within->querySelector('['.Contract::Attribute->value.'="'.$hook->value.'"]');
     }
 
     private function aFacetName(): string
