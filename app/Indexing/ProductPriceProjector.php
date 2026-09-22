@@ -12,10 +12,6 @@ use WC_Product_Grouped;
 use WC_Product_Variable;
 use WP_Post;
 
-/**
- * The interval a product covers, so a range filter can test an overlap the way
- * WooCommerce does, instead of comparing against one price.
- */
 final readonly class ProductPriceProjector
 {
     /**
@@ -33,31 +29,72 @@ final readonly class ProductPriceProjector
             return [];
         }
 
-        // Rows are written sorted (`sync_price()`, `update_prices_from_children()`), so the ends are the bounds.
-        $prices = $this->pricesOf($post->ID);
+        $shown = $this->shownRange($product);
 
-        if ($prices === []) {
+        if ($shown === null) {
             return [];
         }
 
         return [
-            PriceField::Min->value => (float) reset($prices),
-            PriceField::Max->value => (float) end($prices),
+            PriceField::Min->value => $shown[0],
+            PriceField::Max->value => $shown[1],
             PriceField::OnSale->value => $this->isBilledOnSale($product),
         ];
     }
 
     /**
-     * WooCommerce writes `_price = ''` when a price is emptied (`handle_updated_props()`), which a cast reads as 0.
-     *
-     * @return list<string>
+     * @return array{float, float}|null
      */
-    private function pricesOf(int $id): array
+    private function shownRange(WC_Product $product): ?array
     {
-        return array_values(array_filter(
-            (array) get_post_meta($id, ProductMeta::Price->value, false),
-            static fn (mixed $price): bool => $price !== '' && $price !== null
-        ));
+        return match (true) {
+            $product instanceof WC_Product_Variable => $this->variationRange($product),
+            $product instanceof WC_Product_Grouped => $this->childrenRange($product),
+            default => $this->singleRange($product),
+        };
+    }
+
+    /**
+     * @return array{float, float}|null
+     */
+    private function variationRange(WC_Product_Variable $product): ?array
+    {
+        $prices = $product->get_variation_prices(true)['price'];
+
+        return $prices === [] ? null : [(float) current($prices), (float) end($prices)];
+    }
+
+    /**
+     * @return array{float, float}|null
+     */
+    private function childrenRange(WC_Product_Grouped $product): ?array
+    {
+        $prices = array_filter(
+            array_map($this->shownPrice(...), $product->get_visible_children()),
+            static fn (?float $price): bool => $price !== null
+        );
+
+        return $prices === [] ? null : [min($prices), max($prices)];
+    }
+
+    /**
+     * @return array{float, float}|null
+     */
+    private function singleRange(WC_Product $product): ?array
+    {
+        $price = $this->shownPrice($product);
+
+        return $price === null ? null : [$price, $price];
+    }
+
+    /** An emptied price reads `''`, which `wc_get_price_to_display()` turns into 0. */
+    private function shownPrice(WC_Product $product): ?float
+    {
+        if ($product->get_price() === '') {
+            return null;
+        }
+
+        return (float) wc_get_price_to_display($product);
     }
 
     /** What WooCommerce lists as on sale: a variation lists its parent, a grouped product is never listed. */

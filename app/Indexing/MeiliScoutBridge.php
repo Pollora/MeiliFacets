@@ -23,6 +23,7 @@ final class MeiliScoutBridge
         private readonly ProductPriceProjector $prices,
         private readonly IndexAttributes $attributes,
         private readonly EngineLimits $limits,
+        private readonly ShopTaxLocation $shopTaxLocation,
     ) {}
 
     /**
@@ -54,7 +55,9 @@ final class MeiliScoutBridge
     #[Filter('meiliscout/post/document')]
     public function addCard(array $document, WP_Post $post): array
     {
-        $document[DocumentField::Card->value] = $this->cards->project($post);
+        $document[DocumentField::Card->value] = $this->shopTaxLocation->during(
+            fn (): array => $this->cards->project($post)
+        );
 
         return $document;
     }
@@ -66,7 +69,7 @@ final class MeiliScoutBridge
     #[Filter('meiliscout/post/document')]
     public function addPrice(array $document, WP_Post $post): array
     {
-        $price = $this->prices->project($post);
+        $price = $this->shopTaxLocation->during(fn (): array => $this->prices->project($post));
 
         if ($price !== []) {
             $document[DocumentField::Price->value] = $price;

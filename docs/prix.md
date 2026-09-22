@@ -83,8 +83,9 @@ Indexer le tableau reproduirait l'astuce *MySQL* de WooCommerce, pas sa *sémant
 veut dire : deux champs, et un test de chevauchement.
 
 Il **retire la taxe** des bornes saisies quand la boutique affiche TTC et que les prix sont stockés
-HT (`class-wc-query.php:800-810`). Dormant ici — la boutique de recette a les taxes désactivées,
-prix stockés HT, affichage HT — mais pas en production.
+HT (`class-wc-query.php:800-810`). Le module, lui, indexe le prix affiché et ne convertit rien au filtrage
+(`D-e`, 2026-09-22). Dormant ici — la boutique de recette a les taxes désactivées, prix stockés HT,
+affichage HT.
 
 > Proposer « une facette de tranches de prix », comme le fait `R-43`, reviendrait à inventer une
 > forme que la plateforme résout autrement. C'est le travers de `MeasureOrder` (`R-81`).
@@ -97,16 +98,16 @@ Catalogue de recette : **64 simples, 8 variables, 2 groupés, 2 externes**.
 
 | cas | état | ce qui se passe |
 | --- | --- | --- |
-| **produit simple, prix fixe** | ✅ | `metas._price` porte le prix ; filtre et tri corrects |
-| **produit variable** | ❌ | **seul le prix le plus bas est indexé** |
-| **produit groupé** | ❌ | même défaut : `_price` = `[19.50, 39.90]`, un seul indexé |
+| **produit simple, prix fixe** | ✅ | `price.min = price.max` = le prix affiché ; filtre et tri portent sur `price.*` |
+| **produit variable** | ✅ | la fourchette de sa carte (`get_variation_prices(true)`) ; `metas._price` ne porte toujours que le plus bas, le module ne s'en sert plus |
+| **produit groupé** | ✅ | min et max de ses enfants visibles, un enfant sans prix sauté comme sur la carte ; rien si aucun n'a de prix |
 | **produit externe** | ✅ | un seul prix, rien de particulier |
 | **promo en cours** | ⚠️ | `_price` porte le prix promo, donc filtre et tri sont justes — mais **rien ne permet de filtrer « en promotion »** |
 | **promo planifiée** | ⚠️ | voir § 4 |
 | **promo terminée** | ⚠️ | voir § 4 |
-| **taxes** | ⚠️ | dormant ici (taxes désactivées, prix HT, affichage HT), à reprendre en production |
+| **taxes** | ✅ | le prix indexé est le prix affiché, calculé par WooCommerce à l'indexation (`D-e`, `R-146`) ; dormant ici (taxes désactivées) |
 | **prix à 0** | ⚠️ | 1 produit. Un curseur dont la borne basse est > 0 l'exclut |
-| **prix absent** | ⚠️ | aucun aujourd'hui, mais `metas._price >= x` **exclut tout document sans le champ** — le piège déjà connu du module. Un prix **vidé** n'est pas absent : WooCommerce écrit `_price = ''` (admin, API REST, import CSV). MeiliScout l'écartait déjà de `metas._price`, mais le module projetait `price` à 0 jusqu'à `R-148` ; il l'écarte désormais (`D-j`), ainsi qu'une ligne `null`, qu'aucun chemin de WooCommerce n'écrit mais que `sync_price()` et MeiliScout écartent aussi (`R-148`). Le filtre du module porte sur `price.min`/`price.max`, pas sur `metas._price` |
+| **prix absent** | ⚠️ | aucun aujourd'hui, mais `metas._price >= x` **exclut tout document sans le champ** — le piège déjà connu du module. Un prix **vidé** n'est pas absent : WooCommerce écrit `_price = ''` (admin, API REST, import CSV), que le module projetait à 0 jusqu'à `R-148`. Depuis `R-146`, un simple ou un externe dont `get_price()` vaut `''` n'a pas de `price` — une ligne `null` y étant ramenée par `wc_format_decimal()` ; un variable ignore la déclinaison vidée, un groupé l'enfant vidé, comme leur carte (`D-e`) ; un groupé sans aucun enfant à prix n'a pas de `price`. Le filtre du module porte sur `price.min`/`price.max`, pas sur `metas._price` |
 | **hors catalogue** | ✅ | 3 produits en visibilité `hidden`/`search` sont **dans l'index** mais absents du listing : le filtre de base les écarte. Vérifié — mais `facetStats` les compterait si on ne lui passe pas ce filtre |
 | **stock d'une variation** | ❌ | voir § 4 bis |
 
@@ -401,7 +402,58 @@ et le liste sous « jusqu'à 10 € » ; en tri « prix croissant » comme « pr
 liste (vérifié le 2026-09-17), au lieu d'être en tête du premier ; les documents déjà indexés gardent 0
 jusqu'à leur réindexation.
 
-**D-e · Les taxes — ✅ tranché le 2026-09-15 : reprendre la conversion de WooCommerce.** Quand les
+**D-e · Les taxes — ✅ tranché le 2026-09-22 par Louis : indexer le prix que la boutique affiche**
+(`R-146`). *Renverse la décision du 2026-09-15 et son complément du 2026-09-17, conservés ci-dessous.* Le
+module se fie au back-office : un prix saisi HT dans une boutique qui affiche TTC est indexé TTC, un prix
+saisi TTC dans une boutique qui affiche HT est indexé HT, un prix affiché comme il est saisi est indexé tel
+quel. Le prix affiché se calcule **à l'indexation**, en PHP, par WooCommerce lui-même
+(`wc_get_price_to_display()`, avec la classe de taxe de chaque produit) — une fois par produit enregistré ou
+réindexé, jamais pendant une interaction, qui reste navigateur et Meilisearch. Au filtrage, plus aucune
+conversion d'un côté comme de l'autre : la borne tapée, le curseur, la carte et le document parlent la
+même unité.
+
+Pourquoi : la conversion au filtrage n'existait qu'en PHP, au premier affichage ; dès le premier geste, le
+navigateur interroge Meilisearch sans PHP, et le complément du 2026-09-17 aurait recopié en JavaScript les
+calculs de taxe de WooCommerce (`calc_inclusive_tax`, `calc_exclusive_tax`, taux composés).
+
+Ce que ça coûte : le module s'écarte de WooCommerce, dont la table de prix garde le prix saisi et convertit
+au filtrage ; un changement de taux ou du réglage d'affichage demande une réindexation ; le prix indexé est
+celui de l'adresse de la boutique, comme la carte, pas celui d'un client connecté ailleurs. En échange, un
+produit à taux réduit n'est plus exclu à tort près d'une borne, chaque produit étant converti avec sa propre
+classe de taxe.
+
+Précisé par Louis le même jour, sur la passe de conformité :
+
+- **l'adresse de la boutique, toujours** : WooCommerce prend l'adresse du client en session quand il y en a
+  une (`class-wc-tax.php:469-488`) — une modification rapide faite par un admin belge indexerait la TVA
+  belge. Le module impose l'adresse de la boutique pendant l'indexation, par le filtre natif
+  `woocommerce_get_tax_location`, pour le prix indexé comme pour la carte ;
+- **les méthodes de WooCommerce, sans rien réécrire ni arrondir** : `wc_get_price_to_display()` pour un
+  produit simple ou externe, `get_variation_prices(true)` pour un variable (la fourchette de sa carte),
+  pour un groupé, le modèle de sa carte (`get_price_html()`, `class-wc-product-grouped.php:94-111`) : ses
+  enfants visibles (`get_visible_children()`), `wc_get_price_to_display()` pour chacun, un enfant sans prix
+  sauté, puis le minimum et le maximum. Le module garde ces valeurs telles quelles — 40.833333 pour un produit
+  affiché 40,83 € — et WooCommerce arrondit lui-même celles des variables. Un groupé dont un enfant est
+  gratuit a un minimum de 0, comme sa carte ;
+- **un groupé sans aucun enfant à prix n'est pas indexé avec un prix** (`D-j`), quel que soit le libellé
+  qu'un thème affiche à la place.
+
+  > *Précisé par Louis le 2026-09-22, après le second tour de passes de `R-146` : « reprendre le modèle
+  > WooCommerce ». La première version passait par `get_min_price()`/`get_max_price()` (WooCommerce 10.1),
+  > gardée par un test sur le HTML de la carte. Mesuré : un enfant au prix vidé y comptait pour 0 (indexé
+  > 0–21 € pour une carte à 16–21 €, `class-wc-product-grouped.php:168-176`), et un thème qui affiche un
+  > libellé sur un groupé sans prix faisait indexer 0–0, le HTML passant par deux filtres (`:128`, `:131`).*
+- **les URL ne changent pas** : `min_price` et `max_price` comparent au prix affiché. Qu'un réglage du
+  back-office change les résultats des pages déjà filtrées une fois l'index reconstruit est normal ;
+- **un changement de taux ou de réglage de taxe ne réindexe rien** : c'est écrit dans `configuration.md`,
+  sans crochet de réindexation automatique.
+
+Coûts relevés par les passes, écrits aussi dans `configuration.md` : sans arrondi, un produit saisi 49 € TTC
+dans une boutique affichée HT à 20 % est indexé 40.833333, et `?max_price=40.83` l'exclut alors que sa carte
+affiche 40,83 € ; `get_visible_children()` exige WooCommerce 9.8. Un enfant en brouillon compte quand l'indexation part
+d'un administrateur, pas du cron (`R-154`).
+
+*Ancienne décision, 2026-09-15 — reprendre la conversion de WooCommerce.* Quand les
 prix sont stockés HT et affichés TTC, il retire la taxe des bornes saisies avant de filtrer
 (`class-wc-query.php:800-810`, via `WC_Tax::calc_inclusive_tax` et le filtre
 `woocommerce_price_filter_widget_tax_class`). Le module fait pareil, pour qu'un curseur « jusqu'à
@@ -411,8 +463,8 @@ Dormant sur Pluralia — `wc_tax_enabled()` est `false`, prix stockés HT, affic
 ne le testera ici**. À couvrir par un test unitaire sur la conversion elle-même plutôt que par le
 rendu, et à écrire dans `configuration.md`.
 
-**D-e, complété le 2026-09-17 — tranché par Louis : bornes affichées TTC, règle de taxe publiée au
-client** (`R-146`). La décision ne visait que les bornes saisies, et seul le serveur les convertissait :
+*Complément du 2026-09-17, renversé avant d'être codé — bornes affichées TTC, règle de taxe publiée au
+client* (`R-146`). La décision ne visait que les bornes saisies, et seul le serveur les convertissait :
 le client filtrait sur la valeur brute, et le curseur montrait des bornes HT. Désormais le serveur publie
 au client la règle qu'il applique (taux standard de la classe `woocommerce_price_filter_widget_tax_class`,
 comme `class-wc-query.php:800-810`), le client convertit les bornes saisies comme lui, et les deux côtés

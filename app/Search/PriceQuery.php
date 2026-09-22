@@ -25,7 +25,7 @@ final readonly class PriceQuery implements FilterQuery
 
     public function clause(ListingState $state): string
     {
-        return FilterExpression::overlapping(PriceTax::excluding($state->price));
+        return FilterExpression::overlapping($state->price);
     }
 
     /** Lifting the price costs a search, so it is only asked when a range is held. */

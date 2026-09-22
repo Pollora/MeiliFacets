@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Tests\Feature;
 
+use Dom\Element;
+use Dom\HTMLDocument;
 use Modules\MeiliFacets\Enums\PriceField;
 use Modules\MeiliFacets\Enums\ProductMeta;
 use Modules\MeiliFacets\Indexing\ProductPriceProjector;
@@ -20,21 +22,27 @@ use WP_Post;
  */
 final class ProductPriceProjectionTest extends TestCase
 {
+    private const string AMOUNT = '.woocommerce-Price-amount';
+
+    private const string NOT_BILLED = 'del, .woocommerce-price-suffix';
+
     #[Test]
-    public function it_projects_the_ends_of_the_price_rows_woocommerce_wrote(): void
+    public function it_indexes_the_prices_the_card_bills(): void
     {
         foreach ($this->products() as $product) {
-            $rows = (array) get_post_meta($product->get_id(), ProductMeta::Price->value, false);
+            $billed = $this->billedAmounts($product);
+            $price = $this->project($product);
 
-            if ($rows === [] || ! array_all($rows, static fn (mixed $row): bool => is_numeric($row))) {
+            if ($billed === []) {
+                $this->assertSame([], $price, $this->say($product));
+
                 continue;
             }
 
-            $rows = array_map(floatval(...), $rows);
-            $price = $this->project($product);
-
-            $this->assertSame(min($rows), $price[PriceField::Min->value], $this->say($product));
-            $this->assertSame(max($rows), $price[PriceField::Max->value], $this->say($product));
+            $this->assertNotSame([], $price, $this->say($product));
+            foreach ([PriceField::Min, PriceField::Max] as $end) {
+                $this->assertContains($this->plain(wc_price($price[$end->value])), $billed, $this->say($product));
+            }
         }
     }
 
@@ -196,6 +204,31 @@ final class ProductPriceProjectionTest extends TestCase
             static fn (int $id): ?WC_Product => wc_get_product($id) ?: null,
             wc_get_products(['limit' => -1, 'return' => 'ids', 'status' => 'publish'])
         )));
+    }
+
+    private function plain(string $html): string
+    {
+        return html_entity_decode(wp_strip_all_tags($html));
+    }
+
+    /**
+     * A card on sale also shows its regular price, struck through, and a price suffix may show the other side of
+     * the tax.
+     *
+     * @return list<string>
+     */
+    private function billedAmounts(WC_Product $product): array
+    {
+        $card = HTMLDocument::createFromString('<div>'.$product->get_price_html().'</div>', LIBXML_NOERROR);
+
+        foreach ($card->querySelectorAll(self::NOT_BILLED) as $notBilled) {
+            $notBilled->remove();
+        }
+
+        return array_map(
+            static fn (Element $amount): string => (string) $amount->textContent,
+            iterator_to_array($card->querySelectorAll(self::AMOUNT), preserve_keys: false)
+        );
     }
 
     private function say(WC_Product $product): string

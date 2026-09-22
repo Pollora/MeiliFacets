@@ -370,6 +370,59 @@ d'attribut de WooCommerce chaque `WP_Query` suivante de la page dès que l'URL p
 `filter_*`, qu'elle porte sur des produits ou non — ni `price_filter_post_clauses()` ni
 `filter_by_attribute_post_clauses()` ne regardent le type de contenu.
 
+## Le prix indexé est celui que la boutique affiche
+
+`price.min` et `price.max` portent le prix que la carte montre — taxes comprises ou non selon « Afficher les
+prix dans la boutique » —, pas le prix saisi (`D-e`, `prix.md`). WooCommerce le calcule, à l'indexation :
+
+| Produit | Méthode de WooCommerce |
+| --- | --- |
+| simple, externe | `wc_get_price_to_display()` — aucun prix si le prix est vide (`D-j`) |
+| variable | `get_variation_prices(true)`, premier et dernier prix : la fourchette de sa carte |
+| groupé | le modèle de sa carte : `wc_get_price_to_display()` sur chaque enfant de `get_visible_children()`, un enfant sans prix sauté, puis min et max — aucun prix si aucun enfant n'en a |
+
+**WooCommerce 9.8 au moins** : `get_visible_children()` n'existe sur un groupé que depuis cette version
+(`class-wc-product-grouped.php:153-160`).
+
+Un groupé ne compte que ses enfants visibles, comme sa carte — publiés, ou modifiables par l'utilisateur
+courant (`wc-product-functions.php:1743`) : un enfant en brouillon compte quand un admin enregistre, pas en
+ligne de commande ni en cron. Un groupé sans aucun enfant à prix n'est pas indexé avec un prix, quel que soit
+le libellé qu'un thème affiche à sa place.
+
+Le module n'arrondit rien et garde ce que ces méthodes rendent : 49 € saisis TTC dans une boutique qui affiche
+HT à 20 % sont indexés 40.833333, et `?max_price=40.83` exclut ce produit affiché 40,83 €. Les prix des
+variables arrivent arrondis aux décimales de la boutique par WooCommerce lui-même
+(`class-wc-product-variable-data-store-cpt.php:484`).
+
+**Toujours à l'adresse de la boutique.** Pendant la construction du document, carte comprise,
+`ShopTaxLocation` impose l'adresse de la boutique par le filtre natif `woocommerce_get_tax_location`, en
+priorité 10. Sans lui, WooCommerce taxerait à l'adresse du client en session (`class-wc-tax.php:469-488`) — une
+modification rapide faite par un admin belge indexerait la TVA belge —, et, sans client en session — cron,
+écran d'admin hors AJAX ; la ligne de commande en a un, WooCommerce la traitant comme une requête de front
+(`class-woocommerce.php:974-976`) —, il ne prendrait aucune taxe, sauf prix saisis TTC, adresse client par
+défaut sur la boutique ou taxes calculées sur l'adresse de la boutique (`class-wc-tax.php:476-484`). Restent hors d'atteinte un client en session exonéré de TVA, pour qui
+WooCommerce ne compte aucune taxe (`wc-product-functions.php:1526`, `:1548`), et un filtre plus tardif sur
+`woocommerce_get_tax_location`.
+
+**Au filtrage, aucune conversion** : `min_price` et `max_price` comparent la borne tapée au prix affiché, au
+premier rendu comme dans le navigateur.
+
+⚠️ **Un changement de taxe ne réindexe rien.** Modifier un taux, activer les taxes, ou changer « Prix saisis
+avec taxe » ou « Afficher les prix dans la boutique » laisse l'index — et les cartes — à l'ancienne valeur
+jusqu'à la prochaine réindexation :
+
+```bash
+ddev wp meiliscout index
+```
+
+Sans taxes, un produit simple garde le prix saisi : `is_taxable()` exige `wc_tax_enabled()`
+(`abstract-wc-product.php:1851`). Un variable le reçoit arrondi aux décimales de la boutique, avec ou sans
+taxes, comme plus haut. Un groupé peut changer par rapport à l'ancien calcul, qui lisait les
+lignes `_price` de tous ses enfants en écartant les prix vides et nuls
+(`class-wc-product-grouped-data-store-cpt.php:76-86`) : il suit désormais ses enfants visibles et garde un
+enfant gratuit à 0. Sur Pluralia, les 76 produits publiés gardent exactement le même prix indexé (mesuré le
+2026-09-22).
+
 ## Une seule frontière avec MeiliScout
 
 Le module ne touche MeiliScout qu'à deux endroits, et jamais depuis sa logique métier :
@@ -448,7 +501,7 @@ valeurs remontent** ; l'ordre dans lequel elles s'affichent se déclare par face
 
 | Filtre | Ce que le module y fait |
 | --- | --- |
-| `meiliscout/post/document` | ajoute `facets` et `card` au document |
+| `meiliscout/post/document` | ajoute `facets`, `card` et `price` au document — les deux derniers à l'adresse de la boutique (`ShopTaxLocation`) |
 | `meiliscout/indexables` | substitue `FacetedPostIndexable` à `PostIndexable` |
 
 Le premier est appliqué **à l'intérieur** de `formatForIndexing()`, donc sur tous les chemins

@@ -3051,6 +3051,17 @@ c'est celui-là qui est levé.
 
 ---
 
+### R-154 · 🟡 · ouvert · 2026-09-22 — un produit groupé n'indexe pas la même chose selon qui déclenche l'indexation
+
+Relevé par le troisième tour de passes de `R-146`, mesuré en mémoire : l'enfant #368 de #444 passé en
+brouillon, #444 est projeté 30,60–47,88 sans utilisateur (cron, ligne de commande) et 23,40–47,88 avec
+l'administrateur connecté. WooCommerce compte un enfant que l'utilisateur courant peut modifier
+(`wc_products_array_filter_visible_grouped()`, `wc-product-functions.php:1743`) — pour le prix indexé
+comme pour la carte (`get_price_html()`) : la carte indexée pendant un enregistrement en admin montre à
+tous les visiteurs le prix d'un brouillon. Moins large qu'avant `R-146`, où les lignes `_price` comptaient
+tous les enfants (`class-wc-product-grouped-data-store-cpt.php:76-85`). Réponse possible : projeter en
+visiteur anonyme, comme `ShopTaxLocation` impose l'adresse — un comportement visible, à trancher par Louis.
+
 ### R-149 · 🟠 · ouvert · 2026-09-17 — une archive de marque affiche tout le catalogue
 
 `/marque/aeris` rend 16 cartes sur 5 pages et une plage de 0 à 199 €, comme `/boutique` ; `/boutique?marque=aeris`
@@ -3179,7 +3190,7 @@ rend `true` pour la catégorie visée en requête principale, `false` pour une a
 pour la boutique, `false` pour la catégorie visée en requête secondaire. `ddev wp option get woocommerce_attribute_lookup_enabled` : `yes`.
 Premier commit : `eb1aab5` ; les corrections des passes suivent dans un second.
 
-### R-146 · 🟠 · ouvert · 2026-09-17 — sur une boutique TTC, le client filtre et le curseur borne en HT
+### R-146 · 🟠 · **fermé le 2026-09-22** · ouvert le 2026-09-17 — sur une boutique TTC, le client filtre et le curseur borne en HT
 
 Retour de revue sur la PR #2, vérifié par la passe de conformité. `PriceQuery` retire la taxe des bornes
 saisies (`PriceTax::excluding()`, `D-e`), `price-query.ts` non : le client ne reçoit aucune donnée de taxe,
@@ -3187,8 +3198,109 @@ et son docblock promet « the same test the server writes ». Charger `?max_pric
 20 %, tout geste du client à ≤ 50. Les bornes affichées restent HT des deux côtés, alors que le widget
 classique leur ajoute la taxe : une saisie entre le maximum HT et le maximum TTC est prise pour le bord et ne
 filtre rien. `D-e` demandait aussi de l'écrire dans `configuration.md`, jamais fait. Déjà relevé sans numéro
-(`R-137` « Déjà connus », `R-121`). Dormant sur Pluralia (taxes désactivées). Tranché par Louis : `D-e`
-complété (`prix.md`).
+(`R-137` « Déjà connus », `R-121`). Dormant sur Pluralia (taxes désactivées).
+
+**Tranché par Louis le 2026-09-22 : indexer le prix affiché** (`D-e` réécrit, `prix.md`). Le complément du
+2026-09-17 — publier la règle de taxe et la recopier en JavaScript — est renversé avant d'être codé : dès le
+premier geste, le navigateur interroge Meilisearch sans PHP, et il aurait fallu recopier les calculs de taxe
+de WooCommerce. Le prix affiché est calculé une fois, à l'indexation, par les méthodes de WooCommerce, à
+l'adresse de la boutique ; plus aucune conversion au filtrage.
+
+**Corrigé** : `ProductPriceProjector` indexe le prix que la carte montre, par les méthodes de WooCommerce —
+`wc_get_price_to_display()` pour un produit simple ou externe (rien si le prix est vide, `D-j`),
+`get_variation_prices(true)` pour un variable, `get_min_price()`/`get_max_price()` pour un groupé (rien si sa
+carte est vide, tranché par Louis le 2026-09-22). `ShopTaxLocation` impose l'adresse de la boutique par
+`woocommerce_get_tax_location` autour de la carte et du prix (`MeiliScoutBridge`). `PriceTax`, son appel dans
+`PriceQuery` et `PriceTaxTest` — qui écrivait des réglages de taxe dans la base de dev — sont supprimés. Rien
+ne change côté client ni dans le contrat.
+
+Tests : `ShownPriceProjectionTest` (taxes simulées en mémoire par `pre_option_*` et `woocommerce_find_rates`,
+produits créés puis supprimés) — simple saisi HT affiché TTC (60 pour 50 à 20 %), saisi TTC affiché HT
+(41,666667), simple en promotion (48, le prix facturé), variable (12–24), groupé (12–24), groupé à la carte
+vide (rien), groupé aux enfants gratuits (0–0), adresse de la boutique imposée à un client belge en session,
+prix et carte ; `ProductPriceProjectionTest` compare désormais le catalogue au prix facturé qu'affiche la carte
+(prix barré et texte pour lecteurs d'écran retirés) ; `ShopTaxLocationTest` (sans WooCommerce). Mutations,
+toutes détectées : prix saisi au lieu du prix affiché, prix régulier au lieu du prix facturé (deux tests), garde
+du prix vidé retirée, variable aux prix bruts (`get_variation_prices(false)`), variable ou groupé traités
+comme un produit simple, garde de la carte vide retirée, adresse non imposée au prix ou à la carte, garde sans
+WooCommerce retirée.
+
+**Cinq passes, premier tour** (`module-review`). *Lisibilité* : le test de catalogue ne vérifiait qu'une
+inclusion de texte (un prix barré passait) et aucun test ne couvrait variable ou groupé sous taxe — produits
+de test dédiés et oracle au prix facturé ; `singlePrice` rendait une fourchette — `singleRange` ; valeurs de
+taxe écrites en dur dans le test — `TaxDisplayMode`, `TaxBasedOn` de WooCommerce. Un objet valeur min/max est
+**refusé** : quatre méthodes privées d'une même classe, un seul lecteur. *Commentaires* : le docblock de classe
+redisait `D-e` et était faux pour un groupé — supprimé ; deux commentaires du test — supprimés ;
+`configuration.md` taisait les écarts des groupés et le cas sans client en session — écrits. *Performance* :
+rien ; `PriceTax::excluding()` quitte même le chemin de rendu. *Sécurité* : rien. *Contexte* : **un groupé aux
+enfants tous au prix vidé était indexé à 0** (`get_min_price()` compte `''` pour 0) — rien si sa carte est
+vide ; `get_min_price()` exige WooCommerce 10.1 — écrit ; `ShopTaxLocationTest` dépendait de l'ordre de la suite
+— ignoré quand WooCommerce est chargé ; le test taxé plantait sans WooCommerce — produits suivis dans une liste
+vidée au démontage ; l'absence d'arrondi exclut un produit affiché 40,83 € de `?max_price=40.83` — écrit dans le
+coût de `D-e`. Non vérifié : une extension de multidevise ou de prix par rôle indexerait la valeur de la
+session, comme la carte le fait déjà ; aucune sur Pluralia.
+
+**Vérifié le 2026-09-22 sur Pluralia** (taxes désactivées) : en mémoire, par `MeiliScoutBridge::addPrice()`,
+les 76 produits publiés ont le même prix indexé qu'avant (`===`), sans aucune écriture en base ; index
+reconstruit (`ddev wp meiliscout index --clear`) avec le nouveau code : les 76 prix identiques produit par
+produit ; `/boutique` 16 cartes, plage 0–199 €, `?max_price=10` 6 cartes, `?marque=aeris` 10 cartes, 9–47 €.
+Un document orphelin, 867, sans prix et sans article derrière, a disparu à la reconstruction : la suite
+`Modules`, relancée, n'en laisse aucun ; origine non établie.
+
+**Passes, second tour (2026-09-22)** — six constats du premier tour résolus, deux en partie. Traités :
+l'oracle du catalogue compare désormais un montant **isolé** (`STANDALONE_AMOUNT`) — « 2,00 € » était
+trouvé dans « 12,00 € » ; tué par mutation : un minimum faux (`fmod($price, 10)`) passait l'ancien oracle
+(304 assertions vertes) et fait échouer le nouveau ; le motif retiré de la carte s'appelle ce qu'il
+retire (`STRUCK_AND_SCREEN_READER_TEXT`). `ShownPriceProjectionTest` : plus de paramètre-drapeau
+`'yes'`/`'no'` (deux méthodes, `shownWithTax()` et `shownWithoutTax()`), taux nommés, pays de la
+boutique figé par `woocommerce_default_country`, et projection par `ShopTaxLocation` comme en
+production — les tests ne dépendent plus de l'adresse client par défaut ni du pays de la boutique.
+`ShopTaxLocation::shopAddress()` extrait ; la propriété du pont s'appelle `$shopTaxLocation`.
+`configuration.md` : 76 produits publiés (et non 79), la ligne de commande a un client en session,
+un variable est arrondi même sans taxes.
+
+**Refusé, par écrit** : dériver les attentes (60, 48, 12–24, 41,666667) des taux nommés. Ce serait
+réécrire dans le test le calcul de taxe de WooCommerce, c'est-à-dire l'oracle à partir de ce qu'il
+vérifie ; les valeurs restent des exemples concrets.
+
+**Tranché par Louis le 2026-09-22 : « reprendre le modèle WooCommerce ».** La relecture avait mesuré en
+mémoire deux cas faux : un thème qui affiche un libellé sur un groupé sans prix le faisait indexer 0–0
+(`woocommerce_grouped_empty_price_html`, `woocommerce_get_price_html`), et un seul enfant vidé donnait 0–21
+pour une carte 16–21 (`get_min_price()` compte l'enfant vidé à 0). **Corrigé** : `childrenRange()` suit
+`get_price_html()` — enfants visibles (`get_visible_children()`), `singleRange()` sur chacun, donc
+`wc_get_price_to_display()` et un enfant sans prix sauté, puis min et max ; plus aucune lecture de HTML.
+Minimum requis : WooCommerce 9.8 au lieu de 10.1. Deux tests ajoutés (un enfant sans prix sauté, un
+libellé de thème sans effet), **tués par mutation** : l'ancien code en fait échouer deux ; un calcul qui
+ne saute pas les prix vides, trois. Relevé aussi, non traité : quatre parcours des enfants par groupé
+indexé au lieu d'une lecture de `_price` — négligeable sur deux groupés de trois enfants, et désormais
+deux (le prix, la carte).
+
+**Passes, troisième tour (2026-09-22)** — confirmé : la fourchette d'un groupé est celle de sa carte, en
+source (`get_price_html()` contre `wc_get_price_to_display()`) et en mémoire sur #444 et #445, sept cas.
+Traités : `childrenRange()` ne reposait que sur deux implicites (`array_filter` sans rappel gardant
+`[0.0, 0.0]`, `array_column` sur une paire dégénérée) — il lit désormais `shownPrice(): ?float` et filtre
+les `null` explicitement ; tué par mutation (un `array_filter` sans rappel perd les enfants gratuits) ; le
+commentaire sur `get_min_price()` est supprimé (sa raison est dans `D-e`). Les tests n'utilisent plus
+`TaxDisplayMode` (WooCommerce 11.0) ni `TaxBasedOn` (10.8), au-dessus du minimum de 9.8 ; chaque nom
+d'option est une constante ; `underTax()` se sépare en `withOptions()` et `withRates()` ; les assistants
+disent ce qu'ils figent (`enteredWithoutTaxShownWithTax()`). L'oracle du catalogue lit la carte par
+`Dom\HTMLDocument` et compare chaque borne **à égalité** aux montants facturés : l'expression régulière
+supposait une locale — « 234,00 € » était trouvé dans « 1 234,00 € », le séparateur de milliers de Pluralia
+étant une espace. Re-tué par mutation (`fmod($price, 10)` : « 9,00 € » absent). Relevé hors périmètre :
+`R-154`. `composer check` vert (262 tests autonomes), suite `Modules` : 384 tests, 1302 assertions.
+
+**Passes, quatrième tour (2026-09-22)** — l'oracle DOM vérifié sur les 76 produits (simples, promotions,
+externes, variables, groupés). Traités : un suffixe de prix qui porte un montant (`{price_excluding_tax}`)
+ajoutait un montant à la carte, et l'oracle acceptait alors le prix HT d'une carte TTC — mesuré en mémoire,
+`["58,80 €","49,00 €"]` avant, `["58,80 €"]` après avoir retiré `.woocommerce-price-suffix` ; le test dit ce
+qu'il vérifie (`it_indexes_the_prices_the_card_bills`) ; la carte du test d'adresse se compare à égalité ;
+un `array_values()` sans effet retiré ; `prix.md` ne dit plus qu'un groupé compte l'enfant vidé pour 0.
+
+**Fermé le 2026-09-22.** Quatre tours de passes, chaque constat traité ou refusé par écrit ci-dessus.
+`D-j` est désormais tenu par `ProductPriceProjector::shownPrice()` pour les simples, externes et enfants de
+groupé — le `pricesOf()` décrit par `R-148` n'existe plus. Vérifié : `composer check` vert (262 tests
+autonomes), suite `Modules` 385 tests / 1303 assertions ; `/boutique`, `?max_price=10` (6 cartes, comme
+avant) et `/marque/aeris` répondent 200. Aucun JavaScript touché. Reste ouvert à côté : `R-154`.
 
 ### R-145 · 🟡 · ouvert · 2026-09-17 — suites des passes rejouées sur les points fermés du lot
 
@@ -3211,7 +3323,8 @@ numéro ou s'en détache.
 5. **Vue surchargée** qui masque son bloc sur `$values === []` : la légende reste au-dessus de rien jusqu'à
    la première recherche. Piste : calculer les plis à la liaison (`R-137` #4).
 6. **Clauses reconstruites** : `ListingSearch::isNarrowed()` et `QueryPlan::filterQueries()` refont toutes
-   les clauses pour savoir si elles sont vides, jusqu'à k+3 fois par rendu, `PriceTax::excluding()` compris.
+   les clauses pour savoir si elles sont vides, jusqu'à k+3 fois par rendu (`PriceTax::excluding()` compris,
+   jusqu'à son retrait par `R-146`).
    Piste : une méthode de `FilterQuery` qui teste l'état ; lié à `R-01` (`R-136`, `R-137` #4).
 7. **Structure du client** : `listing-binding.ts` importe toutes les fonctionnalités, alors que `R-136`
    dit le contraire ; cycles de dossiers par `ListingState` ; trois fonctions libres (`filterQueriesOf`,
@@ -3436,7 +3549,7 @@ champs de carte absents du catalogue ; `q` en UTF-8 invalide ; bornes `1e300` ; 
 Blade ; plafond de facette à 0 ; noms de paramètre contenant un point.
 
 **Déjà connus** : taxes retirées côté serveur seulement (`D-e`, sans effet sur Pluralia, taxes
-désactivées) ; `alt` `'0'`.
+désactivées — fermé par `R-146`, le prix indexé étant désormais le prix affiché) ; `alt` `'0'`.
 
 **Identiques** (vérifiés en exécutant) : échappement, assemblage et ordre des clauses, recherches à part,
 tri, lecture des valeurs de facette, requête texte, page (hors cas ci-dessus), prix (hors cas ci-dessus),
@@ -4344,7 +4457,8 @@ recharger ; plage posée dessous → bornes inchangées ; marque retirée → **
   quelle — le serveur rend déjà la même valeur, et c'est le coût que Louis a accepté en tranchant
   qu'une borne posée au bord ne filtre pas (point suivant) ;
 - sur une boutique TTC, cette borne ramenée est un prix HT que le serveur relit comme TTC — dormant ici
-  (`woocommerce_calc_taxes = no`), traité avec la décision sur les taxes ;
+  (`woocommerce_calc_taxes = no`), traité avec la décision sur les taxes — sans objet depuis `R-146` : bornes
+  et prix indexé sont dans l'unité affichée ;
 - une vue de prix surchargée avant ce changement n'a pas les deux crochets : sa ligne sous la piste
   reste figée, sans signal — coût accepté par `R-116`, les crochets restent optionnels ;
 - deux blocs prix dans une même racine : seul le premier est branché — limite antérieure (`R-95`,
