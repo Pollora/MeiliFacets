@@ -14,8 +14,6 @@ use Modules\MeiliFacets\Search\EngineLimits;
 use Pollora\MeiliScout\Config\Settings;
 use Pollora\MeiliScout\Indexables\PostIndexable;
 
-// `Indexer` delegates formatting on `instanceof PostIndexable`: an override of
-// `formatForIndexing()` here would never run.
 final class FacetedPostIndexable extends PostIndexable
 {
     private const string ALL_FACETS = '*';

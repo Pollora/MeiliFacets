@@ -8,15 +8,13 @@ Voir aussi : [architecture.md](architecture.md) · [configuration.md](configurat
 ddev add-on get kevinquillen/ddev-meilisearch
 ```
 
-**Épingler la version sur celle de production**, avant toute autre chose :
+**La version n'est pas épinglée** : le local suit `latest` (`decisions.md`, « Version du moteur ») ; c'est
+la production, en 1.10.3, qui doit monter. Pour figer une version malgré tout :
 
 ```bash
-ddev dotenv set .ddev/.env.meilisearch --meilisearch-tag v1.10.3
+ddev dotenv set .ddev/.env.meilisearch --meilisearch-tag vX.Y.Z
 ddev restart
 ```
-
-⚠️ Sans épinglage, l'add-on installe `latest`.
-Vérifier la version de prod avant d'épingler.
 
 **Versionner les fichiers de l'add-on**, sinon les autres développeurs n'auront pas le service :
 
@@ -52,8 +50,9 @@ nom du service.
 
 ## 3. Variables d'environnement
 
-Dans le `.env` **à la racine du projet** — un `.env.example` livré avec le module sert de
-référence à recopier, il n'est jamais chargé par Laravel.
+Dans le `.env` **à la racine du projet**. Le module ne livre pas de `.env.example` : il livre un
+`config/meilifacets.php` de départ, commenté, que `php artisan vendor:publish --tag=meilifacets-config` copie
+dans le projet.
 
 ```dotenv
 MEILI_HOST=http://meilisearch:7700
@@ -66,9 +65,12 @@ MEILI_SEARCH_KEY=
 ```
 
 Ces noms sont ceux déjà en place sur les autres projets AmphiBee : les reprendre tels quels,
-sans préfixe propre au module. Les quatre premiers sont lus par MeiliScout côté PHP.
+sans préfixe propre au module. MeiliScout lit `MEILI_HOST`, `MEILI_KEY` et `MEILI_SEARCH_KEY` par `getenv()`
+(`Config::get()`) ; la troisième sert aussi au **premier rendu**, côté PHP (`ClientFactory::getSearchClient()`).
+`MEILI_INDEX_NAME` et `MEILI_MATCHING_STRATEGY` ne sont lues par personne : l'index s'appelle toujours `posts`,
+en dur dans `PostIndexable::getIndexName()`.
 
-⚠️ **Les deux derniers ne sont pas lus par le module.** Il ne connaît que
+⚠️ **Le module ne lit pas l'environnement.** Il ne connaît que
 `config('meilifacets.browser.url')` et `.key` : c'est le `config/meilifacets.php` du projet qui
 fait le pont, et sans lui rien ne relie l'environnement au navigateur.
 
@@ -81,8 +83,10 @@ fait le pont, et sans lui rien ne relie l'environnement au navigateur.
 ```
 
 ⚠️ **Le schéma de `MEILI_PUBLIC_URL` est obligatoire.** `meili.example:7701` sans `https://`
-désactive tout le client, sans message (R-65). Et `MEILI_SEARCH_KEY` laissée vide, comme ci-dessus,
-suffit à rendre `BrowserConnection::isConfigured()` faux.
+désactive tout le client, sans message (R-65). Et `MEILI_SEARCH_KEY` laissée vide, comme ci-dessus, coupe les
+deux côtés : aucun client dans le navigateur (`BrowserConnection::isConfigured()` faux), et un premier rendu
+qui tombe sur la vue de repli, `laravel.log` recevant « No Meilisearch client. Check MEILI_HOST and
+MEILI_SEARCH_KEY. »
 
 `MEILI_SEARCH_KEY` est une clé de recherche, distincte de la clé maître `MEILI_KEY`. En production elle est
 fournie par l'infrastructure (submodule Docker AmphiBee) et doit avoir un **uid figé** : les
@@ -91,15 +95,19 @@ redémarrage. Recréée avec le même uid, elle retrouve exactement la même val
 
 ## 4. MeiliScout
 
+MeiliScout ne se requiert pas dans le projet : le `composer.json` du module le demande
+(`dev-feat/meilifacets`) et le `merge-plugin` du projet le fait remonter — y ajouter une autre branche, `dev-main`
+par exemple, rendrait la contrainte insatisfiable. Reste à l'activer :
+
 ```bash
-ddev composer require amphibee/meiliscout:dev-main
 ddev wp plugin activate meiliscout
 ```
 
 Le paquet déclare `"type": "wordpress-plugin"` : il s'installe dans `public/content/plugins`,
-pas dans `vendor/`. La contrainte `dev-main` n'est pas optionnelle — le paquet ne publie aucune
-version taguée. Committer `composer.lock` et relire la référence verrouillée avant toute mise à
-jour.
+pas dans `vendor/`. La branche `feat/meilifacets` n'est pas optionnelle : elle porte le correctif
+d'extensibilité (`R-39`) ; repasser à `dev-main` une fois la PR amont fusionnée (`decisions.md`, « Dépendance MeiliScout »).
+Le paquet ne publie aucune version taguée : committer `composer.lock` et relire la référence verrouillée avant
+toute mise à jour.
 
 ## 5. Sélection des contenus
 
@@ -190,7 +198,6 @@ le reste.
 | Première indexation | fait — 102 documents dans `posts`, dont 76 produits publiés |
 | Clé de recherche | créée, uid `37d11b08-9f5e-4529-b006-7666b4e4537e` — à conserver pour la recréer à l'identique |
 
-Conséquences de l'écart de version, tant qu'il dure : les motifs type `facets.*` dans les
-attributs filtrables datent de la 1.12 et ne fonctionneront pas en production — lister les
-attributs explicitement. Et tout comportement validé en local reste à reconfirmer sur une
-instance 1.10.3 avant qu'on s'appuie dessus.
+Conséquences de l'écart de version, tant qu'il dure : tout comportement validé en local reste à reconfirmer
+sur une instance 1.10.3 avant qu'on s'appuie dessus. Les attributs filtrables sont déjà déclarés un par un, et
+les facettes demandées par leur nom, sans motif `facets.*` — a priori compatibles, a priori seulement (`R-41`).

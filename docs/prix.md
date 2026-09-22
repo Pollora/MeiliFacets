@@ -1,22 +1,23 @@
 # Filtrer par prix — cadrage
 
-Document de cadrage pour `R-43` / `Q-08`. **Rien n'est décidé ici** : il rassemble ce qui a été
-mesuré le 2026-09-09 sur le catalogue de recette, les cas à couvrir, et les questions à trancher
-avant d'écrire une ligne.
+Document de cadrage pour `R-43` (fermé le 2026-09-15) et `Q-08`. Les §§ 1 à 4 décrivent ce qui a été mesuré
+sur le catalogue de recette, mis à jour le 2026-09-22 où l'état a changé ; les décisions prises sont au § 5.
 
 ---
 
 ## 1. Ce qui existe aujourd'hui, vérifié
 
-**Dans l'index** — réglages relevés sur `posts` :
+**Dans l'index** — réglages relevés sur `posts` le 2026-09-22 :
 
 ```
-filterable : metas._price, metas._stock_status
-sortable   : metas._price, post_date, post_title
+filterable : metas._price, metas._stock_status, price.min, price.max, price.onsale
+sortable   : price.min, price.max, post_date, post_title
 displayed  : ID, card
 ```
 
-`metas._price` est bien numérique : `metas._price >= 40 AND metas._price <= 70` rend 9 résultats.
+Le module filtre et trie sur `price.*`, plus sur `metas._price`, qui ne porte que le prix le plus bas d'un
+variable. `metas._price` reste numérique : `metas._price >= 40 AND metas._price <= 70` rendait 9 résultats le
+2026-09-09.
 La note de `ProductMeta.php` (« `_price` is stored as a number, so range filters need no typed
 projection ») est donc exacte.
 
@@ -24,15 +25,16 @@ projection ») est donc exacte.
 figé au moment de l'indexation** (`decisions.md:42`). Ce n'est pas un nombre : la carte affiche ce
 que WooCommerce affichait ce jour-là.
 
-**Ce qui n'existe pas** : aucune facette de prix, aucune facette de disponibilité. Deux tris de prix
-seulement. `_sale_price`, `_sale_price_dates_from` et `_sale_price_dates_to` **ne sont pas indexés**.
+**Ce qui n'existe pas** : aucune facette de disponibilité (`D-f`). `_sale_price` et ses dates sont dans les
+`metas` du document, mais ni filtrables ni triables ; l'état « en promotion » est indexé en drapeau,
+`price.onsale`.
 
 ---
 
 ## 2. Ce que fait WooCommerce, à lire avant de concevoir
 
 Il ne filtre **pas par tranches**. Il filtre par **min/max**, via `?min_price=&max_price=`, et sa
-clause est un test de **chevauchement d'intervalles** (`class-wc-query.php:816`) :
+clause est un test de **chevauchement d'intervalles** (`class-wc-query.php:815`) :
 
 ```sql
 AND NOT (%f < wc_product_meta_lookup.min_price OR %f > wc_product_meta_lookup.max_price)
@@ -44,11 +46,11 @@ Deux conséquences :
   jamais à un prix unique — parce qu'un produit peut couvrir une plage ;
 - son widget dimensionne son curseur avec `SELECT MIN(min_price), MAX(max_price)` **sur l'ensemble
   filtré** (`class-wc-widget-price-filter.php:176`). L'équivalent Meilisearch est `facetStats`, que
-  le module ne demande jamais aujourd'hui.
+  le module demande pour borner son curseur (`D-c`).
 
 ### Comment il calcule `min_price` et `max_price`
 
-Lu dans `class-wc-product-data-store-cpt.php:2495-2505` — c'est plus simple qu'on ne l'imagine :
+Lu dans `class-wc-product-data-store-cpt.php:2491-2505` — c'est plus simple qu'on ne l'imagine :
 
 ```php
 $price_meta = (array) get_post_meta( $id, '_price', false );   // toutes les lignes
@@ -102,13 +104,13 @@ Catalogue de recette : **64 simples, 8 variables, 2 groupés, 2 externes**.
 | **produit variable** | ✅ | la fourchette de sa carte (`get_variation_prices(true)`) ; `metas._price` ne porte toujours que le plus bas, le module ne s'en sert plus |
 | **produit groupé** | ✅ | min et max de ses enfants visibles, un enfant sans prix sauté comme sur la carte ; rien si aucun n'a de prix |
 | **produit externe** | ✅ | un seul prix, rien de particulier |
-| **promo en cours** | ⚠️ | `_price` porte le prix promo, donc filtre et tri sont justes — mais **rien ne permet de filtrer « en promotion »** |
+| **promo en cours** | ✅ | prix promo dans `price.*` ; « Promotions » filtre sur `price.onsale` (`D-d` amendé, `R-130`) |
 | **promo planifiée** | ⚠️ | voir § 4 |
 | **promo terminée** | ⚠️ | voir § 4 |
 | **taxes** | ✅ | le prix indexé est le prix affiché, calculé par WooCommerce à l'indexation (`D-e`, `R-146`) ; dormant ici (taxes désactivées) |
-| **prix à 0** | ⚠️ | 1 produit. Un curseur dont la borne basse est > 0 l'exclut |
+| **prix à 0** | ✅ | 1 produit (#410) ; les bornes partent de `floor(min)` de `facetStats`, soit 0 |
 | **prix absent** | ⚠️ | aucun aujourd'hui, mais `metas._price >= x` **exclut tout document sans le champ** — le piège déjà connu du module. Un prix **vidé** n'est pas absent : WooCommerce écrit `_price = ''` (admin, API REST, import CSV), que le module projetait à 0 jusqu'à `R-148`. Depuis `R-146`, un simple ou un externe dont `get_price()` vaut `''` n'a pas de `price` — une ligne `null` y étant ramenée par `wc_format_decimal()` ; un variable ignore la déclinaison vidée, un groupé l'enfant vidé, comme leur carte (`D-e`) ; un groupé sans aucun enfant à prix n'a pas de `price`. Le filtre du module porte sur `price.min`/`price.max`, pas sur `metas._price` |
-| **hors catalogue** | ✅ | 3 produits en visibilité `hidden`/`search` sont **dans l'index** mais absents du listing : le filtre de base les écarte. Vérifié — mais `facetStats` les compterait si on ne lui passe pas ce filtre |
+| **hors catalogue** | ✅ | 2 produits (#370 `hidden`, #439 `search`) sont **dans l'index** mais absents du listing : le filtre de base les écarte ; #400, exclu de la recherche seulement, y reste. `facetStats` les compterait si on ne lui passait pas ce filtre |
 | **stock d'une variation** | ❌ | voir § 4 bis |
 
 **La preuve du défaut variable/groupé**, sur le produit #416 « Sérum Hydratant » dont la base porte
@@ -121,8 +123,8 @@ metas._price = 35.2                        →  #416 ABSENT
 metas._price >= 40 AND metas._price <= 70   →  #416 ABSENT
 ```
 
-Un visiteur filtrant 40–70 € ne verrait pas un produit vendu de 28 à 62 €. **10 produits sur 76**
-sont dans ce cas.
+Sur `metas._price`, un visiteur filtrant 40–70 € ne verrait pas un produit vendu de 28 à 62 € : c'est ce qui a
+imposé `price.min`/`price.max` (`D-b`). Avec eux, #416 est trouvé (mesuré le 2026-09-22).
 
 ---
 
@@ -140,9 +142,10 @@ jamais, faute d'être indexée.
   `pending` le 09/09. (Il n'est **pas** dans le cron WP — `wp cron event list` ne le montre pas,
   c'est Action Scheduler qui le porte. Chercher au mauvais endroit fait conclure à tort qu'il
   n'existe pas.) ;
-- à la bascule, `wc_apply_sale_state_for_product()` appelle `save()`, qui écrit `_price` et déclenche
-  `save_post` + `updated_post_meta` — précisément les hooks que MeiliScout écoute
-  (`SingleIndexingServiceProvider:89-98`). **L'indexation suit donc la bascule.**
+- à la bascule, `wc_apply_sale_state_for_product()` appelle `save()` — qui, pour ce seul changement de prix,
+  ne passe pas par `wp_update_post()` et ne déclenche donc pas `save_post` —, puis écrit `_price` à la main
+  (`wc-product-functions.php:638`, `:647`) : c'est ce `updated_post_meta`, écouté par MeiliScout
+  (`SingleIndexingServiceProvider:98`), qui réindexe. **L'indexation suit donc la bascule.**
 
 **Vérifié sur un cas réel passé** : #362 « Huile Régénérante Nuit », promo terminée le 2026-08-25.
 `_price` est revenu à `46.00`, et l'index affiche `46,00 €`. La bascule de fin a bien eu lieu et a
@@ -172,23 +175,24 @@ le panier n'applique pas. La première divergence est visible et sans conséquen
 seconde est un litige.
 
 **À faire côté exploitation, indépendamment du module** : un vrai cron système sur
-`action_scheduler_run_queue`, ou WP-Cron réactivé. Sans lui, les promos planifiées ne s'appliquent
-jamais — ni dans le listing, ni dans le panier.
+`action_scheduler_run_queue`, ou WP-Cron réactivé. Sans lui, les promos planifiées attendent la première
+requête d'administration — une visite du front ne fait pas avancer la file —, dans le listing comme dans le
+panier.
 
 **Donc, en une phrase** : quand la bascule a lieu, l'affichage se corrige tout seul. Ce qui manque
-n'est pas la fraîcheur, c'est que **le prix promo et ses dates ne sont pas indexés du tout** — donc
-aucune facette « en promotion », aucun tri sur la remise, aucun filtre « promos qui commencent
-bientôt ».
+n'est pas la fraîcheur : le prix promo et ses dates sont dans les `metas`, mais ni filtrables ni triables —
+pas de tri sur la remise, pas de filtre « promos qui commencent bientôt ». L'état « en promotion » est indexé
+en drapeau (`price.onsale`) et proposé comme option « Promotions » du tri (`D-d` amendé).
 
 **Les risques résiduels, réels mais différents :**
 
-1. **Action Scheduler dépend du trafic.** Sur une boutique sans visite à 13:27, la bascule est
-   tardive. WooCommerce a le même retard que le listing — ils ne divergent pas, ils attendent
+1. **Action Scheduler dépend des requêtes d'administration, pas des visites.** Sans cron système, la
+   bascule attend le premier passage d'un admin. WooCommerce a le même retard que le listing — ils ne divergent pas, ils attendent
    ensemble.
 2. **La carte est du HTML figé.** Tout ce qui change un prix sans passer par `save()` laisse la carte
    périmée. À inventorier : un changement de devise, une remise par rôle, un import direct en base.
 3. **Un prix affiché par rôle ou par géolocalisation devient impossible** — déjà consigné
-   (`decisions.md:384`), le prix étant formaté à l'indexation.
+   (`decisions.md`, « Dettes »), le prix étant formaté à l'indexation.
 
 ---
 
@@ -223,8 +227,8 @@ s'ajoute, relevé par Louis le 2026-09-09 et **différé**, le mode « gestion p
 `_manage_stock` à `yes` et `_stock` porteur d'un nombre, avec un seuil de rupture faible
 (`woocommerce_notify_low_stock_amount` = 2) et une politique de réassort par produit
 (`_backorders`). Mesuré ici : **1 produit** gère une quantité (3 en stock), aucun n'accepte le
-réassort. Ni `_manage_stock`, ni `_stock`, ni `_backorders` ne sont indexés — seul `_stock_status`
-l'est. À reprendre quand la disponibilité sera le sujet ; ce document reste sur le prix. FacetWP
+réassort. Ni `_manage_stock`, ni `_stock`, ni `_backorders` ne sont filtrables : ils sont dans les `metas`,
+mais seul `metas._stock_status` est déclaré filtrable. À reprendre quand la disponibilité sera le sujet ; ce document reste sur le prix. FacetWP
 expose d'ailleurs les deux formes au choix — un facet « Stock Status » à deux valeurs qui range les
 réassorts avec les disponibles, ou `_stock_status` à trois valeurs. C'est un choix de produit, pas
 un détail technique. (`woocommerce_hide_out_of_stock_items` vaut `no` ici : rien n'est masqué en
@@ -249,15 +253,14 @@ manquaient à l'index. Leur correctif :
   quater : c'est un contournement d'un déclencheur cassé chez eux, et il produirait chez nous une
   divergence entre ce que le listing promet et ce que le panier applique ;
 - ils ont buté sur « les promos planifiées ne déclenchaient pas de synchronisation Algolia ». Notre
-  chaîne diffère : MeiliScout écoute `save_post` **et** `updated_post_meta`, et
-  `wc_apply_sale_state_for_product()` appelle `save()`. C'est pour ça que la bascule nous suit — mais
-  cela ne tient qu'à ces hooks-là.
+  chaîne diffère : c'est `updated_post_meta`, et lui seul, qui fait suivre la bascule — WooCommerce écrit
+  `_price` hors de `save()`. Cela ne tient qu'à ce hook-là.
 
 **Deux détails d'implémentation qu'ils citent** et qui nous concernent : des décimales rognées
 (`108.5` au lieu de `108.50`) et des prix invalides ou à zéro. Nous avons déjà un produit à 0 €.
 
 **Elasticsearch** est cité pour ses agrégations, qui calculent des plages de prix dynamiques. C'est
-l'équivalent de `facetStats` chez Meilisearch, que nous ne demandons pas encore.
+l'équivalent de `facetStats` chez Meilisearch, que le module demande pour borner son curseur (`D-c`).
 
 ---
 
@@ -295,7 +298,7 @@ décalée.
 
 Le filtre a été confronté à la base, pas seulement au rendu.
 
-**L'index dit la même chose que WooCommerce**, produit par produit. Les quatre produits variables du
+**L'index dit la même chose que WooCommerce**, produit par produit. Quatre des huit produits variables du
 catalogue, dont `metas._price` ne porte que le prix le plus bas — la raison d'être de
 `price.min`/`price.max` :
 
@@ -327,12 +330,11 @@ catalogue, dont `metas._price` ne porte que le prix le plus bas — la raison d'
 416  fourchette 70–90 (au-delà)                → absent
 ```
 
-**L'indexation en direct d'une bascule programmée, elle, ne marche pas** — et le défaut n'est pas
-dans le module. Voir `R-112` : la file Action Scheduler passe par `admin-ajax.php`, et le garde
-`DOING_AJAX` de MeiliScout y refuse l'indexation sans rien dire. Rejouée hors de ce contexte, la
-bascule met bien l'index à jour ; le chemin réel, non.
+**L'indexation en direct d'une bascule programmée ne marchait pas** le jour de la recette : le garde
+`DOING_AJAX` de MeiliScout la refusait sous `admin-ajax.php` (`R-112`). Corrigé en amont le jour même. Reste la
+condition que la file avance (§ 4).
 
-## 5. Ce qu'il faudrait décider
+## 5. Ce qui a été décidé
 
 **D-a · La forme du filtre — ✅ tranché le 2026-09-15 : min/max, façon WooCommerce**, en réutilisant
 `min_price`/`max_price`. On hérite du vocabulaire d'URL de la plateforme, une URL reste lisible par
@@ -492,7 +494,11 @@ module ; elle est donc prise **pour la cohérence** :
   l'assume déjà en renommant `sort`.
 
 Conséquence gratuite : `meilifacets:check-parameters` refusera qu'une taxonomie se mappe sur ces
-noms, puisque `UrlParameters::taxonomies()` écarte déjà les réservés.
+noms, puisque `UrlParameters::taxonomies()` écarte déjà les réservés. ⚠️ *Constaté le 2026-09-22, en lisant
+la source : cette conséquence ne tient pas.* `UrlParameters::taxonomies()` rend les seuls noms de taxonomies,
+sans rien écarter, et `check-parameters` ne compare jamais les paramètres entre eux (`R-56`) : une taxonomie
+mappée sur `min_price` ne reçoit que l'avertissement prévu pour la borne, et une taxonomie mappée sur `sort`,
+`q` ou `pg` ne déclenche rien.
 
 **D-f · La disponibilité — ⏸ différée le 2026-09-15**, avec le reste du stock. `metas._stock_status`
 est déjà filtrable et personne ne s'en sert. Deux formes possibles, comme chez FacetWP : deux valeurs
@@ -511,7 +517,7 @@ pas seulement ses champs. À reprendre avec `D-f` et le mode « gestion par quan
 - le prix de la carte est du **HTML non filtré**, décidé et argumenté (`decisions.md:42`, `R-26`,
   `Q-11`) ;
 - `displayedAttributes` est restreint à `ID` et `card` (`decisions.md:53`) — un filtre prix n'a pas
-  besoin de le rouvrir, `metas._price` est filtrable sans être affiché ;
+  besoin de le rouvrir, `price.min`/`price.max` sont filtrables sans être affichés ;
 - **une couture s'ouvre quand un projet en a besoin** (`CLAUDE.md` § 2). Les tranches de prix par
   projet seraient une couture ; le min/max n'en est pas une.
 

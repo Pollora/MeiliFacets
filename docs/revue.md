@@ -50,7 +50,7 @@ de conception, pas de JavaScript.
 
 **3. La documentation a pris de l'avance sur le code.** 1 683 lignes réparties sur six fichiers,
 plus longues que le code applicatif, hors du module, et déjà fausses sur au moins quatre points
-(R-35). Écrire la décision avant de la vérifier a produit un corpus qu'il faut désormais auditer
+(R-36). Écrire la décision avant de la vérifier a produit un corpus qu'il faut désormais auditer
 comme du code.
 
 Un point d'attention qui n'est écrit nulle part : **le transport direct navigateur → moteur rend
@@ -65,7 +65,8 @@ que le rendu qu'il contractualise soit juste.
 
 ## 0. Décisions prises pendant la revue — 2026-09-06
 
-Quatre réponses données en séance. Elles ferment ou réorientent les questions citées.
+Quatre réponses données en séance le 2026-09-06, six prises depuis (D-05 à D-10). Elles ferment ou
+réorientent les questions citées.
 
 ### D-01 — Module du framework Pollora, en construction ; Pluralia est le banc d'essai
 
@@ -245,6 +246,9 @@ de la production. Les deux se rouvriront quand un catalogue réel sera disponibl
 
 ### D-09 — Le client est écrit en JavaScript moderne, vérifié par des outils
 
+> *« Pas de TypeScript » renversé le 2026-09-16 (`R-132`) : le client est en TypeScript, limité à la
+> syntaxe effaçable, et livré empaqueté — voir `decisions.md`. Le reste de D-09 tient.*
+
 *Décidé et appliqué le 2026-09-07, lot 3c-1.*
 
 Les sept fichiers livrés au lot 2 n'avaient jamais été recettés. Revus, ils tenaient sur le style —
@@ -393,7 +397,7 @@ pas utilisée. Effet direct : ces deux composants ne se testent qu'avec une appl
 
 **Fermé le 2026-09-07** — par R-62, sans que ce constat soit mis à jour. Relevé par la passe de
 conformité de la documentation : le code qu'il décrit n'existe plus.
-### R-05 · 🟠 · **fermé le 2026-09-07** · ouvert le 2026-09-06 — la configuration est lue depuis les objets de domaine
+### R-05 · 🟠 · ouvert · **rouvert le 2026-09-22** (fermé à tort le 2026-09-07) · ouvert le 2026-09-06 — la configuration est lue depuis les objets de domaine
 
 `ApplyMode::fromConfig()`, `UrlParameters::fromConfig()`, `Results::eagerCards()`,
 `ProductListing::applyMode()`, `Card` (rien) : quatre points où `config()` est appelé depuis un
@@ -406,6 +410,13 @@ qui devrait lire `config()`, comme il le fait déjà bien pour `DefaultCardProje
 
 **Fermé le 2026-09-07** — par R-62, sans que ce constat soit mis à jour. Relevé par la passe de
 conformité de la documentation : le code qu'il décrit n'existe plus.
+
+**Au 2026-09-22** (passe documentaire, `R-153`) : **rouvert, la fermeture était fausse.** Deux des quatre points
+existent toujours : `ApplyMode::fromConfig()` (`app/Enums/ApplyMode.php:15-18`), appelé par
+`ProductListing::applyMode()`, et `UrlParameters::fromConfig()` (`app/Support/UrlParameters.php:19-24`),
+que `ListingServiceProvider` lie sans lire la configuration lui-même. `Results::eagerCards()` et
+`Card` n'en lisent plus. C'est la règle de `CLAUDE.md` §3, que `architecture.md` énonce comme tenue.
+
 ### R-06 · 🟠 · ouvert · 2026-09-06 — le contrat `Listing` mélange déclaration et résolution
 
 `name()`, `facets()`, `sorts()` déclarent. `baseFilter()` appelle `is_tax()` et
@@ -576,6 +587,14 @@ Effets concrets, aucun visible :
 
 Le cas jumeau — la promotion qui expire sans sauvegarder le produit — est documenté dans
 `pieges.md`. Celui-ci ne l'est nulle part, et il est plus fréquent.
+
+**Au 2026-09-22** (passe documentaire, `R-153`) : **en partie corrigé en amont.** MeiliScout réindexe
+désormais les posts d'un terme créé ou modifié (`created_term`, `edited_term` →
+`reindexPostsForTerm()`, `SingleIndexingServiceProvider.php:114-115`) ; la phrase « MeiliScout ne
+réindexe les posts que sur sauvegarde de post » est donc fausse. Reste la suppression, lue dans la
+source et non mesurée : WordPress détache les objets du terme (`wp_set_object_terms()`,
+`taxonomy.php:2156`) **avant** `delete_term` (`:2212`), si bien que `reindexPostsForTerm()` ne
+retrouve plus aucun post à réindexer.
 
 ### R-13 · 🟠 · ouvert · 2026-09-06 — un hit sans champ `card` est jeté en silence
 
@@ -823,6 +842,10 @@ tranché à la prochaine revue.
 (un plugin branché sur `woocommerce_get_price_html`, une donnée saisie par un utilisateur non
 privilégié).
 
+**Au 2026-09-22** (passe documentaire, `R-153`) : le passage `wp_kses` de `pieges.md` est retiré ; le
+seuil de refiltrage est écrit dans la décision « Markup du prix » (`decisions.md:42`). Reste à
+marquer `Q-11` répondue — c'est à Louis de le confirmer.
+
 ### R-27 · 🟡 · ouvert · 2026-09-06 — `searchableAttributes` reste à `["*"]`
 
 **Vérifié** sur l'index réel : `searchableAttributes: ["*"]`, `displayedAttributes: ["ID","card"]`.
@@ -932,11 +955,14 @@ donc rien ne change pour un thème.
 `public/modules/meilifacets/.gitkeep` par `module:publish`. Et `.playwright-mcp/` (cinq traces de
 console et cinq instantanés de page) vit dans le module, ignoré par git mais présent sur disque.
 
-### R-35 · ⚪ · ouvert · 2026-09-06 — `config/config.php` existe pour ne rien déclarer
+### R-35 · ⚪ · **fermé le 2026-09-22** · ouvert le 2026-09-06 — `config/config.php` existe pour ne rien déclarer
 
 Le fichier ne porte plus que `'name' => 'MeiliFacets'`, dont `configuration.md` dit lui-même que
 c'est une « clé de nwidart, sans usage dans le module ». Il reste utile comme porte-commentaire de
 la règle « un réglage déclaré ici n'est pas surchargeable » — à dire explicitement, ou à supprimer.
+
+**Fermé le 2026-09-22** (passe documentaire, `R-153`) : la règle est dite explicitement, dans le
+fichier (`config/config.php:5-9`) et dans `configuration.md`. Le fichier reste, comme porte-commentaire.
 
 ---
 
@@ -958,6 +984,10 @@ relevés pendant la revue :
 Le fond est excellent — c'est le meilleur corpus de décisions que j'aie lu sur un module de ce
 type. Le problème est son coût de maintenance : à ce volume, il faut l'auditer comme du code, et
 rien ne le fait.
+
+**Au 2026-09-22** (passe documentaire, `R-153`) : les cinq écarts du tableau sont corrigés. La passe du
+2026-09-22 en a trouvé et corrigé d'autres, sur les huit fichiers de `docs/` et le README (`R-153`).
+Reste la seconde moitié de `Q-13` : le coût du corpus.
 
 ### R-37 · 🟡 · **fermé le 2026-09-07** · ouvert le 2026-09-06 — la doc vivait hors du module
 
@@ -1005,10 +1035,17 @@ Trois sorties, du plus léger au plus juste :
 Ce point n'est pas une commodité : c'est ce qui empêche aujourd'hui de dire « voilà ce qui est
 livré ».
 
+**Au 2026-09-22** (passe documentaire, `R-153`) : toujours vrai. Le décompte de commits non poussés
+écrit plus haut est périmé : la branche suit désormais `origin`.
+
 ### R-39 · 🟠 · ouvert · 2026-09-06 — `amphibee/meiliscout` pointe une branche non mergée
 
 `dev-feat/meilifacets`, commit `1c59a05`. Rappel : sans le correctif `resolveIndexable()`, les
 facettes cassent à la première sauvegarde de contenu.
+
+**Au 2026-09-22** (passe documentaire, `R-153`) : toujours vrai. Le lock est à `a83fa4b` (depuis `R-112`),
+ni `1c59a05` ni `2acf53a` cités plus haut ; le module exige toujours `dev-feat/meilifacets`
+(`composer.json`). Le merge amont n'est pas vérifiable d'ici.
 
 ### R-40 · 🟠 · ouvert · 2026-09-06 — le `503` ne sort pas
 
@@ -1163,6 +1200,10 @@ maquette cliente). Sur l'archive produit, **ce bouton a disparu**.
 Ce n'est pas ce qui est livré. Trois issues : le listing rend la carte du thème, la wishlist
 devient un crochet du contrat, ou la disparition est assumée et écrite.
 
+**Au 2026-09-22** (passe documentaire, `R-153`) : toujours vrai, mesuré sur `/boutique` — l'archive rend
+`<x-meilifacets::card>`, sans wishlist. **Contredit une décision validée** : `decisions.md` dit
+« bascule sur `<x-theme::product-card>` ». Annoté là-bas comme non tenu ; `Q-10` reste à trancher.
+
 ### R-46 · 🟠 · **fermé le 2026-09-08** (T-07) · ouvert le 2026-09-06 — les valeurs repliées n'avaient aucun moyen d'être dépliées
 
 `FacetValues` marque `folded` tout ce qui dépasse `visible` (10), la vue les rend avec `hidden`, et
@@ -1181,6 +1222,11 @@ dit **quoi** est filtré en dehors des cases cochées — invisibles dès qu'une
 hors écran, ou dans un panneau mobile. Le motif attendu sur un listing e-commerce est une liste de
 puces retirables une à une.
 
+**Au 2026-09-22** (passe documentaire, `R-153`) : **deux textes se contredisent.** `D-07` dit que la maquette
+ferme ce constat (« Filtres appliqués : 1 » est un compteur) ; le Journal du 2026-09-07 dit qu'il
+reste ouvert (« une pastille bien centrée ne remplace pas des puces retirables »). À trancher par
+Louis.
+
 ### R-48 · 🟡 · ouvert · 2026-09-06 — rien pour le mobile
 
 Pas de composant de bascule, pas de tiroir de facettes, pas de crochet prévu. Sur un thème
@@ -1197,6 +1243,10 @@ le croisement de deux facettes. C'est documenté comme « limite assumée » —
 dit à quelle fréquence le cas est atteint sur un vrai catalogue, et un message « aucun résultat »
 sans aucune facette visible est un mur.
 
+**Au 2026-09-22** (passe documentaire, `R-153`) : en partie. Mesuré : `?q=` sans résultat masque les
+quatre blocs de facette ; `?marque=aeris&categorie=parfum` rend zéro carte, mais les facettes
+catégorie et marque restent visibles.
+
 ### R-50 · ⚪ · ouvert · 2026-09-06 — `ItemList` ne publie pas `numberOfItems`
 
 Détail SEO, une clé.
@@ -1207,6 +1257,10 @@ Détail SEO, une clé.
 coûterait une recherche ». Le catalogue de ce projet compte 76 produits publiés (vérifié). Sur ce
 volume, `immediate` est probablement le bon réglage — et le bouton « Appliquer les filtres » est
 aujourd'hui rendu et inerte.
+
+**Au 2026-09-22** (passe documentaire, `R-153`) : `submit` est toujours le défaut du code
+(`ApplyMode::OnSubmit`), mais le bouton n'est plus inerte depuis `R-20`. Le gabarit publié
+(`config/meilifacets.php.stub`) écrit, lui, `'immediate'`. `Q-24` reste ouverte.
 
 ### R-52 · 🟡 · **fermé le 2026-09-07** · ouvert le 2026-09-06 — pas de `preconnect` vers l'origine du moteur
 
@@ -1300,6 +1354,9 @@ Si le gain de latence est l'objectif premier, alors la première mesure à faire
 JavaScript : c'est de chronométrer un rendu de `/boutique` filtrée sur un catalogue réel, avec et
 sans allègement de la requête principale. Aucune mesure de ce genre n'existe à ce jour.
 
+**Au 2026-09-22** (passe documentaire, `R-153`) : en partie. Filtrer, trier et paginer ne rechargent plus
+la page (`R-20`) ; le premier rendu est inchangé ; le point sur `R-19` reste vrai.
+
 ### R-55 · 🟠 · **fermé le 2026-09-06** (T-38) · ouvert le 2026-09-06 — le module ne savait pas se vérifier lui-même
 
 Relevé en cherchant à écrire un hook qui ne dépende pas de Pluralia. **Vérifié le 2026-09-06** :
@@ -1364,6 +1421,12 @@ prendre le nom `categorie`, puisqu'un listing ne mélange jamais les types de co
 qu'une seule des deux taxonomies est lue sur une page. **La vérification doit donc porter sur les
 facettes d'un même listing, pas sur la configuration entière** — ce qui change la nature de la
 commande : elle passe d'un contrôle de configuration à un contrôle par listing.
+
+**Élargi le 2026-09-22** (passe documentaire, `R-153`) : le même aveuglement couvre une taxonomie
+mappée sur un paramètre réservé du module. `UrlParameters::all()` rend alors deux fois le même nom, et
+rien ne le relève : sur `sort`, `q` ou `pg`, `check-parameters` se tait ; sur `min_price` ou
+`max_price`, la taxonomie ne reçoit que l'avertissement prévu pour la borne (`D-h`). Lu dans la source.
+`prix.md` promettait l'inverse (« `UrlParameters::taxonomies()` écarte déjà les réservés ») ; annoté.
 
 ### R-57 · 🟡 · ouvert · 2026-09-06 — le client n'a aucune source de libellés
 
@@ -3062,6 +3125,82 @@ tous les visiteurs le prix d'un brouillon. Moins large qu'avant `R-146`, où les
 tous les enfants (`class-wc-product-grouped-data-store-cpt.php:76-85`). Réponse possible : projeter en
 visiteur anonyme, comme `ShopTaxLocation` impose l'adresse — un comportement visible, à trancher par Louis.
 
+### R-153 · 🟡 · ouvert · 2026-09-22 — la documentation décrivait le module d'avant le prix et le TypeScript
+
+Demandé par Louis le 2026-09-22 : « Fait une grosse passe sur la documentation, pour voir si la doc
+module est toujours bien à jour ». Six relectures en lecture seule, par sous-agents — README,
+`installation.md` et `lots.md` ; `architecture.md` ; `configuration.md` ; `pieges.md` et `prix.md` ;
+`decisions.md` ; le registre. Chaque affirmation décisive a été revérifiée dans la source avant
+d'être corrigée ; ce qui n'a pas pu l'être est écrit comme tel.
+
+**Ce qui était faux, en gros** : le prix décrit comme un travail à faire alors qu'il est indexé,
+filtrable et triable ; `resolveIndexable()` ignoré, donc « une surcharge de `formatForIndexing()`
+ne serait jamais appelée » ; `MEILI_INDEX_NAME` et `MEILI_MATCHING_STRATEGY` présentées comme lues ;
+Pluralia décrite comme liant son propre `CardProjector` ; la règle de `Contract::VERSION` donnée
+dans sa version d'avant `R-116` ; le contrat `facet` → `more` sans sa condition ; les paramètres
+réservés, le `noindex` et la canonique sans les bornes de prix ni Yoast ; des valeurs CSS, des noms
+de fichiers `.js` et une classe (`CardPainter`) antérieurs au passage au TypeScript.
+
+**Corrigé** : les huit documents de `docs/` et le README. Les décisions validées ne sont pas
+réécrites : un écart entre une décision et le code y est **annoté**, daté, avec son renvoi. Deux
+commentaires de code répétaient les mêmes erreurs et sont corrigés — `FacetedPostIndexable` (la
+surcharge « jamais appelée ») et le docblock de `IndexingPolicy::appliesTo()` (bornes de prix) ;
+aucune ligne exécutable ne change.
+
+**Registre** : `R-05` rouvert (fermé à tort), `R-35` fermé, `R-56` élargi ; ouverts : `R-150`,
+`R-151`, `R-152`. Questions répondues et marquées : `Q-05`, `Q-06`, `Q-07`, `Q-14`, `Q-15` ; idées
+`I-03` et `I-05`. `D-09` annoté de son renversement. Les tableaux de tâches ont retrouvé leur
+colonne « État », que le rendu masquait.
+
+**À trancher par Louis** — écrits dans les documents comme non tenus, pas corrigés :
+
+- le renversement du défilement (`85b3097`, 2026-09-08) : qui l'a décidé ;
+- la carte de l'archive, `<x-theme::product-card>` décidée, `<x-meilifacets::card>` rendue (`Q-10`, `R-45`) ;
+- `R-47`, fermé par `D-07` et gardé ouvert par le Journal ;
+- `FacetCounter`, qui ne couvre que le premier rendu (`R-144`) ;
+- Varnish à 180 s dans « Validées », la stratégie de cache HTTP dans « En attente » ;
+- les quatre apports du moteur postérieurs à la 1.10.3, qu'aucune ligne n'emploie (`R-41`) ;
+- le repli de `NameOrder` sans `ext-intl`, « jamais silencieux » mais sans signal ;
+- `apply_mode` : `submit` par défaut dans le code, `'immediate'` dans le gabarit publié ;
+- « Structure, commandes, configuration » en attente alors qu'en partie tranché ;
+- la suite `Plugin` du projet, à remesurer ; l'« Historique » de `decisions.md` et le Journal ci-dessous,
+  arrêtés au 2026-09-02 et au 2026-09-09 : les tenir ou les retirer ;
+- `Q-11` : tranchée dans `decisions.md`, jamais marquée ;
+- `D-05` : les hooks du module ont changé (`.claude/hooks/`, non suivi par git) sans entrée au registre.
+
+**README réécrit le 2026-09-22**, sur remarque de Louis (« il ne respecte pas les conventions »),
+d'après les deux modèles qu'il a donnés : en anglais, avec *Why*, *Principles*, points d'extension,
+*Requirements*, *Installation*, *Usage*, *Development*, *Documentation*, *Contributing* et
+*License* — sans numéro de registre. Ni badge (pas de CI) ni SemVer (aucune version taguée).
+
+### R-152 · ⚪ · ouvert · 2026-09-22 — des chaînes littérales restent là où la règle demande un nom
+
+Trouvé par la passe documentaire (`R-153`), contre la décision « pas de chaînes littérales ».
+`ProductListing::baseFilter()` écrit `'post_type'` et `'post_status'`, deux champs que MeiliScout
+pose dans le document et que `DocumentField` ne nomme pas. `ProductPriceProjector::carriesSalePrice()`
+lit `'_sale_price'` à côté de `ProductMeta::Price`. Les clés du plan de requête relèvent de `R-02`.
+
+⚠️ Piège pour le correctif : ajouter `SalePrice` à `ProductMeta` le déclarerait **filtrable**, puisque
+`WooCommerceIndexAttributes` déclare `ProductMeta::paths()`, soit tous ses cas.
+
+### R-151 · 🟡 · ouvert · 2026-09-22 — le compteur d'une valeur de facette entre dans le nom de sa case
+
+`architecture.md` pose que le compteur est **décrit** (`aria-describedby`) et jamais **nommé**, pour
+qu'un filtrage ne renomme pas la case sous le curseur. La vue ne le tient qu'à moitié :
+`facet.blade.php` rend le `<span data-meili="count">` **dans** le `<label>` qui enveloppe l'`<input>`,
+donc dans le nom accessible que le navigateur calcule depuis ce label — et il est en plus décrit. Le
+test (`FacetComponentTest`) vérifie `aria-describedby` et l'absence d'`aria-labelledby`, pas le nom.
+Lu dans la vue et le calcul du nom accessible ; non écouté sur un lecteur d'écran. Le correctif touche
+une vue surchargeable : à décider avec Louis.
+
+### R-150 · 🟡 · ouvert · 2026-09-22 — MeiliScout teste une constante en majuscules et la lit en minuscules
+
+`Config::get()` (`meiliscout/src/Config/Config.php:24-26`) teste `defined(strtoupper($key))` puis
+renvoie `constant($key)`, la clé d'origine en minuscules. Une constante `MEILISCOUT_ASYNC_INDEXING`
+définie ferait donc lever `Undefined constant` au lieu d'activer l'indexation différée. Lu dans la
+source, non mesuré en requête ; `configuration.md` le signale. Correctif amont d'une ligne
+(`constant($constKey)`), à proposer sur `feat/meilifacets` comme `resolveIndexable()` avant lui.
+
 ### R-149 · 🟠 · ouvert · 2026-09-17 — une archive de marque affiche tout le catalogue
 
 `/marque/aeris` rend 16 cartes sur 5 pages et une plage de 0 à 199 €, comme `/boutique` ; `/boutique?marque=aeris`
@@ -4669,6 +4808,9 @@ Le défaut précède le passage en composants anonymes ; il a été relevé en l
 parce que la mémoïsation suppose que la devise ne change pas en cours de requête, ce qui est vrai
 sur ce projet mais pas garanti sous un plugin multi-devise — à trancher, pas à rustiner.
 
+**Au 2026-09-22** (passe documentaire, `R-153`) : toujours vrai ; la ligne citée pour `ListingDescription`
+est aujourd'hui `:52`.
+
 ---
 
 ### R-114 · 🟡 · ouvert · 2026-09-15 — deux façons de nommer un crochet, et le clivage est structurel
@@ -4690,6 +4832,9 @@ vérifié à la compilation. La seconde est même la plus sûre des deux.
 
 À trancher sous ce numéro plutôt que vue par vue : soit `$hook()` disparaît au profit de l'enum
 partout, soit il reste et les composants anonymes reçoivent leurs crochets en props.
+
+**Au 2026-09-22** (passe documentaire, `R-153`) : toujours vrai ; le décompte a bougé — 29 appels à
+`$hook(` dans 9 vues.
 
 ---
 
@@ -5226,6 +5371,10 @@ cas de `R-105`. Attraper celui-là imposerait de comparer les deux arbres, donc 
 fixture, donc de faire dépendre `composer check` d'une application hôte. À reconsidérer avec `R-70`,
 qui touche déjà à la manière dont le client est livré.
 
+**Au 2026-09-22** (passe documentaire, `R-153`) : toujours vrai ; le chemin cité est périmé —
+la fixture vit sous `tests/ts/`, `tests/js/` n'existe plus. Le déclencheur « avec `R-70` » est passé
+(`R-70` fermé par `R-132`).
+
 ---
 
 ### R-101 · 🟡 · **fermé le 2026-09-09** · ouvert le 2026-09-09 — les tests Feature assertaient le catalogue du projet hôte
@@ -5471,7 +5620,7 @@ S'y ajoutaient, mesurés sous happy-dom, le cadre et le remplissage que le navig
 `<fieldset>` nu, et la marge basse.
 
 Correctif : les quatre règles s'accrochent à `[data-meili="facet"]`, le crochet que la facette porte
-elle-même. C'est ce que `decisions.md:184` demandait déjà — « la règle s'accroche à `data-meili`,
+elle-même. C'est ce que `decisions.md:186` demandait déjà — « la règle s'accroche à `data-meili`,
 jamais aux classes ». Seule reste au groupe `[data-meili="facets"] [data-meili="facet"]:last-of-type`,
 qui parle vraiment d'une position dans le groupe. La spécificité baisse de `0-2-0` à `0-1-0`, donc un
 thème surcharge plus facilement — dans le sens voulu.
@@ -5627,19 +5776,22 @@ amender.
 
 ### Ordre de marche
 
-**Q-05 · Que devient une facette mono-sélection ?**
+**Q-05 · ~~Que devient une facette mono-sélection ?~~** — **répondue le 2026-09-06 par D-07** : comptage
+disjonctif, catégorie en multi-sélection restreinte au niveau courant (`T-05` fait). *Marquée le 2026-09-22.*
 Trois issues à R-10 : (a) comptage disjonctif pour toutes les facettes, mono comprise ; (b) la
 catégorie cesse d'être une facette et devient une navigation par liens sur le chemin — ce qui est
 déjà à moitié le cas puisque la facette se retire sur une archive de catégorie ; (c) on garde le
 comportement actuel et on l'écrit comme une limite. Ma préférence : (b) pour la catégorie,
 (a) comme règle générale.
 
-**Q-06 · La facette catégorie doit-elle restituer la hiérarchie ?**
+**Q-06 · ~~La facette catégorie doit-elle restituer la hiérarchie ?~~** — **répondue le 2026-09-06 par D-07** :
+ni hiérarchie ni liste plate, le niveau courant (`ChildTermsFacet`, `T-06` fait). *Marquée le 2026-09-22.*
 Si oui, le modèle éprouvé est un champ par niveau (`facets.product_cat_lvl0/1/2`), ce qui change
 la projection d'indexation — donc c'est une décision de lot 1, à prendre avant d'écrire le client.
 Si non, il faut assumer une liste plate plafonnée à 30 sur plus de cent termes. *Cite : R-11.*
 
-**Q-07 · `ProductListing` reste-t-il dans le module ?**
+**Q-07 · ~~`ProductListing` reste-t-il dans le module ?~~** — **répondue le 2026-09-06 par D-01** : il reste,
+conditionnel (`R-09` fermé). *Marquée le 2026-09-22.*
 S'il en sort, R-09 disparaît, la dépendance WooCommerce du module aussi, et le lot 4 devient un
 travail de projet. S'il reste, il faut une garde que la découverte respecte
 (`Listing::isAvailable()`).
@@ -5680,15 +5832,19 @@ s'y mélangent : les décisions (à garder, c'est la valeur), les constats techn
 dépendances (à garder, c'est irremplaçable) et le journal de session (à archiver). Qui la lit,
 en dehors de nous deux ? *Cite : R-36, R-37.*
 
-**Q-14 · (réorientée par D-01) Le contrat `data-meili` est acquis — comment le rend-on fiable
-sans le rendre cher ?**
+**Q-14 · ~~(réorientée par D-01) Le contrat `data-meili` est acquis — comment le rend-on fiable
+sans le rendre cher ?~~** — **réglée le 2026-09-07** : `R-23` et `R-25` fermés, `ContractParityTest`
+compare les deux côtés, et la vérification tourne toujours, pas seulement en `WP_DEBUG`. *Marquée le
+2026-09-22.*
 La surcharge par le thème est une exigence, donc le contrat reste. Ce qui est encore ouvert : sa
 vérification tourne-t-elle en production ou seulement en `WP_DEBUG` ? Comment garantit-on que les
 deux listes ne divergent pas (R-25, voir I-05) ? Et que fait-on des attributs hors contrat que le
 client lit déjà — `data-taxonomy`, `data-apply`, `data-listing`, `data-value` (R-23) ?
 
-**Q-15 · Accepte-t-on définitivement les deux implémentations du plan de requête, ou le serveur
-émet-il le plan que le client rejoue ?**
+**Q-15 · ~~Accepte-t-on définitivement les deux implémentations du plan de requête, ou le serveur
+émet-il le plan que le client rejoue ?~~** — **réglée** : les deux restent, écrites en dette
+(`decisions.md`, « Le plan de requête existe des deux côtés ») ; `T-16` fait. Rien ne la borne encore
+(`R-32`). *Marquée le 2026-09-22.*
 La divergence est déjà là (R-22). Si PHP sérialise un plan complet en JSON, `ListingQuery`
 disparaît, `ListingUrl` reste, et la dette se referme. Le coût : le client ne sait plus recalculer
 un plan sans aller-retour — ce qui n'est un problème que si l'on veut chaîner deux filtres sans
@@ -5794,9 +5950,10 @@ parité lisible). Les commentaires devenus faux ou inexacts sont déjà corrigé
 
 Un point à la fois (`D-03`), dans cet ordre, sauf décision contraire de Louis :
 
-1. **Retours de la PR #2**, avant tout nouveau commit : `R-147` (`NativeFiltering`, en cours), puis `R-146`
-   (taxes). `R-148` est fermé.
-2. `R-149` — une archive de marque affiche tout le catalogue, le seul visible sur Pluralia.
+1. **Retours de la PR #2** : `R-146`, `R-147` et `R-148` sont fermés. Restent à committer, dans l'ordre : les
+   suites de `R-147`, `R-146`, la passe documentaire `R-153` (en l'état, à la demande de Louis) et `R-03`
+   (`Contract` devenu un enum, fait en attendant les passes). `R-154` est ouvert, à trancher par Louis.
+2. `R-149` — une archive de marque affiche tout le catalogue, le seul mesuré sur Pluralia.
 3. `R-142` — le glissé du prix casse sur une vue à une seule poignée basse, et hors du bouton principal.
 4. `R-143` — le client efface le balisage d'un bouton « Voir plus » surchargé ; demande l'accord de Louis
    (`Contract::VERSION` des deux côtés).
@@ -5804,6 +5961,9 @@ Un point à la fois (`D-03`), dans cet ordre, sauf décision contraire de Louis 
 6. `R-141` — cinq tests `Feature` dépendent de l'ordre de la suite.
 7. `Q-31` — commentaires de rôle et renvois vers le miroir PHP : à trancher par Louis avant toute purge.
 8. `R-145` — les restructurations relevées par les passes rejouées, ligne par ligne.
+
+*Ce qui suit, jusqu'aux tableaux, est le plan du 2026-09-06, gardé comme historique : l'ordre courant
+est la file d'attente ci-dessus.*
 
 Le découpage en sept lots reste valable. Ce qui change : **le lot 3c ne s'ouvre pas tant que le
 rendu qu'il contractualise n'est pas juste.** Écrire le client sur un socle qui a R-10, R-11 et
@@ -5825,12 +5985,12 @@ parallèle : il ne touche pas au rendu.
 | Id | Tâche | Ferme | État |
 | --- | --- | --- | --- |
 | T-01 | Cadrage : rôle du module, dépôt, méthode | R-38 (partiel) | **fait** — D-01, D-02, D-03 |
-| T-02 | Trancher Q-05, Q-06, Q-10 (forme du listing) | R-10, R-11, R-45 | à faire |
-| T-03 | Trancher Q-03 et Q-11 (modèle de sécurité) | R-26, R-27, R-28 | à faire |
+| T-02 | Trancher Q-05, Q-06, Q-10 (forme du listing) | R-10, R-11, R-45 | partiel — Q-05 et Q-06 réglées par D-07 ; reste Q-10 |
+| T-03 | Trancher Q-03 et Q-11 (modèle de sécurité) | R-26, R-27, R-28 | à faire — Q-11 tranchée dans `decisions.md`, non marquée (R-26) |
 | T-04 | Fixer le calendrier de montée de version du moteur (Q-12) | R-41 | à faire |
 | T-31 | Fixer la ligne fonctionnement / apparence de la feuille de style (Q-28) | R-53 | **fait** — Q-28 répondue, R-53 fermé |
 | T-32 | Fixer le critère de recette du socle (Q-04b) | — | à faire |
-| T-33 | Mesurer le coût WordPress d'une URL de listing (Q-29, Q-30) | R-54 | à faire |
+| T-33 | Mesurer le coût WordPress d'une URL de listing (Q-29, Q-30) | R-54 | partiel — mesure locale de D-08 ; catalogue réel attendu |
 | T-35 | Outiller la méthode : `CLAUDE.md` v2, agents `conformity` et `module-review` | — | **fait** — D-05 |
 | T-38 | Rendre le module vérifiable seul : `require-dev`, `phpunit.xml`, `pint.json`, scripts | R-55 | **fait** — `composer check` vert, sans chemin |
 | T-36 | Hook `Stop` exécutant `composer check` | R-55 | **fait** — `.claude/settings.json` du module, versionné, sans chemin machine |
@@ -5838,53 +5998,54 @@ parallèle : il ne touche pas au rendu.
 
 ### Chantier B — rendre le socle serveur juste
 
-| Id | Tâche | Ferme |
-| --- | --- | --- |
+| Id | Tâche | Ferme | État |
+| --- | --- | --- | --- |
 | T-05 | Comptage disjonctif selon la décision de Q-05 ; radio décochable ou navigation par liens | R-10 | **fait** |
 | T-06 | Facette catégorie : hiérarchie ou limite écrite | R-11 | **fait** |
 | T-07 | Bouton de dépliage : crochet, vue, contrat, version | R-46 | **fait** — R-46 fermé, plus R-82 à R-86 relevés en chemin |
-| T-08 | Filtres actifs en puces retirables | R-47 |
-| T-09 | Réindexation sur `edited_term`, `delete_term`, `set_object_terms` | R-12 |
-| T-10 | Timeout explicite sur le client Meilisearch + client construit par le module, pas par `ClientFactory` | R-19 |
+| T-08 | Filtres actifs en puces retirables | R-47 | à faire — R-47 contesté, voir l'entrée |
+| T-09 | Réindexation sur `edited_term`, `delete_term`, `set_object_terms` | R-12 | partiel — fait en amont par MeiliScout, sauf la suppression d'un terme |
+| T-10 | Timeout explicite sur le client Meilisearch + client construit par le module, pas par `ClientFactory` | R-19 | à faire |
 | T-11 | `IndexingPolicy` ne décide qu'en présence d'un listing | R-16 | **fait** |
-| T-12 | `Hook::from()` tolérant ; `array_combine` protégé ; hit sans `card` journalisé | R-17, R-14, R-13 |
+| T-12 | ~~`Hook::from()` tolérant~~ (refusé, `R-17` accepté) ; `array_combine` protégé ; hit sans `card` journalisé | R-17, R-14, R-13 | à faire |
 | T-13 | `countId()` porte le nom du listing | R-15 | **fait** |
-| T-14 | Tests du câblage : bridge, indexable, moteur, découverte, listing résolu | R-30, R-31 |
+| T-14 | Tests du câblage : bridge, indexable, moteur, découverte, listing résolu | R-30, R-31 | partiel — voir R-30 |
 | T-15 | `preconnect` vers `MEILI_PUBLIC_URL` | R-52 | **fait** |
-| T-34 | Feuille de style du module, selon la ligne fixée en T-31 — **tri, facettes, boutons et mise en colonnes des résultats livrés** | R-53 |
+| T-34 | Feuille de style du module, selon la ligne fixée en T-31 — **tri, facettes, boutons et mise en colonnes des résultats livrés** | R-53 | **fait** — R-53 fermé |
 
 ### Chantier C — livrer le client (ex-lot 3c)
 
-| Id | Tâche | Ferme |
-| --- | --- | --- |
+| Id | Tâche | Ferme | État |
+| --- | --- | --- | --- |
 | T-16 | Décider la forme du contrat de données serveur → navigateur (Q-15) | R-21 | **fait** |
 | T-17 | Sérialiser connexion et description du listing | R-21 | **fait** |
 | T-18 | Point d'entrée, inscription du script, démarrage sur vérification du contrat | R-20 | **fait** |
 | T-19 | Les cinq gestes, le repeint, `popstate` | R-20 | **fait** |
 | T-20 | Aligner `toggle()` sur la sélection mono, dédoublonner et plafonner côté JS | R-22 | **fait** |
-| T-21 | Test croisé `Hook` / `contract.js` et `QueryPlan` / `ListingQuery` | R-25, R-32 |
-| T-22 | Comportement après échec, simple et unique (Q-21) | — |
+| T-21 | Test croisé `Hook` / `contract.js` et `QueryPlan` / `ListingQuery` | R-25, R-32 | moitié faite — `ContractParityTest` ; rien pour le plan (R-32) |
+| T-22 | Comportement après échec, simple et unique (Q-21) | — | à faire |
 | T-23 | Retirer `Hook::PageTemplate` ou le rendre | R-24 | **fait** |
 
 ### Puis, dans l'ordre des lots
 
-- **Lot 4** — prix, stock, variations. **Moitié prix livrée** le 2026-09-15 (`R-43` fermé) ;
-  restent le stock et les variations, différés par `D-f` et `D-g`.
+- **Lot 4** — prix, stock, variations. **Moitié prix livrée** le 2026-09-15 (`R-43` fermé), taxes
+  tranchées le 2026-09-22 (`D-e`, `R-146`) ; restent le stock et les variations, différés par `D-f`
+  et `D-g`.
 - **Lot 5** — recherche et suggestions. Prérequis : Q-09, et `searchableAttributes` (R-27).
 - **Lot 6** — diagnostics. `meilifacets:doctor`, canal de log, messages avec `errorCode` /
   `errorLink`.
-- **Lot 7** — réutilisabilité. Dépend entièrement de Q-01.
+- **Lot 7** — réutilisabilité. Dépendait de Q-01, répondue par D-01.
 
 ### Nettoyage, à faire au fil de l'eau
 
-| Id | Tâche | Ferme |
-| --- | --- | --- |
+| Id | Tâche | Ferme | État |
+| --- | --- | --- | --- |
 | T-24 | Supprimer les déclarations jamais lues | R-33 | **fait** |
-| T-25 | Supprimer les `.gitkeep` et `.playwright-mcp` | R-34 |
-| T-26 | Corriger les quatre affirmations fausses de la doc | R-36 |
-| T-27 | Fermer la dette `product_tag => tag` (déjà corrigée en config) | R-36 |
-| T-28 | Extraire un `QueryPlan` instanciable ; mémoïser `facets()` et `sorts()` | R-01, R-07 |
-| T-29 | Objet `SearchRequest` typé à la place du tableau de plan | R-02 |
+| T-25 | Supprimer les `.gitkeep` et `.playwright-mcp` | R-34 | à faire |
+| T-26 | Corriger les quatre affirmations fausses de la doc | R-36 | **fait** |
+| T-27 | Fermer la dette `product_tag => tag` (déjà corrigée en config) | R-36 | **fait** |
+| T-28 | Extraire un `QueryPlan` instanciable ; mémoïser `facets()` et `sorts()` | R-01, R-07 | moitié faite — mémoïsation faite, `QueryPlan` toujours statique |
+| T-29 | Objet `SearchRequest` typé à la place du tableau de plan | R-02 | à faire |
 | T-30 | Déplacer `Contract` hors de `Enums` | R-03 |
 | T-39 | Versionner les modules ES importés : publication dans un répertoire portant l'empreinte | R-70 | **sans objet** — remplacé par l'empaquetage le 2026-09-16 (`R-132`) |
 | T-40 | Ramener le regard en haut du listing après pagination et tri | R-73 | **fait** |
@@ -5947,7 +6108,7 @@ Un token dérivé de la clé de recherche, portant des `searchRules` qui imposen
 filtre côté navigateur, et ça ferme R-28, R-27 et la question des brouillons d'un coup. Coût : le
 token a une expiration, donc un point d'émission côté PHP — ce que la page fait déjà.
 
-**I-03 · Facette hiérarchique par niveau.**
+**I-03 · ~~Facette hiérarchique par niveau.~~** — *sans objet depuis D-07 (niveau courant). Marquée le 2026-09-22.*
 `facets.product_cat_lvl0/1/2` à l'indexation, façon Algolia. Rend R-11 solvable, permet de ne
 montrer que le niveau courant et ses enfants, et supprime le mélange de niveaux. Décision de lot 1,
 à prendre avant le client.
@@ -5957,7 +6118,7 @@ Réglage d'index, non posé aujourd'hui (vérifié : `null`). Il borne le temps 
 lui-même et rend une réponse dégradée plutôt qu'une attente. Complément naturel du timeout PHP de
 T-10.
 
-**I-05 · Un test qui compare les deux contrats.**
+**I-05 · ~~Un test qui compare les deux contrats.~~** — *réalisée : `ContractParityTest`. Marquée le 2026-09-22.*
 Un test PHP qui lit `contract.js`, en extrait les crochets et la version, et les compare à `Hook` et
 `Contract::VERSION`. Quinze lignes, et la dette « deux listes qui divergent en silence » cesse
 d'exister.
@@ -6231,7 +6392,7 @@ continuer à décider sur 76 produits sans variations.
 
   **`R-93` était le seul défaut visible sur la page** : quatre règles habillaient la facette depuis
   le groupe, donc une facette déplacée sortait en 16 px avec des puces et le cadre d'un `<fieldset>`
-  nu. Corrigé en accrochant les règles à `[data-meili="facet"]`, ce que `decisions.md:184` demandait
+  nu. Corrigé en accrochant les règles à `[data-meili="facet"]`, ce que `decisions.md:186` demandait
   déjà.
 
   **`R-94` a révélé un trou dans ma propre documentation** : `configuration.md`, écrit la veille pour
@@ -6251,3 +6412,9 @@ continuer à décider sur 76 produits sans variations.
   test. Les trois choix que la validation entérine : le nom porté par la facette (un troisième nom
   pour une même chose, après la taxonomie et le paramètre d'URL), l'exception au double rendu
   (`R-95`, différé), et le sous-ensemble arbitraire non livré faute de demandeur.
+- **2026-09-22** — **Passe documentaire (`R-153`)**, à la demande de Louis. Le journal n'a pas été
+  tenu du 2026-09-10 au 2026-09-21 : les entrées `R-109` à `R-149`, datées, et la file d'attente en
+  tiennent lieu — le tenir ou le retirer est à trancher. Six relectures en lecture seule, chaque point
+  décisif revérifié dans la source. Le prix, le passage au TypeScript et `resolveIndexable()` n'avaient
+  pas atteint `architecture.md` ; `decisions.md` portait des décisions que le code ne tient plus, annotées
+  sans être réécrites ; le registre avait fermé `R-05` à tort et laissé répondues cinq questions ouvertes.

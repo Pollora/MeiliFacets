@@ -1,6 +1,6 @@
 # MeiliFacets — décisions
 
-Voir aussi : [installation.md](installation.md) · [architecture.md](architecture.md) · [configuration.md](configuration.md) · [lots.md](lots.md) · [pieges.md](pieges.md) · [revue.md](revue.md)
+Voir aussi : [installation.md](installation.md) · [architecture.md](architecture.md) · [configuration.md](configuration.md) · [lots.md](lots.md) · [pieges.md](pieges.md) · [prix.md](prix.md) · [revue.md](revue.md)
 
 ## Validées
 
@@ -14,31 +14,31 @@ Voir aussi : [installation.md](installation.md) · [architecture.md](architectur
 | Front | classes ES sans dépendance, livrées par le module, markup entièrement surchargeable par le thème |
 | Langage | **TypeScript** pour le client navigateur, limité à la syntaxe effaçable. *Renversé le 2026-09-16 : c'était « JavaScript, pas de TypeScript », avec des types en JSDoc que rien ne vérifiait — 56 erreurs dans le code livré.* |
 | Intégration | composants Blade ; bloc Gutenberg envisagé plus tard |
-| Chargement | état de chargement dans le composant listing, seuils calibrés sur la mesure |
+| Chargement | état de chargement dans le composant listing, seuils calibrés sur la mesure. *Non livré au 2026-09-22 : lot 3c-3 ouvert.* |
 | URLs | chemins natifs WooCommerce conservés, filtres en query vars |
 | Panne du moteur | vue Blade de repli annonçant un problème technique |
 | Diagnostics | en anglais, avec cause et action ; libellés d'interface traduisibles |
-| Code | pas de chaînes littérales : énumérations ou constantes |
+| Code | pas de chaînes littérales : énumérations ou constantes. *Pas tenu partout au 2026-09-22 (`R-152`).* |
 | Multilingue | non implémenté, mais l'architecture doit le permettre sans refonte |
-| Projection des facettes | un champ par taxonomie, via un indexable étendu substitué par `meiliscout/indexables` |
+| Projection des facettes | un champ par taxonomie, posé par le filtre `meiliscout/post/document` ; l'indexable substitué par `meiliscout/indexables` en déclare les réglages. *Précisé le 2026-09-22 : la ligne attribuait le champ à l'indexable.* |
 | Taxonomies filtrables | toutes celles indexées par MeiliScout — ce qui est indexé est filtrable |
 | Unité de résultat | le produit — il n'apparaît **jamais deux fois** dans un listing |
-| Produits variables | quand un filtre ne correspond qu'à certaines variations, on affiche le produit avec les informations de la variation correspondante |
+| Produits variables | quand un filtre ne correspond qu'à certaines variations, on affiche le produit avec les informations de la variation correspondante. *Non livré au 2026-09-22 : la carte porte la fourchette du produit ; lot 4.* |
 | Carte produit | markup rendu par le serveur, mis à jour par liaison d'attributs |
-| Repli | `503`, `Retry-After`, `Cache-Control: no-store` |
+| Repli | `503`, `Retry-After`, `Cache-Control: no-store`. *Le module pose les en-têtes ; Pollora écrase le statut, voir Dettes (`R-40`).* |
 | Clé de recherche | clé fixe fournie par l'infrastructure (submodule Docker AmphiBee) — le module ne la crée pas |
-| Variables d'environnement | conventions existantes des projets AmphiBee : `MEILI_HOST`, `MEILI_KEY`, `MEILI_INDEX_NAME`, `MEILI_MATCHING_STRATEGY`, `MEILI_PUBLIC_URL`, `MEILI_SEARCH_KEY` |
+| Variables d'environnement | conventions existantes des projets AmphiBee : `MEILI_HOST`, `MEILI_KEY`, `MEILI_INDEX_NAME`, `MEILI_MATCHING_STRATEGY`, `MEILI_PUBLIC_URL`, `MEILI_SEARCH_KEY`. *Au 2026-09-22, ni MeiliScout ni le module ne lisent `MEILI_INDEX_NAME` ni `MEILI_MATCHING_STRATEGY` : l'index s'appelle `posts` en dur.* |
 | Version du moteur | local sur `latest`, non épinglé ; la production en 1.10.3 **doit être montée de version** — prérequis de déploiement |
 | Découpage | sept lots, décrits dans [lots.md](lots.md) ; les décisions ouvertes se prennent au début du lot concerné |
-| Dépendance MeiliScout | épinglée sur `dev-feat/meilifacets` (commit `1c59a05`) — **dette : repasser à `dev-main` après merge de la PR** |
+| Dépendance MeiliScout | épinglée sur `dev-feat/meilifacets` (commit `a83fa4b` au lock depuis `R-112`, `1c59a05` à l'origine) — **dette : repasser à `dev-main` après merge de la PR** |
 | Noms des paramètres d'URL | figés en configuration (`meilifacets.url_parameters`), jamais dérivés d'un libellé de taxonomie |
-| Indexation des URLs de listing | `noindex, follow` sur toute URL portant **un paramètre de listing rempli** — facette, tri, recherche ou page — et **uniquement sur une page d'archive ou de recherche** ; **pas** de canonique vers le chemin nu. *Élargi le 2026-09-06 : un tri et une page étaient indexables, ce qui laissait entrer des doublons ; la garde de contexte a rendu l'élargissement sûr.* |
+| Indexation des URLs de listing | `noindex, follow` sur toute URL portant **un paramètre de listing rempli** — facette, tri, recherche, borne de prix ou page — et **uniquement sur une page d'archive ou de recherche** ; **pas** de canonique vers le chemin nu. *Élargi le 2026-09-06 : un tri et une page étaient indexables, ce qui laissait entrer des doublons ; la garde de contexte a rendu l'élargissement sûr.* |
 | Canonique d'une URL de listing | **supprimée** quand le module pose `noindex` — une canonique désigne deux URLs comme une seule page, et l'associer à un `noindex` revient à dire de cette page unique qu'elle ne doit pas être indexée. Filtre `wpseo_canonical` à la priorité 20, pour passer après l'intégration WooCommerce de Yoast. Inerte sans Yoast |
 | Pagination native de WordPress | `/page/N` **sert la vraie page N** — le listing lit `paged` en repli de `pg` — et reste en `noindex`, sans canonique et sans `rel="next"`/`"prev"`. Les deux paginations coexistaient sans se connaître : `/page/2` à `/page/5` servaient quatre fois la première page, en `index`, avec une canonique auto-référente et une chaîne `rel="next"` qui les liait toutes. *Tranché le 2026-09-06 après analyse dédiée (R-60).* |
 | Forme canonique d'une URL | valeurs triées octet par octet et dédupliquées des deux côtés — sans quoi `?marque=a,b` et `?marque=b,a` sont deux entrées Varnish pour un même état. *Octet par octet depuis le 2026-09-17 : le client n'a plus à reconnaître un nombre.* |
 | Entrées non validées | un tri absent de `sorts()` est ignoré, une facette est plafonnée à son `cap`, la recherche à 200 caractères — un paramètre libre est un vecteur de saturation du cache |
 | Défense de `hidden` | contre-règle CSS dans la feuille publiée, sur ses classes **et** sur `[data-meili]` — ce qu'une vue surchargée conserve |
-| Feuille de style du module | livre l'apparence par défaut du **tri**, de la **colonne de facettes** et de ses **boutons** — neutre : ni police, ni taille absolue, ni couleur de marque ; seule la grille de résultats reste nue. Le thème surcharge les mêmes sélecteurs `data-meili` ou désinscrit la feuille |
+| Feuille de style du module | livre l'apparence par défaut du **tri**, de la **colonne de facettes** et de ses **boutons** — neutre : ni police, ni taille absolue, ni couleur de marque ; seule la grille de résultats reste nue. *Amendé depuis : la feuille met aussi la grille en colonnes et habille le contrôle de prix, la pagination et le badge de filtres — voir « Ce que le module rend, il l'habille ».* Le thème surcharge les mêmes sélecteurs `data-meili` ou désinscrit la feuille |
 | Markup du prix | rendu tel que WooCommerce le produit, sans liste blanche : filtrer casse les promos et les fourchettes, et ne protège d'aucun scénario réaliste. **À réexaminer si le prix incorpore un jour une donnée saisie par un utilisateur non privilégié** — un champ de personnalisation, un message promotionnel éditorial. Une revue automatique a classé ce retrait « XSS stockée, HIGH » le 2026-09-04 ; le signalement a été écarté faute de vecteur, pas par principe |
 | Mise à jour du DOM | découpage par élément selon le focus : cartes clonées depuis un `<template>`, valeurs de facettes en nœuds stables, pagination en fenêtre fixe |
 | Documentation | **dans le module, `docs/`** — rapatriée depuis `docs/meilifacets/` du projet le 2026-09-07, avant le lot 7 : elle ne faisait que grossir, et chaque jour ajoutait des liens à réécrire |
@@ -47,7 +47,7 @@ Voir aussi : [installation.md](installation.md) · [architecture.md](architectur
 | Déclaration des facettes et des tris | contrats `ProductFacets` et `ProductSorts`, liés en `scopedIf` — le module donne un défaut WooCommerce, le projet le remplace sans patcher le module |
 | Libellés des facettes et des tris | **figés au premier appel** — les implémentations mémoïsent, `__()` compris. Le gain (`T-28`) vaut la contrainte : rien ne change de langue en cours de requête, et le processus meurt avec elle. Un worker de file qui survivrait à un changement de locale garderait les libellés du premier job |
 | Ancêtres de catégorie | la chaîne complète est indexée, pas seulement le terme assigné |
-| Compteurs de facettes | `multi-search` disjonctif, isolé derrière un point d'extension (`FacetCounter`) |
+| Compteurs de facettes | `multi-search` disjonctif, isolé derrière un point d'extension (`FacetCounter`). *Au 2026-09-22, le point d'extension ne couvre que le premier rendu : le client écrit la règle en dur (`R-144`).* |
 | Envoi des recherches | derrière le contrat `SearchEngine` ; le client Meilisearch est injecté, jamais résolu statiquement |
 | Repli `503` | objet `Unavailable` lié en `scoped`, pas d'état statique |
 | `displayedAttributes` | restreint à `ID` et `card` par défaut, ouvert par `meilifacets.displayed_attributes` ; `'*'` rouvre tout |
@@ -56,7 +56,7 @@ Voir aussi : [installation.md](installation.md) · [architecture.md](architectur
 | Valeurs par facette | 10 visibles, le reste rendu et replié, plafond par défaut à 30 |
 | Ce qui décide le plafond et le repli | le plafond sur le **compte** (c'est le moteur qui trie), le repli sur l'**ordre déclaré** — donc réordonner puis replier. *Renversé le 2026-09-08 : le repli se décidait sur le compte avant réordonnancement, ce que le client ne pouvait pas reproduire (`R-85`).* |
 | Tri des valeurs de facette | le moteur compte (`sortFacetValuesBy`), la facette déclare l'ordre d'affichage — `DisplayOrder`, ou un `ValueOrder` que le projet fournit |
-| Comparaison par nom (`NameOrder`) | `Collator` avec `NUMERIC_COLLATION`, construit sur `get_locale()` — donc l'ordre suit la langue de WordPress, celle qui a produit les libellés, et non celle de Laravel. Sans `ext-intl`, repli sur `strnatcasecmp` : documenté, jamais silencieux. Conséquence assumée : `Name` devient sensible à la casse au niveau tertiaire, là où `strnatcasecmp` mettait `abc` et `ABC` à égalité |
+| Comparaison par nom (`NameOrder`) | `Collator` avec `NUMERIC_COLLATION`, construit sur `get_locale()` — donc l'ordre suit la langue de WordPress, celle qui a produit les libellés, et non celle de Laravel. Sans `ext-intl`, repli sur `strnatcasecmp` : documenté, jamais silencieux. *Au 2026-09-22, documenté (`suggest`, `architecture.md`) mais sans signal à l'exécution.* Conséquence assumée : `Name` devient sensible à la casse au niveau tertiaire, là où `strnatcasecmp` mettait `abc` et `ABC` à égalité |
 | Facette qui mélange les grandeurs | **on lit l'ordre que WooCommerce porte déjà** (`DisplayOrder::Declared`), on ne le devine pas depuis le libellé. *Renversé le 2026-09-08 — `MeasureOrder` analysait `15ml` au rendu ; supprimé.* |
 | Hauteur des contrôles | `--meili-control` en `rem` — `2.25rem` (36 px), `2.75rem` (44 px) au pointeur grossier, la cible que demande WCAG 2.5.5. *Était `2.4em`, soit 33,6 px : un multiplicateur sur la propre `font-size` du bouton tombe sur une valeur bâtarde. Coût du `rem` : un thème qui grossit `--meili-ui` n'agrandit plus les contrôles — la hauteur d'un contrôle est une contrainte d'ergonomie, pas une conséquence de la taille du texte. Tranché le 2026-09-09.* |
 | Bouton de dépliage | rendu même quand il n'y a rien à déplier : le client le révèle, il n'en crée aucun |
@@ -64,8 +64,8 @@ Voir aussi : [installation.md](installation.md) · [architecture.md](architectur
 | Taille de page | dérivée du contexte au rendu, jamais recopiée en configuration |
 | Rendu serveur | applique les filtres de l'URL ; Varnish cache chaque combinaison 180 s |
 | Repli des paramètres d'URL | une taxonomie non mappée prend un préfixe, jamais son nom nu |
-| Défauts des paramètres réservés | `sort`, `q`, `pg` — en anglais, le projet les habille |
-| Facettes de l'archive produit | marque, contenance et catégorie, toutes en multi-sélection |
+| Défauts des paramètres réservés | `sort`, `q`, `pg` — en anglais, le projet les habille. *Étendu le 2026-09-15 : `min_price`, `max_price`, noms de WooCommerce (`D-h`, `prix.md`).* |
+| Facettes de l'archive produit | marque, contenance et catégorie, toutes en multi-sélection. *Le module n'en livre que deux, catégorie et marque ; contenance et prix sont déclarés par Pluralia (`CatalogueFacets`).* |
 | Markup des facettes | cases à cocher rendues cochées par le serveur, jamais des liens par valeur |
 | Déclenchement de la recherche | `meilifacets.apply_mode` : `submit` par défaut, `immediate` selon le volume ; le choix voyage dans la description JSON, `data-apply` n'est rendu que pour le thème |
 | Forme des valeurs multiples | une seule, `?marque=a,b` — un formulaire GET n'aurait produit que `marque[]=a&marque[]=b`, soit deux URLs et deux entrées Varnish pour un même état |
@@ -76,7 +76,7 @@ Voir aussi : [installation.md](installation.md) · [architecture.md](architectur
 | Surcharge du markup | le module ajoute le thème en tête de sa cascade de vues |
 | Requête principale des archives | conservée : elle porte le routage et le SEO ; `posts_pre_query` reste banni |
 | Taille de page | `apply_filters('loop_shop_per_page', …)`, jamais `wc_get_loop_prop('per_page')` |
-| Carte de l'archive produit | bascule sur `<x-theme::product-card>`, changement d'apparence assumé |
+| Carte de l'archive produit | bascule sur `<x-theme::product-card>`, changement d'apparence assumé. *Non tenue au 2026-09-22 : l'archive rend `<x-meilifacets::card>` (mesuré sur `/boutique`) ; `R-45`/`Q-10` à trancher.* |
 
 ### Pourquoi la production doit monter de version
 
@@ -100,7 +100,9 @@ S'y ajoutent plusieurs versions consacrées à la performance d'indexation des f
 
 Deux conséquences : le module ne peut pas partir en production avant cette montée, et le SDK PHP
 embarqué par MeiliScout étant en 1.12.0, sa compatibilité avec les réglages introduits ensuite
-reste à confirmer.
+reste à confirmer. *Au 2026-09-22, le code n'emploie aucun des quatre apports : facettes demandées par nom,
+attributs filtrables en liste simple, ni `facetSearch`, ni `prefixSearch`, ni recherche fédérée. Ce que la
+1.10.3 empêche réellement reste à mesurer (`R-41`).*
 
 ### Le module livre ses assets, il ne les injecte pas (2026-09-04)
 
@@ -126,7 +128,7 @@ system. Le module en rend la sémantique et les crochets ; l'apparence et le cla
 respectivement au thème et au client.
 
 Ce que ça supprime : `ListingUrls` et ses tests, donc une deuxième implémentation de la
-construction d'URL à tenir alignée avec `listing-url.js` ; et la réécriture des `href` après chaque
+construction d'URL à tenir alignée avec `listing-url.ts` ; et la réécriture des `href` après chaque
 recherche, qui aurait été obligatoire sinon.
 
 Ce que ça coûte : sans JavaScript le listing est inerte. Cohérent avec les facettes, sans
@@ -160,7 +162,7 @@ apparence — elle rembourse ce que deux décisions de conception ont enlevé au
 
 Le `ul`/`li` à la place d'un `<select>` fait perdre une liste qui se superpose au lieu de pousser
 la page, un fond opaque, et une marque sur l'option que le clavier désigne. Rendus : `position` et
-`z-index`, `Canvas`/`CanvasText`, un `outline` sur `[data-active]`.
+`z-index`, `Canvas`/`CanvasText`, une marque sur `[data-active]` — fond aujourd'hui, `outline` sous `forced-colors`.
 
 `Canvas` et `CanvasText` sont les couleurs système de CSS Color Level 4 — la surface de page du
 navigateur et son texte. Choisies parce qu'elles nomment un **rôle** au lieu d'une couleur : le
@@ -178,7 +180,7 @@ C'est le cas prévu — le thème habille, le module rend seulement utilisable.
 
 Le `<button>` à la place du `<a href>` fait perdre le curseur en main — la seule affordance qu'un
 lien donnait gratuitement. Rendu : `cursor: pointer` sur les huit crochets qui se cliquent, et sur
-eux seuls. Mesuré avant correction : tout le module était en `cursor: default`, seule la carte
+eux seuls — le prix (2026-09-16) y ajoute la piste et les poignées (`grab`). Mesuré avant correction : tout le module était en `cursor: default`, seule la carte
 produit avait la main, parce qu'elle est restée un lien.
 
 Tout le reste — dimensions, typographie, espacements, couleurs de marque — reste au thème et n'est
@@ -201,8 +203,8 @@ répète déjà la valeur, l'afficher deux fois était la remarque d'origine.
 
 Ce que cette apparence ne décide pas : aucune famille de police — `font: inherit`, dimensions en
 `em` — ni aucune couleur de marque : `currentColor`, `Canvas`/`CanvasText`, et trois teintes dérivées en `color-mix` exposées
-en variables sur `[data-meili="sort"]` (`--meili-edge`, `--meili-rule`, `--meili-tint`), qu'un thème
-retint d'une ligne.
+en variables (`--meili-edge`, `--meili-rule`, `--meili-tint`), qu'un thème retint d'une ligne —
+déclarées aujourd'hui sur `[data-listing]`, et non plus sur `[data-meili="sort"]`.
 
 La ligne de facette **centre ses trois éléments** (`align-items: center`) : sous `flex-start`, le
 compteur, dont la boîte est plus courte de deux pixels, était calé en haut et son texte flottait
@@ -216,7 +218,7 @@ avant sa taille en `em`, parce qu'un `<input>` n'hérite pas de la police : sans
 suit `currentColor`, comme le reste.
 
 Les six commandes partagent une seule primitive : `inline-flex` centré, une hauteur commune
-(`--meili-control`, `2.4em`), un padding unique et la même échelle. Le centrage par `text-align` et
+(`--meili-control`, `2.4em` à l'époque, `2.25rem` depuis le 2026-09-09 — voir « Hauteur des contrôles »), un padding unique et la même échelle. Le centrage par `text-align` et
 `line-height` dépendait des métriques de la police ; les numéros de page, eux, prennent `min-width`
 et `tabular-nums`, sans quoi « 1 » et « 2 » n'ont pas la même largeur et la rangée est irrégulière.
 Corollaire à ne pas oublier : dans ce bloc, `font-size` doit précéder toute longueur en `em`, sinon
@@ -231,7 +233,7 @@ le fond suffit. Corollaire de cascade : les états d'appui se déclarent **aprè
 `(hover: hover)`, sinon `:hover` l'emporte à spécificité égale et le fond reste celui du survol.
 Au doigt, ni l'un ni l'autre ne se voit — `-webkit-tap-highlight-color` est éteint sur bien des
 thèmes et iOS ne déclenche pas `:active` sans écouteur tactile —, donc le module redéclare ce flash
-natif à la teinte d'appui sous `(pointer: coarse)`, où les cibles passent aussi à `2.9em`.
+natif à la teinte d'appui sous `(pointer: coarse)`, où les cibles passent aussi à `2.9em` (`2.75rem` depuis le 2026-09-09).
 
 Une taille est décidée, et c'est la seule : les **commandes** (tri, facettes,
 pagination, remise à zéro, compteur de filtres) prennent `var(--meili-ui)`, `0.875rem` par défaut.
@@ -248,9 +250,9 @@ pose une règle sur `[data-meili="sort"] > label`.
 La colonne de facettes suit, pour la même raison : livrée nue, elle sort en liste à puces indentée,
 compteur collé au libellé, groupes sans respiration — un `<fieldset>`/`<legend>` que personne ne
 lit tel quel. Le module pose donc ses espacements, retire puces et indentation de ses propres
-listes, aligne case et libellé, et pousse le compteur en fin de ligne à `0.85em` et `opacity: 0.6`.
+listes, aligne case et libellé, et pousse le compteur en fin de ligne à `0.9em` et `opacity: 0.6`.
 Deux valeurs de graisse et de taille seulement, toutes deux relatives : `font-weight: 600` sur la
-légende, `0.85em` sur le compteur.
+légende, `0.9em` sur le compteur.
 
 Les cinq boutons que le module rend — « Appliquer », « Tout effacer », les pages, précédent et
 suivant — partagent une seule règle : contour, rayon et espacement du déclencheur de tri, teinte au
@@ -267,15 +269,20 @@ en variable. Sans elle, les cartes s'empilaient en une colonne sur toute la larg
 `/boutique` avant correction : 6674px de page, 4547px de liste. Après : trois colonnes, 3270px.
 L'intérieur de la carte reste au thème ; seule sa mise en colonnes est ici.
 
-Les états, eux, sont ceux qu'un composant doit avoir : `:active` en `scale(0.97)` sur les commandes
-(`0.99` sur les deux boutons pleine largeur, où un recul visible ferait sursauter la colonne),
-survol conditionné à `(hover: hover) and (pointer: fine)` — au doigt il restait collé après le tap —
+Les états, eux, sont ceux qu'un composant doit avoir : un appui marqué (d'abord `:active` en
+`scale(0.97)`, abandonné pour un fond, `--meili-press` — voir « un fond, jamais un recul » plus
+haut), survol conditionné à `(hover: hover) and (pointer: fine)` — au doigt il restait collé après le tap —
 et cibles élargies sous `(pointer: coarse)`. La liste de tri passe du `@keyframes` à une transition
 avec `@starting-style` et `transition-behavior: allow-discrete` : un keyframe repart de zéro quand
 on ouvre et ferme vite, et surtout la fermeture n'avait aucune animation. Vérifié à l'écran :
 `display` reste `block` pendant les 160ms de sortie, puis bascule.
 
 ### Remplacer la grille ramène le regard, déplacer le focus non (2026-09-07)
+
+> *Renversé le 2026-09-08 (commit `85b3097`) : le défilement est désactivé par défaut et demandé
+> composant par composant, par l'attribut `scroll` (`data-meili-scroll`) — voir
+> `architecture.md`. La règle pointeur/clavier ci-dessous reste. Le registre ne dit pas qui l'a
+> décidé.*
 
 Pagination, tri, remise à zéro et « Appliquer » **remplacent** ce qu'on lisait : ils ramènent le
 haut du listing dans l'écran. Cocher une facette **rétrécit** ce qu'on regarde déjà : rien ne bouge
@@ -362,7 +369,7 @@ Quelles que soient les parties déclarées — curseur, champs, aucune des deux 
 ses deux `input`, visibles ou en `type="hidden"`. Ils portent le nom de paramètre d'URL courant et la
 borne en cours.
 
-Ce que ça achète : `price-control.js` n'a qu'un endroit où lire les noms et les valeurs, quelle que
+Ce que ça achète : `price-control.ts` n'a qu'un endroit où lire les noms et les valeurs, quelle que
 soit l'apparence choisie, et les trois vues du prix restent interchangeables sans que le client le
 sache.
 
@@ -401,7 +408,8 @@ leurs crochets, qu'un thème garde en surchargeant la vue. Le remplissage de la 
 dégradé sur `price-track`, piloté par `--from`/`--to`, ce qui supprime un élément sans crochet.
 
 **Exception écrite** : les rangées qui disposent le contrôle — en-tête, ligne des bornes, rangée des
-champs, boîte « champ + symbole », tiret — gardent leurs classes. Ce sont des choix de mise en page,
+champs, colonne « libellé + champ », boîte « champ + symbole », tiret — gardent leurs classes, comme
+la légende masquée visuellement (`.meilifacetsHidden`) quand le contrôle se nomme lui-même. Ce sont des choix de mise en page,
 qu'un thème qui surcharge la vue reprend. Leur donner des crochets aurait ajouté six entrées au contrat
 pour de la seule disposition.
 
@@ -509,7 +517,7 @@ Ce que ça coûte :
   dans `public/` sans être chargées.
 - **un lint qui lit les types** (`recommendedTypeChecked`, `projectService`), tranché par Louis le
   2026-09-16 avec `exactOptionalPropertyTypes` et `noImplicitOverride` dans `tsconfig.json` (`R-133`). Il
-  a trouvé un défaut de `CardPainter` et trois lectures JSON non typées ; en échange, ESLint construit le
+  a trouvé un défaut de `CardPainter` (renommée `CardView` le même jour) et trois lectures JSON non typées ; en échange, ESLint construit le
   programme TypeScript à chaque passage, et les appels de `node:test` y sont déclarés sûrs
   (`allowForKnownSafeCalls`) plutôt que signalés 236 fois.
 
@@ -640,7 +648,7 @@ Rien de ce qui suit n'est acquis.
   elle ne peut pas disparaître. On pourrait la réduire par `pre_get_posts` (configuration, pas
   interception : `posts_pre_query` reste banni) avec `no_found_rows` et un champ réduit. Deux
   réserves : le gain n'est pas mesuré, et une archive sans post peut basculer en 404. À traiter
-  après une mesure sur un catalogue réel.
+  après une mesure sur un catalogue réel — suspendu d'ici là par `D-08` (`Q-30`).
 
 - **Compteurs exacts sous variations** — le disjonctif ne corrige pas le surcomptage relevé
   dans [pieges.md](pieges.md) : `facetDistribution` n'est pas dédupliqué par produit. La seule
@@ -649,7 +657,9 @@ Rien de ce qui suit n'est acquis.
   Tranchable au lot 4, sur un catalogue qui contient enfin des variations.
 - **`card.title` dans `searchableAttributes`** — `["*"]` rend le titre cherchable deux fois,
   dans `post_title` et dans `card.title`, ce qui dilue la pertinence. À traiter au lot 5.
-- **Prix, stock et variations WooCommerce** — absents de `terms`, mode de projection non défini.
+- **Stock et variations WooCommerce.** Le prix est tranché : projection `price` du module (`D-b`,
+  `D-i`, `D-e`, [prix.md](prix.md)). Le stock est différé (`D-f`, `D-g`) ; les variations relèvent
+  du lot 4.
 - **Schéma d'index persisté** — le principe d'une résolution en amont, hors requête, a été
   évoqué sans être arrêté.
 - **Comportement après échecs répétés** — le client abandonne une requête au bout de cinq
@@ -657,8 +667,6 @@ Rien de ce qui suit n'est acquis.
   d'affilée n'est pas tranché.
 - **Stratégie de cache HTTP** des pages de listing.
 - **Structure de dossiers du module**, noms de commandes, format de configuration.
-
-- **Statut `503` sur panne du moteur** — voir les dettes : Pollora écrase le statut.
 
 ## Dettes
 
@@ -671,6 +679,8 @@ Rien de ce qui suit n'est acquis.
 - **Le plan de requête existe des deux côtés.** Le premier rendu le construit en PHP, le
   filtrage en JavaScript : une même règle, deux implémentations à tenir en phase. Inhérent au
   rendu serveur suivi d'un filtrage client. Bornée en couvrant les deux avec les mêmes cas.
+  *Au 2026-09-22, rien ne la borne pour le plan : aucun jeu de cas commun entre `QueryPlan` et
+  `listing-query.ts` (`R-32`).*
 - **Prix par rôle client ou par géolocalisation devient impossible**, le prix étant formaté à
   l'indexation. Limite assumée, pas un travail à prévoir.
 - **⚠️ Le `503` ne sort pas : Pollora écrase le statut HTTP de WordPress.**
@@ -694,7 +704,9 @@ Rien de ce qui suit n'est acquis.
 - **La suite `Plugin` du projet est cassée** — 43 erreurs, `Plugin\PluraliaFulfillments\Console\
   ReplayOrderCommand` introuvable, plus un échec sur la structure des permaliens. Antérieur à
   MeiliFacets, vérifié en revenant au `phpunit.xml` d'origine. Sans rapport avec le module,
-  mais il rend `vendor/bin/phpunit` sans argument inutilisable comme signal.
+  mais il rend `vendor/bin/phpunit` sans argument inutilisable comme signal. *Au 2026-09-22, la
+  classe citée existe (`pluralia-fulfillments/app/Console/ReplayOrderCommand.php`) ; l'état de la
+  suite n'a pas été remesuré — la lancer écrit en base.*
 
 ## Historique
 

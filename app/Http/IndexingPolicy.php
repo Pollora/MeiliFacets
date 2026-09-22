@@ -67,7 +67,7 @@ final readonly class IndexingPolicy
 
     /**
      * Any listing parameter marks a view of a page that already exists on its
-     * bare path: a facet, a sort, a search term or a page number.
+     * bare path: a facet, a sort, a search term, a price bound or a page number.
      *
      * @param  array<string, mixed>  $query
      */

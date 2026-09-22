@@ -19,9 +19,10 @@ config([$key => array_replace_recursive($existing, $moduleConfig)]);
 c'est donc le module qui gagne. Vérifié le 2026-09-02 — un `card.image_size` à `portrait` posé
 côté projet ressort à `medium`, la valeur du module.
 
-S'y ajoute un second effet : `merge_config_from()` **retourne immédiatement si la configuration
-est cachée**. Sous `config:cache`, rien de ce que déclare le module n'existe — une clé qu'on
-croyait avoir un défaut vaut `null` en production.
+`merge_config_from()` retourne immédiatement quand la configuration est cachée — sans rien perdre, d'après la
+source : `config:cache` sérialise une application déjà amorcée, fusion du module comprise
+(`ConfigCacheCommand.php:92-100`, non mesuré — la commande écrirait `bootstrap/cache/config.php`). Le piège
+reste le premier : le module gagne.
 
 **La règle qui en découle** : un réglage surchargeable n'est **pas** déclaré dans
 `Modules/MeiliFacets/config/config.php`. Il est lu avec son défaut dans le code —
@@ -33,22 +34,25 @@ changer.
 
 À poser dans `config/meilifacets.php`, à la racine du projet.
 
-Toutes sont lues **dans le provider**, avec leur défaut, et injectées ensuite : c'est la règle du
-module, et c'est ce qui les rend surchargeables sans que `config:cache` perde le fichier.
+La règle du module veut qu'elles soient lues **dans un provider**, avec leur défaut, et injectées ensuite.
+Sept le sont ; trois pas encore — `apply_mode` (`ApplyMode::fromConfig()`), `url_parameters` et
+`query_parameters` (`UrlParameters::fromConfig()`) —, ce que `R-05` suit.
 
 | Clé | Défaut | Sert à | Quand |
 | --- | --- | --- | --- |
 | `browser.url` | `''` | `BrowserConnection` — l'adresse que le navigateur joint | au rendu |
 | `browser.key` | `''` | `BrowserConnection` — la clé de recherche seule | au rendu |
 | `url_parameters` | `[]` | `UrlParameters` | au rendu et au filtrage |
-| `query_parameters` | `sort`, `q`, `pg` | `UrlParameters` | au rendu et au filtrage |
+| `query_parameters` | `sort`, `q`, `pg`, `min_price`, `max_price` | `UrlParameters` | au rendu et au filtrage |
 | `card.image_size` | `medium` | `DefaultCardProjector` | à l'indexation |
 | `displayed_attributes` | `[]` | `ConfiguredIndexAttributes` | à l'indexation |
 | `apply_mode` | `submit` | `ProductListing` | au rendu |
 | `card.eager` | `4` | `CardSettings` | au rendu |
-| `engine.reachable_hits` | `1000` | `EngineLimits` | au rendu |
+| `engine.reachable_hits` | `1000` | `EngineLimits` | à l'indexation et au rendu |
+| `engine.max_facet_values` | `1000` | `EngineLimits` | à l'indexation et au rendu (`FacetTruncated`) |
 
-⚠️ **`browser.url` et `browser.key` sont les deux seules clés sans lesquelles rien ne fonctionne.**
+⚠️ **`browser.url` et `browser.key` sont les deux seules clés du module sans lesquelles le client ne démarre
+pas.**
 Le module ne lit **jamais** `MEILI_PUBLIC_URL` ni `MEILI_SEARCH_KEY` : c'est au
 `config/meilifacets.php` du projet de faire le pont. Absentes ou mal formées — un schéma manquant
 suffit (R-65) — `BrowserConnection::isConfigured()` répond `false`, aucun JavaScript n'est chargé,
@@ -57,7 +61,7 @@ et rien ne le dit.
 **`engine.reachable_hits` est le `maxTotalHits` du moteur** : le nombre de résultats au-delà duquel
 Meilisearch répond `200` **sans aucun hit**, tout en continuant d'annoncer les pages qu'il refuse de
 servir. `Pagination` et son miroir `PageWindow` s'en servent pour ne jamais proposer une de ces
-pages — et **le module l'écrit sur l'index**, à chaque `ensureIndexExists()`, comme les quatre
+pages — et **le module l'écrit sur l'index**, à chaque `ensureIndexExists()`, comme les cinq
 autres réglages qu'il pose.
 
 La clé est donc la seule source : la changer et réindexer suffit. Vérifié le 2026-09-07 —
@@ -129,8 +133,9 @@ enum BrandCardField: string
 }
 ```
 
-Un champ absent doit être **absent**, pas vide : `image()` et `price()` rendent `[]` plutôt
-qu'une chaîne vide, pour qu'un document ne porte jamais une clé qui ne veut rien dire.
+Un champ absent doit être **absent**, pas vide : `image()` rend `[]` plutôt qu'une chaîne vide, pour qu'un
+document ne porte jamais une clé qui ne veut rien dire. `price()` aussi, pour un contenu qui n'est pas un
+produit — mais un produit sans prix porte `card.price` vide, ce que rend `get_price_html()`.
 
 ## Points d'extension
 
@@ -140,7 +145,7 @@ Des bindings du conteneur Laravel, à poser dans le `register()` d'un provider d
 | --- | --- | --- | --- |
 | `CardProjector` | `DefaultCardProjector` | ce que le document porte pour peindre une carte | oui, `extend` |
 | `TermHierarchy` | `WordPressTermHierarchy` | remontée d'un terme vers ses ancêtres | oui, mais interne |
-| `IndexAttributes` | selon WooCommerce | attributs d'index qu'un plugin contribue | oui, `bind` |
+| `IndexAttributes` | `ConfiguredIndexAttributes`, autour de `WooCommerceIndexAttributes` si WooCommerce est actif | attributs d'index contribués | oui, `extend` — un `bind` retire les champs de prix et `displayed_attributes` |
 | `FacetCounter` | `DisjunctiveFacetCounter` | comment les compteurs de facettes sont calculés | oui, `bind` |
 | `SearchEngine` | `MeilisearchEngine` | l'envoi des recherches au moteur | oui, `bind` |
 | `Listing` | `ProductListing` si WooCommerce | ce qu'un listing déclare | découverte automatique |
@@ -148,7 +153,8 @@ Des bindings du conteneur Laravel, à poser dans le `register()` d'un provider d
 | `ProductSorts` | `WooCommerceSorts` — prix ↑↓, nouveautés, « Promotions » (`on_sale`, offert seulement si le listing déclare un prix) | les tris offerts | oui, `scoped` |
 
 ```php
-$this->app->bind(CardProjector::class, ProductCardProjector::class);
+// Pluralia, AppServiceProvider
+$this->app->scoped(ProductFacets::class, CatalogueFacets::class);
 ```
 
 `CardProjector` est lié par `bindIf` : **il n'est jamais obligatoire**. Un projet neuf obtient
@@ -190,7 +196,8 @@ alors qu'un thème veut couramment l'un sans les autres. Voir `architecture.md`.
 
 ## Ce qui est indexable
 
-Toute URL portant un paramètre du listing — facette, tri, page, recherche — sort en
+Toute URL portant un paramètre du listing — facette, tri, page, recherche, borne de prix —, comme toute page
+`/page/N` de WordPress, sort en
 `noindex, follow` : le contenu existe déjà sur le chemin nu, et les liens qu'elle porte restent
 suivis. `IndexingPolicy` s'en charge par le filtre `wp_robots`, que Yoast respecte.
 
@@ -202,22 +209,25 @@ sortirait l'accueil de l'index. Vérifié le 2026-09-06 : `/boutique` reste `ind
 
 Un paramètre étranger au module ne déclenche rien : `?utm_source=news` reste indexable.
 
-**Pas de canonique** vers le chemin nu en plus : un `noindex` et une canonique pointant ailleurs
-sont deux signaux contradictoires.
+**Pas de canonique** sur ces vues : un `noindex` et une canonique pointant ailleurs sont deux signaux
+contradictoires. Le module retire celle de Yoast (`wpseo_canonical`, priorité 20) et ôte `rel="next"`/`rel="prev"`
+de toute page de listing, chemin nu compris. Vérifié le 2026-09-22 : `/boutique` garde sa canonique,
+`/boutique?sort=newest` n'en a plus.
 
 ## ⚠️ Le cron doit tourner, sinon l'index diverge en silence
 
 **Exigence de déploiement, à vérifier sur chaque environnement.** Rien dans le module ni dans
 MeiliScout ne prévient si elle n'est pas remplie : l'index se contente de vieillir.
 
-Pollora **désactive WP-Cron en dur**, sur tous les environnements :
+Pollora **désactive WP-Cron par défaut**, sur tous les environnements — un projet peut le rallumer par
+`config/wordpress.php`, `'constants' => ['disable_wp_cron' => false]` ; Pluralia ne le fait pas :
 
 ```php
 // vendor/pollora/framework/src/WordPress/Bootstrap.php:336
 Constant::queue('DISABLE_WP_CRON', true);
 ```
 
-Sans condition, et sans rien mettre à la place — l'attribut `#[Schedule]` de Pollora enregistre
+Sans rien mettre à la place — l'attribut `#[Schedule]` de Pollora enregistre
 pourtant ses tâches avec `wp_schedule_event()` (`ScheduleDiscovery.php:342`), c'est-à-dire le cron
 qu'il vient d'éteindre. Il faut donc qu'un cron **système** pique `wp-cron.php`, ou que quelqu'un
 lance les évènements dus à la main.
@@ -226,10 +236,11 @@ Deux files, deux conséquences distinctes :
 
 | File | Ce qui s'arrête sans elle |
 | --- | --- |
-| **WP-Cron** | l'indexation différée de MeiliScout (`meiliscout_process_async_queue`, `meiliscout_process_indexation`) |
-| **Action Scheduler** | les bascules de promotion WooCommerce (`wc_product_start_scheduled_sale`, `woocommerce_scheduled_sales`) — donc les prix, donc le filtre de prix |
+| **WP-Cron** | l'indexation différée de MeiliScout quand elle est activée (`meiliscout_process_async_queue`) et la réindexation lancée depuis son écran d'administration (`meiliscout_process_indexation`) |
+| **Action Scheduler** | les bascules de promotion WooCommerce (`wc_product_start_scheduled_sale`, `wc_product_end_scheduled_sale`, `woocommerce_scheduled_sales`) — donc les prix, donc le filtre de prix |
 
-Action Scheduler ne dépend pas de WP-Cron : il se déclenche aussi tout seul, mais **uniquement sur
+Action Scheduler passe d'abord par WP-Cron (`action_scheduler_run_queue`) : le cron système qui pique
+`wp-cron.php` le fait tourner aussi. À défaut, il se déclenche seul, mais **uniquement sur
 une requête d'administration** (`is_admin()`, `ActionScheduler_QueueRunner.php:141`), par une requête
 en boucle locale vers `admin-ajax.php`. Sur un environnement derrière une auth HTTP Basic, cette
 boucle prend un `401` et la file se bloque — à vérifier en préprod.
@@ -252,8 +263,10 @@ ddev wp cron event list --fields=hook,next_run_gmt --format=csv | sort -t, -k2 |
 ## Indexation différée : ce qu'elle coûte et ce qu'elle rapporte
 
 Réglage MeiliScout, **désactivé par défaut** : `meiliscout_async_indexing` (option
-`meiliscout/meiliscout_async_indexing`, ou la variable d'environnement / constante
-`MEILISCOUT_ASYNC_INDEXING`, qui gagnent sur la base).
+`meiliscout/meiliscout_async_indexing`, ou la variable d'environnement `MEILISCOUT_ASYNC_INDEXING`, qui gagne
+sur la base). ⚠️ **Pas de constante** : `Config::get()` teste la constante en majuscules puis la lit en
+minuscules (`meiliscout/src/Config/Config.php:24-26`) — une constante définie fait lever `Undefined constant`
+(lu dans la source, non mesuré en requête ; `R-150`).
 
 Mesuré le 2026-09-15 sur ce projet, sur une modification de prix :
 
@@ -296,7 +309,7 @@ document.
 **Les deux contre-mesures**, dans l'ordre :
 
 1. **l'indexation différée** — section précédente : ramène la sauvegarde à ~3 ms et dédoublonne ;
-2. **`meiliscout/skip_indexing`** — le seul filtre que MeiliScout expose, pour couper l'indexation
+2. **`meiliscout/skip_indexing`** — le filtre que MeiliScout expose pour couper l'indexation
    dans un contexte précis et identifié :
 
    ```php
@@ -425,12 +438,13 @@ enfant gratuit à 0. Sur Pluralia, les 76 produits publiés gardent exactement l
 
 ## Une seule frontière avec MeiliScout
 
-Le module ne touche MeiliScout qu'à deux endroits, et jamais depuis sa logique métier :
+Le module ne touche MeiliScout qu'à trois endroits, et jamais depuis sa logique métier :
 
 | Où | Ce qu'il y prend |
 | --- | --- |
-| `SearchServiceProvider::engine()` | le client de recherche et le nom de l'index |
+| `SearchServiceProvider` (`engine()` et `browser()`) | le client de recherche et le nom de l'index |
 | `MeiliScoutBridge` | les filtres d'indexation, qui sont sa raison d'être |
+| `FacetedPostIndexable` | la classe qu'il étend, `PostIndexable`, et le réglage `indexed_post_types` |
 
 `MeilisearchEngine` reçoit son client par le constructeur : il ne connaît pas `ClientFactory`. Un
 projet qui voudrait un moteur de secours, un cache ou un enregistreur relie `SearchEngine` sans
@@ -441,8 +455,12 @@ toucher au reste.
 | Source | Clé | Effet |
 | --- | --- | --- |
 | Réglages MeiliScout (base de données) | `indexed_post_types` | détermine les taxonomies projetées et déclarées filtrables |
-| Environnement | `MEILI_HOST`, `MEILI_KEY`, `MEILI_INDEX_NAME`, `MEILI_MATCHING_STRATEGY` | connexion PHP, lue par MeiliScout |
-| Environnement | `MEILI_PUBLIC_URL`, `MEILI_SEARCH_KEY` | connexion du navigateur |
+| Environnement | `MEILI_HOST`, `MEILI_KEY` | connexion PHP d'indexation, lue par MeiliScout (`ClientFactory::getClient()`) |
+| Environnement | `MEILI_HOST`, `MEILI_SEARCH_KEY` | connexion PHP de recherche — le premier rendu du listing —, lue par MeiliScout (`ClientFactory::getSearchClient()`) ; à défaut, l'option `meiliscout/meili_search_key` |
+| Environnement, par `config/meilifacets.php` | `MEILI_PUBLIC_URL`, `MEILI_SEARCH_KEY` | connexion du navigateur (`browser.url`, `browser.key`) |
+
+Ni `MEILI_INDEX_NAME` ni `MEILI_MATCHING_STRATEGY` ne sont lus : l'index s'appelle `posts`, en dur dans
+`PostIndexable::getIndexName()`.
 
 ⚠️ `indexed_post_types` vit **en base**, alimenté depuis l'écran d'administration de MeiliScout :
 non versionné, à refaire sur chaque environnement. Les taxonomies filtrables en découlent
@@ -454,15 +472,18 @@ directement — ce qui est indexé est filtrable.
 
 | Réglage | Valeur |
 | --- | --- |
-| `filterableAttributes` | ceux de MeiliScout, plus `facets.<taxonomie>` pour chaque taxonomie indexée, plus `metas._price` et `metas._stock_status` si WooCommerce est actif |
-| `sortableAttributes` | ceux de MeiliScout, plus `metas._price` si WooCommerce est actif |
+| `filterableAttributes` | ceux de MeiliScout, plus `facets.<taxonomie>` pour chaque taxonomie indexée, plus `metas._price`, `metas._stock_status`, `price.min`, `price.max` et `price.onsale` si WooCommerce est actif |
+| `sortableAttributes` | ceux de MeiliScout, plus `price.min` et `price.max` si WooCommerce est actif |
 | `faceting.sortFacetValuesBy` | `count` pour toutes les facettes |
 | `pagination.maxTotalHits` | ce que `engine.reachable_hits` déclare |
-| `displayedAttributes` | ceux de MeiliScout, plus `card` et ce que `displayed_attributes` ajoute |
+| `displayedAttributes` | `ID` et `card`, plus ce qu'ajoutent `IndexAttributes::displayed()` et `displayed_attributes` — la valeur de MeiliScout (`*`) est remplacée ; `*` dans la liste rouvre tout |
 | `faceting.maxValuesPerFacet` | ce que `engine.max_facet_values` déclare |
 
-Aucun point d'extension dédié : les changer demande d'étendre `FacetedPostIndexable` et de le
-substituer par `meiliscout/indexables` à une priorité plus haute que celle du module.
+Quatre se règlent sans toucher à la classe : `filterableAttributes`, `sortableAttributes` et
+`displayedAttributes` par `IndexAttributes` et `displayed_attributes`, `maxTotalHits` et `maxValuesPerFacet` par
+`engine.*`. `sortFacetValuesBy` n'a aucun point d'extension : `FacetedPostIndexable` est `final`, le changer
+demande de substituer sa propre sous-classe de `PostIndexable` par `meiliscout/indexables`, à une priorité plus
+haute que celle du module.
 
 ## Trois plafonds, et lequel coupe quoi
 
@@ -540,7 +561,8 @@ Il n'y a délibérément pas de `<form method="get">` : un formulaire GET ne sai
 `marque[]=a&marque[]=b`, ce qui donnerait une seconde URL — et une seconde entrée de cache Varnish
 — pour un état que `?marque=a,b` décrit déjà.
 
-Un listing qui doit imposer son mode surcharge `applyMode()` au lieu de lire la configuration.
+Un listing qui doit imposer son mode l'écrit dans son propre `applyMode()` ; `ProductListing`, `final`, lit la
+configuration.
 
 ## Déclarer un listing
 
@@ -552,8 +574,8 @@ classe : ils viennent des contrats `ProductFacets` et `ProductSorts` ci-dessus, 
 remplace sans toucher au module. La facette catégorie n'est pas retirée sur une archive de
 catégorie : `ChildTermsFacet` la **conserve et la restreint** au niveau courant.
 
-Un `Facet` déclare sa taxonomie, son libellé, son mode de sélection, sa limite visible, son
-plafond et s'il est de cardinalité élevée. Un **`ChildTermsFacet`** en est une variante pour une
+Un `Facet` déclare sa taxonomie, son libellé, son mode de sélection, son ordre d'affichage, sa limite visible,
+son plafond, le sort de son terme de repli et son nom. Un **`ChildTermsFacet`** en est une variante pour une
 taxonomie hiérarchique : il ne propose que les termes situés **directement sous celui que le chemin
 porte** — les rayons de premier niveau sur une archive nue, les sous-rayons sur une archive de
 catégorie, rien du tout sur une feuille. C'est ce qui rend utilisable une taxonomie de cent termes
@@ -610,8 +632,8 @@ Trois choses restent hors de cette liste :
 
 ## Placer les facettes dans un gabarit
 
-Deux composants, comme pour le tri et la remise à zéro : un qui place **une** facette, un qui prend
-**ce qui reste**.
+Trois composants : `facet` place une facette de termes, `price` le filtre de prix, `facets` prend **ce qui
+reste**. Chaque déclaration se place avec le composant de son espèce.
 
 ```blade
 @use('App\Cms\Products\ShopFacet')
@@ -625,11 +647,11 @@ Deux composants, comme pour le tri et la remise à zéro : un qui place **une** 
 ⚠️ **Tout composant du module vit à l'intérieur de `<x-meilifacets::listing>`.** C'est lui qui rend
 `[data-listing]`, et le client s'attache une fois par racine : ce qui est posé dehors est rendu,
 stylé, cochable — et **inerte**. Cases sans effet, compteurs jamais rafraîchis, « Voir plus » qui ne
-déplie rien. La règle vaut pour `facet`, `facets`, `sort`, `reset`, `pagination`, `active-filters`
+déplie rien. La règle vaut pour `facet`, `facets`, `price`, `sort`, `reset`, `pagination`, `active-filters`
 et `results` sans exception. Un composant posé dehors est signalé au démarrage :
 
 ```
-[meilifacets] the client binds inside [data-listing] only. Move inside <x-meilifacets::listing>: facet.
+[meilifacets] the client binds inside [data-listing] only. Move inside <x-meilifacets::listing> : facet.
 ```
 
 `<x-meilifacets::facets />` rend toutes les facettes qu'aucun `<x-meilifacets::facet>` n'a déjà
@@ -704,13 +726,14 @@ ddev exec php artisan meilifacets:check-parameters
 ```
 
 Compare chaque paramètre aux query vars publiques de WordPress, filtre `query_vars` compris — 95 noms
-sur Pluralia, dont ceux que WooCommerce déclare pour ses filtres de produits — **et** à la liste que
+sur Pluralia, dont ceux que WooCommerce déclare pour ses filtres de produits —, aux noms que WooCommerce lit
+dans `$_GET` (`min_price`, `max_price`, `rating_filter`, `orderby`, tout `filter_*`) **et** à la liste que
 Varnish efface. La réponse change avec la configuration, mais aussi avec les attributs, les taxonomies
 et les extensions actives : relancer la commande après en avoir ajouté.
 
 ## Ce qui n'est pas configurable
 
-- **Les noms de champs du document** — `facets`, `card`, `terms`, `metas` : figés en énumérations.
+- **Les noms de champs du document** — `facets`, `card`, `price`, `terms`, `metas` : figés en énumérations.
   Ils sont un contrat entre l'indexation et le client de recherche.
 - **Le nom du champ de facette** — toujours `facets.<taxonomie>`, jamais dérivé d'un libellé
   qu'un éditeur pourrait renommer.
