@@ -106,7 +106,7 @@ Catalogue de recette : **64 simples, 8 variables, 2 groupés, 2 externes**.
 | **promo terminée** | ⚠️ | voir § 4 |
 | **taxes** | ⚠️ | dormant ici (taxes désactivées, prix HT, affichage HT), à reprendre en production |
 | **prix à 0** | ⚠️ | 1 produit. Un curseur dont la borne basse est > 0 l'exclut |
-| **prix absent** | ⚠️ | aucun aujourd'hui, mais `metas._price >= x` **exclut tout document sans le champ** — le piège déjà connu du module |
+| **prix absent** | ⚠️ | aucun aujourd'hui, mais `metas._price >= x` **exclut tout document sans le champ** — le piège déjà connu du module. Un prix **vidé** n'est pas absent : WooCommerce écrit `_price = ''` (admin, API REST, import CSV). MeiliScout l'écartait déjà de `metas._price`, mais le module projetait `price` à 0 jusqu'à `R-148` ; il l'écarte désormais (`D-j`), ainsi qu'une ligne `null`, qu'aucun chemin de WooCommerce n'écrit mais que `sync_price()` et MeiliScout écartent aussi (`R-148`). Le filtre du module porte sur `price.min`/`price.max`, pas sur `metas._price` |
 | **hors catalogue** | ✅ | 3 produits en visibilité `hidden`/`search` sont **dans l'index** mais absents du listing : le filtre de base les écarte. Vérifié — mais `facetStats` les compterait si on ne lui passe pas ce filtre |
 | **stock d'une variation** | ❌ | voir § 4 bis |
 
@@ -391,13 +391,15 @@ Le filtre s'écrit alors `price.min <= :max AND price.max >= :min`, la transposi
 `NOT (max_saisi < min_produit OR min_saisi > max_produit)` de WooCommerce.
 
 **D-j · Un prix vidé n'est pas un prix — ✅ tranché le 2026-09-17 par Louis** (`R-148`). Vider le prix d'un
-produit dans l'admin enregistre `_price = ''` (`class-wc-product-data-store-cpt.php:876`), que le module
-projetait à 0. Le module écarte désormais la valeur vide : le produit n'a pas de `price`, n'entre dans
-aucune plage et ne tire plus le curseur à 0. Un `0` saisi reste 0 (`D-c` : un produit gratuit est réel).
+produit enregistre `_price = ''` (`handle_updated_props()` de WooCommerce, que l'admin, l'API REST, l'import
+CSV et la modification rapide traversent tous), que le module projetait à 0. Le module écarte désormais la
+valeur vide : le produit n'a pas de `price`, n'entre dans aucune plage et ne tire plus le curseur à 0. Un `0`
+saisi reste 0 (`D-c` : un produit gratuit est réel).
 
 Ce que ça coûte : le module s'écarte de WooCommerce, dont la table de correspondance range ce produit à 0
-et le liste sous « jusqu'à 10 € » ; en tri « prix croissant », il passe en fin de liste au lieu d'être en
-tête ; les documents déjà indexés gardent 0 jusqu'à leur réindexation.
+et le liste sous « jusqu'à 10 € » ; en tri « prix croissant » comme « prix décroissant », il passe en fin de
+liste (vérifié le 2026-09-17), au lieu d'être en tête du premier ; les documents déjà indexés gardent 0
+jusqu'à leur réindexation.
 
 **D-e · Les taxes — ✅ tranché le 2026-09-15 : reprendre la conversion de WooCommerce.** Quand les
 prix sont stockés HT et affichés TTC, il retire la taxe des bornes saisies avant de filtrer

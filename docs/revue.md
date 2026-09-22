@@ -3058,7 +3058,7 @@ en rend 10, de 9 à 47 € (mesuré par `curl` le 2026-09-17). `ProductListing::
 `product_cat` : sur une archive de marque, le filtre de base ne porte pas le terme du chemin. Trouvé par la
 passe de conformité des retours de la PR #2.
 
-### R-148 · 🟡 · ouvert · 2026-09-17 — un produit dont le prix a été vidé est indexé à 0
+### R-148 · 🟡 · **fermé le 2026-09-17** · ouvert le 2026-09-17 — un produit dont le prix a été vidé est indexé à 0
 
 Retour de revue sur la PR #2, vérifié par la passe de conformité. Vider le prix d'un produit simple ou
 externe enregistre `_price = ''` (`class-wc-product-data-store-cpt.php:876`, seulement quand un champ de prix
@@ -3067,6 +3067,67 @@ change) ; `get_post_meta(…, false)` rend `['']`, qui passe la garde `[] ===` d
 tire le minimum mesuré à 0. Le test existant ne couvre pas ce cas : un produit créé sans prix n'a aucune
 ligne `_price`. Produits variables et groupés non concernés. Aucun produit touché sur Pluralia. Tranché par
 Louis : `D-j` (`prix.md`).
+
+**Corrigé** : `ProductPriceProjector::pricesOf()` écarte les lignes `_price` vides ou `null` avant de lire les
+bornes — le prédicat de `sync_price()` et de MeiliScout, qui écartait déjà `''` de `metas._price` — et garde
+`'0'` (`D-c`). Tests (`ProductPriceProjectionTest`) : un prix vidé après une sauvegarde ne projette rien
+(prémisse `['']` vérifiée en base), une ligne laissée à `null` non plus (prémisse `[null]`), un produit à
+`'0'` reste à 0. Mutations : garder `''`, garder `null`, écarter aussi `'0'` — chacune fait échouer un test.
+
+**Cinq passes** (`module-review`). *Lisibilité* : `'_price'` écrit en dur — `ProductMeta::Price` ;
+`_sale_price` reste littéral, l'ajouter à `ProductMeta` en ferait un attribut filtrable que le moteur
+maintiendrait pour rien. *Commentaires* : la ligne disait « in the admin » alors que l'API REST, l'import CSV
+et la modification rapide écrivent la même valeur, et citait un numéro de ligne de WooCommerce — réécrite
+sur `handle_updated_props()` ; `prix.md` laissait croire que le correctif touchait `metas._price` — précisé.
+*Performance* : rien, une lecture de meta déjà en cache. *Sécurité* : rien. *Contexte* : deux tests existants
+parcourent tout le catalogue et supposaient que chaque produit a un prix — ils échouaient dès qu'un produit
+au prix vidé existait, constaté pendant la revue ; ils ne vérifient plus que les produits dont toutes les
+lignes sont numériques, la règle étant tenue par les trois tests ciblés, et la classe est verte avec un tel
+produit présent (produit créé puis supprimé pour la mesure) ; une ligne `null` était
+convertie en 0 — écartée, test ajouté. Un produit groupé dont un enfant est gratuit n'a pas un minimum à 0 —
+**laissé tel quel** : `update_prices_from_children()` de WooCommerce retire `'0'` avec
+`array_filter` avant d'écrire la fourchette du groupé, et le module lit les lignes que WooCommerce écrit ; les
+deux produits groupés de Pluralia (#444, #445) n'ont aucun enfant gratuit.
+
+**Cinq passes, second tour** (`module-review`, sur la version corrigée) : les six constats du premier tour
+vérifiés résolus. *Lisibilité* : l'assistant des tests de catalogue recopiait la règle de production sous un
+nom inexact, si bien qu'une règle fausse des deux côtés serait passée — retiré, ces tests ne vérifient plus
+que les produits aux lignes toutes numériques ; `'_price'` restait en dur dans le test — `ProductMeta`.
+*Commentaires* : `D-j` disait encore « dans l'admin » avec un numéro de ligne de WooCommerce — aligné sur
+`handle_updated_props()` ; `prix.md` attribuait le cas `null` à `D-j` — rattaché à ce point ; le commentaire
+du projecteur ne valait que pour un produit variable — il cite aussi `update_prices_from_children()`.
+*Performance* : rien ; la lenteur de la file renvoie à `pieges.md` et `R-79`. *Sécurité* : rien. *Contexte* :
+`it_gives_a_product_with_several_prices_an_interval` comptait des lignes brutes, qu'un groupé aux enfants de
+même prix double — compte désormais les valeurs distinctes. Mutations rejouées sur la version finale (garder
+`''`, garder `null`, écarter `'0'`) : chacune fait échouer un test ; classe verte avec un produit au prix vidé
+présent (créé puis supprimé). Le code de production n'a changé depuis la vérification réelle ci-dessous que
+d'un commentaire.
+
+**Vérifié le 2026-09-17 en conditions réelles** — indexation synchrone, produit temporaire 686 :
+
+- créé à 5 € : document `price` 5–5 ; dans le navigateur (Playwright), listé sous `/boutique?max_price=10`
+  (7 cartes) ;
+- prix vidé par `set_props()` puis `save()`, le chemin de la fiche produit : `_price` vaut `['']`, le document
+  n'a plus ni `price` ni `metas._price` ; rejoué trois fois, avec une trace de chaque document construit par
+  MeiliScout ;
+- dans le navigateur : absent de `/boutique?max_price=10` (6 cartes), présent sans prix sur
+  `/boutique?q=R-148`, bloc de prix masqué ;
+- `ddev wp meiliscout index --clear` : 103 documents comme avant, promotions 20 / 56 inchangées, plage
+  0–199 €, 686 seul produit sans `price` ;
+- supprimé : document en 404, 76 produits ; `/boutique` rend 16 cartes sur 5 pages, plage 0–199 €, aucune
+  erreur dans la console.
+
+**Rejoué sur le code final** (après les correctifs des passes), produit temporaire 733 : document `price` 5–5,
+puis prix vidé → `price` et `metas._price` absents, puis ligne `null` → absents ; tri `price.min:asc` et
+`price.max:desc` dans le moteur → 77ᵉ sur 77 ; dans le navigateur, dernière carte de la page 5 en « prix
+croissant » comme en « prix décroissant », absent de `/boutique?max_price=10` ; aucune erreur dans la console ;
+supprimé, document en 404, 76 produits, promotions 20 / 56.
+
+Relue deux secondes après une sauvegarde, une première lecture gardait l'ancien prix : la file de Meilisearch
+traitait les tâches en 6 s, chaque poussée étant accompagnée d'une mise à jour des réglages de l'index (le
+comportement de `ensureIndexExists()` décrit dans `pieges.md` et `R-79`). Sans lien avec ce point.
+
+`composer check` vert (260 tests PHP, 280 TypeScript, Rector) ; suite `Modules` verte (377 tests).
 
 ### R-147 · 🟡 · ouvert · 2026-09-17 — `NativeFiltering` désarme toute requête produit principale
 

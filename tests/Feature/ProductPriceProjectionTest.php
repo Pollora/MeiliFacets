@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Tests\Feature;
 
 use Modules\MeiliFacets\Enums\PriceField;
+use Modules\MeiliFacets\Enums\ProductMeta;
 use Modules\MeiliFacets\Indexing\ProductPriceProjector;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -23,7 +24,13 @@ final class ProductPriceProjectionTest extends TestCase
     public function it_projects_the_ends_of_the_price_rows_woocommerce_wrote(): void
     {
         foreach ($this->products() as $product) {
-            $rows = array_map(floatval(...), (array) get_post_meta($product->get_id(), '_price', false));
+            $rows = (array) get_post_meta($product->get_id(), ProductMeta::Price->value, false);
+
+            if ($rows === [] || ! array_all($rows, static fn (mixed $row): bool => is_numeric($row))) {
+                continue;
+            }
+
+            $rows = array_map(floatval(...), $rows);
             $price = $this->project($product);
 
             $this->assertSame(min($rows), $price[PriceField::Min->value], $this->say($product));
@@ -37,7 +44,7 @@ final class ProductPriceProjectionTest extends TestCase
     {
         $spanning = array_filter(
             $this->products(),
-            fn (WC_Product $product): bool => count((array) get_post_meta($product->get_id(), '_price', false)) > 1
+            fn (WC_Product $product): bool => count($this->distinctPrices($product)) > 1
         );
 
         $this->assertNotEmpty($spanning, 'No product in the catalogue carries more than one price.');
@@ -59,7 +66,7 @@ final class ProductPriceProjectionTest extends TestCase
         foreach ($this->products() as $product) {
             $this->assertSame(
                 in_array((string) $product->get_id(), array_map(strval(...), $listed), true),
-                $this->project($product)[PriceField::OnSale->value],
+                $this->project($product)[PriceField::OnSale->value] ?? false,
                 $this->say($product)
             );
         }
@@ -74,7 +81,7 @@ final class ProductPriceProjectionTest extends TestCase
         $product->set_regular_price('30');
         $product->set_sale_price('20');
         $product->save();
-        update_post_meta($product->get_id(), '_price', '30');
+        update_post_meta($product->get_id(), ProductMeta::Price->value, '30');
 
         try {
             $this->assertTrue(wc_get_product($product->get_id())->is_on_sale());
@@ -100,11 +107,72 @@ final class ProductPriceProjectionTest extends TestCase
     }
 
     #[Test]
+    public function it_projects_nothing_for_a_product_whose_price_was_emptied(): void
+    {
+        $product = new WC_Product_Simple;
+        $product->set_name('Price emptied, for the test');
+        $product->set_regular_price('30');
+        $product->save();
+        $product->set_regular_price('');
+        $product->save();
+
+        try {
+            $this->assertSame([''], get_post_meta($product->get_id(), ProductMeta::Price->value, false));
+            $this->assertSame([], $this->project($product));
+        } finally {
+            $product->delete(true);
+        }
+    }
+
+    #[Test]
+    public function it_projects_nothing_for_a_price_row_left_null(): void
+    {
+        $product = new WC_Product_Simple;
+        $product->set_name('Price left null, for the test');
+        $product->set_regular_price('30');
+        $product->save();
+        update_post_meta($product->get_id(), ProductMeta::Price->value, null);
+
+        try {
+            $this->assertSame([null], get_post_meta($product->get_id(), ProductMeta::Price->value, false));
+            $this->assertSame([], $this->project($product));
+        } finally {
+            $product->delete(true);
+        }
+    }
+
+    #[Test]
+    public function it_keeps_a_free_product_at_zero(): void
+    {
+        $product = new WC_Product_Simple;
+        $product->set_name('Free, for the test');
+        $product->set_regular_price('0');
+        $product->save();
+
+        try {
+            $price = $this->project($product);
+
+            $this->assertSame(0.0, $price[PriceField::Min->value]);
+            $this->assertSame(0.0, $price[PriceField::Max->value]);
+        } finally {
+            $product->delete(true);
+        }
+    }
+
+    #[Test]
     public function it_projects_nothing_for_a_post_that_is_not_a_product(): void
     {
         $post = get_posts(['post_type' => 'post', 'numberposts' => 1])[0];
 
         $this->assertSame([], $this->app->make(ProductPriceProjector::class)->project($post));
+    }
+
+    /**
+     * @return list<mixed>
+     */
+    private function distinctPrices(WC_Product $product): array
+    {
+        return array_values(array_unique((array) get_post_meta($product->get_id(), ProductMeta::Price->value, false)));
     }
 
     /**

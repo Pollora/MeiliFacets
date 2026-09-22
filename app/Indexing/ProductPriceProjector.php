@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Indexing;
 
 use Modules\MeiliFacets\Enums\PriceField;
+use Modules\MeiliFacets\Enums\ProductMeta;
 use Modules\MeiliFacets\Support\WooCommerce;
 use WC_Product;
 use WC_Product_Grouped;
@@ -32,9 +33,8 @@ final readonly class ProductPriceProjector
             return [];
         }
 
-        // One row per distinct child price, written sorted by `sync_price()` — which
-        // is why the ends are the bounds. A product with no price has none.
-        $prices = (array) get_post_meta($post->ID, '_price', false);
+        // Rows are written sorted (`sync_price()`, `update_prices_from_children()`), so the ends are the bounds.
+        $prices = $this->pricesOf($post->ID);
 
         if ($prices === []) {
             return [];
@@ -45,6 +45,19 @@ final readonly class ProductPriceProjector
             PriceField::Max->value => (float) end($prices),
             PriceField::OnSale->value => $this->isBilledOnSale($product),
         ];
+    }
+
+    /**
+     * WooCommerce writes `_price = ''` when a price is emptied (`handle_updated_props()`), which a cast reads as 0.
+     *
+     * @return list<string>
+     */
+    private function pricesOf(int $id): array
+    {
+        return array_values(array_filter(
+            (array) get_post_meta($id, ProductMeta::Price->value, false),
+            static fn (mixed $price): bool => $price !== '' && $price !== null
+        ));
     }
 
     /** What WooCommerce lists as on sale: a variation lists its parent, a grouped product is never listed. */
@@ -70,7 +83,7 @@ final readonly class ProductPriceProjector
      */
     private function carriesSalePrice(int $id): bool
     {
-        $price = wc_format_decimal(get_post_meta($id, '_price', true));
+        $price = wc_format_decimal(get_post_meta($id, ProductMeta::Price->value, true));
         $sale = wc_format_decimal(get_post_meta($id, '_sale_price', true));
 
         return (bool) $sale && $price === $sale;
