@@ -324,14 +324,19 @@ Le module désarme donc les deux clauses, par le filtre officiel que WooCommerce
 public function leaveTheMainQueryAlone(): bool { return false; }
 ```
 
-**Portée exacte.** Le crochet n'existe que pendant une requête produit — `add_filter('posts_clauses',
-…)` est posé dans `WC_Query::product_query()`, appelée depuis `pre_get_posts` pour ces requêtes-là
-seulement. Il est donc inerte sur tout autre listing, et sur un site sans WooCommerce.
+**Portée exacte.** WooCommerce ne pose la question que depuis les archives produit — boutique, recherche
+produit, archive de n'importe quelle taxonomie produit —, dont il prépare la requête principale
+(`WC_Query::product_query()`, `class-wc-query.php:419-422`). Sur toute autre page, y compris une page ordinaire
+où un gabarit place `meilifacets:listing`, il ne filtre rien et le module n'a rien à désarmer ; sans
+WooCommerce, le filtre n'est jamais appelé. Le crochet qu'il pose alors sur `posts_clauses` n'est jamais
+retiré (`:588`, alors que `:499` en retire un autre) : la question revient pour chaque requête suivante de la
+page, avec « non » par défaut, puisque WooCommerce y passe `$wp_query->is_main_query()`.
 
 | Ce qui est désarmé | Ce qui ne l'est pas |
 | --- | --- |
-| « Filtrer par prix » natif (`min_price`, `max_price`) | le filtre par note (`rating_filter`), qui est une `meta_query` |
-| la navigation à facettes par attribut (`filter_*`) | le tri, la visibilité, le stock, les archives de catégorie, la recherche |
+| « Filtrer par prix » natif (`min_price`, `max_price`) | le filtre par note (`rating_filter`), une `tax_query` sur les termes `rated-N` de `product_visibility` (`class-wc-query.php:937-955`) |
+| la navigation par attribut (`filter_*`), **quand la table de correspondance des attributs est active** (`Filterer.php:70-72` ; active sur Pluralia) | la même navigation sans cette table : WooCommerce passe alors par une `tax_query` de la requête principale (`class-wc-query.php:915-917`), hors de ce filtre |
+| | le tri, la visibilité, le stock, le terme de l'archive, la recherche |
 | | la requête principale elle-même, qui tourne toujours |
 
 **Ce que ça coûte en performance : rien.** Mesuré, cache chaud : 0 requête SQL de différence,
@@ -346,12 +351,22 @@ subsistent, tous cosmétiques mais réels : `is_filtered()`
 d'un listing MeiliFacets les verra réagir. C'est ce que `meilifacets:check-parameters` continue de
 signaler, et la seule façon de le supprimer entièrement reste de renommer les deux paramètres.
 
-**Pour un projet qui veut garder le filtrage natif** — un thème qui rend encore la boucle
-WooCommerce quelque part — il suffit de reprendre la main après le module :
+**Pour un projet qui garde la boucle native de WooCommerce sur une archive** — le module ne peut pas savoir ce
+que la vue rendra, la requête principale tournant avant le choix de la route —, il réarme cette archive seule,
+après le module :
 
 ```php
-add_filter('woocommerce_enable_post_clause_filtering', '__return_true', 20);
+add_filter(
+    'woocommerce_enable_post_clause_filtering',
+    fn (bool $enabled, WP_Query $query): bool => $query->is_main_query() && $query->is_tax('product_tag') ? true : $enabled,
+    20,
+    2,
+);
 ```
+
+⚠️ Pas `__return_true` : il réarmerait toutes les archives produit, et ferait passer par le filtre de prix de
+WooCommerce chaque requête suivante de la page dès que l'URL porte `min_price` ou `max_price`, qu'elle porte
+sur des produits ou non — `price_filter_post_clauses()` ne regarde pas le type de contenu.
 
 ## Une seule frontière avec MeiliScout
 

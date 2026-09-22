@@ -5637,6 +5637,21 @@ parité lisible). Les commentaires devenus faux ou inexacts sont déjà corrigé
 
 ## 11. Roadmap proposée
 
+### File d'attente au 2026-09-22
+
+Un point à la fois (`D-03`), dans cet ordre, sauf décision contraire de Louis :
+
+1. **Retours de la PR #2**, avant tout nouveau commit : `R-147` (`NativeFiltering`, en cours), puis `R-146`
+   (taxes). `R-148` est fermé.
+2. `R-149` — une archive de marque affiche tout le catalogue, le seul visible sur Pluralia.
+3. `R-142` — le glissé du prix casse sur une vue à une seule poignée basse, et hors du bouton principal.
+4. `R-143` — le client efface le balisage d'un bouton « Voir plus » surchargé ; demande l'accord de Louis
+   (`Contract::VERSION` des deux côtés).
+5. `R-144` — remplacer `FacetCounter` ne change que le premier rendu.
+6. `R-141` — cinq tests `Feature` dépendent de l'ordre de la suite.
+7. `Q-31` — commentaires de rôle et renvois vers le miroir PHP : à trancher par Louis avant toute purge.
+8. `R-145` — les restructurations relevées par les passes rejouées, ligne par ligne.
+
 Le découpage en sept lots reste valable. Ce qui change : **le lot 3c ne s'ouvre pas tant que le
 rendu qu'il contractualise n'est pas juste.** Écrire le client sur un socle qui a R-10, R-11 et
 R-46 revient à figer ces défauts dans un contrat versionné.

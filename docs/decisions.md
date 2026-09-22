@@ -613,18 +613,18 @@ Ce que ça coûte :
   d'un défaut du cœur : le segment n'est pas ancré, une page `/shop-page` découpée par `<!--nextpage-->`
   deviendrait `/shop-`. Aucun cas sur Pluralia.
 
-### Le filtrage natif n'est désarmé que sur les pages qu'un listing déclare (2026-09-17)
+### Le filtrage natif reste désarmé sur toutes les archives produit (2026-09-22)
 
-Tranché par Louis (`R-147`). `NativeFiltering` désarmait le filtrage de WooCommerce sur toute requête
-produit principale, qu'un listing du module soit rendu ou non : une archive qui garde la boucle de
-WooCommerce et ses widgets aurait ignoré `min_price`, `max_price` et `filter_*` sans rien dire. Louis voulait
-le limiter aux pages où la vue place `meilifacets:listing` ; ce n'est pas détectable à temps, Pollora lançant
-la requête principale (`wp()`) avant de choisir la route et de rendre la vue. Chaque listing déclare donc les
-pages WordPress qu'il sert, et le filtre ne désarme que la requête principale de celles-là.
+Tranché par Louis (`R-147`). *Renverse la décision du 2026-09-17 — « chaque listing déclare les pages
+WordPress qu'il sert » —, jamais codée.* WooCommerce ne filtre que la requête principale des archives produit
+(boutique, recherche produit, taxonomies produit) ; un listing posé sur une autre page n'a rien à désarmer. Et
+sur les archives produit, `ProductListing` aurait dû toutes les déclarer, puisque Pluralia y rend le listing
+partout : une méthode de plus dans le contrat `Listing`, pour une portée identique. `NativeFiltering` est donc
+inchangé ; sa documentation dit sa vraie portée, et le retour arrière documenté ne vise qu'une archive.
 
-Ce que ça coûte : une méthode de plus dans le contrat `Listing`, qu'un projet implémente ; une vue qui place
-un listing sur une page qu'il ne déclare pas y retrouve le filtrage natif en parallèle, avec son
-`found_posts` rétréci ; la déclaration dit où le listing est prévu, pas où il est rendu.
+Ce que ça coûte : une archive produit qui garde la boucle native de WooCommerce reste désarmée tant que le
+projet ne la réarme pas lui-même, par le filtre documenté dans `configuration.md` — le module ne peut pas
+savoir ce que la vue rendra, Pollora lançant la requête principale (`wp()`) avant de choisir la route.
 
 ### Contre-exemple
 
