@@ -3129,7 +3129,7 @@ comportement de `ensureIndexExists()` décrit dans `pieges.md` et `R-79`). Sans 
 
 `composer check` vert (260 tests PHP, 280 TypeScript, Rector) ; suite `Modules` verte (377 tests).
 
-### R-147 · 🟡 · ouvert · 2026-09-17 — `NativeFiltering` désarme toute requête produit principale
+### R-147 · 🟡 · **fermé le 2026-09-22** · ouvert le 2026-09-17 — `NativeFiltering` désarme toute requête produit principale
 
 Retour de revue sur la PR #2, vérifié par la passe de conformité. `NativeFiltering::leaveTheMainQueryAlone()`
 rend `false` sans condition : sur toute archive produit, WooCommerce ne filtre plus par prix ni par attribut
@@ -3137,8 +3137,47 @@ rend `false` sans condition : sur toute archive produit, WooCommerce ne filtre p
 est fausse deux fois : le docblock et `configuration.md` la disent « inerte sur tout autre listing », et
 `filter_*` n'est désarmé que si la table de correspondance des attributs est active
 (`class-wc-query.php:915-917`). L'exemple de retour arrière, `__return_true` global, annule la protection
-partout. Aucun effet sur Pluralia (aucun widget de prix natif). Tranché par Louis : `decisions.md`, « Le
-filtrage natif n'est désarmé que sur les pages qu'un listing déclare ».
+partout. Aucun effet sur Pluralia (aucun widget de prix natif).
+
+**Tranché par Louis, deux fois.** Le 2026-09-17 : chaque listing déclarerait ses pages. Le 2026-09-22, jamais
+codée, cette décision est renversée : le composant peut être posé sur n'importe quelle page, WooCommerce ne
+filtre que la requête principale des archives produit, et `ProductListing` aurait dû toutes les déclarer —
+une méthode de plus dans le contrat pour une portée identique (`decisions.md`, « Le filtrage natif reste
+désarmé sur toutes les archives produit »). La passe de conformité avait mesuré que les sept pages de
+Pluralia qui rendent le listing sont toutes des archives produit.
+
+**Corrigé — sans changement de comportement** : `NativeFiltering` rend toujours `false`. Son docblock passe de
+huit lignes, dont une portée fausse (« inert on every other listing »), à une exacte. `configuration.md` dit la vraie portée — archives produit seulement
+(`class-wc-query.php:381-452`), crochet `posts_clauses` jamais retiré (`:588`) et question reposée à chaque
+`WP_Query` suivante sans `suppress_filters` —, corrige deux erreurs de plus (`filter_*` n'est désarmé qu'avec la
+table de correspondance des attributs, active sur Pluralia, `Filterer.php:70-72`, sinon `tax_query` à
+`:915-917` ; `rating_filter` est une `tax_query` sur les termes `rated-N`, pas une `meta_query`) et remplace
+l'exemple `__return_true` par un filtre qui réarme une seule archive, avec l'avertissement : ni
+`price_filter_post_clauses()` ni `filter_by_attribute_post_clauses()` ne regardent le type de contenu.
+
+Tests (`NativeFilteringTest`, réécrit) : le filtre est interrogé comme WooCommerce l'interroge, avec une
+`WP_Query` posée en requête principale, et non plus avec `null` ; le retour arrière documenté réarme une
+catégorie et laisse la boutique désarmée ; ignoré sans WooCommerce ou sans catégorie. Mutations : le module
+qui rend `true`, ou qui passe après le projet (priorité 30), fait échouer un test.
+
+**Cinq passes** (`module-review`). *Lisibilité* : l'exemple visait `product_tag`, sans terme sur Pluralia, et le
+test `product_cat` — l'exemple est passé sur `product_cat`, il est désormais l'extrait testé ; au second tour, il
+réarmait encore toutes les catégories alors que la doc promet « cette archive seule » — il vise un terme, et le
+test vérifie qu'une autre catégorie et une marque restent désarmées ; `A && B ? true :
+$enabled` masquait la priorité des opérateurs — `$enabled || (A && B)` ; recherche du terme sortie dans un
+assistant, `askedWhileMain` renommé `answerAsMainQuery`. *Commentaires* : ce registre renvoyait à la décision
+remplacée — réécrit ; deux commentaires du test (une justification, une redite du nom) supprimés ; « chaque
+requête suivante » disait trop, `get_posts()` activant `suppress_filters` — précisé, et la clause des attributs
+nommée à côté de celle du prix ; références de lignes élargies à `:381-452` ; la file d'attente disait R-149
+« le seul visible » — « le seul mesuré ». *Performance* : rien, un `return false` constant. *Sécurité* : rien.
+*Contexte* : **l'exemple typait `WP_Query` sans barre oblique** — collé dans un fichier de thème à namespace, il
+aurait levé une `TypeError` sur chaque archive produit, donc des 500 — `\WP_Query` ; sans WooCommerce, le test
+plantait au lieu de s'ignorer — garde ajoutée.
+
+**Vérifié le 2026-09-22** : l'exemple de `configuration.md`, collé tel quel dans un `ddev wp eval` en mémoire,
+rend `true` pour la catégorie visée en requête principale, `false` pour une autre catégorie, pour une marque et
+pour la boutique, `false` pour la catégorie visée en requête secondaire. `ddev wp option get woocommerce_attribute_lookup_enabled` : `yes`.
+Premier commit : `eb1aab5` ; les corrections des passes suivent dans un second.
 
 ### R-146 · 🟠 · ouvert · 2026-09-17 — sur une boutique TTC, le client filtre et le curseur borne en HT
 

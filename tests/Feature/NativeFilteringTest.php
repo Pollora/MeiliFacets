@@ -7,6 +7,7 @@ namespace Modules\MeiliFacets\Tests\Feature;
 use Modules\MeiliFacets\Enums\ProductTaxonomy;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
+use WooCommerce;
 use WP_Query;
 use WP_Term;
 
@@ -14,44 +15,56 @@ final class NativeFilteringTest extends TestCase
 {
     private const string FILTER = 'woocommerce_enable_post_clause_filtering';
 
-    /**
-     * WooCommerce reads `min_price` and `filter_*` from `$_GET` and narrows the main
-     * query in SQL. The engine answers that here, so the work is thrown away and
-     * `found_posts` ends up counting a filter the page never rendered.
-     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        if (! class_exists(WooCommerce::class)) {
+            $this->markTestSkipped('The filter is WooCommerce\'s.');
+        }
+    }
+
     #[Test]
     public function it_stops_woocommerce_filtering_a_product_archive_in_parallel(): void
     {
-        $this->assertFalse($this->askedWhileMain(['post_type' => 'product']));
+        $this->assertFalse($this->answerAsMainQuery(['post_type' => 'product']));
     }
 
-    /** The rollback `configuration.md` documents: one archive, after the module. */
     #[Test]
     public function it_lets_a_project_rearm_one_archive_and_that_one_only(): void
     {
-        $categories = get_terms(['taxonomy' => ProductTaxonomy::Category->value, 'number' => 1, 'hide_empty' => false]);
-        $term = $categories[0] ?? null;
-
-        if (! $term instanceof WP_Term) {
-            $this->markTestSkipped('The host has no product category to rearm.');
-        }
-
-        $rearm = static fn (bool $enabled, WP_Query $query): bool => $query->is_main_query()
-            && $query->is_tax(ProductTaxonomy::Category->value) ? true : $enabled;
+        [$rearmed, $other] = $this->twoCategories();
+        $rearm = static fn (bool $enabled, WP_Query $query): bool => $enabled
+            || ($query->is_main_query() && $query->is_tax(ProductTaxonomy::Category->value, $rearmed->slug));
         add_filter(self::FILTER, $rearm, 20, 2);
 
         try {
-            $this->assertTrue($this->askedWhileMain([ProductTaxonomy::Category->value => $term->slug]));
-            $this->assertFalse($this->askedWhileMain(['post_type' => 'product']));
+            $this->assertTrue($this->answerAsMainQuery([ProductTaxonomy::Category->value => $rearmed->slug]));
+            $this->assertFalse($this->answerAsMainQuery([ProductTaxonomy::Category->value => $other->slug]));
+            $this->assertFalse($this->answerAsMainQuery(['post_type' => 'product']));
         } finally {
             remove_filter(self::FILTER, $rearm, 20);
         }
     }
 
     /**
+     * @return array{WP_Term, WP_Term}
+     */
+    private function twoCategories(): array
+    {
+        $categories = get_terms(['taxonomy' => ProductTaxonomy::Category->value, 'number' => 2, 'hide_empty' => false]);
+
+        if (! is_array($categories) || count($categories) < 2) {
+            $this->markTestSkipped('The host has fewer than two product categories.');
+        }
+
+        return [$categories[0], $categories[1]];
+    }
+
+    /**
      * @param  array<string, string>  $vars
      */
-    private function askedWhileMain(array $vars): bool
+    private function answerAsMainQuery(array $vars): bool
     {
         global $wp_the_query;
 

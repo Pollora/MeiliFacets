@@ -326,11 +326,12 @@ public function leaveTheMainQueryAlone(): bool { return false; }
 
 **Portée exacte.** WooCommerce ne pose la question que depuis les archives produit — boutique, recherche
 produit, archive de n'importe quelle taxonomie produit —, dont il prépare la requête principale
-(`WC_Query::product_query()`, `class-wc-query.php:419-422`). Sur toute autre page, y compris une page ordinaire
+(`WC_Query::pre_get_posts()` puis `product_query()`, `class-wc-query.php:381-452`). Sur toute autre page, y compris une page ordinaire
 où un gabarit place `meilifacets:listing`, il ne filtre rien et le module n'a rien à désarmer ; sans
 WooCommerce, le filtre n'est jamais appelé. Le crochet qu'il pose alors sur `posts_clauses` n'est jamais
-retiré (`:588`, alors que `:499` en retire un autre) : la question revient pour chaque requête suivante de la
-page, avec « non » par défaut, puisque WooCommerce y passe `$wp_query->is_main_query()`.
+retiré (`:588`, alors que `:499` en retire un autre) : la question revient pour chaque `WP_Query` suivante de
+la page qui n'a pas `suppress_filters` (`get_posts()` l'active), avec « non » par défaut, puisque WooCommerce y
+passe `$wp_query->is_main_query()`.
 
 | Ce qui est désarmé | Ce qui ne l'est pas |
 | --- | --- |
@@ -358,15 +359,16 @@ après le module :
 ```php
 add_filter(
     'woocommerce_enable_post_clause_filtering',
-    fn (bool $enabled, WP_Query $query): bool => $query->is_main_query() && $query->is_tax('product_tag') ? true : $enabled,
+    fn (bool $enabled, \WP_Query $query): bool => $enabled || ($query->is_main_query() && $query->is_tax('product_cat', 'accessoires')),
     20,
     2,
 );
 ```
 
-⚠️ Pas `__return_true` : il réarmerait toutes les archives produit, et ferait passer par le filtre de prix de
-WooCommerce chaque requête suivante de la page dès que l'URL porte `min_price` ou `max_price`, qu'elle porte
-sur des produits ou non — `price_filter_post_clauses()` ne regarde pas le type de contenu.
+⚠️ Pas `__return_true` : il réarmerait toutes les archives produit, et ferait passer par les clauses de prix et
+d'attribut de WooCommerce chaque `WP_Query` suivante de la page dès que l'URL porte `min_price`, `max_price` ou
+`filter_*`, qu'elle porte sur des produits ou non — ni `price_filter_post_clauses()` ni
+`filter_by_attribute_post_clauses()` ne regardent le type de contenu.
 
 ## Une seule frontière avec MeiliScout
 
