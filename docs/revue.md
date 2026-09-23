@@ -3126,6 +3126,29 @@ c'est celui-là qui est levé.
 
 ---
 
+### R-158 · 🟠 · ouvert · 2026-09-23 — la recherche produit sert tout le catalogue
+
+Mesuré en fermant `R-149` : `/?s=creme&post_type=product` rend 16 cartes du catalogue quand WordPress
+trouve **6 produits** pour ce terme, et le filtre de base publié ne porte rien sur la recherche. Le
+module ne lit que son propre paramètre (`StateReader::read()`, `QueryParameter::Query`), jamais le `s`
+de WordPress — alors qu'il tient bien la page pour un listing (`ListingPage::isCurrent()` inclut
+`is_search()`).
+
+Même famille que `R-149`, et que `R-60` avant lui pour `/page/N` : **le module remplace la requête de
+WordPress, donc tout ce que l'URL veut dire doit être relu explicitement.** Les query vars des facettes
+le sont de façon générique ; le terme d'archive l'est depuis `R-149` ; la recherche ne l'est pas. À
+trancher : relire `s` quand le paramètre du module est absent, ou écrire que la recherche produit
+native n'est pas servie par le listing.
+
+### R-157 · ⚪ · ouvert · 2026-09-23 — un refus du moteur est journalisé comme une absence de réponse
+
+Relevé en traitant `R-149`. `MeilisearchEngine::send()` enveloppe tout `Throwable` dans
+`SearchFailed::unreachable()`, dont le message dit « Meilisearch did not answer. Check MEILI_HOST and
+that the engine is running ». Or le moteur répond, et précisément : mesuré, un filtre sur un attribut
+non déclaré rend `Attribute 'facets.x' is not filterable`. Le diagnostic envoie donc chercher une
+panne de connexion là où il s'agit d'un réglage d'index. Le comportement, lui, est juste : vue
+indisponible et journalisation. Relève du lot 6.
+
 ### R-156 · 🟡 · ouvert · 2026-09-23 — un client en session exonéré de TVA fait indexer des prix hors taxe
 
 Relevé par les passes de `R-154`, déjà écrit deux fois dans la documentation (`configuration.md`, `prix.md`)
@@ -3275,12 +3298,75 @@ définie ferait donc lever `Undefined constant` au lieu d'activer l'indexation d
 source, non mesuré en requête ; `configuration.md` le signale. Correctif amont d'une ligne
 (`constant($constKey)`), à proposer sur `feat/meilifacets` comme `resolveIndexable()` avant lui.
 
-### R-149 · 🟠 · ouvert · 2026-09-17 — une archive de marque affiche tout le catalogue
+### R-149 · 🟠 · **fermé le 2026-09-23** · ouvert le 2026-09-17 — une archive de marque affiche tout le catalogue
 
 `/marque/aeris` rend 16 cartes sur 5 pages et une plage de 0 à 199 €, comme `/boutique` ; `/boutique?marque=aeris`
 en rend 10, de 9 à 47 € (mesuré par `curl` le 2026-09-17). `ProductListing::currentAisle()` ne lit que
 `product_cat` : sur une archive de marque, le filtre de base ne porte pas le terme du chemin. Trouvé par la
 passe de conformité des retours de la PR #2.
+
+**Étendue mesurée le 2026-09-23** : le défaut ne touche pas que les marques. Toute archive produit
+qui n'est pas une catégorie servait le catalogue entier — `/marque/avril` 76 produits au lieu de 5,
+`/marque/aeris` au lieu de 10, `/selection/la-selection-coup-de-coeur` au lieu de 14,
+`/les-essentiels/lefficacite-sans-effort` au lieu de 3 ; seule la catégorie était juste. Les
+compteurs de facettes et les bornes du curseur suivaient : 0–199 € sur `/marque/aeris` au lieu de
+9–47 €.
+
+**Depuis quand** : le 2026-09-04, jour où l'archive a été confiée au module — `76e60f7` côté module,
+`400eed4` côté thème, qui place le listing dans `archive-product.blade.php`, gabarit de **toutes** les
+archives produit. `currentAisle()` n'a jamais lu que `product_cat`. Avant cette date, la grille venait
+de la requête WordPress, qui filtrait juste. Le périmètre, lui, était déjà écrit : « sur les archives
+produit, `ProductListing` aurait dû toutes les déclarer, puisque Pluralia y rend le listing partout »
+(`decisions.md`, 2026-09-22).
+
+**Corrigé** : `currentAisle(): ?string` devient `browsedTerm(): ?WP_Term` — `is_tax()` sur n'importe
+quelle taxonomie, `get_queried_object()`, et une garde `is_object_in_taxonomy('product', …)` : un
+produit ne porte aucun champ pour une taxonomie qui n'est pas la sienne, et filtrer dessus viderait le
+listing. `baseFilter()` écrit `facets.<taxonomie> = <slug>`.
+
+**Tranché par Louis le 2026-09-23** : une facette dont le chemin épingle la taxonomie n'est plus
+offerte. Mesuré avant décision sur `/marque/avril` : la facette Marque ne proposait plus que « Avril
+(5 résultats) », et `?marque=aeris` y rendait zéro produit. `Facet::narrowsUnder()` répond non quand
+sa taxonomie est celle du chemin, `ChildTermsFacet` répond oui — c'est ce pour quoi il existe (`D-07`
+intact, mesuré : la catégorie propose toujours ses enfants). `ProductListing::facets()` filtre là-dessus,
+`filters()` non : la facette **sort du plan de requête** mais reste plaçable par son nom, sans quoi un
+gabarit qui l'appelle explicitement lèverait « No facet named … ». Le choix porte sur le volume, à la
+demande de Louis : le moteur ne compte plus sa distribution sur la recherche principale **ni** sur la
+requête non filtrée, et ses libellés ne sont plus lus — sur Pluralia l'écart est sous le plancher de
+mesure (0–1 ms), il ne l'est pas sur un catalogue de milliers d'entrées. Effet de bord souhaitable :
+`/marque/avril?marque=aeris` rend les 5 produits de la marque au lieu d'une page vide, le paramètre
+contradictoire n'étant plus lu.
+
+**Recette, mesurée après correctif** : 5, 10, 14, 3 produits sur les quatre archives ci-dessus ; 1 sur
+`/categorie-produit/maquillage/accessoires` et 16 par page sur `/boutique`, tous deux inchangés ; bornes
+9–47 € sur `/marque/aeris` ; facette Marque masquée sur son archive, catégorie intacte sur la sienne.
+
+**Tests** : `ProductArchiveTest` (sept cas : catégorie, toute autre taxonomie produit, taxonomie native
+partagée avec les produits, taxonomie hors catalogue, hors archive, facette épinglée retirée du plan mais
+gardée plaçable, catégorie conservée) et un cas dans `ChildTermsFacetTest`. **Cinq mutations tuées** : retour à `is_tax(product_cat)`, garde
+`is_object_in_taxonomy` retirée, filtre `narrowsUnder` retiré de `facets()`, et `ChildTermsFacet`
+rendu à la règle plate.
+
+**Passes** : le nom `currentAisle` (« rayon » ne vaut que pour une catégorie), un commentaire qui
+donnait une cause fausse — le moteur refuse un attribut **non déclaré filtrable**, alors qu'un champ
+absent des documents rend simplement zéro résultat (mesuré des deux côtés) —, `baseFilter()` coupé en
+deux niveaux, et quatre points sur le test : requêtes de termes en double, saut silencieux au milieu
+d'une boucle, `assertNotEmpty` caché dans un assistant, nom de test illisible.
+
+**Étendu le 2026-09-23, sur remarque de Louis** : `browsedTerm()` ne passe plus par `is_tax()`, qui
+répond faux sur les taxonomies natives (`class-wp-query.php:2304` ne les range pas avec les autres) —
+il lit `get_queried_object()`, qui rend le terme dans tous les cas. Une boutique qui attache
+`category` à ses produits (`register_taxonomy_for_object_type()`, `taxonomy.php:768`, mesuré :
+`is_category = true`, `is_tax = false`, objet interrogé `WP_Term`) est donc couverte elle aussi, et un
+test l'épingle — cinquième mutation tuée en remettant `is_tax()`.
+
+**Limites écrites, non traitées** : une
+taxonomie produit enregistrée après la dernière poussée des réglages d'index fait répondre au moteur
+« not filterable », donc la vue indisponible, jusqu'à la prochaine sauvegarde de produit ; le **champ**
+du filtre est interpolé sans échappement, à la différence de la valeur — un nom de taxonomie vient de
+`register_taxonomy()`, l'URL ne choisit que laquelle est interrogée.
+
+**Vérifié** : `composer check` vert, suite `Modules` 396 tests / 1333 assertions. Relevé à part : `R-157`.
 
 ### R-148 · 🟡 · **fermé le 2026-09-17** · ouvert le 2026-09-17 — un produit dont le prix a été vidé est indexé à 0
 
@@ -6020,21 +6106,23 @@ parité lisible). Les commentaires devenus faux ou inexacts sont déjà corrigé
 
 ## 11. Roadmap proposée
 
-### File d'attente au 2026-09-22
+### File d'attente au 2026-09-23
 
 Un point à la fois (`D-03`), dans cet ordre, sauf décision contraire de Louis :
 
-1. **Retours de la PR #2** : `R-146`, `R-147`, `R-148` et `R-154` sont fermés, et commités sauf `R-154`
-   (`3ee3edf`, `93c7703`, `7d7eab3`, `618a697`, `6939e4f`). `R-03` est fermé lui aussi. Restent ouverts et
-   non planifiés : `R-150` à `R-153`, `R-155`.
-2. `R-149` — une archive de marque affiche tout le catalogue, le seul mesuré sur Pluralia.
-3. `R-142` — le glissé du prix casse sur une vue à une seule poignée basse, et hors du bouton principal.
-4. `R-143` — le client efface le balisage d'un bouton « Voir plus » surchargé ; demande l'accord de Louis
+1. **Retours de la PR #2** : `R-146`, `R-147`, `R-148`, `R-149`, `R-154` et `R-03` sont fermés.
+   Commités : `3ee3edf`, `93c7703`, `7d7eab3`, `618a697`, `6939e4f`, `7046e7b` ; `R-149` attend son
+   commit.
+2. `R-142` — le glissé du prix casse sur une vue à une seule poignée basse, et hors du bouton principal.
+3. `R-143` — le client efface le balisage d'un bouton « Voir plus » surchargé ; demande l'accord de Louis
    (`Contract::VERSION` des deux côtés).
-5. `R-144` — remplacer `FacetCounter` ne change que le premier rendu.
-6. `R-141` — cinq tests `Feature` dépendent de l'ordre de la suite.
-7. `Q-31` — commentaires de rôle et renvois vers le miroir PHP : à trancher par Louis avant toute purge.
-8. `R-145` — les restructurations relevées par les passes rejouées, ligne par ligne.
+4. `R-144` — remplacer `FacetCounter` ne change que le premier rendu.
+5. `R-141` — cinq tests `Feature` dépendent de l'ordre de la suite.
+6. `Q-31` — commentaires de rôle et renvois vers le miroir PHP : à trancher par Louis avant toute purge.
+7. `R-145` — les restructurations relevées par les passes rejouées, ligne par ligne.
+
+Ouverts, non planifiés : `R-150` à `R-153`, `R-155` à `R-158`. `R-158` est de la même famille que
+`R-149` et mérite d'être traité juste après lui.
 
 *Ce qui suit, jusqu'aux tableaux, est le plan du 2026-09-06, gardé comme historique : l'ordre courant
 est la file d'attente ci-dessus.*

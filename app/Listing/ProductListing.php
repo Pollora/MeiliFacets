@@ -43,9 +43,11 @@ final readonly class ProductListing implements Listing
 
     public function facets(): array
     {
+        $pinned = $this->browsedTerm()?->taxonomy;
+
         return array_values(array_filter(
             $this->facets->all(),
-            static fn (Placeable $filter): bool => $filter instanceof Facet
+            static fn (Placeable $filter): bool => $filter instanceof Facet && $filter->narrowsUnder($pinned)
         ));
     }
 
@@ -72,23 +74,27 @@ final readonly class ProductListing implements Listing
 
     public function baseFilter(): array
     {
-        $clauses = [
+        return [
             FilterExpression::equals('post_type', self::POST_TYPE),
             FilterExpression::equals('post_status', self::PUBLISHED),
             FilterExpression::without(
                 DocumentField::Facets->path(ProductTaxonomy::Visibility->value),
                 self::HIDDEN_FROM_CATALOG
             ),
+            ...$this->browsedClause(),
         ];
+    }
 
-        $aisle = $this->currentAisle();
+    /**
+     * @return list<string>
+     */
+    private function browsedClause(): array
+    {
+        $browsed = $this->browsedTerm();
 
-        return $aisle === null
-            ? $clauses
-            : [...$clauses, FilterExpression::equals(
-                DocumentField::Facets->path(ProductTaxonomy::Category->value),
-                $aisle
-            )];
+        return $browsed instanceof WP_Term
+            ? [FilterExpression::equals(DocumentField::Facets->path($browsed->taxonomy), $browsed->slug)]
+            : [];
     }
 
     public function perPage(): int
@@ -101,10 +107,16 @@ final readonly class ProductListing implements Listing
         return ApplyMode::fromConfig();
     }
 
-    private function currentAisle(): ?string
+    /** Not `is_tax()`: it answers false on the built-in taxonomies, which a shop may well file products under. */
+    private function browsedTerm(): ?WP_Term
     {
-        $term = is_tax(ProductTaxonomy::Category->value) ? get_queried_object() : null;
+        $term = get_queried_object();
 
-        return $term instanceof WP_Term ? $term->slug : null;
+        // A product carries no field for a taxonomy that is not its own: filtering on it would empty the listing.
+        if (! $term instanceof WP_Term || ! is_object_in_taxonomy(self::POST_TYPE, $term->taxonomy)) {
+            return null;
+        }
+
+        return $term;
     }
 }

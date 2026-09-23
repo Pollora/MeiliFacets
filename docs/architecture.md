@@ -186,8 +186,8 @@ tait ; s'il lie après, son `bind` remplace. **Le projet doit lier avec `bind`/`
 `scopedIf`** — sinon c'est le premier arrivé qui gagne et l'ordre redevient significatif.
 
 Ce qui **reste** dans le module, parce qu'un défaut y est juste partout : la garde WooCommerce, le
-filtre de catalogue (`post_type`, `post_status`, `exclude-from-catalog`), le rayon courant lu de
-`is_tax()`, et la taille de page prise à `loop_shop_per_page`. Les réécrire par projet serait
+filtre de catalogue (`post_type`, `post_status`, `exclude-from-catalog`), le terme de l'archive lu
+de `is_tax()` quelle que soit sa taxonomie, et la taille de page prise à `loop_shop_per_page`. Les réécrire par projet serait
 recopier quatre-vingt-dix lignes universellement correctes pour en changer trois.
 
 Les deux implémentations mémoïsent leur liste, lue à de nombreux endroits par requête — sept et

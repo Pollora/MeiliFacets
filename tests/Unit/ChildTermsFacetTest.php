@@ -27,6 +27,16 @@ final class ChildTermsFacetTest extends TestCase
         $this->assertSame(['serums' => 9, 'cremes-visage' => 7], $kept);
     }
 
+    /** A flat facet stops narrowing once the path pins its taxonomy; this one goes on offering the level below. */
+    #[Test]
+    public function it_keeps_narrowing_under_the_term_the_path_pins(): void
+    {
+        $this->assertTrue($this->facet()->narrowsUnder('product_cat'));
+        $this->assertFalse(new Facet('product_cat', 'Category')->narrowsUnder('product_cat'));
+        $this->assertTrue(new Facet('product_brand', 'Brand')->narrowsUnder('product_cat'));
+        $this->assertTrue(new Facet('product_brand', 'Brand')->narrowsUnder(null));
+    }
+
     /** Moving sideways belongs to a breadcrumb, not to a control that narrows. */
     #[Test]
     public function it_offers_nothing_on_a_term_without_children(): void

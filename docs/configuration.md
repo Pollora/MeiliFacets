@@ -576,11 +576,18 @@ configuration.
 
 Une classe qui implémente `Listing`, découverte automatiquement dans `app/` et `Modules/*/app` :
 il n'y a rien à enregistrer. Elle porte son filtre de base, qui se calcule au rendu — c'est ce qui
-permet à `ProductListing` d'ajouter le rayon courant aux clauses sur une archive de catégorie, où
-il est déjà porté par le chemin. Ses facettes et ses tris, en revanche, ne sont plus écrits dans la
-classe : ils viennent des contrats `ProductFacets` et `ProductSorts` ci-dessus, qu'un projet
-remplace sans toucher au module. La facette catégorie n'est pas retirée sur une archive de
-catégorie : `ChildTermsFacet` la **conserve et la restreint** au niveau courant.
+permet à `ProductListing` d'ajouter aux clauses **le terme que le chemin porte, quelle que soit sa
+taxonomie** — une catégorie, une marque, une taxonomie du projet —, tant qu'elle s'applique aux
+produits. Ses facettes et ses tris, en revanche, ne sont plus écrits dans la classe : ils viennent
+des contrats `ProductFacets` et `ProductSorts` ci-dessus, qu'un projet remplace sans toucher au
+module.
+
+**Une facette dont le chemin épingle déjà la taxonomie n'est plus offerte** : sur `/marque/avril`,
+la facette Marque ne proposerait que « Avril », que la page filtre déjà. Elle sort donc du plan de
+requête — le moteur ne compte pas sa distribution et ses libellés ne sont pas lus — mais **reste
+plaçable** : un gabarit qui l'appelle par son nom obtient un bloc sans valeur, que la vue masque.
+La facette catégorie fait exception, et c'est ce pour quoi elle est faite : `ChildTermsFacet` la
+**conserve et la restreint** aux enfants du terme courant.
 
 Un `Facet` déclare sa taxonomie, son libellé, son mode de sélection, son ordre d'affichage, sa limite visible,
 son plafond, le sort de son terme de repli et son nom. Un **`ChildTermsFacet`** en est une variante pour une

@@ -51,6 +51,12 @@ readonly class Facet implements Placeable
         return $distribution;
     }
 
+    /** A flat facet of the taxonomy a path pins offers that one value and nothing else: it has stopped narrowing. */
+    public function narrowsUnder(?string $pinned): bool
+    {
+        return $pinned !== $this->taxonomy;
+    }
+
     public function field(): string
     {
         return DocumentField::Facets->path($this->taxonomy);
