@@ -397,15 +397,23 @@ prix dans la boutique » —, pas le prix saisi (`D-e`, `prix.md`). WooCommerce 
 **WooCommerce 9.8 au moins** : `get_visible_children()` n'existe sur un groupé que depuis cette version
 (`class-wc-product-grouped.php:153-160`).
 
-Un groupé ne compte que ses enfants visibles, comme sa carte — publiés, ou modifiables par l'utilisateur
-courant (`wc-product-functions.php:1743`) : un enfant en brouillon compte quand un admin enregistre, pas en
-ligne de commande ni en cron. Un groupé sans aucun enfant à prix n'est pas indexé avec un prix, quel que soit
-le libellé qu'un thème affiche à sa place.
+Un groupé ne compte que ses enfants **publiés**. WooCommerce y ajoute ceux que l'utilisateur connecté peut
+modifier (`wc-product-functions.php:1743`), ce qui ferait indexer le prix d'un brouillon dès qu'un admin
+enregistre ; le module l'évite en projetant en visiteur anonyme (voir ci-dessous). Un groupé sans aucun enfant
+à prix n'est pas indexé avec un prix, quel que soit le libellé qu'un thème affiche à sa place.
 
 Le module n'arrondit rien et garde ce que ces méthodes rendent : 49 € saisis TTC dans une boutique qui affiche
 HT à 20 % sont indexés 40.833333, et `?max_price=40.83` exclut ce produit affiché 40,83 €. Les prix des
 variables arrivent arrondis aux décimales de la boutique par WooCommerce lui-même
 (`class-wc-product-variable-data-store-cpt.php:484`).
+
+**Toujours en visiteur anonyme.** Pendant la construction du document, carte comprise, `AnonymousVisitor`
+passe l'utilisateur courant à 0 par `wp_set_current_user()` — la fonction de WordPress, celle dont WooCommerce
+se sert pour ses webhooks (`class-wc-webhook.php:426-464`) —, puis rétablit l'utilisateur d'origine, même sur
+erreur. Sans cela, un groupé indexé depuis le back-office porterait le prix de ses enfants non publiés, et sa
+carte l'afficherait à tous (`R-154`). En cron et en ligne de commande, la bascule ne coûte rien :
+`wp_set_current_user()` sort tout de suite quand l'utilisateur est déjà 0 (`pluggable.php:31-37`). ⚠️ Cela ne
+change que les **droits** : un client en session exonéré de TVA reste hors d'atteinte.
 
 **Toujours à l'adresse de la boutique.** Pendant la construction du document, carte comprise,
 `ShopTaxLocation` impose l'adresse de la boutique par le filtre natif `woocommerce_get_tax_location`, en

@@ -452,8 +452,9 @@ Précisé par Louis le même jour, sur la passe de conformité :
 
 Coûts relevés par les passes, écrits aussi dans `configuration.md` : sans arrondi, un produit saisi 49 € TTC
 dans une boutique affichée HT à 20 % est indexé 40.833333, et `?max_price=40.83` l'exclut alors que sa carte
-affiche 40,83 € ; `get_visible_children()` exige WooCommerce 9.8. Un enfant en brouillon compte quand l'indexation part
-d'un administrateur, pas du cron (`R-154`).
+affiche 40,83 € ; `get_visible_children()` exige WooCommerce 9.8. Carte et prix sont projetés en visiteur
+anonyme, donc un enfant non publié ne compte jamais, quel que soit l'utilisateur qui déclenche l'indexation
+(`R-154`).
 
 *Ancienne décision, 2026-09-15 — reprendre la conversion de WooCommerce.* Quand les
 prix sont stockés HT et affichés TTC, il retire la taxe des bornes saisies avant de filtrer

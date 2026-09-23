@@ -3126,7 +3126,25 @@ c'est celui-là qui est levé.
 
 ---
 
-### R-154 · 🟡 · ouvert · 2026-09-22 — un produit groupé n'indexe pas la même chose selon qui déclenche l'indexation
+### R-156 · 🟡 · ouvert · 2026-09-23 — un client en session exonéré de TVA fait indexer des prix hors taxe
+
+Relevé par les passes de `R-154`, déjà écrit deux fois dans la documentation (`configuration.md`, `prix.md`)
+sans porter de numéro. `AnonymousVisitor` ne change que les **droits** : `WC()->customer`, le client en
+session, n'est pas réinitialisé — personne n'écoute `set_current_user` chez WooCommerce. Or l'exonération de
+TVA se lit là (`wc-product-functions.php:1526`, `:1548`) : un administrateur dont la session est exonérée fait
+indexer des prix hors taxe pour tout le monde. Même forme que `R-154`, autre porte. Non mesuré.
+
+### R-155 · 🟡 · ouvert · 2026-09-23 — rien ne réindexe un produit groupé quand un de ses enfants change
+
+Relevé par la passe de conformité de `R-154`, lu dans la source, non mesuré. Le prix d'un groupé se calcule
+au moment où **le groupé** est indexé, à partir de ses enfants. Or WooCommerce ne recalcule les prix d'un
+groupé qu'à l'enregistrement du parent, et seulement si sa liste d'enfants a changé
+(`class-wc-product-grouped-data-store-cpt.php:50-55`, `:63-65`) ; aucun code du module ni de MeiliScout ne
+réindexe le parent quand un enfant est enregistré, passe en brouillon ou change de prix. Le document du
+groupé garde donc son ancienne fourchette jusqu'à sa propre réindexation. Antérieur à `R-146`, où le même
+décalage portait sur les lignes `_price`. Jumeau connu : `R-12`, pour les termes.
+
+### R-154 · 🟡 · **fermé le 2026-09-23** · ouvert le 2026-09-22 — un produit groupé n'indexe pas la même chose selon qui déclenche l'indexation
 
 Relevé par le troisième tour de passes de `R-146`, mesuré en mémoire : l'enfant #368 de #444 passé en
 brouillon, #444 est projeté 30,60–47,88 sans utilisateur (cron, ligne de commande) et 23,40–47,88 avec
@@ -3136,6 +3154,50 @@ comme pour la carte (`get_price_html()`) : la carte indexée pendant un enregist
 tous les visiteurs le prix d'un brouillon. Moins large qu'avant `R-146`, où les lignes `_price` comptaient
 tous les enfants (`class-wc-product-grouped-data-store-cpt.php:76-85`). Réponse possible : projeter en
 visiteur anonyme, comme `ShopTaxLocation` impose l'adresse — un comportement visible, à trancher par Louis.
+
+**Tranché par Louis le 2026-09-23 : indexer en visiteur anonyme.** Mesuré à nouveau avant de coder, en
+mémoire sur #444 (enfants #360 à 39,90 €, #361 à 25,50 €, #368 à 19,50 €, #360 simulé en brouillon) : sans
+utilisateur, prix et carte donnent 19,50–25,50 ; avec l'administrateur, 19,50–39,90.
+
+**Ce que la plateforme offre** (passe de conformité) : aucune fonction ne calcule un prix « en visiteur » —
+`get_price_html()` et `get_visible_children()` passent par `get_primed_visible_children()`, qui appelle
+`current_user_can()` sans cache (`class-wc-product-grouped.php:201-209`). WooCommerce bascule lui-même
+l'utilisateur, dans un `try/finally`, pour ses webhooks (`class-wc-webhook.php:426-464`) et ses notes
+d'admin (`Notes.php:408-411`). Seul le cœur de WordPress écoute `set_current_user` (`kses_init` et les notes
+de bas de page, `default-filters.php:589`, `:651`) : ni WooCommerce, ni MeiliScout, ni les onze extensions
+actives, ni l'hôte.
+
+**Corrigé** : `AnonymousVisitor::during()` passe l'utilisateur à 0 et rétablit l'ancien dans un `finally` ;
+`MeiliScoutBridge::asShopVisitor()` compose les deux gardes, adresse de la boutique et visiteur anonyme,
+autour de la carte et du prix. Coût nul en cron et en ligne de commande (`wp_set_current_user()` sort quand
+l'utilisateur est déjà 0, `pluggable.php:31-37`). Portée : les **droits** seulement — un client en session
+exonéré de TVA reste hors d'atteinte, comme déjà écrit.
+
+**Tests** : `AnonymousIndexingTest` projette un groupé à enfant brouillon deux fois, déconnecté puis connecté
+comme administrateur (créé et supprimé par le test, sur décision de Louis ; vérifié avant : Mailjet inactif,
+aucun webhook actif), et **compare les deux documents** — c'est la promesse du point, et elle tient quels que
+soient les réglages de taxe, les attentes étant lues chez WooCommerce (`wc_get_price_to_display()`) plutôt
+qu'écrites en dur. Il vérifie aussi que l'administrateur est rendu même quand la projection lève.
+`AnonymousVisitorTest` couvre la garde sans WordPress. **Mutations tuées** : sans la garde, les deux documents
+diffèrent ; sans le `finally`, l'utilisateur reste à 0. **Câblage vérifié en mémoire** sur le vrai filtre :
+`apply_filters('meiliscout/post/document', [], $post)` sur #444, enfant #360 simulé en brouillon, rend
+19,50–25,50 des deux côtés, et l'utilisateur courant est rendu.
+
+**Passes (2026-09-23)** — traités : le nom `editor` pour un administrateur, `projected()` qui désignait deux
+choses dans deux classes sœurs (devenu `documentOf()`), un test dont le nom ne parlait que du chemin d'erreur
+(coupé en deux), la garde WooCommerce qui écartait aussi le test sans boutique, la garde de `during()` qui ne
+couvrait qu'une des deux fonctions appelées, trois commentaires qui racontaient l'histoire du code plutôt
+qu'une anomalie amont, et un identifiant fixe pour l'administrateur du test — qui se nettoie désormais de
+lui-même si une exécution a été coupée avant son ménage.
+
+**Refusé, par écrit** : fusionner `addCard()` et `addPrice()` pour n'envelopper qu'une fois. Mesuré :
+44,2 µs par aller-retour d'utilisateur avec un administrateur connecté, 0,45 µs sans personne, soit **2,2 ms**
+pour un enregistrement de produit en back-office (une cinquantaine de bascules, l'indexation repartant à
+chaque écriture de méta). Les deux méthodes portent deux champs distincts du document ; les réunir pour
+gagner un millième de seconde coûterait cette séparation.
+
+**Vérifié** : `composer check` vert, suite `Modules` 388 tests, aucun utilisateur ni produit de test laissé en
+base. Relevés à part : `R-155`, `R-156`.
 
 ### R-153 · 🟡 · ouvert · 2026-09-22 — la documentation décrivait le module d'avant le prix et le TypeScript
 
@@ -5962,9 +6024,9 @@ parité lisible). Les commentaires devenus faux ou inexacts sont déjà corrigé
 
 Un point à la fois (`D-03`), dans cet ordre, sauf décision contraire de Louis :
 
-1. **Retours de la PR #2** : `R-146`, `R-147` et `R-148` sont fermés. Restent à committer, dans l'ordre : les
-   suites de `R-147`, `R-146`, la passe documentaire `R-153` (en l'état, à la demande de Louis) et `R-03`
-   (`Contract` devenu un enum, fait en attendant les passes). `R-154` est ouvert, à trancher par Louis.
+1. **Retours de la PR #2** : `R-146`, `R-147`, `R-148` et `R-154` sont fermés, et commités sauf `R-154`
+   (`3ee3edf`, `93c7703`, `7d7eab3`, `618a697`, `6939e4f`). `R-03` est fermé lui aussi. Restent ouverts et
+   non planifiés : `R-150` à `R-153`, `R-155`.
 2. `R-149` — une archive de marque affiche tout le catalogue, le seul mesuré sur Pluralia.
 3. `R-142` — le glissé du prix casse sur une vue à une seule poignée basse, et hors du bouton principal.
 4. `R-143` — le client efface le balisage d'un bouton « Voir plus » surchargé ; demande l'accord de Louis
