@@ -253,7 +253,7 @@ final class FacetComponentTest extends TestCase
         $description = $this->app->make(ListingDescription::class);
 
         $before = $description->of($listing);
-        $listing->placeApart($this->first());
+        $listing->placeFacet($this->first()->name, Facet::class);
 
         $this->assertSame(json_encode($before), json_encode($description->of($listing)));
         $this->assertCount(count($listing->facets()), $description->of($listing)['facets']);

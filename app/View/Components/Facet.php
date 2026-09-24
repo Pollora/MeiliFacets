@@ -30,7 +30,7 @@ final class Facet extends ListingComponent
     ) {
         parent::__construct($listings, $name, $scroll);
 
-        $this->facet = $this->listing->placing($this->designated($facet), Declaration::class);
+        $this->facet = $this->listing->placeFacet($this->designated($facet), Declaration::class);
 
         $this->values = $this->listing->valuesOf($this->facet);
     }

@@ -3248,6 +3248,36 @@ déclarée sur la facette dans `ProductFacets`, surchargeable par attribut ; une
 sortir le HTML actuel à l'octet près. Renversement de `D-07` noté à sa place. Rattaché au chantier
 `R-48`, étape 3a de [chantier-filtres.md](chantier-filtres.md).
 
+### R-167 · 🟡 · **fermé le 2026-09-24** · ouvert le 2026-09-24 — `ResolvedListing` porte le registre de placement
+
+`app/Listing/ResolvedListing.php` (357 lignes, 30 méthodes publiques, 7 dépendances, 11 champs
+mutables) mêle quatre responsabilités : exécuter et mémoïser la recherche, résoudre facettes et
+valeurs, **tenir le registre de ce qui est rendu sur la page**, relayer la configuration du listing.
+`CLAUDE.md` § 2-3 : un fichier qui fait deux choses, c'est deux fichiers. Relevé par Louis en revue
+de l'étape 2c du chantier `R-48`, qui l'a aggravé : la garde du tri (`R-162`) a posé un booléen
+`$sortRendered` à côté du tableau `$rendered`. Traité entre l'étape 2c et l'étape 3, avant `R-164`.
+
+**Fermé le 2026-09-24**, sans changement de comportement. Le registre est sorti dans
+`Listing/PagePlacement` (`place()`, `placeApart()`, `placeSort()`, `remaining()`), que
+`ResolvedListing` construit avec le nom du listing — une instance par listing résolu, donc la même
+durée de vie qu'avant. Le rendu est un seul tableau indexé par `Enums\PlacedControl` (`Facet`,
+`Sort`) puis par nom : une facette nommée `sort`, ou du nom du listing, ne peut plus se confondre
+avec le tri. `ResolvedListing` garde la résolution par nom et la garde de genre dans `placing()`, et
+trois relais (`placing()`, `placeSort()`, `remainingFacets()`) : les composants ne voient toujours
+qu'elle. `place()` et `placeApart()` quittent sa surface publique — seuls des tests les appelaient ;
+ils passent désormais par `placing()`, le chemin réel des composants. 357 → 327 lignes,
+30 → 28 méthodes publiques, 11 → 8 champs mutables. Message du tri corrigé (« Render
+<x-meilifacets::sort> once per page. », la mention de deux dispositions datait de l'architecture v1
+abandonnée). Non fait : fusionner `sorts()`/`currentSort()`/`sortMatches()` pour `Sort` — `sorts()`
+reste appelé par des tests et `ListingDescription`, et une méthode qui rendrait des `SortChoice`
+ferait dépendre `Listing/` de `View/`. **Vérifié** : `composer check` vert (Unit 285, TS 319), suite
+`Modules` 442 tests verts, `/boutique` 200 après `view:clear`.
+
+**Complété le 2026-09-24, en revue avec Louis** : `placing()` renommé `placeFacet()` (en écho à
+`placeSort()`), avec ses deux chemins écrits en clair — une déclaration reste dans le groupe, un nom
+est placé à part — et la vérification du type sortie dans `ofKind()`. `facetNamed()` passe privé :
+seuls des tests l'appelaient de l'extérieur, ils passent maintenant par `placeFacet()`.
+
 ### R-166 · 🟡 · ouvert · 2026-09-24 — deux `<x-meilifacets::listing>` du même nom sur une page ne sont gardés nulle part
 
 `listing-page.ts` lie une instance par racine, donc deux écritures d'historique, et `ElementId` ne

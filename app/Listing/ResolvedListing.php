@@ -35,19 +35,13 @@ final class ResolvedListing
     /** @var list<Placeable>|null */
     private ?array $filters = null;
 
-    /** @var array<string, true> names already on the page, whatever placed them */
-    private array $rendered = [];
-
-    /** @var array<string, true> names a template placed on their own */
-    private array $apart = [];
-
-    private bool $sortRendered = false;
-
     /** @var array<string, list<FacetValue>> */
     private array $valuesByFacet = [];
 
     /** @var array<string, Sort>|null */
     private ?array $sorts = null;
+
+    private readonly PagePlacement $placement;
 
     public function __construct(
         private readonly Listing $listing,
@@ -57,7 +51,9 @@ final class ResolvedListing
         private readonly UrlParameters $parameters,
         private readonly Unavailable $unavailable,
         private readonly EngineLimits $limits,
-    ) {}
+    ) {
+        $this->placement = new PagePlacement($listing->name());
+    }
 
     public function results(): SearchResults
     {
@@ -148,7 +144,7 @@ final class ResolvedListing
         return $filters;
     }
 
-    public function facetNamed(string $name): Placeable
+    private function facetNamed(string $name): Placeable
     {
         return array_find($this->filters(), static fn (Placeable $filter): bool => $filter->name === $name)
             ?? throw new RuntimeException(
@@ -165,70 +161,56 @@ final class ResolvedListing
      */
     public function remainingFacets(): array
     {
-        return array_values(array_filter(
-            $this->filters(),
-            fn (Placeable $filter): bool => ! isset($this->apart[$filter->name])
-        ));
+        return $this->placement->remaining($this->filters());
     }
 
     /**
-     * Places what a component was given: a declaration goes where the template put
-     * it, a name is looked up and taken out of the group. A component only places
-     * its own kind, so the mismatch is caught here rather than rendered wrong.
+     * A declaration comes from the group and stays in it; a name comes from a template
+     * that placed the facet on its own, so the group leaves it out. A component only
+     * places its own kind, so a mismatch is caught here rather than rendered wrong.
      *
      * @template T of Placeable
      *
      * @param  class-string<T>  $kind
      * @return T
      */
-    public function placing(Placeable|string $filter, string $kind): Placeable
+    public function placeFacet(Placeable|string $facet, string $kind): Placeable
     {
-        $placeable = $filter instanceof Placeable ? $filter : $this->facetNamed($filter);
+        if ($facet instanceof Placeable) {
+            $this->placement->place($this->ofKind($facet, $kind));
 
-        if (! $placeable instanceof $kind) {
+            return $facet;
+        }
+
+        $named = $this->ofKind($this->facetNamed($facet), $kind);
+        $this->placement->placeApart($named);
+
+        return $named;
+    }
+
+    /**
+     * @template T of Placeable
+     *
+     * @param  class-string<T>  $kind
+     * @return T
+     */
+    private function ofKind(Placeable $facet, string $kind): Placeable
+    {
+        if (! $facet instanceof $kind) {
             throw new RuntimeException(sprintf(
                 '"%s" in listing "%s" is a %s: place it with the component of its own kind.',
-                $placeable->name,
+                $facet->name,
                 $this->name(),
-                class_basename($placeable)
+                class_basename($facet)
             ));
         }
 
-        $filter instanceof Placeable ? $this->place($placeable) : $this->placeApart($placeable);
-
-        return $placeable;
-    }
-
-    /** Designated by name, so the group leaves it alone. */
-    public function placeApart(Placeable $facet): void
-    {
-        $this->apart[$facet->name] = true;
-
-        $this->place($facet);
-    }
-
-    public function place(Placeable $facet): void
-    {
-        if (isset($this->rendered[$facet->name])) {
-            throw new RuntimeException(
-                "Facet \"{$facet->name}\" is rendered twice on this page: its inputs and ids "
-                .'would be duplicated. Place it on its own before <x-meilifacets::facets>, which shows what is left.'
-            );
-        }
-
-        $this->rendered[$facet->name] = true;
+        return $facet;
     }
 
     public function placeSort(): void
     {
-        if ($this->sortRendered) {
-            throw new RuntimeException(
-                "The sort of listing \"{$this->name()}\" is rendered twice on this page: its list and ids "
-                .'would be duplicated. Render <x-meilifacets::sort> once, where both layouts can show it.'
-            );
-        }
-
-        $this->sortRendered = true;
+        $this->placement->placeSort();
     }
 
     /**

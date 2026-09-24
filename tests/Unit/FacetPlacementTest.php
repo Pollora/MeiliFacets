@@ -40,7 +40,7 @@ final class FacetPlacementTest extends TestCase
     {
         $listing = $this->listing();
 
-        $listing->placeApart($listing->facetNamed('brand'));
+        $listing->placeFacet('brand', Facet::class);
 
         $this->assertSame(['size'], $this->namesOf($listing->remainingFacets()));
     }
@@ -50,14 +50,14 @@ final class FacetPlacementTest extends TestCase
     public function it_refuses_to_render_the_same_facet_twice(): void
     {
         $listing = $this->listing();
-        $brand = $listing->facetNamed('brand');
+        $brand = array_find($listing->filters(), static fn (Placeable $filter): bool => $filter->name === 'brand');
 
-        $listing->place($brand);
+        $listing->placeFacet($brand, Facet::class);
 
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessageMatches('/Facet "brand" is rendered twice/');
 
-        $listing->place($brand);
+        $listing->placeFacet($brand, Facet::class);
     }
 
     /** The sort is a control like a facet: a drawer shows the one copy, never a second. */
@@ -69,24 +69,24 @@ final class FacetPlacementTest extends TestCase
         $listing->placeSort();
 
         $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessageMatches('/The sort of listing "fake" is rendered twice.*<x-meilifacets::sort> once/');
+        $this->expectExceptionMessageMatches('/The sort of listing "fake" is rendered twice.*Render <x-meilifacets::sort> once per page\\./');
 
         $listing->placeSort();
     }
 
-    /** The group takes what is left, so placing after it places twice. */
+    /** The group takes what is left, so placing a facet after it places it twice. */
     #[Test]
     public function it_refuses_a_facet_placed_after_the_group(): void
     {
         $listing = $this->listing();
 
         foreach ($listing->remainingFacets() as $facet) {
-            $listing->place($facet);
+            $listing->placeFacet($facet, Facet::class);
         }
 
         $this->expectException(RuntimeException::class);
 
-        $listing->placeApart($listing->facetNamed('brand'));
+        $listing->placeFacet('brand', Facet::class);
     }
 
     #[Test]
@@ -95,7 +95,7 @@ final class FacetPlacementTest extends TestCase
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessageMatches('/No facet named "colour".*brand, size/');
 
-        $this->listing()->facetNamed('colour');
+        $this->listing()->placeFacet('colour', Facet::class);
     }
 
     /** A facet that names nothing answers to its taxonomy. */
@@ -104,7 +104,7 @@ final class FacetPlacementTest extends TestCase
     {
         $listing = $this->listing([new Facet('product_tag', 'Tag')]);
 
-        $this->assertSame('product_tag', $listing->facetNamed('product_tag')->name);
+        $this->assertSame('product_tag', $listing->placeFacet('product_tag', Facet::class)->name);
     }
 
     #[Test]

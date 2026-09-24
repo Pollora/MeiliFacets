@@ -33,7 +33,7 @@ final class Price extends ListingComponent
     ) {
         parent::__construct($listings, $name, $scroll);
 
-        $this->facet = $this->listing->placing($this->designated($facet), Declaration::class);
+        $this->facet = $this->listing->placeFacet($this->designated($facet), Declaration::class);
     }
 
     private function asked(): Range
