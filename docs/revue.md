@@ -3192,6 +3192,29 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
+### R-162 · 🟠 · ouvert · 2026-09-24 — le doublon silencieux n'est gardé que pour les facettes
+
+`ResolvedListing::place()` refuse qu'une facette soit rendue deux fois, et c'est le seul garde-fou du
+module. Rien n'équivaut pour les autres composants :
+
+- `Reset` et `ActiveFilters` n'appellent ni `place()` ni `placing()` (`app/View/Components/Reset.php`,
+  `ActiveFilters.php`), et le client les peint par `contract.one(...)`
+  (`listing/filter-summary-view.ts:21-22`) — donc **le premier trouvé seulement**. Un second « Tout
+  effacer » ou un second compteur de filtres actifs posé dans un tiroir mobile réagirait au clic, la
+  délégation étant sur la racine, mais **n'afficherait jamais rien de juste** : figé sur son rendu
+  serveur pendant que l'autre se met à jour.
+- Même famille, plus large : deux `<x-meilifacets::listing>` du même nom sur une page ne sont gardés
+  nulle part — `listing-page.ts` lie une instance par racine, donc deux écritures d'historique, et
+  `ElementId` ne distingue que par nom de listing, donc des identifiants dupliqués.
+
+Trouvé en fermant `R-95`, dont la garde est justement ce qui manque ici. Le chantier mobile (`R-48`)
+rend le cas concret : c'est dans un tiroir qu'un thème est tenté de reposer un compteur ou un bouton
+« Tout effacer » déjà rendus ailleurs.
+
+Pistes : étendre la garde à tout `Placeable` rendu, ou peindre par `contract.all(...)` là où le
+doublon est légitime. À trancher avec le chantier mobile, pas avant : c'est lui qui dira si un thème a
+besoin de deux exemplaires.
+
 ### R-161 · ⚪ · ouvert · 2026-09-23 — une recherche sans type de contenu est comptée comme listing sans en rendre aucun
 
 Relevé par la passe de conformité de `R-158`. `/?s=creme`, sans `post_type=product`, rend le gabarit de
@@ -6083,7 +6106,7 @@ propriétés que le moteur résout et qu'emploie déjà `stylesheet.test.js`.
 
 ---
 
-### R-95 · 🟠 · **différé le 2026-09-09** · ouvert le 2026-09-09 — rendre deux fois la même facette sort un 500 sur toute la page
+### R-95 · 🟠 · **fermé le 2026-09-24, sans code** · différé le 2026-09-09 · ouvert le 2026-09-09 — rendre deux fois la même facette sort un 500 sur toute la page
 
 **Différé par Louis, à traiter avec le rendu des filtres en mobile** : c'est ce chantier qui dira si
 la modale est le même DOM présenté autrement ou un second rendu, donc si l'exception gêne.
@@ -6103,6 +6126,21 @@ fois : c'est exactement le modèle à deux modes livré par `R-89`.
 La question qui reste, plus étroite : **la modale mobile est-elle le même DOM présenté autrement, ou
 un second rendu ?** Aucune frame mobile relevée ne permet de trancher. Si c'est du CSS, l'exception
 ne gêne personne et le constat se ferme sans code.
+
+**Tranché par Louis le 2026-09-24, en ouvrant le chantier mobile : « même système, je ne veux pas de
+doublons. »** C'est la condition ci-dessus, remplie : la modale présentera l'unique rendu autrement.
+
+**Fermé sans code**, et vérifié dans le code plutôt que déduit : `ResolvedListing::place()`
+(`ResolvedListing.php:203-213`) ne lève que si **le même nom** est placé deux fois dans la même
+requête, et `CurrentListing` mémoïse un `ResolvedListing` par nom (`CurrentListing.php:33`). Un thème
+qui rend chaque facette une fois et la présente en colonne ou en tiroir selon la largeur ne franchit
+jamais la garde. Celle-ci reste ce qui évite des `id` et des cases dupliqués en silence, et elle est
+couverte par `FacetPlacementTest:58`.
+
+**Ce qui change pour le visiteur : rien.** Le point est fermé parce que la décision d'architecture le
+rend sans objet, pas parce qu'un correctif a été écrit.
+
+**Trouvé en le fermant, et ouvert à part** : la garde ne protège que les facettes — `R-162`.
 
 ---
 
@@ -6402,7 +6440,11 @@ Un point à la fois (`D-03`), dans cet ordre, sauf décision contraire de Louis 
 3. `Q-31` — commentaires de rôle et renvois vers le miroir PHP : à trancher par Louis avant toute purge.
 4. `R-145` — les restructurations relevées par les passes rejouées, ligne par ligne.
 
-Ouverts, non planifiés : `R-150` à `R-153`, `R-155`, `R-156`, `R-157`, `R-159` à `R-161`. Les trois
+Le chantier courant est **`R-48`** — le rendu mobile des filtres, ouvert le 2026-09-24 : un seul rendu
+présenté autrement, décidé par Louis le jour même (« même système, je ne veux pas de doublons »). Il a
+fermé `R-95` sans code et ouvert `R-162`.
+
+Ouverts, non planifiés : `R-150` à `R-153`, `R-155`, `R-156`, `R-157`, `R-159` à `R-162`. Les trois
 derniers viennent de `R-158` et relèvent du lot 5, avec la pertinence.
 
 *Ce qui suit, jusqu'aux tableaux, est le plan du 2026-09-06, gardé comme historique : l'ordre courant
