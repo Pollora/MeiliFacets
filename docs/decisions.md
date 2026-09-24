@@ -70,7 +70,7 @@ Voir aussi : [installation.md](installation.md) · [architecture.md](architectur
 | Déclenchement de la recherche | `meilifacets.apply_mode` : `submit` par défaut, `immediate` selon le volume ; le choix voyage dans la description JSON, `data-apply` n'est rendu que pour le thème |
 | Forme des valeurs multiples | une seule, `?marque=a,b` — un formulaire GET n'aurait produit que `marque[]=a&marque[]=b`, soit deux URLs et deux entrées Varnish pour un même état |
 | Paramètres d'URL côté client | le JavaScript n'en connaît aucun : il lit les noms que la description publie |
-| Déclaration d'un listing | classe implémentant `Listing`, découverte automatiquement |
+| Déclaration d'un listing | classe implémentant `Listing`, découverte automatiquement. Elle porte ce que la page impose : son filtre de base, et son **terme de base** — la recherche que WordPress a routée (`s`), lue jamais nommée, puisqu'un paramètre du module ne peut pas s'appeler comme une query var publique. Ce que le visiteur tape reste dans l'état, sous `q`, et l'emporte. *Étendu le 2026-09-23 (`R-158`).* |
 | Listing produit | livré par le module quand WooCommerce est actif |
 | Facette catégorie sur une archive de catégorie | **conservée et restreinte au niveau courant** (`ChildTermsFacet`) : elle propose les enfants directs du rayon, rien sur une feuille. *Renversé le 2026-09-06 — elle était retirée, la maquette cliente demande l'inverse.* |
 | Surcharge du markup | le module ajoute le thème en tête de sa cascade de vues |

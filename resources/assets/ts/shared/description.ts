@@ -41,6 +41,8 @@ export interface StateDescription {
 export interface ListingDescription {
     name: string
     filter: string
+    /** What the page itself searches for: a WordPress search served by the listing. */
+    baseQuery: string
     perPage: number
     /** hits the engine will serve past which no page exists */
     reachableHits: number

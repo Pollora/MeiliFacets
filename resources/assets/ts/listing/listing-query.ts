@@ -39,7 +39,7 @@ export class ListingQuery {
         const sort = state.sort !== null && Object.hasOwn(sorts, state.sort) ? sorts[state.sort] : undefined
 
         return {
-            q: state.query,
+            q: this.#text(state),
             filter: this.#filterExpression(state, null),
             facets: this.#filterQueries.filter((query) => !query.isMeasuredApart(state)).flatMap((query) => query.fields),
             hitsPerPage: perPage,
@@ -49,9 +49,13 @@ export class ListingQuery {
         }
     }
 
+    #text(state: ListingState) {
+        return state.query !== '' ? state.query : this.#listing.baseQuery
+    }
+
     #apart(lifted: FilterQuery, state: ListingState): SearchQuery {
         return {
-            q: state.query,
+            q: this.#text(state),
             filter: this.#filterExpression(state, lifted),
             facets: lifted.fields,
             hitsPerPage: NO_HIT,

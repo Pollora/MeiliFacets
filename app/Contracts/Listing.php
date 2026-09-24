@@ -39,6 +39,12 @@ interface Listing
      */
     public function baseFilter(): array;
 
+    /**
+     * The text the page itself searches for — a search WordPress routed, served here.
+     * Never what the visitor typed, which travels in the state.
+     */
+    public function baseQuery(): string;
+
     public function perPage(): int;
 
     /**

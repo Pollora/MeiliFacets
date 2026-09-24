@@ -48,6 +48,13 @@ final class ListingDescriptionTest extends TestCase
         $this->assertNull($state['sort']);
     }
 
+    /** Missing, the whole site answers 500: the resolved listing copies the contract by hand. */
+    #[Test]
+    public function it_always_hands_the_client_a_base_query(): void
+    {
+        $this->assertSame('', $this->describedWith([])['baseQuery']);
+    }
+
     #[Test]
     public function it_hands_over_the_path_of_the_first_page(): void
     {

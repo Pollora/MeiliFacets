@@ -287,6 +287,11 @@ final class ResolvedListing
         return FilterExpression::all($this->listing->baseFilter());
     }
 
+    public function baseQuery(): string
+    {
+        return $this->listing->baseQuery();
+    }
+
     public function applyMode(): ApplyMode
     {
         return $this->listing->applyMode();

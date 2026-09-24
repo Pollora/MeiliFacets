@@ -41,6 +41,7 @@ final readonly class ListingDescription
         return [
             'name' => $listing->name(),
             'filter' => $listing->baseFilter(),
+            'baseQuery' => $listing->baseQuery(),
             'perPage' => $listing->perPage(),
             'reachableHits' => $this->limits->reachableHits,
             'attributes' => [DocumentField::Card->value],

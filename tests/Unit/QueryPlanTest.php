@@ -29,6 +29,16 @@ final class QueryPlanTest extends TestCase
     }
 
     #[Test]
+    public function it_searches_what_the_page_asks_unless_the_visitor_asked_otherwise(): void
+    {
+        $listing = new FakeListing(baseQuery: 'creme');
+
+        $this->assertSame('creme', QueryPlan::results($listing, new ListingState)['q']);
+        $this->assertSame('creme', QueryPlan::unfiltered($listing)['q']);
+        $this->assertSame('lait', QueryPlan::results($listing, new ListingState(query: 'lait'))['q']);
+    }
+
+    #[Test]
     public function it_carries_the_base_filter_of_an_untouched_listing(): void
     {
         $query = QueryPlan::results($this->listing, new ListingState);

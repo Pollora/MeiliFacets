@@ -3126,7 +3126,7 @@ c'est celui-là qui est levé.
 
 ---
 
-### R-158 · 🟠 · ouvert · 2026-09-23 — la recherche produit sert tout le catalogue
+### R-158 · 🟠 · **fermé le 2026-09-23** · ouvert le 2026-09-23 — la recherche produit sert tout le catalogue
 
 Mesuré en fermant `R-149` : `/?s=creme&post_type=product` rend 16 cartes du catalogue quand WordPress
 trouve **6 produits** pour ce terme, et le filtre de base publié ne porte rien sur la recherche. Le
@@ -3139,6 +3139,80 @@ WordPress, donc tout ce que l'URL veut dire doit être relu explicitement.** Les
 le sont de façon générique ; le terme d'archive l'est depuis `R-149` ; la recherche ne l'est pas. À
 trancher : relire `s` quand le paramètre du module est absent, ou écrire que la recherche produit
 native n'est pas servie par le listing.
+
+**Tranché par Louis le 2026-09-23 : le terme appartient à la page, pas à l'état.** Même forme que
+`R-149` — ce que l'URL désigne est épinglé par le serveur, ce que le visiteur coche ou tape reste son
+état. La passe de conformité avait posé les trois options ; celle retenue évite qu'un terme voyage deux
+fois dans l'URL (`?q=creme&s=creme`, mesuré comme conséquence de l'option « amorcer l'état »).
+
+**Corrigé** : `Listing::baseQuery()` à côté de `baseFilter()` ; `ProductListing` lit `get_query_var('s')`
+quand `is_search()`, coupé à `StateReader::MAX_QUERY_LENGTH` comme le paramètre du module ;
+`QueryPlan::text()` applique une règle unique — ce que le visiteur a tapé, sinon le terme de la page —
+sur les trois requêtes, la non filtrée comprise ; `ListingDescription` publie `baseQuery`, et le client
+en fait le même usage (`listing-query.ts`). `s` n'est jamais écrit par le client : `PageAddress` le garde
+dans l'adresse, comme le 2026-09-17 l'a décidé.
+
+**Mesuré après correctif** : `/?s=creme&post_type=product` rend 8 produits au lieu de 16, avec
+`baseQuery='creme'` ; `/?s=creme&q=lait&post_type=product` rend 4 produits, le terme du visiteur
+l'emportant ; `/boutique` et `/marque/avril` inchangées. ⚠️ Les deux moteurs ne coïncident pas :
+WordPress trouve **6** produits pour « creme », le moteur **8** — les deux de plus remontent par le nom
+de leur catégorie (« Laits & crèmes corps »), le module laissant `searchableAttributes` à `["*"]`
+(`R-27`). C'est le réglage de pertinence du lot 5, et l'écart est voulu tant que le module doit
+remplacer la recherche native.
+
+**Panne trouvée par la mesure, pas par la suite** : ajouter la méthode au contrat a mis toutes les pages
+en 500, `ResolvedListing` enveloppant le listing sans implémenter le contrat. Aucun test ne rendait la
+description ; `ListingDescriptionTest` le fait désormais, et échoue si la délégation manque (vérifié en
+la retirant).
+
+**Passes** : un docblock déplacé qui annotait la mauvaise méthode dans la doublure de test, quatre
+commentaires qui paraphrasaient le code, deux miroirs écrits en polarités inverses, un nom de test qui
+disait l'inverse de son contenu. La décision, elle, est écrite dans `decisions.md` plutôt que dans un
+commentaire.
+
+**Second tour de passes** : le commentaire d'un test contredisait son propre corps, un nom de test
+promettait plus qu'il ne prouvait, `QueryPlan::text()` portait le nom que `StateReader::text()` donne à
+autre chose (devenu `searched()`), la constante disait l'état plutôt que la query var
+(`SEARCH_QUERY_VAR`), et le `trim()` n'était couvert par aucun test — il l'est.
+
+**La cause de la panne est fermée, pas seulement l'incident** : `ResolvedListing` recopie le contrat à
+la main, et c'était la deuxième panne globale de cette famille (la première est au Journal du
+2026-09-08). `ResolvedListingParityTest` compare par réflexion les méthodes publiques de `Listing` à
+celles de `ResolvedListing` : retirer la délégation fait désormais échouer la suite autonome, sans
+qu'aucune page n'ait à être chargée.
+
+**Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
+`R-160`, `R-161`.
+
+### R-161 · ⚪ · ouvert · 2026-09-23 — une recherche sans type de contenu est comptée comme listing sans en rendre aucun
+
+Relevé par la passe de conformité de `R-158`. `/?s=creme`, sans `post_type=product`, rend le gabarit de
+recherche du thème : zéro carte, aucune description publiée. `Http\ListingPage::isCurrent()` répond
+pourtant vrai (`is_search()`), donc la page est traitée comme une page de listing par la politique
+d'indexation et par le chargement du client. Sans conséquence aujourd'hui — le cœur pose déjà le
+`noindex` sur une recherche — mais la garde ment sur ce qu'elle garde.
+
+### R-160 · 🟡 · ouvert · 2026-09-23 — sur une recherche, le module n'exclut pas ce que WooCommerce exclut
+
+Relevé par la passe de conformité de `R-158`, lu dans la source. Sur une recherche, WooCommerce écarte
+les produits marqués `exclude-from-search` (`class-wc-query.php:929`, appliqué depuis `:424-437`), alors
+que le module écarte toujours `exclude-from-catalog`, quelle que soit la page
+(`ProductListing.php`, `HIDDEN_FROM_CATALOG`). Depuis `R-158`, la recherche produit est servie par le
+moteur : elle rend donc un ensemble qui n'est pas celui de WooCommerce. Sur Pluralia, un produit est
+`exclude-from-search` seulement (#400, mesuré au lot prix) : il reste trouvable ici, alors que la
+recherche native le cacherait.
+
+### R-159 · 🟡 · ouvert · 2026-09-23 — un terme que le moteur ne tokenise pas sert tout le catalogue
+
+Mesuré pendant les passes de `R-158` : `/?s=%3F%28&post_type=product` rend **16 produits** — le
+catalogue entier — quand `WP_Query` en trouve **0**. Le moteur ne reconnaît aucun mot dans `?(` et
+répond comme à une recherche vide. Le défaut n'est pas propre au terme de la page : `?q=%3F%28` fait la
+même chose, il préexiste donc sur le paramètre du module. À trancher : traiter « le moteur n'a rien
+reconnu » comme zéro résultat, ou l'écrire comme limite. Lot 5, avec la pertinence.
+
+Même famille, mesuré au second tour de `R-158` : `trim()` en PHP ne coupe pas les blancs Unicode, `.trim()`
+en JavaScript si. `/?s=%C2%A0&post_type=product` publie donc une espace insécable comme terme de page et sert
+les 16 produits, là où le client aurait lu une chaîne vide.
 
 ### R-157 · ⚪ · ouvert · 2026-09-23 — un refus du moteur est journalisé comme une absence de réponse
 
@@ -6121,8 +6195,8 @@ Un point à la fois (`D-03`), dans cet ordre, sauf décision contraire de Louis 
 6. `Q-31` — commentaires de rôle et renvois vers le miroir PHP : à trancher par Louis avant toute purge.
 7. `R-145` — les restructurations relevées par les passes rejouées, ligne par ligne.
 
-Ouverts, non planifiés : `R-150` à `R-153`, `R-155` à `R-158`. `R-158` est de la même famille que
-`R-149` et mérite d'être traité juste après lui.
+Ouverts, non planifiés : `R-150` à `R-153`, `R-155`, `R-156`, `R-157`, `R-159` à `R-161`. Les trois
+derniers viennent de `R-158` et relèvent du lot 5, avec la pertinence.
 
 *Ce qui suit, jusqu'aux tableaux, est le plan du 2026-09-06, gardé comme historique : l'ordre courant
 est la file d'attente ci-dessus.*

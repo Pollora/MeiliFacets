@@ -35,6 +35,14 @@ describe('ListingQuery', () => {
         assert.deepEqual(request.facets, ['facets.product_brand', 'facets.pa_size'])
     })
 
+    it('searches what the page itself searches for', () => {
+        assert.equal(build({}, { baseQuery: 'creme' }).q, 'creme')
+    })
+
+    it('lets what the visitor typed win over the page', () => {
+        assert.equal(build({ query: 'lait' }, { baseQuery: 'creme' }).q, 'lait')
+    })
+
     it('joins the values of one facet with OR', () => {
         const { filter } = build({ facets: { product_brand: ['acme', 'globex'] } })
 

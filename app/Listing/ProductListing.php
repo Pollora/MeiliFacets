@@ -26,6 +26,8 @@ final readonly class ProductListing implements Listing
 
     private const string HIDDEN_FROM_CATALOG = 'exclude-from-catalog';
 
+    private const string SEARCH_QUERY_VAR = 's';
+
     /** Discovery builds every listing it finds: the dependency has to refuse itself. */
     public function __construct(
         private ProductFacets $facets,
@@ -95,6 +97,13 @@ final readonly class ProductListing implements Listing
         return $browsed instanceof WP_Term
             ? [FilterExpression::equals(DocumentField::Facets->path($browsed->taxonomy), $browsed->slug)]
             : [];
+    }
+
+    public function baseQuery(): string
+    {
+        $term = is_search() ? (string) get_query_var(self::SEARCH_QUERY_VAR) : '';
+
+        return mb_substr(trim($term), 0, StateReader::MAX_QUERY_LENGTH);
     }
 
     public function perPage(): int

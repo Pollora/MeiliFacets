@@ -45,7 +45,7 @@ final readonly class QueryPlan
     {
         $filters = self::filterQueries($listing);
         $query = [
-            'q' => $state->query,
+            'q' => self::searched($listing, $state),
             'filter' => self::filter($listing, $state, $filters),
             'facets' => self::fieldsOnMain($filters, $state),
             // `hitsPerPage`/`page` answer with `totalHits` and `totalPages`;
@@ -71,7 +71,7 @@ final readonly class QueryPlan
         );
 
         return [
-            'q' => $state->query,
+            'q' => self::searched($listing, $state),
             'filter' => self::filter($listing, $state, $others),
             'facets' => $lifted->fields(),
             'hitsPerPage' => self::NO_HIT,
@@ -85,12 +85,17 @@ final readonly class QueryPlan
     public static function unfiltered(Listing $listing): array
     {
         return [
-            'q' => '',
+            'q' => $listing->baseQuery(),
             'filter' => FilterExpression::all($listing->baseFilter()),
             'facets' => array_map(static fn (Facet $facet): string => $facet->field(), $listing->facets()),
             'hitsPerPage' => self::NO_HIT,
             'page' => ListingState::FIRST_PAGE,
         ];
+    }
+
+    private static function searched(Listing $listing, ListingState $state): string
+    {
+        return $state->query !== '' ? $state->query : $listing->baseQuery();
     }
 
     /**

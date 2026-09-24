@@ -5,7 +5,8 @@ import type { Connection, ListingDescription, StateDescription } from '../../res
 import type { HistorySeam, SearchSeam } from '../../resources/assets/ts/listing/listing.ts'
 import type { Answers, SearchQuery } from '../../resources/assets/ts/shared/search-client.ts'
 
-export const described = (partial: Partial<ListingDescription>) => ({ locale: 'en', pagePath: '/shop', pageQuery: '', sortFilters: {}, ...partial }) as ListingDescription
+export const described = (partial: Partial<ListingDescription>) =>
+    ({ locale: 'en', pagePath: '/shop', pageQuery: '', sortFilters: {}, baseQuery: '', ...partial }) as ListingDescription
 
 export const connection: Connection = { url: 'https://engine.test', key: 'search', index: 'products' }
 

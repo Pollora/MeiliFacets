@@ -578,9 +578,12 @@ Une classe qui implémente `Listing`, découverte automatiquement dans `app/` et
 il n'y a rien à enregistrer. Elle porte son filtre de base, qui se calcule au rendu — c'est ce qui
 permet à `ProductListing` d'ajouter aux clauses **le terme que le chemin porte, quelle que soit sa
 taxonomie** — une catégorie, une marque, une taxonomie du projet —, tant qu'elle s'applique aux
-produits. Ses facettes et ses tris, en revanche, ne sont plus écrits dans la classe : ils viennent
-des contrats `ProductFacets` et `ProductSorts` ci-dessus, qu'un projet remplace sans toucher au
-module.
+produits. Elle porte aussi son **terme de base** : le texte que la page elle-même cherche. Sur une
+recherche que WordPress a routée, `ProductListing` lit le `s` du cœur et le rend — jamais ce que le
+visiteur a tapé, qui voyage dans l'état et l'emporte quand il existe. Une classe de projet qui
+implémente `Listing` doit donc rendre les deux, `baseFilter()` et `baseQuery()`. Ses facettes et ses
+tris, en revanche, ne sont plus écrits dans la classe : ils viennent des contrats `ProductFacets` et
+`ProductSorts` ci-dessus, qu'un projet remplace sans toucher au module.
 
 **Une facette dont le chemin épingle déjà la taxonomie n'est plus offerte** : sur `/marque/avril`,
 la facette Marque ne proposerait que « Avril », que la page filtre déjà. Elle sort donc du plan de

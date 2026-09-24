@@ -24,6 +24,7 @@ final readonly class FakeListing implements Listing
         private array $facets = [],
         private array $baseFilter = [],
         private int $perPage = 16,
+        private string $baseQuery = '',
         private string $name = 'fake',
         private ?array $sorts = null,
     ) {}
@@ -92,6 +93,11 @@ final readonly class FakeListing implements Listing
     public function baseFilter(): array
     {
         return $this->baseFilter;
+    }
+
+    public function baseQuery(): string
+    {
+        return $this->baseQuery;
     }
 
     public function perPage(): int
