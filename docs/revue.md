@@ -6237,7 +6237,7 @@ Un point à la fois (`D-03`), dans cet ordre, sauf décision contraire de Louis 
 
 1. **Retours de la PR #2 et suites** : `R-146`, `R-147`, `R-148`, `R-149`, `R-154`, `R-158` et `R-03`
    sont fermés et commités (`3ee3edf`, `93c7703`, `7d7eab3`, `618a697`, `6939e4f`, `7046e7b`, `cd3f5b5`,
-   `c8345cc`, `cd10de6`). `R-142` est fermé le 2026-09-24 et attend son commit.
+   `c8345cc`, `cd10de6`, `ccbc945`).
 2. `R-143` — le client efface le balisage d'un bouton « Voir plus » surchargé ; demande l'accord de Louis
    (`Contract::VERSION` des deux côtés).
 3. `R-144` — remplacer `FacetCounter` ne change que le premier rendu.
