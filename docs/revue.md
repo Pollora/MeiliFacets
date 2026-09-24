@@ -6298,8 +6298,8 @@ Un point à la fois (`D-03`), dans cet ordre, sauf décision contraire de Louis 
 
 1. **Retours de la PR #2 et suites** : `R-146`, `R-147`, `R-148`, `R-149`, `R-154`, `R-158` et `R-03`
    sont fermés et commités (`3ee3edf`, `93c7703`, `7d7eab3`, `618a697`, `6939e4f`, `7046e7b`, `cd3f5b5`,
-   `c8345cc`, `cd10de6`, `ccbc945`). `R-142` est fermé et commité (`ccbc945`), `R-143` fermé le
-   2026-09-24 et attend son commit.
+   `c8345cc`, `cd10de6`). `R-142` et `R-143` sont fermés et commités le 2026-09-24
+   (`ccbc945`, `64c5569`, `127c23b`).
 2. `R-144` — remplacer `FacetCounter` ne change que le premier rendu.
 3. `R-141` — cinq tests `Feature` dépendent de l'ordre de la suite.
 4. `Q-31` — commentaires de rôle et renvois vers le miroir PHP : à trancher par Louis avant toute purge.
