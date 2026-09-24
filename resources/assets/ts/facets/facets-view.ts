@@ -36,6 +36,14 @@ export class FacetsView {
         return this.#taxonomies.get(input.name)
     }
 
+    /** A block's taxonomy is no hook: the boxes it holds name it. */
+    taxonomyIn(node: Element | null): string | undefined {
+        const block = node?.closest(Contract.selector('facet')) ?? null
+        const input = block === null ? null : this.#contract.one('input', block)
+
+        return input instanceof HTMLInputElement ? this.taxonomyOf(input) : undefined
+    }
+
     showSelection(state: ListingState) {
         for (const { input, taxonomy } of this.#boxes()) {
             input.checked = state.selected(taxonomy).includes(input.value)
@@ -58,7 +66,7 @@ export class FacetsView {
     }
 
     toggleFold(button: Element) {
-        const taxonomy = this.#taxonomyIn(button)
+        const taxonomy = this.taxonomyIn(button)
 
         if (taxonomy === undefined) {
             return
@@ -150,7 +158,7 @@ export class FacetsView {
 
     #blocks(): Map<string, Element> {
         return this.#blocked ??= new Map(this.#contract.all('facet').flatMap((block) => {
-            const taxonomy = this.#taxonomyIn(block)
+            const taxonomy = this.taxonomyIn(block)
 
             return taxonomy === undefined ? [] : [[taxonomy, block]]
         }))
@@ -162,14 +170,6 @@ export class FacetsView {
 
             return button === null ? [] : [[taxonomy, button]]
         }))
-    }
-
-    /** A block's taxonomy is no hook: the boxes it holds name it. */
-    #taxonomyIn(node: Element | null): string | undefined {
-        const block = node?.closest(Contract.selector('facet')) ?? null
-        const input = block === null ? null : this.#contract.one('input', block)
-
-        return input instanceof HTMLInputElement ? this.taxonomyOf(input) : undefined
     }
 
     #showCount({ label }: Box, hits: number) {

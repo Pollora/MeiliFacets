@@ -1,7 +1,11 @@
 <fieldset {{ $attributes->class('meilifacetsFacet') }} data-taxonomy="{{ $facet->taxonomy }}"
           @unless ($hasReadableValues()) hidden @endunless {{ $hook('facet') }} {{ $scrollMark() }}@if ($marksPresentation()) data-presentation="{{ $presentation->slug() }}"@endif>
+@if ($collapsible)
+    <legend class="meilifacetsFacetLabel"><x-meilifacets::toggle :disclosure="$disclosure()" /></legend>
+@else
     <legend class="meilifacetsFacetLabel">{{ $facet->label }}</legend>
-    <div class="meilifacetsFacetPanel" id="{{ $panelId() }}">
+@endif
+    <div class="meilifacetsFacetPanel" id="{{ $panelId() }}"@if ($collapsible) hidden {{ $hook('panel') }}@endif>
         <div class="meilifacetsFacetPanelInner">
             <ul class="meilifacetsFacetValues">
                 @foreach ($values as $value)

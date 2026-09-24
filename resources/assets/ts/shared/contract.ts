@@ -18,6 +18,7 @@ const RULES: Rule[] = [
     { host: 'card-template', hooks: ['card', 'url', 'image', 'title', 'price'] },
     { host: 'facet-value', hooks: ['input'] },
     { host: 'facet', hooks: ['more'], whenHolding: 'facet-value' },
+    { host: 'facet', hooks: ['panel'], whenHolding: 'toggle' },
     { host: 'pagination', hooks: ['page', 'previous', 'next'] },
     { host: 'sort', hooks: ['sort-trigger', 'sort-list', 'sort-option'] },
     { host: 'price-range', hooks: ['price-track', 'price-handle'] },

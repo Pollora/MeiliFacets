@@ -107,6 +107,16 @@ final class ContractParityTest extends TestCase
         $this->assertStringContainsString('['.$found[1].']', (string) file_get_contents(self::STYLESHEET));
     }
 
+    /** UX-2: the client marks a panel that would overflow, and only the stylesheet moves it. */
+    #[Test]
+    public function the_stylesheet_moves_the_panel_the_client_aligns_on_its_end(): void
+    {
+        preg_match("/ALIGNED_TO_END = '([^']*)'/", $this->read('collapsible/disclosure-group.ts'), $found);
+
+        $this->assertNotSame('', $found[1] ?? '');
+        $this->assertStringContainsString('['.$found[1].']', (string) file_get_contents(self::STYLESHEET));
+    }
+
     /**
      * @return list<string>
      */

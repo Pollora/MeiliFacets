@@ -12,6 +12,8 @@ import { SortQuery } from '../sort/sort-query.ts'
 import { TotalView } from './total-view.ts'
 import { ActiveValuesView } from './active-values-view.ts'
 import { SelectionCountView } from './selection-count-view.ts'
+import { DisclosureGroup } from '../collapsible/disclosure-group.ts'
+import { SelectedCountView } from '../collapsible/selected-count-view.ts'
 
 import type { ListingDescription } from '../shared/description.ts'
 import type { ListingState } from './listing-state.ts'
@@ -29,6 +31,8 @@ export class ListingBinding {
     #price: PriceControl
     #summary: FilterSummaryView
     #selectionCount: SelectionCountView
+    #selectedCount: SelectedCountView
+    #disclosures: DisclosureGroup
     #total: TotalView
     #activeValues: ActiveValuesView
     #sortQuery: SortQuery
@@ -44,6 +48,8 @@ export class ListingBinding {
         this.#sortQuery = new SortQuery(description.sortFilters)
         this.#summary = new FilterSummaryView(contract, description)
         this.#selectionCount = new SelectionCountView(contract)
+        this.#selectedCount = new SelectedCountView(contract, this.#facets)
+        this.#disclosures = new DisclosureGroup(contract)
         this.#total = new TotalView(contract, description)
         this.#activeValues = new ActiveValuesView(contract, description, listing)
         this.#price = new PriceControl(contract, description, (min, max) => this.#listing.priceBetween(min, max))
@@ -58,6 +64,7 @@ export class ListingBinding {
         this.#sort.start()
         this.#price.start()
         this.#activeValues.start()
+        this.#disclosures.start()
 
         return this
     }
@@ -146,6 +153,7 @@ export class ListingBinding {
         this.#price.show(state)
         this.#summary.show(state)
         this.#selectionCount.show(state)
+        this.#selectedCount.show(state)
     }
 
     #repaint({ answers, state }: ResultsDetail) {

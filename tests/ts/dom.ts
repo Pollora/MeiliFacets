@@ -126,10 +126,27 @@ const facetValue = (name: string, value: string, label: string) => `
         </label>
     </li>`
 
-const facetBlock = (taxonomy: string, name: string, label: string, values: string) => `
+/** How a block names itself and opens: a plain legend, or the trigger of a closed panel. */
+interface Folding {
+    legend: (name: string, label: string) => string
+    panel: string
+}
+
+const OPEN: Folding = { legend: (_name, label) => label, panel: '' }
+
+const COLLAPSIBLE: Folding = {
+    legend: (name, label) => `<button type="button" class="meilifacetsFacetToggle" aria-expanded="false"
+                aria-controls="panel-${name}" aria-describedby="selected-${name}" data-meili="toggle">
+            <span class="meilifacetsFacetToggleLabel">${label}</span>
+            <span class="meilifacetsFacetSelected" id="selected-${name}" aria-hidden="true" hidden data-meili="selected-count"></span>
+        </button>`,
+    panel: ' hidden data-meili="panel"',
+}
+
+const facetBlock = (taxonomy: string, name: string, label: string, values: string, folding = OPEN) => `
         <fieldset class="meilifacetsFacet" data-taxonomy="${taxonomy}" data-meili="facet">
-            <legend class="meilifacetsFacetLabel">${label}</legend>
-            <div class="meilifacetsFacetPanel" id="panel-${name}">
+            <legend class="meilifacetsFacetLabel">${folding.legend(name, label)}</legend>
+            <div class="meilifacetsFacetPanel" id="panel-${name}"${folding.panel}>
                 <div class="meilifacetsFacetPanelInner">
                     <ul class="meilifacetsFacetValues">${values}</ul>
                     <button type="button" class="meilifacetsFacetMore" aria-expanded="false"
@@ -151,14 +168,15 @@ const pageButton = () => '<button type="button" value="" hidden data-meili="page
  * Mirrors the structure the Blade components render — hooks, classes and initial
  * hidden states. Identifiers are shortened: nothing here reads them.
  */
-export const listingMarkup = ({ scroll = [] }: { scroll?: string[] } = {}) => {
+export const listingMarkup = ({ scroll = [], collapsible = false }: { scroll?: string[], collapsible?: boolean } = {}) => {
     const mark = (component: string) => (scroll.includes(component) ? 'data-meili-scroll' : '')
+    const folding = collapsible ? COLLAPSIBLE : OPEN
 
     return `
 <div data-listing="products" data-meili-contract="${CONTRACT}">
     <div class="meilifacetsFacets" data-apply="submit" data-meili="facets" ${mark('facets')}>
-${facetBlock('product_brand', 'brand', 'Brand', `${facetValue('brand', 'acme', 'Acme')}${facetValue('brand', 'globex', 'Globex')}`)}
-${facetBlock('product_cat', 'category', 'Category', facetValue('categorie', 'coats', 'Coats'))}
+${facetBlock('product_brand', 'brand', 'Brand', `${facetValue('brand', 'acme', 'Acme')}${facetValue('brand', 'globex', 'Globex')}`, folding)}
+${facetBlock('product_cat', 'category', 'Category', facetValue('categorie', 'coats', 'Coats'), folding)}
         <button type="button" data-meili="apply">Apply filters</button>
     </div>
 

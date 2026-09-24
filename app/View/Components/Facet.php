@@ -13,6 +13,7 @@ use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\Listing\Facet as Declaration;
 use Modules\MeiliFacets\Listing\FacetValue;
 use Modules\MeiliFacets\View\CountLabel;
+use Modules\MeiliFacets\View\Disclosure;
 
 final class Facet extends ListingComponent
 {
@@ -32,6 +33,7 @@ final class Facet extends ListingComponent
         string $name = '',
         bool $scroll = false,
         ValuePresentation|string|null $presentation = null,
+        public bool $collapsible = false,
     ) {
         parent::__construct($listings, $name, $scroll);
 
@@ -59,6 +61,16 @@ final class Facet extends ListingComponent
     public function panelId(): string
     {
         return $this->ids->facetPanel($this->facet->name);
+    }
+
+    public function disclosure(): Disclosure
+    {
+        return new Disclosure(
+            label: $this->facet->label,
+            panelId: $this->panelId(),
+            selectedCountId: $this->ids->facetSelectedCount($this->facet->name),
+            selectedCount: count($this->listing->state()->selected($this->facet->taxonomy)),
+        );
     }
 
     public function labelId(FacetValue $value): string

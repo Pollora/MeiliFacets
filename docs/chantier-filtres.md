@@ -123,16 +123,16 @@ met le compteur à jour ; retirer une pastille décoche la valeur ; « Annuler �
 - [x] cible de 2.75rem au pointeur grossier pour la pastille (44 px mesurés en 3a et 3b) ; les rangées de cases restent à 37,8 px au pointeur grossier, comme avant le chantier — au-dessus du minimum AA (24 px, WCAG 2.5.8), sous la cible AAA de la décision « Hauteur des contrôles », qui ne vise que les boutons : à revoir à l'étape 6
 - [x] colonne actuelle rendue à l'identique quand rien n'est configuré (3a : HTML identique ; 3b : seuls `aria-labelledby` et l'id du libellé s'ajoutent, positions à 0,1 px)
 
-### 4 · Facette repliable (rangée desktop) — ⏳ prochaine
+### 4 · Facette repliable (rangée desktop) — ⏳ en cours (4a livrée)
 
 - [x] C-4 tranché (tri en radios par attribut, `SortWidget`)
-- [ ] pill déclencheur + badge du nombre de valeurs cochées
-- [ ] panneau déroulant, un seul ouvert à la fois, fermeture par Échap et clic extérieur
+- [x] 4a · pill déclencheur + badge du nombre de valeurs cochées (`R-170`, 2026-09-24) ; prix exclu jusqu'à 4c
+- [x] 4a · panneau déroulant, un seul ouvert à la fois, fermeture par Échap, clic extérieur et focus parti ; sections indépendantes sous `[aria-modal="true"]` (point d'extension de l'étape 5)
 - [ ] prix dans un panneau fermé : piste mesurée à l'ouverture (`R-121`, `R-142`)
 - [ ] « Voir plus » dans un panneau (`R-46`, `R-82`–`R-86`)
 - [ ] zéro résultat : la barre ne disparaît pas entièrement (`R-49`)
-- [ ] UX-1 · le panneau reste ouvert pendant une multi-sélection ; le focus ne bouge pas quand la grille est repeinte
-- [ ] UX-2 · un panneau qui déborderait à droite (dernière pill, « Prix ») s'aligne sur le bord droit de sa pill
+- [x] UX-1 · le panneau reste ouvert pendant une multi-sélection ; le focus ne bouge pas quand la grille est repeinte (4a, test ts en `immediate`)
+- [x] UX-2 · un panneau qui déborderait à droite s'aligne sur le bord droit de sa pill (4a, `data-align-end` ; à revérifier sur « Prix » en 4c)
 
 ### 5 · Tiroir mobile — à venir
 
@@ -194,3 +194,4 @@ relevés dans Playwright).
 | 2026-09-24 | 2c→3 | Refactor `R-167` : registre de placement sorti de `ResolvedListing` dans `PagePlacement`, tri et facettes dans un seul registre indexé par `PlacedControl`, message du tri corrigé ; aucun changement de comportement |
 | 2026-09-24 | 3a | `R-164` : `ValuePresentation` (ensemble ouvert, Louis), `Presentation` `Control`/`Pill`, garde `R-10` dans `Facet::presentedAs()`, HTML `Control` identique à l'octet (test sur la vue d'avant), CSS pastille ; Contenance en `Pill` dans `CatalogueFacets`, non commité |
 | 2026-09-24 | 3 | 3a présentation par facette (`R-164`, contrat ouvert `ValuePresentation`, surcharge par gabarit confirmée) ; 3b compteur hors du nom (`R-151`, option C `aria-labelledby`), vue `facet` sans calcul, bouton « Voir plus » habillé (`R-168`), `R-169` ouvert — étape fermée ; titres des étapes 4 et 5 remis au vocabulaire de l'architecture v2 |
+| 2026-09-24 | 4a | `R-170` : `collapsible` sur `facet`/`facets` (prix exclu), déclencheur dans la `<legend>`, badge décrit (`aria-describedby`, `aria-hidden`, vidé à zéro), panneau fermé serveur, `DisclosureGroup` + `SelectedCountView`, UX-1/UX-2 ; HTML sans `collapsible` identique à l'octet ; `collapsible` posé sur `<x-meilifacets::facets>` dans le thème, non commité ; `R-171` ouvert (réglages d'index sans le prix, suite `Modules` rouge avant comme après) |

@@ -13,6 +13,7 @@
 [data-meili="sort-option"],
 [data-meili="input"],
 [data-meili="more"],
+[data-meili="toggle"],
 [data-meili="active-value"] {
     cursor: pointer;
 }
@@ -26,6 +27,7 @@
     --meili-card: 15em;
     --meili-ui: 0.875rem;
     --meili-control: 2.25rem;
+    --meili-layer: 10;
 }
 
 [data-meili="sort"],
@@ -157,6 +159,95 @@
 [data-meili="facet"][data-presentation="pill"] [data-meili="facet-value"] label:has(:focus-visible) {
     outline: 2px solid currentColor;
     outline-offset: 2px;
+}
+
+[data-meili="facet"]:has([data-meili="toggle"]) {
+    position: relative;
+    display: inline-block;
+    vertical-align: top;
+    margin: 0 0.25em 0.5em 0;
+}
+
+[data-meili="toggle"] {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    box-sizing: border-box;
+    min-height: var(--meili-control);
+    padding: 0 0.85em;
+    border: 1px solid var(--meili-edge);
+    border-radius: 999px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: var(--meili-ui);
+    line-height: 1;
+    transition:
+        background-color 150ms var(--meili-ease),
+        border-color 150ms var(--meili-ease);
+}
+
+[data-meili="toggle"]::after {
+    content: '';
+    width: 0.4em;
+    height: 0.4em;
+    border-right: 1px solid currentColor;
+    border-bottom: 1px solid currentColor;
+    transform: translateY(-0.15em) rotate(45deg);
+    transition: transform 160ms var(--meili-ease);
+}
+
+[data-meili="toggle"][aria-expanded="true"] {
+    border-color: currentColor;
+}
+
+[data-meili="toggle"][aria-expanded="true"]::after {
+    transform: translateY(0.1em) rotate(-135deg);
+}
+
+[data-meili="toggle"]:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+}
+
+[data-meili="selected-count"] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    min-width: 1.5em;
+    height: 1.5em;
+    padding: 0 0.3em;
+    border-radius: 999px;
+    background: CanvasText;
+    line-height: 1;
+    color: Canvas;
+    font-size: 0.85em;
+    font-variant-numeric: tabular-nums;
+}
+
+[data-meili="panel"] {
+    position: absolute;
+    z-index: var(--meili-layer);
+    top: 100%;
+    left: 0;
+    box-sizing: border-box;
+    min-width: max(100%, 14em);
+    margin-top: 0.25em;
+    padding: 0.5em 0.75em;
+    border: 1px solid var(--meili-edge);
+    border-radius: 0.25em;
+    background: Canvas;
+    color: CanvasText;
+}
+
+[data-meili="panel"][data-align-end] {
+    left: auto;
+    right: 0;
+}
+
+[data-meili="panel"] ul {
+    margin-top: 0;
 }
 
 [data-meili="active-filters"] {
@@ -392,7 +483,8 @@
     [data-meili="next"]:hover,
     [data-meili="sort-trigger"]:hover,
     [data-meili="sort-option"]:hover,
-    [data-meili="more"]:hover {
+    [data-meili="more"]:hover,
+    [data-meili="toggle"]:hover {
         background: var(--meili-tint);
     }
 
@@ -420,6 +512,7 @@
 [data-meili="next"]:active,
 [data-meili="sort-trigger"]:active,
 [data-meili="more"]:active,
+[data-meili="toggle"]:active,
 [data-meili="active-value"]:active {
     background: var(--meili-press);
 }
@@ -465,6 +558,7 @@
     [data-meili="sort-option"],
     [data-meili="facet-value"] label,
     [data-meili="more"],
+    [data-meili="toggle"],
     [data-meili="active-value"] {
         -webkit-tap-highlight-color: var(--meili-press);
     }
@@ -482,6 +576,12 @@
         background: SelectedItem;
         color: SelectedItemText;
         outline-color: CanvasText;
+    }
+
+    [data-meili="selected-count"] {
+        forced-color-adjust: none;
+        background: CanvasText;
+        color: Canvas;
     }
 }
 
@@ -511,6 +611,8 @@
     [data-meili="facet-value"] label,
     [data-meili="facet"][data-presentation="pill"] [data-meili="facet-value"] label,
     [data-meili="more"],
+    [data-meili="toggle"],
+    [data-meili="toggle"]::after,
     [data-meili="active-value"] {
         transition: none;
     }

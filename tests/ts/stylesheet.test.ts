@@ -20,7 +20,8 @@ describe('the module stylesheet', () => {
     /** The rule is a list of hooks: one forgotten there is a control that reads as text. */
     it('leaves no command without it', () => {
         find(root, Contract.selector('active-values')).insertAdjacentHTML('afterbegin', '<li><button data-meili="active-value">Acme</button></li>')
-        const commands = ['page', 'previous', 'next', 'reset', 'apply', 'sort-trigger', 'sort-option', 'input', 'more', 'active-value']
+        find(root, 'legend').insertAdjacentHTML('afterbegin', '<button data-meili="toggle">Brand</button>')
+        const commands = ['page', 'previous', 'next', 'reset', 'apply', 'sort-trigger', 'sort-option', 'input', 'more', 'toggle', 'active-value']
 
         assert.deepEqual(commands.filter((hook) => style(hook).cursor !== 'pointer'), [])
     })
@@ -111,6 +112,43 @@ describe('the module stylesheet', () => {
         current.setAttribute('aria-current', 'page')
 
         assert.notEqual(window.getComputedStyle(current).fontWeight, window.getComputedStyle(other).fontWeight)
+    })
+
+    describe('a collapsible facet', () => {
+        beforeEach(() => {
+            ({ window, root } = open(listingMarkup({ collapsible: true }), { styled: true }))
+        })
+
+        const facet = () => find(root, Contract.selector('facet'))
+        const panel = () => find(root, Contract.selector('panel'))
+
+        it('sits in line with its sisters and hangs its panel under its trigger, over the page', () => {
+            assert.equal(window.getComputedStyle(facet()).display, 'inline-block')
+            assert.equal(window.getComputedStyle(facet()).position, 'relative')
+            assert.equal(style('panel').position, 'absolute')
+            assert.equal(style('panel').top, '100%')
+            assert.equal(style('panel').left, '0px')
+        })
+
+        it('draws its trigger as a pill at the height and the scale of the other commands', () => {
+            assert.equal(style('toggle').minHeight, style('apply').minHeight)
+            assert.equal(style('toggle').fontSize, style('apply').fontSize)
+            assert.equal(style('toggle').borderTopLeftRadius, '999px')
+        })
+
+        it('hangs a panel aligned on the end from the right edge of its trigger', () => {
+            panel().setAttribute('data-align-end', '')
+
+            assert.equal(style('panel').left, 'auto')
+            assert.equal(style('panel').right, '0px')
+        })
+
+        it('leaves the facets that do not collapse as they were', () => {
+            const plain = find(root, '[data-taxonomy="pa_size"]')
+
+            assert.equal(window.getComputedStyle(plain).display, 'block')
+            assert.notEqual(window.getComputedStyle(plain).position, 'relative')
+        })
     })
 
     describe('a facet presented as pills', () => {

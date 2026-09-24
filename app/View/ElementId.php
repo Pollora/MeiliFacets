@@ -39,6 +39,11 @@ final readonly class ElementId
         return $this->facetScope($facet).'panel';
     }
 
+    public function facetSelectedCount(string $facet): string
+    {
+        return $this->facetScope($facet).'selected';
+    }
+
     public function facetCount(string $facet, string $value): string
     {
         return $this->facetScope($facet).'count-'.$value;

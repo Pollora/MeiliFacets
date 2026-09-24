@@ -6,10 +6,16 @@ namespace Modules\MeiliFacets\View\Components;
 
 use Illuminate\Contracts\View\View;
 use Modules\MeiliFacets\Contracts\Placeable;
+use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\Listing\PriceFilter;
 
 final class Facets extends ListingComponent
 {
+    public function __construct(CurrentListing $listings, string $name = '', bool $scroll = false, public bool $collapsible = false)
+    {
+        parent::__construct($listings, $name, $scroll);
+    }
+
     public function shouldRender(): bool
     {
         return $this->listing->remainingFacets() !== [] || $this->listing->applyMode()->needsButton();
@@ -22,6 +28,12 @@ final class Facets extends ListingComponent
             $filter instanceof PriceFilter => 'meilifacets::price',
             default => 'meilifacets::facet',
         };
+    }
+
+    /** A price track measures zero inside a closed panel until step 4c of the filter bar (`R-121`). */
+    public function collapses(Placeable $filter): bool
+    {
+        return $this->collapsible && ! $filter instanceof PriceFilter;
     }
 
     public function render(): View

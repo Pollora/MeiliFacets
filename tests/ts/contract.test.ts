@@ -123,6 +123,19 @@ describe('Contract', () => {
         assert.deepEqual(new Contract(root).breaches(), ['facet > more'])
     })
 
+    it('refuses a toggle with no panel to open, and asks none of a facet without a toggle', () => {
+        const facet = (...hooks: string[]) => {
+            const root = complete()
+            replaceChild(root, 3, node('facets', [node('facet', hooks.map((hook) => node(hook)))]))
+
+            return new Contract(root).breaches()
+        }
+
+        assert.deepEqual(facet('toggle', 'panel'), [])
+        assert.deepEqual(facet('toggle'), ['facet > panel'])
+        assert.deepEqual(facet('panel'), [])
+    })
+
     it('refuses a facet value without its input', () => {
         const root = complete()
         replaceChild(root, 3, node('facets', [node('facet-value', [node('count')])]))

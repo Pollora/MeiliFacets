@@ -3287,6 +3287,48 @@ aux emplacements déjà connus, puis `discover()->apply()` rescanne et réappliq
 emplacements. **Question ouverte** avant de proposer le correctif à Pollora : cette réapplication
 branche-t-elle deux fois des hooks déjà branchés ?
 
+### R-170 · 🟡 · **fermé le 2026-09-24** (étape 4a) · ouvert le 2026-09-24 — une facette ne peut pas se replier en panneau
+
+Rattaché à `R-48`, étape 4a de [chantier-filtres.md](chantier-filtres.md) ; `R-89` demandait déjà un
+fieldset en menu déroulant (`<details>` écarté). Attribut `collapsible` sur `<x-meilifacets::facet>`,
+relayé par `<x-meilifacets::facets collapsible>` à toutes ses facettes **sauf le prix** (piste mesurée à
+0 px dans un panneau fermé, étape 4c : `Facets::collapses()`).
+
+**Markup** (motif disclosure APG) : la `<legend>` contient `toggle.blade.php` — `<button>`
+`aria-expanded="false"`, `aria-controls` → panneau existant (`ElementId::facetPanel`), `aria-describedby`
+→ badge `selected-count` (`ElementId::facetSelectedCount`), `aria-hidden`, masqué **et vidé** à zéro ;
+chevron en `::after`, comme le tri. Le panneau prend `hidden` et `data-meili="panel"`. Données préparées
+par `View\Disclosure` (`Facet::disclosure()`), vue sans calcul. Contrat : `facet` qui tient un `toggle`
+exige un `panel` ; `Contract::VERSION` inchangé.
+
+**Arbre d'accessibilité mesuré** (Chromium, CDP) : groupe « Marque », bouton « Marque », réduit,
+description « 2 ». Le badge nommé aurait donné « Marque 2 » au bouton et au groupe ; vidé à zéro parce
+qu'un nœud masqué que `aria-describedby` désigne décrit quand même. **Aucune chaîne ajoutée** : « 2
+sélectionnées » exigerait un motif pluriel publié dans la description, question laissée à Louis.
+
+**Client** : `collapsible/disclosure-group.ts` (exclusivité, Échap depuis le déclencheur ou le panneau
+→ ferme et rend le focus, clic extérieur par `composedPath()`, focus parti ailleurs que le déclencheur
+ou son panneau → ferme ; `relatedTarget` nul — fenêtre quittée, case masquée par un repeint — ne ferme
+pas), le tout seulement hors d'un conteneur `[aria-modal="true"]` (`#floats()`, point d'extension de
+l'étape 5). UX-2 : à l'ouverture, `data-align-end` si le panneau dépasse `clientWidth`, la feuille le
+pend à droite. `collapsible/selected-count-view.ts` : `state.selected(taxonomie)`, attente comprise.
+
+**Vérifié** : HTML de `/boutique?marque=aeris` identique à l'octet sans `collapsible` (218 382 o avant et
+après) ; test durable `it_differs_from_the_plain_facet_by_the_trigger_and_the_closed_panel_only`.
+Playwright (1440 px, `submit`) : Tab → déclencheur, Entrée ouvre, Tab → case, Espace coche (badge 1 puis
+2, focus immobile), Échap ferme et rend le focus ; A puis B ferme A ; clic dans le panneau garde, clic sur
+le `h1` ferme ; Tab hors de la dernière case ferme ; « Appliquer » → `?marque=aeris,botanik`, 15 → 6
+articles, badge « 2 », panneau fermé par le clic. Déclencheur 36 px, rayon 999px, 14px Space Grotesk 600,
+bordure 1px `--meili-edge` ; badge 17,8 px noir sur blanc ; panneau `absolute`, `z-index` 10, fond blanc,
+3,5 px sous le déclencheur, 197 px de large. UX-2 à 900 px : aucun panneau ne déborde naturellement ;
+dernière pastille poussée au bord (droite 865 / 885) → `data-align-end`, panneau 669–865, bord droit sur
+celui de la pastille ; revenue en place → attribut retiré. Zéro erreur console.
+
+**Relecture du 2026-09-24 avec Louis** : `z-index` du panneau exposé en `--meili-layer` (défaut 10, surchargeable par le thème) ; badge resserré (`padding: 0 0.3em`, `line-height: 1`) — mesuré : rond
+17,8 × 17,8 px pour un chiffre, 21,9 × 17,8 px pour deux, pilule au-delà. Prix volontairement non
+repliable jusqu'à 4c (`R-121`). Hauteur de 24 px signalée par Louis à l'ouverture des devtools : non
+reproduite (36 px mesurés de 390 à 1440 px, au survol, au focus, en impression, en couleurs forcées).
+
 ### R-169 · ⚪ · ouvert · 2026-09-24 — `results.blade.php` prépare encore une donnée
 
 `@php($pastTheEnd = $listing->pagination()->isPastTheEnd())` : la vue interroge le listing et

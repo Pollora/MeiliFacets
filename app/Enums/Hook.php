@@ -30,6 +30,9 @@ enum Hook: string
     case MoreLabel = 'more-label';
     case LessLabel = 'less-label';
     case Apply = 'apply';
+    case Toggle = 'toggle';
+    case Panel = 'panel';
+    case SelectedCount = 'selected-count';
 
     case Pagination = 'pagination';
     case Page = 'page';
