@@ -3224,7 +3224,16 @@ déclarée sur la facette dans `ProductFacets`, surchargeable par attribut ; une
 sortir le HTML actuel à l'octet près. Renversement de `D-07` noté à sa place. Rattaché au chantier
 `R-48`, étape 3a de [chantier-filtres.md](chantier-filtres.md).
 
-### R-163 · 🟡 · ouvert · 2026-09-24 — le listing n'annonce pas son nombre de résultats
+### R-165 · ⚪ · **fermé le 2026-09-24** · ouvert le 2026-09-24 — un faux moteur survivait à `PriceComponentTest`
+
+La suite `Modules` partage une seule application : `PriceComponentTest` liait un faux `SearchEngine`
+sans le rétablir, et la classe suivante rendait ses composants contre ce faux. Révélé par
+`TotalComponentTest` (étape 2a), qui lisait un total de 0.
+
+**Fermé le 2026-09-24** : `tearDown()` rétablit la liaison d'origine, comme `SortComponentTest` le
+faisait déjà. Suite `Modules` : 421 tests verts.
+
+### R-163 · 🟡 · **fermé le 2026-09-24** · ouvert le 2026-09-24 — le listing n'annonce pas son nombre de résultats
 
 Aucun composant ne rend le total (« 88 articles ») et aucune vue ne porte de région `aria-live`
 (lecture de `resources/views/components/`) : après un filtrage, rien ne dit combien de produits
@@ -3234,6 +3243,16 @@ filtres » ; voisin de `R-50`, qui est la même donnée pour les moteurs.
 
 Rattaché au chantier `R-48`, étape 2a de [chantier-filtres.md](chantier-filtres.md) :
 `<x-meilifacets::total>`, crochet `total`, région `aria-live="polite"`.
+
+**Fermé le 2026-09-24** (étape 2a). `<x-meilifacets::total>` rend un `<p aria-live="polite"
+aria-atomic="true">` au crochet `total`, rempli par le serveur : le total vient de la recherche qui
+rend déjà la grille (`ResolvedListing::total()`), sans requête de plus. `TotalView` repeint chaque
+compteur (`contract.all()`, `R-162`) et ne réécrit un texte que s'il change, pour que la région ne
+reparle pas à chaque page. Motif `:count item|:count items` (« article(s) »), distinct de
+`countPattern`. Style par défaut aligné sur les sœurs (`--meili-ui`), relevé par Louis.
+Observé : `/boutique` « 74 articles », « cheveux » + « Appliquer » → « 14 articles » et 14 cartes,
+aucune erreur console ; `composer check` vert, suite `Modules` 421 tests verts. Reste ouvert à
+l'étape 6 : deux compteurs sur une page font deux annonces. `R-50` non touché.
 
 ### R-162 · 🟠 · ouvert · 2026-09-24 — le doublon silencieux n'est gardé que pour les facettes
 

@@ -247,9 +247,14 @@ final class ResolvedListing
         return $this->pages ??= new Pagination(
             $this->state->page,
             $this->listing->perPage(),
-            $this->results()->total,
+            $this->total(),
             $this->limits->reachableHits,
         );
+    }
+
+    public function total(): int
+    {
+        return $this->results()->total;
     }
 
     public function parameterForReserved(QueryParameter $parameter): string

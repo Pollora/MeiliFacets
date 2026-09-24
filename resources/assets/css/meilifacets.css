@@ -31,8 +31,14 @@
 [data-meili="facets"],
 [data-meili="pagination"],
 [data-meili="reset"],
-[data-meili="active-filters"] {
+[data-meili="active-filters"],
+[data-meili="total"] {
     font-size: var(--meili-ui);
+}
+
+[data-meili="total"] {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
 }
 
 [data-meili="facets"] {

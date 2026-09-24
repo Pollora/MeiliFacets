@@ -24,15 +24,21 @@ use Tests\TestCase;
  */
 final class PriceComponentTest extends TestCase
 {
+    /** @var array{concrete: \Closure, shared: bool} */
+    private array $engine;
+
     protected function setUp(): void
     {
         parent::setUp();
 
+        $this->engine = $this->app->getBindings()[SearchEngine::class];
         $this->app->forgetScopedInstances();
     }
 
+    /** The suite shares one application: a fake engine left bound would answer a later class. */
     protected function tearDown(): void
     {
+        $this->app->bind(SearchEngine::class, $this->engine['concrete'], $this->engine['shared']);
         $this->app->forgetScopedInstances();
 
         parent::tearDown();

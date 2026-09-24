@@ -1,5 +1,6 @@
 {
     ":count active filter|:count active filters": ":count filtre actif|:count filtres actifs",
+    ":count item|:count items": ":count article|:count articles",
     ":count result|:count results": ":count résultat|:count résultats",
     "Apply filters": "Appliquer les filtres",
     "Brand": "Marque",

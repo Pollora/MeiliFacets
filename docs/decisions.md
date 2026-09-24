@@ -89,6 +89,7 @@ Voir aussi : [installation.md](installation.md) · [architecture.md](architectur
 | Seuil mobile | écrit en dur dans le CSS, repris par défaut par l'attribut `media` du tiroir, accord vérifié par un test de parité. *Tranché le 2026-09-24 (architecture Q-3).* |
 | Dossiers et crochets du chantier | `ts/drawer/` et `ts/collapsible/` autorisés, Blade à plat dans `components/` ; crochets `Hook` additifs, `Contract::VERSION` inchangé (`R-116`). *Autorisé le 2026-09-24 (C-8 révisée, architecture § 4-5).* |
 | `apply_mode` de Pluralia | reste `submit` **pour évaluer le rendu** (« Appliquer » en fin de rangée desktop) ; `immediate` envisagé après validation visuelle de Louis. *Tranché le 2026-09-24 (architecture Q-5) ; `R-51` et `Q-24` restent ouverts.* |
+| Style par défaut d'une brique | toute nouvelle brique rejoint la règle de base de ses sœurs dans `meilifacets.css` (`font-size: var(--meili-ui)`, marges neutralisées) : le rendu brut du module est homogène avant que le thème ne l'habille. *Tranché le 2026-09-24 (étape 2a, relevé par Louis sur le compteur).* |
 
 ### Pourquoi la production doit monter de version
 

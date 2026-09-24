@@ -51,6 +51,7 @@ enum Hook: string
     case PriceMax = 'price-max';
     case Reset = 'reset';
     case ActiveFilters = 'active-filters';
+    case Total = 'total';
 
     public function attribute(): HtmlString
     {

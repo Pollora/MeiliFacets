@@ -105,7 +105,7 @@ Aucun code. Proposition v2 rendue le 2026-09-24 : [chantier-filtres-architecture
 
 Utiles aux deux dispositions, livrées d'abord dans `Sidebar`.
 
-- [ ] 2a · compteur de résultats (« 88 articles »), annoncé par `aria-live` — `R-163`
+- [x] 2a · compteur de résultats (« 88 articles »), annoncé par `aria-live` — `R-163` fermé le 2026-09-24
 - [ ] pastilles des filtres actifs, y compris la borne de prix (`R-123`) ; libellés lus dans les
       valeurs rendues, repliées comprises (`R-57`) — C-7
 - [ ] lien « Annuler » : le `Reset` existant, placé à côté des pastilles
@@ -147,6 +147,7 @@ Audit séparé, par sous-agent : motif APG de chaque widget, piège et retour du
 `aria-expanded`/`aria-controls`, annonces, `forced-colors`, défense de `hidden` (`R-72`).
 
 - [ ] UX-4 · nom accessible explicite du bouton : « Appliquer 2 filtres » (libellé visuel inchangé)
+- [ ] A11Y-1 · deux `<x-meilifacets::total>` sur une page font deux régions `aria-live`, donc deux annonces (`R-163`)
 
 ### 7 · Animations — à venir
 
@@ -185,3 +186,4 @@ relevés dans Playwright).
 | --- | --- | --- |
 | 2026-09-24 | 0 | Stash, branche, lecture Figma, passe de conformité, ce fichier |
 | 2026-09-24 | 1 | Architecture v1 rendue, C-1 → C-8 tranchés ; v1 abandonnée (disposition = thème), v2 validée ; UX-1 → 4 et ANIM-1 → 13 retenus ; registres à jour (`R-163`, `R-164`) — étape fermée |
+| 2026-09-24 | 2a | Compteur livré (`R-163`), faux moteur de test corrigé (`R-165`), style par défaut aligné sur les sœurs ; `<x-meilifacets::total />` posé sous le tri dans le thème, non commité, à replacer à l'étape 8 |
