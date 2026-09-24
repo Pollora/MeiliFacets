@@ -23,7 +23,8 @@
             </ul>
             <button type="button" class="meilifacetsFacetMore" aria-expanded="false"
                     @unless ($hasFoldedValues()) hidden @endunless {{ $hook('more') }}>
-                {{ __('Show more') }}
+                <span {{ $hook('more-label') }}>{{ __('Show more') }}</span>
+                <span hidden {{ $hook('less-label') }}>{{ __('Show less') }}</span>
             </button>
         </div>
     </div>

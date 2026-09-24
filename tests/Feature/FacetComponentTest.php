@@ -92,6 +92,33 @@ final class FacetComponentTest extends TestCase
         );
     }
 
+    #[Test]
+    public function it_renders_both_fold_labels_for_the_client(): void
+    {
+        $button = HTMLDocument::createFromString($this->renderOne(), LIBXML_NOERROR)
+            ->querySelector($this->hooked(Hook::More));
+
+        $more = $button->querySelector($this->hooked(Hook::MoreLabel));
+        $less = $button->querySelector($this->hooked(Hook::LessLabel));
+
+        $this->assertNotNull($more, 'The fold button renders no label to reveal when it is folded.');
+        $this->assertNotNull($less, 'The fold button renders no label to reveal once it is unfolded.');
+        $this->assertFalse($more->hasAttribute('hidden'));
+        $this->assertTrue($less->hasAttribute('hidden'));
+        $this->assertNotSame(trim($more->textContent), trim($less->textContent));
+    }
+
+    /** They left the description with `R-143`: nothing else ties them to the language of the page. */
+    #[Test]
+    public function it_writes_the_fold_labels_in_the_language_wordpress_translates_in(): void
+    {
+        $html = $this->underLocales('fr', 'en_US', fn (): string => $this->renderOne());
+
+        $this->assertStringContainsString('>Show more<', $html);
+        $this->assertStringContainsString('>Show less<', $html);
+        $this->assertStringNotContainsString('Voir plus', $html);
+    }
+
     /** The rule is `Unit\FacetPlacementTest`; what this proves is that the component asks for it. */
     #[Test]
     public function it_places_a_named_facet_outside_the_group(): void

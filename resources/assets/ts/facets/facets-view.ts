@@ -121,8 +121,18 @@ export class FacetsView {
 
         // Rewriting `aria-expanded` unchanged makes some screen readers announce the button again.
         if (button.getAttribute('aria-expanded') !== String(expanded)) {
-            button.textContent = this.#description.foldLabels[expanded ? 'less' : 'more']
+            this.#showFoldLabel(button, expanded)
             button.setAttribute('aria-expanded', String(expanded))
+        }
+    }
+
+    #showFoldLabel(button: HTMLElement, expanded: boolean) {
+        const more = this.#contract.one('more-label', button)
+        const less = this.#contract.one('less-label', button)
+
+        if (more instanceof HTMLElement && less instanceof HTMLElement) {
+            more.hidden = expanded
+            less.hidden = !expanded
         }
     }
 

@@ -635,6 +635,7 @@ thème périmée dégrade donc vers le rendu serveur, jamais vers une interactio
 | `sort-option` | idem | une option, sa clé dans `data-value` ; rendue `hidden` quand un tri qui filtre ne garderait rien, sauf s'il est choisi |
 | `facet` | `<x-meilifacets::facet>`, `<x-meilifacets::price>` | un bloc de facette. **Le crochet va sur l'élément le plus extérieur** : c'est celui-là que le client masque quand la facette n'a plus rien à montrer, donc un thème qui enrobe le déplace avec lui |
 | `more` | idem | le bouton qui lit la facette en entier |
+| `more-label` `less-label` | idem, dans `more` | les deux libellés du bouton, rendus tous deux : le client révèle celui de l'état courant et ne réécrit jamais le contenu du bouton. Facultatifs, mais **les deux ou aucun** — une vue qui n'en rend qu'un garde son libellé figé, comme une vue qui n'en rend aucun (`R-143`) |
 | `price-range` | `<x-meilifacets::price>` | la piste entière, porte `--from`/`--to` |
 | `price-track` | idem | la barre sur laquelle les poignées se déplacent |
 | `price-handle` | idem | une extrémité, son bord dans `data-bound` |

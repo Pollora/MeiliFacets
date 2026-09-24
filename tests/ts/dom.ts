@@ -133,7 +133,10 @@ const facetBlock = (taxonomy: string, name: string, label: string, values: strin
                 <div class="meilifacetsFacetPanelInner">
                     <ul class="meilifacetsFacetValues">${values}</ul>
                     <button type="button" class="meilifacetsFacetMore" aria-expanded="false"
-                            hidden data-meili="more">Show more</button>
+                            hidden data-meili="more">
+                        <span data-meili="more-label">Show more</span>
+                        <span hidden data-meili="less-label">Show less</span>
+                    </button>
                 </div>
             </div>
         </fieldset>`

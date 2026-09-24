@@ -27,6 +27,8 @@ enum Hook: string
     case Input = 'input';
     case Count = 'count';
     case More = 'more';
+    case MoreLabel = 'more-label';
+    case LessLabel = 'less-label';
     case Apply = 'apply';
 
     case Pagination = 'pagination';

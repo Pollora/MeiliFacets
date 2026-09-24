@@ -19,7 +19,6 @@ const description = described({
     attributes: ['card'],
     countPattern: ':count result|:count results',
     filterPattern: ':count active filter|:count active filters',
-    foldLabels: { more: 'Show more', less: 'Show less' },
     facets: [
         // Capped at one on purpose: the state refuses the second tick, and the boxes must say so.
         { taxonomy: 'product_brand', multiple: true, cap: 1, visible: 10, counts: {} },

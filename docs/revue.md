@@ -3732,12 +3732,73 @@ compteur a ses comptes au premier rendu, et le client les écrase au premier ges
 l'écrire dans `configuration.md`, ou publier le plan de comptage dans la description. Trouvé par les passes
 rejouées de `R-136`.
 
-### R-143 · 🟡 · ouvert · 2026-09-17 — le client efface le balisage d'un bouton « Voir plus » surchargé
+### R-143 · 🟡 · **fermé le 2026-09-24** · ouvert le 2026-09-17 — le client efface le balisage d'un bouton « Voir plus » surchargé
 
-`facets-view.ts:126` réécrit `button.textContent` : une vue surchargée perd l'icône ou le texte réservé aux
-lecteurs d'écran de son bouton — le défaut que `R-137` #5 a retiré du message vide. Piste : rendre les deux
-libellés dans Blade et laisser le client choisir, comme pour `empty` ; cela ajoute un crochet au contrat,
-donc `Contract::VERSION` des deux côtés, à demander avant (§6). Trouvé par les passes rejouées de `R-137` #3.
+`facets-view.ts:124` réécrivait `button.textContent` : une vue surchargée perd l'icône ou le texte réservé
+aux lecteurs d'écran de son bouton — le défaut que `R-137` #5 a retiré du message vide. Trouvé par les
+passes rejouées de `R-137` #3.
+
+**La phrase d'ouverture était fautive** : elle réclamait `Contract::VERSION` des deux côtés alors que
+`R-116`, fermé deux jours plus tôt, avait renversé exactement cette règle — on incrémente quand un crochet
+est **renommé ou retiré**, jamais quand on en ajoute (`Contract.php:15`, `architecture.md:674`). La version
+reste à `1`. Louis l'a confirmé : le module est en développement, aucune vue n'est surchargée, mais le cas
+d'une surcharge future doit être prévu.
+
+**Corrigé** en reprenant le mécanisme de `R-137` #5, sans en inventer un second : `facet.blade.php` rend
+les **deux** libellés dans le bouton, chacun sous son crochet (`more-label`, `less-label`), le second
+`hidden` ; `FacetsView` ne bascule qu'une visibilité et ne touche plus au contenu du bouton. `foldLabels`
+quitte `ListingDescription` et `description.ts` — aucune chaîne du bouton ne transite plus par la
+description. Les deux crochets restent **hors de `RULES`** (`contract.ts:16-24`) : les inscrire ferait
+d'une vue surchargée une infraction, et `listing-page.ts` refuserait de démarrer le listing entier — la
+« panne plus large » que `R-116` a refusé d'acheter. La garde sur `aria-expanded` est conservée telle
+quelle (`Q-31`).
+
+**Comportement d'une vue qui ne rend aucun des deux libellés** : son balisage est intact, `aria-expanded`
+bascule toujours, seul le texte reste figé. Dégradation inerte, la même que pour `no-results`/
+`past-the-end`.
+
+**Tests** : trois cas — le bouton rend les deux libellés dont un masqué (`FacetComponentTest`), le balisage
+qu'une vue a mis dans le bouton survit aux deux bascules, et un bouton sans libellé crocheté n'est pas
+réécrit (`facets-view.test.ts`). **Trois mutations tuées**, une par cas : écrire un libellé quand la vue
+n'en crochète aucun, figer la bascule, retirer le `hidden` du second libellé.
+
+**Vérifié** : `composer check` vert, suite `Modules` 408 tests, client 291. En navigateur sur `/boutique`,
+après `view:clear` : « Voir plus » → « Voir moins », 10 valeurs → 24, et un `<svg class="chevron">` injecté
+dans le bouton survit au dépliage comme au repliage — c'est le défaut que ce point visait.
+
+**Les cinq passes**, et ce qu'elles ont donné :
+
+- *lisibilité* — le test `Feature` déréférençait trois nœuds sans garde, là où le fichier assère
+  `assertNotNull` avec un message : corrigé, le crochet manquant est nommé au lieu d'un « on null » ;
+- *commentaires* — un seul avait été ajouté, sur le test, et il reformulait son nom : supprimé. Zéro
+  commentaire ajouté au code de production ; celui sur `aria-expanded` reste, c'est une anomalie amont ;
+- *performance* — le Blade fait 2 `__()` par facette au lieu de 2 par page, lectures d'un tableau déjà
+  chargé ; côté client, 2 `querySelector` au plus par facette et par réponse, et zéro quand l'état ne
+  bouge pas ;
+- *sécurité* — rien, et la surface diminue : le client n'écrit plus ni `textContent` ni `innerHTML` sur ce
+  bouton, et plus aucune chaîne du bouton ne transite par la description ;
+- *contexte et i18n* — la seule assertion qui reliait un libellé à la langue de la page partait avec
+  `foldLabels` : remplacée par `it_writes_the_fold_labels_in_the_language_wordpress_translates_in`
+  (mutation tuée : un libellé écrit en dur dans le Blade fait tomber le test). Et `PublishedAssetsTest`
+  était rouge — les assets n'avaient pas été republiés après la dernière construction.
+
+**Deux écarts assumés, et pourquoi :**
+
+- `#showFoldLabel(button, expanded)` ajoute un paramètre booléen au fichier que `R-145` (4) vise. Il est
+  gardé : `expanded` n'est pas un interrupteur de comportement — la méthode fait la même chose dans les
+  deux cas — mais l'état ARIA que le bouton porte déjà. C'est une donnée, pas un drapeau.
+- La bascule est placée **dans** la garde `aria-expanded`, là où `results-view.ts:39-42` pose sa paire à
+  chaque rendu. Une vue dont l'état initial des libellés contredirait son `aria-expanded` ne serait donc
+  jamais rattrapée ; la sortir de la garde coûterait deux lectures DOM par facette et par réponse pour
+  rattraper une vue que le serveur rend toujours cohérente.
+
+`architecture.md` porte désormais la règle **« les deux libellés ou aucun »**, qui n'était écrite nulle
+part et qu'un thème lisait autrement.
+
+À signaler pour la suite : `#showFoldButton()` porte toujours deux paramètres booléens, terrain de
+`R-145` (4) ; la signature n'a pas été touchée ici (`D-03`). Et `facets-view.ts:177` écrit toujours
+`label.textContent` sur le crochet `count` — même geste que celui corrigé ici, sur du texte réellement
+dynamique ; non traité, à ouvrir si le cas d'un compteur surchargé se pose.
 
 ### R-142 · 🟠 · **fermé le 2026-09-24** · ouvert le 2026-09-17 — le glissé du prix casse sur une vue à une seule poignée basse, et hors du bouton principal
 
@@ -6231,19 +6292,18 @@ parité lisible). Les commentaires devenus faux ou inexacts sont déjà corrigé
 
 ## 11. Roadmap proposée
 
-### File d'attente au 2026-09-23
+### File d'attente au 2026-09-24
 
 Un point à la fois (`D-03`), dans cet ordre, sauf décision contraire de Louis :
 
 1. **Retours de la PR #2 et suites** : `R-146`, `R-147`, `R-148`, `R-149`, `R-154`, `R-158` et `R-03`
    sont fermés et commités (`3ee3edf`, `93c7703`, `7d7eab3`, `618a697`, `6939e4f`, `7046e7b`, `cd3f5b5`,
-   `c8345cc`, `cd10de6`, `ccbc945`).
-2. `R-143` — le client efface le balisage d'un bouton « Voir plus » surchargé ; demande l'accord de Louis
-   (`Contract::VERSION` des deux côtés).
-3. `R-144` — remplacer `FacetCounter` ne change que le premier rendu.
-4. `R-141` — cinq tests `Feature` dépendent de l'ordre de la suite.
-5. `Q-31` — commentaires de rôle et renvois vers le miroir PHP : à trancher par Louis avant toute purge.
-6. `R-145` — les restructurations relevées par les passes rejouées, ligne par ligne.
+   `c8345cc`, `cd10de6`, `ccbc945`). `R-142` est fermé et commité (`ccbc945`), `R-143` fermé le
+   2026-09-24 et attend son commit.
+2. `R-144` — remplacer `FacetCounter` ne change que le premier rendu.
+3. `R-141` — cinq tests `Feature` dépendent de l'ordre de la suite.
+4. `Q-31` — commentaires de rôle et renvois vers le miroir PHP : à trancher par Louis avant toute purge.
+5. `R-145` — les restructurations relevées par les passes rejouées, ligne par ligne.
 
 Ouverts, non planifiés : `R-150` à `R-153`, `R-155`, `R-156`, `R-157`, `R-159` à `R-161`. Les trois
 derniers viennent de `R-158` et relèvent du lot 5, avec la pertinence.

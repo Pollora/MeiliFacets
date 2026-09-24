@@ -13,7 +13,6 @@ import { described } from './fixtures.ts'
 const description = described({
     params: { product_brand: 'brand', product_cat: 'categorie' },
     countPattern: ':count result|:count results',
-    foldLabels: { more: 'Show more', less: 'Show less' },
     facets: [
         { taxonomy: 'product_brand', multiple: true, cap: 3, visible: 10, counts: { acme: 3, globex: 1 } },
         { taxonomy: 'product_cat', multiple: false, cap: 1, visible: 10, counts: { coats: 2 } },
@@ -38,6 +37,7 @@ describe('FacetsView', () => {
     })
 
     const box = (value: string) => find<HTMLInputElement>(root, `input[value="${value}"]`)
+    const label = (button: Element, hook: string) => find<HTMLElement>(button, Contract.selector(hook))
     const host = (value: string) => closestHook(box(value), 'facet-value')
     const narrowed = (counts: Record<string, number> = { acme: 3, globex: 1 }) => new FacetsView(new Contract(root), described({
         ...description,
@@ -109,13 +109,39 @@ describe('FacetsView', () => {
 
         assert.equal(host('globex').hidden, false)
         assert.equal(button.getAttribute('aria-expanded'), 'true')
-        assert.equal(button.textContent, 'Show less')
+        assert.equal(label(button, 'more-label').hidden, true)
+        assert.equal(label(button, 'less-label').hidden, false)
 
         narrow.toggleFold(button)
         narrow.showCounts(counts({ product_brand: { acme: 5, globex: 2 } }))
 
         assert.equal(host('globex').hidden, true)
-        assert.equal(button.textContent, 'Show more')
+        assert.equal(label(button, 'more-label').hidden, false)
+        assert.equal(label(button, 'less-label').hidden, true)
+    })
+
+    it('keeps what a view drew inside its fold button', () => {
+        const narrow = narrowed()
+        const button = find(root, Contract.selector('more'))
+
+        button.insertAdjacentHTML('afterbegin', '<svg class="chevron"></svg>')
+        narrow.toggleFold(button)
+        narrow.showCounts(counts({ product_brand: { acme: 5, globex: 2 } }))
+
+        assert.equal(button.querySelector('svg.chevron') !== null, true)
+        assert.equal(label(button, 'less-label').hidden, false)
+    })
+
+    it('writes no label into a fold button that draws none', () => {
+        const narrow = narrowed()
+        const button = find(root, Contract.selector('more'))
+
+        button.replaceChildren(button.ownerDocument.createTextNode('Voir plus'))
+        narrow.toggleFold(button)
+        narrow.showCounts(counts({ product_brand: { acme: 5, globex: 2 } }))
+
+        assert.equal(button.textContent, 'Voir plus')
+        assert.equal(button.getAttribute('aria-expanded'), 'true')
     })
 
     /** Unfolding asks the engine nothing: pressing before any search must not empty the list. */

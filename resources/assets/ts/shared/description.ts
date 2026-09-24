@@ -59,7 +59,6 @@ export interface ListingDescription {
     /** singular and plural forms, separated by a pipe */
     countPattern: string
     filterPattern: string
-    foldLabels: { more: string, less: string }
     /** the language whose plural rule picks a form of the patterns */
     locale: string
     facets: FacetDescription[]

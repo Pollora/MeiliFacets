@@ -84,7 +84,6 @@ final class ListingDescriptionTest extends TestCase
         $description = $this->underLocales('fr', 'en_US', fn (): array => $this->describedWith([]));
 
         $this->assertSame('en-US', $description['locale']);
-        $this->assertSame('Show more', $description['foldLabels']['more']);
         $this->assertSame(':count result|:count results', $description['countPattern']);
     }
 

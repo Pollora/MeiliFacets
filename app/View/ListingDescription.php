@@ -55,7 +55,6 @@ final readonly class ListingDescription
             'sortFilters' => (object) $this->sortFilters($listing->sorts()),
             'countPattern' => __(':count result|:count results'),
             'filterPattern' => __(':count active filter|:count active filters'),
-            'foldLabels' => ['more' => __('Show more'), 'less' => __('Show less')],
             'locale' => $this->countLabel->languageTag(),
             'state' => $this->state($listing->state()),
             'pagePath' => $this->page->path(),
