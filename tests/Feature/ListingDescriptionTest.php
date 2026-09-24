@@ -137,6 +137,32 @@ final class ListingDescriptionTest extends TestCase
      * @param  array<string, string>  $query
      * @return array<string, mixed>
      */
+    /** The same shape is written twice, once per language: a key added on one side only is a field nobody reads. */
+    #[Test]
+    public function it_publishes_exactly_the_fields_the_client_declares(): void
+    {
+        $published = array_keys($this->describedWith([]));
+        $declared = $this->fieldsTheClientDeclares();
+
+        sort($published);
+        sort($declared);
+
+        $this->assertSame($declared, $published);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function fieldsTheClientDeclares(): array
+    {
+        $source = (string) file_get_contents(__DIR__.'/../../resources/assets/ts/shared/description.ts');
+
+        preg_match('/export interface ListingDescription \{(.*?)\n\}/s', $source, $block);
+        preg_match_all('/^ {4}(\w+)\??:/m', $block[1] ?? '', $fields);
+
+        return $fields[1];
+    }
+
     private function describedWith(array $query): array
     {
         $this->app->forgetScopedInstances();

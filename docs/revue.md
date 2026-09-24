@@ -924,6 +924,14 @@ La dette assumée est « bornée en couvrant les deux côtés avec les mêmes ca
 compare `Hook` à `contract.js`, ni `QueryPlan` à `ListingQuery` sur un même jeu d'états. Les deux
 suites vivent côte à côte sans se regarder — et R-22 montre qu'elles ont déjà divergé.
 
+**Réduit le 2026-09-24**, à la demande de Louis, après la panne de `R-158`. Deux jumelages de plus,
+tous deux tués par mutation : `ResolvedListingParityTest` compare par réflexion les méthodes publiques
+de `Listing` à celles de `ResolvedListing` — la classe que lisent les vues recopie le contrat à la main,
+et l'oubli mettait tout le site en 500 ; `ListingDescriptionTest` compare les clés que
+`ListingDescription::of()` publie aux champs déclarés dans `description.ts`, un champ ajouté d'un seul
+côté faisant désormais échouer la suite. **Reste ouvert** : le cœur de la dette, `QueryPlan` contre
+`ListingQuery` sur un même jeu d'états.
+
 ---
 
 ## 6. Constats — code mort et résidus
