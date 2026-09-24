@@ -64,6 +64,14 @@ final class SortComponentTest extends TestCase
         $this->assertFalse($this->promotions(onSale: 0)->hasAttribute('hidden'));
     }
 
+    #[Test]
+    public function it_refuses_a_second_sort_on_the_page(): void
+    {
+        $this->expectExceptionMessageMatches('/The sort of listing "[^"]+" is rendered twice/');
+
+        Blade::render('<x-meilifacets::sort /><x-meilifacets::sort />');
+    }
+
     private function promotions(int $onSale): Element
     {
         $this->app->scoped(SearchEngine::class, static fn (): FakeSearchEngine => new FakeSearchEngine([

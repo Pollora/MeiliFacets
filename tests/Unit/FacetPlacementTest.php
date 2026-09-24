@@ -60,6 +60,20 @@ final class FacetPlacementTest extends TestCase
         $listing->place($brand);
     }
 
+    /** The sort is a control like a facet: a drawer shows the one copy, never a second. */
+    #[Test]
+    public function it_refuses_to_render_the_sort_twice(): void
+    {
+        $listing = $this->listing();
+
+        $listing->placeSort();
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessageMatches('/The sort of listing "fake" is rendered twice.*<x-meilifacets::sort> once/');
+
+        $listing->placeSort();
+    }
+
     /** The group takes what is left, so placing after it places twice. */
     #[Test]
     public function it_refuses_a_facet_placed_after_the_group(): void

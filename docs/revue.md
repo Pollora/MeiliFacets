@@ -3248,6 +3248,16 @@ déclarée sur la facette dans `ProductFacets`, surchargeable par attribut ; une
 sortir le HTML actuel à l'octet près. Renversement de `D-07` noté à sa place. Rattaché au chantier
 `R-48`, étape 3a de [chantier-filtres.md](chantier-filtres.md).
 
+### R-166 · 🟡 · ouvert · 2026-09-24 — deux `<x-meilifacets::listing>` du même nom sur une page ne sont gardés nulle part
+
+`listing-page.ts` lie une instance par racine, donc deux écritures d'historique, et `ElementId` ne
+distingue que par nom de listing, donc des identifiants dupliqués. Détaché de `R-162` le 2026-09-24
+(étape 2c du chantier « barre de filtres ») : c'est une garde sur la racine, pas un problème de
+placement. Hors chantier — la maquette n'a qu'un listing.
+
+Piste : `Listing` refuse un second rendu du même nom, comme `ResolvedListing::placeSort()` le fait
+pour le tri.
+
 ### R-165 · ⚪ · **fermé le 2026-09-24** · ouvert le 2026-09-24 — un faux moteur survivait à `PriceComponentTest`
 
 La suite `Modules` partage une seule application : `PriceComponentTest` liait un faux `SearchEngine`
@@ -3278,7 +3288,7 @@ Observé : `/boutique` « 74 articles », « cheveux » + « Appliquer » → «
 aucune erreur console ; `composer check` vert, suite `Modules` 421 tests verts. Reste ouvert à
 l'étape 6 : deux compteurs sur une page font deux annonces. `R-50` non touché.
 
-### R-162 · 🟠 · ouvert · 2026-09-24 — le doublon silencieux n'est gardé que pour les facettes
+### R-162 · 🟠 · **fermé le 2026-09-24** · ouvert le 2026-09-24 — le doublon silencieux n'est gardé que pour les facettes
 
 `ResolvedListing::place()` refuse qu'une facette soit rendue deux fois, et c'est le seul garde-fou du
 module. Rien n'équivaut pour les autres composants :
@@ -3300,6 +3310,33 @@ rend le cas concret : c'est dans un tiroir qu'un thème est tenté de reposer un
 Pistes : étendre la garde à tout `Placeable` rendu, ou peindre par `contract.all(...)` là où le
 doublon est légitime. À trancher avec le chantier mobile, pas avant : c'est lui qui dira si un thème a
 besoin de deux exemplaires.
+
+**Tranché par l'architecture v2** (chantier, § 1) : un élément d'**état** peut apparaître deux fois
+(`reset`, compteurs), un **contrôle** jamais (`R-95`).
+
+**Fermé le 2026-09-24 pour la première puce** (étape 2c). `FilterSummaryView` peint chaque `reset` et
+chaque `active-filters` (`contract.all()`), comme `TotalView` et `ActiveValuesView`. Nouveau crochet
+optionnel `active-count` (`Hook::ActiveCount`, additif, `Contract::VERSION` inchangé, aucune règle de
+contrat) : un nombre nu, peint sur chaque exemplaire par `listing/selection-count-view.ts`, masqué à zéro.
+Il suit **la sélection courante, en attente comprise** — le même état que le badge `active-filters`,
+repeint sur l'événement `change`, et ce que dit C-3 (« X = nombre de valeurs cochées ») ; la plage de
+prix compte pour un, comme `activeFilterCount()` des deux côtés. À l'inverse des pastilles, qui
+montrent l'état appliqué : ce n'est pas une contradiction, les pastilles sont des ordres, le compteur
+annonce ce que « Appliquer » emportera. **Aucune vue ne le rend encore** : sa place est l'ouvreur (5a)
+et `<x-meilifacets::apply>` (5b) ; l'ajouter au bouton de `facets.blade.php` aurait imposé un attribut
+que 5b remplace. La valeur serveur est déjà servie par `ResolvedListing::activeFilterCount()`. Le tri
+est un contrôle : `ResolvedListing::placeSort()`, appelé par `Sort`, lève au second rendu du même
+listing (« The sort of listing "products" is rendered twice on this page… »). Observé (Chromium,
+`/boutique`, doublons temporaires de `reset` et `active-filters` dans le thème, deux `active-count`
+injectés) : « cheveux » cochée → les deux badges « 1 filtre actif », les deux « Tout effacer » visibles,
+les deux compteurs « 1 », aucune recherche ; « Appliquer » → 14 articles, idem ; « Tout effacer » du
+second exemplaire → tout masqué, 74 articles ; aucune erreur console. Second `<x-meilifacets::sort />`
+→ 500 avec le message dans `laravel.log`. Doublons retirés. `composer check` vert (Unit 281, TS 319),
+suite `Modules` 438 tests verts.
+
+**Seconde puce détachée le 2026-09-24 dans `R-166`** (deux `<x-meilifacets::listing>` du même nom) :
+ce n'est pas un élément rendu deux fois mais une racine, et sa garde se pose dans
+`Listing`/`listing-page.ts`, pas dans le placement.
 
 ### R-161 · ⚪ · ouvert · 2026-09-23 — une recherche sans type de contenu est comptée comme listing sans en rendre aucun
 

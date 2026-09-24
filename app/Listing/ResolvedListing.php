@@ -41,6 +41,8 @@ final class ResolvedListing
     /** @var array<string, true> names a template placed on their own */
     private array $apart = [];
 
+    private bool $sortRendered = false;
+
     /** @var array<string, list<FacetValue>> */
     private array $valuesByFacet = [];
 
@@ -215,6 +217,18 @@ final class ResolvedListing
         }
 
         $this->rendered[$facet->name] = true;
+    }
+
+    public function placeSort(): void
+    {
+        if ($this->sortRendered) {
+            throw new RuntimeException(
+                "The sort of listing \"{$this->name()}\" is rendered twice on this page: its list and ids "
+                .'would be duplicated. Render <x-meilifacets::sort> once, where both layouts can show it.'
+            );
+        }
+
+        $this->sortRendered = true;
     }
 
     /**

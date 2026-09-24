@@ -91,6 +91,7 @@ Voir aussi : [installation.md](installation.md) · [architecture.md](architectur
 | `apply_mode` de Pluralia | reste `submit` **pour évaluer le rendu** (« Appliquer » en fin de rangée desktop) ; `immediate` envisagé après validation visuelle de Louis. *Tranché le 2026-09-24 (architecture Q-5) ; `R-51` et `Q-24` restent ouverts.* |
 | Style par défaut d'une brique | toute nouvelle brique rejoint la règle de base de ses sœurs dans `meilifacets.css` (`font-size: var(--meili-ui)`, marges neutralisées) : le rendu brut du module est homogène avant que le thème ne l'habille. *Tranché le 2026-09-24 (étape 2a, relevé par Louis sur le compteur).* |
 | Pastilles actives | elles montrent l'**état appliqué** (en `submit`, rien tant que la sélection n'est pas validée) ; retirer une pastille est un **ordre** au sens de `D-10` : la recherche part tout de suite et emporte les filtres en attente. Libellés publiés dans la description (+829 o mesurés sur `/boutique`), gardés pour l'instant. *Tranché le 2026-09-24 (étape 2b, `R-47`).* |
+| Compteur `active-count` | nombre nu de la **sélection courante, en attente comprise** (même état que le badge `active-filters`, C-3), plage de prix comptée une fois, masqué à zéro ; les mots autour (« Filtre », « Appliquer », parenthèses) appartiennent à la vue qui le porte. Un élément d'état peut être rendu plusieurs fois, un contrôle (facette, tri) jamais. *Tranché le 2026-09-24 (étape 2c, `R-162`).* |
 
 ### Pourquoi la production doit monter de version
 

@@ -101,7 +101,7 @@ Aucun code. Proposition v2 rendue le 2026-09-24 : [chantier-filtres-architecture
 
 **Recette —** un schéma validé par Louis, où chaque fichier a une responsabilité en une phrase.
 
-### 2 · Briques transverses — ⏳ prochaine
+### 2 · Briques transverses — ✅ fermée le 2026-09-24
 
 Utiles aux deux dispositions, livrées d'abord dans `Sidebar`.
 
@@ -109,12 +109,13 @@ Utiles aux deux dispositions, livrées d'abord dans `Sidebar`.
 - [x] 2b · pastilles des filtres actifs, y compris la borne de prix (`R-123`) ; libellés lus dans les
       valeurs rendues, repliées comprises (`R-57`) — C-7, `R-47` fermé le 2026-09-24
 - [ ] lien « Annuler » : le `Reset` existant, placé à côté des pastilles
-- [ ] pas de doublon si le listing est rendu deux fois (`R-162`)
+- [x] 2c · doublons légitimes peints partout (`reset`, `active-filters`), crochet `active-count`, garde du
+      tri — `R-162` fermé le 2026-09-24 ; deux listings du même nom détachés dans `R-166` (hors chantier)
 
 **Recette —** sur `/boutique` en `Sidebar`, cocher deux valeurs fait apparaître deux pastilles et
 met le compteur à jour ; retirer une pastille décoche la valeur ; « Annuler » vide tout.
 
-### 3 · Présentations et activation par facette — à venir
+### 3 · Présentations et activation par facette — ⏳ prochaine
 
 - [ ] C-5 et C-6 tranchés
 - [ ] rendus Checkbox / Radio / Pill, cohérents avec `SelectionMode` (`R-10`)
@@ -189,3 +190,4 @@ relevés dans Playwright).
 | 2026-09-24 | 2a | Compteur livré (`R-163`), faux moteur de test corrigé (`R-165`), style par défaut aligné sur les sœurs ; `<x-meilifacets::total />` posé sous le tri dans le thème, non commité, à replacer à l'étape 8 |
 | 2026-09-24 | 2b | Pastilles actives livrées (`R-47`, `T-08`) : état appliqué seulement en `submit`, retrait = ordre (`D-10`), focus jamais sur `<body>` ; `labels` gardés dans la description (+829 o, mesuré, sans risque : encodage `JSON_HEX_TAG`, écriture en texte) ; `<x-meilifacets::active-values />` posé dans le thème, non commité |
 | 2026-09-24 | 2b | Pastilles livrées (`R-47`, `T-08`) : état appliqué seulement (Louis), retrait = ordre (`D-10`, validé) ; description +829 o ; `<x-meilifacets::active-values />` posé sous le compteur dans le thème, non commité |
+| 2026-09-24 | 2c | `R-162` : `reset`/`active-filters` par `contract.all()`, crochet `active-count` (sélection en attente comprise, masqué à zéro, aucune vue avant 5a/5b), garde du tri (`placeSort()`) ; doublons temporaires posés puis retirés du thème ; deux listings du même nom proposés en entrée à part |

@@ -51,6 +51,7 @@ enum Hook: string
     case PriceMax = 'price-max';
     case Reset = 'reset';
     case ActiveFilters = 'active-filters';
+    case ActiveCount = 'active-count';
     case Total = 'total';
     case ActiveValues = 'active-values';
     case ActiveValue = 'active-value';
