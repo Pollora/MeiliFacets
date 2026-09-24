@@ -6,15 +6,20 @@ namespace Modules\MeiliFacets\Tests\Feature;
 
 use Dom\HTMLDocument;
 use Illuminate\Support\Facades\Blade;
+use InvalidArgumentException;
 use Modules\MeiliFacets\Contracts\Placeable;
 use Modules\MeiliFacets\Enums\Contract;
 use Modules\MeiliFacets\Enums\Hook;
+use Modules\MeiliFacets\Enums\Presentation;
 use Modules\MeiliFacets\Enums\QueryParameter;
+use Modules\MeiliFacets\Enums\SelectionMode;
 use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\Listing\Facet;
 use Modules\MeiliFacets\Listing\PriceFilter;
 use Modules\MeiliFacets\Listing\ResolvedListing;
 use Modules\MeiliFacets\Support\UrlParameters;
+use Modules\MeiliFacets\Tests\Unit\Doubles\FakePresentation;
+use Modules\MeiliFacets\View\Components\Facet as FacetComponent;
 use Modules\MeiliFacets\View\ElementId;
 use Modules\MeiliFacets\View\ListingDescription;
 use PHPUnit\Framework\Attributes\Test;
@@ -243,6 +248,51 @@ final class FacetComponentTest extends TestCase
         $this->assertTrue($input->hasAttribute('checked'));
         $this->assertFalse($input->closest($this->hooked(Hook::FacetValue))->hasAttribute('hidden'));
         $this->assertFalse($document->querySelector($this->hooked(Hook::Facet))->hasAttribute('hidden'));
+    }
+
+    #[Test]
+    public function it_marks_pills_with_one_attribute_and_nothing_else(): void
+    {
+        $control = Blade::render($this->placing($this->first(), 'presentation="control"'));
+        $this->app->forgetScopedInstances();
+        $pill = Blade::render($this->placing($this->first(), 'presentation="pill"'));
+
+        $this->assertStringContainsString(' data-presentation="pill"', explode('>', $pill)[0]);
+        $this->assertStringNotContainsString('data-presentation', $control);
+        $this->assertSame($control, str_replace(' data-presentation="pill"', '', $pill));
+    }
+
+    #[Test]
+    public function it_presents_a_facet_as_its_declaration_says(): void
+    {
+        $declared = new Facet($this->first()->taxonomy, $this->first()->label, presentation: Presentation::Pill);
+
+        $html = Blade::render('<x-meilifacets::facet :facet="$declared" />', ['declared' => $declared]);
+
+        $this->assertStringContainsString('data-presentation="pill"', $html);
+    }
+
+    /** A plain attribute names only the module's presentations; a theme's arrives bound. */
+    #[Test]
+    public function it_marks_a_theme_presentation_a_template_binds_with_its_name(): void
+    {
+        $html = Blade::render(
+            '<x-meilifacets::facet :facet="$name" :presentation="$presentation" />',
+            ['name' => $this->first()->name, 'presentation' => FakePresentation::Tile],
+        );
+
+        $this->assertStringContainsString('data-presentation="tile"', explode('>', $html)[0]);
+    }
+
+    /** R-10: the template cannot slip past the guard the declaration went through. */
+    #[Test]
+    public function it_refuses_pills_a_template_asks_for_on_a_single_selection_facet(): void
+    {
+        $single = new Facet($this->first()->taxonomy, $this->first()->label, SelectionMode::Single);
+
+        $this->expectException(InvalidArgumentException::class);
+
+        $this->app->make(FacetComponent::class, ['facet' => $single, 'presentation' => 'pill']);
     }
 
     /** The description feeds the client, which counts and filters on facets the page never showed. */

@@ -6,7 +6,9 @@ namespace Modules\MeiliFacets\View\Components;
 
 use BackedEnum;
 use Illuminate\Contracts\View\View;
+use Modules\MeiliFacets\Contracts\ValuePresentation;
 use Modules\MeiliFacets\Enums\InputType;
+use Modules\MeiliFacets\Enums\Presentation;
 use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\Listing\Facet as Declaration;
 use Modules\MeiliFacets\Listing\FacetValue;
@@ -19,6 +21,8 @@ final class Facet extends ListingComponent
     /** @var list<FacetValue> */
     public array $values;
 
+    public ValuePresentation $presentation;
+
     private ?string $countPattern = null;
 
     public function __construct(
@@ -27,12 +31,19 @@ final class Facet extends ListingComponent
         Declaration|BackedEnum|string $facet,
         string $name = '',
         bool $scroll = false,
+        ValuePresentation|string|null $presentation = null,
     ) {
         parent::__construct($listings, $name, $scroll);
 
         $this->facet = $this->listing->placeFacet($this->designated($facet), Declaration::class);
+        $this->presentation = $this->presentationOf($presentation);
 
         $this->values = $this->listing->valuesOf($this->facet);
+    }
+
+    public function marksPresentation(): bool
+    {
+        return $this->presentation !== Presentation::Control;
     }
 
     public function inputType(): string
@@ -55,6 +66,16 @@ final class Facet extends ListingComponent
     public function hasReadableValues(): bool
     {
         return array_any($this->values, static fn (FacetValue $value): bool => ! $value->folded);
+    }
+
+    /** A plain attribute can only name the module's presentations; a theme's arrives bound (`:presentation`). */
+    private function presentationOf(ValuePresentation|string|null $override): ValuePresentation
+    {
+        return match (true) {
+            $override === null => $this->facet->presentation,
+            is_string($override) => $this->facet->presentedAs(Presentation::from($override)),
+            default => $this->facet->presentedAs($override),
+        };
     }
 
     public function render(): View

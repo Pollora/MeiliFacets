@@ -1,5 +1,5 @@
 <fieldset {{ $attributes->class('meilifacetsFacet') }} data-taxonomy="{{ $facet->taxonomy }}"
-          @unless ($hasReadableValues()) hidden @endunless {{ $hook('facet') }} {{ $scrollMark() }}>
+          @unless ($hasReadableValues()) hidden @endunless {{ $hook('facet') }} {{ $scrollMark() }}@if ($marksPresentation()) data-presentation="{{ $presentation->slug() }}"@endif>
     <legend class="meilifacetsFacetLabel">{{ $facet->label }}</legend>
     <div class="meilifacetsFacetPanel" id="{{ $ids->facetPanel($facet->name) }}">
         <div class="meilifacetsFacetPanelInner">

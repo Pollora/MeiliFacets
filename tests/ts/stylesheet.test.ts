@@ -81,6 +81,59 @@ describe('the module stylesheet', () => {
         assert.notEqual(window.getComputedStyle(current).fontWeight, window.getComputedStyle(other).fontWeight)
     })
 
+    describe('a facet presented as pills', () => {
+        const pills = () => {
+            const facet = find(root, Contract.selector('facet'))
+
+            facet.setAttribute('data-presentation', 'pill')
+
+            return facet
+        }
+        const computed = (element: Element) => window.getComputedStyle(element)
+
+        it('lines its values up and wraps them', () => {
+            const values = computed(find(pills(), 'ul'))
+
+            assert.equal(values.display, 'flex')
+            assert.equal(values.flexWrap, 'wrap')
+        })
+
+        it('draws each value like the pill of an active filter, at the height of a command', () => {
+            find(root, Contract.selector('active-values')).insertAdjacentHTML('afterbegin', '<li><button data-meili="active-value">Acme</button></li>')
+            const pill = computed(find(pills(), `${Contract.selector('facet-value')} label`))
+
+            assert.equal(pill.borderRadius, style('active-value').borderRadius)
+            assert.equal(pill.minHeight, style('active-value').minHeight)
+            assert.equal(pill.minHeight, style('reset').minHeight)
+        })
+
+        it('keeps the native input to check, out of sight but not out of reach', () => {
+            const input = computed(find(pills(), Contract.selector('input')))
+
+            assert.equal(input.position, 'absolute')
+            assert.notEqual(input.display, 'none')
+            assert.notEqual(input.visibility, 'hidden')
+        })
+
+        it('tells a checked value apart from the others', () => {
+            const [checked, other] = pills().querySelectorAll(`${Contract.selector('facet-value')} label`)
+
+            assert.ok(checked && other)
+            find(checked, 'input').setAttribute('checked', '')
+
+            assert.equal(computed(checked).borderTopColor, 'currentcolor')
+            assert.notEqual(computed(other).borderTopColor, 'currentcolor')
+        })
+
+        it('leaves the facets that are not pills as they were', () => {
+            pills()
+            const control = root.querySelectorAll(Contract.selector('facet'))[1]
+
+            assert.ok(control)
+            assert.notEqual(computed(find(control, Contract.selector('input'))).clipPath, 'inset(50%)')
+        })
+    })
+
     it('takes the label out of sight without taking it out of the accessible name', () => {
         const label = window.getComputedStyle(find(root, '[data-meili="sort"] > label'))
 

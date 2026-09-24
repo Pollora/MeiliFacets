@@ -101,6 +101,45 @@
     opacity: 0.6;
 }
 
+[data-meili="facet"][data-presentation="pill"] ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5em;
+}
+
+[data-meili="facet"][data-presentation="pill"] [data-meili="facet-value"] label {
+    position: relative;
+    display: inline-flex;
+    box-sizing: border-box;
+    min-height: var(--meili-control);
+    margin: 0;
+    padding: 0 0.85em;
+    border: 1px solid var(--meili-edge);
+    border-radius: 999px;
+    line-height: 1;
+    cursor: pointer;
+    font-variant-numeric: tabular-nums;
+    transition:
+        background-color 150ms var(--meili-ease),
+        border-color 150ms var(--meili-ease);
+}
+
+[data-meili="facet"][data-presentation="pill"] [data-meili="input"] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+[data-meili="facet"][data-presentation="pill"] [data-meili="facet-value"] label:has(:focus-visible) {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+}
+
 [data-meili="active-filters"] {
     display: inline-flex;
     align-items: center;
@@ -368,6 +407,15 @@
     background: color-mix(in srgb, CanvasText 70%, Canvas);
 }
 
+[data-meili="facet"][data-presentation="pill"] [data-meili="facet-value"] label:active,
+[data-meili="facet"][data-presentation="pill"] [data-meili="facet-value"] label:has(:checked) {
+    background: var(--meili-press);
+}
+
+[data-meili="facet"][data-presentation="pill"] [data-meili="facet-value"] label:has(:checked) {
+    border-color: currentColor;
+}
+
 @media (pointer: coarse) {
     [data-listing] {
         --meili-control: 2.75rem;
@@ -400,6 +448,14 @@
         outline: 2px solid currentColor;
         outline-offset: -2px;
     }
+
+    [data-meili="facet"][data-presentation="pill"] [data-meili="facet-value"] label:has(:checked) {
+        forced-color-adjust: none;
+        border-color: SelectedItem;
+        background: SelectedItem;
+        color: SelectedItemText;
+        outline-color: CanvasText;
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -426,6 +482,7 @@
     [data-meili="sort-trigger"]::after,
     [data-meili="sort-option"],
     [data-meili="facet-value"] label,
+    [data-meili="facet"][data-presentation="pill"] [data-meili="facet-value"] label,
     [data-meili="active-value"] {
         transition: none;
     }

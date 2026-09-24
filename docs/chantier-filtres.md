@@ -115,10 +115,10 @@ Utiles aux deux dispositions, livrées d'abord dans `Sidebar`.
 **Recette —** sur `/boutique` en `Sidebar`, cocher deux valeurs fait apparaître deux pastilles et
 met le compteur à jour ; retirer une pastille décoche la valeur ; « Annuler » vide tout.
 
-### 3 · Présentations et activation par facette — ⏳ prochaine
+### 3 · Présentations et activation par facette — ⏳ en cours (3a fermée)
 
-- [ ] C-5 et C-6 tranchés
-- [ ] rendus Checkbox / Radio / Pill, cohérents avec `SelectionMode` (`R-10`)
+- [x] C-5 et C-6 tranchés
+- [x] 3a · présentation par facette (`R-164`, fermé le 2026-09-24) : contrat ouvert `ValuePresentation`, enum `Control`/`Pill`, garde `R-10` à la déclaration, `data-presentation` sauf `Control`, style pastille du module ; Contenance en `Pill` dans Pluralia (non commité)
 - [ ] compteur de valeur hors du nom accessible (`R-151`)
 - [ ] cible de 2.75rem au pointeur grossier (« Hauteur des contrôles »)
 - [ ] `Sidebar` rendu à l'identique quand rien n'est configuré
@@ -192,3 +192,4 @@ relevés dans Playwright).
 | 2026-09-24 | 2b | Pastilles livrées (`R-47`, `T-08`) : état appliqué seulement (Louis), retrait = ordre (`D-10`, validé) ; description +829 o ; `<x-meilifacets::active-values />` posé sous le compteur dans le thème, non commité |
 | 2026-09-24 | 2c | `R-162` : `reset`/`active-filters` par `contract.all()`, crochet `active-count` (sélection en attente comprise, masqué à zéro, aucune vue avant 5a/5b), garde du tri (`placeSort()`) ; doublons temporaires posés puis retirés du thème ; deux listings du même nom proposés en entrée à part |
 | 2026-09-24 | 2c→3 | Refactor `R-167` : registre de placement sorti de `ResolvedListing` dans `PagePlacement`, tri et facettes dans un seul registre indexé par `PlacedControl`, message du tri corrigé ; aucun changement de comportement |
+| 2026-09-24 | 3a | `R-164` : `ValuePresentation` (ensemble ouvert, Louis), `Presentation` `Control`/`Pill`, garde `R-10` dans `Facet::presentedAs()`, HTML `Control` identique à l'octet (test sur la vue d'avant), CSS pastille ; Contenance en `Pill` dans `CatalogueFacets`, non commité |

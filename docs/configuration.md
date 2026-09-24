@@ -707,6 +707,30 @@ inconnu lève en nommant les facettes déclarées, dans les deux formes.
 `<x-meilifacets::facet>` accepte aussi une déclaration directement (`:facet="$facet"`), ce dont se
 sert `<x-meilifacets::facets>` en interne.
 
+### Présenter les valeurs d'une facette
+
+Par défaut, les valeurs sortent en cases (ou en radios pour une facette `SelectionMode::Single`).
+Une facette peut les présenter en pastilles :
+
+```php
+new Facet('pa_contenance', __('Volume'), name: ShopFacet::Volume, presentation: Presentation::Pill)
+```
+
+Le `<fieldset>` porte alors `data-presentation="pill"`, que la feuille du module habille ; l'input
+natif reste dans le DOM, masqué visuellement. Une facette `Control` ne porte aucun attribut.
+
+L'ensemble est ouvert : un thème déclare les siennes par un enum qui implémente
+`Contracts\ValuePresentation` (`slug()` = valeur de `data-presentation`, `allowsSingleSelection()`),
+et les habille lui-même par `[data-presentation="…"]`. Le module ne change **aucun markup** selon la
+présentation — pas de vue par présentation.
+
+Une facette `Single` sous une présentation qui ne l'autorise pas (`Pill`) lève dès sa déclaration :
+un radio masqué ne se décoche pas (`R-10`).
+
+Un gabarit surcharge ponctuellement : `presentation="pill"` ou `presentation="control"` (cas du
+module), `:presentation="ThemePresentation::Swatch"` pour celle d'un thème — même garde.
+`<x-meilifacets::price>` n'en a pas : le prix n'a pas de valeurs à cocher.
+
 ### Ce que le composant transmet
 
 Le sac d'attributs arrive sur le `<fieldset>` et fusionne avec la classe du module

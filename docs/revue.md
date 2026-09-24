@@ -3235,7 +3235,7 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
-### R-164 · 🟡 · ouvert · 2026-09-24 — une facette ne peut pas déclarer comment ses valeurs se présentent
+### R-164 · 🟡 · **fermé le 2026-09-24** (étape 3a) · ouvert le 2026-09-24 — une facette ne peut pas déclarer comment ses valeurs se présentent
 
 Toutes les valeurs de facette sortent en cases à cocher (ou en radios, selon `SelectionMode`) ; rien
 ne permet de dire qu'une facette se présente en pastilles type « 15 ML », sinon en surchargeant
@@ -3247,6 +3247,45 @@ ne sait pas que ce sont des pastilles »).
 déclarée sur la facette dans `ProductFacets`, surchargeable par attribut ; une facette `Control` doit
 sortir le HTML actuel à l'octet près. Renversement de `D-07` noté à sa place. Rattaché au chantier
 `R-48`, étape 3a de [chantier-filtres.md](chantier-filtres.md).
+
+**Précisé le 2026-09-24 par Louis** : la présentation est un ensemble **ouvert**. Contrat
+`Contracts\ValuePresentation` (`name()`, valeur de `data-presentation` ; `allowsSingleSelection()`,
+qui porte la garde `R-10`) ; l'enum `Presentation` du module l'implémente (`Control` l'autorise,
+`Pill` non). Un thème déclare ses propres présentations (un enum qui implémente le contrat) dans
+`ProductFacets` et les habille par `[data-presentation="…"]`.
+
+**Fermé le 2026-09-24.** `Facet` reçoit `presentation:` (défaut `Presentation::Control`, relayé tel
+quel par `ChildTermsFacet`, qui hérite du constructeur). **Garde `R-10`** au plus tôt : dans le
+constructeur de la déclaration, donc au boot du listing, par `Facet::presentedAs()` — une facette
+`Single` sous une présentation qui ne l'autorise pas lève `InvalidArgumentException` (« Facet "x"
+holds one value at a time, so its values cannot be presented as "pill": they would be radios, which
+cannot be unchecked… »). La surcharge du composant passe par la même méthode : `presentation="pill"`
+(chaîne → `Presentation::from()`, cas du module seulement) ou `:presentation="$objet"` (présentation
+d'un thème). Pas d'attribut sur `<x-meilifacets::price>` : le prix n'a pas de valeurs à cocher.
+La vue ajoute `data-presentation="{nom}"` pour toute présentation sauf `Control`, collé après
+`{{ $scrollMark() }}` : un `@endif` en fin de ligne aurait avalé le saut de ligne suivant (PHP mange
+le `\n` après `?>`) et changé le HTML des facettes `Control` — c'est ce que le test attrape.
+CSS du module pour `pill` seulement (rangée qui passe à la ligne, pastille bordée `--meili-edge`,
+rayon 999px, `min-height: var(--meili-control)`, cochée = bord `currentColor` + fond `--meili-press`,
+focus par `:has(:focus-visible)`, input natif masqué visuellement, `forced-colors` en
+`SelectedItem`, transitions coupées sous `prefers-reduced-motion`).
+
+**Limite assumée** : aucun markup propre à une présentation (pas de vue partielle par présentation) ;
+on l'ouvrira quand un projet en aura besoin. Le compteur `(n)` reste dans la pastille, markup
+inchangé (`R-151`, étape 3b).
+
+**Vérifié** : HTML de `/boutique` identique à l'octet avant/après sur les quatre facettes, en
+`Control` (seuls les `?ver=` de WP Rocket changent) ; après déclaration de Contenance en `Pill` dans
+Pluralia, une seule ligne diffère (` data-presentation="pill"`). La comparaison avec une copie figée de la vue d'avant a servi de preuve une
+fois puis a été retirée en revue (elle aurait cassé à la première évolution légitime de la vue) ;
+reste le test durable `it_marks_pills_with_one_attribute_and_nothing_else` : une facette `Control`
+ne porte aucun `data-presentation`, une pastille n'en diffère que par cet attribut. Contrat renommé
+en revue : `name()` → `slug()`, pour ne pas cohabiter avec `->name` des enums. Playwright : Tab + Espace et clic cochent, focus et état
+coché visibles, « Appliquer » filtre (`?contenance=15ml,400ml`, 74 → 9 articles), marque et
+catégorie inchangées (input `static` 14px), zéro erreur console. Pastille relevée = pastille active :
+14px, Space Grotesk (hérité du thème), 36px, rayon 999px, padding `0 11.9px`, `line-height` 14px ;
+seule différence, la bordure 1px (0 sur la pastille active). `composer check` vert (Unit 294,
+TS 324), suite `Modules` 456 tests verts.
 
 ### R-167 · 🟡 · **fermé le 2026-09-24** · ouvert le 2026-09-24 — `ResolvedListing` porte le registre de placement
 
