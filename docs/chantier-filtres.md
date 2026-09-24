@@ -115,17 +115,17 @@ Utiles aux deux dispositions, livrées d'abord dans `Sidebar`.
 **Recette —** sur `/boutique` en `Sidebar`, cocher deux valeurs fait apparaître deux pastilles et
 met le compteur à jour ; retirer une pastille décoche la valeur ; « Annuler » vide tout.
 
-### 3 · Présentations et activation par facette — ⏳ en cours (3a, 3b fermées)
+### 3 · Présentations et activation par facette — ✅ fermée le 2026-09-24
 
 - [x] C-5 et C-6 tranchés
 - [x] 3a · présentation par facette (`R-164`, fermé le 2026-09-24) : contrat ouvert `ValuePresentation`, enum `Control`/`Pill`, garde `R-10` à la déclaration, `data-presentation` sauf `Control`, style pastille du module ; Contenance en `Pill` dans Pluralia (non commité)
 - [x] 3b · compteur de valeur hors du nom accessible (`R-151`, fermé le 2026-09-24) : compteur gardé dans le `<label>`, nom par `aria-labelledby` vers le `<span>` du libellé, description par `aria-describedby` ; chiffres tabulaires ; compteur masqué visuellement en pastille (validé par Louis) ; crochets inchangés, `Contract::VERSION` intact. Bouton « Voir plus » habillé en chemin (`R-168`)
-- [ ] cible de 2.75rem au pointeur grossier (« Hauteur des contrôles »)
-- [ ] `Sidebar` rendu à l'identique quand rien n'est configuré
+- [x] cible de 2.75rem au pointeur grossier pour la pastille (44 px mesurés en 3a et 3b) ; les rangées de cases restent à 37,8 px au pointeur grossier, comme avant le chantier — au-dessus du minimum AA (24 px, WCAG 2.5.8), sous la cible AAA de la décision « Hauteur des contrôles », qui ne vise que les boutons : à revoir à l'étape 6
+- [x] colonne actuelle rendue à l'identique quand rien n'est configuré (3a : HTML identique ; 3b : seuls `aria-labelledby` et l'id du libellé s'ajoutent, positions à 0,1 px)
 
-### 4 · Disposition `Bar` — desktop — à venir
+### 4 · Facette repliable (rangée desktop) — ⏳ prochaine
 
-- [ ] C-4 tranché
+- [x] C-4 tranché (tri en radios par attribut, `SortWidget`)
 - [ ] pill déclencheur + badge du nombre de valeurs cochées
 - [ ] panneau déroulant, un seul ouvert à la fois, fermeture par Échap et clic extérieur
 - [ ] prix dans un panneau fermé : piste mesurée à l'ouverture (`R-121`, `R-142`)
@@ -134,11 +134,11 @@ met le compteur à jour ; retirer une pastille décoche la valeur ; « Annuler �
 - [ ] UX-1 · le panneau reste ouvert pendant une multi-sélection ; le focus ne bouge pas quand la grille est repeinte
 - [ ] UX-2 · un panneau qui déborderait à droite (dernière pill, « Prix ») s'aligne sur le bord droit de sa pill
 
-### 5 · Disposition `Bar` — tiroir mobile — à venir
+### 5 · Tiroir mobile — à venir
 
-- [ ] C-1, C-2 et C-3 tranchés
-- [ ] pill « Filtre (n) » ouvrant un `<dialog>` en bottom sheet
-- [ ] même DOM que la barre desktop (`R-95`) sans que `display:none` du dialog fermé ne la masque
+- [x] C-1, C-2 et C-3 tranchés
+- [ ] ouvreur « Filtre (n) » (crochet `active-count`) promouvant le conteneur des filtres en bottom sheet (option A : pas de `<dialog>`, `role="dialog"` + `aria-modal` + `inert` sur l'entourage, jamais `display: contents`)
+- [ ] même DOM que la rangée desktop (`R-95`) : aucun filtre dupliqué
 - [ ] sections en accordéon, pied « Annuler » / « Appliquer (N) »
 - [ ] UX-3 · défilement de la page verrouillé, `overscroll-behavior: contain`, en-tête et pied collants, hauteur max en `dvh`, `env(safe-area-inset-bottom)` sous le pied
 
@@ -193,3 +193,4 @@ relevés dans Playwright).
 | 2026-09-24 | 2c | `R-162` : `reset`/`active-filters` par `contract.all()`, crochet `active-count` (sélection en attente comprise, masqué à zéro, aucune vue avant 5a/5b), garde du tri (`placeSort()`) ; doublons temporaires posés puis retirés du thème ; deux listings du même nom proposés en entrée à part |
 | 2026-09-24 | 2c→3 | Refactor `R-167` : registre de placement sorti de `ResolvedListing` dans `PagePlacement`, tri et facettes dans un seul registre indexé par `PlacedControl`, message du tri corrigé ; aucun changement de comportement |
 | 2026-09-24 | 3a | `R-164` : `ValuePresentation` (ensemble ouvert, Louis), `Presentation` `Control`/`Pill`, garde `R-10` dans `Facet::presentedAs()`, HTML `Control` identique à l'octet (test sur la vue d'avant), CSS pastille ; Contenance en `Pill` dans `CatalogueFacets`, non commité |
+| 2026-09-24 | 3 | 3a présentation par facette (`R-164`, contrat ouvert `ValuePresentation`, surcharge par gabarit confirmée) ; 3b compteur hors du nom (`R-151`, option C `aria-labelledby`), vue `facet` sans calcul, bouton « Voir plus » habillé (`R-168`), `R-169` ouvert — étape fermée ; titres des étapes 4 et 5 remis au vocabulaire de l'architecture v2 |
