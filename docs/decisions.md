@@ -77,6 +77,18 @@ Voir aussi : [installation.md](installation.md) · [architecture.md](architectur
 | Requête principale des archives | conservée : elle porte le routage et le SEO ; `posts_pre_query` reste banni |
 | Taille de page | `apply_filters('loop_shop_per_page', …)`, jamais `wc_get_loop_prop('per_page')` |
 | Carte de l'archive produit | bascule sur `<x-theme::product-card>`, changement d'apparence assumé. *Non tenue au 2026-09-22 : l'archive rend `<x-meilifacets::card>` (mesuré sur `/boutique`) ; `R-45`/`Q-10` à trancher.* |
+| Disposition des filtres | **composée par le thème** ; le module fournit des briques indépendantes (facette, tri, compteur, pastilles, `apply`, `reset`, tiroir), aucune disposition ni enum `Layout`. *Tranché le 2026-09-24 : la v1 (dispositions `Sidebar`/`Bar` dans le module) est abandonnée — [chantier-filtres-architecture.md](chantier-filtres-architecture.md).* |
+| Présentation des valeurs | déclarée **par facette** dans `ProductFacets`, enum `Presentation` à deux cas `Control`/`Pill`, **sans `Radio`** : le type d'input reste dérivé de `SelectionMode` (`R-10`) ; l'attribut `presentation` du composant la surcharge ponctuellement. *Tranché le 2026-09-24 (C-5, `R-164`) : renverse la lettre de `D-07`, qui voulait que le module ignore les pastilles.* |
+| Activation d'une facette | la déclarer dans `ProductFacets` ; aucune clé de configuration. *Tranché le 2026-09-24 (C-6).* |
+| Widget du tri | choisi par attribut, enum `SortWidget` : `listbox` (défaut, vue actuelle) ou `radios`. *Tranché le 2026-09-24 (C-4).* |
+| `apply_mode` dans les briques | toutes le suivent : en `submit`, « Appliquer (X) » lance la recherche, **X = nombre de valeurs cochées**, connu sans recherche ; dans le tiroir, « Appliquer » reste affiché même en `immediate`, ne cherche rien de plus et ferme le tiroir. *Tranché le 2026-09-24 (C-1, C-3).* |
+| « Annuler » | le `reset` existant, libellé et style surchargés par le thème (vue + catalogue) — aucun second état, `D-10` tient. *Tranché le 2026-09-24 (C-2).* |
+| Filtres actifs | **pastilles retirables** une à une, prix compris, libellés publiés dans la description. *Tranché le 2026-09-24 (C-7, étape 2b) — `R-47`.* |
+| Tiroir mobile | conteneur ordinaire promu en dialogue par le JS sur mobile : pas de `<dialog>`, jamais `display: contents`, aucun filtre rendu deux fois (`R-95`) ; `inert` posé sur l'entourage, puis seul ce qui a été posé est restauré. *Tranché le 2026-09-24 (option A, architecture Q-2).* |
+| Repliable | une seule brique : panneau déroulant en rangée (un seul ouvert), accordéon dans le tiroir modal (sections indépendantes) ; **fermé côté serveur**. *Tranché le 2026-09-24 (architecture Q-1, Q-4).* |
+| Seuil mobile | écrit en dur dans le CSS, repris par défaut par l'attribut `media` du tiroir, accord vérifié par un test de parité. *Tranché le 2026-09-24 (architecture Q-3).* |
+| Dossiers et crochets du chantier | `ts/drawer/` et `ts/collapsible/` autorisés, Blade à plat dans `components/` ; crochets `Hook` additifs, `Contract::VERSION` inchangé (`R-116`). *Autorisé le 2026-09-24 (C-8 révisée, architecture § 4-5).* |
+| `apply_mode` de Pluralia | reste `submit` **pour évaluer le rendu** (« Appliquer » en fin de rangée desktop) ; `immediate` envisagé après validation visuelle de Louis. *Tranché le 2026-09-24 (architecture Q-5) ; `R-51` et `Q-24` restent ouverts.* |
 
 ### Pourquoi la production doit monter de version
 
@@ -666,7 +678,9 @@ Rien de ce qui suit n'est acquis.
   secondes et annule la précédente à chaque nouvelle ; ce qu'il fait après plusieurs échecs
   d'affilée n'est pas tranché.
 - **Stratégie de cache HTTP** des pages de listing.
-- **Structure de dossiers du module**, noms de commandes, format de configuration.
+- **Structure de dossiers du module**, noms de commandes, format de configuration. *Dossiers
+  tranchés en partie le 2026-09-24 : `ts/drawer/` et `ts/collapsible/` autorisés (voir « Validées »,
+  [chantier-filtres.md](chantier-filtres.md) C-8) ; le reste demeure ouvert.*
 
 ## Dettes
 

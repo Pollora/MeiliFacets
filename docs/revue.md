@@ -155,6 +155,12 @@ une chaîne à placeholder, c'est I-10 qu'il faudra ouvrir, pas étendre le repl
 
 ### D-07 — La catégorie reste une facette, mais contextuelle : `ChildTermsFacet`
 
+> *« Le module ne sait pas que ce sont des pastilles » renversé le 2026-09-24 (`R-164`, chantier
+> « barre de filtres », C-5) : la maquette de la barre demande une présentation propre à chaque
+> facette, donc `Presentation` (`Control`/`Pill`) est déclarée sur la facette dans `ProductFacets` —
+> voir `decisions.md`. « Ce que la maquette ferme au passage : R-47 » ne tient plus non plus : des
+> pastilles retirables sont décidées le même jour (C-7). Le reste de D-07 tient.*
+
 *Décidé et livré le 2026-09-06, sur maquette cliente.*
 
 La maquette d'une page de catégorie produit montre, sous le titre du rayon, une bande de pastilles
@@ -1247,12 +1253,25 @@ ferme ce constat (« Filtres appliqués : 1 » est un compteur) ; le Journal du 
 reste ouvert (« une pastille bien centrée ne remplace pas des puces retirables »). À trancher par
 Louis.
 
-### R-48 · 🟡 · ouvert · 2026-09-06 — rien pour le mobile
+**Au 2026-09-24** (chantier « barre de filtres », C-7) : **tranché par Louis**, dans le sens du
+Journal — des pastilles retirables une à une sont construites (`<x-meilifacets::active-values>`, prix
+compris, libellés publiés dans la description, `R-57`), le compteur actuel reste. Reste ouvert
+jusqu'à la livraison : étape 2b de [chantier-filtres.md](chantier-filtres.md), qui porte aussi `T-08`.
+
+### R-48 · 🟡 · ouvert · **chantier ouvert le 2026-09-24** · ouvert le 2026-09-06 — rien pour le mobile
 
 Pas de composant de bascule, pas de tiroir de facettes, pas de crochet prévu. Sur un thème
 e-commerce, c'est la moitié du trafic, et la colonne de facettes de
 `archive-product.blade.php` (`lg:col-span-1`) est simplement empilée au-dessus de la grille en
 dessous de `lg`.
+
+**Au 2026-09-24** : chantier « barre de filtres » ouvert sur la branche `feat/filter-bar`, suivi dans
+[chantier-filtres.md](chantier-filtres.md) — cette entrée en est le parapluie. Architecture v2 validée
+le même jour ([chantier-filtres-architecture.md](chantier-filtres-architecture.md)) : le thème compose,
+le module fournit des briques, dont un tiroir qui promeut en dialogue sur mobile le conteneur des
+filtres déjà rendu, sans doublon. Décisions reportées dans `decisions.md` (« Validées », 2026-09-24).
+Rattachés au chantier : `R-47` (étape 2b), `R-162` (étape 2c), `R-163` (étape 2a), `R-164` (étape 3).
+Reste ouvert jusqu'à la dernière étape.
 
 ### R-49 · 🟡 · ouvert · 2026-09-06 — le cul-de-sac « zéro résultat » est atteignable en deux clics
 
@@ -3191,6 +3210,30 @@ qu'aucune page n'ait à être chargée.
 
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
+
+### R-164 · 🟡 · ouvert · 2026-09-24 — une facette ne peut pas déclarer comment ses valeurs se présentent
+
+Toutes les valeurs de facette sortent en cases à cocher (ou en radios, selon `SelectionMode`) ; rien
+ne permet de dire qu'une facette se présente en pastilles type « 15 ML », sinon en surchargeant
+`facet.blade.php` pour tout le listing. La maquette de la barre de filtres mêle les deux. Relevé par
+la passe de conformité du chantier « barre de filtres » ; `D-07` l'excluait à la lettre (« le module
+ne sait pas que ce sont des pastilles »).
+
+**Tranché le 2026-09-24** (C-5) : enum `Presentation` (`Control`/`Pill`, sans `Radio` — `R-10`),
+déclarée sur la facette dans `ProductFacets`, surchargeable par attribut ; une facette `Control` doit
+sortir le HTML actuel à l'octet près. Renversement de `D-07` noté à sa place. Rattaché au chantier
+`R-48`, étape 3a de [chantier-filtres.md](chantier-filtres.md).
+
+### R-163 · 🟡 · ouvert · 2026-09-24 — le listing n'annonce pas son nombre de résultats
+
+Aucun composant ne rend le total (« 88 articles ») et aucune vue ne porte de région `aria-live`
+(lecture de `resources/views/components/`) : après un filtrage, rien ne dit combien de produits
+restent, et un lecteur d'écran n'apprend même pas que la grille a changé. La maquette de la barre le
+montre en desktop comme en mobile. Relevé par la passe de conformité du chantier « barre de
+filtres » ; voisin de `R-50`, qui est la même donnée pour les moteurs.
+
+Rattaché au chantier `R-48`, étape 2a de [chantier-filtres.md](chantier-filtres.md) :
+`<x-meilifacets::total>`, crochet `total`, région `aria-live="polite"`.
 
 ### R-162 · 🟠 · ouvert · 2026-09-24 — le doublon silencieux n'est gardé que pour les facettes
 
@@ -6442,9 +6485,11 @@ Un point à la fois (`D-03`), dans cet ordre, sauf décision contraire de Louis 
 
 Le chantier courant est **`R-48`** — le rendu mobile des filtres, ouvert le 2026-09-24 : un seul rendu
 présenté autrement, décidé par Louis le jour même (« même système, je ne veux pas de doublons »). Il a
-fermé `R-95` sans code et ouvert `R-162`.
+fermé `R-95` sans code et ouvert `R-162`. Suivi dans [chantier-filtres.md](chantier-filtres.md) :
+architecture v2 validée, décisions reportées le 2026-09-24. Ordre des étapes : `R-163` (2a), `R-47`
+(2b), `R-162` (2c), `R-164` (3), puis repliable, tiroir, accessibilité, animations, habillage.
 
-Ouverts, non planifiés : `R-150` à `R-153`, `R-155`, `R-156`, `R-157`, `R-159` à `R-162`. Les trois
+Ouverts, non planifiés : `R-150` à `R-153`, `R-155`, `R-156`, `R-157`, `R-159` à `R-161`. Ces trois
 derniers viennent de `R-158` et relèvent du lot 5, avec la pertinence.
 
 *Ce qui suit, jusqu'aux tableaux, est le plan du 2026-09-06, gardé comme historique : l'ordre courant
@@ -6488,7 +6533,7 @@ parallèle : il ne touche pas au rendu.
 | T-05 | Comptage disjonctif selon la décision de Q-05 ; radio décochable ou navigation par liens | R-10 | **fait** |
 | T-06 | Facette catégorie : hiérarchie ou limite écrite | R-11 | **fait** |
 | T-07 | Bouton de dépliage : crochet, vue, contrat, version | R-46 | **fait** — R-46 fermé, plus R-82 à R-86 relevés en chemin |
-| T-08 | Filtres actifs en puces retirables | R-47 | à faire — R-47 contesté, voir l'entrée |
+| T-08 | Filtres actifs en puces retirables | R-47 | à faire — tranché le 2026-09-24 (C-7), étape 2b du chantier `R-48` |
 | T-09 | Réindexation sur `edited_term`, `delete_term`, `set_object_terms` | R-12 | partiel — fait en amont par MeiliScout, sauf la suppression d'un terme |
 | T-10 | Timeout explicite sur le client Meilisearch + client construit par le module, pas par `ClientFactory` | R-19 | à faire |
 | T-11 | `IndexingPolicy` ne décide qu'en présence d'un listing | R-16 | **fait** |
