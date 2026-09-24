@@ -11,7 +11,8 @@
 [data-meili="apply"],
 [data-meili="sort-trigger"],
 [data-meili="sort-option"],
-[data-meili="input"] {
+[data-meili="input"],
+[data-meili="active-value"] {
     cursor: pointer;
 }
 
@@ -32,7 +33,8 @@
 [data-meili="pagination"],
 [data-meili="reset"],
 [data-meili="active-filters"],
-[data-meili="total"] {
+[data-meili="total"],
+[data-meili="active-values"] {
     font-size: var(--meili-ui);
 }
 
@@ -112,6 +114,32 @@
     line-height: 1;
 }
 
+[data-meili="active-values"] {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5em;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+[data-meili="active-value"] {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    box-sizing: border-box;
+    min-height: var(--meili-control);
+    padding: 0 0.85em;
+    border: 0;
+    border-radius: 999px;
+    background: var(--meili-tint);
+    color: inherit;
+    font: inherit;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    transition: background-color 150ms var(--meili-ease);
+}
+
 [data-meili="results"] {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(var(--meili-card), 1fr));
@@ -149,7 +177,8 @@
 [data-meili="reset"]:focus-visible,
 [data-meili="page"]:focus-visible,
 [data-meili="previous"]:focus-visible,
-[data-meili="next"]:focus-visible {
+[data-meili="next"]:focus-visible,
+[data-meili="active-value"]:focus-visible {
     outline: 2px solid currentColor;
     outline-offset: 2px;
 }
@@ -307,6 +336,10 @@
         background: var(--meili-tint);
     }
 
+    [data-meili="active-value"]:hover {
+        background: var(--meili-press);
+    }
+
     [data-meili="apply"]:hover {
         border-color: color-mix(in srgb, CanvasText 85%, Canvas);
         background: color-mix(in srgb, CanvasText 85%, Canvas);
@@ -325,7 +358,8 @@
 [data-meili="page"]:active,
 [data-meili="previous"]:active,
 [data-meili="next"]:active,
-[data-meili="sort-trigger"]:active {
+[data-meili="sort-trigger"]:active,
+[data-meili="active-value"]:active {
     background: var(--meili-press);
 }
 
@@ -355,7 +389,8 @@
     [data-meili="next"],
     [data-meili="sort-trigger"],
     [data-meili="sort-option"],
-    [data-meili="facet-value"] label {
+    [data-meili="facet-value"] label,
+    [data-meili="active-value"] {
         -webkit-tap-highlight-color: var(--meili-press);
     }
 }
@@ -390,7 +425,8 @@
     [data-meili="sort-trigger"],
     [data-meili="sort-trigger"]::after,
     [data-meili="sort-option"],
-    [data-meili="facet-value"] label {
+    [data-meili="facet-value"] label,
+    [data-meili="active-value"] {
         transition: none;
     }
 

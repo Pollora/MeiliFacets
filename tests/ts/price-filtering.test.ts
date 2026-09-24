@@ -10,7 +10,7 @@ import { described } from './fixtures.ts'
 
 const description = described({
     name: 'products',
-    facets: [{ taxonomy: 'product_brand', multiple: true, cap: 30, visible: 10, counts: {} }],
+    facets: [{ taxonomy: 'product_brand', multiple: true, cap: 30, visible: 10, labels: {}, counts: {} }],
     params: { product_brand: 'marque' },
     reserved: { sort: 'sort', query: 'q', page: 'pg', minPrice: 'min_price', maxPrice: 'max_price' },
     sorts: { newest: ['post_date:desc'] },

@@ -226,6 +226,19 @@ final class ResolvedListing
     }
 
     /**
+     * The words the page shows for each value it rendered, folded ones included.
+     *
+     * @return array<string, string> slug to label
+     */
+    public function labelsOf(Facet $facet): array
+    {
+        return array_column(array_map(
+            static fn (FacetValue $value): array => [$value->slug, $value->label],
+            $this->valuesOf($facet),
+        ), 1, 0);
+    }
+
+    /**
      * @return list<FacetValue>
      */
     private function resolveValues(Facet $facet): array

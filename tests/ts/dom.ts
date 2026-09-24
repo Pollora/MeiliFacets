@@ -165,6 +165,11 @@ ${facetBlock('product_cat', 'category', 'Category', facetValue('categorie', 'coa
     <button type="button" class="meilifacetsReset" hidden data-meili="reset" ${mark('reset')}>Clear all</button>
     <span class="meilifacetsActiveFilters" hidden data-meili="active-filters">0 active filters</span>
     <p class="meilifacetsTotal" aria-live="polite" aria-atomic="true" data-meili="total">0 items</p>
+    <ul class="meilifacetsActiveValues" aria-label="Active filters" hidden data-meili="active-values">
+        <template data-meili="active-value-template">
+            <li class="meilifacetsActiveValue"><button type="button" data-meili="active-value"><span aria-hidden="true">✕</span></button></li>
+        </template>
+    </ul>
 
     <div class="meilifacetsSort" data-meili="sort" ${mark('sort')}>
         <label class="meilifacetsSortLabel" id="sort-label" for="sort-trigger">Sort by</label>

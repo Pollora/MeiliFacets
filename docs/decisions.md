@@ -90,6 +90,7 @@ Voir aussi : [installation.md](installation.md) · [architecture.md](architectur
 | Dossiers et crochets du chantier | `ts/drawer/` et `ts/collapsible/` autorisés, Blade à plat dans `components/` ; crochets `Hook` additifs, `Contract::VERSION` inchangé (`R-116`). *Autorisé le 2026-09-24 (C-8 révisée, architecture § 4-5).* |
 | `apply_mode` de Pluralia | reste `submit` **pour évaluer le rendu** (« Appliquer » en fin de rangée desktop) ; `immediate` envisagé après validation visuelle de Louis. *Tranché le 2026-09-24 (architecture Q-5) ; `R-51` et `Q-24` restent ouverts.* |
 | Style par défaut d'une brique | toute nouvelle brique rejoint la règle de base de ses sœurs dans `meilifacets.css` (`font-size: var(--meili-ui)`, marges neutralisées) : le rendu brut du module est homogène avant que le thème ne l'habille. *Tranché le 2026-09-24 (étape 2a, relevé par Louis sur le compteur).* |
+| Pastilles actives | elles montrent l'**état appliqué** (en `submit`, rien tant que la sélection n'est pas validée) ; retirer une pastille est un **ordre** au sens de `D-10` : la recherche part tout de suite et emporte les filtres en attente. Libellés publiés dans la description (+829 o mesurés sur `/boutique`), gardés pour l'instant. *Tranché le 2026-09-24 (étape 2b, `R-47`).* |
 
 ### Pourquoi la production doit monter de version
 

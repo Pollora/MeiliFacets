@@ -48,6 +48,20 @@ final class ListingDescriptionTest extends TestCase
         $this->assertNull($state['sort']);
     }
 
+    /** The engine answers slugs only: a pill the client draws takes its words from here (`R-57`). */
+    #[Test]
+    public function it_hands_the_client_the_words_of_every_value_the_page_rendered(): void
+    {
+        $facets = $this->describedWith([])['facets'];
+        $listing = $this->listing();
+
+        foreach ($listing->facets() as $rank => $facet) {
+            $this->assertSame($listing->labelsOf($facet), (array) $facets[$rank]['labels']);
+        }
+
+        $this->assertNotSame([], array_filter(array_map(static fn (array $facet): array => (array) $facet['labels'], $facets)));
+    }
+
     /** Missing, the whole site answers 500: the resolved listing copies the contract by hand. */
     #[Test]
     public function it_always_hands_the_client_a_base_query(): void

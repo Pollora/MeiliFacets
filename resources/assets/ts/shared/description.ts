@@ -10,6 +10,16 @@ export interface FacetDescription {
     visible: number
     /** slug to count, for the values the page was served with */
     counts: Readonly<Record<string, number>>
+    /** slug to label, for the values the page was served with, folded ones included */
+    labels: Readonly<Record<string, string>>
+}
+
+/** `:label`, `:min` and `:max` are filled by the client */
+export interface ActiveValuePatterns {
+    remove: string
+    between: string
+    from: string
+    upTo: string
 }
 
 export interface PriceFields {
@@ -60,6 +70,7 @@ export interface ListingDescription {
     countPattern: string
     filterPattern: string
     totalPattern: string
+    activeValuePatterns: ActiveValuePatterns
     /** the language whose plural rule picks a form of the patterns */
     locale: string
     facets: FacetDescription[]

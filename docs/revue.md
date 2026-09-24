@@ -1241,7 +1241,7 @@ de les atteindre — même avec JavaScript, puisque rien ne sait les révéler. 
 30 rendues dont 20 masquées, `pa_contenance` 24 rendues dont 14 masquées, `product_brand` 9
 rendues et 0 masquée.
 
-### R-47 · 🟡 · ouvert · 2026-09-06 — les filtres actifs ne sont qu'un nombre
+### R-47 · 🟡 · **fermé le 2026-09-24** · ouvert le 2026-09-06 — les filtres actifs ne sont qu'un nombre
 
 `<x-meilifacets::active-filters>` rend un `<span>` avec un entier. Sur une archive filtrée, rien ne
 dit **quoi** est filtré en dehors des cases cochées — invisibles dès qu'une facette est repliée,
@@ -1257,6 +1257,30 @@ Louis.
 Journal — des pastilles retirables une à une sont construites (`<x-meilifacets::active-values>`, prix
 compris, libellés publiés dans la description, `R-57`), le compteur actuel reste. Reste ouvert
 jusqu'à la livraison : étape 2b de [chantier-filtres.md](chantier-filtres.md), qui porte aussi `T-08`.
+
+**Fermé le 2026-09-24** (étape 2b). `<x-meilifacets::active-values>` rend une `<ul>` (crochet
+`active-values`, nommée « Filtres actifs ») d'un `<button name value>` par valeur (`active-value`) et un
+`<template>` (`active-value-template`, exigé par le contrat avec son `active-value`). Construites par
+`View\ActiveValueList` (miroir TS `listing/active-value-list.ts`) : valeurs cochées dans l'ordre des
+facettes puis de l'état, puis **une** pastille pour la plage de prix (`R-123`) — « À partir de »,
+« Jusqu'à » ou « min – max », formatée par `Money`/`money.ts`. Libellés lus dans les valeurs rendues,
+repliées comprises (`ResolvedListing::labelsOf()`, publiés par facette dans la description, `R-57`) ;
+une valeur sans libellé n'a **pas** de pastille (un slug de l'URL affiché tel quel écrirait sur la
+page). Nom accessible « Retirer le filtre X », croix en `aria-hidden`. **Les pastilles montrent l'état
+appliqué, pas la sélection en attente** (tranché par Louis le 2026-09-24) : `ActiveValuesView` repeint
+sur l'événement `results`, dont le `state` est celui que le moteur a servi — aucun second état, c'est
+celui que `Listing` retient déjà (`#searchedFor`). En `immediate` rien ne change. Toutes les listes sont
+peintes (`contract.all()`). Retirer une pastille (`Listing.withdraw()`/`withdrawPrice()`) est **un
+ordre** (`D-10`) : recherche immédiate dans les deux modes, qui emporte les filtres en attente — validé
+par Louis avec le choix « pastilles = état appliqué ». Le focus reste sur la pastille jusqu'au
+redessin qui suit la réponse, puis passe à la suivante, sinon à la précédente, sinon à la racine du
+listing (`tabindex="-1"`), jamais `<body>` ; un focus que le visiteur a déplacé entre-temps n'est pas repris.
+Poids de la description (`D-08`) : +829 octets (`/boutique` 1871 → 2700, `?marque=aeris` 1891 → 2720).
+Observé (Chromium, `https://`) : Aeris cochée → aucune pastille ; « Appliquer » → « Aeris », 10
+articles ; Botanik cochée (en attente) puis retrait d'Aeris au clavier → `?marque=botanik`, pastille
+« Botanik », 12 articles, Aeris décochée, focus sur « Botanik » ; max 30 € → « Jusqu’à 30,00 € »,
+identique au rendu serveur ; aucune erreur console. `composer check` vert (313 tests TS), suite
+`Modules` 436 tests verts.
 
 ### R-48 · 🟡 · ouvert · **chantier ouvert le 2026-09-24** · ouvert le 2026-09-06 — rien pour le mobile
 
@@ -6552,7 +6576,7 @@ parallèle : il ne touche pas au rendu.
 | T-05 | Comptage disjonctif selon la décision de Q-05 ; radio décochable ou navigation par liens | R-10 | **fait** |
 | T-06 | Facette catégorie : hiérarchie ou limite écrite | R-11 | **fait** |
 | T-07 | Bouton de dépliage : crochet, vue, contrat, version | R-46 | **fait** — R-46 fermé, plus R-82 à R-86 relevés en chemin |
-| T-08 | Filtres actifs en puces retirables | R-47 | à faire — tranché le 2026-09-24 (C-7), étape 2b du chantier `R-48` |
+| T-08 | Filtres actifs en puces retirables | R-47 | **fait le 2026-09-24** — étape 2b du chantier `R-48` |
 | T-09 | Réindexation sur `edited_term`, `delete_term`, `set_object_terms` | R-12 | partiel — fait en amont par MeiliScout, sauf la suppression d'un terme |
 | T-10 | Timeout explicite sur le client Meilisearch + client construit par le module, pas par `ClientFactory` | R-19 | à faire |
 | T-11 | `IndexingPolicy` ne décide qu'en présence d'un listing | R-16 | **fait** |

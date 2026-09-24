@@ -14,8 +14,8 @@ const description = described({
     params: { product_brand: 'brand', product_cat: 'categorie' },
     countPattern: ':count result|:count results',
     facets: [
-        { taxonomy: 'product_brand', multiple: true, cap: 3, visible: 10, counts: { acme: 3, globex: 1 } },
-        { taxonomy: 'product_cat', multiple: false, cap: 1, visible: 10, counts: { coats: 2 } },
+        { taxonomy: 'product_brand', multiple: true, cap: 3, visible: 10, labels: {}, counts: { acme: 3, globex: 1 } },
+        { taxonomy: 'product_cat', multiple: false, cap: 1, visible: 10, labels: {}, counts: { coats: 2 } },
     ],
 })
 
@@ -41,7 +41,7 @@ describe('FacetsView', () => {
     const host = (value: string) => closestHook(box(value), 'facet-value')
     const narrowed = (counts: Record<string, number> = { acme: 3, globex: 1 }) => new FacetsView(new Contract(root), described({
         ...description,
-        facets: [{ taxonomy: 'product_brand', multiple: true, cap: 3, visible: 1, counts }],
+        facets: [{ taxonomy: 'product_brand', multiple: true, cap: 3, visible: 1, labels: {}, counts }],
     }))
 
     it('counts nothing for a value the answer does not name, whatever its slug', () => {

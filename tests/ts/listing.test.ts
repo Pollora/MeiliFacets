@@ -17,8 +17,8 @@ const description = described({
     apply: 'submit',
     attributes: ['card'],
     facets: [
-        { taxonomy: 'product_brand', multiple: true, cap: 3, visible: 10, counts: {} },
-        { taxonomy: 'product_cat', multiple: false, cap: 1, visible: 10, counts: {} },
+        { taxonomy: 'product_brand', multiple: true, cap: 3, visible: 10, labels: {}, counts: {} },
+        { taxonomy: 'product_cat', multiple: false, cap: 1, visible: 10, labels: {}, counts: {} },
     ],
     params: { product_brand: 'brand' },
     reserved: { sort: 'sort', query: 'q', page: 'pg', minPrice: 'min_price', maxPrice: 'max_price' },

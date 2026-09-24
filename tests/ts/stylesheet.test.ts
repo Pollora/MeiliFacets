@@ -19,7 +19,8 @@ describe('the module stylesheet', () => {
 
     /** The rule is a list of hooks: one forgotten there is a control that reads as text. */
     it('leaves no command without it', () => {
-        const commands = ['page', 'previous', 'next', 'reset', 'apply', 'sort-trigger', 'sort-option', 'input']
+        find(root, Contract.selector('active-values')).insertAdjacentHTML('afterbegin', '<li><button data-meili="active-value">Acme</button></li>')
+        const commands = ['page', 'previous', 'next', 'reset', 'apply', 'sort-trigger', 'sort-option', 'input', 'active-value']
 
         assert.deepEqual(commands.filter((hook) => style(hook).cursor !== 'pointer'), [])
     })

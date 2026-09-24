@@ -22,8 +22,8 @@ const description = described({
     totalPattern: ':count item|:count items',
     facets: [
         // Capped at one on purpose: the state refuses the second tick, and the boxes must say so.
-        { taxonomy: 'product_brand', multiple: true, cap: 1, visible: 10, counts: {} },
-        { taxonomy: 'product_cat', multiple: false, cap: 1, visible: 10, counts: {} },
+        { taxonomy: 'product_brand', multiple: true, cap: 1, visible: 10, labels: {}, counts: {} },
+        { taxonomy: 'product_cat', multiple: false, cap: 1, visible: 10, labels: {}, counts: {} },
     ],
     params: { product_brand: 'brand', product_cat: 'categorie' },
     reserved: { sort: 'sort', query: 'q', page: 'pg', minPrice: 'min_price', maxPrice: 'max_price' },

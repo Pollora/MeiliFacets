@@ -6,7 +6,15 @@ import type { HistorySeam, SearchSeam } from '../../resources/assets/ts/listing/
 import type { Answers, SearchQuery } from '../../resources/assets/ts/shared/search-client.ts'
 
 export const described = (partial: Partial<ListingDescription>) =>
-    ({ locale: 'en', pagePath: '/shop', pageQuery: '', sortFilters: {}, baseQuery: '', ...partial }) as ListingDescription
+    ({
+        locale: 'en',
+        pagePath: '/shop',
+        pageQuery: '',
+        sortFilters: {},
+        baseQuery: '',
+        activeValuePatterns: { remove: 'Remove the :label filter', between: ':min – :max', from: 'From :min', upTo: 'Up to :max' },
+        ...partial,
+    }) as ListingDescription
 
 export const connection: Connection = { url: 'https://engine.test', key: 'search', index: 'products' }
 

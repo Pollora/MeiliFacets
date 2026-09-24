@@ -15,8 +15,8 @@ import type { ListingDescription } from '../../resources/assets/ts/shared/descri
 const listing = {
     perPage: 16,
     facets: [
-        { taxonomy: 'product_brand', multiple: true, cap: 30, visible: 10, counts: {} },
-        { taxonomy: 'pa_size', multiple: true, cap: 30, visible: 10, counts: {} },
+        { taxonomy: 'product_brand', multiple: true, cap: 30, visible: 10, labels: {}, counts: {} },
+        { taxonomy: 'pa_size', multiple: true, cap: 30, visible: 10, labels: {}, counts: {} },
     ],
     filter: 'post_type = product',
     sorts: { price_asc: ['metas._price:asc'] },
@@ -132,7 +132,7 @@ describe('ListingQuery', () => {
     })
 
     it('leaves a single-select facet on the main search', () => {
-        const single = { facets: [{ taxonomy: 'product_cat', multiple: false, cap: 1, visible: 10, counts: {} }] }
+        const single = { facets: [{ taxonomy: 'product_cat', multiple: false, cap: 1, visible: 10, labels: {}, counts: {} }] }
         const state = { facets: { product_cat: ['coats'] } }
 
         assert.deepEqual(Object.keys(plan(state, single)), ['results'])

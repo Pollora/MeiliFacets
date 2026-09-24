@@ -99,6 +99,12 @@ export class ListingState {
         return facet.multiple ? [...held, value].slice(-facet.cap) : [value]
     }
 
+    without(taxonomy: string, value: string) {
+        const held = this.selected(taxonomy).filter((current) => current !== value)
+
+        return this.with({ facets: { ...this.#facets, [taxonomy]: held }, page: FIRST_PAGE })
+    }
+
     sortedBy(sort: string | null) {
         return this.with({ sort, page: FIRST_PAGE })
     }

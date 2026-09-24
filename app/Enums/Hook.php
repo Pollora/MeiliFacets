@@ -52,6 +52,9 @@ enum Hook: string
     case Reset = 'reset';
     case ActiveFilters = 'active-filters';
     case Total = 'total';
+    case ActiveValues = 'active-values';
+    case ActiveValue = 'active-value';
+    case ActiveValueTemplate = 'active-value-template';
 
     public function attribute(): HtmlString
     {

@@ -137,6 +137,25 @@ describe('Contract', () => {
         assert.deepEqual(new Contract(root).breaches(), ['sort > sort-list', 'sort > sort-option'])
     })
 
+    it('refuses a list of pills with no template to draw them from, or a template with no pill', () => {
+        const pills = (...children: Element[]) => {
+            const root = complete()
+            root.append(node('active-values', children))
+
+            return new Contract(root).breaches()
+        }
+        const pillTemplate = (...hooks: string[]) => {
+            const element = template(...hooks)
+            element.setAttribute('data-meili', 'active-value-template')
+
+            return element
+        }
+
+        assert.deepEqual(pills(pillTemplate('active-value')), [])
+        assert.deepEqual(pills(node('active-value')), ['active-values > active-value-template'])
+        assert.deepEqual(pills(pillTemplate()), ['active-value-template > active-value'])
+    })
+
     it('ignores a sort the theme did not render', () => {
         const root = complete()
         root.children[5]?.remove()

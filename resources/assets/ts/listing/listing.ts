@@ -94,6 +94,14 @@ export class Listing extends EventTarget {
         return this.#atOnce(this.#state.onPage(page))
     }
 
+    withdraw(taxonomy: string, value: string) {
+        return this.#atOnce(this.#state.without(taxonomy, value))
+    }
+
+    withdrawPrice() {
+        return this.#atOnce(this.#state.pricedBetween(null, null))
+    }
+
     reset() {
         return this.#atOnce(this.#state.cleared())
     }

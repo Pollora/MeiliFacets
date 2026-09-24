@@ -21,6 +21,8 @@ const RULES: Rule[] = [
     { host: 'pagination', hooks: ['page', 'previous', 'next'] },
     { host: 'sort', hooks: ['sort-trigger', 'sort-list', 'sort-option'] },
     { host: 'price-range', hooks: ['price-track', 'price-handle'] },
+    { host: 'active-values', hooks: ['active-value-template'] },
+    { host: 'active-value-template', hooks: ['active-value'] },
 ]
 
 /** Mirrors the Hook enum: the two lists diverging in silence is what VERSION guards against. */

@@ -106,8 +106,8 @@ Aucun code. Proposition v2 rendue le 2026-09-24 : [chantier-filtres-architecture
 Utiles aux deux dispositions, livrées d'abord dans `Sidebar`.
 
 - [x] 2a · compteur de résultats (« 88 articles »), annoncé par `aria-live` — `R-163` fermé le 2026-09-24
-- [ ] pastilles des filtres actifs, y compris la borne de prix (`R-123`) ; libellés lus dans les
-      valeurs rendues, repliées comprises (`R-57`) — C-7
+- [x] 2b · pastilles des filtres actifs, y compris la borne de prix (`R-123`) ; libellés lus dans les
+      valeurs rendues, repliées comprises (`R-57`) — C-7, `R-47` fermé le 2026-09-24
 - [ ] lien « Annuler » : le `Reset` existant, placé à côté des pastilles
 - [ ] pas de doublon si le listing est rendu deux fois (`R-162`)
 
@@ -187,3 +187,5 @@ relevés dans Playwright).
 | 2026-09-24 | 0 | Stash, branche, lecture Figma, passe de conformité, ce fichier |
 | 2026-09-24 | 1 | Architecture v1 rendue, C-1 → C-8 tranchés ; v1 abandonnée (disposition = thème), v2 validée ; UX-1 → 4 et ANIM-1 → 13 retenus ; registres à jour (`R-163`, `R-164`) — étape fermée |
 | 2026-09-24 | 2a | Compteur livré (`R-163`), faux moteur de test corrigé (`R-165`), style par défaut aligné sur les sœurs ; `<x-meilifacets::total />` posé sous le tri dans le thème, non commité, à replacer à l'étape 8 |
+| 2026-09-24 | 2b | Pastilles actives livrées (`R-47`, `T-08`) : état appliqué seulement en `submit`, retrait = ordre (`D-10`), focus jamais sur `<body>` ; `labels` gardés dans la description (+829 o, mesuré, sans risque : encodage `JSON_HEX_TAG`, écriture en texte) ; `<x-meilifacets::active-values />` posé dans le thème, non commité |
+| 2026-09-24 | 2b | Pastilles livrées (`R-47`, `T-08`) : état appliqué seulement (Louis), retrait = ordre (`D-10`, validé) ; description +829 o ; `<x-meilifacets::active-values />` posé sous le compteur dans le thème, non commité |

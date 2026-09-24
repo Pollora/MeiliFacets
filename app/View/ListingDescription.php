@@ -28,6 +28,7 @@ final readonly class ListingDescription
         private Money $money,
         private PageAddress $page,
         private CountLabel $countLabel,
+        private ActiveValueList $activeValues,
     ) {}
 
     /**
@@ -56,6 +57,7 @@ final readonly class ListingDescription
             'countPattern' => __(':count result|:count results'),
             'filterPattern' => __(':count active filter|:count active filters'),
             'totalPattern' => __(':count item|:count items'),
+            'activeValuePatterns' => $this->activeValues->patterns(),
             'locale' => $this->countLabel->languageTag(),
             'state' => $this->state($listing->state()),
             'pagePath' => $this->page->path(),
@@ -90,6 +92,7 @@ final readonly class ListingDescription
                 'cap' => $facet->cap,
                 'visible' => $facet->visible,
                 'counts' => (object) $this->countsOf($listing, $facet),
+                'labels' => (object) $listing->labelsOf($facet),
             ],
             $listing->facets()
         );
