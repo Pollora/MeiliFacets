@@ -8,6 +8,7 @@ import { RESULTS } from '../../resources/assets/ts/shared/plan.ts'
 import { CONTRACT, find, open, press, release, stroke } from './dom.ts'
 import { described } from './fixtures.ts'
 
+import type { PriceBound } from '../../resources/assets/ts/price/price-bound.ts'
 import type { Answers } from '../../resources/assets/ts/shared/search-client.ts'
 import type { TestWindow } from './dom.ts'
 
@@ -24,25 +25,32 @@ const measured = (span: Span | null): Answers => span === null ? {} : {
     [RESULTS]: { facetStats: { 'price.min': { min: span.min, max: span.max }, 'price.max': { min: span.min, max: span.max } } },
 }
 
-const markup = ({ min, max, reachable = { min: 0, max: 199 } }: { min: number, max: number, reachable?: Span }) => `
+/** A theme writes no bound it has not been given: before the first search, there is none to write. */
+const written = (attribute: string, value: number | undefined) => value === undefined ? '' : `${attribute}="${value}"`
+
+const drawn = ({ min, max, reachable }: { min: number, max: number, reachable: Span | null }) => ({
+    min: `<button data-meili="price-handle" data-bound="min"
+              ${written('aria-valuemin', reachable?.min)} aria-valuemax="${max}" aria-valuenow="${min}">
+        <span data-meili="price-tip"></span>
+      </button>`,
+    max: `<button data-meili="price-handle" data-bound="max"
+              aria-valuemin="${min}" ${written('aria-valuemax', reachable?.max)} aria-valuenow="${max}">
+        <span data-meili="price-tip"></span>
+      </button>`,
+})
+
+const markup = ({ min, max, reachable = { min: 0, max: 199 }, handles = ['min', 'max'] }: { min: number, max: number, reachable?: Span | null, handles?: PriceBound[] }) => `
 <div data-listing data-meili-contract="${CONTRACT}">
  <fieldset data-meili="facet">
   <div data-meili="price-range">
     <div data-meili="price-track">
-      <button data-meili="price-handle" data-bound="min"
-              aria-valuemin="${reachable.min}" aria-valuemax="${max}" aria-valuenow="${min}">
-        <span data-meili="price-tip"></span>
-      </button>
-      <button data-meili="price-handle" data-bound="max"
-              aria-valuemin="${min}" aria-valuemax="${reachable.max}" aria-valuenow="${max}">
-        <span data-meili="price-tip"></span>
-      </button>
+      ${handles.map((bound) => drawn({ min, max, reachable })[bound]).join('')}
     </div>
   </div>
   <span data-meili="price-readout"></span>
   <span data-meili="price-bounds-min"></span><span data-meili="price-bounds-max"></span>
-  <input data-meili="price-min" name="min_price" value="${min}" min="${reachable.min}" max="${reachable.max}">
-  <input data-meili="price-max" name="max_price" value="${max}" min="${reachable.min}" max="${reachable.max}">
+  <input data-meili="price-min" name="min_price" value="${min}" ${written('min', reachable?.min)} ${written('max', reachable?.max)}>
+  <input data-meili="price-max" name="max_price" value="${max}" ${written('min', reachable?.min)} ${written('max', reachable?.max)}>
  </fieldset>
 </div>`
 
@@ -64,7 +72,7 @@ const typed = (window: TestWindow, root: Element, hook: string, value: string) =
     input.dispatchEvent(new window.Event('change', { bubbles: true }))
 }
 
-const control = (state: { min: number, max: number }) => {
+const control = (state: { min: number, max: number, handles?: PriceBound[], reachable?: Span | null }) => {
     const { window, root } = open(markup(state))
     const { priceControl, committed } = started(root)
     const input = (bound: string) => find<HTMLInputElement>(root, `[data-meili="price-${bound}"]`)
@@ -277,11 +285,13 @@ describe('a price range whose bounds arrive while a handle is held', () => {
 })
 
 describe('a price range dragged across itself', () => {
-    const dragged = () => {
-        const price = control({ min: 55, max: 120 })
+    const dragged = ({ handles = ['min', 'max'], reachable = { min: 0, max: 199 } }: { handles?: PriceBound[], reachable?: Span | null } = {}) => {
+        const price = control({ min: 55, max: 120, handles, reachable })
         price.track().getBoundingClientRect = () => ({ left: 0, width: 199, top: 0, height: 10 }) as DOMRect
 
-        const at = (type: string, node: Element, clientX: number) => node.dispatchEvent(new price.window.PointerEvent(type, { bubbles: true, pointerId: 1, clientX }))
+        // `buttons` is what tells a drag from a pointer that merely passes over the track.
+        const at = (type: string, node: Element, clientX: number, buttons = 1) =>
+            node.dispatchEvent(new price.window.PointerEvent(type, { bubbles: true, pointerId: 1, clientX, buttons }))
 
         return { price, at }
     }
@@ -306,6 +316,55 @@ describe('a price range dragged across itself', () => {
         assert.equal(price.handle('max').hasAttribute('data-active'), true)
     })
 
+    it('drags a lone low handle and shows the end of the track as the other end', () => {
+        const { price, at } = dragged({ handles: ['min'] })
+
+        at('pointerdown', price.handle('min'), 55)
+        at('pointermove', price.track(), 70)
+
+        assert.deepEqual(price.held(), ['70', '199'])
+        assert.equal(price.handle('min').hasAttribute('data-active'), true)
+
+        at('pointerup', price.track(), 70)
+
+        assert.deepEqual(price.committed, [[70, null]])
+    })
+
+    it('takes no grab from a button that is not the main one', () => {
+        const { price } = dragged()
+        const secondary = (type: string, node: Element, clientX: number) =>
+            node.dispatchEvent(new price.window.PointerEvent(type, { bubbles: true, pointerId: 1, clientX, button: 2, buttons: 2 }))
+
+        secondary('pointerdown', price.handle('min'), 55)
+        secondary('pointermove', price.track(), 150)
+
+        assert.equal(price.handle('min').hasAttribute('data-active'), false)
+        assert.deepEqual(price.held(), ['55', '120'])
+    })
+
+    it('ends a drag on the first move made with no button down', () => {
+        const { price, at } = dragged()
+
+        at('pointerdown', price.handle('min'), 55)
+        at('pointermove', price.track(), 70)
+        at('pointermove', price.track(), 90, 0)
+
+        assert.equal(price.handle('min').hasAttribute('data-active'), false)
+        assert.deepEqual(price.held(), ['70', '120'])
+        assert.deepEqual(price.committed, [[70, 120]])
+    })
+
+    it('ends a drag whose capture the browser took back', () => {
+        const { price, at } = dragged()
+
+        at('pointerdown', price.handle('min'), 55)
+        at('pointermove', price.track(), 70)
+        at('lostpointercapture', price.track(), 70)
+
+        assert.equal(price.handle('min').hasAttribute('data-active'), false)
+        assert.deepEqual(price.committed, [[70, 120]])
+    })
+
     it('clears the mark on release', () => {
         const { price, at } = dragged()
 
@@ -313,6 +372,37 @@ describe('a price range dragged across itself', () => {
         at('pointerup', price.track(), 55)
 
         assert.equal(price.handle('min').hasAttribute('data-active'), false)
+    })
+
+    // Chrome ends a captured drag with both, in that order, on the same gesture.
+    it('searches once for a release the browser follows with a lost capture', () => {
+        const { price, at } = dragged()
+
+        at('pointerdown', price.handle('min'), 55)
+        at('pointermove', price.track(), 70)
+        at('pointerup', price.track(), 70)
+        at('lostpointercapture', price.track(), 70)
+
+        assert.deepEqual(price.committed, [[70, 120]])
+    })
+
+    it('leaves a lone handle where it is while the end it draws against is unknown', () => {
+        const { price, at } = dragged({ handles: ['min'], reachable: null })
+
+        at('pointerdown', price.handle('min'), 55)
+        at('pointermove', price.track(), 70)
+
+        assert.deepEqual(price.announced('min'), ['55', null, ''])
+        assert.deepEqual(price.held(), ['55', '120'])
+    })
+
+    it('hands the capture back when the gesture ends without a release', () => {
+        const { price, at } = dragged()
+
+        at('pointerdown', price.handle('min'), 55)
+        at('pointermove', price.track(), 90, 0)
+
+        assert.equal(price.track().hasPointerCapture(1), false)
     })
 })
 

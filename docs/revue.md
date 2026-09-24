@@ -3739,7 +3739,7 @@ lecteurs d'écran de son bouton — le défaut que `R-137` #5 a retiré du messa
 libellés dans Blade et laisser le client choisir, comme pour `empty` ; cela ajoute un crochet au contrat,
 donc `Contract::VERSION` des deux côtés, à demander avant (§6). Trouvé par les passes rejouées de `R-137` #3.
 
-### R-142 · 🟠 · ouvert · 2026-09-17 — le glissé du prix casse sur une vue à une seule poignée basse, et hors du bouton principal
+### R-142 · 🟠 · **fermé le 2026-09-24** · ouvert le 2026-09-17 — le glissé du prix casse sur une vue à une seule poignée basse, et hors du bouton principal
 
 Trouvé par les passes rejouées de `R-120`, par simulation happy-dom ; pas encore reproduit dans Chrome.
 
@@ -3755,6 +3755,49 @@ Trouvé par les passes rejouées de `R-120`, par simulation happy-dom ; pas enco
 
 Pistes : ne jamais croiser vers une poignée absente ; `button === 0` à la prise, `buttons === 0` vaut
 relâchement, écouter `lostpointercapture`.
+
+**Reproduit dans Chrome le 2026-09-24**, ce que l'entrée posait comme « à confirmer » — et la gravité
+était sous-estimée. Sur `/boutique`, un glissé au **bouton droit** déplace la poignée basse : le champ
+passe de 0 à 85 sans qu'aucune URL ne change, puis **le geste légitime suivant l'applique** — cocher une
+facette et presser « Appliquer » a envoyé `?categorie=cheveux&min_price=85`, soit zéro résultat. Un clic
+droit arme donc un filtre que le visiteur n'a jamais posé.
+
+**Valeurs de la plateforme, mesurées dans Chrome** plutôt que citées : `pointerdown` au bouton droit
+donne `button = 2`, `buttons = 2` ; un déplacement sans bouton, `button = -1`, `buttons = 0` ; et Chrome
+émet bien `lostpointercapture`, juste après `pointerup`. happy-dom n'implémente pas la capture, donc
+cette moitié ne pouvait pas se fermer dans la suite seule.
+
+**Corrigé** : `SliderDrag` ne prend la main que sur le bouton principal, traite un déplacement sans
+bouton comme une fin de geste, et écoute `lostpointercapture` en plus de `pointerup` et `pointercancel`.
+`PriceControl::#moveTo()` ne croise plus vers une poignée absente : la vue qui n'en dessine qu'une voit
+l'autre extrémité valoir **le bord de la piste**, jamais zéro — et une borne au bord n'étant pas un
+filtre (`R-122`), une poignée basse seule filtre `min_price` seul.
+
+**Tests** : sept cas ajoutés à `price-control.test.ts`, dont un sur une vue à une seule poignée, rendue
+possible par une fixture qui choisit les poignées dessinées et qui n'écrit plus une borne qu'on ne lui a
+pas donnée. **Sept mutations tuées**, une par garde. Et un défaut de la suite au passage : ses cinq tests
+de glissé simulaient un déplacement **sans bouton enfoncé** — c'est-à-dire le geste que le correctif
+refuse ; ils portent désormais `buttons: 1`.
+
+**Les cinq passes, deuxième tour**, après réduction de `SliderDrag` (plus de rappel de fin stocké : chaque
+écoute porte sa condition, ce qui lève le couplage temporel entre `onMove` et `onRelease`) :
+
+- la séquence réelle de Chrome, `pointerup` **immédiatement suivi de** `lostpointercapture` sur un même
+  geste, n'était jouée nulle part : seule la garde `#released()` empêche deux recherches par glissé, et
+  la couverture montrait qu'elle ne s'exécutait jamais. Un cas la joue, la mutation est tuée ;
+- une capture que le navigateur ne rend pas — geste fini sur un déplacement sans bouton — restait prise
+  sur la piste : toute pression suivante était détournée vers elle, la poignée n'en revoyait aucune.
+  `SliderDrag::release()` la rend, un cas le tient ;
+- sans l'extrémité opposée — bornes non encore mesurées — la vue à une poignée écrivait `aria-valuemax=""`
+  et 0 : `#movedAlone()` ne dessine plus rien tant qu'elle manque ;
+- `#shows()` disait deux choses, et son nom se confondait avec `#shown()` : replié dans ses deux appelants ;
+- un nom de test contredisait son assertion, et trois commentaires racontaient l'histoire du code au lieu
+  d'un fait — supprimés.
+
+**Vérifié** : `composer check` vert, suite `Modules` 406 tests, client 289. En navigateur, après
+correctif : le clic droit ne déplace plus rien et ne marque plus aucune poignée ; le glissé normal marque
+la poignée et écrit 80 ; `pointerup` suivi de `lostpointercapture` ne rejoue pas le relâchement ; une fin
+par `lostpointercapture` seul garde la valeur glissée et rend la capture.
 
 ### R-141 · 🟡 · ouvert · 2026-09-17 — cinq tests `Feature` dépendent de l'ordre de la suite
 
@@ -6192,16 +6235,15 @@ parité lisible). Les commentaires devenus faux ou inexacts sont déjà corrigé
 
 Un point à la fois (`D-03`), dans cet ordre, sauf décision contraire de Louis :
 
-1. **Retours de la PR #2** : `R-146`, `R-147`, `R-148`, `R-149`, `R-154` et `R-03` sont fermés.
-   Commités : `3ee3edf`, `93c7703`, `7d7eab3`, `618a697`, `6939e4f`, `7046e7b` ; `R-149` attend son
-   commit.
-2. `R-142` — le glissé du prix casse sur une vue à une seule poignée basse, et hors du bouton principal.
-3. `R-143` — le client efface le balisage d'un bouton « Voir plus » surchargé ; demande l'accord de Louis
+1. **Retours de la PR #2 et suites** : `R-146`, `R-147`, `R-148`, `R-149`, `R-154`, `R-158` et `R-03`
+   sont fermés et commités (`3ee3edf`, `93c7703`, `7d7eab3`, `618a697`, `6939e4f`, `7046e7b`, `cd3f5b5`,
+   `c8345cc`, `cd10de6`). `R-142` est fermé le 2026-09-24 et attend son commit.
+2. `R-143` — le client efface le balisage d'un bouton « Voir plus » surchargé ; demande l'accord de Louis
    (`Contract::VERSION` des deux côtés).
-4. `R-144` — remplacer `FacetCounter` ne change que le premier rendu.
-5. `R-141` — cinq tests `Feature` dépendent de l'ordre de la suite.
-6. `Q-31` — commentaires de rôle et renvois vers le miroir PHP : à trancher par Louis avant toute purge.
-7. `R-145` — les restructurations relevées par les passes rejouées, ligne par ligne.
+3. `R-144` — remplacer `FacetCounter` ne change que le premier rendu.
+4. `R-141` — cinq tests `Feature` dépendent de l'ordre de la suite.
+5. `Q-31` — commentaires de rôle et renvois vers le miroir PHP : à trancher par Louis avant toute purge.
+6. `R-145` — les restructurations relevées par les passes rejouées, ligne par ligne.
 
 Ouverts, non planifiés : `R-150` à `R-153`, `R-155`, `R-156`, `R-157`, `R-159` à `R-161`. Les trois
 derniers viennent de `R-158` et relèvent du lot 5, avec la pertinence.

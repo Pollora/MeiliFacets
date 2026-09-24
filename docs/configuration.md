@@ -720,6 +720,11 @@ Le composant prix assemble trois vues surchargeables une par une, sous le même 
 | `components/price/fields.blade.php` | `PricePart::Fields` est déclaré | `handles`, `bounds`, `money` |
 | `components/price/hidden.blade.php` | `PricePart::Fields` ne l'est pas | `handles` |
 
+**Une vue peut ne dessiner qu'une poignée.** Le contrat n'en exige qu'une, et le client suit : la
+poignée absente vaut alors le bord de la piste, jamais zéro, et le champ qui la reflète reçoit ce
+bord — donc rien n'est filtré de ce côté, une borne au bord n'étant pas un filtre. Un curseur à une
+seule poignée basse filtre ainsi `min_price` seul (`R-142`).
+
 Ce sont des composants anonymes : chacun ouvre sur `@props` et ne reçoit **que** ce qui y est
 déclaré — il n'hérite pas de la portée du composant parent. Une surcharge qui a besoin d'un crochet
 le nomme par son cas d'énumération, `@use(Modules\MeiliFacets\Enums\Hook)` puis

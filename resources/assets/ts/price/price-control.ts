@@ -178,20 +178,38 @@ export class PriceControl {
     #moveTo(handle: Drawn, to: number) {
         const grabbed = this.#slider.boundOf(handle)
         const opposite = this.#slider.handle(grabbed === 'min' ? 'max' : 'min')
-        const other = this.#slider.nowOf(opposite)
         const value = Math.round(this.#bounds.clamp(to))
+
+        if (opposite === null) {
+            return this.#movedAlone(grabbed, value)
+        }
+
+        const other = this.#slider.nowOf(opposite)
+        const low = Math.min(value, other)
+        const high = Math.max(value, other)
 
         // Clamping a handle against the other pins both once they meet. They may
         // cross instead, and the one that does takes the bound it crossed into.
         const crossed = grabbed === 'min' ? value > other : value < other
-        const moved = new Range(Math.min(value, other), Math.max(value, other))
 
-        this.#draw(moved)
-        this.#inputs.fillBoth(Math.min(value, other), Math.max(value, other))
+        this.#draw(new Range(low, high))
+        this.#inputs.fillBoth(low, high)
 
         if (crossed && this.#drag.grabbed !== null) {
             this.#drag.handOver(opposite)
         }
+    }
+
+    #movedAlone(grabbed: PriceBound, value: number) {
+        const edge = grabbed === 'min' ? this.#bounds.max : this.#bounds.min
+
+        // Without the opposite edge there is no range to show: the bounds have not been measured yet.
+        if (edge === null) {
+            return
+        }
+
+        this.#draw(grabbed === 'min' ? new Range(value, edge) : new Range(edge, value))
+        this.#inputs.fillBoth(Math.min(value, edge), Math.max(value, edge))
     }
 
     #draw(shown: Range) {
