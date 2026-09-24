@@ -3264,6 +3264,10 @@ comme `reset` ; fond transparent, bordure 0 ; survol teinté, contour de focus 2
 Test `stylesheet` : `more` dans la liste des commandes à curseur, taille et police égales à `reset`,
 marge et padding déclarés égaux à ceux d'une rangée, ni bordure ni fond.
 
+**Corrigé le 2026-09-24, relevé par Louis** : la marge haute était restée nulle. Le bouton prend
+`margin-top: 0.5em`, le même écart que celui qui sépare la liste de sa légende
+(`[data-meili="facet"] ul`) ; un test de la feuille vérifie l'égalité.
+
 ### R-164 · 🟡 · **fermé le 2026-09-24** (étape 3a) · ouvert le 2026-09-24 — une facette ne peut pas déclarer comment ses valeurs se présentent
 
 Toutes les valeurs de facette sortent en cases à cocher (ou en radios, selon `SelectionMode`) ; rien

@@ -43,7 +43,8 @@ describe('the module stylesheet', () => {
     })
 
     /**
-     * R-168: the fold button reads as one more row of values, at the scale of the other commands.
+     * R-168: the fold button reads as one more row of values, at the scale of the other commands,
+     * set apart from the list by the same gap that sets the list apart from its legend.
      * Spacing is compared as declared: happy-dom resolves `em` against the wrong size inside the label.
      */
     it('draws the fold button as a row of values rather than a native button', () => {
@@ -57,6 +58,7 @@ describe('the module stylesheet', () => {
         }
         const more = declared(Contract.selector('more'))
         const row = declared(`${Contract.selector('facet-value')} label`)
+        const list = declared(`${Contract.selector('facet')} ul`)
 
         assert.equal(style('more').fontSize, style('reset').fontSize)
         assert.equal(style('more').fontFamily, style('reset').fontFamily)
@@ -64,6 +66,7 @@ describe('the module stylesheet', () => {
         assert.equal(style('more').backgroundColor, 'transparent')
         assert.equal(more.marginLeft, row.marginLeft)
         assert.equal(more.padding, row.padding)
+        assert.equal(more.marginTop, list.marginTop)
     })
 
     /** The count is rewritten at every search: proportional digits would shift it sideways. */
