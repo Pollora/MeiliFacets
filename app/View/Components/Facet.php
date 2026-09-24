@@ -51,6 +51,26 @@ final class Facet extends ListingComponent
         return InputType::forSelection($this->facet->selection)->value;
     }
 
+    public function inputName(): string
+    {
+        return $this->listing->parameterFor($this->facet->taxonomy);
+    }
+
+    public function panelId(): string
+    {
+        return $this->ids->facetPanel($this->facet->name);
+    }
+
+    public function labelId(FacetValue $value): string
+    {
+        return $this->ids->facetValueLabel($this->facet->name, $value->slug);
+    }
+
+    public function countId(FacetValue $value): string
+    {
+        return $this->ids->facetCount($this->facet->name, $value->slug);
+    }
+
     public function countLabel(FacetValue $value): string
     {
         $this->countPattern ??= __(':count result|:count results');

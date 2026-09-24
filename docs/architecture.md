@@ -279,8 +279,10 @@ faisant partie du libellé. Il change à chaque filtrage : le nommer ferait reno
 curseur, la case qu'on est en train de lire. Décrit, il est annoncé après le nom et une
 actualisation n'est qu'une information de plus.
 
-⚠️ La vue ne tient pas encore la seconde moitié de la règle : `facet.blade.php` rend le compteur
-**dans** le `<label>` qui enveloppe la case, donc dans son nom accessible (`R-151`).
+Le compteur reste dans le `<label>` — un clic dessus coche la case — mais le nom de la case vient
+d'`aria-labelledby`, qui pointe le `<span>` du seul libellé et l'emporte sur le `<label>` (`R-151`). En
+pastille, le module masque le compteur visuellement ; il reste dans l'arbre et annoncé comme
+description.
 
 Il est aussi écrit en toutes lettres (« 14 résultats », `View\CountLabel`) plutôt qu'en nombre nu
 collé au libellé, qu'un lecteur d'écran rendrait « 15ml 2 ».

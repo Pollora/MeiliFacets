@@ -20,7 +20,7 @@ describe('the module stylesheet', () => {
     /** The rule is a list of hooks: one forgotten there is a control that reads as text. */
     it('leaves no command without it', () => {
         find(root, Contract.selector('active-values')).insertAdjacentHTML('afterbegin', '<li><button data-meili="active-value">Acme</button></li>')
-        const commands = ['page', 'previous', 'next', 'reset', 'apply', 'sort-trigger', 'sort-option', 'input', 'active-value']
+        const commands = ['page', 'previous', 'next', 'reset', 'apply', 'sort-trigger', 'sort-option', 'input', 'more', 'active-value']
 
         assert.deepEqual(commands.filter((hook) => style(hook).cursor !== 'pointer'), [])
     })
@@ -40,6 +40,35 @@ describe('the module stylesheet', () => {
 
     it('pushes the count to the end of the row', () => {
         assert.equal(style('count').marginLeft, 'auto')
+    })
+
+    /**
+     * R-168: the fold button reads as one more row of values, at the scale of the other commands.
+     * Spacing is compared as declared: happy-dom resolves `em` against the wrong size inside the label.
+     */
+    it('draws the fold button as a row of values rather than a native button', () => {
+        const rules = [...window.document.styleSheets].flatMap((sheet) => [...sheet.cssRules])
+        const declared = (selector: string) => {
+            const rule = rules.find((candidate) => candidate instanceof window.CSSStyleRule && candidate.selectorText === selector)
+
+            assert.ok(rule instanceof window.CSSStyleRule, selector)
+
+            return rule.style
+        }
+        const more = declared(Contract.selector('more'))
+        const row = declared(`${Contract.selector('facet-value')} label`)
+
+        assert.equal(style('more').fontSize, style('reset').fontSize)
+        assert.equal(style('more').fontFamily, style('reset').fontFamily)
+        assert.equal(style('more').borderTopWidth, '0px')
+        assert.equal(style('more').backgroundColor, 'transparent')
+        assert.equal(more.marginLeft, row.marginLeft)
+        assert.equal(more.padding, row.padding)
+    })
+
+    /** The count is rewritten at every search: proportional digits would shift it sideways. */
+    it('draws the count in digits of one width', () => {
+        assert.equal(style('count').fontVariantNumeric, 'tabular-nums')
     })
 
     it('gives every command the same height and the same scale', () => {
@@ -115,6 +144,16 @@ describe('the module stylesheet', () => {
             assert.notEqual(input.visibility, 'hidden')
         })
 
+        /** The mock-up draws « 15 ML » alone; the count still reaches a screen reader through `aria-describedby`. */
+        it('takes the count out of sight without taking it out of the description', () => {
+            const count = computed(find(pills(), Contract.selector('count')))
+
+            assert.equal(count.position, 'absolute')
+            assert.equal(count.clipPath, 'inset(50%)')
+            assert.notEqual(count.display, 'none')
+            assert.notEqual(count.visibility, 'hidden')
+        })
+
         it('tells a checked value apart from the others', () => {
             const [checked, other] = pills().querySelectorAll(`${Contract.selector('facet-value')} label`)
 
@@ -131,6 +170,7 @@ describe('the module stylesheet', () => {
 
             assert.ok(control)
             assert.notEqual(computed(find(control, Contract.selector('input'))).clipPath, 'inset(50%)')
+            assert.notEqual(computed(find(control, Contract.selector('count'))).clipPath, 'inset(50%)')
         })
     })
 

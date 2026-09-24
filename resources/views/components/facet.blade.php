@@ -1,20 +1,20 @@
 <fieldset {{ $attributes->class('meilifacetsFacet') }} data-taxonomy="{{ $facet->taxonomy }}"
           @unless ($hasReadableValues()) hidden @endunless {{ $hook('facet') }} {{ $scrollMark() }}@if ($marksPresentation()) data-presentation="{{ $presentation->slug() }}"@endif>
     <legend class="meilifacetsFacetLabel">{{ $facet->label }}</legend>
-    <div class="meilifacetsFacetPanel" id="{{ $ids->facetPanel($facet->name) }}">
+    <div class="meilifacetsFacetPanel" id="{{ $panelId() }}">
         <div class="meilifacetsFacetPanelInner">
             <ul class="meilifacetsFacetValues">
                 @foreach ($values as $value)
-                    @php($countId = $ids->facetCount($facet->name, $value->slug))
                     <li class="meilifacetsFacetValue" @if ($value->folded) hidden @endif {{ $hook('facet-value') }}>
                         <label>
                             <input type="{{ $inputType() }}"
-                                   name="{{ $listing->parameterFor($facet->taxonomy) }}"
+                                   name="{{ $inputName() }}"
                                    value="{{ $value->slug }}"
-                                   aria-describedby="{{ $countId }}"
+                                   aria-labelledby="{{ $labelId($value) }}"
+                                   aria-describedby="{{ $countId($value) }}"
                                    @checked($value->selected) {{ $hook('input') }}>
-                            <span class="meilifacetsFacetName">{{ $value->label }}</span>
-                            <span class="meilifacetsFacetCount" id="{{ $countId }}" {{ $hook('count') }}>
+                            <span class="meilifacetsFacetName" id="{{ $labelId($value) }}">{{ $value->label }}</span>
+                            <span class="meilifacetsFacetCount" id="{{ $countId($value) }}" {{ $hook('count') }}>
                                 {{ $countLabel($value) }}
                             </span>
                         </label>

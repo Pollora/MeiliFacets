@@ -115,11 +115,11 @@ Utiles aux deux dispositions, livrées d'abord dans `Sidebar`.
 **Recette —** sur `/boutique` en `Sidebar`, cocher deux valeurs fait apparaître deux pastilles et
 met le compteur à jour ; retirer une pastille décoche la valeur ; « Annuler » vide tout.
 
-### 3 · Présentations et activation par facette — ⏳ en cours (3a fermée)
+### 3 · Présentations et activation par facette — ⏳ en cours (3a, 3b fermées)
 
 - [x] C-5 et C-6 tranchés
 - [x] 3a · présentation par facette (`R-164`, fermé le 2026-09-24) : contrat ouvert `ValuePresentation`, enum `Control`/`Pill`, garde `R-10` à la déclaration, `data-presentation` sauf `Control`, style pastille du module ; Contenance en `Pill` dans Pluralia (non commité)
-- [ ] compteur de valeur hors du nom accessible (`R-151`)
+- [x] 3b · compteur de valeur hors du nom accessible (`R-151`, fermé le 2026-09-24) : compteur gardé dans le `<label>`, nom par `aria-labelledby` vers le `<span>` du libellé, description par `aria-describedby` ; chiffres tabulaires ; compteur masqué visuellement en pastille (validé par Louis) ; crochets inchangés, `Contract::VERSION` intact. Bouton « Voir plus » habillé en chemin (`R-168`)
 - [ ] cible de 2.75rem au pointeur grossier (« Hauteur des contrôles »)
 - [ ] `Sidebar` rendu à l'identique quand rien n'est configuré
 

@@ -20,6 +20,7 @@ final class ElementIdTest extends TestCase
         $this->assertSame('meilifacets-products-sort-option-newest', $ids->sortOption('newest'));
         $this->assertSame('meilifacets-products-facet-volume--panel', $ids->facetPanel('volume'));
         $this->assertSame('meilifacets-products-facet-volume--count-100ml', $ids->facetCount('volume', '100ml'));
+        $this->assertSame('meilifacets-products-facet-volume--label-100ml', $ids->facetValueLabel('volume', '100ml'));
     }
 
     #[Test]
@@ -42,6 +43,7 @@ final class ElementIdTest extends TestCase
 
             foreach ($this->termSlugs() as $slug) {
                 $source[$ids->facetCount($facet, $slug)][] = "count({$facet}, {$slug})";
+                $source[$ids->facetValueLabel($facet, $slug)][] = "label({$facet}, {$slug})";
             }
         }
 
@@ -71,7 +73,7 @@ final class ElementIdTest extends TestCase
     /** @return list<string> */
     private function combine(string $glue): array
     {
-        $words = ['facet', 'panel', 'count', 'x'];
+        $words = ['facet', 'panel', 'count', 'label', 'x'];
         $built = $words;
 
         for ($depth = 2; $depth <= 3; $depth++) {

@@ -3235,6 +3235,35 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
+### R-169 · ⚪ · ouvert · 2026-09-24 — `results.blade.php` prépare encore une donnée
+
+`@php($pastTheEnd = $listing->pagination()->isPastTheEnd())` : la vue interroge le listing et
+calcule, au lieu d'appeler une méthode du composant `Results`. Même défaut que celui retiré de
+`facet.blade.php` pendant la 3b du chantier « barre de filtres » (`R-151`), relevé par Louis en revue.
+Hors chantier ; piste : `Results::isPastTheEnd()`, la vue appelle `$isPastTheEnd()`.
+
+### R-168 · ⚪ · **fermé le 2026-09-24** · ouvert le 2026-09-24 — le bouton « Voir plus » n'a aucun style de base
+
+`[data-meili="more"]` (`meilifacetsFacetMore`) n'avait aucune règle dans `meilifacets.css` : bouton
+natif du navigateur, marge nulle, collé à la liste. Contraire à « Style par défaut d'une brique ».
+Relevé par Louis pendant l'étape 3b.
+
+**Fermé le 2026-09-24**, sur le crochet (`R-128`), markup intact. Le bouton est posé **comme une rangée
+de valeur de plus** : même marge latérale `-0.4em` et même padding `0.25em 0.4em` que le `<label>`
+d'une valeur, marge haute nulle. La liste n'espace pas ses rangées, donc le bouton tombe à un pas de
+rangée sous la dernière valeur visible, texte à l'aplomb des cases. `font: inherit`,
+`font-size: var(--meili-ui)`, `color: inherit`, ni fond ni bordure natifs, rayon et transition des
+rangées. Il rejoint les listes de ses sœurs : `cursor: pointer`, `:focus-visible` (contour
+`currentColor`), survol `--meili-tint` sous `(hover: hover) and (pointer: fine)`, `:active`,
+`-webkit-tap-highlight-color`, `prefers-reduced-motion`, et `min-height: var(--meili-control)` au
+pointeur grossier (44 px). Pas de `forced-colors` : `reset` et `page` n'y figurent pas non plus.
+
+**Vérifié** (Chromium) : bouton de 28 px (44 px au pointeur grossier), x 34,4 (texte à 40, comme les
+cases), haut à 987,4 = bas du `<label>` de la dernière valeur visible ; 14 px, Space Grotesk, 400,
+comme `reset` ; fond transparent, bordure 0 ; survol teinté, contour de focus 2 px, dépliage OK.
+Test `stylesheet` : `more` dans la liste des commandes à curseur, taille et police égales à `reset`,
+marge et padding déclarés égaux à ceux d'une rangée, ni bordure ni fond.
+
 ### R-164 · 🟡 · **fermé le 2026-09-24** (étape 3a) · ouvert le 2026-09-24 — une facette ne peut pas déclarer comment ses valeurs se présentent
 
 Toutes les valeurs de facette sortent en cases à cocher (ou en radios, selon `SelectionMode`) ; rien
@@ -3272,7 +3301,7 @@ focus par `:has(:focus-visible)`, input natif masqué visuellement, `forced-colo
 
 **Limite assumée** : aucun markup propre à une présentation (pas de vue partielle par présentation) ;
 on l'ouvrira quand un projet en aura besoin. Le compteur `(n)` reste dans la pastille, markup
-inchangé (`R-151`, étape 3b).
+inchangé (`R-151`, étape 3b — *fermé depuis : compteur sorti du libellé, masqué en pastille*).
 
 **Vérifié** : HTML de `/boutique` identique à l'octet avant/après sur les quatre facettes, en
 `Control` (seuls les `?ver=` de WP Rocket changent) ; après déclaration de Contenance en `Pill` dans
@@ -3580,7 +3609,7 @@ lit `'_sale_price'` à côté de `ProductMeta::Price`. Les clés du plan de requ
 ⚠️ Piège pour le correctif : ajouter `SalePrice` à `ProductMeta` le déclarerait **filtrable**, puisque
 `WooCommerceIndexAttributes` déclare `ProductMeta::paths()`, soit tous ses cas.
 
-### R-151 · 🟡 · ouvert · 2026-09-22 — le compteur d'une valeur de facette entre dans le nom de sa case
+### R-151 · 🟡 · **fermé le 2026-09-24** (étape 3b) · ouvert le 2026-09-22 — le compteur d'une valeur de facette entre dans le nom de sa case
 
 `architecture.md` pose que le compteur est **décrit** (`aria-describedby`) et jamais **nommé**, pour
 qu'un filtrage ne renomme pas la case sous le curseur. La vue ne le tient qu'à moitié :
@@ -3589,6 +3618,74 @@ donc dans le nom accessible que le navigateur calcule depuis ce label — et il 
 test (`FacetComponentTest`) vérifie `aria-describedby` et l'absence d'`aria-labelledby`, pas le nom.
 Lu dans la vue et le calcul du nom accessible ; non écouté sur un lecteur d'écran. Le correctif touche
 une vue surchargeable : à décider avec Louis.
+
+**Fermé le 2026-09-24** (chantier `R-48`, étape 3b), structure C, retenue par Louis. Le compteur
+**reste dans le `<label>`**, à sa place, sans `aria-hidden` : un clic dessus coche la case
+nativement. Le libellé est enveloppé d'un `<span id>` (`ElementId::facetValueLabel()`, même famille
+que `facetCount()`), et l'input porte `aria-labelledby` vers ce `<span>` en plus de
+`aria-describedby` vers le compteur. `aria-labelledby` l'emporte sur le `<label>` dans le calcul du
+nom : nom = « Botanik », description = « 12 résultats ».
+
+Deux structures écartées en chemin :
+- **A** — compteur sorti du `<label>`, libellé étiré sur la rangée par un `label::after`. Elle
+  fonctionnait (mesurée identique au pixel), mais au prix d'une couche CSS fragile : le compteur,
+  peint au-dessus du libellé étiré par son `opacity`, captait le clic et demandait
+  `pointer-events: none`, la case un `z-index` contenu par `isolation`, et les styles de rangée
+  migraient du `<label>` à la `facet-value`. Tout thème qui retouche la rangée pouvait la casser.
+- **B** — compteur laissé dans le `<label>` en `aria-hidden="true"`. Le nom est juste, mais
+  `aria-hidden` retire le texte de l'arbre : absent en mode lecture, et VoiceOver iOS, qui n'annonce
+  pas les descriptions sans les indications activées, ne le lirait jamais.
+
+Diff exact d'une valeur contre `e6c146a` sur `/boutique` : une ligne ajoutée à l'input,
+`aria-labelledby="meilifacets-products-facet-category--label-cheveux"`, et un `id` du même nom sur
+`<span class="meilifacetsFacetName">`. Rien d'autre sur la page, hors `?ver=` de WP Rocket (38 valeurs,
+76 lignes). Seul autre écart, d'espaces seulement : l'indentation de chaque `<li>`, qui portait celle
+du `@php` supprimé (`diff -w` : zéro ligne hors les deux ci-dessus).
+
+**Vue sans calcul, à la demande de Louis** : `facet.blade.php` ne contient plus ni `@php`, ni `$ids->`,
+ni `$listing->`. Le composant `Facet` expose `inputName()`, `panelId()`, `labelId(FacetValue)` et
+`countId(FacetValue)` — même forme que `inputType()` et `countLabel(FacetValue)` qu'il portait déjà —,
+qui délèguent à `ElementId` et au listing. Un thème qui copie la vue ne fige plus ces calculs.
+`it_leaves_every_computation_to_the_component` le garde. `results.blade.php` (`@php($pastTheEnd = …)`)
+a le même défaut, ouvert à part.
+
+CSS : `font-variant-numeric: tabular-nums` sur le compteur (réécrit à chaque recherche) et, en
+pastille, le compteur masqué visuellement par la règle de l'input natif — présent dans l'arbre, ni
+`display: none` ni `aria-hidden`. Masquage **validé par Louis** (maquette « 15 ML »). Le thème le
+réaffiche par `[data-presentation="pill"] [data-meili="count"]`.
+
+**Contrat** : aucun crochet ajouté, renommé ni retiré — le libellé est trouvé par son id.
+`Contract::VERSION` inchangé (`R-116`). `FacetsView` n'écrit que dans le crochet `count` ; un test
+le garantit. Fixture `tests/ts/dom.ts` alignée (`R-105` ; `R-108` toujours différé). Pluralia ne
+surcharge pas `facet.blade.php` et aucune règle du thème ne vise compteur ni libellé : rien à adapter.
+Une vue surchargée à l'ancienne (`R-72`) garde le compteur dans le nom jusqu'à ce qu'elle reprenne
+`aria-labelledby`.
+
+**Vérifié** (Chromium, 1440 px, pointeur fin puis grossier par émulation tactile) : case, libellé et
+rangée aux mêmes coordonnées que `e6c146a` sur les 14 valeurs `Control` (case x=40, libellé x=61,
+28 px, 37,8 px au pointeur grossier) ; fin du compteur inchangée (352,3 px), son début bouge de
+−2,5 px à +0,3 px sous l'effet des chiffres tabulaires, seul écart voulu. Arbre d'accessibilité :
+`checkbox "Botanik"`, description « 12 résultats », `StaticText "12 résultats"` présent et non ignoré ;
+`checkbox "15ml"`, description « 5 résultats », nœud du compteur non ignoré malgré le masquage. Clic
+sur le compteur → cochée, sur le libellé → décochée, sur la case → cochée ; pastille cochée au clic.
+Botanik + Appliquer : Cheveux passe de « 14 résultats » à « 2 résultats », nom inchangé. Zéro erreur
+console.
+
+**Tests** : `FacetComponentTest` — `it_names_a_value_with_its_label_alone` (`aria-labelledby` pointe,
+dans la même valeur, un élément dont le texte est exactement le libellé résolu par le listing),
+`it_describes_a_value_with_the_count_its_label_holds` (`aria-describedby` pointe un compteur du même
+`<label>`), `it_gives_every_name_and_every_count_its_own_id`, `it_leaves_every_computation_to_the_component` ;
+les deux premiers échouent sur la vue de `e6c146a`. `ElementIdTest` : l'id du libellé entre dans la recherche de collisions. TS : `facets-view`
+— écrire un compteur laisse le `<span>` du libellé en place, même nœud, même texte (échoue si la vue
+écrit dans le `<label>`) ; `stylesheet` — chiffres tabulaires, compteur masqué mais présent en
+pastille, visible hors pastille. `composer check` vert (Unit 294, TS 328), suite `Modules` 458 verts.
+
+**Passes.** Lisibilité : `facetValueLabel()` suit `facetCount()`, les méthodes du composant suivent
+`inputType()`/`countLabel()` ; l'assistant de test `shownLabelOf()`
+lit le libellé côté listing (`array_find`, sans saut de boucle). Commentaires : aucun dans la vue ni
+la feuille ; docblocks de test de contexte seulement. Performance : un attribut et un id par valeur,
+aucun JavaScript. Sécurité : l'id reprend le slug déjà échappé du compteur. Contexte et i18n : aucune
+chaîne ; ajout neutre en RTL.
 
 ### R-150 · 🟡 · ouvert · 2026-09-22 — MeiliScout teste une constante en majuscules et la lit en minuscules
 

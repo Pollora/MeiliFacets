@@ -44,6 +44,11 @@ final readonly class ElementId
         return $this->facetScope($facet).'count-'.$value;
     }
 
+    public function facetValueLabel(string $facet, string $value): string
+    {
+        return $this->facetScope($facet).'label-'.$value;
+    }
+
     /** `sanitize_title()` collapses hyphen runs, so no term slug ever holds `--`. */
     private function facetScope(string $facet): string
     {

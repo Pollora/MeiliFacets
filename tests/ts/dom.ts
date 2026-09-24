@@ -120,8 +120,8 @@ const facetValue = (name: string, value: string, label: string) => `
     <li class="meilifacetsFacetValue" data-meili="facet-value">
         <label>
             <input type="checkbox" name="${name}" value="${value}"
-                   aria-describedby="count-${name}-${value}" data-meili="input">
-            <span class="meilifacetsFacetName">${label}</span>
+                   aria-labelledby="label-${name}-${value}" aria-describedby="count-${name}-${value}" data-meili="input">
+            <span class="meilifacetsFacetName" id="label-${name}-${value}">${label}</span>
             <span class="meilifacetsFacetCount" id="count-${name}-${value}" data-meili="count">0 results</span>
         </label>
     </li>`

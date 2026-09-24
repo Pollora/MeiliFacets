@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Tests\Feature;
 
+use Dom\Element;
 use Dom\HTMLDocument;
 use Illuminate\Support\Facades\Blade;
 use InvalidArgumentException;
@@ -15,6 +16,7 @@ use Modules\MeiliFacets\Enums\QueryParameter;
 use Modules\MeiliFacets\Enums\SelectionMode;
 use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\Listing\Facet;
+use Modules\MeiliFacets\Listing\FacetValue;
 use Modules\MeiliFacets\Listing\PriceFilter;
 use Modules\MeiliFacets\Listing\ResolvedListing;
 use Modules\MeiliFacets\Support\UrlParameters;
@@ -206,17 +208,63 @@ final class FacetComponentTest extends TestCase
         $this->assertStringNotContainsString('résultat', $html);
     }
 
+    /** R-151: named by the `<label>` that wraps it, a box reads « Aeris 16 results ». */
     #[Test]
-    public function it_describes_a_value_with_its_count_rather_than_naming_it(): void
+    public function it_names_a_value_with_its_label_alone(): void
     {
-        $input = HTMLDocument::createFromString($this->renderOne(), LIBXML_NOERROR)
-            ->querySelector($this->hooked(Hook::Input));
+        $document = $this->documentOf($this->placingEveryFacet());
+        $values = $this->valuesIn($document);
 
-        $this->assertNull($input->getAttribute('aria-labelledby'));
-        $this->assertSame(
-            $input->getAttribute('aria-describedby'),
-            $input->parentElement->querySelector($this->hooked(Hook::Count))->id
-        );
+        foreach ($values as $value) {
+            $input = $value->querySelector($this->hooked(Hook::Input));
+            $name = $document->getElementById($input->getAttribute('aria-labelledby'));
+
+            $this->assertSame($value, $name->closest($this->hooked(Hook::FacetValue)));
+            $this->assertSame($this->shownLabelOf($input), $name->textContent);
+        }
+
+        $this->assertNotEmpty($values);
+    }
+
+    /** The count stays in the `<label>`, so a click on it checks the box natively. */
+    #[Test]
+    public function it_describes_a_value_with_the_count_its_label_holds(): void
+    {
+        $document = $this->documentOf($this->placingEveryFacet());
+
+        foreach ($this->valuesIn($document) as $value) {
+            $input = $value->querySelector($this->hooked(Hook::Input));
+            $count = $document->getElementById($input->getAttribute('aria-describedby'));
+
+            $this->assertTrue($count->matches($this->hooked(Hook::Count)));
+            $this->assertSame($input->closest('label'), $count->closest('label'));
+            $this->assertMatchesRegularExpression('/\\d/', $count->textContent);
+        }
+    }
+
+    #[Test]
+    public function it_gives_every_name_and_every_count_its_own_id(): void
+    {
+        $ids = [];
+
+        foreach ($this->valuesIn($this->documentOf($this->placingEveryFacet())) as $value) {
+            $input = $value->querySelector($this->hooked(Hook::Input));
+            $ids[] = $input->getAttribute('aria-labelledby');
+            $ids[] = $input->getAttribute('aria-describedby');
+        }
+
+        $this->assertSame(array_unique($ids), $ids);
+    }
+
+    /** A view a theme copies must hold markup only: what it computes, a copy freezes (`R-151`). */
+    #[Test]
+    public function it_leaves_every_computation_to_the_component(): void
+    {
+        $view = file_get_contents(dirname(__DIR__, 2).'/resources/views/components/facet.blade.php');
+
+        $this->assertStringNotContainsString('@php', $view);
+        $this->assertStringNotContainsString('$ids->', $view);
+        $this->assertStringNotContainsString('$listing->', $view);
     }
 
     #[Test]
@@ -370,6 +418,35 @@ final class FacetComponentTest extends TestCase
         $component = $filter instanceof PriceFilter ? 'price' : 'facet';
 
         return '<x-meilifacets::'.$component.' facet="'.$filter->name.'" />';
+    }
+
+    private function documentOf(string $rendered): HTMLDocument
+    {
+        return HTMLDocument::createFromString($rendered, LIBXML_NOERROR);
+    }
+
+    /**
+     * @return list<Element>
+     */
+    private function valuesIn(HTMLDocument $document): array
+    {
+        return iterator_to_array($document->querySelectorAll($this->hooked(Hook::FacetValue)), false);
+    }
+
+    /** The label the listing resolved for this box, read from the listing rather than the markup. */
+    private function shownLabelOf(Element $input): string
+    {
+        $listing = $this->listing();
+        $facet = array_find(
+            $listing->facets(),
+            static fn (Facet $facet): bool => $listing->parameterFor($facet->taxonomy) === $input->getAttribute('name')
+        );
+        $value = array_find(
+            $listing->valuesOf($facet),
+            static fn (FacetValue $value): bool => $value->slug === $input->getAttribute('value')
+        );
+
+        return $value->label;
     }
 
     private function countFacets(string $rendered): int

@@ -76,6 +76,18 @@ describe('FacetsView', () => {
         assert.equal(find(host('globex'), '[data-meili="count"]').textContent, '12 results')
     })
 
+    /** R-151: the box is named by `aria-labelledby`; a count written over its label would orphan that name. */
+    it('writes a count without touching the name of the box it describes', () => {
+        const input = find<HTMLInputElement>(host('globex'), Contract.selector('input'))
+        const name = root.ownerDocument.getElementById(input.getAttribute('aria-labelledby') ?? '')
+
+        view.showCounts(counts({ product_brand: { acme: 1, globex: 12 } }))
+
+        assert.ok(name?.isConnected)
+        assert.equal(name.textContent, 'Globex')
+        assert.equal(root.ownerDocument.getElementById(input.getAttribute('aria-labelledby') ?? ''), name)
+    })
+
     it('hides a value nothing would match, and brings it back', () => {
         view.showCounts(counts({ product_brand: { acme: 3 } }))
 

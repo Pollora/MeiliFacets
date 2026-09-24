@@ -12,6 +12,7 @@
 [data-meili="sort-trigger"],
 [data-meili="sort-option"],
 [data-meili="input"],
+[data-meili="more"],
 [data-meili="active-value"] {
     cursor: pointer;
 }
@@ -98,7 +99,23 @@
     padding-left: 0.75em;
     font-size: 0.9em;
     white-space: nowrap;
+    font-variant-numeric: tabular-nums;
     opacity: 0.6;
+}
+
+[data-meili="more"] {
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
+    margin: 0 -0.4em;
+    padding: 0.25em 0.4em;
+    border: 0;
+    border-radius: 0.25em;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: var(--meili-ui);
+    transition: background-color 120ms var(--meili-ease);
 }
 
 [data-meili="facet"][data-presentation="pill"] ul {
@@ -124,7 +141,8 @@
         border-color 150ms var(--meili-ease);
 }
 
-[data-meili="facet"][data-presentation="pill"] [data-meili="input"] {
+[data-meili="facet"][data-presentation="pill"] [data-meili="input"],
+[data-meili="facet"][data-presentation="pill"] [data-meili="count"] {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -217,6 +235,7 @@
 [data-meili="page"]:focus-visible,
 [data-meili="previous"]:focus-visible,
 [data-meili="next"]:focus-visible,
+[data-meili="more"]:focus-visible,
 [data-meili="active-value"]:focus-visible {
     outline: 2px solid currentColor;
     outline-offset: 2px;
@@ -371,7 +390,8 @@
     [data-meili="previous"]:hover,
     [data-meili="next"]:hover,
     [data-meili="sort-trigger"]:hover,
-    [data-meili="sort-option"]:hover {
+    [data-meili="sort-option"]:hover,
+    [data-meili="more"]:hover {
         background: var(--meili-tint);
     }
 
@@ -398,6 +418,7 @@
 [data-meili="previous"]:active,
 [data-meili="next"]:active,
 [data-meili="sort-trigger"]:active,
+[data-meili="more"]:active,
 [data-meili="active-value"]:active {
     background: var(--meili-press);
 }
@@ -430,6 +451,10 @@
         padding-bottom: 0.7em;
     }
 
+    [data-meili="more"] {
+        min-height: var(--meili-control);
+    }
+
     [data-meili="apply"],
     [data-meili="reset"],
     [data-meili="page"],
@@ -438,6 +463,7 @@
     [data-meili="sort-trigger"],
     [data-meili="sort-option"],
     [data-meili="facet-value"] label,
+    [data-meili="more"],
     [data-meili="active-value"] {
         -webkit-tap-highlight-color: var(--meili-press);
     }
@@ -483,6 +509,7 @@
     [data-meili="sort-option"],
     [data-meili="facet-value"] label,
     [data-meili="facet"][data-presentation="pill"] [data-meili="facet-value"] label,
+    [data-meili="more"],
     [data-meili="active-value"] {
         transition: none;
     }
