@@ -88,7 +88,12 @@ final class PriceComponentTest extends TestCase
     #[Test]
     public function it_draws_the_filled_part_of_the_track_before_any_script_runs(): void
     {
-        $document = $this->render([PricePart::Slider], ['min_price' => '55', 'max_price' => '120']);
+        [$lowest, $highest] = $this->catalogueBounds();
+        $quarter = ($highest - $lowest) / 4;
+        $document = $this->render([PricePart::Slider], [
+            'min_price' => (string) ($lowest + $quarter),
+            'max_price' => (string) ($highest - $quarter),
+        ]);
         $style = $this->one($document, Hook::PriceRange)->getAttribute('style');
 
         $this->assertMatchesRegularExpression('/--from: 0\.\d+/', (string) $style);
@@ -161,6 +166,20 @@ final class PriceComponentTest extends TestCase
         );
 
         return HTMLDocument::createFromString('<div>'.$markup.'</div>', LIBXML_NOERROR);
+    }
+
+    /**
+     * Read off the catalogue, which changes with every import: fixed amounts would fall outside it.
+     *
+     * @return array{float, float}
+     */
+    private function catalogueBounds(): array
+    {
+        $handle = $this->one($this->render([PricePart::Slider]), Hook::PriceHandle);
+
+        $this->assertNotNull($handle, 'The catalogue has no price to draw a track from.');
+
+        return [(float) $handle->getAttribute('aria-valuemin'), (float) $handle->getAttribute('aria-valuemax')];
     }
 
     private function one(ParentNode $within, Hook $hook): ?Element

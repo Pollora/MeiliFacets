@@ -24,6 +24,8 @@ use WP_Post;
 
 final class ShownPriceProjectionTest extends TestCase
 {
+    use KeepsTheIndexOut;
+
     private const string SHOP = 'FR';
 
     private const string ELSEWHERE = 'BE';

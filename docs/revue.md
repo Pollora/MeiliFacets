@@ -3235,6 +3235,58 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
+### R-171 · 🟠 · **fermé le 2026-09-24** · ouvert le 2026-09-24 — les réglages d'index repoussés en local perdent les attributs du prix
+
+**Constat.** `wp meiliscout index` (avec ou sans `--clear`) et toute sauvegarde de produit faite par la
+suite `Feature` (`AnonymousIndexingTest`, `ProductPriceProjectionTest`, `ShownPriceProjectionTest`)
+repoussaient sur `posts` des `filterableAttributes` sans `metas._price`, `metas._stock_status`,
+`price.*`, et des `sortableAttributes` réduits à `post_date`, `post_title` : `price.min is not
+filterable`, `/boutique` en vue « indisponible », suite `Modules` rouge (8 échecs + 1 erreur). Second
+symptôme, passé inaperçu : les cartes indexées n'avaient plus de `card.price`.
+
+**Cause, prouvée.** L'instant de résolution, pas la configuration. Pollora résout les instances des
+`#[Filter]` d'un coup, à l'`apply()` de la découverte — et `PluginRegistrar::register()`, appelé par
+`pluralia-fulfillments.php` **pendant le chargement des plugins**, relance cet `apply()` pour tous les
+hooks découverts (`ModuleDiscoveryOrchestrator::discover()`). `pluralia-fulfillments` se charge avant
+`woocommerce` dans `active_plugins` : `MeiliScoutBridge` est construit à `plugins_loaded=0`, sans
+`wc_get_product`, et fige `EmptyIndexAttributes` et `DefaultCardProjector` pour toute la requête
+(trace `afterResolving` sous WP-CLI). Avec `--skip-plugins=pluralia-fulfillments`, le même pont est
+construit au chargement du thème, WooCommerce présent. Le garde `WooCommerce::isActive()` était bien
+dans la closure du binding, mais une closure évaluée à la construction d'un hook reste trop tôt. Options
+MeiliScout vérifiées, hors de cause : `indexed_post_types = [post, product]`, `indexed_meta_keys = []`
+(les métas prix viennent du module, pas de l'option). Lien avec l'import de la base du matin **déduit,
+non prouvé** (aucun état antérieur de `active_plugins` conservé) : l'ordre de chargement dépend de
+cette option et le code n'a pas changé depuis `b04922a`, vert le matin même.
+
+**Correction.** `DeferredIndexAttributes` et `DeferredCardProjector` : le provider les lie toujours, ils
+demandent à `WooCommerce::isActive()` à chaque lecture, comme le font déjà `ProductPriceProjector` et
+`ShopTaxLocation`. Tests : `DeferredIndexAttributesTest` (unitaire), `DeferredCardProjectorTest` —
+câblés avant le plugin, lus après. Isolation : trait `KeepsTheIndexOut` (`meiliscout/skip_indexing`,
+filtre de MeiliScout) sur les trois tests qui enregistrent des produits — ils lisent les projecteurs
+directement, rien ne dépendait de l'indexation à la sauvegarde. `PriceComponentTest` demandait
+`55–120 €` en dur, hors d'un catalogue publié désormais à `12–42 €` : les bornes sont lues sur la piste.
+
+**Observé.** Pont accroché sous WP-CLI : `metas._price, metas._stock_status, price.min, price.max,
+price.onsale`. Réindexation `--clear` : 20 documents (15 produits publiés + 5 articles), 15 avec `price`,
+`card.price` revenu. `/boutique` : 15 cartes ; `?min_price=30&max_price=50` : « 4 articles », égal au
+filtre direct. Suite `Modules` deux fois de suite : `OK (472 tests, 1200 assertions)`, réglages intacts
+après chaque passage, aucune tâche Meilisearch créée par la suite. `composer check` vert. Navigateur non
+ouvert : Playwright et Chrome reçoivent `ERR_CONNECTION_RESET` sur `pluralia.ddev.site` depuis cet
+environnement, alors que `curl` répond ; la clé de recherche publique filtre et trie sur `price.*` (`:7701`).
+
+**Reste ouvert.** Côté Pollora (upstream) : `PluginRegistrar::register()` réapplique **toutes** les
+découvertes, pas seulement celles du plugin — tout hook d'un module qui injecte un service dépendant
+d'un plugin est exposé au même piège.
+
+**Vérifié dans le navigateur le 2026-09-24**, après `ddev restart` (le routeur refusait les navigateurs,
+`curl` répondait) : `/boutique` 15 articles et 15 cartes, bornes 12,00 € – 42,00 €, aucune erreur
+console ; `?min_price=30&max_price=50` → 4 articles, pastille « 30,00 € – 50,00 € ». **Précision sur
+la cause** : `PluginRegistrar::register()` n'est appelé qu'une fois, mais passe par le moteur de
+découverte singleton (`DiscoveryServiceProvider.php:84`) : `addLocation()` ajoute le chemin du plugin
+aux emplacements déjà connus, puis `discover()->apply()` rescanne et réapplique **tous** les
+emplacements. **Question ouverte** avant de proposer le correctif à Pollora : cette réapplication
+branche-t-elle deux fois des hooks déjà branchés ?
+
 ### R-169 · ⚪ · ouvert · 2026-09-24 — `results.blade.php` prépare encore une donnée
 
 `@php($pastTheEnd = $listing->pagination()->isPastTheEnd())` : la vue interroge le listing et

@@ -21,6 +21,8 @@ use WP_User;
 
 final class AnonymousIndexingTest extends TestCase
 {
+    use KeepsTheIndexOut;
+
     /** Fixed, so a run cut short before its teardown cannot leave an account behind for good. */
     private const string LOGIN = 'meilifacets-administrator-for-the-test';
 

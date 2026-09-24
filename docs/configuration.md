@@ -143,9 +143,9 @@ Des bindings du conteneur Laravel, à poser dans le `register()` d'un provider d
 
 | Contrat | Défaut | Rôle | Remplaçable |
 | --- | --- | --- | --- |
-| `CardProjector` | `DefaultCardProjector` | ce que le document porte pour peindre une carte | oui, `extend` |
+| `CardProjector` | `DeferredCardProjector` : `WooCommerceCardProjector` autour de `DefaultCardProjector` si WooCommerce est chargé **au moment de la projection** | ce que le document porte pour peindre une carte | oui, `extend` |
 | `TermHierarchy` | `WordPressTermHierarchy` | remontée d'un terme vers ses ancêtres | oui, mais interne |
-| `IndexAttributes` | `ConfiguredIndexAttributes`, autour de `WooCommerceIndexAttributes` si WooCommerce est actif | attributs d'index contribués | oui, `extend` — un `bind` retire les champs de prix et `displayed_attributes` |
+| `IndexAttributes` | `ConfiguredIndexAttributes`, autour de `DeferredIndexAttributes`, qui lit `WooCommerceIndexAttributes` si WooCommerce est chargé **au moment de la lecture** (`R-171`) | attributs d'index contribués | oui, `extend` — un `bind` retire les champs de prix et `displayed_attributes` |
 | `FacetCounter` | `DisjunctiveFacetCounter` | comment les compteurs de facettes sont calculés | oui, `bind` — **rendu serveur seulement** (voir ci-dessous) |
 | `SearchEngine` | `MeilisearchEngine` | l'envoi des recherches au moteur | oui, `bind` |
 | `Listing` | `ProductListing` si WooCommerce | ce qu'un listing déclare | découverte automatique |

@@ -22,6 +22,8 @@ use WP_Post;
  */
 final class ProductPriceProjectionTest extends TestCase
 {
+    use KeepsTheIndexOut;
+
     private const string AMOUNT = '.woocommerce-Price-amount';
 
     private const string NOT_BILLED = 'del, .woocommerce-price-suffix';
