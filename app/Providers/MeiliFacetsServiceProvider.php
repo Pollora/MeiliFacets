@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Providers;
 
 use Illuminate\Support\Facades\View;
+use Modules\MeiliFacets\Console\CheckAssetsCommand;
 use Modules\MeiliFacets\Console\CheckParametersCommand;
 use Modules\MeiliFacets\Discovery\ListingDiscovery;
 use Nwidart\Modules\Support\ModuleServiceProvider;
@@ -19,7 +20,7 @@ final class MeiliFacetsServiceProvider extends ModuleServiceProvider
     protected string $nameLower = 'meilifacets';
 
     /** @var list<class-string> */
-    protected array $commands = [CheckParametersCommand::class];
+    protected array $commands = [CheckAssetsCommand::class, CheckParametersCommand::class];
 
     /** @var list<class-string> */
     private const array LAYERS = [
@@ -47,6 +48,7 @@ final class MeiliFacetsServiceProvider extends ModuleServiceProvider
         $this->registerListings();
         $this->letTheThemeOverrideViews();
         $this->publishAssets();
+        $this->publishStarterConfig();
     }
 
     private function publishAssets(): void
@@ -54,6 +56,18 @@ final class MeiliFacetsServiceProvider extends ModuleServiceProvider
         $this->publishes(
             [module_path($this->name, 'resources/assets') => public_path('modules/'.$this->nameLower)],
             $this->nameLower.'-assets',
+        );
+    }
+
+    /**
+     * A commented starting point, not `config/config.php`: nwidart merges that one
+     * with the module last, so anything declared there could never be overridden.
+     */
+    private function publishStarterConfig(): void
+    {
+        $this->publishes(
+            [module_path($this->name, 'config/'.$this->nameLower.'.php.stub') => config_path($this->nameLower.'.php')],
+            $this->nameLower.'-config',
         );
     }
 

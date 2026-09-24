@@ -42,22 +42,21 @@ méthode `resolveIndexable()` qui fait passer les deux indexeurs temps réel par
 `meiliscout/indexables`. Sans ce correctif, les facettes fonctionnent après une indexation
 complète puis cassent dès la première mise à jour d'un contenu.
 
-**Surcharger `formatForIndexing()` dans une sous-classe de `PostIndexable` est sans effet.**
-`Indexer::indexItemsBatch()` teste `$indexable instanceof PostIndexable` et délègue alors le
-formatage à `PostSingleIndexer`, qui construit son propre `PostIndexable` en dur. Une sous-classe
-passe ce test, donc sa méthode n'est jamais appelée. Côté temps réel,
-`AbstractSingleIndexer::createIndexable()` retourne également `new PostIndexable()` sans filtre,
-et `SingleIndexingServiceProvider::register()` instancie `PostSingleIndexer` sans filtre non plus.
+**Surcharger `formatForIndexing()` dans une sous-classe de `PostIndexable` était sans effet**, jusqu'au
+correctif amont de `R-79`. `Indexer::indexItemsBatch()` délègue toujours le formatage à `PostSingleIndexer`,
+mais celui-ci résout désormais son indexable par le filtre `meiliscout/indexables`, au premier usage
+(`PostSingleIndexer.php:35-38`, `AbstractSingleIndexer.php:225-234`) : une sous-classe substituée par ce filtre
+formate bien les documents, en lot comme en temps réel.
 
-Conséquence pratique : seul le filtre `meiliscout/post/document`, appliqué **à l'intérieur** de
-`formatForIndexing()`, permet d'ajouter des champs sur tous les chemins d'indexation. La
-sous-classe ne sert qu'aux réglages d'index, que `Indexer` lit bien depuis l'indexable filtré.
+Le module continue d'ajouter ses champs par le filtre `meiliscout/post/document`, appliqué **à l'intérieur**
+de `formatForIndexing()` ; sa sous-classe ne sert qu'aux réglages d'index.
 
 Le piège est silencieux : les réglages seraient corrects, les documents dépourvus des champs
 attendus, et les facettes vides sans qu'aucune erreur soit levée.
 
 **Le réglage « taxonomies indexées » ne s'applique pas au champ `terms` des posts.**
-`indexed_taxonomies` n'est lu que par `TaxonomyIndexable` et `TaxonomySingleIndexer`, soit
+`indexed_taxonomies` n'est lu, pour construire des documents, que par `TaxonomyIndexable` et
+`TaxonomySingleIndexer`, soit
 l'index `taxonomies` qui traite les termes comme des documents. Le champ `terms` d'un produit est
 construit par `buildTermsFromCache()`, qui appelle `get_object_taxonomies($post->post_type)` sans
 consulter ce réglage : **toutes** les taxonomies du post type s'y retrouvent, cochées ou non.
@@ -85,12 +84,13 @@ par taxonomie reste donc nécessaire.
 
 **Le prix et le stock sont déjà indexés**, dans `metas` : `_price`, `_regular_price`,
 `_stock_status`, `_manage_stock`, `_backorders`, `_thumbnail_id`. Rien à ajouter au document
-pour eux, seulement à les déclarer filtrables — ce qu'ils ne sont pas.
+pour eux, seulement à les déclarer filtrables — ce que le module fait depuis le lot prix pour `_price` et
+`_stock_status`.
 
 **`_price` est stocké en numérique** (`42`, `28.5`, `18`), pas en chaîne : un filtre par plage et
 un tri numérique fonctionneront nativement. `_stock_status` est la chaîne `instock`, filtrable en
-égalité. Reste le cas des produits variables, où le parent porte une fourchette et non un prix —
-invérifiable tant que le catalogue n'en contient aucun.
+égalité. Vérifié depuis : sur un produit variable, `metas._price` ne porte que la première ligne, le prix le
+plus bas. C'est ce qui a imposé `price.min`/`price.max` (`prix.md`, D-b).
 
 **Des metas parasites sont indexées** : `_edit_lock`, `_edit_last`, `_yoast_wpseo_content_score`,
 `_pluralia_test_fixture`. Elles gonflent le document et confirment que n'importe quelle meta
@@ -101,21 +101,26 @@ déclenche une réindexation.
 `attributesToRetrieve: ["ID", "card"]`. Facteur 6,6 sur ce qui part à **chaque filtre**.
 
 Deux points distincts, qu'il ne faut pas confondre : `attributesToRetrieve` règle le transfert,
-`displayedAttributes` règle ce que la clé de recherche **autorise** à lire. Le second reste à
-`["*"]`, donc la clé publique du navigateur donne accès à `post_content` et à toutes les metas.
+`displayedAttributes` règle ce que la clé de recherche **autorise** à lire. Il valait `["*"]` à la première
+indexation ; il est restreint à `ID` et `card` depuis (`decisions.md`, « `displayedAttributes` ») : la clé
+publique ne **lit** plus `post_content` ni les metas. Elle peut encore les **cibler** tant que
+`searchableAttributes` reste à `["*"]` (`R-27`).
 `displayedAttributes` n'agit pas non plus sur le poids stocké : `avgDocumentSize` est resté à
 4 519 octets avant comme après l'ajout de la carte.
 
 ## WordPress et WooCommerce
 
 **Un nom de taxonomie est une query var publique.** Vérifié sur ce projet :
-`/boutique?product_cat=visage` fait passer la grille servie de 12 à 8 produits — WordPress
-filtre déjà sa propre requête. `product_brand`, `product_cat`, `product_tag`, `contenu`,
-`essentiel` et `pluralia_selection` sont tous dans les 74 entrées de `$wp->public_query_vars`,
-avec `page`, `paged`, `p`, `order` et `orderby`. Un paramètre de filtre portant l'un de ces noms
-produit un double filtrage silencieux, WordPress d'un côté et Meilisearch de l'autre. Vérifier
-un nom contre `$wp->public_query_vars`, jamais en testant une URL : `?page=2` répond `200`
-aujourd'hui sans que rien ne garantisse qu'il le fera demain.
+`/boutique?product_cat=visage` faisait passer la grille de 12 à 8 produits le 2026-09-02, quand elle était
+encore rendue par WordPress, qui filtre sa propre requête. La grille vient désormais de Meilisearch, donc la
+collision ne se voit plus à l'écran : elle reste réelle, le nom restant une query var publique. `product_brand`, `product_cat`, `product_tag`, `contenu`,
+`essentiel` et `pluralia_selection` sont tous des query vars publiques, avec `page`, `paged`, `p`,
+`order` et `orderby`. Un paramètre de filtre portant l'un de ces noms produit un double filtrage
+silencieux, WordPress d'un côté et Meilisearch de l'autre. Vérifier un nom avec
+`meilifacets:check-parameters`, jamais en testant une URL — `?page=2` répond `200` aujourd'hui sans que
+rien ne garantisse qu'il le fera demain — ni en lisant `$wp->public_query_vars` en console : le
+filtre `query_vars` n'y est jamais appliqué, la propriété y tient 74 noms au lieu de 95 et manque
+`categories`, `brands` ou `checkout-link` (`R-139`).
 
 **L'archive produit affiche 16 produits, pas `posts_per_page`.** WooCommerce dérive
 `loop_shop_per_page` de 4 colonnes × 4 lignes ; l'option WordPress vaut 10 et ne sert pas ici.
@@ -140,7 +145,8 @@ Constats de lecture, le 2026-09-02 :
   `Cache-Control: no-store` ;
 - un visiteur portant un cookie `woocommerce_cart`/`wp_woocommerce_session` passe en `pass` :
   une part du trafic e-commerce ne touche jamais ce cache ;
-- ⚠️ `vcl_recv` **supprime toute la query string** si le premier paramètre est `utm_*`, `ref`,
+- ⚠️ `vcl_recv` **supprime toute la query string** si le premier paramètre est `utm_campaign`,
+  `utm_medium`, `utm_source`, `utm_term`, `ref`,
   `refid`, `refsrc`, `client`, `cx`, `eid`, `fbid`, `feed`, `ver`, `view` ou `adParams`. Aucun
   paramètre du module ne doit porter l'un de ces noms.
 
@@ -198,8 +204,8 @@ ne rattrape pas — 500 sur toute page d'édition. Une `Error` n'est pas une `Ex
 **Le plafond `maxTotalHits` promet des pages qu'il ne sert pas.** Mesuré le 2026-09-07 sur une
 instance 1.53.1, avec des index fabriqués pour l'occasion.
 
-Le réglage vaut **1 000 par défaut**, sur un index neuf comme sur celui du projet — personne ne l'a
-choisi. Ce qu'il borne est la **profondeur de pagination**, pas la recherche :
+Le réglage vaut **1 000 par défaut** chez Meilisearch ; le module l'écrit désormais lui-même, avec la même
+valeur par défaut, surchargeable par `meilifacets.engine.reachable_hits`. Ce qu'il borne est la **profondeur de pagination**, pas la recherche :
 
 | Ce qui est mesuré | Résultat |
 | --- | --- |
@@ -266,12 +272,13 @@ tableaux de valeurs aurait renvoyé ce produit à tort, puisque les deux conditi
 satisfaites par deux variations différentes. **Indexer à la variation préserve la corrélation
 entre attributs d'une même déclinaison.**
 
-Mesure impossible à ce jour : la base locale contient 12 produits, tous simples, sans aucune
-variation, et le dump `staging-20260102.sql` n'en contient aucune non plus.
+Mesure toujours pas faite. Le catalogue compte désormais 8 produits variables, mais l'index est au produit :
+aucune déclinaison n'y est un document. La mesure attend `D-g` (`prix.md`).
 
-**Une facette plafonne à cent valeurs avant que le module n'en voie une seule.**
-`faceting.maxValuesPerFacet` vaut `100` par défaut chez Meilisearch, et le module **ne l'écrit
-pas** — contrairement à `sortFacetValuesBy` et `pagination.maxTotalHits`, qu'il pose tous les deux.
+**Une facette plafonnait à cent valeurs avant que le module n'en voie une seule** (constaté le 2026-09-08).
+`faceting.maxValuesPerFacet` vaut `100` par défaut chez Meilisearch ; le module l'écrit désormais, 1 000 par
+défaut (`EngineLimits::DEFAULT_MAX_FACET_VALUES`, surchargeable par `meilifacets.engine.max_facet_values`). Le
+piège subsiste sur un index qui n'a pas été réindexé depuis, ce que `EngineLimits::looksTruncated()` signale.
 Sur une taxonomie de plusieurs centaines de termes, la distribution est donc tronquée aux cent
 mieux comptées avant même que `Facet::$cap` ne s'applique, et une facette déclarée `cap: 200` en
 rendra cent sans un mot. Vérifié le 2026-09-08 sur l'index du projet :
@@ -294,16 +301,21 @@ seconde origine (port distinct), donc pas de mutualisation de connexion avec la 
 client envoie `Content-Type: application/json` **et** `Authorization`, ce qui rend la requête non
 simple au sens CORS. Sur mobile, le premier filtre paie DNS + TCP + TLS + `OPTIONS`, soit 500 ms
 à 1 s, contre 1 à 10 ms de travail moteur. Le levier — `preconnect` et une requête de chauffe à
-l'`idle` — vaut plus que tout arbitrage sur le poids du markup.
+l'`idle` — vaut plus que tout arbitrage sur le poids du markup. Depuis, le module émet un `preconnect` vers
+l'origine du moteur sur les pages de listing (`Preconnect`) ; la requête de chauffe n'existe pas, et le
+préflight `OPTIONS` reste à payer au premier filtre.
 
-**`estimatedTotalHits` n'est pas un total, et le moteur plafonne à 1000.** `pagination.maxTotalHits`
+**`estimatedTotalHits` n'est pas un total, et le moteur plafonne à 1000.** ⚠️ Démenti plus haut, mesuré le
+2026-09-07 : `totalHits` est exact, c'est la profondeur de pagination qui plafonne ; le module pagine en
+`page`/`hitsPerPage`. `pagination.maxTotalHits`
 vaut 1000 par défaut : au-delà, la pagination s'arrête sans le dire. Passer à `page`/`hitsPerPage`
 donne `totalHits` et `totalPages` exhaustifs.
 
-**Une promotion qui expire ne réindexe rien.** Le cron `wc_scheduled_sales` applique la fin d'une
-promotion **sans sauvegarder le produit** : aucun hook de meta ne se déclenche, l'index garde
-l'ancien prix, et la grille contredit la fiche produit — durablement, purge de cache comprise. À
-traiter avec le lot 4.
+**Une promotion qui expire réindexe, si la file avance.** `wc_scheduled_sales()` et l'action
+`wc_product_end_scheduled_sale` passent par `wc_apply_sale_state_for_product()`, qui écrit `_price` par
+`update_post_meta()` (`wc-product-functions.php:647`) : MeiliScout l'entend sur `updated_post_meta`. Condition :
+la file Action Scheduler doit avancer (« Action Scheduler n'avance que sur une requête d'admin »). L'audit du
+2026-09-04 affirmait l'inverse ; le code installé (WooCommerce 11.0.1) le dément.
 
 **Non vérifié, contrairement à ce que l'audit avançait : les brouillons ne fuient pas.**
 `PostIndexable::getItems()` demande bien `'post_status' => 'any'`, mais le test a montré
@@ -360,11 +372,13 @@ absents et les valeurs de facettes repliées sont masqués par cet attribut : un
 `.meilifacetsCardImage { display: block }` dans une feuille du thème les ferait tous réapparaître.
 
 La contre-règle vit dans la feuille du module,
-`resources/assets/css/meilifacets.css`, restreinte à ses propres classes :
+`resources/assets/css/meilifacets.css`, restreinte à ses propres classes **et** à `[data-meili]`, que conserve
+une vue surchargée par le thème (`decisions.md`, « Défense de `hidden` ») :
 
 ```css
 [class^="meilifacets"][hidden],
-[class*=" meilifacets"][hidden] { display: none !important; }
+[class*=" meilifacets"][hidden],
+[data-meili][hidden] { display: none !important; }
 ```
 
 Elle est plus spécifique (0,2,0) qu'une règle de classe (0,1,0), donc elle gagne même face à un
@@ -380,8 +394,9 @@ nœuds `hidden` visibles à l'écran, ce qui se voit tout de suite. Le module n'
 
 **Une image sans URL garde son nœud, avec un GIF transparent en `src`.** Un `<img>` sans `src`
 est invalide, et plusieurs navigateurs demandent alors l'URL de la page courante. Le data-URI de
-`CardImage::BLANK` coûte 62 octets et aucune requête. Les douze produits du catalogue ont tous une
-miniature, donc ce chemin n'est pas exercé aujourd'hui.
+`CardImage::BLANK` tient en 78 caractères (un GIF de 42 octets) et ne coûte aucune requête. Cinq produits
+n'ont pas de miniature (#364, #380, #401, #412, #436), et le `<template>` de carte porte ce `src` sur chaque
+page : le chemin est exercé.
 
 > Corrigé le 2026-09-04. Ce passage justifiait ces règles par `ResolvedListing::slots()`, qui
 > rendait une page pleine d'emplacements vides pour qu'Alpine n'ait jamais à créer un nœud. Ce
@@ -431,3 +446,100 @@ Ce répertoire est ignoré par git **parce que c'est une sortie de Composer**. N
 installation manuelle, et surtout **ne rien y corriger à la main** : le correctif se fait dans le
 dépôt amont, puis `composer update amphibee/meiliscout` le rapatrie et fige la référence dans la
 `composer.lock` du projet.
+
+## Deux colonnes de date dans Action Scheduler
+
+La table `actionscheduler_actions` porte `scheduled_date_local` **et** `scheduled_date_gmt`. Les
+métadonnées de WooCommerce, elles, sont des horodatages **UTC** — `_sale_price_dates_from`,
+`_sale_price_dates_to`, et tout ce que `set_date_prop()` écrit (`abstract-wc-data.php` : un nombre
+est traité comme UTC, une chaîne comme heure locale du site puis convertie).
+
+Comparer `scheduled_date_local` à l'une de ces métadonnées fait apparaître un décalage qui n'existe
+pas : il vaut exactement le décalage du site. Constaté le 2026-09-09 en cadrant `prix.md` — **2
+heures annoncées, 0 seconde réelles**, sur un site en UTC+2. La conclusion fausse qui en découlait :
+« il existe une fenêtre où `is_on_sale()` dit oui mais `_price` vaut encore le prix normal ».
+WooCommerce planifie en réalité la bascule à la borne exacte.
+
+Corollaire pour l'admin : une promo « du 14 » commence à **minuit heure du site**, pas à minuit UTC —
+la boîte à métadonnées force `Y-m-d 00:00:00` et `Y-m-d 23:59:59` en heure locale avant conversion.
+
+## Changer `filterable()` ou `sortable()` sans repousser les réglages casse le listing
+
+Les attributs filtrables et triables sont un **réglage de l'index**, pas une propriété du document.
+Modifier `IndexAttributes` ne suffit donc pas : tant que les réglages ne sont pas repoussés,
+Meilisearch refuse la requête — `Attribute \`price.min\` is not sortable` — `ResolvedListing` attrape
+l'échec, et le visiteur reçoit la vue « indisponible » **à la place de tout le listing**.
+
+Constaté le 2026-09-15 en changeant les tris de prix : réindexation faite *avant* le changement de
+`sortable()`, donc page vide et aucune erreur visible côté serveur. `wp meiliscout index` repousse les
+réglages en même temps que les documents ; une sauvegarde de produit aussi, depuis le correctif de `R-79`
+(`AbstractSingleIndexer.php:178`, `:262`) — mais rien ne garantit qu'un produit soit enregistré entre la mise
+en production et la première visite.
+
+**Corollaire de déploiement** : livrer un lot qui touche `filterable()` ou `sortable()` **impose une
+réindexation**, sans quoi la boutique perd son listing en silence. À écrire dans la note de version.
+
+## Lire le prix d'une carte avec une expression régulière conclut de travers
+
+`card.price` porte le HTML de `get_price_html()`. Pour un produit en promotion il contient **deux**
+montants — l'ancien barré et le nouveau — et pour un produit variable une **fourchette**. Prendre le
+premier nombre, ou le plus grand, donne le prix barré : trois vérifications de tri ont conclu à un
+désordre inexistant le 2026-09-15 avant qu'un parcours du DOM ne rétablisse les faits.
+
+Vérifier un tri se fait contre l'index (`facetStats`, un filtre sur la valeur), jamais contre le
+rendu.
+
+
+## Action Scheduler n'avance que sur une requête d'admin
+
+`ActionScheduler_QueueRunner::maybe_dispatch_async_request()` teste `is_admin()`
+(`ActionScheduler_QueueRunner.php:141`) avant de lancer son runner asynchrone. WP-Cron est le seul
+autre chemin, et **Pollora le désactive en dur** — `Constant::queue('DISABLE_WP_CRON', true)`,
+`Bootstrap.php:336`, sans condition et sur tous les environnements, sans rien mettre à la place.
+Conséquence, mesurée le 2026-09-15 : **six visites de `/boutique` laissent une action `pending`**,
+un seul appel à `admin-ajax.php` la termine.
+
+Ce n'est donc pas une particularité du poste de développement : c'est le comportement par défaut de
+tout site Pollora. Il faut un cron système sur `wp-cron.php`, ou le lancer à la main — voir
+`configuration.md`, « Le cron doit tourner ». Arbitré par Louis le 2026-09-15 : la préprod a bien un
+cron actif, le local se lance à la main, et l'exigence est écrite dans la documentation.
+
+Deux corollaires :
+
+- **Vérifier une bascule programmée en visitant le front ne prouve rien.** Il faut une requête
+  d'admin — `admin-ajax.php` suffit, même déconnecté — ou `wp action-scheduler run`, qui n'emprunte
+  pas le même chemin (voir ci-dessous).
+- **Le runner réel passe par `admin-ajax.php`, donc `DOING_AJAX` est vrai** pendant tout ce qu'il
+  exécute. Un code qui se protège de « l'AJAX » se protège donc aussi de la file. C'est `R-112`, fermé le
+  2026-09-15 : MeiliScout ne teste plus `DOING_AJAX` (`SingleIndexingServiceProvider.php:373-399`).
+  `wp action-scheduler run` ne reproduit **pas** ce contexte : un test qui passe en WP-CLI ne dit
+  rien du comportement en production.
+
+Et `wp cron event list` ne montre rien de tout cela : `woocommerce_scheduled_sales` est planifié
+par `as_schedule_recurring_action()` (`class-woocommerce.php:1709`), pas par WP-Cron —
+`wp_next_scheduled('woocommerce_scheduled_sales')` répond `false` sur un site où la promo bascule
+très bien. La file se lit dans `actionscheduler_actions`.
+
+## `module:publish-config MeiliFacets --force` détruit la configuration du projet
+
+La commande existe et vise bien `config/meilifacets.php` :
+
+```
+$ ddev exec php artisan module:publish-config MeiliFacets
+   INFO  Publishing [config] assets.
+  File [config/meilifacets.php] already exists ....................... SKIPPED
+```
+
+Sans `--force` elle ne fait rien, puisque le fichier existe. **Avec `--force`, elle l'écrase par
+`Modules/MeiliFacets/config/config.php`** — qui ne contient que `['name' => 'MeiliFacets']`. Le
+projet perdrait `browser`, `apply_mode`, `price_parts` et `url_parameters` d'un coup, sans
+avertissement.
+
+C'est la conséquence directe de la règle inverse, écrite en tête de `config/config.php` : **une clé
+déclarée là ne peut pas être surchargée par le projet**, parce que la fusion de nwidart fait gagner
+le module. Les réglages surchargeables sont donc lus avec leur défaut **dans le provider**, et
+documentés dans `configuration.md` — jamais déclarés dans `config/config.php`.
+
+Autrement dit, il n'y a **rien à publier** : `config/meilifacets.php` côté projet n'est pas une
+copie du fichier du module, c'est un fichier que le projet écrit lui-même, dont le module ne connaît
+aucune clé à l'avance. La commande n'a pas d'usage ici, et son `--force` est un piège.

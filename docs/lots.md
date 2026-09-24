@@ -6,8 +6,8 @@ Sept lots. Chacun se termine par un critère de recette vérifiable — pas « c
 « voilà ce qu'on observe ».
 
 **Les décisions encore ouvertes ne bloquent pas le découpage : elles se prennent au début du lot
-qui les concerne.** Deux d'entre elles ne sont d'ailleurs pas tranchables aujourd'hui, faute de
-catalogue contenant des produits variables.
+qui les concerne.** Deux d'entre elles attendaient un catalogue contenant des produits variables ; il en
+contient depuis (8 sur 76 produits publiés, mesuré le 2026-09-22).
 
 La documentation n'est pas un lot final : chaque lot documente ce qu'il livre, sans quoi elle ne
 sera jamais écrite.
@@ -44,7 +44,8 @@ une distribution par taxonomie et non une liste mélangée.
 > sous 4,3 Ko en restreignant `displayedAttributes` — deux erreurs en une. Ce réglage ne touche
 > ni au poids stocké (`avgDocumentSize` est resté à 4 519 o) ni à ce qui transite, que règle
 > `attributesToRetrieve` par requête ; il décide de ce que la clé de recherche **autorise** à
-> lire, ce qui est une question de sécurité restée ouverte ([decisions.md](decisions.md)).
+> lire, ce qui est une question de sécurité restée ouverte ([decisions.md](decisions.md)). Tranchée depuis :
+> `displayedAttributes` est restreint à `ID` et `card`, ouvert par `meilifacets.displayed_attributes`.
 
 ## Lot 2 — Client de recherche navigateur
 
@@ -64,9 +65,9 @@ résultats, sans qu'aucun PHP ne s'exécute. Le retour arrière restaure l'état
 
 ## Lot 3 — Composants Blade et rendu
 
-Le premier lot visible. L'archive produit change de source de données — et de carte, la bascule
-sur `<x-theme::product-card>` étant assumée : elle rend aujourd'hui la carte WooCommerce générique
-d'Apiary, destinée à disparaître.
+Le premier lot visible. L'archive produit change de source de données et de carte : elle rend
+`<x-meilifacets::card>`, la carte du module (mesuré sur `/boutique` le 2026-09-22). *`decisions.md`, « Carte
+de l'archive produit », prévoit encore `<x-theme::product-card>` : écart à trancher (`Q-10`, `R-45`).*
 
 Livré en trois étapes. Après 3b, l'archive **affiche** le bon contenu pour n'importe quelle URL,
 filtrée ou non — ce qui est ce que le référencement demande.
@@ -159,13 +160,13 @@ Dans cet ordre, tous relevés par l'audit du 2026-09-04 :
    retour arrière change l'URL sans repeindre. Et en mode `immediate`, une entrée d'historique par
    case cochée rendrait le bouton « Précédent » inutilisable.
 
-### État au 2026-09-06
+### État au 2026-09-07
 
 | Point de l'audit | État |
 | --- | --- |
 | 1. `multi-search` et comptage disjonctif côté client | **livré** — recetté en navigateur au lot 3c-1, 131 tests Node |
 | 2. Pagination fausse sur un vrai catalogue | **livré** — `totalHits` remplace l'estimation, et la fenêtre ne propose jamais une page que le moteur refuse (`engine.reachable_hits`, R-42) |
-| 3. Contrat de liaison | **livré** — 23 crochets dans `Enums\Hook`, `data-meili-contract="1"`, refus au démarrage, parité testée |
+| 3. Contrat de liaison | **livré** — 23 crochets à cette date dans `Enums\Hook` (36 aujourd'hui), `data-meili-contract="1"`, refus au démarrage, parité testée |
 | 4. `popstate` | **branché** — `Listing.listenToHistory()`, appelé par `ListingBinding.start()` ; recette au lot 3c-3 |
 | a11y : compteur dans le nom accessible | **corrigé** — `aria-describedby`, le nom de la case ne change plus au filtrage |
 | a11y : règle `[hidden]` | **corrigée** — `resources/assets/css/meilifacets.css`, publiée et inscrite par le module |
@@ -186,8 +187,10 @@ zéro. `ListingBinding` n'est plus qu'un câblage : `ResultsView`, `FacetsView`,
 
 **Ce qui reste à 3c-3** : état d'attente (`data-meili-busy`), comportement après échecs répétés,
 recette de `popstate` et du mode `immediate`. Retirés de cette liste parce que livrés le
-2026-09-07 : le `preconnect` (R-52) et le retour du regard en haut du listing (R-73).
-`maxTotalHits` est mesuré et volontairement laissé à sa valeur par défaut (R-42).
+2026-09-07 : le `preconnect` (R-52) et le retour du regard en haut du listing (R-73) — devenu optionnel le
+2026-09-08, par composant (`scroll`, `data-meili-scroll`) : sans lui, la page ne bouge pas. `maxTotalHits` est
+écrit par le module depuis `meilifacets.engine.reachable_hits` — 1000 par défaut, la valeur du moteur (R-42,
+fermé le 2026-09-08).
 
 ## Lot 4 — Prix, stock et variations
 
@@ -200,9 +203,15 @@ prix ni stock propres : il a ceux de ses variations.
 - Hooks WooCommerce de stock, que les hooks de meta ne couvrent pas.
 - Choix du calcul des compteurs de facettes, à la lumière du catalogue réel.
 
+**Moitié prix livrée le 2026-09-15** (`R-43`) : l'intervalle est indexé par produit et le filtre
+teste son chevauchement avec la plage demandée, donc un produit variable est trouvé par n'importe
+laquelle de ses variations. Restent le **stock**, différé par `D-f` (disponibilité) et `D-g` (stock par
+variation), et la remontée d'une variation vers son parent, qui ne porte encore aucun numéro.
+
 **Recette —** filtrer par prix renvoie le produit avec la variation correspondante et non la
 fourchette entière ; un filtre croisé contenance et prix ne produit aucun faux positif ; une
-commande qui décrémente un stock met l'index à jour.
+commande qui décrémente un stock met l'index à jour. **Le troisième point n'est pas atteint** : le
+stock n'est pas du lot livré.
 
 ## Lot 5 — Recherche et suggestions
 
@@ -235,7 +244,7 @@ Ce qui transforme un module qui marche ici en module installable ailleurs.
 
 - Commande d'installation enchaînant vérification, synchronisation et première indexation.
 - Documentation d'installation, d'extension et de dépannage. **Fait le 2026-09-07**, par
-  anticipation : les six documents vivent désormais dans `docs/` du module.
+  anticipation : les documents vivent désormais dans `docs/` du module (huit aujourd'hui).
 - Bloc Gutenberg de pose : il désigne un listing existant, il n'en configure aucun.
 - Extraction en paquet Composer, si la décision est prise.
 

@@ -1,5 +1,5 @@
 <fieldset {{ $attributes->class('meilifacetsFacet') }} data-taxonomy="{{ $facet->taxonomy }}"
-          @if ($values === []) hidden @endif {{ $hook('facet') }} {{ $scrollMark() }}>
+          @unless ($hasReadableValues()) hidden @endunless {{ $hook('facet') }} {{ $scrollMark() }}>
     <legend class="meilifacetsFacetLabel">{{ $facet->label }}</legend>
     <div class="meilifacetsFacetPanel" id="{{ $ids->facetPanel($facet->name) }}">
         <div class="meilifacetsFacetPanelInner">
@@ -23,7 +23,8 @@
             </ul>
             <button type="button" class="meilifacetsFacetMore" aria-expanded="false"
                     @unless ($hasFoldedValues()) hidden @endunless {{ $hook('more') }}>
-                {{ __('Show more') }}
+                <span {{ $hook('more-label') }}>{{ __('Show more') }}</span>
+                <span hidden {{ $hook('less-label') }}>{{ __('Show less') }}</span>
             </button>
         </div>
     </div>

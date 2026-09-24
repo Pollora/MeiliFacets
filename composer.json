@@ -63,15 +63,20 @@
         "refactor": "rector process --dry-run",
         "test": "phpunit --testsuite Unit",
         "test:host": "phpunit --testsuite Feature",
+        "lint:js": "npm run lint",
+        "types:js": "npm run typecheck",
         "test:js": "npm test",
+        "build": "npm run build",
+        "build:check": "npm run --silent build:check",
         "check": [
             "@lint",
             "@lint:js",
+            "@types:js",
             "@refactor",
             "@test",
-            "@test:js"
-        ],
-        "lint:js": "npm run lint"
+            "@test:js",
+            "@build:check"
+        ]
     },
     "scripts-descriptions": {
         "lint": "Check formatting without changing anything.",
@@ -79,11 +84,17 @@
         "refactor": "Report what Rector would change, without changing it.",
         "test": "Run the tests that need nothing but this package.",
         "test:host": "Run the tests that need a host application, from the host project.",
+        "lint:js": "Check the browser client for dead code and unused imports.",
+        "types:js": "Type-check the browser client and its tests.",
         "test:js": "Run the browser client tests.",
-        "check": "Everything the module can verify on its own: the definition of done.",
-        "lint:js": "Check the browser client for dead code and unused imports."
+        "build": "Bundle the browser client into resources/assets/dist.",
+        "build:check": "Fail when the committed bundle does not match the sources.",
+        "check": "Everything the module can verify on its own: the definition of done."
     },
     "config": {
-        "sort-packages": true
+        "sort-packages": true,
+        "allow-plugins": {
+            "php-http/discovery": true
+        }
     }
 }

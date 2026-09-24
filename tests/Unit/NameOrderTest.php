@@ -69,7 +69,7 @@ final class NameOrderTest extends TestCase
             $labels
         );
 
-        usort($values, new NameOrder($collator)->compare(...));
+        usort($values, new NameOrder($collator instanceof Collator ? fn (): Collator => $collator : null)->compare(...));
 
         return array_map(static fn (FacetValue $value): string => $value->label, $values);
     }

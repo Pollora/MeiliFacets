@@ -14,8 +14,6 @@ use Modules\MeiliFacets\Search\EngineLimits;
 use Pollora\MeiliScout\Config\Settings;
 use Pollora\MeiliScout\Indexables\PostIndexable;
 
-// `Indexer` delegates formatting on `instanceof PostIndexable`: an override of
-// `formatForIndexing()` here would never run.
 final class FacetedPostIndexable extends PostIndexable
 {
     private const string ALL_FACETS = '*';
@@ -100,12 +98,13 @@ final class FacetedPostIndexable extends PostIndexable
      */
     private function facetingSettings(array $faceting): array
     {
-        // Meilisearch orders facet values alphabetically by default.
+        // Meilisearch orders facet values alphabetically by default, and caps them at 100.
         return [
             ...$faceting,
             FacetingSetting::SortValuesBy->value => [
                 self::ALL_FACETS => FacetValueOrder::ByCount->value,
             ],
+            FacetingSetting::MaxValuesPerFacet->value => $this->limits->maxFacetValues,
         ];
     }
 

@@ -19,11 +19,12 @@ final class SearchServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->app->bind(FacetCounter::class, DisjunctiveFacetCounter::class);
+        $this->app->bindIf(FacetCounter::class, DisjunctiveFacetCounter::class);
         $this->app->scoped(SearchEngine::class, $this->engine(...));
         $this->app->scoped(BrowserConnection::class, $this->browser(...));
         $this->app->scoped(EngineLimits::class, fn (): EngineLimits => new EngineLimits(
-            (int) config('meilifacets.engine.reachable_hits', EngineLimits::DEFAULT_REACHABLE_HITS)
+            (int) config('meilifacets.engine.reachable_hits', EngineLimits::DEFAULT_REACHABLE_HITS),
+            (int) config('meilifacets.engine.max_facet_values', EngineLimits::DEFAULT_MAX_FACET_VALUES),
         ));
     }
 

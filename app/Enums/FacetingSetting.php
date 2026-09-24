@@ -7,4 +7,5 @@ namespace Modules\MeiliFacets\Enums;
 enum FacetingSetting: string
 {
     case SortValuesBy = 'sortFacetValuesBy';
+    case MaxValuesPerFacet = 'maxValuesPerFacet';
 }

@@ -21,7 +21,11 @@ final class WordPressDefaultTerms implements DefaultTerms
 
     public function slugOf(string $taxonomy): ?string
     {
-        return $this->slugs[$taxonomy] ??= $this->resolve($taxonomy);
+        if (! array_key_exists($taxonomy, $this->slugs)) {
+            $this->slugs[$taxonomy] = $this->resolve($taxonomy);
+        }
+
+        return $this->slugs[$taxonomy];
     }
 
     private function resolve(string $taxonomy): ?string

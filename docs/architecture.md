@@ -3,17 +3,19 @@
 Module Pollora de recherche, filtres et suggestions sur Meilisearch, conçu pour être
 réutilisable hors de Pluralia.
 
-Documents liés : [installation.md](installation.md) · [configuration.md](configuration.md) · [lots.md](lots.md) · [pieges.md](pieges.md) · [decisions.md](decisions.md) · [revue.md](revue.md)
+Documents liés : [installation.md](installation.md) · [configuration.md](configuration.md) · [lots.md](lots.md) · [pieges.md](pieges.md) · [prix.md](prix.md) · [decisions.md](decisions.md) · [revue.md](revue.md)
 
 > Ce document ne contient **que ce qui a été validé**. Tout le reste est listé dans
 > [decisions.md](decisions.md) sous « En attente de validation », et n'est pas acquis.
 
 ## Répartition avec MeiliScout
 
-Vérifié dans son code source : MeiliScout n'a **aucune notion de facette**. Le paramètre
-`facets` n'est jamais envoyé, `facetDistribution` jamais lu, et sa seule entrée de recherche
-passe par le détournement de `WP_Query`. Il fournit en revanche l'extraction du contenu
-WordPress et la déclaration des attributs filtrables sur l'index.
+Vérifié dans son code source : MeiliScout n'offre **aucune facette exploitable**. Son
+détournement de `WP_Query` (`QueryIntegration::interceptQuery()`), sa seule entrée de recherche,
+envoie bien `facets` sur les champs plats `terms.*` et lit `facetDistribution`, mais n'en garde que
+des clés `taxonomies.<taxonomie>.<champ>` qu'il ne demande jamais : `facet_distribution` sort
+toujours vide. Il fournit en revanche l'extraction du contenu WordPress et la déclaration des
+attributs filtrables sur l'index.
 
 **MeiliScout indexe. MeiliFacets interroge.** Les facettes sont à construire intégralement.
 
@@ -60,19 +62,28 @@ sans la moindre erreur.
 
 | Besoin | Point d'extension |
 | --- | --- |
-| Ajouter `facets.*` et `card` au document | filtre `meiliscout/post/document` |
+| Ajouter `facets.*`, `card` et `price` au document | filtre `meiliscout/post/document` — `addFacets()`, `addCard()`, `addPrice()` de `MeiliScoutBridge` |
 | Déclarer les attributs filtrables et le tri des valeurs | `meiliscout/indexables` + `getIndexSettings()` |
 
 **Les champs, par le filtre document.** Il est appliqué à l'intérieur même de
 `PostIndexable::formatForIndexing()`, donc sur tous les chemins d'indexation — complète, temps
-réel, file asynchrone. Le `terms` reçu est déjà construit : le regroupement par taxonomie est une
-transformation en mémoire, sans requête WordPress supplémentaire.
+réel, file asynchrone. Le `terms` reçu est déjà construit : le regroupement par taxonomie
+(`FacetProjection`) est une transformation en mémoire ; seule la chaîne d'ancêtres interroge
+WordPress, une fois par terme parent (`TermAncestry`).
 
 ```php
 #[Filter('meiliscout/post/document')]
-public function addFacets(array $document, WP_Post $post): array
+public function addFacets(array $document): array
 {
-    $document['facets'] = $this->groupByTaxonomy($document['terms'] ?? []);
+    $terms = $document[DocumentField::Terms->value] ?? [];
+
+    if (! is_array($terms)) {
+        return $document;
+    }
+
+    $document[DocumentField::Facets->value] = FacetProjection::fromTerms(
+        $this->ancestry->expand($terms)
+    );
 
     return $document;
 }
@@ -82,11 +93,12 @@ public function addFacets(array $document, WP_Post $post): array
 `updateSettings($indexable->getIndexSettings())`. Une classe qui étend celle de MeiliScout et
 surcharge cette seule méthode suffit — sans toucher à `formatForIndexing()`.
 
-**Pourquoi surcharger `formatForIndexing()` ne marcherait pas**, et c'est vérifié dans le code :
-`Indexer::indexItemsBatch()` teste `$indexable instanceof PostIndexable` et délègue alors le
-formatage à `PostSingleIndexer`, qui construit son propre `PostIndexable` en dur. Une sous-classe
-passe ce test, et sa méthode n'est jamais appelée. Même chose côté temps réel, où
-`AbstractSingleIndexer::createIndexable()` retourne `new PostIndexable()` sans filtre.
+**Pourquoi le filtre document plutôt qu'une surcharge de `formatForIndexing()`.** À l'origine,
+la surcharge était sans effet : `Indexer::indexItemsBatch()` délègue tout `PostIndexable` à
+`PostSingleIndexer`, qui construisait le sien en dur. Depuis `resolveIndexable()` (MeiliScout,
+branche `feat/meilifacets`, `R-79`), cet indexeur passe par `meiliscout/indexables`, en masse
+comme en temps réel : une surcharge serait désormais appelée. Le module n'en a pas besoin — ses
+champs passent par le filtre, ses réglages par `getIndexSettings()`.
 
 Écarté également : un index séparé, qui dupliquerait toute l'extraction du contenu.
 
@@ -120,26 +132,31 @@ Sur un catalogue de cosmétiques avec une dizaine de taxonomies, tout cela reste
 une limite à connaître, pas un obstacle — et elle se restreint plus tard si le besoin apparaît,
 alors que maintenir une liste dans chaque projet serait un coût permanent.
 
-Cette règle ne couvre que les taxonomies. Les metas ne sont filtrables que si elles ont été
-cochées dans l'écran MeiliScout, et le prix WooCommerce est stocké en chaîne : un filtre par
-plage et un tri numérique demandent une projection typée. Le prix, le stock et les variations
-restent donc un travail à part.
+Cette règle ne couvre que les taxonomies. MeiliScout ne déclare filtrables que les metas cochées
+dans son écran — aucune sur Pluralia ; le module ajoute lui-même `metas._price` et
+`metas._stock_status` quand WooCommerce est actif. Le prix a sa propre projection, `price` :
+`price.min` et `price.max` portent le prix que la boutique affiche — fourchette des variations et
+des produits groupés comprise, taxes selon le réglage d'affichage, calculées à l'adresse de la
+boutique (`ProductPriceProjector`, `ShopTaxLocation`, `D-e`) — et `price.onsale` la promotion. Les
+trois sont filtrables, les deux bornes triables. Le stock reste un travail à part :
+`metas._stock_status` est filtrable, rien ne le lit encore. Détail dans [prix.md](prix.md).
 
 ## Les providers
 
 `MeiliFacetsServiceProvider` est le point d'entrée que nwidart découvre. Il ne lie rien lui-même :
-il se déclare — nom, commandes, publication des assets, découverte des listings, cascade de vues du
-thème — et enregistre **un provider par couche**, calqué sur les espaces de noms du module.
+il se déclare — nom, commandes, publication des assets et de la configuration de départ,
+découverte des listings, cascade de vues du thème — et enregistre **un provider par couche**, calqué sur les espaces de noms du module.
 
 | Provider | Ce qu'il lie |
 | --- | --- |
 | `IndexingServiceProvider` | `IndexAttributes`, `CardProjector`, `TermHierarchy` — ce que le document porte |
 | `SearchServiceProvider` | `SearchEngine`, `BrowserConnection`, `EngineLimits`, `FacetCounter` — l'envoi des recherches |
-| `ListingServiceProvider` | les adaptateurs de termes, `NameOrder`, `ProductFacets`, `ProductSorts`, le registre |
-| `RenderingServiceProvider` | `ListingScript`, `CardSettings`, `Unavailable` — ce dont la page a besoin en plus. *Nommé ainsi et pas `ViewServiceProvider` : Laravel en charge déjà un du même nom court.* |
+| `ListingServiceProvider` | les adaptateurs de termes, `SiteCollator`, `NameOrder`, `ProductFacets`, `ProductSorts`, le registre, `CurrentListing`, `UrlParameters` |
+| `RenderingServiceProvider` | `ListingScript`, `CardSettings`, `CountLabel`, `Unavailable` — ce dont la page a besoin en plus. *Nommé ainsi et pas `ViewServiceProvider` : Laravel en charge déjà un du même nom court.* |
 
 Les fabriques privées restent avec leurs liaisons : c'est là que les réglages sont lus, avec leur
-défaut, comme la règle l'impose — jamais depuis un objet de domaine.
+défaut, comme la règle l'impose — jamais depuis un objet de domaine. ⚠️ Trois ne le sont pas
+encore : `apply_mode`, `url_parameters` et `query_parameters` sont lus hors des providers (`R-05`).
 
 ## Ce que la boutique déclare
 
@@ -150,12 +167,12 @@ projet à l'autre, sur le modèle de `CardProjector` :
 | Contrat | Défaut du module | Ce qu'il porte |
 | --- | --- | --- |
 | `Contracts\ProductFacets` | `WooCommerceFacets` — catégorie et marque | les taxonomies parcourues, leur libellé, leur ordre, leurs limites |
-| `Contracts\ProductSorts` | `WooCommerceSorts` — prix ↑↓ et nouveautés | les tris offerts |
+| `Contracts\ProductSorts` | `WooCommerceSorts` — prix ↑↓, nouveautés et « Promotions », un tri qui filtre (`Sort::filtering()`, dont le champ doit être filtrable : il entre aussi dans les `facets` de chaque recherche principale). « Promotions » n'est offert que si les facettes déclarent un `PriceFilter` (`ProductListing::sorts()`), ce que le défaut du module ne fait pas | les tris offerts |
 
 Les deux sont liés par **`scopedIf`** : un projet qui ne dit rien obtient un listing qui marche,
 un projet qui lie le sien gagne. Séparés exprès — donner la main sur les facettes sans obliger à
 redéclarer les tris. Pluralia y branche `App\Cms\Products\CatalogueFacets`, qui ajoute la
-contenance aux deux facettes du module.
+contenance et le filtre de prix aux deux facettes du module.
 
 ⚠️ Les deux liaisons ne sont **pas** gardées sur WooCommerce, contrairement à `IndexAttributes` et
 `CardProjector`. Ce n'est pas un oubli : `register()` s'exécute **avant** que WordPress ne charge
@@ -169,12 +186,12 @@ tait ; s'il lie après, son `bind` remplace. **Le projet doit lier avec `bind`/`
 `scopedIf`** — sinon c'est le premier arrivé qui gagne et l'ordre redevient significatif.
 
 Ce qui **reste** dans le module, parce qu'un défaut y est juste partout : la garde WooCommerce, le
-filtre de catalogue (`post_type`, `post_status`, `exclude-from-catalog`), le rayon courant lu de
-`is_tax()`, et la taille de page prise à `loop_shop_per_page`. Les réécrire par projet serait
+filtre de catalogue (`post_type`, `post_status`, `exclude-from-catalog`), le terme de l'archive lu
+de `is_tax()` quelle que soit sa taxonomie, et la taille de page prise à `loop_shop_per_page`. Les réécrire par projet serait
 recopier quatre-vingt-dix lignes universellement correctes pour en changer trois.
 
-Les deux implémentations mémoïsent leur liste : `facets()` est lu à sept endroits par requête,
-`sorts()` à six, et rien ne les mettait en cache (`T-28`). ⚠️ Le cache retient aussi les libellés
+Les deux implémentations mémoïsent leur liste, lue à de nombreux endroits par requête — sept et
+six au moment de `T-28` — et que rien ne mettait en cache jusque-là. ⚠️ Le cache retient aussi les libellés
 traduits — voir `decisions.md`. En PHP-FPM le processus meurt avec la requête, donc sans effet ;
 dans un worker de file, `ListingRegistry` étant un singleton, la liste survit d'un job au suivant.
 
@@ -189,17 +206,21 @@ carte affiche, dans un champ `card` — titre, lien, image, et **prix formaté p
 Reformater un prix en JavaScript reviendrait à reprendre au plugin la devise, les promotions et
 les fourchettes qu'on venait de lui laisser.
 
-Le point d'extension n'est pas obligatoire : `DefaultCardProjector` est lié par `bindIf`, donc un
-projet neuf obtient une carte qui fonctionne sans écrire une ligne de PHP. Un projet qui veut la
-sienne rebinde `CardProjector` — Pluralia y branche `App\Cms\Products\ProductCard`.
+Le point d'extension n'est pas obligatoire : `CardProjector` est lié par `bindIf` —
+`DefaultCardProjector` (titre, lien, image), enveloppé par `WooCommerceCardProjector`, qui ajoute
+le prix formaté quand WooCommerce est actif. Un projet neuf obtient une carte qui fonctionne sans
+écrire une ligne de PHP ; un projet qui veut la sienne lie `CardProjector`. Pluralia ne le fait
+pas : ses cartes indexées sont celles du module.
 
 Le champ n'est ni filtrable ni triable : il ne coûte rien au moteur. Mesure du 2026-09-02 sur une
 page de douze produits : 33,7 Ko de JSON transférés sans restriction, 5,1 Ko avec
 `attributesToRetrieve: ["ID", "card"]`.
 
-**Limite assumée** : prix et URL d'image sont figés à l'indexation. Un prix par rôle client ou
-par géolocalisation devient impossible. Une modification de meta déclenchant une réindexation,
-un changement de prix se propage seul.
+**Limite assumée** : prix et URL d'image sont figés à l'indexation, le prix calculé à l'adresse de
+la boutique (`ShopTaxLocation`). Un prix par rôle client ou par géolocalisation devient impossible.
+Une modification de meta déclenchant une réindexation, un prix modifié sur le produit se propage
+seul ; un changement de taux de taxe ou du réglage d'affichage des prix, non — il demande une
+réindexation (`D-e`).
 
 ## Structure du module
 
@@ -207,11 +228,12 @@ un changement de prix se propage seul.
 Modules/MeiliFacets/
 ├── app/
 │   ├── Console/     commandes de diagnostic
-│   ├── Contracts/   points d'extension : projection de carte, lecture de hiérarchie
+│   ├── Contracts/   coutures : listing, facettes et tris de la boutique, ordre des valeurs,
+│   │                carte, attributs d'index, termes, compteur, moteur
 │   ├── Discovery/   découverte des classes portant le contrat Listing
 │   ├── Enums/       contrats figés : champs de document, clés de réglage, crochets
-│   ├── Http/        indexabilité et page d'indisponibilité
-│   ├── Indexing/    projection des facettes et de la carte, branchement sur MeiliScout
+│   ├── Http/        indexabilité, adresse de la page publiée au client, page d'indisponibilité
+│   ├── Indexing/    projection des facettes, de la carte et du prix, branchement sur MeiliScout
 │   ├── Listing/     le domaine : état, facettes, pagination, tri
 │   ├── Providers/
 │   ├── Search/      connexion, plan de requête, lecture des réponses
@@ -220,13 +242,19 @@ Modules/MeiliFacets/
 │   └── View/        composants Blade et description publiée au navigateur
 ├── resources/
 │   ├── assets/css/  la seule feuille de style du module
-│   ├── assets/js/   client de recherche navigateur
+│   ├── assets/ts/   client de recherche navigateur, en TypeScript, rangé par fonctionnalité :
+│   │                listing, facets, price, sort, results, pagination, et shared pour ce que
+│   │                plusieurs partagent (contrat, description, plan, étendue de prix, transport) ;
+│   │                `listing-page.ts` est le point d'entrée empaqueté par `bundle.ts`
+│   ├── assets/dist/ le même client empaqueté et commité, seul fichier que la page charge
 │   └── views/       vues Blade, toutes surchargeables par le thème
 ├── lang/            catalogue JSON, chargé par le provider
 ├── tests/Unit/      suite `Unit`, autonome : ni WordPress ni moteur
 ├── tests/Feature/   suite `Feature`, rend des vues, ne passe que depuis le projet
-├── tests/js/        lanceur intégré de Node, happy-dom pour la couche DOM
+├── tests/ts/        lanceur intégré de Node, happy-dom pour la couche DOM
 ├── config/config.php
+├── config/meilifacets.php.stub  configuration de départ, publiée dans le projet
+├── docs/            décisions, registre, pièges — ce document compris
 └── CLAUDE.md        règles de travail sur ce module
 ```
 
@@ -251,7 +279,10 @@ faisant partie du libellé. Il change à chaque filtrage : le nommer ferait reno
 curseur, la case qu'on est en train de lire. Décrit, il est annoncé après le nom et une
 actualisation n'est qu'une information de plus.
 
-Il est aussi écrit en toutes lettres (« 14 résultats », `trans_choice`) plutôt qu'en nombre nu
+⚠️ La vue ne tient pas encore la seconde moitié de la règle : `facet.blade.php` rend le compteur
+**dans** le `<label>` qui enveloppe la case, donc dans son nom accessible (`R-151`).
+
+Il est aussi écrit en toutes lettres (« 14 résultats », `View\CountLabel`) plutôt qu'en nombre nu
 collé au libellé, qu'un lecteur d'écran rendrait « 15ml 2 ».
 
 ## Transport
@@ -264,7 +295,8 @@ Il n'y a pas de mode de repli par PHP : c'est le seul transport.
 ## Front
 
 **Aucun framework front.** Le client est un jeu de classes ES sans dépendance, livré par le module
-et chargé en `type="module"` depuis `public/modules/meilifacets/`. Pas de TypeScript.
+et chargé en `type="module"` depuis `public/modules/meilifacets/dist/listing.js`. Il est écrit en
+TypeScript et empaqueté par esbuild en un seul module (`decisions.md`, 2026-09-16).
 
 > Corrigé le 2026-09-06. Ce document annonçait Alpine.js. Le contrat `data-meili` fait désormais
 > le travail de liaison qu'Alpine devait faire : le garder imposerait au thème de conserver deux
@@ -275,8 +307,10 @@ et chargé en `type="module"` depuis `public/modules/meilifacets/`. Pas de TypeS
 > est publié à part, celui du thème est dans son bundle Vite, et rien n'assure que le nôtre
 > s'exécute avant `Alpine.start()`.
 
-**Deux familles de gestes, pas cinq.** Cocher une facette et saisir une recherche *se rassemblent*
-— en mode `submit` elles attendent « Appliquer », en mode `immediate` elles partent aussitôt.
+**Deux familles de gestes, pas cinq.** Cocher une facette et valider une plage de prix *se
+rassemblent* — en mode `submit` elles attendent « Appliquer », en mode `immediate` elles partent
+aussitôt. `Listing.search()` suit la même règle, mais aucun composant ne rend de champ de
+recherche : `q` n'arrive aujourd'hui que par l'URL.
 Trier, paginer et remettre à zéro ne se rassemblent pas : ce sont des ordres, ils s'appliquent sur
 place **dans les deux modes**. Un visiteur qui clique « page 2 » et voit sa demande mise en attente
 d'un bouton ne comprendrait pas ce qu'on lui demande.
@@ -312,9 +346,10 @@ peut pas connaître cette hauteur, et sans la marge le haut du listing atterrit 
 **Composants Blade** pour l'intégration. Un bloc Gutenberg est envisagé plus tard, pas
 maintenant.
 
-**Le composant listing porte un état de chargement, sur un seul cas.** Au clic sur un filtre, la
-grille affichée reste pertinente et peut être atténuée sans être masquée. Les seuils se calibrent
-sur la vitesse réelle, ils ne se devinent pas.
+**Décidé, pas encore livré (lot 3c-3) : un état de chargement sur le composant listing, sur un
+seul cas.** Au clic sur un filtre, la grille affichée reste pertinente et peut être atténuée sans
+être masquée. Les seuils se calibrent sur la vitesse réelle, ils ne se devinent pas. Aujourd'hui,
+ni la vue ni le client ne marquent une recherche en cours.
 
 > Corrigé le 2026-09-04. Ce document décrivait un second cas — « au chargement d'une page portant
 > déjà des filtres, la grille servie est fausse et doit être masquée ». C'était vrai avant le lot
@@ -330,8 +365,9 @@ aucune règle de réécriture.
 
 Les filtres appliqués vivent en query vars, hors du chemin.
 
-Toute URL portant **un paramètre de listing rempli** — facette, tri, recherche ou numéro de page —
-est servie en `noindex, follow` : le même contenu existe déjà sur le chemin nu.
+Toute URL portant **un paramètre de listing rempli** — facette, tri, recherche, borne de prix ou
+numéro de page —, comme toute page `/page/N` de WordPress, est servie en `noindex, follow` : le
+même contenu existe déjà sur le chemin nu.
 
 > Élargi le 2026-09-06. Le tri et la pagination étaient exclus, pour deux raisons dont une seule
 > tenait. La bonne : les noms réservés sont **globaux**, donc un lien de campagne portant `?q=`
@@ -348,8 +384,9 @@ est servie en `noindex, follow` : le même contenu existe déjà sur le chemin n
 >
 > Limite connue : un listing posé sur une page libre, hors archive, n'est pas couvert par la garde.
 
-Aucune canonique n'est posée vers le chemin nu — `noindex` et une canonique pointant ailleurs sont
-deux signaux contradictoires.
+Aucune canonique n'est posée vers le chemin nu, et celle que Yoast poserait est retirée des vues
+secondaires (`IndexingPolicy`) — `noindex` et une canonique pointant ailleurs sont deux signaux
+contradictoires. Les liens `next`/`prev` de Yoast sont retirés de tout listing.
 
 ⚠️ Ne pas compter sur le `follow` dans la durée : une page durablement `noindex` finit traitée
 comme `nofollow` par Google. Ce qui garantit la découverte des fiches produits est le sitemap
@@ -365,11 +402,15 @@ query var publique de WordPress : `?product_cat=visage` fait déjà filtrer Word
 visible dans l'URL au lieu de le laisser agir en silence. Deux styles d'URL cohabitent donc :
 le préfixe signale un mapping à faire, pas un état normal.
 
-Les paramètres réservés au module — page, tri, recherche — prennent des défauts **en anglais**
-(`pg`, `sort`, `q`), que le projet habille comme il habille les taxonomies. Trois d'entre eux
-sont interdits sans qu'aucun test d'URL ne le révèle : `page`, `paged` et `order` sont des query
-vars WordPress. La validation d'un nom se fait contre `$wp->public_query_vars` et contre la liste
-que Varnish efface, dans la commande de diagnostic — jamais sur le chemin d'une requête.
+Les paramètres réservés au module — page, tri, recherche, bornes de prix — prennent des défauts
+**en anglais** (`pg`, `sort`, `q`, `min_price`, `max_price`), que le projet habille comme il
+habille les taxonomies. Trois noms sont interdits sans qu'aucun test d'URL ne le révèle : `page`,
+`paged` et `order` sont des query vars WordPress. La validation d'un nom se fait contre les query
+vars publiques, filtre `query_vars` compris, contre les noms que WooCommerce lit dans `$_GET`
+(`min_price`, `max_price`, `rating_filter`, `orderby`, `filter_*`) et contre la liste que Varnish
+efface, dans la commande de diagnostic — jamais sur le chemin d'une requête. Les bornes de prix
+prennent exprès les noms de WooCommerce (`D-h`) : la commande tolère la collision tant qu'elles
+les gardent.
 
 **Pagination** : pages numérotées en query var, sans rechargement. Les pages au-delà de la
 première cessent donc d'être indexables. Ce qui compte n'est pas l'indexation de la page 2, mais
@@ -380,6 +421,27 @@ Si ce sitemap était désactivé ou tronqué, l'argument tomberait.
 Ces noms sont figés en configuration plutôt que dérivés du libellé de la taxonomie : ils
 partent dans des URLs indexées, et ne doivent pas changer parce qu'un éditeur a renommé un
 libellé en back-office.
+
+**Qui lit l'URL : le serveur, seul.** `StateReader` la lit au rendu et la description du listing
+publie ce qu'il a lu (`state`). Le client part de cet état et n'en tire jamais un d'une adresse. Il écrit
+l'URL à chaque recherche — le chemin de la première page que le serveur publie (`pagePath`,
+`get_pagenum_link(1)`), puis ses paramètres, la page en `pg` ; `replaceState`, `pushState` pour une page — et
+range son état dans
+l'entrée, sous le nom du listing (`history.state.meilifacets`) ; l'entrée servie reçoit le sien au
+démarrage. Retour et Suivant restaurent cet état sans réécrire l'entrée : l'adresse et son fragment
+restent ceux du visiteur. Une entrée qu'aucun listing n'a écrite — une ancre, un autre script —
+reçoit l'état affiché si l'adresse n'a pas changé ; sinon la page se recharge et le serveur la lit.
+
+Après ses propres paramètres, le client réécrit ceux que WordPress a lus pour construire la page — les
+paires de la query string brute dont PHP nomme le paramètre dans `$wp->public_query_vars`, hors ceux du
+listing et hors `paged` —, que la description publie telles que le visiteur les a envoyées (`pageQuery`,
+`Http\PageAddress`). Pas `request()->query()` : les middlewares de Laravel rognent les valeurs et retirent les
+vides, et `?s=` reste une recherche pour WordPress. Une recherche produit garde donc `s` et
+`post_type` ; `add-to-cart`, `utm_*` et tout ce que WordPress ne lit pas disparaissent au premier geste.
+
+Les valeurs d'une facette sont triées dans le même ordre des deux côtés pour tout slug WordPress
+(par octet côté serveur, par unité UTF-16 côté client). `tests/url-writing-cases.json` vérifie que ce
+que le client écrit, le serveur le relit à l'identique.
 
 ## Carte produit et mise à jour du DOM
 
@@ -400,7 +462,7 @@ Trois exigences, dans cet ordre :
 | Élément | Traitement | Pourquoi |
 | --- | --- | --- |
 | Cartes de résultats | clonées depuis un `<template>` rendu par le même composant Blade | personne n'a le focus dans la grille pendant un filtrage |
-| Valeurs de facettes | nœuds stables, masquées quand leur compte tombe à zéro | le focus est sur la case qu'on vient de cocher ; les recréer éjecte l'utilisateur clavier |
+| Valeurs de facettes | nœuds stables, celles que le listing non filtré propose en plus des siennes, chacune sous le plafond, masquées quand leur compte tombe à zéro | le focus est sur la case qu'on vient de cocher ; les recréer éjecte l'utilisateur clavier |
 | Pagination | fenêtre de taille fixe, slots vides rendus puis remplis | le nombre de pages varie avec les filtres |
 
 Le markup reste celui du thème dans les deux cas : le `<template>` est produit par le composant
@@ -414,11 +476,13 @@ client **compte** ce qu'il trouve au lieu de le supposer, donc une vue surcharg�
 obtient une fenêtre de cinq. C'est le prix de la règle « le markup appartient au thème » : le client révèle,
 il n'invente pas.
 
-**Limite connue, non résolue** : une valeur de facette dont le compte est nul n'est pas dans la
-distribution, donc pas dans le HTML — le client ne peut pas la faire réapparaître quand un autre
-filtre est relâché. Le comptage disjonctif couvre le cas courant (relâcher une valeur de la
-facette elle-même) ; le cas croisé demanderait un `<template>` par facette, à décider si le besoin
-se présente.
+**Les valeurs de facettes suivent la même règle.** Une page filtrée rend les valeurs que le listing
+non filtré propose, en plus des siennes, chaque liste sous le plafond de la facette, et celles que le
+visiteur tient — le serveur compte le listing non filtré sous le seul filtre de base, dans le même
+multi-search, et seulement quand un filtre, une recherche, un prix ou un tri qui filtre le restreint. Celles qui
+n'ont plus de résultat sont rendues masquées : « Tout effacer » les révèle sans que le client ait rien
+à créer. La description publie les comptes rendus (`facets[].counts`), que le client lit tant qu'il
+n'a pas cherché lui-même.
 
 ### Boutons, pas des liens
 
@@ -464,8 +528,8 @@ bouton.
 
 Trois conséquences, toutes assumées :
 
-- l'URL reste la source de l'état, mais elle est écrite par `history.pushState`, plus par le
-  navigateur qui suit un lien. `ListingUrls` a donc disparu : il n'existe plus qu'une seule
+- l'URL reste la source de l'état — le serveur la lit et publie ce qu'il a lu —, mais elle est
+  écrite par `history.replaceState` — `pushState` pour un changement de page —, plus par le navigateur qui suit un lien. `ListingUrls` a donc disparu : il n'existe plus qu'une seule
   implémentation de la construction d'URL, côté client, au lieu de deux à tenir alignées ;
 - sans JavaScript, le listing servi est complet et lisible mais **inerte**. C'était déjà le cas
   des facettes, qui n'ont pas de formulaire depuis le lot 3b : les liens de tri et de pagination
@@ -513,7 +577,8 @@ les termes retombe sur l'ordre alphabétique. `Declared` ne remplace pas la déc
 
 **Le plafond et le repli répondent à deux maîtres.** `cap` est dépensé sur le compte : c'est le
 moteur qui décide quelles valeurs survivent, et c'est juste — sur deux cents marques, on veut les
-plus peuplées. `visible` est dépensé sur l'ordre déclaré : les valeurs sont **réordonnées d'abord,
+plus peuplées ; sur une page filtrée, il est dépensé deux fois, sur le compte du listing non filtré et
+sur celui de la page. `visible` est dépensé sur l'ordre déclaré, parmi les valeurs qui ont des résultats : les valeurs sont **réordonnées d'abord,
 repliées ensuite**, donc ce que le visiteur lit est la tête de l'ordre que la facette a demandé.
 Une valeur que l'URL tient échappe au repli où qu'elle tombe (`R-86`).
 
@@ -525,8 +590,9 @@ n'était pas `Count`, et la première recherche remplaçait la liste par une aut
 **Le client le décide à nouveau à chaque réponse**, sur les compteurs qui viennent d'arriver — sans
 quoi la première recherche révélait tout ce que le moteur comptait encore. Une valeur se lit quand
 **le visiteur la tient**, ou quand elle a des résultats **et** que le repli a encore de la place
-pour elle (`R-86`). Une facette dont plus rien ne se lit est masquée en entier, bloc et légende
-compris, comme le serveur le fait déjà quand elle n'a aucune valeur.
+pour elle (`R-86`) ; une valeur sans résultat ne prend pas de place dans le repli, côté serveur comme
+côté client. Une facette dont plus rien ne se lit est masquée en entier, bloc et légende compris,
+comme le serveur le fait quand aucune de ses valeurs ne se lit.
 
 Le bouton `more` demande à lire une facette en entier. Il n'interroge pas le moteur : rien n'a
 changé du côté des comptes. Son libellé et son `aria-expanded` suivent l'état, et il se masque
@@ -536,10 +602,14 @@ quand il n'y a plus rien à déplier.
 
 Le client n'adresse jamais une classe : les classes appartiennent au thème et changent avec le
 design. Il adresse des **crochets** `data-meili="…"`, posés par les composants Blade et
-énumérés une seule fois côté PHP (`Enums\Hook`) et une seule fois côté JavaScript
-(`contract.js`).
+énumérés une seule fois côté PHP (`Enums\Hook`). Côté client, chaque vue adresse les siens par
+leur nom et `contract.ts` ne porte que les règles d'exigence ; `ContractParityTest` vérifie que
+tout crochet adressé par le client ou la feuille de style est déclaré dans `Hook`.
 
-La racine du listing porte `data-meili-contract="1"`. Le client compare cette valeur à la sienne
+La racine du listing porte `data-meili-contract`, dont la valeur est `Contract::VERSION`. Elle ne
+monte pas quand un crochet s'ajoute — un ajout est additif, une surcharge plus ancienne continue de
+servir — mais quand un crochet est **renommé ou retiré**, cas où cette surcharge adresserait du
+vide. Le client compare cette valeur à la sienne
 et **refuse de démarrer** si elle diffère, ou si un crochet structurel manque : la page reste
 celle du serveur, entièrement fonctionnelle, et la console nomme ce qui manque. Une surcharge de
 thème périmée dégrade donc vers le rendu serveur, jamais vers une interaction à moitié morte.
@@ -549,21 +619,30 @@ thème périmée dégrade donc vers le rendu serveur, jamais vers une interactio
 | `results` | `<x-meilifacets::results>` | la liste que le client repeint |
 | `card-template` | idem | `<template>` cloné pour chaque résultat |
 | `empty` | idem | message « aucun résultat », révélé ou masqué |
+| `no-results` `past-the-end` | idem, dans `empty` | les deux raisons, rendues toutes deux : le client révèle celle de `Pagination::isPastTheEnd()`. Facultatifs — une vue qui n'en rend pas garde son message |
 | `card` | idem | un résultat |
 | `url` `image` `title` `price` | `<x-meilifacets::card>` | les valeurs écrites dans une carte |
 | `facets` | `<x-meilifacets::facets>` | le conteneur qui écoute les changements |
-| `facet-value` | idem | une valeur, masquée quand son compte tombe à zéro |
+| `facet-value` | `<x-meilifacets::facet>` | une valeur, rendue même sans résultat, masquée quand son compte tombe à zéro sauf si le visiteur la tient |
 | `input` | idem | la case ou le bouton radio qui porte la valeur |
 | `count` | idem | le compte réécrit à chaque recherche |
-| `apply` | idem | le bouton « appliquer », en mode `submit` |
+| `apply` | `<x-meilifacets::facets>` | le bouton « appliquer », en mode `submit` |
 | `pagination` | `<x-meilifacets::pagination>` | la nav, masquée s'il n'y a qu'une page |
 | `page` `previous` `next` | idem | les sept slots de la fenêtre et les deux flèches |
 | `sort` | `<x-meilifacets::sort>` | le conteneur du tri |
 | `sort-trigger` | idem | le bouton qui ouvre la liste et affiche le tri courant |
 | `sort-list` | idem | la `listbox`, masquée à la fermeture |
-| `sort-option` | idem | une option, sa clé dans `data-value` |
-| `facet` | `<x-meilifacets::facet>` | un bloc de facette. **Le crochet va sur l'élément le plus extérieur** : c'est celui-là que le client masque quand la facette n'a plus rien à montrer, donc un thème qui enrobe le déplace avec lui |
+| `sort-option` | idem | une option, sa clé dans `data-value` ; rendue `hidden` quand un tri qui filtre ne garderait rien, sauf s'il est choisi |
+| `facet` | `<x-meilifacets::facet>`, `<x-meilifacets::price>` | un bloc de facette. **Le crochet va sur l'élément le plus extérieur** : c'est celui-là que le client masque quand la facette n'a plus rien à montrer, donc un thème qui enrobe le déplace avec lui |
 | `more` | idem | le bouton qui lit la facette en entier |
+| `more-label` `less-label` | idem, dans `more` | les deux libellés du bouton, rendus tous deux : le client révèle celui de l'état courant et ne réécrit jamais le contenu du bouton. Facultatifs, mais **les deux ou aucun** — une vue qui n'en rend qu'un garde son libellé figé, comme une vue qui n'en rend aucun (`R-143`) |
+| `price-range` | `<x-meilifacets::price>` | la piste entière, porte `--from`/`--to` |
+| `price-track` | idem | la barre sur laquelle les poignées se déplacent |
+| `price-handle` | idem | une extrémité, son bord dans `data-bound` |
+| `price-tip` | idem | la bulle de valeur d'une poignée |
+| `price-readout` | idem | la plage écrite en toutes lettres, réécrite au glissement |
+| `price-bounds-min` `price-bounds-max` | idem | les deux extrémités sous la piste, réécrites quand le filtrage déplace les bornes |
+| `price-min` `price-max` | idem | les deux `input` qui portent les bornes, visibles ou masqués |
 | `reset` | `<x-meilifacets::reset>` | le bouton « tout effacer » |
 | `active-filters` | `<x-meilifacets::active-filters>` | le compteur de filtres actifs |
 
@@ -572,41 +651,47 @@ contrôle, jamais sur ce que la donnée décide :
 
 - toujours exigés : `results`, `card-template`, `empty`, et à l'intérieur du template `card`,
   `url`, `image`, `title`, `price` ;
-- exigés dès que leur hôte est rendu : `input` dans une `facet-value`, `more` dans un `facet`,
+- exigés dès que leur hôte est rendu : `input` dans une `facet-value`, `more` dans un `facet`
+  qui contient une `facet-value`,
   `page`/`previous`/`next` dans une `pagination`,
-  `sort-trigger`/`sort-list`/`sort-option` dans un `sort` ;
+  `sort-trigger`/`sort-list`/`sort-option` dans un `sort`,
+  `price-track`/`price-handle` dans un `price-range` ;
 - optionnels : tout le reste. Un thème peut légitimement ne pas afficher de facettes, de tri ou
-  de compteurs — et un listing sans résultat ne rend aucune `facet-value`. **Un bloc `facet` vide
+  de compteurs — et une catégorie feuille ne rend aucune `facet-value`. **Un bloc `facet` vide
   n'est donc pas une infraction** (`R-84`) : une catégorie feuille et une URL filtrée sans
   résultat en produisent tous deux, et le client refusait alors de démarrer.
 
-**Trois exigences ne sont pas des crochets, et le contrat ne les voit donc pas.** Une vue surchargée
+**Cinq exigences ne sont pas des crochets, et le contrat ne les voit donc pas.** Une vue surchargée
 qui les oublie casse le client sans qu'aucune infraction ne soit signalée :
 
 | Ce qu'une vue doit rendre | Ce qui casse sinon |
 | --- | --- |
-| `data-listing="<nom>"` sur la racine | le client ne trouve aucun listing et sort **sans un mot** — le seul démarrage raté silencieux |
+| `data-listing="<nom>"` sur la racine | le client ne lie aucun listing ; la console nomme les crochets restés hors de toute racine (`Contract.orphans()`), sans qu'aucune infraction au contrat ne soit comptée |
 | `name="<paramètre d'URL de la taxonomie>"` sur l'`<input>` d'une facette | `FacetsView` ne sait retrouver la taxonomie que par ce nom : les cases deviennent inertes |
-| un élément racine unique dans le `<template>` de carte | le clonage rend `undefined` et la grille lève à chaque recherche |
+| un élément racine unique dans le `<template>` de carte | seul le premier élément est cloné : le reste de la carte disparaît sans erreur, et un template sans élément ne peint aucune carte |
+| `hidden` sur le bloc `facet` tant que `$hasReadableValues()` est faux, et non plus quand `$values === []` | une page filtrée rend aussi les valeurs sans résultat : la légende reste affichée au-dessus de rien jusqu'à la première recherche |
+| `hidden` sur une option de tri quand `$choice->hidden` | « Promotions » reste proposée jusqu'à la première recherche du client et mène à une grille vide |
 
-Ajouter, renommer ou retirer un crochet **incrémente `Contract::VERSION`** des deux côtés.
+Renommer ou retirer un crochet **incrémente `Contract::VERSION`** des deux côtés ; en ajouter un ne
+l'incrémente pas (`R-116`).
 
 **Ce que la version protège, exactement.** Les deux nombres viennent du module — le serveur écrit
 `Contract::version()`, le client compare à sa constante — donc un incrément les déplace ensemble et
 la comparaison continue de réussir. Elle ne détecte donc pas un thème périmé, mais **un client
-périmé face à un serveur à jour** : le navigateur qui garde un ancien `contract.js` en cache (R-70)
+périmé face à un serveur à jour** : le navigateur qui garde un ancien client en cache
 annonce l'ancien numéro, ne le retrouve pas, et **refuse de démarrer** au lieu de chercher des
 crochets que son code ignore. C'est le seul cas, et il suffit à justifier la règle.
 
 **Ce qu'elle ne protège pas** : un thème qui a surchargé une vue et n'a pas suivi. La racine émet
 toujours la version du module, la comparaison passe, et il manque un crochet en silence — sauf si
-une règle de `contract.js` l'exige *à l'intérieur d'un hôte rendu*. C'est pourquoi `facet` exige
-`facet-value` **et** `more` : un bloc qui replie des valeurs sans offrir de les déplier est R-46,
-réintroduit.
+une règle de `contract.ts` l'exige *à l'intérieur d'un hôte rendu*. C'est pourquoi un `facet` qui
+contient une `facet-value` exige `more` : un bloc qui replie des valeurs sans offrir de les déplier
+est R-46, réintroduit.
 
-`ContractParityTest` fait le reste : il compare chaque crochet que le client adresse, les deux
-attributs du contrat, le préfixe de champ, le séparateur de valeurs, la borne de recherche et la
-première page.
+`ContractParityTest` fait le reste : il compare la version, le nom du module de script, chaque
+crochet que le client ou la feuille de style adresse, les deux attributs du contrat, le préfixe de
+champ, le séparateur de valeurs, la borne de recherche, la première page, et l'attribut
+`data-active` que la feuille de style doit connaître.
 
 Les valeurs que le client doit lire voyagent dans des attributs natifs quand il en existe un —
 `value` sur les boutons de pagination, `data-value` sur une option de tri, `value`/`checked` sur

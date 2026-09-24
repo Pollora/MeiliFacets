@@ -1,7 +1,7 @@
 [
     {
         "case": "everything fits on one page",
-        "current": 1,
+        "asked": 1,
         "perPage": 16,
         "total": 12,
         "reachable": 1000000,
@@ -16,7 +16,8 @@
             null
         ],
         "pages": 1,
-        "resolvedCurrent": 1,
+        "current": 1,
+        "isPastTheEnd": false,
         "hasPages": false,
         "hasPrevious": false,
         "hasNext": false,
@@ -25,7 +26,7 @@
     },
     {
         "case": "nothing matched",
-        "current": 1,
+        "asked": 1,
         "perPage": 16,
         "total": 0,
         "reachable": 1000000,
@@ -40,7 +41,8 @@
             null
         ],
         "pages": 0,
-        "resolvedCurrent": 1,
+        "current": 1,
+        "isPastTheEnd": false,
         "hasPages": false,
         "hasPrevious": false,
         "hasNext": false,
@@ -49,7 +51,7 @@
     },
     {
         "case": "a partial last page counts",
-        "current": 1,
+        "asked": 1,
         "perPage": 10,
         "total": 95,
         "reachable": 1000000,
@@ -64,7 +66,8 @@
             7
         ],
         "pages": 10,
-        "resolvedCurrent": 1,
+        "current": 1,
+        "isPastTheEnd": false,
         "hasPages": true,
         "hasPrevious": false,
         "hasNext": true,
@@ -73,7 +76,7 @@
     },
     {
         "case": "1570 hits, ten a page, an engine serving 1000",
-        "current": 1,
+        "asked": 1,
         "perPage": 10,
         "total": 1570,
         "reachable": 1000,
@@ -88,7 +91,8 @@
             7
         ],
         "pages": 100,
-        "resolvedCurrent": 1,
+        "current": 1,
+        "isPastTheEnd": false,
         "hasPages": true,
         "hasPrevious": false,
         "hasNext": true,
@@ -97,7 +101,7 @@
     },
     {
         "case": "the window walks with the current page",
-        "current": 50,
+        "asked": 50,
         "perPage": 10,
         "total": 1570,
         "reachable": 1000,
@@ -112,7 +116,8 @@
             53
         ],
         "pages": 100,
-        "resolvedCurrent": 50,
+        "current": 50,
+        "isPastTheEnd": false,
         "hasPages": true,
         "hasPrevious": true,
         "hasNext": true,
@@ -121,7 +126,7 @@
     },
     {
         "case": "a pasted page past the last one comes back",
-        "current": 999,
+        "asked": 999,
         "perPage": 10,
         "total": 1570,
         "reachable": 1000,
@@ -136,7 +141,8 @@
             100
         ],
         "pages": 100,
-        "resolvedCurrent": 100,
+        "current": 100,
+        "isPastTheEnd": true,
         "hasPages": true,
         "hasPrevious": true,
         "hasNext": false,
@@ -145,7 +151,7 @@
     },
     {
         "case": "a page size of zero divides nothing",
-        "current": 1,
+        "asked": 1,
         "perPage": 0,
         "total": 40,
         "reachable": 1000000,
@@ -160,7 +166,8 @@
             null
         ],
         "pages": 1,
-        "resolvedCurrent": 1,
+        "current": 1,
+        "isPastTheEnd": false,
         "hasPages": false,
         "hasPrevious": false,
         "hasNext": false,

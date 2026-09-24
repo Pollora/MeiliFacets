@@ -11,5 +11,11 @@ final readonly class SortChoice
         public string $label,
         public string $id,
         public bool $selected,
+        public bool $hidden = false,
     ) {}
+
+    public function hide(): self
+    {
+        return new self($this->value, $this->label, $this->id, $this->selected, hidden: true);
+    }
 }

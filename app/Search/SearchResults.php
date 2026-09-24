@@ -11,11 +11,17 @@ final readonly class SearchResults
     /**
      * @param  list<array<string, mixed>>  $hits
      * @param  array<string, array<string, int>>  $distributions  taxonomy to slug to count
+     * @param  array<string, array<string, float>>  $facetStats  numeric field to its min and max
+     * @param  array<string, array<string, int>>  $unfilteredDistributions  taxonomy to slug to count, before any visitor filter; empty when there was none
+     * @param  array<string, int>  $sortMatches  filtering sort to the hits it would keep
      */
     public function __construct(
         public array $hits,
         public int $total,
         public array $distributions,
+        public array $facetStats = [],
+        public array $unfilteredDistributions = [],
+        public array $sortMatches = [],
     ) {}
 
     /**
@@ -37,5 +43,13 @@ final readonly class SearchResults
     public function distribution(string $taxonomy): array
     {
         return $this->distributions[$taxonomy] ?? [];
+    }
+
+    /**
+     * @return array<string, int>|null null when nothing narrowed the listing
+     */
+    public function unfilteredDistribution(string $taxonomy): ?array
+    {
+        return $this->unfilteredDistributions[$taxonomy] ?? null;
     }
 }

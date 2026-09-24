@@ -11,10 +11,6 @@ use Modules\MeiliFacets\Contracts\ValueOrder;
 use Modules\MeiliFacets\Enums\DefaultTerm;
 use Modules\MeiliFacets\Enums\DisplayOrder;
 
-/**
- * Turns a raw distribution into displayable values: engine order kept, labels
- * read from the taxonomy, everything past the visible limit folded away.
- */
 final readonly class FacetValues
 {
     public function __construct(
@@ -25,12 +21,14 @@ final readonly class FacetValues
 
     /**
      * @param  array<string, int>  $distribution  slug to count
+     * @param  array<string, int>|null  $unfiltered  slug to count before any visitor filter, null when nothing narrowed the listing
      * @return list<FacetValue>
      */
-    public function of(Facet $facet, array $distribution, ListingState $state): array
+    public function of(Facet $facet, array $distribution, ListingState $state, ?array $unfiltered = null): array
     {
-        $distribution = $facet->within($this->browsable($facet, $distribution), $this->scope);
-        $slugs = array_slice(array_keys($distribution), 0, $facet->cap);
+        $counts = $this->inScope($facet, $distribution);
+        $offered = $unfiltered === null ? [] : $this->inScope($facet, $unfiltered);
+        $slugs = $this->shown($facet, $offered, $counts, $state);
         $labels = $this->labels->of($facet->taxonomy, $slugs);
         $values = [];
 
@@ -38,7 +36,7 @@ final readonly class FacetValues
             $values[] = new FacetValue(
                 $slug,
                 $labels[$slug] ?? $slug,
-                $distribution[$slug],
+                $counts[$slug] ?? 0,
                 $state->isSelected($facet->taxonomy, $slug),
                 false,
             );
@@ -48,20 +46,47 @@ final readonly class FacetValues
     }
 
     /**
-     * The visitor reads the first values of the order the facet declared. The
-     * engine's count decides which values survive the cap, never which are read.
-     *
+     * @param  array<string, int>  $distribution
+     * @return array<string, int>
+     */
+    private function inScope(Facet $facet, array $distribution): array
+    {
+        return $facet->within($this->browsable($facet, $distribution), $this->scope);
+    }
+
+    /**
+     * @param  array<string, int>  $offered
+     * @param  array<string, int>  $counts
+     * @return list<string>
+     */
+    private function shown(Facet $facet, array $offered, array $counts, ListingState $state): array
+    {
+        $held = array_filter(
+            $state->selected($facet->taxonomy),
+            static fn (string $slug): bool => isset($offered[$slug]) || isset($counts[$slug]),
+        );
+
+        return array_values(array_unique([
+            ...array_slice(array_keys($offered), 0, $facet->cap),
+            ...array_slice(array_keys($counts), 0, $facet->cap),
+            ...$held,
+        ]));
+    }
+
+    /**
      * @param  list<FacetValue>  $values
      * @return list<FacetValue>
      */
     private function folded(array $values, Facet $facet): array
     {
         $displayed = [];
+        $rank = 0;
 
-        foreach ($values as $rank => $value) {
-            $displayed[] = $rank < $facet->visible || $value->selected
-                ? $value
-                : new FacetValue($value->slug, $value->label, $value->count, $value->selected, true);
+        foreach ($values as $value) {
+            $hidden = ! $value->selected && ($value->count === 0 || $rank >= $facet->visible);
+            $rank += $value->count > 0 ? 1 : 0;
+
+            $displayed[] = $hidden ? new FacetValue($value->slug, $value->label, $value->count, $value->selected, true) : $value;
         }
 
         return $displayed;
@@ -83,9 +108,6 @@ final readonly class FacetValues
     }
 
     /**
-     * Folding is decided on the engine's order, then the values are shown in the
-     * order the facet asked for: capping and reading are two different needs.
-     *
      * @param  list<FacetValue>  $values
      * @param  list<string>  $declared  slugs as the taxonomy lists them
      * @return list<FacetValue>

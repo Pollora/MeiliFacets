@@ -1,0 +1,152 @@
+[
+    {
+        "case": "nothing asked",
+        "state": {
+            "facets": {},
+            "query": "",
+            "sort": null,
+            "page": 1,
+            "price": {
+                "min": null,
+                "max": null
+            }
+        },
+        "search": ""
+    },
+    {
+        "case": "values in byte order, numbers included",
+        "state": {
+            "facets": {
+                "product_brand": [
+                    "10",
+                    "9",
+                    "B",
+                    "acme",
+                    "b"
+                ]
+            },
+            "query": "",
+            "sort": null,
+            "page": 1,
+            "price": {
+                "min": null,
+                "max": null
+            }
+        },
+        "search": "?brand=10,9,B,acme,b"
+    },
+    {
+        "case": "a facet that holds one value",
+        "state": {
+            "facets": {
+                "product_cat": [
+                    "visage"
+                ]
+            },
+            "query": "",
+            "sort": null,
+            "page": 1,
+            "price": {
+                "min": null,
+                "max": null
+            }
+        },
+        "search": "?f_product_cat=visage"
+    },
+    {
+        "case": "a slug WordPress wrote in percent-encoding",
+        "state": {
+            "facets": {
+                "product_brand": [
+                    "cr%c3%a8me"
+                ]
+            },
+            "query": "",
+            "sort": null,
+            "page": 1,
+            "price": {
+                "min": null,
+                "max": null
+            }
+        },
+        "search": "?brand=cr%25c3%25a8me"
+    },
+    {
+        "case": "a query with a plus, a comma, a percent sign and accents",
+        "state": {
+            "facets": {},
+            "query": "crème + sel, 50%",
+            "sort": null,
+            "page": 1,
+            "price": {
+                "min": null,
+                "max": null
+            }
+        },
+        "search": "?q=cr%C3%A8me+%2B+sel,+50%25"
+    },
+    {
+        "case": "a query between no-break spaces",
+        "state": {
+            "facets": {},
+            "query": " coat ",
+            "sort": null,
+            "page": 1,
+            "price": {
+                "min": null,
+                "max": null
+            }
+        },
+        "search": "?q=%C2%A0coat%C2%A0"
+    },
+    {
+        "case": "a sort and a page",
+        "state": {
+            "facets": {},
+            "query": "",
+            "sort": "price_asc",
+            "page": 3,
+            "price": {
+                "min": null,
+                "max": null
+            }
+        },
+        "search": "?sort=price_asc&pg=3"
+    },
+    {
+        "case": "a bound of zero and a decimal bound",
+        "state": {
+            "facets": {},
+            "query": "",
+            "sort": null,
+            "page": 1,
+            "price": {
+                "min": 0,
+                "max": 12.5
+            }
+        },
+        "search": "?min_price=0&max_price=12.5"
+    },
+    {
+        "case": "everything at once",
+        "state": {
+            "facets": {
+                "product_brand": [
+                    "acme",
+                    "globex"
+                ],
+                "product_cat": [
+                    "visage"
+                ]
+            },
+            "query": "coat",
+            "sort": "price_asc",
+            "page": 2,
+            "price": {
+                "min": 10,
+                "max": 80.5
+            }
+        },
+        "search": "?brand=acme,globex&f_product_cat=visage&q=coat&sort=price_asc&pg=2&min_price=10&max_price=80.5"
+    }
+]

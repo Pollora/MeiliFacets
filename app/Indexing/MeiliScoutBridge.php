@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Indexing;
 
+use Closure;
 use Modules\MeiliFacets\Contracts\CardProjector;
 use Modules\MeiliFacets\Contracts\IndexAttributes;
 use Modules\MeiliFacets\Enums\DocumentField;
@@ -20,8 +21,11 @@ final class MeiliScoutBridge
     public function __construct(
         private readonly TermAncestry $ancestry,
         private readonly CardProjector $cards,
+        private readonly ProductPriceProjector $prices,
         private readonly IndexAttributes $attributes,
         private readonly EngineLimits $limits,
+        private readonly ShopTaxLocation $shopTaxLocation,
+        private readonly AnonymousVisitor $anonymousVisitor,
     ) {}
 
     /**
@@ -53,9 +57,36 @@ final class MeiliScoutBridge
     #[Filter('meiliscout/post/document')]
     public function addCard(array $document, WP_Post $post): array
     {
-        $document[DocumentField::Card->value] = $this->cards->project($post);
+        $document[DocumentField::Card->value] = $this->asShopVisitor(fn (): array => $this->cards->project($post));
 
         return $document;
+    }
+
+    /**
+     * @param  array<string, mixed>  $document
+     * @return array<string, mixed>
+     */
+    #[Filter('meiliscout/post/document')]
+    public function addPrice(array $document, WP_Post $post): array
+    {
+        $price = $this->asShopVisitor(fn (): array => $this->prices->project($post));
+
+        if ($price !== []) {
+            $document[DocumentField::Price->value] = $price;
+        }
+
+        return $document;
+    }
+
+    /**
+     * @template T
+     *
+     * @param  Closure(): T  $read
+     * @return T
+     */
+    private function asShopVisitor(Closure $read): mixed
+    {
+        return $this->shopTaxLocation->during(fn (): mixed => $this->anonymousVisitor->during($read));
     }
 
     /**

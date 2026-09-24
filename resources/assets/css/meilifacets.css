@@ -389,3 +389,216 @@
     }
 
 }
+
+/* ---------------------------------------------------------------- price */
+
+.meilifacetsHidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.meilifacetsRangeHead {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75em;
+    margin: 0;
+    font-weight: 600;
+}
+
+[data-meili="price-readout"],
+[data-meili="price-tip"],
+[data-meili="price-bounds-min"],
+[data-meili="price-bounds-max"],
+[data-meili="price-min"],
+[data-meili="price-max"] {
+    font-variant-numeric: tabular-nums;
+}
+
+/* The margin leaves a tip room to open; the padding keeps a handle on an end from hanging off. */
+[data-meili="price-range"] {
+    position: relative;
+    display: flex;
+    align-items: center;
+    height: 1.25em;
+    margin-top: 2.1em;
+    padding: 0 0.625em;
+    touch-action: none;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+[data-meili="price-track"] {
+    position: relative;
+    width: 100%;
+    height: 0.375em;
+    border-radius: 999px;
+    background: linear-gradient(
+        to right,
+        var(--meili-rule) calc(var(--from, 0) * 100%),
+        currentColor calc(var(--from, 0) * 100%) calc(var(--to, 1) * 100%),
+        var(--meili-rule) calc(var(--to, 1) * 100%)
+    );
+}
+
+[data-meili="price-handle"] {
+    position: absolute;
+    top: 50%;
+    left: calc(var(--at, 0) * 100%);
+    width: 1.25em;
+    height: 1.25em;
+    padding: 0;
+    border: 2px solid Canvas;
+    border-radius: 999px;
+    background: currentColor;
+    cursor: grab;
+    transform: translate(-50%, -50%);
+    transition: transform 120ms var(--meili-ease);
+}
+
+[data-meili="price-handle"]:active {
+    cursor: grabbing;
+}
+
+[data-meili="price-handle"]:focus-visible,
+[data-meili="price-handle"][data-active] {
+    transform: translate(-50%, -50%) scale(1.12);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    [data-meili="price-handle"]:hover {
+        transform: translate(-50%, -50%) scale(1.12);
+    }
+}
+
+[data-meili="price-tip"] {
+    position: absolute;
+    bottom: calc(100% + 0.55em);
+    left: 50%;
+    padding: 0.2em 0.45em;
+    border-radius: 0.25em;
+    background: CanvasText;
+    color: Canvas;
+    font-size: 0.75em;
+    line-height: 1.35;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-50%);
+    transition: opacity 120ms var(--meili-ease);
+}
+
+[data-meili="price-handle"]:focus-visible [data-meili="price-tip"],
+[data-meili="price-handle"][data-active] [data-meili="price-tip"] {
+    opacity: 1;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    [data-meili="price-handle"]:hover [data-meili="price-tip"] {
+        opacity: 1;
+    }
+}
+
+.meilifacetsRangeBounds {
+    display: flex;
+    justify-content: space-between;
+    margin: 0.5em 0 0;
+    padding: 0 0.625em;
+}
+
+[data-meili="price-bounds-min"],
+[data-meili="price-bounds-max"] {
+    font-size: 0.9em;
+    opacity: 0.6;
+}
+
+[data-meili="price-min"],
+[data-meili="price-max"] {
+    font: inherit;
+}
+
+/* The spinners fight a two-field range: the bounds already say what is possible. */
+[data-meili="price-min"]::-webkit-outer-spin-button,
+[data-meili="price-min"]::-webkit-inner-spin-button,
+[data-meili="price-max"]::-webkit-outer-spin-button,
+[data-meili="price-max"]::-webkit-inner-spin-button {
+    margin: 0;
+    -webkit-appearance: none;
+}
+
+[data-meili="price-min"][type="number"],
+[data-meili="price-max"][type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+.meilifacetsPriceFields {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.5em;
+    margin-top: 0.5em;
+}
+
+.meilifacetsPriceField {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 0.35em;
+    min-width: 0;
+    font-size: 0.9em;
+}
+
+.meilifacetsPriceInput {
+    display: flex;
+    box-sizing: border-box;
+    align-items: center;
+    gap: 0.25em;
+    height: var(--meili-control);
+    padding: 0 0.5em;
+    border: 1px solid var(--meili-edge);
+    border-radius: 0.25em;
+    transition: border-color 150ms var(--meili-ease);
+}
+
+.meilifacetsPriceInput:focus-within {
+    border-color: currentColor;
+}
+
+.meilifacetsPriceInput > span {
+    opacity: 0.6;
+}
+
+/* Only inside the box that draws the focus: a field on its own keeps its native frame and outline. */
+.meilifacetsPriceInput > input {
+    width: 100%;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+}
+
+.meilifacetsPriceInput > input:focus {
+    outline: 0;
+}
+
+.meilifacetsPriceDash {
+    padding-bottom: 0.6em;
+    opacity: 0.6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    [data-meili="price-handle"],
+    [data-meili="price-tip"],
+    .meilifacetsPriceInput {
+        transition: none;
+    }
+}
+

@@ -5,22 +5,28 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Tests\Unit\Doubles;
 
 use Modules\MeiliFacets\Contracts\Listing;
+use Modules\MeiliFacets\Contracts\Placeable;
 use Modules\MeiliFacets\Enums\ApplyMode;
 use Modules\MeiliFacets\Enums\SelectionMode;
 use Modules\MeiliFacets\Listing\Facet;
+use Modules\MeiliFacets\Listing\PriceFilter;
 use Modules\MeiliFacets\Listing\Sort;
+use Modules\MeiliFacets\Listing\SortFilter;
 
 final readonly class FakeListing implements Listing
 {
     /**
-     * @param  list<Facet>  $facets
+     * @param  list<Placeable>  $facets
      * @param  list<string>  $baseFilter
+     * @param  array<string, Sort>|null  $sorts
      */
     public function __construct(
         private array $facets = [],
         private array $baseFilter = [],
         private int $perPage = 16,
+        private string $baseQuery = '',
         private string $name = 'fake',
+        private ?array $sorts = null,
     ) {}
 
     public static function named(string $name): self
@@ -36,6 +42,22 @@ final readonly class FakeListing implements Listing
         ], ['post_type = "product"']);
     }
 
+    public static function withPriceAndBrand(): self
+    {
+        return new self([
+            new Facet('product_brand', 'Brand'),
+            new PriceFilter('Price'),
+        ], ['post_type = "product"']);
+    }
+
+    public static function withPromotions(): self
+    {
+        return new self([new Facet('product_brand', 'Brand'), new PriceFilter('Price')], ['post_type = "product"'], sorts: [
+            'price_asc' => new Sort('Price', ['metas._price:asc']),
+            'on_sale' => Sort::filtering('On sale', SortFilter::whereTrue('price.onsale')),
+        ]);
+    }
+
     public function name(): string
     {
         return $this->name;
@@ -46,6 +68,14 @@ final readonly class FakeListing implements Listing
      */
     public function facets(): array
     {
+        return array_values(array_filter(
+            $this->facets,
+            static fn (Placeable $filter): bool => $filter instanceof Facet
+        ));
+    }
+
+    public function filters(): array
+    {
         return $this->facets;
     }
 
@@ -54,7 +84,7 @@ final readonly class FakeListing implements Listing
      */
     public function sorts(): array
     {
-        return ['price_asc' => new Sort('Price', ['metas._price:asc'])];
+        return $this->sorts ?? ['price_asc' => new Sort('Price', ['metas._price:asc'])];
     }
 
     /**
@@ -63,6 +93,11 @@ final readonly class FakeListing implements Listing
     public function baseFilter(): array
     {
         return $this->baseFilter;
+    }
+
+    public function baseQuery(): string
+    {
+        return $this->baseQuery;
     }
 
     public function perPage(): int

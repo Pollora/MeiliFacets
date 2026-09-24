@@ -10,6 +10,7 @@ use Modules\MeiliFacets\Enums\InputType;
 use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\Listing\Facet as Declaration;
 use Modules\MeiliFacets\Listing\FacetValue;
+use Modules\MeiliFacets\View\CountLabel;
 
 final class Facet extends ListingComponent
 {
@@ -18,21 +19,18 @@ final class Facet extends ListingComponent
     /** @var list<FacetValue> */
     public array $values;
 
+    private ?string $countPattern = null;
+
     public function __construct(
         CurrentListing $listings,
+        private readonly CountLabel $countLabel,
         Declaration|BackedEnum|string $facet,
         string $name = '',
         bool $scroll = false,
     ) {
         parent::__construct($listings, $name, $scroll);
 
-        if ($facet instanceof Declaration) {
-            $this->facet = $facet;
-            $this->listing->place($facet);
-        } else {
-            $this->facet = $this->listing->facetNamed($facet instanceof BackedEnum ? (string) $facet->value : $facet);
-            $this->listing->placeApart($this->facet);
-        }
+        $this->facet = $this->listing->placing($this->designated($facet), Declaration::class);
 
         $this->values = $this->listing->valuesOf($this->facet);
     }
@@ -42,18 +40,21 @@ final class Facet extends ListingComponent
         return InputType::forSelection($this->facet->selection)->value;
     }
 
-    /**
-     * Spelled out rather than left as a bare number beside the label, where a
-     * screen reader would read "15ml 2".
-     */
     public function countLabel(FacetValue $value): string
     {
-        return trans_choice(':count result|:count results', $value->count, ['count' => $value->count]);
+        $this->countPattern ??= __(':count result|:count results');
+
+        return $this->countLabel->of($this->countPattern, $value->count);
     }
 
     public function hasFoldedValues(): bool
     {
-        return array_any($this->values, static fn (FacetValue $value): bool => $value->folded);
+        return array_any($this->values, static fn (FacetValue $value): bool => $value->folded && $value->count > 0);
+    }
+
+    public function hasReadableValues(): bool
+    {
+        return array_any($this->values, static fn (FacetValue $value): bool => ! $value->folded);
     }
 
     public function render(): View

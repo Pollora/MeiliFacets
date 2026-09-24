@@ -18,7 +18,11 @@ final class ListingScript
 {
     public const string MODULE = '@meilifacets/listing';
 
-    private const string SOURCE = 'modules/meilifacets/js/listing-page.js';
+    public const string PRIORITY_FILTER = 'meilifacets/script_fetchpriority';
+
+    private const string SOURCE = 'modules/meilifacets/dist/listing.js';
+
+    private const string DEFAULT_PRIORITY = 'low';
 
     /** @var array<string, array<string, mixed>> */
     private array $described = [];
@@ -61,6 +65,18 @@ final class ListingScript
         ];
     }
 
+    /**
+     * WP Rocket's Delay JS holds back every script it does not exclude until the visitor's first gesture.
+     *
+     * @param  array<string>  $exclusions
+     * @return array<string>
+     */
+    #[Filter('rocket_delay_js_exclusions')]
+    public function excludeFromDelayedScripts(array $exclusions): array
+    {
+        return [...$exclusions, self::SOURCE];
+    }
+
     private function enqueueOnce(): void
     {
         if ($this->described !== []) {
@@ -71,7 +87,13 @@ final class ListingScript
             self::MODULE,
             asset(self::SOURCE),
             [],
-            (string) filemtime(public_path(self::SOURCE))
+            (string) filemtime(public_path(self::SOURCE)),
+            ['fetchpriority' => $this->fetchPriority()],
         );
+    }
+
+    private function fetchPriority(): string
+    {
+        return (string) apply_filters(self::PRIORITY_FILTER, self::DEFAULT_PRIORITY);
     }
 }

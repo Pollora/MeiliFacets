@@ -8,23 +8,47 @@ use Modules\MeiliFacets\Contracts\Listing;
 use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Listing\Facet;
 use Modules\MeiliFacets\Listing\ListingState;
+use Modules\MeiliFacets\Listing\PriceFilter;
+use Modules\MeiliFacets\Listing\SortFilter;
 
 final readonly class QueryPlan
 {
     private const int NO_HIT = 0;
 
     /**
+     * @return list<FilterQuery>
+     */
+    public static function filterQueries(Listing $listing): array
+    {
+        $price = PriceFilter::among($listing->filters());
+        $sortQuery = self::sortQuery($listing);
+
+        // Asking the engine for price bounds brings back a distribution of every distinct price too.
+        return [
+            ...array_map(static fn (Facet $facet): FilterQuery => new FacetQuery($facet), $listing->facets()),
+            ...$price instanceof PriceFilter ? [new PriceQuery($price)] : [],
+            ...$sortQuery instanceof SortQuery ? [$sortQuery] : [],
+        ];
+    }
+
+    public static function sortQuery(Listing $listing): ?SortQuery
+    {
+        $filters = SortFilter::carriedBy($listing->sorts());
+
+        return $filters === [] ? null : new SortQuery($filters);
+    }
+
+    /**
+     * @param  list<string>  $apartKeys  the keys of the searches that measure a filter on their own
      * @return array<string, mixed>
      */
-    public static function results(Listing $listing, ListingState $state): array
+    public static function results(Listing $listing, ListingState $state, array $apartKeys): array
     {
+        $filters = self::filterQueries($listing);
         $query = [
-            'q' => $state->query,
-            'filter' => FilterExpression::all([
-                ...$listing->baseFilter(),
-                ...self::facetClauses($listing, $state),
-            ]),
-            'facets' => self::fieldsCountedOnMain($listing, $state),
+            'q' => self::searched($listing, $state),
+            'filter' => self::filter($listing, $state, $filters),
+            'facets' => self::fieldsOnMain($filters, $apartKeys),
             // `hitsPerPage`/`page` answer with `totalHits` and `totalPages`;
             // `limit`/`offset` only give an estimate, capped at maxTotalHits.
             'hitsPerPage' => $listing->perPage(),
@@ -38,60 +62,63 @@ final readonly class QueryPlan
     }
 
     /**
-     * Counts a facet as if its own constraint were lifted, so its other values
-     * stay reachable.
-     *
      * @return array<string, mixed>
      */
-    public static function counting(Listing $listing, ListingState $state, Facet $counted): array
+    public static function apart(Listing $listing, ListingState $state, FilterQuery $lifted): array
     {
+        $others = array_filter(
+            self::filterQueries($listing),
+            static fn (FilterQuery $filter): bool => $filter->key() !== $lifted->key()
+        );
+
         return [
-            'q' => $state->query,
-            'filter' => FilterExpression::all([
-                ...$listing->baseFilter(),
-                ...self::facetClauses($listing, $state, $counted->taxonomy),
-            ]),
-            'facets' => [$counted->field()],
+            'q' => self::searched($listing, $state),
+            'filter' => self::filter($listing, $state, $others),
+            'facets' => $lifted->fields(),
             'hitsPerPage' => self::NO_HIT,
             'page' => ListingState::FIRST_PAGE,
         ];
     }
 
     /**
-     * A facet only needs a search of its own once it constrains the results;
-     * until then the main response counts it correctly.
+     * @return array<string, mixed>
      */
-    public static function isCountedApart(Facet $facet, ListingState $state): bool
+    public static function unfiltered(Listing $listing): array
     {
-        return $facet->needsDisjunctiveCount() && $state->selected($facet->taxonomy) !== [];
+        return [
+            'q' => $listing->baseQuery(),
+            'filter' => FilterExpression::all($listing->baseFilter()),
+            'facets' => array_map(static fn (Facet $facet): string => $facet->field(), $listing->facets()),
+            'hitsPerPage' => self::NO_HIT,
+            'page' => ListingState::FIRST_PAGE,
+        ];
+    }
+
+    private static function searched(Listing $listing, ListingState $state): string
+    {
+        return $state->query !== '' ? $state->query : $listing->baseQuery();
     }
 
     /**
-     * @return list<string>
+     * @param  array<FilterQuery>  $filters
      */
-    private static function fieldsCountedOnMain(Listing $listing, ListingState $state): array
+    private static function filter(Listing $listing, ListingState $state, array $filters): string
     {
-        $onMain = array_filter(
-            $listing->facets(),
-            static fn (Facet $facet): bool => ! self::isCountedApart($facet, $state)
-        );
-
-        return array_values(array_map(static fn (Facet $facet): string => $facet->field(), $onMain));
+        return FilterExpression::all([
+            ...$listing->baseFilter(),
+            ...array_map(static fn (FilterQuery $filter): string => $filter->clause($state), array_values($filters)),
+        ]);
     }
 
     /**
+     * @param  list<FilterQuery>  $filters
+     * @param  list<string>  $apartKeys
      * @return list<string>
      */
-    private static function facetClauses(Listing $listing, ListingState $state, ?string $except = null): array
+    private static function fieldsOnMain(array $filters, array $apartKeys): array
     {
-        $clauses = [];
+        $onMain = array_filter($filters, static fn (FilterQuery $filter): bool => ! in_array($filter->key(), $apartKeys, true));
 
-        foreach ($listing->facets() as $facet) {
-            if ($facet->taxonomy !== $except) {
-                $clauses[] = FilterExpression::facet($facet, $state->selected($facet->taxonomy));
-            }
-        }
-
-        return array_values(array_filter($clauses, strlen(...)));
+        return array_merge(...array_map(static fn (FilterQuery $filter): array => $filter->fields(), array_values($onMain)));
     }
 }

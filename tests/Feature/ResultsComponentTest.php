@@ -44,23 +44,33 @@ final class ResultsComponentTest extends TestCase
         $this->assertStringContainsString('class="meilifacetsResultsEmpty" hidden', $html);
     }
 
-    /** There are results, they are simply not on the page that was asked for. */
     #[Test]
-    public function it_says_which_of_the_two_emptinesses_it_is(): void
+    public function it_reveals_the_reason_nothing_is_listed(): void
     {
-        // Whatever language the site runs in, the two must not read the same.
-        $nothingAtAll = $this->messageOf($this->render(cards: []));
-        $nothingHere = $this->messageOf($this->render(cards: [], pastTheEnd: true));
+        $this->assertSame(['no-results'], $this->shownReasons($this->render(cards: [])));
+        $this->assertSame(['past-the-end'], $this->shownReasons($this->render(cards: [], pastTheEnd: true)));
+    }
 
+    /** Both are rendered: the client reveals one, it writes no text of its own. */
+    #[Test]
+    public function it_renders_both_reasons_for_the_client(): void
+    {
+        preg_match_all('/data-meili="(?:no-results|past-the-end)">([^<]*)</', $this->render(cards: []), $found);
+        [$nothingAtAll, $nothingHere] = array_map(trim(...), $found[1]);
+
+        // Whatever language the site runs in, the two must not read the same.
         $this->assertNotSame('', $nothingAtAll);
         $this->assertNotSame($nothingAtAll, $nothingHere);
     }
 
-    private function messageOf(string $html): string
+    /**
+     * @return list<string>
+     */
+    private function shownReasons(string $html): array
     {
-        preg_match('/meilifacetsResultsEmpty"[^>]*>([^<]*)/', $html, $found);
+        preg_match_all('/<span data-meili="(no-results|past-the-end)">/', $html, $found);
 
-        return trim($found[1] ?? '');
+        return $found[1];
     }
 
     /** One clone source, so the client never carries markup of its own. */

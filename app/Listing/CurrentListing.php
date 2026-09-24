@@ -6,6 +6,7 @@ namespace Modules\MeiliFacets\Listing;
 
 use Modules\MeiliFacets\Discovery\ListingRegistry;
 use Modules\MeiliFacets\Enums\QueryParameter;
+use Modules\MeiliFacets\Http\PageAddress;
 use Modules\MeiliFacets\Http\Unavailable;
 use Modules\MeiliFacets\Search\EngineLimits;
 use Modules\MeiliFacets\Search\ListingSearch;
@@ -68,6 +69,6 @@ final class CurrentListing
         $query = request()->query();
         $page = $this->parameters->reserved(QueryParameter::Page);
 
-        return isset($query[$page]) ? $query : [...$query, $page => (string) get_query_var('paged')];
+        return isset($query[$page]) ? $query : [...$query, $page => (string) get_query_var(PageAddress::PAGED_QUERY_VAR)];
     }
 }

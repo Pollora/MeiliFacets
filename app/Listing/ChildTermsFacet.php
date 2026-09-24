@@ -17,6 +17,12 @@ use Modules\MeiliFacets\Contracts\TermScope;
  */
 final readonly class ChildTermsFacet extends Facet
 {
+    /** It offers the children of the pinned term, so its own taxonomy being pinned is what it is for. */
+    public function narrowsUnder(?string $pinned): bool
+    {
+        return true;
+    }
+
     /**
      * @param  array<string, int>  $distribution
      * @return array<string, int>

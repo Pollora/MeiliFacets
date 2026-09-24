@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Listing;
 
 use Modules\MeiliFacets\Contracts\ProductSorts;
-use Modules\MeiliFacets\Enums\ProductMeta;
+use Modules\MeiliFacets\Enums\PriceField;
 
 final class WooCommerceSorts implements ProductSorts
 {
@@ -15,9 +15,11 @@ final class WooCommerceSorts implements ProductSorts
     public function all(): array
     {
         return $this->sorts ??= [
-            'price_asc' => new Sort(__('Price, low to high'), [ProductMeta::Price->path().':asc']),
-            'price_desc' => new Sort(__('Price, high to low'), [ProductMeta::Price->path().':desc']),
+            // A product spanning 28–62 belongs at 28 going up and at 62 going down.
+            'price_asc' => new Sort(__('Price, low to high'), [PriceField::Min->path().':asc']),
+            'price_desc' => new Sort(__('Price, high to low'), [PriceField::Max->path().':desc']),
             'newest' => new Sort(__('New arrivals'), ['post_date:desc']),
+            'on_sale' => Sort::filtering(__('On sale'), SortFilter::whereTrue(PriceField::OnSale->path())),
         ];
     }
 }

@@ -24,15 +24,21 @@ final class IndexAttributesTest extends TestCase
     #[Test]
     public function it_declares_the_woocommerce_metas_under_their_document_path(): void
     {
-        $attributes = new WooCommerceIndexAttributes;
-
-        $this->assertSame(['metas._price', 'metas._stock_status'], $attributes->filterable());
+        $this->assertSame(['metas._price', 'metas._stock_status'], $this->filterable('metas.'));
     }
 
+    /** None of the three exists in `postmeta`: the module computes them. */
     #[Test]
-    public function it_sorts_on_price_only(): void
+    public function it_declares_the_price_interval_outside_the_metas(): void
     {
-        $this->assertSame(['metas._price'], (new WooCommerceIndexAttributes)->sortable());
+        $this->assertSame(['price.min', 'price.max', 'price.onsale'], $this->filterable('price.'));
+    }
+
+    /** Ascending reads the low end, descending the high one — see `WooCommerceSorts`. */
+    #[Test]
+    public function it_sorts_on_both_ends_of_the_price_interval(): void
+    {
+        $this->assertSame(['price.min', 'price.max'], (new WooCommerceIndexAttributes)->sortable());
     }
 
     #[Test]
@@ -55,7 +61,21 @@ final class IndexAttributesTest extends TestCase
     {
         $attributes = new ConfiguredIndexAttributes(new WooCommerceIndexAttributes, ['post_excerpt']);
 
-        $this->assertSame(['metas._price', 'metas._stock_status'], $attributes->filterable());
-        $this->assertSame(['metas._price'], $attributes->sortable());
+        $this->assertSame(
+            ['metas._price', 'metas._stock_status', 'price.min', 'price.max', 'price.onsale'],
+            $attributes->filterable()
+        );
+        $this->assertSame(['price.min', 'price.max'], $attributes->sortable());
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function filterable(string $prefix): array
+    {
+        return array_values(array_filter(
+            (new WooCommerceIndexAttributes)->filterable(),
+            static fn (string $path): bool => str_starts_with($path, $prefix)
+        ));
     }
 }

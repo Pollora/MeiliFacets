@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Support;
 
-/**
- * Names a listing parameter must never take. Checked by the console command,
- * never on a request: the answer only changes when configuration does.
- */
-final readonly class ReservedParameters
+use Modules\MeiliFacets\Enums\QueryParameter;
+
+/** Names a listing parameter must never take. */
+final class ReservedParameters
 {
     /**
      * Varnish drops the whole query string when the first parameter is one of
@@ -20,14 +19,33 @@ final readonly class ReservedParameters
         'ref', 'refid', 'refsrc', 'ver', 'view',
     ];
 
+    /** `WC_Query` reads these from `$_GET`, and `is_filtered()` the price and rating ones, `NativeFiltering` or not. */
+    private const array READ_FROM_GET = [
+        'min_price', 'max_price', 'rating_filter', 'orderby',
+    ];
+
+    /** The same source treats anything starting with this as one of its own. */
+    private const string FILTER_PREFIX = 'filter_';
+
+    private const string QUERY_VARS_FILTER = 'query_vars';
+
+    private const string INIT_ACTION = 'init';
+
+    private const string PARSE_REQUEST_ACTION = 'parse_request';
+
+    /** @var list<string>|null */
+    private ?array $wordPress = null;
+
     /**
      * @return list<string>
      */
     public function wordPress(): array
     {
-        global $wp;
+        if (! $this->wordPressHasInitialised()) {
+            return array_values($this->declaredQueryVars());
+        }
 
-        return array_values($wp->public_query_vars ?? []);
+        return $this->wordPress ??= array_values(array_unique($this->filteredQueryVars()));
     }
 
     /**
@@ -38,8 +56,38 @@ final readonly class ReservedParameters
         return self::STRIPPED_BY_VARNISH;
     }
 
+    /**
+     * @return list<string>
+     */
+    public function plugins(): array
+    {
+        return self::READ_FROM_GET;
+    }
+
+    /**
+     * Collisions taken on purpose (`D-h`), and only while the bound answers to the name.
+     *
+     * @return list<string>
+     */
+    public function acceptedFor(UrlParameters $parameters): array
+    {
+        $accepted = [];
+
+        foreach ([QueryParameter::MinPrice, QueryParameter::MaxPrice] as $bound) {
+            if ($parameters->reserved($bound) === $bound->value) {
+                $accepted[] = $bound->value;
+            }
+        }
+
+        return $accepted;
+    }
+
     public function reason(string $parameter): ?string
     {
+        if (in_array($parameter, self::READ_FROM_GET, true) || str_starts_with($parameter, self::FILTER_PREFIX)) {
+            return 'read from $_GET by WooCommerce: its query, its widgets or is_filtered() act on it';
+        }
+
         if (in_array($parameter, $this->wordPress(), true)) {
             return 'a public WordPress query var: WordPress would filter its own query in parallel';
         }
@@ -68,5 +116,39 @@ final readonly class ReservedParameters
         }
 
         return $conflicts;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function declaredQueryVars(): array
+    {
+        global $wp;
+
+        return $wp->public_query_vars ?? [];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function filteredQueryVars(): array
+    {
+        if ($this->requestWasParsed()) {
+            return $this->declaredQueryVars();
+        }
+
+        return apply_filters(self::QUERY_VARS_FILTER, $this->declaredQueryVars());
+    }
+
+    /** Filtered before `init`, WooCommerce keeps its filter parameters for good, without the product taxonomies. */
+    private function wordPressHasInitialised(): bool
+    {
+        return function_exists('did_action') && did_action(self::INIT_ACTION) > 0;
+    }
+
+    /** `WP::parse_request()` applies `query_vars` itself, and the console never parses a request. */
+    private function requestWasParsed(): bool
+    {
+        return did_action(self::PARSE_REQUEST_ACTION) > 0;
     }
 }

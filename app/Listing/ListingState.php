@@ -16,6 +16,7 @@ final readonly class ListingState
         public ?string $sort = null,
         public int $page = self::FIRST_PAGE,
         public string $query = '',
+        public Range $price = new Range,
     ) {}
 
     /**
@@ -33,7 +34,7 @@ final readonly class ListingState
 
     public function activeFilterCount(): int
     {
-        return array_sum(array_map(count(...), $this->facets));
+        return array_sum(array_map(count(...), $this->facets)) + ($this->price->isEmpty() ? 0 : 1);
     }
 
     public function isPristine(): bool
@@ -41,6 +42,7 @@ final readonly class ListingState
         return $this->facets === []
             && $this->sort === null
             && $this->query === ''
-            && $this->page === self::FIRST_PAGE;
+            && $this->page === self::FIRST_PAGE
+            && $this->price->isEmpty();
     }
 }

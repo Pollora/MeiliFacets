@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Listing;
 
 use BackedEnum;
+use Modules\MeiliFacets\Contracts\Placeable;
 use Modules\MeiliFacets\Contracts\TermScope;
 use Modules\MeiliFacets\Contracts\ValueOrder;
 use Modules\MeiliFacets\Enums\DefaultTerm;
@@ -12,7 +13,7 @@ use Modules\MeiliFacets\Enums\DisplayOrder;
 use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Enums\SelectionMode;
 
-readonly class Facet
+readonly class Facet implements Placeable
 {
     public const int DEFAULT_VISIBLE = 10;
 
@@ -48,6 +49,12 @@ readonly class Facet
     public function within(array $distribution, TermScope $scope): array
     {
         return $distribution;
+    }
+
+    /** A flat facet of the taxonomy a path pins offers that one value and nothing else: it has stopped narrowing. */
+    public function narrowsUnder(?string $pinned): bool
+    {
+        return $pinned !== $this->taxonomy;
     }
 
     public function field(): string

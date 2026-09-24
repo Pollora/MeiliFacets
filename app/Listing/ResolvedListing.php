@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Listing;
 
 use Modules\MeiliFacets\Contracts\Listing;
+use Modules\MeiliFacets\Contracts\Placeable;
 use Modules\MeiliFacets\Enums\ApplyMode;
+use Modules\MeiliFacets\Enums\QueryParameter;
 use Modules\MeiliFacets\Http\Unavailable;
 use Modules\MeiliFacets\Search\EngineLimits;
+use Modules\MeiliFacets\Search\FacetTruncated;
 use Modules\MeiliFacets\Search\FilterExpression;
 use Modules\MeiliFacets\Search\ListingSearch;
 use Modules\MeiliFacets\Search\SearchFailed;
@@ -29,17 +32,26 @@ final class ResolvedListing
     /** @var list<Facet>|null */
     private ?array $facets = null;
 
+    /** @var list<Placeable>|null */
+    private ?array $filters = null;
+
     /** @var array<string, true> names already on the page, whatever placed them */
     private array $rendered = [];
 
     /** @var array<string, true> names a template placed on their own */
     private array $apart = [];
 
+    /** @var array<string, list<FacetValue>> */
+    private array $valuesByFacet = [];
+
+    /** @var array<string, Sort>|null */
+    private ?array $sorts = null;
+
     public function __construct(
         private readonly Listing $listing,
         private readonly ListingState $state,
         private readonly ListingSearch $search,
-        private readonly FacetValues $values,
+        private readonly FacetValues $facetValues,
         private readonly UrlParameters $parameters,
         private readonly Unavailable $unavailable,
         private readonly EngineLimits $limits,
@@ -78,42 +90,68 @@ final class ResolvedListing
         return $this->cards ??= $this->results()->cards();
     }
 
+    public function state(): ListingState
+    {
+        return $this->state;
+    }
+
+    /**
+     * Raw engine statistics. Which fields mean what is the filter's business.
+     *
+     * @return array<string, array<string, float>>
+     */
+    public function facetStats(): array
+    {
+        return $this->results()->facetStats;
+    }
+
     /**
      * @return list<Facet>
      */
     public function facets(): array
     {
-        return $this->facets ??= $this->refuseSharedNames($this->listing->facets());
+        return $this->facets ??= $this->listing->facets();
     }
 
     /**
-     * @param  list<Facet>  $facets
-     * @return list<Facet>
+     * What `<x-meilifacets::facets>` and `<x-meilifacets::facet>` place: term
+     * facets and the price range alike.
+     *
+     * @return list<Placeable>
      */
-    private function refuseSharedNames(array $facets): array
+    public function filters(): array
+    {
+        return $this->filters ??= $this->refuseSharedNames($this->listing->filters());
+    }
+
+    /**
+     * @param  list<Placeable>  $filters
+     * @return list<Placeable>
+     */
+    private function refuseSharedNames(array $filters): array
     {
         $labels = [];
 
-        foreach ($facets as $facet) {
-            if (isset($labels[$facet->name])) {
+        foreach ($filters as $filter) {
+            if (isset($labels[$filter->name])) {
                 throw new RuntimeException(sprintf(
                     'Facets "%s" and "%s" answer to the same name "%s" in listing "%s". Declare `name:` on all but one of them.',
-                    $labels[$facet->name], $facet->label, $facet->name, $this->name(),
+                    $labels[$filter->name], $filter->label, $filter->name, $this->name(),
                 ));
             }
 
-            $labels[$facet->name] = $facet->label;
+            $labels[$filter->name] = $filter->label;
         }
 
-        return $facets;
+        return $filters;
     }
 
-    public function facetNamed(string $name): Facet
+    public function facetNamed(string $name): Placeable
     {
-        return array_find($this->facets(), static fn (Facet $facet): bool => $facet->name === $name)
+        return array_find($this->filters(), static fn (Placeable $filter): bool => $filter->name === $name)
             ?? throw new RuntimeException(
                 "No facet named \"{$name}\" in listing \"{$this->name()}\". Declared: ".
-                implode(', ', array_map(static fn (Facet $facet): string => $facet->name, $this->facets())).'.'
+                implode(', ', array_map(static fn (Placeable $filter): string => $filter->name, $this->filters())).'.'
             );
     }
 
@@ -121,25 +159,53 @@ final class ResolvedListing
      * What `<x-meilifacets::facets>` shows: everything a template did not place on
      * its own.
      *
-     * @return list<Facet>
+     * @return list<Placeable>
      */
     public function remainingFacets(): array
     {
         return array_values(array_filter(
-            $this->facets(),
-            fn (Facet $facet): bool => ! isset($this->apart[$facet->name])
+            $this->filters(),
+            fn (Placeable $filter): bool => ! isset($this->apart[$filter->name])
         ));
     }
 
+    /**
+     * Places what a component was given: a declaration goes where the template put
+     * it, a name is looked up and taken out of the group. A component only places
+     * its own kind, so the mismatch is caught here rather than rendered wrong.
+     *
+     * @template T of Placeable
+     *
+     * @param  class-string<T>  $kind
+     * @return T
+     */
+    public function placing(Placeable|string $filter, string $kind): Placeable
+    {
+        $placeable = $filter instanceof Placeable ? $filter : $this->facetNamed($filter);
+
+        if (! $placeable instanceof $kind) {
+            throw new RuntimeException(sprintf(
+                '"%s" in listing "%s" is a %s: place it with the component of its own kind.',
+                $placeable->name,
+                $this->name(),
+                class_basename($placeable)
+            ));
+        }
+
+        $filter instanceof Placeable ? $this->place($placeable) : $this->placeApart($placeable);
+
+        return $placeable;
+    }
+
     /** Designated by name, so the group leaves it alone. */
-    public function placeApart(Facet $facet): void
+    public function placeApart(Placeable $facet): void
     {
         $this->apart[$facet->name] = true;
 
         $this->place($facet);
     }
 
-    public function place(Facet $facet): void
+    public function place(Placeable $facet): void
     {
         if (isset($this->rendered[$facet->name])) {
             throw new RuntimeException(
@@ -156,7 +222,24 @@ final class ResolvedListing
      */
     public function valuesOf(Facet $facet): array
     {
-        return $this->values->of($facet, $this->results()->distribution($facet->taxonomy), $this->state);
+        return $this->valuesByFacet[$facet->name] ??= $this->resolveValues($facet);
+    }
+
+    /**
+     * @return list<FacetValue>
+     */
+    private function resolveValues(Facet $facet): array
+    {
+        $results = $this->results();
+        $distribution = $results->distribution($facet->taxonomy);
+        $unfiltered = $results->unfilteredDistribution($facet->taxonomy);
+        $received = max(count($distribution), count($unfiltered ?? []));
+
+        if ($this->limits->looksTruncated($received)) {
+            report(FacetTruncated::at($facet->taxonomy, $received));
+        }
+
+        return $this->facetValues->of($facet, $distribution, $this->state, $unfiltered);
     }
 
     public function pagination(): Pagination
@@ -167,6 +250,11 @@ final class ResolvedListing
             $this->results()->total,
             $this->limits->reachableHits,
         );
+    }
+
+    public function parameterForReserved(QueryParameter $parameter): string
+    {
+        return $this->parameters->reserved($parameter);
     }
 
     public function parameterFor(string $taxonomy): string
@@ -199,6 +287,11 @@ final class ResolvedListing
         return FilterExpression::all($this->listing->baseFilter());
     }
 
+    public function baseQuery(): string
+    {
+        return $this->listing->baseQuery();
+    }
+
     public function applyMode(): ApplyMode
     {
         return $this->listing->applyMode();
@@ -209,12 +302,20 @@ final class ResolvedListing
      */
     public function sorts(): array
     {
-        return $this->listing->sorts();
+        return $this->sorts ??= $this->listing->sorts();
     }
 
     public function currentSort(): ?string
     {
         return $this->state->sort;
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    public function sortMatches(): array
+    {
+        return $this->results()->sortMatches;
     }
 
     public function offset(): int
