@@ -115,6 +115,7 @@
     color: inherit;
     font: inherit;
     font-size: var(--meili-ui);
+    font-weight: 600;
     transition: background-color 120ms var(--meili-ease);
 }
 
