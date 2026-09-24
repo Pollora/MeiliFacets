@@ -23,13 +23,7 @@ final readonly class ListingSearch
 
     public function run(Listing $listing, ListingState $state): SearchResults
     {
-        $responses = $this->engine->multiSearch([
-            self::RESULTS => QueryPlan::results($listing, $state),
-            ...$this->countQueries($listing, $state),
-            ...$this->boundsQueries($listing, $state),
-            ...$this->unfilteredQueries($listing, $state),
-        ]);
-
+        $responses = $this->engine->multiSearch($this->searches($listing, $state));
         $main = $responses[self::RESULTS] ?? [];
 
         return new SearchResults(
@@ -40,6 +34,23 @@ final readonly class ListingSearch
             $this->unfilteredDistributions($listing, $responses),
             $this->sortMatches($listing, $main),
         );
+    }
+
+    /**
+     * @return array<string, array<string, mixed>>
+     */
+    private function searches(Listing $listing, ListingState $state): array
+    {
+        $measuredApart = [
+            ...$this->countQueries($listing, $state),
+            ...$this->boundsQueries($listing, $state),
+        ];
+
+        return [
+            self::RESULTS => QueryPlan::results($listing, $state, array_keys($measuredApart)),
+            ...$measuredApart,
+            ...$this->unfilteredQueries($listing, $state),
+        ];
     }
 
     /**

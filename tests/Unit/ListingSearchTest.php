@@ -8,6 +8,7 @@ use Modules\MeiliFacets\Listing\ListingState;
 use Modules\MeiliFacets\Listing\Range;
 use Modules\MeiliFacets\Search\DisjunctiveFacetCounter;
 use Modules\MeiliFacets\Search\ListingSearch;
+use Modules\MeiliFacets\Tests\Unit\Doubles\FakeFacetCounter;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeListing;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeSearchEngine;
 use PHPUnit\Framework\Attributes\Test;
@@ -173,6 +174,59 @@ final class ListingSearchTest extends TestCase
         $this->assertSame(0, $results->total);
         $this->assertSame([], $results->cards());
         $this->assertSame([], $results->distribution('product_brand'));
+    }
+
+    #[Test]
+    public function it_counts_apart_the_facet_the_counter_measures_apart(): void
+    {
+        $engine = new FakeSearchEngine;
+
+        $this->searchWith($engine)->run(FakeListing::withBrandAndCategory(), new ListingState(['product_brand' => ['acme']]));
+
+        $this->assertSame(['facets.product_cat'], $engine->received[0][self::RESULTS]['facets']);
+        $this->assertSame(['facets.product_brand'], $engine->received[0][self::COUNT.'product_brand']['facets']);
+    }
+
+    #[Test]
+    public function it_counts_on_the_main_search_what_the_counter_leaves_to_it(): void
+    {
+        $engine = new FakeSearchEngine;
+
+        new ListingSearch($engine, new FakeFacetCounter)
+            ->run(FakeListing::withBrandAndCategory(), new ListingState(['product_brand' => ['acme']]));
+
+        $this->assertSame([self::RESULTS, self::UNFILTERED], array_keys($engine->received[0]));
+        $this->assertSame(['facets.product_brand', 'facets.product_cat'], $engine->received[0][self::RESULTS]['facets']);
+    }
+
+    #[Test]
+    public function it_never_counts_a_facet_twice(): void
+    {
+        $engine = new FakeSearchEngine;
+        $state = new ListingState(['product_brand' => ['acme'], 'product_cat' => ['coats']], price: new Range(55.0));
+
+        $this->searchWith($engine)->run(FakeListing::withPriceAndBrand(), $state);
+
+        $onMain = $engine->received[0][self::RESULTS]['facets'];
+
+        foreach ($engine->received[0] as $key => $query) {
+            if ($key !== self::RESULTS && $key !== self::UNFILTERED) {
+                $this->assertSame([], array_intersect($query['facets'], $onMain), "\"{$key}\" is counted twice.");
+            }
+        }
+    }
+
+    #[Test]
+    public function it_never_asks_the_main_search_for_bounds_it_measures_apart(): void
+    {
+        $engine = new FakeSearchEngine;
+        $listing = FakeListing::withPriceAndBrand();
+
+        $this->searchWith($engine)->run($listing, new ListingState);
+        $this->searchWith($engine)->run($listing, new ListingState(price: new Range(55.0)));
+
+        $this->assertSame(['facets.product_brand', 'price.min', 'price.max'], $engine->received[0][self::RESULTS]['facets']);
+        $this->assertSame(['facets.product_brand'], $engine->received[1][self::RESULTS]['facets']);
     }
 
     private function searchWith(FakeSearchEngine $engine): ListingSearch

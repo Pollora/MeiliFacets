@@ -39,15 +39,16 @@ final readonly class QueryPlan
     }
 
     /**
+     * @param  list<string>  $apartKeys  the keys of the searches that measure a filter on their own
      * @return array<string, mixed>
      */
-    public static function results(Listing $listing, ListingState $state): array
+    public static function results(Listing $listing, ListingState $state, array $apartKeys): array
     {
         $filters = self::filterQueries($listing);
         $query = [
             'q' => self::searched($listing, $state),
             'filter' => self::filter($listing, $state, $filters),
-            'facets' => self::fieldsOnMain($filters, $state),
+            'facets' => self::fieldsOnMain($filters, $apartKeys),
             // `hitsPerPage`/`page` answer with `totalHits` and `totalPages`;
             // `limit`/`offset` only give an estimate, capped at maxTotalHits.
             'hitsPerPage' => $listing->perPage(),
@@ -111,11 +112,12 @@ final readonly class QueryPlan
 
     /**
      * @param  list<FilterQuery>  $filters
+     * @param  list<string>  $apartKeys
      * @return list<string>
      */
-    private static function fieldsOnMain(array $filters, ListingState $state): array
+    private static function fieldsOnMain(array $filters, array $apartKeys): array
     {
-        $onMain = array_filter($filters, static fn (FilterQuery $filter): bool => ! $filter->isMeasuredApart($state));
+        $onMain = array_filter($filters, static fn (FilterQuery $filter): bool => ! in_array($filter->key(), $apartKeys, true));
 
         return array_merge(...array_map(static fn (FilterQuery $filter): array => $filter->fields(), array_values($onMain)));
     }

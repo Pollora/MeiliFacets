@@ -19,7 +19,7 @@ final class SearchServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->app->bind(FacetCounter::class, DisjunctiveFacetCounter::class);
+        $this->app->bindIf(FacetCounter::class, DisjunctiveFacetCounter::class);
         $this->app->scoped(SearchEngine::class, $this->engine(...));
         $this->app->scoped(BrowserConnection::class, $this->browser(...));
         $this->app->scoped(EngineLimits::class, fn (): EngineLimits => new EngineLimits(

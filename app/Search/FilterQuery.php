@@ -16,6 +16,4 @@ interface FilterQuery
     public function fields(): array;
 
     public function clause(ListingState $state): string;
-
-    public function isMeasuredApart(ListingState $state): bool;
 }

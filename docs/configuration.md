@@ -146,7 +146,7 @@ Des bindings du conteneur Laravel, à poser dans le `register()` d'un provider d
 | `CardProjector` | `DefaultCardProjector` | ce que le document porte pour peindre une carte | oui, `extend` |
 | `TermHierarchy` | `WordPressTermHierarchy` | remontée d'un terme vers ses ancêtres | oui, mais interne |
 | `IndexAttributes` | `ConfiguredIndexAttributes`, autour de `WooCommerceIndexAttributes` si WooCommerce est actif | attributs d'index contribués | oui, `extend` — un `bind` retire les champs de prix et `displayed_attributes` |
-| `FacetCounter` | `DisjunctiveFacetCounter` | comment les compteurs de facettes sont calculés | oui, `bind` |
+| `FacetCounter` | `DisjunctiveFacetCounter` | comment les compteurs de facettes sont calculés | oui, `bind` — **rendu serveur seulement** (voir ci-dessous) |
 | `SearchEngine` | `MeilisearchEngine` | l'envoi des recherches au moteur | oui, `bind` |
 | `Listing` | `ProductListing` si WooCommerce | ce qu'un listing déclare | découverte automatique |
 | `ProductFacets` | `WooCommerceFacets` — catégorie et marque | les taxonomies que la boutique parcourt | oui, `scoped` |
@@ -164,6 +164,16 @@ démarrer le module.
 
 `TermHierarchy` existe pour rendre `TermAncestry` testable sans WordPress. Il est remplaçable,
 mais rien ne le présente comme un point d'extension à destination des projets.
+
+`FacetCounter` ne vaut que pour le **rendu serveur**. Il y décide seul du comptage des facettes —
+lesquelles reçoivent une recherche à part, et donc lesquelles la requête principale compte
+elle-même ; les bornes de prix et la recherche non filtrée ne passent pas par lui. Mais dès le premier geste du visiteur, c'est le client qui bâtit le
+plan, et il rejoue la règle par défaut, écrite en dur : une facette multi-sélection dont au moins
+une valeur est cochée est comptée à part, les autres sur la requête principale
+(`facets/facet-query.ts`). Un compteur qui s'écarte de cette règle voit donc ses comptes remplacés
+au premier clic, sans erreur ni message. Cette règle est elle-même une décision du module — « le
+disjonctif n'est produit que pour le multi-sélection » — et non un détail d'implémentation
+(`R-144`).
 
 ## Ce que la clé de recherche peut lire
 

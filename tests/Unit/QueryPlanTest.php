@@ -10,6 +10,7 @@ use Modules\MeiliFacets\Listing\Range;
 use Modules\MeiliFacets\Listing\Sort;
 use Modules\MeiliFacets\Listing\SortFilter;
 use Modules\MeiliFacets\Search\DisjunctiveFacetCounter;
+use Modules\MeiliFacets\Search\FacetQuery;
 use Modules\MeiliFacets\Search\FilterQuery;
 use Modules\MeiliFacets\Search\PriceQuery;
 use Modules\MeiliFacets\Search\QueryPlan;
@@ -33,15 +34,15 @@ final class QueryPlanTest extends TestCase
     {
         $listing = new FakeListing(baseQuery: 'creme');
 
-        $this->assertSame('creme', QueryPlan::results($listing, new ListingState)['q']);
+        $this->assertSame('creme', QueryPlan::results($listing, new ListingState, [])['q']);
         $this->assertSame('creme', QueryPlan::unfiltered($listing)['q']);
-        $this->assertSame('lait', QueryPlan::results($listing, new ListingState(query: 'lait'))['q']);
+        $this->assertSame('lait', QueryPlan::results($listing, new ListingState(query: 'lait'), [])['q']);
     }
 
     #[Test]
     public function it_carries_the_base_filter_of_an_untouched_listing(): void
     {
-        $query = QueryPlan::results($this->listing, new ListingState);
+        $query = QueryPlan::results($this->listing, new ListingState, []);
 
         $this->assertSame('post_type = "product"', $query['filter']);
         $this->assertSame(16, $query['hitsPerPage']);
@@ -67,18 +68,18 @@ final class QueryPlanTest extends TestCase
         $state = new ListingState(['product_brand' => ['acme']], 'on_sale', price: new Range(min: 20.0));
         $filters = QueryPlan::filterQueries($listing);
 
-        foreach ([QueryPlan::results($listing, $state), QueryPlan::apart($listing, $state, $filters[0]), QueryPlan::apart($listing, $state, $filters[1])] as $query) {
+        foreach ([QueryPlan::results($listing, $state, []), QueryPlan::apart($listing, $state, $filters[0]), QueryPlan::apart($listing, $state, $filters[1])] as $query) {
             $this->assertStringContainsString('price.onsale = "true"', $query['filter']);
         }
 
-        $this->assertSame([], QueryPlan::results($listing, $state)['sort']);
+        $this->assertSame([], QueryPlan::results($listing, $state, [])['sort']);
     }
 
     #[Test]
     public function it_asks_the_main_search_for_the_field_a_sort_filters_on(): void
     {
-        $this->assertContains('price.onsale', QueryPlan::results(FakeListing::withPromotions(), new ListingState)['facets']);
-        $this->assertNotContains('price.onsale', QueryPlan::results($this->listing, new ListingState)['facets']);
+        $this->assertContains('price.onsale', QueryPlan::results(FakeListing::withPromotions(), new ListingState, [])['facets']);
+        $this->assertNotContains('price.onsale', QueryPlan::results($this->listing, new ListingState, [])['facets']);
     }
 
     #[Test]
@@ -89,13 +90,13 @@ final class QueryPlanTest extends TestCase
             'on_sale_too' => Sort::filtering('On sale again', SortFilter::whereTrue('price.onsale')),
         ]);
 
-        $this->assertSame(['price.onsale'], QueryPlan::results($listing, new ListingState)['facets']);
+        $this->assertSame(['price.onsale'], QueryPlan::results($listing, new ListingState, [])['facets']);
     }
 
     #[Test]
     public function it_filters_nothing_for_a_sort_that_only_orders(): void
     {
-        $query = QueryPlan::results(FakeListing::withPromotions(), new ListingState(sort: 'price_asc'));
+        $query = QueryPlan::results(FakeListing::withPromotions(), new ListingState(sort: 'price_asc'), []);
 
         $this->assertStringNotContainsString('price.onsale', $query['filter']);
     }
@@ -103,7 +104,7 @@ final class QueryPlanTest extends TestCase
     #[Test]
     public function it_asks_only_for_the_card(): void
     {
-        $query = QueryPlan::results($this->listing, new ListingState);
+        $query = QueryPlan::results($this->listing, new ListingState, []);
 
         $this->assertSame(['card'], $query['attributesToRetrieve']);
     }
@@ -115,7 +116,7 @@ final class QueryPlanTest extends TestCase
     #[Test]
     public function it_asks_for_a_page_rather_than_an_offset(): void
     {
-        $query = QueryPlan::results($this->listing, new ListingState(page: 3));
+        $query = QueryPlan::results($this->listing, new ListingState(page: 3), []);
 
         $this->assertSame(3, $query['page']);
         $this->assertArrayNotHasKey('offset', $query);
@@ -124,8 +125,8 @@ final class QueryPlanTest extends TestCase
     #[Test]
     public function it_sorts_only_by_a_sort_the_listing_declares(): void
     {
-        $known = QueryPlan::results($this->listing, new ListingState(sort: 'price_asc'));
-        $unknown = QueryPlan::results($this->listing, new ListingState(sort: 'made_up'));
+        $known = QueryPlan::results($this->listing, new ListingState(sort: 'price_asc'), []);
+        $unknown = QueryPlan::results($this->listing, new ListingState(sort: 'made_up'), []);
 
         $this->assertSame(['metas._price:asc'], $known['sort']);
         $this->assertArrayNotHasKey('sort', $unknown);
@@ -134,7 +135,7 @@ final class QueryPlanTest extends TestCase
     #[Test]
     public function it_counts_every_facet_on_the_main_response_while_none_constrains(): void
     {
-        $query = QueryPlan::results($this->listing, new ListingState);
+        $query = QueryPlan::results($this->listing, new ListingState, []);
 
         $this->assertSame(['facets.product_brand', 'facets.product_cat'], $query['facets']);
         $this->assertSame([], (new DisjunctiveFacetCounter)->queries($this->listing, new ListingState));
@@ -145,16 +146,15 @@ final class QueryPlanTest extends TestCase
      * other values keep a count and stay reachable.
      */
     #[Test]
-    public function it_moves_a_constrained_multi_facet_to_its_own_search(): void
+    public function it_leaves_off_the_main_search_the_fields_it_is_told_are_measured_apart(): void
     {
         $state = new ListingState(['product_brand' => ['acme']]);
 
-        $main = QueryPlan::results($this->listing, $state);
-        $extra = (new DisjunctiveFacetCounter)->queries($this->listing, $state);
+        $whole = QueryPlan::results($this->listing, $state, [])['facets'];
+        $without = QueryPlan::results($this->listing, $state, [FacetQuery::keyFor('product_brand')])['facets'];
 
-        $this->assertSame(['facets.product_cat'], $main['facets']);
-        $this->assertSame(['product_brand'], array_keys($extra));
-        $this->assertSame(['facets.product_brand'], $extra['product_brand']['facets']);
+        $this->assertSame(['facets.product_brand', 'facets.product_cat'], $whole);
+        $this->assertSame(['facets.product_cat'], $without);
     }
 
     #[Test]
@@ -167,19 +167,6 @@ final class QueryPlanTest extends TestCase
         $this->assertStringNotContainsString('product_brand', $counting['filter']);
         $this->assertStringContainsString('facets.product_cat = "coats"', $counting['filter']);
         $this->assertSame(0, $counting['hitsPerPage']);
-    }
-
-    #[Test]
-    public function it_never_counts_a_facet_twice(): void
-    {
-        $state = new ListingState(['product_brand' => ['acme']]);
-
-        $onMain = QueryPlan::results($this->listing, $state)['facets'];
-        $apart = (new DisjunctiveFacetCounter)->queries($this->listing, $state);
-
-        foreach ($apart as $taxonomy => $query) {
-            $this->assertNotContains('facets.'.$taxonomy, $onMain);
-        }
     }
 
     /**
@@ -222,18 +209,6 @@ final class QueryPlanTest extends TestCase
         $this->assertSame([], $prices);
     }
 
-    #[Test]
-    public function it_never_asks_the_main_search_for_bounds_it_measures_apart(): void
-    {
-        $listing = FakeListing::withPriceAndBrand();
-
-        $open = QueryPlan::results($listing, new ListingState)['facets'];
-        $held = QueryPlan::results($listing, new ListingState(price: new Range(55.0)))['facets'];
-
-        $this->assertSame(['facets.product_brand', 'price.min', 'price.max'], $open);
-        $this->assertSame(['facets.product_brand'], $held);
-    }
-
     /**
      * A single-selection facet reads correctly off the main response, so it must
      * never cost an extra search.
@@ -244,7 +219,7 @@ final class QueryPlanTest extends TestCase
         $state = new ListingState(['product_cat' => ['coats']]);
 
         $this->assertSame([], (new DisjunctiveFacetCounter)->queries($this->listing, $state));
-        $this->assertContains('facets.product_cat', QueryPlan::results($this->listing, $state)['facets']);
+        $this->assertContains('facets.product_cat', QueryPlan::results($this->listing, $state, [])['facets']);
     }
 
     private function priceOf(FakeListing $listing): PriceQuery

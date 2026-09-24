@@ -3336,7 +3336,10 @@ colonne « État », que le rendu masquait.
 - le renversement du défilement (`85b3097`, 2026-09-08) : qui l'a décidé ;
 - la carte de l'archive, `<x-theme::product-card>` décidée, `<x-meilifacets::card>` rendue (`Q-10`, `R-45`) ;
 - `R-47`, fermé par `D-07` et gardé ouvert par le Journal ;
-- `FacetCounter`, qui ne couvre que le premier rendu (`R-144`) ;
+- l'appui sur la visibilité native de WooCommerce : `exclude-from-catalog` n'apparaît qu'en passant dans
+  une liste d'`architecture.md`, alors que le module lit la taxonomie `product_visibility` que la fiche
+  produit écrit, l'applique dans le filtre de base — donc aux comptes aussi — et n'applique **pas**
+  `exclude-from-search` (`R-160`). Écrire l'un sans l'autre donnerait une complétude fausse ;
 - Varnish à 180 s dans « Validées », la stratégie de cache HTTP dans « En attente » ;
 - les quatre apports du moteur postérieurs à la 1.10.3, qu'aucune ligne n'emploie (`R-41`) ;
 - le repli de `NameOrder` sans `ext-intl`, « jamais silencieux » mais sans signal ;
@@ -3724,13 +3727,108 @@ numéro ou s'en détache.
     `RequestsAnAddress` fige `/%postname%` (`R-137` #1).
 11. **Commentaires** : voir `Q-31`.
 
-### R-144 · 🟠 · ouvert · 2026-09-17 — remplacer `FacetCounter` ne change que le premier rendu
+### R-144 · 🟠 · **fermé le 2026-09-24** · ouvert le 2026-09-17 — remplacer `FacetCounter` ne change que le premier rendu
 
-`configuration.md` présente `FacetCounter` comme remplaçable (`bind`), mais le client écrit en dur la règle
-disjonctive (`facets/facet-query.ts:30-32`, `listing/listing-query.ts:28-32`) : un projet qui remplace le
-compteur a ses comptes au premier rendu, et le client les écrase au premier geste, sans signal. Pistes :
-l'écrire dans `configuration.md`, ou publier le plan de comptage dans la description. Trouvé par les passes
-rejouées de `R-136`.
+`configuration.md` présentait `FacetCounter` comme remplaçable (`bind`), mais le client écrit en dur la
+règle disjonctive (`facets/facet-query.ts:30-32`, `listing/listing-query.ts:28-32`) : un projet qui
+remplace le compteur a ses comptes au premier rendu, et le client les écrase au premier geste, sans
+signal. Trouvé par les passes rejouées de `R-136`.
+
+**Le défaut était pire que l'entrée ne le disait**, et c'est la passe de conformité qui l'a lu :
+`QueryPlan::results()` décidait *aussi* quelles facettes la requête principale compte, par
+`FacetQuery::isMeasuredApart()` — **sans demander au compteur**. Un compteur qui laissait une facette
+multi-sélectionnée à la requête principale ne produisait donc aucune clé `count:` *et* voyait son champ
+écarté de la principale : **comptes vides dès le premier rendu**. La couture ne pilotait pas même l'écran
+d'ouverture.
+
+**Trois voies étaient possibles ; Louis a tranché pour « documenter et réparer le premier rendu »** :
+publier le plan de comptage dans la description a été écarté — cela renverserait le retrait validé
+d'`isCountedApart()` (`decisions.md`), contredirait le précédent `R-85` (où la voie « transmettre au
+client » a déjà été refusée au profit d'une règle serveur que les deux côtés partagent par construction)
+et resterait bloqué sur la moitié ouverte de `R-32`.
+
+**Corrigé** : `ListingSearch::run()` compose d'abord les recherches mesurées à part — comptage et bornes
+de prix — puis passe leurs clés à `QueryPlan::results($listing, $state, $apart)` ; `fieldsOnMain()` ne
+filtre plus que sur ces clés et n'a plus de règle à lui. Le compteur décide donc seul du premier rendu.
+Les recherches `unfiltered` restent hors de cet ensemble : elles ne retirent aucun champ à la principale.
+
+**Aligné sur la convention des coutures** (`CLAUDE.md` § 2) : `SearchServiceProvider` lie en `bindIf` au
+lieu de `bind`. `FacetCounter` était le seul contrat présenté comme remplaçable qu'un projet ne
+l'emportait qu'en s'enregistrant après le module.
+
+**Documenté** : `configuration.md` dit désormais que la couture vaut pour le **rendu serveur seulement**,
+ce que le client rejoue en dur, et que cette règle est une décision du module — « le disjonctif n'est
+produit que pour le multi-sélection » — et non un détail d'implémentation. `decisions.md` et le `README`
+portaient déjà la limite ; c'était la seule page à promettre « oui, `bind` » sans réserve.
+
+**Tests** : `it_counts_on_the_main_search_what_the_counter_leaves_to_it` (un compteur qui ne mesure rien à
+part fait compter toutes les facettes par la principale) et `it_counts_apart_the_facet_the_counter
+_measures_apart` rejoignent `ListingSearchTest`, avec le cas des bornes de prix — ils testaient la
+composition, pas le plan. `QueryPlanTest` garde un cas pur du nouveau paramètre. `CounterSeamBindingTest`
+est neuf, calqué sur `ProductSeamBindingTest` : défaut lié quand le projet ne dit rien, pas de côté quand
+le projet a lié avant. **Trois mutations tuées** : rendre tous les champs à la principale (quatre tests), rétablir l'ancienne
+règle dans `ListingSearch` (trois tests, dont celui du compteur, qui incarne le défaut corrigé), et
+remettre `bind` à la place de `bindIf`. Cette dernière n'était **tenue par rien** : `CounterSeamBindingTest`
+rejoue l'appel sur un conteneur nu au lieu d'observer le provider. `Feature\CounterBindingTest` le
+regarde désormais, et la mutation tombe. Le même angle mort vaut pour `ProductSeamBindingTest`, non
+traité ici (`D-03`).
+
+**Vérifié** : `composer check` vert, suite `Modules` 411 tests. Et les **valeurs** confrontées à la base,
+pas seulement la forme des requêtes — trois scénarios comptés par `WP_Query` avec la visibilité
+WooCommerce appliquée, comparés au rendu serveur puis au recalcul du client :
+
+| Scénario | Page | Client après un geste | Base |
+| --- | --- | --- | --- |
+| marques, sans filtre | 10 · 5 · 12 · 4 · 10 · 7 · 2 · 10 · 8 | — | identiques |
+| catégories sous `?marque=avril` | 0 · 1 · 1 · 1 · 2 | — | identiques |
+| marques sous `?categorie=visage` | 5 · 2 · 4 · 0 · 6 · 0 · 1 · 4 · 1 | identiques | identiques |
+
+La facette filtrée garde ses comptes complets, les autres se réduisent : la mesure à part fait son office,
+et serveur et client coïncident sur la règle par défaut.
+
+**Rien ne change à l'écran, et c'est mesuré** : les quatre fichiers remis dans leur état d'avant rendent
+exactement les mêmes nombres sur les trois pages. Le défaut est **latent** — les deux décideurs
+appliquaient la même règle tant que personne ne remplace `FacetCounter`. Ce point paie une couture qui
+tient sa promesse, pas une valeur fausse. Un premier comptage de contrôle donnait 25 au lieu
+de 24 pour « visage » : c'est la requête de contrôle qui avait tort, elle ignorait `exclude-from-catalog`
+que le filtre de base écarte (produit 370). Vérifier les valeurs, pas seulement la forme des requêtes, est
+ce qui a permis de le dire.
+
+**Les cinq passes**, et ce qu'elles ont donné :
+
+- *lisibilité* — constat de fond, corrigé : la seconde règle de comptage avait été **débranchée, pas
+  supprimée**. `isMeasuredApart()` quitte le contrat `FilterQuery` et `SortQuery`, où elle ne répondait
+  que `false` ; elle reste sur `FacetQuery` et `PriceQuery`, seuls appelants réels. `run()` est ramenée à
+  un niveau d'abstraction, le plan part dans `searches()`, et le nom `$apart` ne désigne plus deux choses
+  (`$measuredApart` pour des requêtes, `$apartKeys` pour des clés) ;
+- *tests* — un cas avait été perdu au déplacement : `it_never_counts_a_facet_twice` revient dans
+  `ListingSearchTest`, en invariant sur toutes les recherches plutôt qu'en égalité sur deux facettes.
+  `CounterSeamBindingTest` reçoit le cas du projet qui lie **après** le module — le seul chemin qu'un
+  projet emprunte vraiment, et celui que `configuration.md` promet. Le double « compteur qui ne mesure
+  rien » était écrit deux fois en classe anonyme : il devient `Doubles\FakeFacetCounter` ;
+- *commentaires* — trois ajoutés, trois retirés : deux redisaient le nom de leur test, le troisième
+  justifiait un choix de conception déjà écrit quatre fois ailleurs et une cinquième dans
+  `configuration.md` ;
+- *performance* — un seul aller-retour moteur, nombre de recherches inchangé pour le compteur par
+  défaut ;
+- *sécurité* — rien : aucune valeur d'URL n'entre dans les clés, qui viennent de taxonomies déclarées et
+  d'une constante ; les préfixes `count:`, `bounds` et `unfiltered` sont disjoints, donc un compteur ne
+  peut se substituer ni à la recherche principale ni à la non filtrée ;
+- *contexte et i18n* — rien : aucune chaîne visible ajoutée, le test de couture tourne sur un conteneur nu,
+  hors application.
+
+**Deux inexactitudes écrites, corrigées** : `configuration.md` disait que le compteur « décide
+entièrement de la première page » — il ne décide ni les bornes de prix ni la recherche non filtrée ; et
+`R-153` listait encore `FacetCounter` parmi les promesses non tenues, ligne devenue périmée par ce point.
+
+**Reste ouvert, et c'est écrit** : le client rejoue la règle par défaut en dur. Le rendre pilotable
+demande la table de cas commune `QueryPlan`/`ListingQuery` de `R-32`, et une décision de Louis sur le
+retour d'une méthode sans état au contrat `FacetCounter`.
+
+Deux constats ouverts en chemin, non traités ici (`D-03`) : une taxonomie inconnue rendue par un compteur
+fait payer une recherche que personne ne lit, sans garde ni diagnostic, et le champ reste alors compté sur
+la requête principale ; et le commentaire de miroir de `listing-query.ts` promet toujours que « le même
+état produit les mêmes recherches des deux côtés », ce que la couture dément depuis ce point.
 
 ### R-143 · 🟡 · **fermé le 2026-09-24** · ouvert le 2026-09-17 — le client efface le balisage d'un bouton « Voir plus » surchargé
 
@@ -6299,11 +6397,10 @@ Un point à la fois (`D-03`), dans cet ordre, sauf décision contraire de Louis 
 1. **Retours de la PR #2 et suites** : `R-146`, `R-147`, `R-148`, `R-149`, `R-154`, `R-158` et `R-03`
    sont fermés et commités (`3ee3edf`, `93c7703`, `7d7eab3`, `618a697`, `6939e4f`, `7046e7b`, `cd3f5b5`,
    `c8345cc`, `cd10de6`). `R-142` et `R-143` sont fermés et commités le 2026-09-24
-   (`ccbc945`, `64c5569`, `127c23b`).
-2. `R-144` — remplacer `FacetCounter` ne change que le premier rendu.
-3. `R-141` — cinq tests `Feature` dépendent de l'ordre de la suite.
-4. `Q-31` — commentaires de rôle et renvois vers le miroir PHP : à trancher par Louis avant toute purge.
-5. `R-145` — les restructurations relevées par les passes rejouées, ligne par ligne.
+   (`ccbc945`, `64c5569`, `127c23b`), `R-144` fermé le 2026-09-24 et attend son commit.
+2. `R-141` — cinq tests `Feature` dépendent de l'ordre de la suite.
+3. `Q-31` — commentaires de rôle et renvois vers le miroir PHP : à trancher par Louis avant toute purge.
+4. `R-145` — les restructurations relevées par les passes rejouées, ligne par ligne.
 
 Ouverts, non planifiés : `R-150` à `R-153`, `R-155`, `R-156`, `R-157`, `R-159` à `R-161`. Les trois
 derniers viennent de `R-158` et relèvent du lot 5, avec la pertinence.

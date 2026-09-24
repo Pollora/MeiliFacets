@@ -33,11 +33,6 @@ final readonly class SortQuery implements FilterQuery
         return $filter instanceof SortFilter ? $filter->clause() : '';
     }
 
-    public function isMeasuredApart(ListingState $state): bool
-    {
-        return false;
-    }
-
     /**
      * @param  array<string, array<string, int>>  $distribution  field to value to count, off the main search
      * @return array<string, int> sort key to the hits it would keep
