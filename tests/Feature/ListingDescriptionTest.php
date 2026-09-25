@@ -99,6 +99,7 @@ final class ListingDescriptionTest extends TestCase
 
         $this->assertSame('en-US', $description['locale']);
         $this->assertSame(':count result|:count results', $description['countPattern']);
+        $this->assertSame('Sort by: :choice', $description['sortPattern']);
     }
 
     #[Test]

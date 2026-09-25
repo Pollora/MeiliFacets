@@ -22,10 +22,10 @@ const choice = (value: string, label: string, checked = false) => `
 
 const PLAIN = { legend: 'Sort by', panel: '' }
 
-/** Mirrors `toggle.blade.php` holding the sort summary: no badge, the order in force inside the name. */
+/** Mirrors `toggle.blade.php` holding the sort summary: no badge, the label alone, then the sentence holding the order in force. */
 const COLLAPSIBLE = {
     legend: `<button type="button" class="meilifacetsFacetToggle" aria-expanded="false" aria-controls="sort-panel" data-meili="toggle">
-            <span class="meilifacetsFacetToggleName"><span class="meilifacetsFacetToggleLabel">Sort by</span><span class="meilifacetsSortSummary">: <span class="meilifacetsSortChoice" data-meili="sort-chosen">Relevance</span></span></span>
+            <span class="meilifacetsFacetToggleName"><span class="meilifacetsFacetToggleLabel" aria-hidden="true">Sort by</span><span class="meilifacetsSortSummary">Sort by: <span class="meilifacetsSortChoice" data-meili="sort-chosen">Relevance</span></span></span>
         </button>`,
     panel: ' hidden data-meili="panel"',
 }
@@ -46,11 +46,11 @@ const description = (apply: ListingDescription['apply']) => described({
     params: { product_brand: 'brand' },
 })
 
-const bound = (apply: ListingDescription['apply'], folding = PLAIN) => {
+const bound = (apply: ListingDescription['apply'], folding = PLAIN, sortPattern = 'Sort by: :choice') => {
     const { window, root } = open(radiosMarkup(folding))
     const client = new FakeClient()
     const history = new FakeHistory()
-    const listed = description(apply)
+    const listed = { ...description(apply), sortPattern }
     const listing = new Listing(listed, connection, { filterQueries: filterQueriesOf(listed), client, history })
     new ListingBinding(new Contract(root), listing, listed).start()
 
@@ -79,7 +79,7 @@ describe('SortRadios', () => {
 
     it('checks the radio of the sort in force', () => {
         const { root } = open(radiosMarkup())
-        const radios = new SortRadios(new Contract(root), () => undefined)
+        const radios = new SortRadios(new Contract(root), 'Sort by: :choice', () => undefined)
 
         radios.show(new ListingState({ sort: 'on_sale' }))
 
@@ -89,7 +89,7 @@ describe('SortRadios', () => {
 
     it('hides a sort that would keep nothing, unless it is the one in force', () => {
         const { root } = open(radiosMarkup())
-        const radios = new SortRadios(new Contract(root), () => undefined)
+        const radios = new SortRadios(new Contract(root), 'Sort by: :choice', () => undefined)
         const row = (value: string) => find(root, `input[value="${value}"]`).closest(Contract.selector('sort-choice-row')) as HTMLElement
 
         radios.showMatches({ on_sale: 0 }, new ListingState())
@@ -100,7 +100,13 @@ describe('SortRadios', () => {
     })
 
     describe('in a collapsible section', () => {
-        const trigger = (root: Element) => find(root, Contract.selector('toggle'))
+        /** What the trigger is named by: its text, less the label it hides from assistive technologies. */
+        const nameOf = (root: Element) => {
+            const trigger = find(root, Contract.selector('toggle')).cloneNode(true) as Element
+            trigger.querySelectorAll('[aria-hidden="true"]').forEach((hidden) => hidden.remove())
+
+            return trigger.textContent?.trim()
+        }
 
         it('names the order in force in its trigger once another is picked', () => {
             const { window, root } = bound('submit', COLLAPSIBLE)
@@ -108,7 +114,7 @@ describe('SortRadios', () => {
             tick(window, find<HTMLInputElement>(root, 'input[value="price_asc"]'))
 
             assert.equal(find(root, Contract.selector('sort-chosen')).textContent, 'Price, low to high')
-            assert.equal(trigger(root).textContent?.trim(), 'Sort by: Price, low to high')
+            assert.equal(nameOf(root), 'Sort by: Price, low to high')
         })
 
         it('names the order by the label its choice publishes, whatever its row holds', () => {
@@ -120,32 +126,61 @@ describe('SortRadios', () => {
             assert.equal(find(root, Contract.selector('sort-chosen')).textContent, 'Price, low to high')
         })
 
+        it('writes the order where the sentence puts it, first in a language that starts with it', () => {
+            const { window, root } = bound('submit', COLLAPSIBLE, ':choice — sort')
+
+            tick(window, find<HTMLInputElement>(root, 'input[value="price_asc"]'))
+
+            assert.equal(nameOf(root), 'Price, low to high — sort')
+        })
+
+        it('writes the order as text, never as markup', () => {
+            const { window, root } = bound('submit', COLLAPSIBLE)
+            const price = find<HTMLInputElement>(root, 'input[value="price_asc"]')
+            price.dataset.label = '<b>Price</b>'
+
+            tick(window, price)
+
+            const chosen = find(root, Contract.selector('sort-chosen'))
+            assert.equal(chosen.textContent, '<b>Price</b>')
+            assert.equal(chosen.childElementCount, 0)
+            assert.equal(nameOf(root), 'Sort by: <b>Price</b>')
+        })
+
         it('names the order the history goes back to', () => {
             const { window, root, history } = bound('immediate', COLLAPSIBLE)
 
             tick(window, find<HTMLInputElement>(root, 'input[value="on_sale"]'))
             history.goBackTo('products', new ListingState({ sort: 'price_asc' }).toDescription())
 
-            assert.equal(trigger(root).textContent?.trim(), 'Sort by: Price, low to high')
+            assert.equal(nameOf(root), 'Sort by: Price, low to high')
         })
 
-        /** Mobile first: the section reads its label alone, the pill its label and the order in force. */
-        const summaryAt = (width: number) => {
+        /** Mobile first: the section reads its label alone, the pill the sentence holding the order in force. */
+        const styledAt = (width: number) => {
             const { window, root } = open(radiosMarkup(COLLAPSIBLE), { styled: true })
             window.happyDOM.setViewport({ width, height: 800 })
+            const styleOf = (selector: string) => window.getComputedStyle(find(root, selector))
 
-            return window.getComputedStyle(find(root, Contract.selector('sort-chosen')).parentElement as HTMLElement)
+            return {
+                summary: styleOf('.meilifacetsSortSummary'),
+                label: styleOf('.meilifacetsFacetToggleLabel'),
+            }
         }
 
-        it('keeps the order in force out of sight in the section, but in its name', () => {
-            const summary = summaryAt(390)
+        it('keeps the sentence out of sight in the section, but in its name', () => {
+            const { summary, label } = styledAt(390)
 
             assert.equal(summary.clipPath, 'inset(50%)')
             assert.notEqual(summary.display, 'none')
+            assert.notEqual(label.display, 'none')
         })
 
-        it('shows the order in force in the pill', () => {
-            assert.equal(summaryAt(1440).clipPath, 'none')
+        it('shows the sentence in the pill, and the label no longer alone', () => {
+            const { summary, label } = styledAt(1440)
+
+            assert.equal(summary.clipPath, 'none')
+            assert.equal(label.display, 'none')
         })
     })
 

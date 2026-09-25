@@ -887,15 +887,16 @@ trie tout de suite, dans les deux modes (`D-10`). Son déclencheur n'a jamais de
 est un ordre, pas un filtre. `listbox` reste le défaut ; la garde « un seul tri par page » couvre
 les deux.
 
-Le déclencheur nomme le tri en force : « Trier par : Pertinence », en deux clés : le libellé `Sort by`
-et la valeur `: :choice`, ce qui suit le libellé (le français y met une espace insécable avant les
-deux-points ; surchargeable par le catalogue du thème). *Depuis le 2026-09-25 (`R-178`) : l'ancienne
-clé `Sort by: :choice` n'est plus lue.*
-Le libellé (`.meilifacetsFacetToggleLabel`) et la valeur (`.meilifacetsSortChoice`, crochet
-`sort-chosen`) sont deux `<span>` ; le séparateur est la partie du motif qui suit le libellé. Dans
-la section du tiroir, la valeur est hors de vue, mais reste dans le nom accessible ; elle s'affiche
-dans la pill à partir de `48em`. Le client la met à jour à chaque changement de tri, retour arrière
-compris.
+Le déclencheur nomme le tri en force : « Trier par : Pertinence », une seule clé, `Sort by: :choice`
+(fr `Trier par\u00a0: :choice`, espace insécable ; surchargeable par le catalogue du thème). La
+phrase est découpée autour de la valeur, où que la langue la place (en tête, au milieu, en fin) :
+le texte qui l'entoure et la valeur (`.meilifacetsSortChoice`, crochet `sort-chosen`) sont deux
+nœuds distincts de `.meilifacetsSortSummary`. *Depuis le 2026-09-25 (`R-178`) : la clé `: :choice`
+n'existe plus.* Le libellé seul (`.meilifacetsFacetToggleLabel`, clé `Sort by`) ne sert qu'à la
+section du tiroir, où la phrase est hors de vue mais reste le nom accessible ; il porte
+`aria-hidden` pour n'être jamais lu deux fois, et laisse place à la phrase dans la pill à partir de
+`48em`. Le client réécrit la phrase à chaque changement de tri, retour arrière compris, depuis le
+motif traduit de la description (`sortPattern`), la valeur insérée en texte.
 
 **Glisser pour fermer.** La feuille suit le doigt ou la souris depuis la poignée, l'en-tête ou un
 corps défilé tout en haut ; vers le haut, elle s'étire en résistant (sauf sur une liste qui défile,

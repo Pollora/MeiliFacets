@@ -17,6 +17,7 @@ export const described = (partial: Partial<ListingDescription>) =>
         countPattern: ':count result|:count results',
         filterPattern: ':count active filter|:count active filters',
         totalPattern: ':count item|:count items',
+        sortPattern: 'Sort by: :choice',
         reserved: { sort: 'sort', query: 'q', page: 'pg', minPrice: 'min_price', maxPrice: 'max_price' },
         sorts: {},
         locale: 'en',

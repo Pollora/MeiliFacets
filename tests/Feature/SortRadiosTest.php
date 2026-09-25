@@ -20,6 +20,9 @@ final class SortRadiosTest extends TestCase
 
     private const string COLLAPSIBLE = '<x-meilifacets::sort widget="radios" collapsible />';
 
+    /** A locale no catalogue ships, whose sentence puts the order first. */
+    private const string VALUE_FIRST = 'xx';
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -113,6 +116,29 @@ final class SortRadiosTest extends TestCase
         $this->assertSame("Trier par\u{00A0}: Pertinence", $this->nameOf($toggle));
     }
 
+    /** A language may put the order first: the sentence is cut where it puts it, never where English does. */
+    #[Test]
+    public function it_writes_the_order_where_the_sentence_puts_it(): void
+    {
+        app('translator')->addLines(['*.Sort by: :choice' => ':choice — sort'], self::VALUE_FIRST);
+
+        $toggle = $this->underLocales(self::VALUE_FIRST, self::VALUE_FIRST, fn (): HTMLDocument => $this->rendered(self::COLLAPSIBLE))->querySelector($this->hooked(Hook::Toggle));
+        $chosen = $toggle->querySelector($this->hooked(Hook::SortChosen));
+
+        $this->assertSame('', $chosen->previousSibling?->textContent ?? '');
+        $this->assertSame(' — sort', $chosen->nextSibling?->textContent);
+        $this->assertSame('Relevance — sort', $this->nameOf($toggle));
+    }
+
+    /** The label stands alone in the section: the sentence says it again, so it is never read out twice. */
+    #[Test]
+    public function it_hides_the_label_the_sentence_restates(): void
+    {
+        $toggle = $this->rendered(self::COLLAPSIBLE)->querySelector($this->hooked(Hook::Toggle));
+
+        $this->assertSame('true', $toggle->querySelector('.meilifacetsFacetToggleLabel')->getAttribute('aria-hidden'));
+    }
+
     /** A sort is an order: its trigger has no count, and nothing it could be described by. */
     #[Test]
     public function it_gives_its_trigger_no_badge(): void
@@ -151,9 +177,15 @@ final class SortRadiosTest extends TestCase
         return HTMLDocument::createFromString('<div>'.Blade::render($blade).'</div>', LIBXML_NOERROR);
     }
 
-    /** A sort's trigger holds no badge: its whole text is the name. */
+    /** A sort's trigger holds no badge: its text is the name, less the label it hides from assistive technologies. */
     private function nameOf(Element $toggle): string
     {
-        return trim($toggle->textContent);
+        $named = $toggle->cloneNode(true);
+
+        foreach ($named->querySelectorAll('[aria-hidden="true"]') as $hidden) {
+            $hidden->remove();
+        }
+
+        return trim($named->textContent);
     }
 }

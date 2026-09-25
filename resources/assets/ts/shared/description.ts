@@ -70,6 +70,8 @@ export interface ListingDescription {
     countPattern: string
     filterPattern: string
     totalPattern: string
+    /** the sort's trigger, the order in force written `:choice` */
+    sortPattern: string
     activeValuePatterns: ActiveValuePatterns
     /** the language whose plural rule picks a form of the patterns */
     locale: string

@@ -44,7 +44,7 @@ export class ListingBinding {
         this.#facets = new FacetsView(contract, description)
         this.#pagination = new PaginationView(contract)
         this.#sort = new SortCombobox(contract, (sort) => this.#listing.sortBy(sort))
-        this.#sortRadios = new SortRadios(contract, (sort) => this.#listing.sortBy(sort))
+        this.#sortRadios = new SortRadios(contract, description.sortPattern, (sort) => this.#listing.sortBy(sort))
         this.#sortQuery = new SortQuery(description.sortFilters)
         this.#price = new PriceControl(contract, description, (min, max) => this.#listing.priceBetween(min, max))
         this.#summary = new SummaryBinding(contract, description, { listing, holders: [this.#facets, this.#price] })

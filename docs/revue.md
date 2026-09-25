@@ -3276,6 +3276,25 @@ point A1.
 | C | crochets `drawer-sheet`/`drawer-footer`/rangée du tri, Déméter, `Apply` unique, renommages | **fait** — `2be5b05`, `0ea40d8`, `d028e8b`, ce commit ; thème `ad9fa12` |
 | D | feuille de style chargée sous un listing seulement | **fait** — ce commit |
 | E | documentation : architecture, registre, ligne vide du thème | **fait** — ce commit |
+| F | le libellé du tri redevient une seule phrase traduisible | **fait** — `fix(sort)` du 2026-09-25 |
+
+**Lot F** (2026-09-25, validé par Louis). Le lot C avait coupé la phrase en deux clés concaténées
+(`Sort by`, `: :choice`) : une langue ne pouvait plus réordonner ni reponctuer, et `: :choice` n'avait
+pas de sens seul. Retour à **une clé**, `Sort by: :choice` (fr `Trier par\u00a0: :choice`), `: :choice`
+supprimée. Le composant `Sort` traduit la phrase avec `:choice` remplacé par un marqueur privé
+(U+E000, aucune étiquette n'en contient) et découpe autour — ni `str_starts_with` ni `substr` sur la
+traduction ; texte avant et après la valeur libres, vides ou non. `SortSummary` n'est plus qu'un objet
+de valeur (`of()` et son test unitaire retirés). Pour garder « Trier par » seul dans le tiroir sans le
+dériver de la phrase, le libellé (clé `Sort by`) reste et la phrase entière va dans le slot :
+`Disclosure::restatedInItsSlot()` pose `aria-hidden` sur le libellé, que la feuille masque à partir de
+`48em`. Client : motif `sortPattern` dans la description, `SortRadios` réécrit la phrase par
+`replaceChildren(lead, chosen, trail)`, valeur en `textContent`. Tests : Feature (espace insécable,
+catalogue `xx` `:choice — sort` rendu valeur en tête, `aria-hidden`, `sortPattern`), TS (motif valeur
+en tête, libellé `<b>Price</b>` inséré en texte, libellé masqué à 1440 px). Recette Playwright
+`submit` et `immediate` : 1440 px « Trier par : Pertinence » → « Prix croissant » (`?sort=price_asc`),
+rendu serveur de `?sort=price_desc`, retour arrière → « Pertinence », avant → « Prix croissant » ;
+393 px, section « Trier par » seule, nom « Trier par : Pertinence », phrase `clip-path: inset(50%)` ;
+U+00A0 dans le DOM ; 0 erreur console.
 
 **Lot A.** *Bogue* : `CountEntry` lisait `--meili-duration-fade` par un `parseFloat` nu — un thème
 écrivant `0.15s` obtenait 0,15 ms. Lecture partagée par `shared/css-timing.ts` (`CssTiming` : durée en

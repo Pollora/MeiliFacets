@@ -4,14 +4,20 @@ import type { ListingState } from '../listing/listing-state.ts'
 /** The engine's own order, the value the default choice carries. */
 const DEFAULT_VALUE = ''
 const ROW = Contract.selector('sort-choice-row')
+const CHOICE_PLACEHOLDER = ':choice'
 
 export class SortRadios {
     #contract: Contract
     #choose: (sort: string | null) => void
+    #lead: string
+    #trail: string
 
-    constructor(contract: Contract, choose: (sort: string | null) => void) {
+    constructor(contract: Contract, sentence: string, choose: (sort: string | null) => void) {
         this.#contract = contract
         this.#choose = choose
+        const [lead = '', ...trail] = sentence.split(CHOICE_PLACEHOLDER)
+        this.#lead = lead
+        this.#trail = trail.join(CHOICE_PLACEHOLDER)
     }
 
     start() {
@@ -54,9 +60,12 @@ export class SortRadios {
         const chosen = this.#contract.one('sort-chosen')
         const label = this.#choices().find((choice) => choice.value === current)?.dataset.label
 
-        if (chosen !== null && label !== undefined) {
-            chosen.textContent = label
+        if (chosen === null || label === undefined) {
+            return
         }
+
+        chosen.textContent = label
+        chosen.parentElement?.replaceChildren(this.#lead, chosen, this.#trail)
     }
 
     #choices() {

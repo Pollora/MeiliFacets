@@ -508,6 +508,10 @@ button[data-meili="drawer-close"]:active {
         clip-path: none;
     }
 
+    [data-meili="toggle"]:has([data-meili="sort-chosen"]) .meilifacetsFacetToggleLabel {
+        display: none;
+    }
+
     [data-meili="panel"] {
         position: absolute;
         z-index: var(--meili-layer);

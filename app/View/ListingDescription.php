@@ -57,6 +57,7 @@ final readonly class ListingDescription
             'countPattern' => __(':count result|:count results'),
             'filterPattern' => __(':count active filter|:count active filters'),
             'totalPattern' => __(':count item|:count items'),
+            'sortPattern' => __('Sort by: :choice'),
             'activeValuePatterns' => $this->activeValues->patterns(),
             'locale' => $this->countLabel->languageTag(),
             'state' => $this->state($listing->state()),
