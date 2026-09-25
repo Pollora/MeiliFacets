@@ -3235,6 +3235,73 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
+### R-172 · 🟡 · **fermé le 2026-09-24** (étape 4c) · ouvert le 2026-09-24 — le prix ne peut pas se replier en panneau
+
+Rattaché à `R-48`, étape 4c de [chantier-filtres.md](chantier-filtres.md) ; suite de `R-170`, qui
+l'excluait (`Facets::collapses()`) au motif que la piste mesure 0 px dans un panneau `hidden` (`R-121`,
+`R-142`).
+
+**La prémisse, relue dans le code : rien n'était mis en cache.** Les poignées et le remplissage sont
+placés en fraction de la piste, en CSS (`left: calc(var(--at) * 100%)`, dégradé sur `--from`/`--to`),
+écrits par `PriceSlider::paint()` sans aucune largeur. La seule mesure est
+`SliderDrag::ratioAt()`, un `getBoundingClientRect()` relu à **chaque** `pointermove`. Fermée, la piste
+mesure bien 0 px, mais personne ne la lit ; ouverte, la première mesure est la bonne, et un
+redimensionnement panneau ouvert est lu au mouvement suivant. Ni `ResizeObserver` ni lien
+`DisclosureGroup` → prix : aucun code de mesure n'a changé. Un test tient ce fait : la piste de la
+fixture mesure 0 px tant que son panneau est `hidden`, et le glissé après ouverture doit tomber juste —
+une mesure prise à la construction de `SliderDrag` le fait échouer (mutation tuée).
+
+**Livré.** `collapsible` sur `<x-meilifacets::price>`, relayé tel quel par `<x-meilifacets::facets
+collapsible>` (`Facets::collapses()` et son exclusion supprimés). Même markup que la facette :
+`toggle.blade.php` dans une `<legend>` toujours visible (sans `collapsible`, la légende d'un prix à
+curseur reste `meilifacetsHidden`), panneau `hidden` + `panel`, `View\Disclosure` préparé par
+`Price::disclosure()`, id du panneau par `Price::panelId()` (la vue ne lit plus `$ids`). Badge :
+`ListingState::priceFilterCount()`, en PHP et en TS, 1 si une plage est tenue (`R-123`), réutilisé par
+`activeFilterCount()`. Côté client, `SelectedCountView` ne connaît plus `FacetsView` : il demande à
+chaque `SelectionHolder` (`FacetsView`, `PriceControl`) ce que tient le bloc du badge, `undefined` pour
+un bloc qui n'est pas le sien ; `FacetsView::taxonomyIn()` redevient privé. Aucun CSS ajouté : les
+règles de la 4a (`:has([data-meili="toggle"])`, `panel`, `data-align-end`) suffisent.
+
+**HTML sans `collapsible` identique à l'octet**, mesuré contre la vue d'avant sur le prix de Pluralia :
+2 929 o sans plage, 2 955 o avec `min_price=15&max_price=30`, md5 identiques. Test durable
+`CollapsiblePriceTest::it_differs_from_the_plain_price_by_the_legend_and_the_closed_panel_only`.
+
+**Navigateur** (Playwright, `/boutique`, bornes 2–50 €, **`apply_mode=immediate`** : le
+`config/meilifacets.php` de Pluralia porte cette valeur, modification non commitée antérieure à ce
+point — le mode `submit` n'est couvert que par les tests TS). 1440 px : quatre pills, « Prix »
+comprise ; fermé, piste et poignées à 0 px ; ouvert, panneau 196 px, piste 187,7–343,2, poignées
+centrées à 187,7 et 343,2 (bornes exactes) ; « Marque » ouverte ferme « Prix » ; poignée max glissée à
+mi-piste → 26, centre 265,5 (`--at` 0,5), `?max_price=26`, 62 → 41 articles, badge « 1 », pastille
+« Jusqu'à 26,00 € » ; Échap ferme et rend le focus ; rouverte, poignée à 265,5 ; flèche gauche → 25,
+`--at` 0,4792, centre 262,2 = 187,7 + 155,5 × 0,4792, 39 articles. 390 px : mêmes relevés décalés
+(piste 36,3–191,8, 26 → 114, 25 → 110,8). Chargement direct de `?max_price=25` : badge « 1 » rendu par
+le serveur, poignée à 110,8 (390) et 262,2 (1440) dès la première ouverture. UX-2 : pill poussée au bord
+à 390 px → `data-align-end`, panneau 159–355, bord droit sur celui de la pill (355) ; remise en place →
+attribut retiré. Zéro erreur console.
+
+**Relevés à côté, non traités ici** : à 1440 px la colonne fait passer les pills sur deux rangées, et un
+panneau ouvert sur la première (« Marque ») recouvre la pill « Prix » de la seconde — un clic visant
+« Prix » coche une marque (disposition 4a, toutes pills confondues) ; dans le panneau, l'en-tête du
+curseur répète « Prix » (`aria-hidden`) sous la pill du même nom ; piste de 155,5 px dans un panneau de
+`14em`.
+
+**Les cinq passes.** *Lisibilité* : `Price::disclosure()` et `Facet::disclosure()` se ressemblent (même
+`Disclosure`, ids de la même famille) ; laissés côte à côte, chacun lit sa propre sélection — un
+parent commun ne servirait que ces deux lignes. Noms comparés : `priceFilterCount()` à côté
+d'`activeFilterCount()`, `SelectionHolder::heldIn()` pour « ce que tient un bloc ». *Commentaires* :
+deux supprimés (l'exclusion de `Facets::collapses()`, celui du test du groupe), un ajouté (sémantique
+d'`undefined` sur l'interface). *Performance* : un `closest()` et deux appels de détenteur par badge et
+par changement d'état, badges bornés au nombre de filtres ; aucune mesure ajoutée. *Sécurité* : le badge
+reçoit un entier, en `textContent` et par `{{ }}`. *Contexte* : sans WooCommerce, pas de prix donc pas de
+bloc ; sans bloc prix, `PriceControl::heldIn()` rend `undefined` et le badge n'est pas touché (test).
+Aucune chaîne ajoutée.
+
+**Tests** : Feature `CollapsiblePriceTest` (6), `CollapsibleFacetTest` : `the_group_collapses_every_filter_it_renders`
+remplace le test d'exclusion ; ts `collapsible-price.test.ts` (4 : exclusivité, glissé mesuré après
+ouverture, positions en fraction, clavier) et 3 cas dans `selected-count-view.test.ts`. Deux mutations
+tuées (mesure figée à la construction, prix retiré des détenteurs). `composer check` vert (Unit 297,
+client 356) ; suite `Modules` : `OK (478 tests, 1505 assertions)`.
+
 ### R-171 · 🟠 · **fermé le 2026-09-24** · ouvert le 2026-09-24 — les réglages d'index repoussés en local perdent les attributs du prix
 
 **Constat.** `wp meiliscout index` (avec ou sans `--clear`) et toute sauvegarde de produit faite par la
@@ -3328,6 +3395,8 @@ celui de la pastille ; revenue en place → attribut retiré. Zéro erreur conso
 17,8 × 17,8 px pour un chiffre, 21,9 × 17,8 px pour deux, pilule au-delà. Prix volontairement non
 repliable jusqu'à 4c (`R-121`). Hauteur de 24 px signalée par Louis à l'ouverture des devtools : non
 reproduite (36 px mesurés de 390 à 1440 px, au survol, au focus, en impression, en couleurs forcées).
+
+**Suite** : le prix repliable, exclu ici, est livré sous `R-172` (étape 4c, 2026-09-24).
 
 ### R-169 · ⚪ · ouvert · 2026-09-24 — `results.blade.php` prépare encore une donnée
 

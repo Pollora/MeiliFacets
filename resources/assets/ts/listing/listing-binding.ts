@@ -48,11 +48,11 @@ export class ListingBinding {
         this.#sortQuery = new SortQuery(description.sortFilters)
         this.#summary = new FilterSummaryView(contract, description)
         this.#selectionCount = new SelectionCountView(contract)
-        this.#selectedCount = new SelectedCountView(contract, this.#facets)
+        this.#price = new PriceControl(contract, description, (min, max) => this.#listing.priceBetween(min, max))
+        this.#selectedCount = new SelectedCountView(contract, [this.#facets, this.#price])
         this.#disclosures = new DisclosureGroup(contract)
         this.#total = new TotalView(contract, description)
         this.#activeValues = new ActiveValuesView(contract, description, listing)
-        this.#price = new PriceControl(contract, description, (min, max) => this.#listing.priceBetween(min, max))
     }
 
     start() {

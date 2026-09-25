@@ -7,13 +7,11 @@ namespace Modules\MeiliFacets\Tests\Feature;
 use Dom\Element;
 use Dom\HTMLDocument;
 use Illuminate\Support\Facades\Blade;
-use Modules\MeiliFacets\Contracts\Placeable;
 use Modules\MeiliFacets\Enums\Contract;
 use Modules\MeiliFacets\Enums\Hook;
 use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\Listing\Facet;
 use Modules\MeiliFacets\Listing\FacetValue;
-use Modules\MeiliFacets\Listing\PriceFilter;
 use Modules\MeiliFacets\Listing\ResolvedListing;
 use Modules\MeiliFacets\Support\UrlParameters;
 use PHPUnit\Framework\Attributes\Test;
@@ -110,18 +108,17 @@ final class CollapsibleFacetTest extends TestCase
         $this->assertStringNotContainsString(Contract::Attribute->value.'="'.Hook::SelectedCount->value.'"', $plain);
     }
 
-    /** The price track measures nothing in a closed panel until step 4c (`R-121`). */
     #[Test]
-    public function the_group_collapses_every_facet_it_renders_but_the_price(): void
+    public function the_group_collapses_every_filter_it_renders(): void
     {
         $document = HTMLDocument::createFromString(Blade::render('<x-meilifacets::facets collapsible />'), LIBXML_NOERROR);
 
         foreach ($document->querySelectorAll($this->hooked(Hook::Facet)) as $block) {
-            $this->assertSame(! $this->isPrice($block), $block->querySelector($this->hooked(Hook::Toggle)) instanceof Element);
+            $this->assertInstanceOf(Element::class, $block->querySelector($this->hooked(Hook::Toggle)));
             $this->assertFalse($block->hasAttribute('collapsible'));
         }
 
-        $this->assertCount(count($this->listing()->facets()), $document->querySelectorAll($this->hooked(Hook::Toggle)));
+        $this->assertCount(count($this->listing()->filters()), $document->querySelectorAll($this->hooked(Hook::Toggle)));
     }
 
     #[Test]
@@ -169,14 +166,6 @@ final class CollapsibleFacetTest extends TestCase
     private function serialized(string $rendered): string
     {
         return HTMLDocument::createFromString($rendered, LIBXML_NOERROR)->saveHtml();
-    }
-
-    private function isPrice(Element $block): bool
-    {
-        return array_any(
-            $this->listing()->filters(),
-            static fn (Placeable $filter): bool => $filter instanceof PriceFilter && $block->getAttribute('data-taxonomy') === $filter->name
-        );
     }
 
     private function listing(): ResolvedListing

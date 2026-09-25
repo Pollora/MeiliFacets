@@ -158,6 +158,26 @@ const facetBlock = (taxonomy: string, name: string, label: string, values: strin
             </div>
         </fieldset>`
 
+const priceHandle = (bound: string, at: number, now: number) => `
+                            <button type="button" role="slider" class="meilifacetsRangeHandle" style="--at: ${at}"
+                                    aria-valuemin="0" aria-valuemax="199" aria-valuenow="${now}"
+                                    data-bound="${bound}" data-meili="price-handle"><span data-meili="price-tip"></span></button>`
+
+const priceBlock = (folding: Folding) => `
+        <fieldset class="meilifacetsFacet" data-taxonomy="price" data-meili="facet">
+            <legend class="meilifacetsFacetLabel">${folding.legend('price', 'Price')}</legend>
+            <div class="meilifacetsFacetPanel" id="panel-price"${folding.panel}>
+                <div class="meilifacetsFacetPanelInner">
+                    <div class="meilifacetsRange" style="--from: 0; --to: 1" data-meili="price-range">
+                        <div class="meilifacetsRangeTrack" data-meili="price-track">${priceHandle('min', 0, 0)}${priceHandle('max', 1, 199)}
+                        </div>
+                    </div>
+                    <input type="hidden" name="min_price" value="0" data-meili="price-min">
+                    <input type="hidden" name="max_price" value="199" data-meili="price-max">
+                </div>
+            </div>
+        </fieldset>`
+
 const sortOption = (value: string, label: string, selected: string) => `
     <li class="meilifacetsSortOption" id="sort-${value || 'default'}" role="option"
         data-value="${value}" aria-selected="${selected}" data-meili="sort-option">${label}</li>`
@@ -168,7 +188,7 @@ const pageButton = () => '<button type="button" value="" hidden data-meili="page
  * Mirrors the structure the Blade components render — hooks, classes and initial
  * hidden states. Identifiers are shortened: nothing here reads them.
  */
-export const listingMarkup = ({ scroll = [], collapsible = false }: { scroll?: string[], collapsible?: boolean } = {}) => {
+export const listingMarkup = ({ scroll = [], collapsible = false, priced = false }: { scroll?: string[], collapsible?: boolean, priced?: boolean } = {}) => {
     const mark = (component: string) => (scroll.includes(component) ? 'data-meili-scroll' : '')
     const folding = collapsible ? COLLAPSIBLE : OPEN
 
@@ -177,6 +197,7 @@ export const listingMarkup = ({ scroll = [], collapsible = false }: { scroll?: s
     <div class="meilifacetsFacets" data-apply="submit" data-meili="facets" ${mark('facets')}>
 ${facetBlock('product_brand', 'brand', 'Brand', `${facetValue('brand', 'acme', 'Acme')}${facetValue('brand', 'globex', 'Globex')}`, folding)}
 ${facetBlock('product_cat', 'category', 'Category', facetValue('categorie', 'coats', 'Coats'), folding)}
+${priced ? priceBlock(folding) : ''}
         <button type="button" data-meili="apply">Apply filters</button>
     </div>
 

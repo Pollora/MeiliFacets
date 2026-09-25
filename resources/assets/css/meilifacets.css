@@ -233,10 +233,10 @@
     left: 0;
     box-sizing: border-box;
     min-width: max(100%, 14em);
-    margin-top: 0.25em;
-    padding: 0.5em 0.75em;
+    margin-top: 0.5em;
+    padding: 1em;
     border: 1px solid var(--meili-edge);
-    border-radius: 0.25em;
+    border-radius: 1em;
     background: Canvas;
     color: CanvasText;
 }

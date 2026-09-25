@@ -1,9 +1,13 @@
 <fieldset {{ $attributes->class('meilifacetsFacet') }} data-taxonomy="{{ $facet->name }}"
           @if ($bounds()->isEmpty()) hidden @endif {{ $hook('facet') }} {{ $scrollMark() }}>
+@if ($collapsible)
+    <legend class="meilifacetsFacetLabel"><x-meilifacets::toggle :disclosure="$disclosure()" /></legend>
+@else
     <legend @class(['meilifacetsFacetLabel' => ! $facet->namesItself(), 'meilifacetsHidden' => $facet->namesItself()])>
         {{ $facet->label }}
     </legend>
-    <div class="meilifacetsFacetPanel" id="{{ $ids->facetPanel($facet->name) }}">
+@endif
+    <div class="meilifacetsFacetPanel" id="{{ $panelId() }}"@if ($collapsible) hidden {{ $hook('panel') }}@endif>
         <div class="meilifacetsFacetPanelInner">
             @if ($showsSlider())
                 <x-meilifacets::price.range :label="$facet->label" :readout="$readout()" :fill="$fill()"

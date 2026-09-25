@@ -1,28 +1,43 @@
-import type { Contract } from '../shared/contract.ts'
-import type { FacetsView } from '../facets/facets-view.ts'
+import { Contract } from '../shared/contract.ts'
+
 import type { ListingState } from '../listing/listing-state.ts'
 
+/** A control that knows what one filter block holds; `undefined` for a block that is not its own. */
+export interface SelectionHolder {
+    heldIn(block: Element, state: ListingState): number | undefined
+}
+
 /**
- * The badge on each toggle: how many values of its facet the visitor holds,
- * pending ones included, like `active-count`. Hidden and emptied at zero.
+ * The badge on each toggle: what its block holds, pending changes included,
+ * like `active-count`. Hidden and emptied at zero.
  */
 export class SelectedCountView {
     #contract: Contract
-    #facets: FacetsView
+    #holders: readonly SelectionHolder[]
 
-    constructor(contract: Contract, facets: FacetsView) {
+    constructor(contract: Contract, holders: readonly SelectionHolder[]) {
         this.#contract = contract
-        this.#facets = facets
+        this.#holders = holders
     }
 
     show(state: ListingState) {
         for (const badge of this.#contract.all('selected-count')) {
-            const taxonomy = this.#facets.taxonomyIn(badge)
+            const count = this.#countFor(badge, state)
 
-            if (badge instanceof HTMLElement && taxonomy !== undefined) {
-                this.#write(badge, state.selected(taxonomy).length)
+            if (badge instanceof HTMLElement && count !== undefined) {
+                this.#write(badge, count)
             }
         }
+    }
+
+    #countFor(badge: Element, state: ListingState) {
+        const block = badge.closest(Contract.selector('facet'))
+
+        if (block === null) {
+            return undefined
+        }
+
+        return this.#holders.map((holder) => holder.heldIn(block, state)).find((count) => count !== undefined)
     }
 
     /** The toggle is described by the badge, and a hidden node still describes: zero must say nothing. */

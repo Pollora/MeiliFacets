@@ -12,6 +12,7 @@ use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\Listing\PriceFilter as Declaration;
 use Modules\MeiliFacets\Listing\Range;
 use Modules\MeiliFacets\Support\Money;
+use Modules\MeiliFacets\View\Disclosure;
 use Modules\MeiliFacets\View\Fill;
 use Modules\MeiliFacets\View\RangeHandle;
 
@@ -30,6 +31,7 @@ final class Price extends ListingComponent
         Declaration|BackedEnum|string $facet,
         string $name = '',
         bool $scroll = false,
+        public bool $collapsible = false,
     ) {
         parent::__construct($listings, $name, $scroll);
 
@@ -44,6 +46,21 @@ final class Price extends ListingComponent
     public function bounds(): Range
     {
         return $this->bounds ??= $this->facet->boundsFrom($this->listing->facetStats());
+    }
+
+    public function panelId(): string
+    {
+        return $this->ids->facetPanel($this->facet->name);
+    }
+
+    public function disclosure(): Disclosure
+    {
+        return new Disclosure(
+            label: $this->facet->label,
+            panelId: $this->panelId(),
+            selectedCountId: $this->ids->facetSelectedCount($this->facet->name),
+            selectedCount: $this->listing->state()->priceFilterCount(),
+        );
     }
 
     public function showsSlider(): bool

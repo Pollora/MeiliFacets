@@ -68,7 +68,11 @@ export class ListingState {
     activeFilterCount() {
         const ticked = Object.values(this.#facets).reduce((total, values) => total + values.length, 0)
 
-        return ticked + (this.#price.isEmpty() ? 0 : 1)
+        return ticked + this.priceFilterCount()
+    }
+
+    priceFilterCount() {
+        return this.#price.isEmpty() ? 0 : 1
     }
 
     isPristine() {

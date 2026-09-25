@@ -2,7 +2,7 @@
     ":count active filter|:count active filters": ":count filtre actif|:count filtres actifs",
     ":count item|:count items": ":count article|:count articles",
     ":count result|:count results": ":count résultat|:count résultats",
-    ":min – :max": ":min – :max",
+    ":min – :max": "Entre :min et :max",
     "Active filters": "Filtres actifs",
     "Apply filters": "Appliquer les filtres",
     "Brand": "Marque",

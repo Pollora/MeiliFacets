@@ -11,6 +11,7 @@ import type { ListingState } from '../listing/listing-state.ts'
 import type { Contract } from '../shared/contract.ts'
 import type { ListingDescription } from '../shared/description.ts'
 import type { Answers } from '../shared/search-client.ts'
+import type { SelectionHolder } from '../collapsible/selected-count-view.ts'
 import type { Drawn } from './drawn.ts'
 import type { PriceBound } from './price-bound.ts'
 
@@ -20,7 +21,7 @@ type Commit = (min: number | null, max: number | null) => void
  * The two inputs the server rendered, plus the range control it may have rendered
  * beside them. The inputs are the filter; the control is a way to move them.
  */
-export class PriceControl {
+export class PriceControl implements SelectionHolder {
     #commit: Commit
     #query: PriceQuery | null
     #inputs: PriceInputs
@@ -53,6 +54,10 @@ export class PriceControl {
         }
 
         this.#draw(shown)
+    }
+
+    heldIn(block: Element, state: ListingState): number | undefined {
+        return block === this.#inputs.block ? state.priceFilterCount() : undefined
     }
 
     showBounds(answers: Answers, state: ListingState) {

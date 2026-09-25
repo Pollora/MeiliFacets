@@ -4,6 +4,7 @@ import { CountLabel } from '../shared/count-label.ts'
 import type { FacetDescription, ListingDescription } from '../shared/description.ts'
 import type { FacetCounts } from './facet-counts.ts'
 import type { ListingState } from '../listing/listing-state.ts'
+import type { SelectionHolder } from '../collapsible/selected-count-view.ts'
 
 interface Box {
     host: HTMLElement
@@ -12,7 +13,7 @@ interface Box {
     taxonomy: string
 }
 
-export class FacetsView {
+export class FacetsView implements SelectionHolder {
     #contract: Contract
     #description: ListingDescription
     #countLabel: CountLabel
@@ -36,12 +37,10 @@ export class FacetsView {
         return this.#taxonomies.get(input.name)
     }
 
-    /** A block's taxonomy is no hook: the boxes it holds name it. */
-    taxonomyIn(node: Element | null): string | undefined {
-        const block = node?.closest(Contract.selector('facet')) ?? null
-        const input = block === null ? null : this.#contract.one('input', block)
+    heldIn(block: Element, state: ListingState): number | undefined {
+        const taxonomy = this.#taxonomyIn(block)
 
-        return input instanceof HTMLInputElement ? this.taxonomyOf(input) : undefined
+        return taxonomy === undefined ? undefined : state.selected(taxonomy).length
     }
 
     showSelection(state: ListingState) {
@@ -66,7 +65,7 @@ export class FacetsView {
     }
 
     toggleFold(button: Element) {
-        const taxonomy = this.taxonomyIn(button)
+        const taxonomy = this.#taxonomyIn(button)
 
         if (taxonomy === undefined) {
             return
@@ -158,7 +157,7 @@ export class FacetsView {
 
     #blocks(): Map<string, Element> {
         return this.#blocked ??= new Map(this.#contract.all('facet').flatMap((block) => {
-            const taxonomy = this.taxonomyIn(block)
+            const taxonomy = this.#taxonomyIn(block)
 
             return taxonomy === undefined ? [] : [[taxonomy, block]]
         }))
@@ -170,6 +169,14 @@ export class FacetsView {
 
             return button === null ? [] : [[taxonomy, button]]
         }))
+    }
+
+    /** A block's taxonomy is no hook: the boxes it holds name it. */
+    #taxonomyIn(node: Element | null): string | undefined {
+        const block = node?.closest(Contract.selector('facet')) ?? null
+        const input = block === null ? null : this.#contract.one('input', block)
+
+        return input instanceof HTMLInputElement ? this.taxonomyOf(input) : undefined
     }
 
     #showCount({ label }: Box, hits: number) {

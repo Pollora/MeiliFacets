@@ -30,12 +30,6 @@ final class Facets extends ListingComponent
         };
     }
 
-    /** A price track measures zero inside a closed panel until step 4c of the filter bar (`R-121`). */
-    public function collapses(Placeable $filter): bool
-    {
-        return $this->collapsible && ! $filter instanceof PriceFilter;
-    }
-
     public function render(): View
     {
         return view('meilifacets::components.facets', [

@@ -34,7 +34,12 @@ final readonly class ListingState
 
     public function activeFilterCount(): int
     {
-        return array_sum(array_map(count(...), $this->facets)) + ($this->price->isEmpty() ? 0 : 1);
+        return array_sum(array_map(count(...), $this->facets)) + $this->priceFilterCount();
+    }
+
+    public function priceFilterCount(): int
+    {
+        return $this->price->isEmpty() ? 0 : 1;
     }
 
     public function isPristine(): bool
