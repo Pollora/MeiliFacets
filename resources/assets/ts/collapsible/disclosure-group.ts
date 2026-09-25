@@ -1,17 +1,24 @@
 import { Contract } from '../shared/contract.ts'
+import { PanelMotion } from './panel-motion.ts'
 
 const EXPANDED = 'aria-expanded'
-const MODAL = '[aria-modal="true"]'
 const ALIGNED_TO_END = 'data-align-end'
+const INSTANT = 'data-instant'
 
 /** The APG disclosure pattern on every toggle of the listing. */
 export class DisclosureGroup {
     #contract: Contract
     #document: Document
+    #motion: PanelMotion
+    #closed: () => void
+    #pointing = false
 
-    constructor(contract: Contract) {
+    /** `closed` runs once a panel is out of sight. */
+    constructor(contract: Contract, closed: () => void = () => {}) {
         this.#contract = contract
         this.#document = contract.root.ownerDocument
+        this.#motion = new PanelMotion(this.#document)
+        this.#closed = closed
     }
 
     start() {
@@ -20,9 +27,34 @@ export class DisclosureGroup {
         root.addEventListener('click', (event) => this.#clicked(event))
         root.addEventListener('keydown', (event) => this.#pressed(event as KeyboardEvent))
         root.addEventListener('focusout', (event) => this.#left(event as FocusEvent))
+        this.#document.addEventListener('pointerdown', () => {
+            this.#pointing = true
+        }, { capture: true })
+        this.#document.addEventListener('keydown', () => {
+            this.#pointing = false
+        }, { capture: true })
         this.#document.addEventListener('click', (event) => this.#clickedAnywhere(event))
 
         return this
+    }
+
+    /** For a container already out of sight, such as a drawer that has just left: no exit plays. */
+    collapseWithin(container: Element) {
+        const open = this.#toggles().filter((toggle) => container.contains(toggle) && this.#isOpen(toggle))
+
+        open.forEach((toggle) => {
+            toggle.setAttribute(EXPANDED, 'false')
+
+            const panel = this.#panelOf(toggle)
+
+            if (panel !== null) {
+                this.#motion.drop(panel)
+            }
+        })
+
+        if (open.length > 0) {
+            this.#closed()
+        }
     }
 
     #clicked(event: Event) {
@@ -38,35 +70,48 @@ export class DisclosureGroup {
             return
         }
 
-        this.#openFloating().forEach((other) => this.#close(other))
+        const others = this.#openFloating()
+
+        if (others.length > 0) {
+            others.forEach((other) => this.#closeInstantly(other))
+            this.#openInstantly(toggle)
+
+            return
+        }
+
         this.#open(toggle)
     }
 
     #pressed(event: KeyboardEvent) {
-        if (event.key !== 'Escape') {
+        if (event.key !== 'Escape' || event.defaultPrevented) {
             return
         }
 
         const toggle = this.#openFloating().find((open) => this.#holds(open, event.target))
 
         if (toggle !== undefined) {
-            this.#close(toggle)
+            this.#closeInstantly(toggle)
             toggle.focus()
         }
     }
 
-    /** No `relatedTarget` is the window losing focus, or a node leaving the page: neither is the visitor moving on. */
+    /**
+     * No `relatedTarget` is the window losing focus, or a node leaving the page: neither is the visitor moving on.
+     * A press moves the focus before its click: the click decides, with its own motion.
+     */
     #left(event: FocusEvent) {
         const next = event.relatedTarget
 
-        if (next instanceof Node) {
-            this.#openFloating().filter((open) => !this.#holds(open, next)).forEach((open) => this.#close(open))
+        if (next instanceof Node && !this.#pointing) {
+            this.#openFloating().filter((open) => !this.#holds(open, next)).forEach((open) => this.#closeInstantly(open))
         }
     }
 
     /** The path, not `contains()`: the click may have replaced the node it landed on. */
     #clickedAnywhere(event: Event) {
         const path = event.composedPath()
+
+        this.#pointing = false
 
         this.#openFloating().filter((open) => !this.#isOnPath(open, path)).forEach((open) => this.#close(open))
     }
@@ -85,11 +130,27 @@ export class DisclosureGroup {
         }
 
         toggle.setAttribute(EXPANDED, 'true')
-        panel.hidden = false
 
         if (this.#floats(toggle)) {
+            this.#motion.pop(panel)
             this.#align(panel)
+
+            return
         }
+
+        this.#motion.show(panel)
+    }
+
+    #openInstantly(toggle: HTMLElement) {
+        const panel = this.#panelOf(toggle)
+
+        if (panel === null) {
+            return
+        }
+
+        toggle.setAttribute(EXPANDED, 'true')
+        this.#instantly(panel, () => panel.hidden = false)
+        this.#align(panel)
     }
 
     #close(toggle: HTMLElement) {
@@ -97,9 +158,28 @@ export class DisclosureGroup {
 
         const panel = this.#panelOf(toggle)
 
-        if (panel !== null) {
-            panel.hidden = true
+        if (panel !== null && !panel.hidden) {
+            void this.#motion.hide(panel).then(this.#closed)
         }
+    }
+
+    #closeInstantly(toggle: HTMLElement) {
+        toggle.setAttribute(EXPANDED, 'false')
+
+        const panel = this.#panelOf(toggle)
+
+        if (panel !== null && !panel.hidden) {
+            this.#instantly(panel, () => this.#motion.drop(panel))
+            this.#closed()
+        }
+    }
+
+    /** `getAnimations()` flushes the style while the stylesheet cuts the transition: none starts once the attribute goes. */
+    #instantly(panel: HTMLElement, change: () => void) {
+        panel.setAttribute(INSTANT, '')
+        change()
+        panel.getAnimations()
+        panel.removeAttribute(INSTANT)
     }
 
     /** Measured open and aligned on its start: where it would fall past the viewport, it hangs from its trigger's end. */
@@ -111,15 +191,19 @@ export class DisclosureGroup {
         }
     }
 
-    /** The one place that tells a dropdown from an accordion section: a modal drawer holds sections. */
+    /** The stylesheet decides whether a panel floats: no second threshold here. */
     #floats(toggle: Element) {
-        return toggle.closest(MODAL) === null
+        const panel = this.#panelOf(toggle)
+
+        return panel !== null && this.#document.defaultView?.getComputedStyle(panel).position === 'absolute'
     }
 
     #openFloating() {
-        return this.#contract.all('toggle')
-            .filter((toggle): toggle is HTMLElement => toggle instanceof HTMLElement)
-            .filter((toggle) => this.#isOpen(toggle) && this.#floats(toggle))
+        return this.#toggles().filter((toggle) => this.#isOpen(toggle) && this.#floats(toggle))
+    }
+
+    #toggles() {
+        return this.#contract.all('toggle').filter((toggle): toggle is HTMLElement => toggle instanceof HTMLElement)
     }
 
     #isOpen(toggle: Element) {

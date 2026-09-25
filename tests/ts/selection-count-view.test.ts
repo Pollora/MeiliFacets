@@ -71,6 +71,7 @@ describe('SelectionCountView', () => {
         view.show(new ListingState())
 
         assert.deepEqual(shown(contract), [null, null])
+        assert.deepEqual(contract.all('active-count').map((counter) => counter.textContent), ['', ''])
     })
 
     /** C-3: X is what is ticked, known without a search, so pending values count before « Apply ». */
@@ -91,5 +92,27 @@ describe('SelectionCountView', () => {
 
         assert.deepEqual(shown(contract), ['1', '1'])
         assert.equal(client.plans.length, 1)
+    })
+
+    /** R-173 (5): a counter comes in when it appears, and holds still when only its number changes or when it goes. */
+    it('plays its entry on the way from nothing to one, and only then', () => {
+        const { contract } = withCounters()
+        const played: Keyframe[][] = []
+        contract.all('active-count').forEach((counter) => {
+            counter.animate = ((keyframes: Keyframe[]) => {
+                played.push(keyframes)
+
+                return {} as Animation
+            })
+        })
+        const view = new SelectionCountView(contract)
+
+        view.show(new ListingState({ facets: { product_brand: ['acme'] } }))
+        assert.equal(played.length, 2)
+        assert.deepEqual(played[0], [{ opacity: 0, transform: 'scale(0.9)' }, { opacity: 1, transform: 'none' }])
+
+        view.show(new ListingState({ facets: { product_brand: ['acme', 'globex'] } }))
+        view.show(new ListingState())
+        assert.equal(played.length, 2)
     })
 })

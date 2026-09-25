@@ -247,4 +247,80 @@ describe('FacetsView', () => {
 
         assert.equal(find(host('coats'), '[data-meili="count"]').textContent, '4 results')
     })
+
+    /** R-173 (6): nothing moves under the finger while a panel is open. */
+    describe('while its panel is open', () => {
+        beforeEach(() => {
+            root = open(listingMarkup({ collapsible: true })).root
+            view = new FacetsView(new Contract(root), description)
+            find(root, '[aria-controls="panel-brand"]').setAttribute('aria-expanded', 'true')
+        })
+
+        it('keeps in place, out of reach, a value that falls to no result', () => {
+            view.showCounts(counts({ product_brand: { acme: 3 } }))
+
+            assert.equal(host('globex').hidden, false)
+            assert.equal(box('globex').getAttribute('aria-disabled'), 'true')
+            assert.equal(box('acme').hasAttribute('aria-disabled'), false)
+        })
+
+        it('keeps the box focusable, never `disabled`', () => {
+            view.showCounts(counts({ product_brand: { acme: 3 } }))
+
+            assert.equal(box('globex').disabled, false)
+        })
+
+        it('refuses a tick on a value out of reach, and never the untick of a held one', () => {
+            view.showCounts(counts({ product_brand: { acme: 3 } }))
+            box('globex').checked = true
+
+            assert.equal(view.refuses(box('globex')), true)
+            assert.equal(view.refuses(box('acme')), false)
+
+            box('globex').checked = false
+
+            assert.equal(view.refuses(box('globex')), false)
+        })
+
+        it('gives the value back once its count returns', () => {
+            view.showCounts(counts({ product_brand: { acme: 3 } }))
+            view.showCounts(counts({ product_brand: { acme: 3, globex: 1 } }))
+
+            assert.equal(box('globex').hasAttribute('aria-disabled'), false)
+        })
+
+        it('never takes a held value out of reach', () => {
+            box('globex').checked = true
+
+            view.showCounts(counts({ product_brand: { acme: 3 } }))
+
+            assert.equal(box('globex').hasAttribute('aria-disabled'), false)
+        })
+
+        it('brings back no value that was already out of sight', () => {
+            view.showCounts(counts({ product_brand: { acme: 3 } }))
+            host('globex').hidden = true
+
+            view.showCounts(counts({ product_brand: { acme: 3 } }))
+
+            assert.equal(host('globex').hidden, true)
+            assert.equal(box('globex').hasAttribute('aria-disabled'), false)
+        })
+
+        it('lets the value go once the panel has closed', () => {
+            view.showCounts(counts({ product_brand: { acme: 3 } }))
+            find(root, '[aria-controls="panel-brand"]').setAttribute('aria-expanded', 'false')
+
+            view.refold()
+
+            assert.equal(host('globex').hidden, true)
+            assert.equal(box('globex').hasAttribute('aria-disabled'), false)
+        })
+
+        it('hides a value of a closed panel as before', () => {
+            view.showCounts(counts({ product_brand: { acme: 3 }, product_cat: {} }))
+
+            assert.equal(host('coats').hidden, true)
+        })
+    })
 })

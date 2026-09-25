@@ -54,7 +54,7 @@ describe('a price range in a collapsible panel', () => {
         node.dispatchEvent(new window.PointerEvent(type, { bubbles: true, pointerId: 1, clientX, buttons: 1 }))
 
     beforeEach(() => {
-        ({ window, root } = open(listingMarkup({ collapsible: true, priced: true })))
+        ({ window, root } = open(listingMarkup({ collapsible: true, priced: true }), { styled: true }))
         laidOut()
 
         const listing = new Listing(description, connection, { filterQueries: filterQueriesOf(description), client: new FakeClient(), history: new FakeHistory() })

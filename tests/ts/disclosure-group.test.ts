@@ -6,7 +6,9 @@ import { filterQueriesOf } from '../../resources/assets/ts/filter-queries.ts'
 import { ListingBinding } from '../../resources/assets/ts/listing/listing-binding.ts'
 import { Listing } from '../../resources/assets/ts/listing/listing.ts'
 import { Contract } from '../../resources/assets/ts/shared/contract.ts'
-import { click, find, listingMarkup, nth, open, press, tick } from './dom.ts'
+import { facetField } from '../../resources/assets/ts/shared/description.ts'
+import { FacetQuery } from '../../resources/assets/ts/facets/facet-query.ts'
+import { click, closestHook, find, listingMarkup, nth, open, press, tick } from './dom.ts'
 import { connection, described, FakeClient, FakeHistory } from './fixtures.ts'
 
 import type { TestWindow } from './dom.ts'
@@ -30,6 +32,12 @@ const description = described({
     sorts: {},
 })
 
+const [brand] = description.facets
+
+if (brand === undefined) {
+    throw new Error('The fixture describes no brand facet.')
+}
+
 /** A macrotask: the fake engine answers on a resolved promise, and the listing awaits it. */
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0))
 
@@ -37,9 +45,13 @@ describe('DisclosureGroup', () => {
     let window: TestWindow
     let root: HTMLElement
 
+    let group: DisclosureGroup
+    let closings: number
+
     beforeEach(() => {
-        ({ window, root } = open(listingMarkup({ collapsible: true })))
-        new DisclosureGroup(new Contract(root)).start()
+        ({ window, root } = open(listingMarkup({ collapsible: true }), { styled: true }))
+        closings = 0
+        group = new DisclosureGroup(new Contract(root), () => closings++).start()
     })
 
     const toggle = (rank: number) => nth(root, Contract.selector('toggle'), rank)
@@ -74,9 +86,9 @@ describe('DisclosureGroup', () => {
         assert.equal(isOpen(1), true)
     })
 
-    /** Q-1: in the modal drawer, the same markup is a set of sections that open on their own. */
-    it('lets every section open on its own inside a modal container', () => {
-        root.setAttribute('aria-modal', 'true')
+    /** Q-1: where the stylesheet keeps panels in line — a narrow screen, the drawer — they are sections that open on their own. */
+    it('lets every section open on its own where the panels do not float', () => {
+        window.happyDOM.setViewport({ width: 390, height: 800 })
 
         click(window, toggle(0))
         click(window, toggle(1))
@@ -121,6 +133,66 @@ describe('DisclosureGroup', () => {
         assert.equal(isOpen(0), true)
     })
 
+    it('leaves an in-line section open on a click outside and on Escape', () => {
+        window.happyDOM.setViewport({ width: 390, height: 800 })
+        click(window, toggle(0))
+
+        click(window, window.document.body)
+        press(window, find(panel(0), 'input'), 'Escape')
+
+        assert.equal(isOpen(0), true)
+    })
+
+    /** R-173 (7): applied from the bar, the choice is made — the floating panel goes, like on any click outside. */
+    it('closes the floating panel when « Apply » is pressed', () => {
+        click(window, toggle(0))
+
+        click(window, find(root, Contract.selector('apply')))
+
+        assert.equal(isOpen(0), false)
+    })
+
+    it('tells once a panel it closed is out of sight, and not before', async () => {
+        let out = () => {}
+        const exit = new Promise<void>((resolve) => {
+            out = resolve
+        })
+        click(window, toggle(0))
+        panel(0).getAnimations = () => [{ finish: () => {}, finished: exit } as unknown as Animation]
+
+        click(window, toggle(0))
+        await settle()
+        assert.equal(closings, 0)
+
+        out()
+        await settle()
+        assert.equal(closings, 1)
+    })
+
+    /** R-173 (7): a drawer that has left folds its sections away unseen, for the next opening to start folded. */
+    it('folds every section of a container at once, and those only', () => {
+        window.happyDOM.setViewport({ width: 390, height: 800 })
+        click(window, toggle(0))
+        click(window, toggle(1))
+        const [brand] = [panel(0)]
+        let finished = 0
+        brand.getAnimations = () => [{ finish: () => finished++ } as unknown as Animation]
+
+        group.collapseWithin(closestHook(toggle(0), 'facet'))
+
+        assert.equal(isOpen(0), false)
+        assert.equal(panel(0).hidden, true)
+        assert.equal(finished, 1)
+        assert.equal(isOpen(1), true)
+        assert.equal(closings, 1)
+    })
+
+    it('tells nothing when a container had nothing open', () => {
+        group.collapseWithin(root)
+
+        assert.equal(closings, 0)
+    })
+
     it('closes on a click outside, and not on a click inside its panel', () => {
         click(window, toggle(0))
 
@@ -129,6 +201,16 @@ describe('DisclosureGroup', () => {
 
         click(window, window.document.body)
         assert.equal(isOpen(0), false)
+    })
+
+    /** An Escape another component consumed — the sort list, the drawer — was not meant for the panels. */
+    it('leaves its panels alone on an Escape another component consumed', () => {
+        click(window, toggle(0))
+
+        const box = find<HTMLInputElement>(panel(0), 'input')
+        box.addEventListener('keydown', (event) => event.preventDefault())
+        press(window, box, 'Escape')
+        assert.equal(isOpen(0), true)
     })
 
     it('closes when the focus moves on, and not while it moves between trigger and panel', () => {
@@ -141,6 +223,96 @@ describe('DisclosureGroup', () => {
 
         leave(toggle(0), find(root, Contract.selector('sort-trigger')))
         assert.equal(isOpen(0), false)
+    })
+
+    /** Records, for each style flush of a panel, whether it happened with the transition cut. */
+    const watchExits = (rank: number) => {
+        const cut: boolean[] = []
+        panel(rank).getAnimations = () => {
+            cut.push(panel(rank).hasAttribute('data-instant'))
+
+            return []
+        }
+
+        return cut
+    }
+    const watchEntries = (rank: number) => {
+        const durations: unknown[] = []
+        panel(rank).animate = (_: Keyframe[], options: KeyframeAnimationOptions) => {
+            durations.push(options.duration)
+
+            return {} as Animation
+        }
+
+        return durations
+    }
+
+    /** ANIM-3: a panel that floats pops in over the stylesheet's fixed time, whatever its height. */
+    it('pops a floating panel in over 180 ms, and plays its exit on a second click', async () => {
+        const entries = watchEntries(0)
+        const exits = watchExits(0)
+
+        click(window, toggle(0))
+        assert.deepEqual(entries, [180])
+
+        click(window, toggle(0))
+        await settle()
+        assert.equal(exits.includes(true), false)
+        assert.equal(closings, 1)
+    })
+
+    /** ANIM-4: a keyboard close is instant — no exit to sit through before the next key. */
+    it('closes at once, its transition cut, on Escape', () => {
+        click(window, toggle(0))
+        const exits = watchExits(0)
+
+        press(window, find(panel(0), 'input'), 'Escape')
+
+        assert.equal(isOpen(0), false)
+        assert.ok(exits.length > 0 && exits.every(Boolean))
+        assert.equal(panel(0).hasAttribute('data-instant'), false)
+        assert.equal(closings, 1)
+    })
+
+    it('closes at once when Tab takes the focus out', () => {
+        click(window, toggle(0))
+        const exits = watchExits(0)
+
+        leave(find(panel(0), 'input'), find(root, Contract.selector('sort-trigger')))
+
+        assert.equal(isOpen(0), false)
+        assert.ok(exits.length > 0 && exits.every(Boolean))
+        assert.equal(closings, 1)
+    })
+
+    it('goes from pill to pill with neither exit nor entry', () => {
+        click(window, toggle(0))
+        const exits = watchExits(0)
+        const entries = watchEntries(1)
+
+        click(window, toggle(1))
+
+        assert.equal(isOpen(0), false)
+        assert.equal(isOpen(1), true)
+        assert.ok(exits.length > 0 && exits.every(Boolean))
+        assert.deepEqual(entries, [])
+        assert.equal(panel(1).hasAttribute('data-instant'), false)
+    })
+
+    /** A press moves the focus before its click: the click, not the focus, decides — and a click out plays the exit. */
+    it('leaves a press elsewhere to its click, which plays the exit', async () => {
+        click(window, toggle(0))
+        const exits = watchExits(0)
+
+        window.document.body.dispatchEvent(new window.PointerEvent('pointerdown', { bubbles: true }))
+        leave(toggle(0), find(root, Contract.selector('sort-trigger')))
+        assert.equal(isOpen(0), true)
+
+        click(window, window.document.body)
+        await settle()
+
+        assert.equal(isOpen(0), false)
+        assert.equal(exits.includes(true), false)
     })
 
     /** The window losing focus, or a focused box hidden by a repaint, is not the visitor moving on. */
@@ -173,6 +345,11 @@ describe('a panel open while the listing searches at every tick', () => {
     it('stays open with the focus on the last box ticked', async () => {
         const { window, root } = open(listingMarkup({ collapsible: true }))
         const client = new FakeClient()
+        const brands = { acme: 3, globex: 2 }
+        client.answer = {
+            results: { hits: [], totalHits: 0, facetDistribution: { [facetField(brand)]: brands } },
+            [FacetQuery.keyFor(brand.taxonomy)]: { hits: [], facetDistribution: { [facetField(brand)]: brands } },
+        }
         const listing = new Listing(description, connection, { filterQueries: filterQueriesOf(description), client, history: new FakeHistory() })
         new ListingBinding(new Contract(root), listing, description).start()
         const trigger = nth(root, Contract.selector('toggle'), 0)
@@ -190,6 +367,81 @@ describe('a panel open while the listing searches at every tick', () => {
         assert.equal(client.plans.length, 2)
         assert.equal(trigger.getAttribute('aria-expanded'), 'true')
         assert.equal(panel.hidden, false)
-        assert.equal(window.document.activeElement, find(panel, 'input[value="globex"]'))
+        assert.ok(window.document.activeElement === find(panel, 'input[value="globex"]'))
+    })
+})
+
+/** R-173: a value that falls to no result stays where it was, announced unavailable, and keeps the focus. */
+describe('a value out of reach in an open panel', () => {
+    const start = () => {
+        const { window, root } = open(listingMarkup({ collapsible: true }))
+        const client = new FakeClient()
+        const brands = { acme: 3 }
+        client.answer = {
+            results: { hits: [], totalHits: 0, facetDistribution: { [facetField(brand)]: brands } },
+            [FacetQuery.keyFor(brand.taxonomy)]: { hits: [], facetDistribution: { [facetField(brand)]: brands } },
+        }
+        const listing = new Listing(description, connection, { filterQueries: filterQueriesOf(description), client, history: new FakeHistory() })
+        new ListingBinding(new Contract(root), listing, description).start()
+        click(window, nth(root, Contract.selector('toggle'), 0))
+
+        return { window, client, box: (value: string) => find<HTMLInputElement>(root, `input[value="${value}"]`) }
+    }
+
+    it('keeps the focus of the box that fell to no result', async () => {
+        const { window, box } = start()
+
+        box('globex').focus()
+        tick(window, box('acme'))
+        await settle()
+
+        assert.equal(box('globex').getAttribute('aria-disabled'), 'true')
+        assert.ok(window.document.activeElement === box('globex'))
+    })
+
+    it('cancels a click on it: the box stays unticked and nothing is searched', async () => {
+        const { window, client, box } = start()
+
+        tick(window, box('acme'))
+        await settle()
+        box('acme').checked = false
+        const searched = client.plans.length
+        let changes = 0
+        box('globex').addEventListener('change', () => changes++)
+
+        box('globex').click()
+        await settle()
+
+        assert.equal(box('globex').checked, false)
+        assert.equal(changes, 0)
+        assert.equal(client.plans.length, searched)
+    })
+
+    it('refuses a `change` that would tick it', async () => {
+        const { window, client, box } = start()
+
+        tick(window, box('acme'))
+        await settle()
+        const searched = client.plans.length
+
+        tick(window, box('globex'))
+        await settle()
+
+        assert.equal(box('globex').checked, false)
+        assert.equal(client.plans.length, searched)
+    })
+
+    it('always lets a ticked value go', async () => {
+        const { window, client, box } = start()
+
+        tick(window, box('acme'))
+        await settle()
+        const searched = client.plans.length
+
+        box('acme').click()
+        await settle()
+
+        assert.equal(box('acme').checked, false)
+        assert.equal(client.plans.length, searched + 1)
     })
 })

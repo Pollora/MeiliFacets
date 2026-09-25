@@ -6,6 +6,8 @@ import type { FacetCounts } from './facet-counts.ts'
 import type { ListingState } from '../listing/listing-state.ts'
 import type { SelectionHolder } from '../collapsible/selected-count-view.ts'
 
+const UNAVAILABLE = 'aria-disabled'
+
 interface Box {
     host: HTMLElement
     input: HTMLInputElement
@@ -31,6 +33,11 @@ export class FacetsView implements SelectionHolder {
         this.#description = description
         this.#countLabel = new CountLabel(description.locale)
         this.#taxonomies = new Map(Object.entries(description.params).map(([taxonomy, name]) => [name, taxonomy]))
+    }
+
+    /** A box kept in place without results is announced unavailable, and a tick on it is refused. */
+    refuses(input: HTMLInputElement) {
+        return input.checked && input.getAttribute(UNAVAILABLE) === 'true'
     }
 
     taxonomyOf(input: HTMLInputElement): string | undefined {
@@ -80,6 +87,11 @@ export class FacetsView implements SelectionHolder {
         this.#showFolds()
     }
 
+    /** Once a panel has closed, the values it held in place may go. */
+    refold() {
+        this.#showFolds()
+    }
+
     #showFolds() {
         this.#description.facets.forEach((facet) => this.#showFold(facet))
     }
@@ -88,25 +100,57 @@ export class FacetsView implements SelectionHolder {
         const expanded = this.#unfolded.has(facet.taxonomy)
         const values = this.#foldOf(facet)
 
-        for (const { host, input, counted, folds } of values) {
-            host.hidden = !input.checked && (!counted || (folds && !expanded))
+        for (const { host, input, placed, pinned, folds } of values) {
+            host.hidden = !input.checked && (!placed || (folds && !expanded))
+            this.#showReach(input, pinned)
         }
 
         this.#showBlock(facet.taxonomy, values.some(({ host }) => !host.hidden))
         this.#showFoldButton(facet.taxonomy, expanded, values.some(({ folds }) => folds))
     }
 
+    /** A value without results leaves its place, unless it is on screen in an open panel: there it stays, out of reach, rank included. */
     #foldOf(facet: FacetDescription) {
+        const panelOpen = this.#isPanelOpen(facet.taxonomy)
         let rank = 0
 
         return this.#boxesOf(facet.taxonomy).map((box) => {
-            const counted = this.#hasHits.get(box.host) ?? (facet.counts[box.input.value] ?? 0) > 0
-            const folds = counted && !box.input.checked && rank >= facet.visible
+            const counted = this.#hasResults(facet, box)
+            const pinned = !counted && panelOpen && this.#isOnScreenAndFree(box)
+            const placed = counted || pinned
+            const folds = placed && !box.input.checked && rank >= facet.visible
 
-            rank += counted ? 1 : 0
+            rank += placed ? 1 : 0
 
-            return { ...box, counted, folds }
+            return { ...box, placed, pinned, folds }
         })
+    }
+
+    #showReach(input: HTMLInputElement, outOfReach: boolean) {
+        if (input.hasAttribute(UNAVAILABLE) === outOfReach) {
+            return
+        }
+
+        if (outOfReach) {
+            input.setAttribute(UNAVAILABLE, 'true')
+        } else {
+            input.removeAttribute(UNAVAILABLE)
+        }
+    }
+
+    #hasResults(facet: FacetDescription, { host, input }: Box) {
+        return this.#hasHits.get(host) ?? (facet.counts[input.value] ?? 0) > 0
+    }
+
+    #isOnScreenAndFree({ host, input }: Box) {
+        return !input.checked && !host.hidden
+    }
+
+    #isPanelOpen(taxonomy: string) {
+        const block = this.#blocks().get(taxonomy)
+        const toggle = block === undefined ? null : this.#contract.one('toggle', block)
+
+        return toggle?.getAttribute('aria-expanded') === 'true'
     }
 
     #showBlock(taxonomy: string, readable: boolean) {
