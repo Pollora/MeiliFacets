@@ -1302,7 +1302,7 @@ Reste ouvert jusqu'à la dernière étape.
 mobile first. Revue des animations appliquée le même jour (`R-176`).
 Commités le même jour par fonctionnalité (`7b971d8`, `40822fd`, `860d58c`, `d62e8d9`) ; étape 5
 fermée, `R-173` → `R-176` fermés. Restent l'étape 4d (`R-49`, « Voir plus » en panneau), puis 6 à 8.
-Audit de la branche le même jour : `R-178`, cinq lots (A, B, C et E faits).
+Audit de la branche le même jour : `R-178`, cinq lots (tous faits).
 
 ### R-49 · 🟡 · **fermé le 2026-09-25** (étape 4d-1) · ouvert le 2026-09-06 — le cul-de-sac « zéro résultat » est atteignable en deux clics
 
@@ -3274,7 +3274,7 @@ point A1.
 | A | duplications et bogues latents | **fait** — `b1cc621` |
 | B | tests : fixtures alignées sur les vues, aides partagées | **fait** — `0a4ba1d` |
 | C | crochets `drawer-sheet`/`drawer-footer`/rangée du tri, Déméter, `Apply` unique, renommages | **fait** — `2be5b05`, `0ea40d8`, `d028e8b`, ce commit ; thème `ad9fa12` |
-| D | — | hors de la consigne de cette passe |
+| D | feuille de style chargée sous un listing seulement | **fait** — ce commit |
 | E | documentation : architecture, registre, ligne vide du thème | **fait** — ce commit |
 
 **Lot A.** *Bogue* : `CountEntry` lisait `--meili-duration-fade` par un `parseFloat` nu — un thème
@@ -3329,6 +3329,24 @@ focus sur `apply` après la poubelle, pills (badge 2), tri « Trier par : Prix d
 (`?sort=price_desc`), pastilles `term`/`price` et retrait du prix, colonne (`?categorie=cheveux` au clic
 d'« Appliquer les filtres ») ; 0 erreur console. **Relevé, non traité** : `archive-product.blade.php`
 du thème écrit le seuil en `md:` Tailwind (48rem), pas en `48em` ; égaux à 16 px de base.
+
+**Lot D** (2026-09-25, validé par Louis). `Stylesheet::enqueue()` mettait `meilifacets.css` en file sur
+toutes les pages, bloquant le rendu : 31,9 Ko minifiés / 5,7 Ko gzip pour rien sur l'accueil. Désormais
+`Stylesheet::register()` (`wp_enqueue_scripts`) n'inscrit que la poignée, et `<x-meilifacets::listing>`
+appelle `Stylesheet::require()` à côté de `ListingScript::require()`. Ordre mesuré (instrumentation
+temporaire du composant) : construit avec `did_action('wp_head') = 0`, `did_action('wp_enqueue_scripts') = 0`,
+sous 5 à 6 tampons — la vue `@extends` rend ses sections avant le `<head>`. Piste (a) écartée :
+`ListingPage` devine (`is_archive() || is_search()`), la vue seule sait ; (c) gardée en repli : un listing rendu
+après `wp_head` reçoit `wp_print_styles()` devant lui, une seule fois. Décision « La feuille du module ne se
+charge que sous un listing » ; `configuration.md`, « Feuille de style du module ». Tests Feature
+`StylesheetTest` (absente sans listing ; dans le `<head>` d'un gabarit à sections ; une seule impression après
+`wp_head` ; `wp_dequeue_style` ; `wp_deregister_style` après `wp_head`) — retirer l'appel du composant ou la
+branche `wp_head` fait échouer un test. Playwright, 393 et 1440 px, cache désactivé, caches WP Rocket vidés,
+avant → après : `/` et `/faq` 1 requête `meilifacets.css` → 0 ; `/boutique` et `/categorie-produit/visage` :
+1 `<link>` dans le `<head>` avant et après, feuille appliquée dès la première frame du listing (tiroir
+`position: fixed` à 393, `static` à 1440, liste des pills `list-style: none`). CLS `/boutique` 0,0005 / 0,0031
+avant et après ; catégorie 1440 : 0,0015 → 0,003 (trois essais), décalage porté par le fil d'Ariane de
+l'en-tête du thème, pas par le listing.
 
 ---
 

@@ -546,6 +546,27 @@ valeurs remontent** ; l'ordre dans lequel elles s'affichent se déclare par face
 Le premier est appliqué **à l'intérieur** de `formatForIndexing()`, donc sur tous les chemins
 d'indexation. Un projet peut s'y brancher à son tour ; sa priorité décide de l'ordre.
 
+## Feuille de style du module
+
+`meilifacets.css` (poignée `meilifacets`) n'est chargée que sur les pages qui rendent un listing :
+c'est le composant `<x-meilifacets::listing>` qui la demande (`Stylesheet::require()`), comme il demande
+le script. Une page sans listing ne la charge plus (`R-178`, lot D).
+
+Elle reste dans le `<head>` : un gabarit Blade (`@extends`, composant de mise en page) rend ses sections
+avant son `<head>`, donc le listing la demande avant `wp_head`. Un listing rendu **après** `wp_head` — un
+gabarit PHP qui imprime l'en-tête d'abord — reçoit la feuille imprimée juste avant lui, jamais en pied de
+page ; deux listings n'en impriment qu'une.
+
+La poignée est inscrite sur toutes les pages (`wp_enqueue_scripts`, priorité 10 — rien n'est imprimé),
+mise en file seulement par un listing. Un thème s'en passe comme avant :
+
+```php
+add_action('wp_enqueue_scripts', fn () => wp_dequeue_style('meilifacets'), 20);
+```
+
+Ce retrait couvre le cas `<head>`. `wp_deregister_style('meilifacets')` au même crochet couvre les deux
+cas : un listing rendu après `wp_head` ne trouve plus de source à imprimer.
+
 ## Priorité de chargement du client
 
 Le module charge son script en `fetchpriority="low"` : la page est rendue par le serveur, le navigateur

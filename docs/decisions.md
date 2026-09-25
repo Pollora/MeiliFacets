@@ -650,6 +650,25 @@ Ce que ça coûte : une archive produit qui garde la boucle native de WooCommerc
 projet ne la réarme pas lui-même, par le filtre documenté dans `configuration.md` — le module ne peut pas
 savoir ce que la vue rendra, Pollora lançant la requête principale (`wp()`) avant de choisir la route.
 
+### La feuille du module ne se charge que sous un listing (2026-09-25)
+
+Validé par Louis (`R-178`, lot D). *Amende « Le module livre ses assets, il ne les injecte pas » :
+la feuille reste une feuille inscrite, désinscriptible, mais n'est plus mise en file partout.* Le
+composant `<x-meilifacets::listing>` la demande en même temps que son script ; `Stylesheet` n'inscrit
+plus que la poignée à `wp_enqueue_scripts`.
+
+Pourquoi au rendu du listing et pas avant `wp_head` : Pollora lance la requête principale avant de choisir
+la route, et seule la vue sait si elle rend un listing — `ListingPage` (`is_archive() || is_search()`) prend
+aussi les archives du blog et rate un listing posé sur une page. Mesuré sur `/boutique` et
+`/categorie-produit/visage` : le composant est construit avec `did_action('wp_head') = 0` et
+`did_action('wp_enqueue_scripts') = 0`, sous 5 à 6 tampons de sortie — une vue `@extends` rend ses sections
+avant son gabarit, donc avant le `<head>`. Un listing rendu après `wp_head` reçoit la feuille par
+`wp_print_styles()` juste avant lui (rendu bloquant, sans flash), jamais en pied de page.
+
+Ce que ça coûte : `wp_dequeue_style('meilifacets')` ne couvre plus que le cas `<head>` ; un thème qui rend un
+listing après `wp_head` et veut s'en passer désinscrit la poignée (`wp_deregister_style`), qui couvre les
+deux cas.
+
 ### Contre-exemple
 
 `AmphiBee/MeiliSearchFacets` sert uniquement à cartographier le périmètre fonctionnel attendu.
