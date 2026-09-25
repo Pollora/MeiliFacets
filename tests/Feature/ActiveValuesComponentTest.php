@@ -62,10 +62,21 @@ final class ActiveValuesComponentTest extends TestCase
             $this->parameters()->reserved(QueryParameter::MaxPrice) => '50',
         ]);
 
-        $html = $this->underLocales('fr', 'fr_FR', $this->renderComponent(...));
+        [$html, $expected] = $this->underLocales('fr', 'fr_FR', fn (): array => [$this->renderComponent(), $this->removedRange('10,00', '50,00')]);
 
-        $this->assertMatchesRegularExpression('/aria-label="Retirer le filtre 10,00.*50,00/u', $html);
+        $this->assertMatchesRegularExpression($expected, $html);
+        $this->assertStringContainsString('10,00', $html);
         $this->assertSame(1, substr_count($html, 'name="'.$this->parameters()->reserved(QueryParameter::MinPrice).'"'));
+    }
+
+    /** Read from the catalogue, so a translation reworded there does not break the test. */
+    private function removedRange(string $min, string $max): string
+    {
+        $range = __(':min – :max', ['min' => 'MINIMUM', 'max' => 'MAXIMUM']);
+        $label = __('Remove the :label filter', ['label' => $range]);
+        $pattern = str_replace(['MINIMUM', 'MAXIMUM'], [preg_quote($min, '/').'.*', preg_quote($max, '/').'.*'], preg_quote(e($label), '/'));
+
+        return '/aria-label="'.$pattern.'/u';
     }
 
     #[Test]
