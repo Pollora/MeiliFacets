@@ -14,8 +14,8 @@ use Modules\MeiliFacets\View\SortSummary;
 
 final class Sort extends ListingComponent
 {
-    /** A private-use character: no label holds one, so the translated sentence splits around it. */
-    private const string CHOICE_MARKER = "\u{E000}";
+    /** The placeholder the translated sentence keeps when nothing replaces it: the sentence splits around it. */
+    private const string CHOICE_PLACEHOLDER = ':choice';
 
     /** @var list<SortChoice> */
     public array $choices;
@@ -64,7 +64,7 @@ final class Sort extends ListingComponent
 
     public function disclosure(): Disclosure
     {
-        return Disclosure::restatedInItsSlot($this->summary->label, $this->ids->sortPanel());
+        return Disclosure::withSilentLabel($this->summary->label, $this->ids->sortPanel());
     }
 
     public function panelId(): string
@@ -79,8 +79,8 @@ final class Sort extends ListingComponent
 
     private function summaryOf(string $choice): SortSummary
     {
-        $sentence = __('Sort by: :choice', ['choice' => self::CHOICE_MARKER]);
-        [$lead, $trail] = explode(self::CHOICE_MARKER, $sentence, 2) + [1 => ''];
+        $sentence = __('Sort by: :choice');
+        [$lead, $trail] = explode(self::CHOICE_PLACEHOLDER, $sentence, 2) + [1 => ''];
 
         return new SortSummary(__('Sort by'), $lead, $choice, $trail);
     }

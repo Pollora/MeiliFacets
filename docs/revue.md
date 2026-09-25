@@ -3263,7 +3263,7 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
-### R-178 · 🟡 · ouvert · 2026-09-25 — audit de la branche `feat/filter-bar` : duplications, fixtures et docs à reprendre
+### R-178 · 🟡 · **fermé le 2026-09-25** · ouvert le 2026-09-25 — audit de la branche `feat/filter-bar` : duplications, fixtures et docs à reprendre
 
 Rattaché à `R-48`. Audit de la branche après la livraison des étapes 4 et 5 (`d1b3d70`), découpé en
 cinq lots appliqués dans l'ordre, un commit par lot. Comportement inchangé partout, sauf le bogue du
@@ -3281,12 +3281,13 @@ point A1.
 **Lot F** (2026-09-25, validé par Louis). Le lot C avait coupé la phrase en deux clés concaténées
 (`Sort by`, `: :choice`) : une langue ne pouvait plus réordonner ni reponctuer, et `: :choice` n'avait
 pas de sens seul. Retour à **une clé**, `Sort by: :choice` (fr `Trier par\u00a0: :choice`), `: :choice`
-supprimée. Le composant `Sort` traduit la phrase avec `:choice` remplacé par un marqueur privé
-(U+E000, aucune étiquette n'en contient) et découpe autour — ni `str_starts_with` ni `substr` sur la
+supprimée. Le composant `Sort` traduit la phrase sans remplacement, `:choice` y reste intact,
+et la découpe autour du placeholder lui-même, comme le client (un marqueur privé U+E000 posé d'abord
+a été retiré en revue par Louis : indirection inutile) — ni `str_starts_with` ni `substr` sur la
 traduction ; texte avant et après la valeur libres, vides ou non. `SortSummary` n'est plus qu'un objet
 de valeur (`of()` et son test unitaire retirés). Pour garder « Trier par » seul dans le tiroir sans le
 dériver de la phrase, le libellé (clé `Sort by`) reste et la phrase entière va dans le slot :
-`Disclosure::restatedInItsSlot()` pose `aria-hidden` sur le libellé, que la feuille masque à partir de
+`Disclosure::withSilentLabel()` pose `aria-hidden` sur le libellé, que la feuille masque à partir de
 `48em`. Client : motif `sortPattern` dans la description, `SortRadios` réécrit la phrase par
 `replaceChildren(lead, chosen, trail)`, valeur en `textContent`. Tests : Feature (espace insécable,
 catalogue `xx` `:choice — sort` rendu valeur en tête, `aria-hidden`, `sortPattern`), TS (motif valeur
@@ -3368,6 +3369,12 @@ avant et après ; catégorie 1440 : 0,0015 → 0,003 (trois essais), décalage p
 l'en-tête du thème, pas par le listing.
 
 ---
+
+**Fermé le 2026-09-25** : lots A (`b1cc621`), B (`0a4ba1d`), C (`2be5b05`, `0ea40d8`, `d028e8b`,
+`00758a2` ; thème `ad9fa12`), D (`9692266`), E (`bfc0279` ; thème `cbef7ce`) et F (`90dabac`) livrés. Relecture finale :
+le paramètre booléen de `Disclosure` (contraire à `CLAUDE.md` § 4) devient l'enum `LabelReading`
+(`Aloud`/`Silent`), et le marqueur U+E000 du tri est retiré au profit de la découpe sur `:choice`.
+Reste hors audit : `FilterCatalogue` à extraire de `ResolvedListing` (différé, sans urgence).
 
 ### R-177 · 🟡 · **fermé le 2026-09-25** (étape 4d-2, `d1b3d70`, verrou `e26dc56`) · ouvert le 2026-09-25 — un « Voir plus » déplié dans un panneau le reste à la réouverture
 
