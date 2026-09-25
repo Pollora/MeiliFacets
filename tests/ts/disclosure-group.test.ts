@@ -445,3 +445,68 @@ describe('a value out of reach in an open panel', () => {
         assert.equal(client.plans.length, searched + 1)
     })
 })
+
+/** 4d-2: « Show more » inside a panel unfolds in place, and the panel opens folded the next time. */
+describe('« Show more » inside a panel', () => {
+    const folding = described({ ...description, facets: description.facets.map((facet) => ({ ...facet, visible: 1 })) })
+
+    const start = () => {
+        const { window, root } = open(listingMarkup({ collapsible: true }), { styled: true })
+        const listing = new Listing(folding, connection, { filterQueries: filterQueriesOf(folding), client: new FakeClient(), history: new FakeHistory() })
+        new ListingBinding(new Contract(root), listing, folding).start()
+        const trigger = nth(root, Contract.selector('toggle'), 0)
+        const panel = find(root, `#${trigger.getAttribute('aria-controls')}`)
+        const more = find<HTMLButtonElement>(panel, Contract.selector('more'))
+        const globex = closestHook(find(panel, 'input[value="globex"]'), 'facet-value')
+
+        click(window, trigger)
+
+        return { window, trigger, panel, more, globex }
+    }
+
+    it('unfolds in the open panel and keeps the focus on the button', () => {
+        const { window, trigger, panel, more, globex } = start()
+
+        more.focus()
+        click(window, more)
+
+        assert.equal(trigger.getAttribute('aria-expanded'), 'true')
+        assert.equal(panel.hidden, false)
+        assert.equal(globex.hidden, false)
+        assert.equal(more.getAttribute('aria-expanded'), 'true')
+        assert.ok(window.document.activeElement === more)
+
+        click(window, more)
+
+        assert.equal(globex.hidden, true)
+        assert.equal(more.getAttribute('aria-expanded'), 'false')
+        assert.ok(window.document.activeElement === more)
+    })
+
+    it('folds back once the panel has closed on Escape', () => {
+        const { window, trigger, more, globex } = start()
+
+        click(window, more)
+        press(window, more, 'Escape')
+
+        assert.equal(trigger.getAttribute('aria-expanded'), 'false')
+        assert.equal(globex.hidden, true)
+        assert.equal(more.getAttribute('aria-expanded'), 'false')
+    })
+
+    it('folds back once the panel has left on a second click of its trigger', async () => {
+        const { window, trigger, more, globex } = start()
+
+        click(window, more)
+        click(window, trigger)
+        await settle()
+
+        assert.equal(globex.hidden, true)
+
+        click(window, trigger)
+
+        assert.equal(globex.hidden, true)
+        assert.equal(more.hidden, false)
+        assert.equal(more.getAttribute('aria-expanded'), 'false')
+    })
+})

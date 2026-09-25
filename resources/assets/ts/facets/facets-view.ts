@@ -87,8 +87,14 @@ export class FacetsView implements SelectionHolder {
         this.#showFolds()
     }
 
-    /** Once a panel has closed, the values it held in place may go. */
+    /** Once a panel has closed, the values it held in place may go, and what it unfolded folds back. */
     refold() {
+        for (const taxonomy of this.#unfolded) {
+            if (this.#isPanelClosed(taxonomy)) {
+                this.#unfolded.delete(taxonomy)
+            }
+        }
+
         this.#showFolds()
     }
 
@@ -147,10 +153,19 @@ export class FacetsView implements SelectionHolder {
     }
 
     #isPanelOpen(taxonomy: string) {
-        const block = this.#blocks().get(taxonomy)
-        const toggle = block === undefined ? null : this.#contract.one('toggle', block)
+        return this.#toggleOf(taxonomy)?.getAttribute('aria-expanded') === 'true'
+    }
 
-        return toggle?.getAttribute('aria-expanded') === 'true'
+    #isPanelClosed(taxonomy: string) {
+        const toggle = this.#toggleOf(taxonomy)
+
+        return toggle !== null && toggle.getAttribute('aria-expanded') !== 'true'
+    }
+
+    #toggleOf(taxonomy: string) {
+        const block = this.#blocks().get(taxonomy)
+
+        return block === undefined ? null : this.#contract.one('toggle', block)
     }
 
     #showBlock(taxonomy: string, readable: boolean) {

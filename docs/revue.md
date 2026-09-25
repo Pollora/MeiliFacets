@@ -1303,7 +1303,7 @@ mobile first. Revue des animations appliquée le même jour (`R-176`).
 Commités le même jour par fonctionnalité (`7b971d8`, `40822fd`, `860d58c`, `d62e8d9`) ; étape 5
 fermée, `R-173` → `R-176` fermés. Restent l'étape 4d (`R-49`, « Voir plus » en panneau), puis 6 à 8.
 
-### R-49 · 🟡 · ouvert · 2026-09-06 — le cul-de-sac « zéro résultat » est atteignable en deux clics
+### R-49 · 🟡 · **fermé le 2026-09-25** (étape 4d-1) · ouvert le 2026-09-06 — le cul-de-sac « zéro résultat » est atteignable en deux clics
 
 Quand la recherche ne rend rien, toutes les distributions sont vides, donc tous les `<fieldset>`
 sont `hidden` (`@if ($values === [])`), donc **il ne reste que « Tout effacer »**. Le comptage
@@ -1315,6 +1315,27 @@ sans aucune facette visible est un mur.
 **Au 2026-09-22** (passe documentaire, `R-153`) : en partie. Mesuré : `?q=` sans résultat masque les
 quatre blocs de facette ; `?marque=aeris&categorie=parfum` rend zéro carte, mais les facettes
 catégorie et marque restent visibles.
+
+**Au 2026-09-25** (étape 4d-1, barre de pills et tiroir) : **plus de cul-de-sac, sans code neuf.** La
+décision validée « une valeur que le visiteur tient reste affichée, même à 0 » (`R-137` #4) couvre le
+cas : serveur (`$value->selected`) et client (`FacetsView::#showFold()`, `! input.checked`) gardent la
+valeur cochée, donc son `<fieldset>` et sa pill. Mesuré dans Playwright, `immediate` et `submit`, 1440
+et 393 px, rendu serveur puis recherche client (Botanik décochée dans le panneau Marque) :
+- `?marque=aeris,botanik&contenance=400ml` (0 article) : pills « Trier par », « Marque 2 »,
+  « Contenance 1 », valeurs cochées visibles, pastilles actives et « Tout effacer » visibles, ouvreur
+  « Filtres » à 393 px, tiroir : mêmes sections, poubelle du pied visible ; décocher Botanik → 0 article,
+  « Marque 1 », rien ne disparaît ; en `submit`, « Appliquer » du tiroir → `?marque=aeris&contenance=400ml` ;
+- `?min_price=60&max_price=80` : pill « Prix 1 » (bornes disjonctives, hors prix), pastille, reset ;
+- `/?s=zzzzqq&post_type=product` : seules « Trier par » et l'ouvreur restent — rien n'est tenu, donc
+  rien à retirer ; on change de recherche.
+
+**Reste, non traité ici** : une plage de prix tenue **et** des bornes vides (`…&contenance=400ml&min_price=10&max_price=20`)
+masque le bloc prix — limite acceptée dans `R-127` (même comportement que WooCommerce). La plage reste
+retirable par sa pastille « Entre 10,00 € et 20,00 € » et par « Tout effacer ». La garder visible
+renverserait `R-127` et demanderait de choisir quoi dessiner sans bornes : question à Louis. Tests
+ajoutés : Feature `CollapsibleFacetTest` (pill d'une facette qui tient une valeur gardée sous une
+recherche vide, badge « 1 » ; facette sans valeur tenue masquée), TS `facets-view.test.ts` (bloc d'une
+valeur tenue gardé quand la réponse ne compte rien).
 
 ### R-50 · ⚪ · ouvert · 2026-09-06 — `ItemList` ne publie pas `numberOfItems`
 
@@ -3240,6 +3261,48 @@ qu'aucune page n'ait à être chargée.
 
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
+
+### R-177 · 🟡 · **fermé le 2026-09-25** (étape 4d-2, non commité) · ouvert le 2026-09-25 — un « Voir plus » déplié dans un panneau le reste à la réouverture
+
+Rattaché à `R-48`, étape 4d-2 de [chantier-filtres.md](chantier-filtres.md) ; suite de `R-46`/`R-82`–`R-86`
+(repli tenu par le client). `FacetsView::#unfolded` gardait une facette dépliée après la fermeture de
+son panneau ou de sa section, et le tiroir, qui referme ses sections « a posteriori », les rouvrait
+dépliées.
+
+**Corrigé.** `FacetsView::refold()`, déjà appelé par `DisclosureGroup` une fois un panneau hors de vue
+(clic, Échap, Tab, pill voisine, clic extérieur, sortie du tiroir par `collapseWithin()`), retire du
+dépli toute facette dont le déclencheur est fermé (`#isPanelClosed()`, `#toggleOf()`, que
+`#isPanelOpen()` réutilise). Une facette sans panneau (colonne) garde son dépli : rien ne la ferme.
+Aucun CSS, aucune vue, aucun crochet ; `Contract::VERSION` intact.
+
+**Tests.** TS `facets-view.test.ts` : repli rendu après fermeture (libellé « more » revenu,
+`aria-expanded="false"`), dépli gardé quand un autre panneau se ferme, dépli gardé sans panneau ;
+`disclosure-group.test.ts` « « Show more » inside a panel » (`ListingBinding` réel, feuille chargée) :
+dépli dans le panneau flottant sans le fermer, focus resté sur le bouton dans les deux sens, repli après
+Échap et après un second clic du déclencheur. Mutation (ancien `facets-view.ts`) : 3 échecs. Client
+495/495, `facets-view.ts` 98,47 % lignes ; `composer check` vert (Unit 301) ; suite `Modules`
+**517** verte.
+
+**Mesuré dans Playwright** (`submit` puis `immediate`, `visible` abaissé le temps de la recette dans
+`CatalogueFacets` — Marque 3, Contenance 4 — puis rendu, `cmp` = 0 ; config restaurée, `cmp` = 0 ;
+images interceptées ; 0 erreur console hors images), mêmes relevés dans les deux modes :
+- **1440 px** : Marque, panneau 288 px, 3 → 6 valeurs, hauteur 154 → 250, « Voir plus » → « Voir
+  moins » ; Contenance (pastilles), 323 → **448 px** (`--meili-panel-max`), 4 → 10 valeurs sur deux
+  rangées, bord droit 961 < 1425 ; aucun débordement (`scrollWidth` = `clientWidth`). Entrée au
+  clavier dans les deux sens : focus toujours sur le bouton. Après Échap ou clic extérieur, réouverture
+  repliée ;
+- **393 px, tiroir** : Marque, sheet 690 → 744 → 771 → 780 px en ~150 ms (plafond `100dvh − 4.5rem`,
+  le corps défile au-delà ; hauteur en ligne 786 = contenu), retour à 690 au repli ; Contenance, sheet
+  au plafond, contenu 886 → 998 ; focus sur le bouton après chaque bascule. Tiroir fermé par ✕ puis
+  rouvert, et section refermée puis rouverte : Marque repliée (3 valeurs, « Voir plus »). Les 6 px de
+  `scrollWidth` en plus sur la section Marque viennent des marges négatives des rangées (`-0.4em`),
+  antérieures ; le corps ne défile pas en largeur.
+
+**Les cinq passes.** *Lisibilité* : un niveau d'abstraction dans `refold()` ; `#toggleOf()` factorise la
+lecture que faisait `#isPanelOpen()` ; noms comparés (`refold` dit déjà « replier »). *Commentaires* :
+la ligne de `refold()` complétée, un commentaire ajouté puis retiré (justifiait un choix). *Performance* :
+une boucle sur les facettes dépliées (≤ nombre de facettes) par fermeture de panneau. *Sécurité* :
+aucune donnée de l'URL. *Contexte* : aucune chaîne, rien de WooCommerce.
 
 ### R-176 · 🟠 · **fermé le 2026-09-25** (`40822fd`, `d62e8d9`) · ouvert le 2026-09-25 — revue des animations : le glisser ne démarre jamais au doigt, Tab entre dans un tiroir qui sort
 
@@ -5599,6 +5662,8 @@ l'URL sur un listing à prix unique n'est plus modifiable depuis le bloc masqué
 disponible — même limite chez WooCommerce.
 
 ---
+
+**Confirmé le 2026-09-25 (Louis, étape 4d)** : on garde cette limite — une plage de prix tenue aux bornes vides masque le bloc prix, elle reste retirable par sa pastille et par « Tout effacer ».
 
 ### R-126 · 🟡 · **fermé le 2026-09-16** · ouvert le 2026-09-16 — le client écrit une borne de prix en notation exponentielle
 

@@ -211,6 +211,30 @@ describe('FacetsView', () => {
         assert.equal(host('globex').hidden, false)
     })
 
+    /** R-49: a search that keeps nothing still leaves the held value to lift, and its block around it. */
+    it('keeps the block of a held value when the answer counts nothing', () => {
+        root = open(listingMarkup({ collapsible: true })).root
+        view = new FacetsView(new Contract(root), description)
+        box('globex').checked = true
+
+        view.showCounts(counts({}))
+
+        assert.equal(host('globex').hidden, false)
+        assert.equal(host('acme').hidden, true)
+        assert.equal(closestHook(box('globex'), 'facet').hidden, false)
+        assert.equal(closestHook(box('coats'), 'facet').hidden, true)
+    })
+
+    it('keeps unfolded a facet that has no panel to close', () => {
+        const narrow = narrowed()
+
+        narrow.toggleFold(find(root, Contract.selector('more')))
+        narrow.refold()
+
+        assert.equal(host('globex').hidden, false)
+        assert.equal(find(root, Contract.selector('more')).getAttribute('aria-expanded'), 'true')
+    })
+
     it('counts a held value among the places before the fold', () => {
         const narrow = narrowed()
 
@@ -315,6 +339,34 @@ describe('FacetsView', () => {
 
             assert.equal(host('globex').hidden, true)
             assert.equal(box('globex').hasAttribute('aria-disabled'), false)
+        })
+
+        /** 4d-2: a panel opens folded, whatever was unfolded the last time. */
+        it('folds back what it unfolded once the panel has closed', () => {
+            const narrow = narrowed()
+            const more = find(root, Contract.selector('more'))
+            narrow.showCounts(counts({ product_brand: { acme: 3, globex: 1 } }))
+
+            narrow.toggleFold(more)
+            assert.equal(host('globex').hidden, false)
+
+            find(root, '[aria-controls="panel-brand"]').setAttribute('aria-expanded', 'false')
+            narrow.refold()
+
+            assert.equal(host('globex').hidden, true)
+            assert.equal(more.getAttribute('aria-expanded'), 'false')
+            assert.equal(label(more, 'more-label').hidden, false)
+            assert.equal(label(more, 'less-label').hidden, true)
+        })
+
+        it('keeps unfolded what an open panel shows when another closes', () => {
+            const narrow = narrowed()
+            narrow.showCounts(counts({ product_brand: { acme: 3, globex: 1 } }))
+
+            narrow.toggleFold(find(root, Contract.selector('more')))
+            narrow.refold()
+
+            assert.equal(host('globex').hidden, false)
         })
 
         it('hides a value of a closed panel as before', () => {
