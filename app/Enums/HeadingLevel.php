@@ -6,6 +6,8 @@ namespace Modules\MeiliFacets\Enums;
 
 enum HeadingLevel: string
 {
+    use ComponentVariant;
+
     case H2 = 'h2';
     case H3 = 'h3';
     case H4 = 'h4';

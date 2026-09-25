@@ -11,7 +11,7 @@ import type { ListingState } from '../listing/listing-state.ts'
 import type { Contract } from '../shared/contract.ts'
 import type { ListingDescription } from '../shared/description.ts'
 import type { Answers } from '../shared/search-client.ts'
-import type { SelectionHolder } from '../collapsible/selected-count-view.ts'
+import type { SelectionHolder } from '../collapsible/toggle-badge-view.ts'
 import type { Drawn } from './drawn.ts'
 import type { PriceBound } from './price-bound.ts'
 

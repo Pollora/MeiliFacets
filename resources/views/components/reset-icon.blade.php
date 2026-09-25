@@ -1,5 +1,5 @@
 <button type="button" class="meilifacetsReset" aria-label="{{ __('Clear all') }}" data-shape="{{ $shape->mark() }}"
-        @if ($listing->isPristine()) hidden @endif {{ $hook('reset') }} {{ $scrollMark() }}>
+        @if ($hasNothingToClear()) hidden @endif {{ $hook('reset') }} {{ $scrollMark() }}>
     @isset($icon)
         @if ($icon->isNotEmpty())<span class="meilifacetsResetIcon" aria-hidden="true">{{ $icon }}</span>@endif
     @else

@@ -1302,7 +1302,7 @@ Reste ouvert jusqu'à la dernière étape.
 mobile first. Revue des animations appliquée le même jour (`R-176`).
 Commités le même jour par fonctionnalité (`7b971d8`, `40822fd`, `860d58c`, `d62e8d9`) ; étape 5
 fermée, `R-173` → `R-176` fermés. Restent l'étape 4d (`R-49`, « Voir plus » en panneau), puis 6 à 8.
-Audit de la branche le même jour : `R-178`, cinq lots (A, B et E faits, C à faire).
+Audit de la branche le même jour : `R-178`, cinq lots (A, B, C et E faits).
 
 ### R-49 · 🟡 · **fermé le 2026-09-25** (étape 4d-1) · ouvert le 2026-09-06 — le cul-de-sac « zéro résultat » est atteignable en deux clics
 
@@ -3273,7 +3273,7 @@ point A1.
 | --- | --- | --- |
 | A | duplications et bogues latents | **fait** — `b1cc621` |
 | B | tests : fixtures alignées sur les vues, aides partagées | **fait** — `0a4ba1d` |
-| C | crochets `drawer-sheet`/`drawer-footer`/rangée du tri, Déméter, `Apply` unique, renommages | à faire |
+| C | crochets `drawer-sheet`/`drawer-footer`/rangée du tri, Déméter, `Apply` unique, renommages | **fait** — `2be5b05`, `0ea40d8`, `d028e8b`, ce commit ; thème `ad9fa12` |
 | D | — | hors de la consigne de cette passe |
 | E | documentation : architecture, registre, ligne vide du thème | **fait** — ce commit |
 
@@ -3304,6 +3304,31 @@ réels remplacés : horloge des événements dans `drawer-gesture.test.ts`, tram
 dans `drawer.test.ts`. Mutations vérifiées : flush de `HeldPaint` à 30 ms, fenêtre de vitesse à
 1 000 ms, `display: none` de `data-only` retiré, classe du pied changée, badge TS à « 0 » — chacune
 fait échouer un test réécrit.
+
+**Lot C** (2026-09-25, accord de Louis pour les crochets et le HTML de la colonne). *C1* : crochets
+additifs `drawer-sheet`, `drawer-footer` et `sort-choice-row` (`sort-choice` reste la radio : la
+rangée est un autre nœud, et poser `input` dans le tri l'aurait fait lire comme une facette par
+`ListingBinding`). Hors de `RULES`, `Contract::VERSION` à 1. Les 24 sélecteurs de classe du tiroir
+dans la feuille et les 2 du thème visent les crochets (même spécificité) ; `Drawer`/`DrawerGesture`
+trouvent la feuille par son crochet ; `SortRadios` masque la rangée par son crochet et lit le libellé
+dans `data-label`. *C2* : `ResolvedListing::selectedIn()`, `priceFilterCount()`, `askedPrice()` ;
+plus de `->state()->` dans les composants (`ListingDescription` sérialise l'état entier, légitime).
+*C3* : le groupe rend `<x-meilifacets::apply shape="block">` (`ApplyShape`, décision « Un seul
+« Appliquer » ») ; `:has(active-count)` → `[data-shape="pill"]`. Colonne mesurée avant/après
+(page temporaire, `submit`, 393 et 1440 px, avec et sans filtre) : « Appliquer les filtres », 48 px de
+haut, pleine largeur (346/1345 px), blanc sur noir, rayon 3,5 px, padding 11,9 px, 14 px, `gap: normal`,
+transitions fond/bordure — **0 écart** sur 16 propriétés. *C4* : `ActiveCountView`,
+`ToggleBadgeView` ; pastille `parameter` des deux côtés et `kind` explicite (`ActiveValueKind`,
+`data-kind`, jumeaux dans `ContractParityTest`) ; `Sort::shouldRender()`,
+`Reset::hasNothingToClear()` ; trait `ComponentVariant::fromAttribute()` (5 copies : `Sort`, `Reset`,
+`Drawer`, `Apply`, `Card`) ; `SortSummary::of()` pure, deux clés (`Sort by`, `: :choice` — l'ancienne
+`Sort by: :choice` n'est plus lue) ; `SummaryBinding` extrait (`listing-binding.ts` 242 → 227 lignes,
+18 → 14 collaborateurs). Recette Playwright 1440/393, `immediate` et `submit` : tiroir (sheet 550 px,
+pied, poubelle, « Appliquer 1 » en pill 265 px, fermeture ; `submit` : URL posée au clic seulement),
+focus sur `apply` après la poubelle, pills (badge 2), tri « Trier par : Prix décroissant »
+(`?sort=price_desc`), pastilles `term`/`price` et retrait du prix, colonne (`?categorie=cheveux` au clic
+d'« Appliquer les filtres ») ; 0 erreur console. **Relevé, non traité** : `archive-product.blade.php`
+du thème écrit le seuil en `md:` Tailwind (48rem), pas en `48em` ; égaux à 16 px de base.
 
 ---
 

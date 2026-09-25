@@ -23,7 +23,7 @@ final class Drawer extends ListingComponent
     ) {
         parent::__construct($listings, $name);
 
-        $this->heading = is_string($heading) ? HeadingLevel::from($heading) : $heading;
+        $this->heading = HeadingLevel::fromAttribute($heading);
     }
 
     public function render(): View

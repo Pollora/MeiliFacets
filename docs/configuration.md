@@ -866,8 +866,10 @@ trie tout de suite, dans les deux modes (`D-10`). Son déclencheur n'a jamais de
 est un ordre, pas un filtre. `listbox` reste le défaut ; la garde « un seul tri par page » couvre
 les deux.
 
-Le déclencheur nomme le tri en force : « Trier par : Pertinence », clé `Sort by: :choice` (le
-français met une espace insécable avant les deux-points, surchargeable par le catalogue du thème).
+Le déclencheur nomme le tri en force : « Trier par : Pertinence », en deux clés : le libellé `Sort by`
+et la valeur `: :choice`, ce qui suit le libellé (le français y met une espace insécable avant les
+deux-points ; surchargeable par le catalogue du thème). *Depuis le 2026-09-25 (`R-178`) : l'ancienne
+clé `Sort by: :choice` n'est plus lue.*
 Le libellé (`.meilifacetsFacetToggleLabel`) et la valeur (`.meilifacetsSortChoice`, crochet
 `sort-chosen`) sont deux `<span>` ; le séparateur est la partie du motif qui suit le libellé. Dans
 la section du tiroir, la valeur est hors de vue, mais reste dans le nom accessible ; elle s'affiche

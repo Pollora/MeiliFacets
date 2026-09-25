@@ -6,6 +6,8 @@ namespace Modules\MeiliFacets\Enums;
 
 enum ResetShape: string
 {
+    use ComponentVariant;
+
     case Text = 'text';
     case Pill = 'pill';
     case Icon = 'icon';

@@ -6,11 +6,18 @@ import type { ListingState } from './listing-state.ts'
 
 const PLACEHOLDER = /:([A-Za-z]+)/g
 
+/** Mirrors `Enums\ActiveValueKind`: what a pill takes off, written on it as `data-kind`. */
+export const TERM_KIND = 'term'
+export const PRICE_KIND = 'price'
+
+export type ActiveValueKind = typeof TERM_KIND | typeof PRICE_KIND
+
 export interface ActiveValue {
     label: string
-    name: string
+    parameter: string
     value: string
     action: string
+    kind: ActiveValueKind
 }
 
 /** The browser's copy of `View\ActiveValueList`: the ticked values in facet order, then the price range. */
@@ -32,15 +39,17 @@ export class ActiveValueList {
 
     /** A value the page rendered no label for gets no pill, as on the server. */
     #tickedIn(facet: FacetDescription, state: ListingState) {
-        const name = this.#description.params[facet.taxonomy] ?? ''
+        const parameter = this.#description.params[facet.taxonomy] ?? ''
 
         return state.selected(facet.taxonomy)
             .filter((slug) => Object.hasOwn(facet.labels, slug))
-            .map((slug) => this.#removable(facet.labels[slug] ?? slug, name, slug))
+            .map((slug) => this.#removable(facet.labels[slug] ?? slug, TERM_KIND, { parameter, value: slug }))
     }
 
     #priced(price: Range) {
-        return price.isEmpty() ? [] : [this.#removable(this.#priceLabel(price), this.#description.reserved.minPrice, '')]
+        const removed = { parameter: this.#description.reserved.minPrice, value: '' }
+
+        return price.isEmpty() ? [] : [this.#removable(this.#priceLabel(price), PRICE_KIND, removed)]
     }
 
     #priceLabel({ min, max }: Range) {
@@ -54,8 +63,8 @@ export class ActiveValueList {
         return this.#filled(min === null ? patterns.upTo : patterns.between, written)
     }
 
-    #removable(label: string, name: string, value: string): ActiveValue {
-        return { label, name, value, action: this.#filled(this.#description.activeValuePatterns.remove, { label }) }
+    #removable(label: string, kind: ActiveValueKind, { parameter, value }: Pick<ActiveValue, 'parameter' | 'value'>): ActiveValue {
+        return { label, parameter, value, action: this.#filled(this.#description.activeValuePatterns.remove, { label }), kind }
     }
 
     /** One pass, like `strtr()`: a label holding `:max` or `$&` is written as it is. */

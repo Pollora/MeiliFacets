@@ -7,8 +7,8 @@ namespace Modules\MeiliFacets\View;
 /** What the trigger of the sort reads: its name, then the order in force, as the catalogue words them. */
 final readonly class SortSummary
 {
-    /** A private-use character: no translation holds one, so the pattern splits around it. */
-    private const string CHOICE = "\u{E000}";
+    /** Where the value pattern puts the order in force. */
+    private const string CHOICE = ':choice';
 
     public function __construct(
         public string $label,
@@ -17,11 +17,11 @@ final readonly class SortSummary
         public string $trail,
     ) {}
 
-    public static function of(string $choice): self
+    /** `$valuePattern` is what follows the label, the order in force written `:choice`. */
+    public static function of(string $label, string $valuePattern, string $choice): self
     {
-        $label = __('Sort by');
-        [$before, $trail] = explode(self::CHOICE, __('Sort by: :choice', ['choice' => self::CHOICE]), 2) + [1 => ''];
+        [$lead, $trail] = explode(self::CHOICE, $valuePattern, 2) + [1 => ''];
 
-        return new self($label, str_starts_with($before, $label) ? substr($before, strlen($label)) : $before, $choice, $trail);
+        return new self($label, $lead, $choice, $trail);
     }
 }

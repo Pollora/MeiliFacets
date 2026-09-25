@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Tests\Unit;
 
+use Modules\MeiliFacets\Enums\ActiveValueKind;
 use Modules\MeiliFacets\Http\Unavailable;
 use Modules\MeiliFacets\Listing\Facet;
 use Modules\MeiliFacets\Listing\FacetValues;
@@ -43,6 +44,17 @@ final class ActiveValueListTest extends TestCase
             [['Acme', 'brand', 'acme'], ['Globex', 'brand', 'globex'], ['Large', 'size', 'large'], ['10.00 – 50.00', 'min_price', '']],
             $this->shapesOf($this->valuesFor($state)),
         );
+    }
+
+    /** The price pill says what it is: its parameter and empty value are no convention to read it by. */
+    #[Test]
+    public function it_tells_a_term_pill_from_the_price_pill(): void
+    {
+        $state = new ListingState(['product_brand' => ['acme']], price: new Range(10.0, 50.0));
+
+        $kinds = array_map(static fn (ActiveValue $value): ActiveValueKind => $value->kind, $this->valuesFor($state));
+
+        $this->assertSame([ActiveValueKind::Term, ActiveValueKind::Price], $kinds);
     }
 
     /** Past the visible ones, a value is folded away unless ticked: its pill still needs its words. */

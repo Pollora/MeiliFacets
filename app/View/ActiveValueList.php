@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\View;
 
+use Modules\MeiliFacets\Enums\ActiveValueKind;
 use Modules\MeiliFacets\Enums\QueryParameter;
 use Modules\MeiliFacets\Listing\Facet;
 use Modules\MeiliFacets\Listing\ResolvedListing;
@@ -44,7 +45,7 @@ final readonly class ActiveValueList
         $labelled = array_intersect($listing->selectedIn($facet), array_keys($labels));
 
         return array_map(
-            fn (string $slug): ActiveValue => $this->removable($labels[$slug], $parameter, $slug, $patterns),
+            fn (string $slug): ActiveValue => $this->removableTerm($labels[$slug], $parameter, $slug, $patterns),
             array_values($labelled),
         );
     }
@@ -62,11 +63,17 @@ final readonly class ActiveValueList
 
         $label = $patterns->range($price, $this->money->of($price->min), $this->money->of($price->max));
 
-        return [$this->removable($label, $listing->parameterForReserved(QueryParameter::MinPrice), '', $patterns)];
+        return [new ActiveValue(
+            label: $label,
+            parameter: $listing->parameterForReserved(QueryParameter::MinPrice),
+            value: '',
+            action: $patterns->removal($label),
+            kind: ActiveValueKind::Price,
+        )];
     }
 
-    private function removable(string $label, string $parameter, string $value, ActiveValuePatterns $patterns): ActiveValue
+    private function removableTerm(string $label, string $parameter, string $value, ActiveValuePatterns $patterns): ActiveValue
     {
-        return new ActiveValue($label, $parameter, $value, $patterns->removal($label));
+        return new ActiveValue($label, $parameter, $value, $patterns->removal($label), ActiveValueKind::Term);
     }
 }

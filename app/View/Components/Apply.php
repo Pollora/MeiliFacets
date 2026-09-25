@@ -26,12 +26,21 @@ final class Apply extends ListingComponent
     ) {
         parent::__construct($listings, $name);
 
-        $this->shape = is_string($shape) ? ApplyShape::from($shape) : $shape;
+        $this->shape = ApplyShape::fromAttribute($shape);
     }
 
     public function shouldRender(): bool
     {
         return $this->visibleInDrawer || $this->listing->applyMode()->needsButton();
+    }
+
+    /** The pill's count names what it applies; the block, alone under a column, names it in words. */
+    public function label(): string
+    {
+        return match ($this->shape) {
+            ApplyShape::Block => __('Apply filters'),
+            ApplyShape::Pill => __('Apply'),
+        };
     }
 
     public function onlyInSheet(): bool

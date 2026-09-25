@@ -23,7 +23,12 @@ final class Reset extends ListingComponent
     ) {
         parent::__construct($listings, $name, $scroll);
 
-        $this->shape = is_string($shape) ? ResetShape::from($shape) : $shape;
+        $this->shape = ResetShape::fromAttribute($shape);
+    }
+
+    public function hasNothingToClear(): bool
+    {
+        return $this->listing->isPristine();
     }
 
     public function defaultIconUrl(): string

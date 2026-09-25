@@ -1,4 +1,5 @@
 {
+    ": :choice": "\u00a0: :choice",
     ":count active filter|:count active filters": ":count filtre actif|:count filtres actifs",
     ":count item|:count items": ":count article|:count articles",
     ":count result|:count results": ":count résultat|:count résultats",
@@ -30,7 +31,6 @@
     "Show less": "Voir moins",
     "Show more": "Voir plus",
     "Sort by": "Trier par",
-    "Sort by: :choice": "Trier par\u00a0: :choice",
     "There is nothing on this page.": "Il n’y a rien sur cette page.",
     "To": "À",
     "Up to :max": "Jusqu’à :max",

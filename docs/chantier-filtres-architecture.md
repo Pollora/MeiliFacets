@@ -24,18 +24,18 @@ Changements depuis la v1 :
 
 | Brique | Composant, attributs | Crochets | TS | Rôle |
 | --- | --- | --- | --- | --- |
-| Facette | `<x-meilifacets::facet>` + `presentation="control\|pill"`, `collapsible` | `facet`, `toggle`, `panel`, `selected-count` | `FacetsView`, `DisclosureGroup`, `PanelMotion`, `SelectedCountView` | Le `<fieldset>`. En mode repliable, la `<legend>` contient le déclencheur `toggle.blade.php` (`aria-expanded`, `aria-controls`, `aria-describedby` vers le badge, chevron en CSS) et le panneau porte `panel`. `data-presentation` n'est écrit que pour `Pill`. |
+| Facette | `<x-meilifacets::facet>` + `presentation="control\|pill"`, `collapsible` | `facet`, `toggle`, `panel`, `selected-count` | `FacetsView`, `DisclosureGroup`, `PanelMotion`, `ToggleBadgeView` | Le `<fieldset>`. En mode repliable, la `<legend>` contient le déclencheur `toggle.blade.php` (`aria-expanded`, `aria-controls`, `aria-describedby` vers le badge, chevron en CSS) et le panneau porte `panel`. `data-presentation` n'est écrit que pour `Pill`. |
 | Groupe | `<x-meilifacets::facets>` + `collapsible`, `:with-apply` | `facets` | — | Transmet `collapsible` aux facettes restantes. Rend `<x-meilifacets::apply shape="block">` sauf `:with-apply="false"` (`R-178`). |
 | Prix | `<x-meilifacets::price>` + `collapsible` | idem facette | `PriceControl` | Même repliable. Le badge vaut 1 si une plage est posée (`R-123`). |
-| Tri | `<x-meilifacets::sort>` + `widget="listbox\|radios"`, `collapsible` | `sort-choices`, `sort-choice`, `sort-choice-row`, `sort-chosen` (+ `toggle`, `panel`) | `SortRadios` (`radios`), `SortCombobox` (`listbox`) | C-4 : `radios` rend un `<fieldset>` de radios avec le même repliable que la facette ; `listbox` (défaut) garde la liste déroulante. Le déclencheur du tri repliable lit `SortSummary` (`label`, puis `lead` · `choice` · `trail`, découpés dans « Sort by: :choice ») ; `sort-chosen` porte l'ordre en force et le JS le réécrit (`R-174`). **Pas de badge** : un tri n'est pas un filtre, son `Disclosure` n'a pas de `Badge`, donc ni `selected-count` ni `aria-describedby`. |
+| Tri | `<x-meilifacets::sort>` + `widget="listbox\|radios"`, `collapsible` | `sort-choices`, `sort-choice`, `sort-choice-row`, `sort-chosen` (+ `toggle`, `panel`) | `SortRadios` (`radios`), `SortCombobox` (`listbox`) | C-4 : `radios` rend un `<fieldset>` de radios avec le même repliable que la facette ; `listbox` (défaut) garde la liste déroulante. Le déclencheur du tri repliable lit `SortSummary` (`label` = clé `Sort by`, puis `lead` · `choice` · `trail`, découpés autour de `:choice` dans la clé de valeur `: :choice` ; `SortSummary::of()` est pure, le composant lui passe les deux traductions — `R-178`) ; `sort-chosen` porte l'ordre en force et le JS le réécrit (`R-174`). **Pas de badge** : un tri n'est pas un filtre, son `Disclosure` n'a pas de `Badge`, donc ni `selected-count` ni `aria-describedby`. |
 | Compteur | `<x-meilifacets::total>` | `total` | `TotalView` | « 88 articles », dans une région `aria-live="polite"`. |
 | Pastilles actives | `<x-meilifacets::active-values>` | `active-values`, `active-value`, `active-value-template` | `ActiveValuesView`, `ActiveValueList`, `FocusLanding` | C-7 : `<button name value>` retirable, prix compris. Clonée depuis un `<template>`. Les libellés viennent d'`ActiveValuePatterns` (serveur) et sont publiés dans la description pour le client. |
 | Annuler | `<x-meilifacets::reset>` + `shape="text\|pill\|icon"` | `reset` | `FilterSummaryView`, `ResetFocus` | `ResetShape` : `text` (défaut, markup historique, sans `data-shape`), `pill`, `icon` (`reset-icon.blade.php`, icône publiée ou slot `icon`). Une fois pressé il se cache : le focus va à « Appliquer » voisin, sinon au titre du tiroir, sinon au listing (`FocusLanding`), jamais à `body` (`R-175`). |
-| Appliquer | `<x-meilifacets::apply>` + `visible-in-drawer`, `shape="pill\|block"` | `apply`, `active-count` | `SelectionCountView`, `CountEntry` | « Appliquer (X) ». En `submit`, lance la recherche. Avec `visible-in-drawer`, le bouton est aussi rendu en `immediate`, marqué `data-only="sheet"` : sans recherche en plus, visible seulement dans le tiroir en sheet. |
+| Appliquer | `<x-meilifacets::apply>` + `visible-in-drawer`, `shape="pill\|block"` | `apply`, `active-count` | `ActiveCountView`, `CountEntry` | « Appliquer (X) ». En `submit`, lance la recherche. Avec `visible-in-drawer`, le bouton est aussi rendu en `immediate`, marqué `data-only="sheet"` : sans recherche en plus, visible seulement dans le tiroir en sheet. |
 | Tiroir | `<x-meilifacets::drawer>` + `heading`, `media` (défaut `Drawer::MOBILE` = `(width < 48em)`), slot `footer` | `drawer`, `drawer-title`, `drawer-close`, `drawer-sheet`, `drawer-footer` | `ListingDrawers`, `Drawer`, `InertPage`, `DrawerGesture`, `SheetHeight`, `HeldPaint` | Conteneur ordinaire : en-tête (titre + ✕), poignée (`drawer-close` aussi), corps (slot), pied (`drawer-footer`), le tout dans la feuille (`drawer-sheet`). |
-| Ouvreur | `<x-meilifacets::drawer-opener>` + slot `icon` | `drawer-open`, `active-count` | `Drawer`, `SelectionCountView` | « Filtres (n) ». Le CSS du module le masque hors mobile. |
+| Ouvreur | `<x-meilifacets::drawer-opener>` + slot `icon` | `drawer-open`, `active-count` | `Drawer`, `ActiveCountView` | « Filtres (n) ». Le CSS du module le masque hors mobile. |
 
-**Badge** : la règle « vide et caché à zéro » (un nœud caché décrit toujours son contrôle) vit dans un seul objet de valeur, `View\Badge` (`id`, `holdsNothing()`, `text()`), utilisé par `Disclosure` (facette, prix), `Apply` et `DrawerOpener`. Son jumeau client est `shared/badge.ts`, utilisé par `SelectedCountView` et `SelectionCountView`.
+**Badge** : la règle « vide et caché à zéro » (un nœud caché décrit toujours son contrôle) vit dans un seul objet de valeur, `View\Badge` (`id`, `holdsNothing()`, `text()`), utilisé par `Disclosure` (facette, prix), `Apply` et `DrawerOpener`. Son jumeau client est `shared/badge.ts`, utilisé par `ToggleBadgeView` et `ActiveCountView`.
 
 **Présentation** (C-5) : l'enum `Presentation: string` a deux cas, `Control` et `Pill`, **sans `Radio`**. Le type d'input reste dérivé de `SelectionMode` (`R-10`). Elle est déclarée dans `Facet` (`ProductFacets`), et l'attribut `presentation` la surcharge ponctuellement. La vue ajoute `data-presentation="pill"` uniquement pour `Pill`, donc une facette `Control` sort à l'octet près le HTML actuel.
 
@@ -101,7 +101,7 @@ La présentation `Pill` n'est pas passée en attribut : Pluralia la déclare sur
 - Objets de valeur : `ActiveValue`, `ActiveValueList`, `ActiveValuePatterns`, `Badge`, `CardDocument`, `CardImage`, `CardSettings`, `CountLabel`, `Disclosure` (libellé, id du panneau, `?Badge`), `ElementId`, `Fill`, `RangeHandle`, `SortChoice`, `SortChoices`, `SortSummary`.
 - Rendu de page : `ListingDescription` (publie `labels`, `totalPattern`, `activeValuePatterns`), `ListingScript`, `Preconnect`, `Stylesheet`.
 - `Components/` : `ActiveFilters`, `ActiveValues`, `Apply`, `Card`, `ContractComponent`, `Drawer`, `DrawerOpener`, `Facet`, `Facets`, `Listing`, `ListingComponent`, `Pagination`, `Price`, `Reset`, `Results`, `Sort`, `Total`, `Unavailable`.
-- Enums du chantier : `Presentation` (`Control`/`Pill`, implémente `Contracts\ValuePresentation`), `SortWidget` (`Listbox`/`Radios`), `ResetShape` (`Text`/`Pill`/`Icon`), `HeadingLevel` ; `Hook` porte les crochets du §5.
+- Enums du chantier : `Presentation` (`Control`/`Pill`, implémente `Contracts\ValuePresentation`), `SortWidget` (`Listbox`/`Radios`), `ResetShape` (`Text`/`Pill`/`Icon`), `ApplyShape` (`Block`/`Pill`), `HeadingLevel` — les quatre variantes lues par le trait `ComponentVariant::fromAttribute()` —, `ActiveValueKind` (`Term`/`Price`, écrit en `data-kind` sur la pastille) ; `Hook` porte les crochets du §5.
 - `ElementId` sert `sortLabel`, `sortTrigger`, `sortList`, `sortOption`, `sortPanel`, `sortChoiceName`, `drawer`, `drawerTitle`, `drawerCount`, `applyCount`, `facetPanel`, `facetSelectedCount`, `facetCount`, `facetValueLabel`.
 
 **Blade — `resources/views/components/`**
@@ -109,10 +109,10 @@ La présentation `Pill` n'est pas passée en attribut : Pluralia la déclare sur
 
 **TypeScript — `resources/assets/ts/`**
 - racine : `filter-queries.ts`, `listing-page.ts` (point d'entrée).
-- `collapsible/` : `disclosure-group.ts` (motif disclosure APG, exclusivité des panneaux flottants), `panel-motion.ts` (entrée WAAPI, sortie CSS), `selected-count-view.ts` (badge de chaque déclencheur).
+- `collapsible/` : `disclosure-group.ts` (motif disclosure APG, exclusivité des panneaux flottants), `panel-motion.ts` (entrée WAAPI, sortie CSS), `toggle-badge-view.ts` (badge de chaque déclencheur).
 - `drawer/` : `listing-drawers.ts` (les tiroirs d'un listing et la repeinte retenue), `drawer.ts`, `drawer-gesture.ts`, `held-paint.ts`, `inert-page.ts`, `sheet-height.ts`.
 - `facets/` : `facet-counts.ts`, `facet-query.ts`, `facets-view.ts`.
-- `listing/` : `active-value-list.ts`, `active-values-view.ts`, `browser-history.ts`, `count-entry.ts`, `filter-summary-view.ts`, `focus-landing.ts`, `listing-binding.ts`, `listing-query.ts`, `listing-state.ts`, `listing-url.ts`, `listing.ts`, `reset-focus.ts`, `selection-count-view.ts`, `total-view.ts`.
+- `listing/` : `active-value-list.ts`, `active-values-view.ts`, `browser-history.ts`, `count-entry.ts`, `filter-summary-view.ts`, `focus-landing.ts`, `listing-binding.ts`, `listing-query.ts`, `listing-state.ts`, `listing-url.ts`, `listing.ts`, `reset-focus.ts`, `active-count-view.ts`, `summary-binding.ts` (vues de résumé : total, pastilles, résumé des filtres, `active-count`, badges des déclencheurs), `total-view.ts`.
 - `pagination/` : `page-window.ts`, `pagination-view.ts`.
 - `price/` : `drawn.ts`, `money.ts`, `price-bound.ts`, `price-control.ts`, `price-inputs.ts`, `price-query.ts`, `price-slider.ts`, `slider-drag.ts`, `slider-keys.ts`.
 - `results/` : `card-view.ts`, `results-view.ts`.
@@ -123,7 +123,6 @@ La présentation `Pill` n'est pas passée en attribut : Pluralia la déclare sur
 **CSS** — `meilifacets.css` : sections repliable, pastille et tiroir, accrochées à `data-meili` (`R-128`), mobile first, un seul seuil (`48em`).
 
 **Prévu mais n'existe pas** — cités par la v2, absents du code :
-- `listing/summary-binding.ts` : jamais créé ; `listing-binding.ts` démarre lui-même les vues de résumé (242 lignes au 2026-09-25) ;
 - `selectedCount()` sur `Facet`/`Price` : remplacé par `disclosure()`, qui construit un `Disclosure` avec son `Badge` ;
 - `ElementId::facetToggle()` : jamais créé (le déclencheur n'a pas d'id) ; `ElementId::sortSelectedCount()` a existé puis a été retiré avec le badge du tri (audit `R-48`, lot A).
 ## 5. Crochets `Hook` ajoutés

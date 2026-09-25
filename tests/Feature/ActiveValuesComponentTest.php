@@ -7,6 +7,7 @@ namespace Modules\MeiliFacets\Tests\Feature;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\HtmlString;
 use Illuminate\View\ComponentAttributeBag;
+use Modules\MeiliFacets\Enums\ActiveValueKind;
 use Modules\MeiliFacets\Enums\Hook;
 use Modules\MeiliFacets\Enums\QueryParameter;
 use Modules\MeiliFacets\Listing\CurrentListing;
@@ -47,7 +48,7 @@ final class ActiveValuesComponentTest extends TestCase
         $html = $this->underLocales('en', 'en_US', $this->renderComponent(...));
 
         $this->assertStringContainsString(
-            'name="'.$parameter.'" value="'.e($value->slug).'" aria-label="'.e('Remove the '.$value->label.' filter').'"',
+            'name="'.$parameter.'" value="'.e($value->slug).'" data-kind="term" aria-label="'.e('Remove the '.$value->label.' filter').'"',
             $html,
         );
         $this->assertStringContainsString('>'.e($value->label).'<span aria-hidden="true">', $html);
@@ -66,7 +67,7 @@ final class ActiveValuesComponentTest extends TestCase
 
         $this->assertMatchesRegularExpression($expected, $html);
         $this->assertStringContainsString('10,00', $html);
-        $this->assertSame(1, substr_count($html, 'name="'.$this->parameters()->reserved(QueryParameter::MinPrice).'"'));
+        $this->assertSame(1, substr_count($html, 'name="'.$this->parameters()->reserved(QueryParameter::MinPrice).'" value="" data-kind="price"'));
     }
 
     /** Read from the catalogue, so a translation reworded there does not break the test. */
@@ -119,7 +120,7 @@ final class ActiveValuesComponentTest extends TestCase
         $hostile = '"><script>alert(1)</script>';
 
         $html = (string) view('meilifacets::components.active-values', [
-            'values' => [new ActiveValue($hostile, 'brand', $hostile, $hostile)],
+            'values' => [new ActiveValue($hostile, 'brand', $hostile, $hostile, ActiveValueKind::Term)],
             'attributes' => new ComponentAttributeBag,
             'hook' => fn (string $name): HtmlString => Hook::from($name)->attribute(),
         ])->render();

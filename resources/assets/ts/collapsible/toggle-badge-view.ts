@@ -12,7 +12,7 @@ export interface SelectionHolder {
  * The badge on each toggle: what its block holds, pending changes included,
  * like `active-count`. Hidden and emptied at zero.
  */
-export class SelectedCountView {
+export class ToggleBadgeView {
     #contract: Contract
     #holders: readonly SelectionHolder[]
 

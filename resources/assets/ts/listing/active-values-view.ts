@@ -1,4 +1,4 @@
-import { ActiveValueList } from './active-value-list.ts'
+import { ActiveValueList, PRICE_KIND } from './active-value-list.ts'
 import { Contract } from '../shared/contract.ts'
 import { FocusLanding } from './focus-landing.ts'
 
@@ -9,10 +9,11 @@ import type { ListingState } from './listing-state.ts'
 
 type WithdrawSeam = Pick<Listing, 'withdraw' | 'withdrawPrice'>
 
+const KIND = 'data-kind'
+
 /** The pills of every list the theme placed: one per filter held, each taking its own filter off. */
 export class ActiveValuesView {
     #contract: Contract
-    #description: ListingDescription
     #listing: WithdrawSeam
     #list: ActiveValueList
     #landing: FocusLanding
@@ -22,7 +23,6 @@ export class ActiveValuesView {
 
     constructor(contract: Contract, description: ListingDescription, listing: WithdrawSeam) {
         this.#contract = contract
-        this.#description = description
         this.#listing = listing
         this.#list = new ActiveValueList(description)
         this.#landing = new FocusLanding(contract.root)
@@ -67,12 +67,10 @@ export class ActiveValuesView {
     }
 
     #withdraw(pill: Element) {
-        const name = pill.getAttribute('name') ?? ''
+        const taxonomy = this.#taxonomies.get(pill.getAttribute('name') ?? '')
         const value = pill.getAttribute('value') ?? ''
-        const { minPrice, maxPrice } = this.#description.reserved
-        const taxonomy = this.#taxonomies.get(name)
 
-        if (name === minPrice || name === maxPrice) {
+        if (pill.getAttribute(KIND) === PRICE_KIND) {
             this.#listing.withdrawPrice()
 
             return true
@@ -129,8 +127,9 @@ export class ActiveValuesView {
             return []
         }
 
-        pill.setAttribute('name', value.name)
+        pill.setAttribute('name', value.parameter)
         pill.setAttribute('value', value.value)
+        pill.setAttribute(KIND, value.kind)
         pill.setAttribute('aria-label', value.action)
         pill.prepend(value.label)
 

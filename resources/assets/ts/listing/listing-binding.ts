@@ -1,7 +1,6 @@
 import { Contract } from '../shared/contract.ts'
 import { FacetCounts } from '../facets/facet-counts.ts'
 import { FacetsView } from '../facets/facets-view.ts'
-import { FilterSummaryView } from './filter-summary-view.ts'
 import { PageWindow } from '../pagination/page-window.ts'
 import { PaginationView } from '../pagination/pagination-view.ts'
 import { PriceControl } from '../price/price-control.ts'
@@ -10,13 +9,10 @@ import { RESULTS } from '../shared/plan.ts'
 import { SortCombobox } from '../sort/sort-combobox.ts'
 import { SortQuery } from '../sort/sort-query.ts'
 import { SortRadios } from '../sort/sort-radios.ts'
-import { TotalView } from './total-view.ts'
-import { ActiveValuesView } from './active-values-view.ts'
-import { SelectionCountView } from './selection-count-view.ts'
 import { DisclosureGroup } from '../collapsible/disclosure-group.ts'
-import { SelectedCountView } from '../collapsible/selected-count-view.ts'
 import { ListingDrawers } from '../drawer/listing-drawers.ts'
 import { ResetFocus } from './reset-focus.ts'
+import { SummaryBinding } from './summary-binding.ts'
 
 import type { ListingDescription } from '../shared/description.ts'
 import type { ListingState } from './listing-state.ts'
@@ -34,12 +30,8 @@ export class ListingBinding {
     #sort: SortCombobox
     #sortRadios: SortRadios
     #price: PriceControl
-    #summary: FilterSummaryView
-    #selectionCount: SelectionCountView
-    #selectedCount: SelectedCountView
+    #summary: SummaryBinding
     #disclosures: DisclosureGroup
-    #total: TotalView
-    #activeValues: ActiveValuesView
     #sortQuery: SortQuery
     #drawers: ListingDrawers
     #resetFocus: ResetFocus
@@ -54,13 +46,9 @@ export class ListingBinding {
         this.#sort = new SortCombobox(contract, (sort) => this.#listing.sortBy(sort))
         this.#sortRadios = new SortRadios(contract, (sort) => this.#listing.sortBy(sort))
         this.#sortQuery = new SortQuery(description.sortFilters)
-        this.#summary = new FilterSummaryView(contract, description)
-        this.#selectionCount = new SelectionCountView(contract)
         this.#price = new PriceControl(contract, description, (min, max) => this.#listing.priceBetween(min, max))
-        this.#selectedCount = new SelectedCountView(contract, [this.#facets, this.#price])
+        this.#summary = new SummaryBinding(contract, description, { listing, holders: [this.#facets, this.#price] })
         this.#disclosures = new DisclosureGroup(contract, () => this.#facets.refold())
-        this.#total = new TotalView(contract, description)
-        this.#activeValues = new ActiveValuesView(contract, description, listing)
         this.#drawers = new ListingDrawers(contract, this.#disclosures)
         this.#resetFocus = new ResetFocus(contract)
     }
@@ -74,7 +62,7 @@ export class ListingBinding {
         this.#sort.start()
         this.#sortRadios.start()
         this.#price.start()
-        this.#activeValues.start()
+        this.#summary.start()
         this.#disclosures.start()
         this.#drawers.start()
 
@@ -201,9 +189,7 @@ export class ListingBinding {
         this.#sort.show(state)
         this.#sortRadios.show(state)
         this.#price.show(state)
-        this.#summary.show(state)
-        this.#selectionCount.show(state)
-        this.#selectedCount.show(state)
+        this.#summary.showHeld(state)
     }
 
     #repaint({ answers, state }: ResultsDetail) {
@@ -215,8 +201,7 @@ export class ListingBinding {
 
         this.#sort.showMatches(matches, state)
         this.#sortRadios.showMatches(matches, state)
-        this.#total.show(results.totalHits ?? 0)
-        this.#activeValues.show(state)
+        this.#summary.showAnswered(results.totalHits ?? 0, state)
         this.#drawers.paintPage(() => this.#repaintGrid(results, state))
     }
 

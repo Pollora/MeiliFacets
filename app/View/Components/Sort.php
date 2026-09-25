@@ -32,7 +32,7 @@ final class Sort extends ListingComponent
     ) {
         parent::__construct($listings, $name, $scroll);
 
-        $this->widget = is_string($widget) ? SortWidget::from($widget) : $widget;
+        $this->widget = SortWidget::fromAttribute($widget);
 
         $this->listing->placeSort();
 
@@ -42,7 +42,13 @@ final class Sort extends ListingComponent
             $this->listing->sortMatches(),
         );
         $this->selected = $this->currentChoice();
-        $this->summary = SortSummary::of($this->selected->label);
+        $this->summary = SortSummary::of(__('Sort by'), __(': :choice'), $this->selected->label);
+    }
+
+    /** A single order leaves nothing to choose. */
+    public function shouldRender(): bool
+    {
+        return count($this->choices) > 1;
     }
 
     public function render(): View

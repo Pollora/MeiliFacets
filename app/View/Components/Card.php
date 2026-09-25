@@ -36,7 +36,7 @@ final class Card extends ContractComponent
         $document = new CardDocument($card);
 
         // Blade hands attributes over as strings; from() rejects anything else.
-        $this->heading = is_string($heading) ? HeadingLevel::from($heading) : $heading;
+        $this->heading = HeadingLevel::fromAttribute($heading);
         $this->title = $document->text(CardField::Title);
         $this->url = $document->text(CardField::Url);
         $this->price = new HtmlString($document->text(CardField::Price));

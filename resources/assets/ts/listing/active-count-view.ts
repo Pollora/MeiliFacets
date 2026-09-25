@@ -9,7 +9,7 @@ import type { ListingState } from './listing-state.ts'
  * words around it to carry — « Filters n », « Apply (X) ». Hidden and emptied at
  * zero: a counter may describe its button, and a hidden node still describes.
  */
-export class SelectionCountView {
+export class ActiveCountView {
     #contract: Contract
     #entry: CountEntry
 

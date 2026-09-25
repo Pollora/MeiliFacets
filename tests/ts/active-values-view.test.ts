@@ -85,6 +85,7 @@ describe('ActiveValuesView', () => {
         assert.equal(pill(0).getAttribute('aria-label'), 'Remove the Acme filter')
         assert.equal(pill(0).getAttribute('name'), 'brand')
         assert.equal(pill(0).getAttribute('value'), 'acme')
+        assert.equal(pill(0).getAttribute('data-kind'), 'term')
     })
 
     it('draws nothing for a value the page rendered no label for', async () => {
@@ -105,6 +106,7 @@ describe('ActiveValuesView', () => {
 
         await applying(listing.priceBetween(10, 50))
         assert.deepEqual(labels(), ['10,00 € – 50,00 €✕'])
+        assert.equal(pill(0).getAttribute('data-kind'), 'price')
     })
 
     it('fills a pattern once, so a label cannot bring in a placeholder or a replacement token', async () => {
@@ -147,7 +149,7 @@ describe('ActiveValuesView', () => {
     it('reads a pill the server rendered like one it drew itself', async () => {
         const description = { ...base, state: served({ facets: { product_brand: ['acme'] } }) }
         list().hidden = false
-        list().insertAdjacentHTML('afterbegin', '<li><button type="button" name="brand" value="acme" data-meili="active-value">Acme</button></li>')
+        list().insertAdjacentHTML('afterbegin', '<li><button type="button" name="brand" value="acme" data-kind="term" data-meili="active-value">Acme</button></li>')
         const listing = start(description)
 
         click(window, pill(0))
@@ -223,6 +225,18 @@ describe('ActiveValuesView', () => {
         await answered()
 
         assert.equal(pill(0), drawn)
+    })
+
+    it('takes the range off a pill the server marked as the price, whatever parameter it names', async () => {
+        const description = { ...base, state: served({ price: { min: 10, max: 50 } }) }
+        list().hidden = false
+        list().insertAdjacentHTML('afterbegin', '<li><button type="button" name="prix" value="" data-kind="price" data-meili="active-value">10 – 50✕</button></li>')
+        const listing = start(description)
+
+        click(window, pill(0))
+        await answered()
+
+        assert.equal(listing.state.price.isEmpty(), true)
     })
 
     it('does nothing with a pill that names no filter', async () => {

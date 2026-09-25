@@ -4,7 +4,7 @@ import { CountLabel } from '../shared/count-label.ts'
 import type { FacetDescription, ListingDescription } from '../shared/description.ts'
 import type { FacetCounts } from './facet-counts.ts'
 import type { ListingState } from '../listing/listing-state.ts'
-import type { SelectionHolder } from '../collapsible/selected-count-view.ts'
+import type { SelectionHolder } from '../collapsible/toggle-badge-view.ts'
 
 const UNAVAILABLE = 'aria-disabled'
 

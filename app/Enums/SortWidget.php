@@ -6,6 +6,8 @@ namespace Modules\MeiliFacets\Enums;
 
 enum SortWidget: string
 {
+    use ComponentVariant;
+
     case Listbox = 'listbox';
     case Radios = 'radios';
 }

@@ -5,7 +5,7 @@ import { filterQueriesOf } from '../../resources/assets/ts/filter-queries.ts'
 import { ListingBinding } from '../../resources/assets/ts/listing/listing-binding.ts'
 import { Listing } from '../../resources/assets/ts/listing/listing.ts'
 import { ListingState } from '../../resources/assets/ts/listing/listing-state.ts'
-import { SelectionCountView } from '../../resources/assets/ts/listing/selection-count-view.ts'
+import { ActiveCountView } from '../../resources/assets/ts/listing/active-count-view.ts'
 import { Contract } from '../../resources/assets/ts/shared/contract.ts'
 import { find, listingMarkup, open, tick } from './dom.ts'
 import { connection, described, FakeClient, FakeHistory } from './fixtures.ts'
@@ -43,18 +43,18 @@ const bound = (apply: ListingDescription['apply']) => {
 const shown = (contract: Contract) =>
     (contract.all('active-count') as HTMLElement[]).map((counter) => (counter.hidden ? null : counter.textContent))
 
-describe('SelectionCountView', () => {
+describe('ActiveCountView', () => {
     it('writes the bare count on every counter, a range counting once', () => {
         const { contract } = withCounters()
 
-        new SelectionCountView(contract).show(new ListingState({ facets: { product_brand: ['acme', 'globex'] }, price: { max: 30 } }))
+        new ActiveCountView(contract).show(new ListingState({ facets: { product_brand: ['acme', 'globex'] }, price: { max: 30 } }))
 
         assert.deepEqual(shown(contract), ['3', '3'])
     })
 
     it('hides every counter at zero', () => {
         const { contract } = withCounters()
-        const view = new SelectionCountView(contract)
+        const view = new ActiveCountView(contract)
 
         view.show(new ListingState({ facets: { product_brand: ['acme'] } }))
         view.show(new ListingState())
@@ -94,7 +94,7 @@ describe('SelectionCountView', () => {
                 return {} as Animation
             })
         })
-        const view = new SelectionCountView(contract)
+        const view = new ActiveCountView(contract)
 
         view.show(new ListingState({ facets: { product_brand: ['acme'] } }))
         assert.equal(played.length, 2)

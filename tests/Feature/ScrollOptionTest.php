@@ -32,13 +32,7 @@ final class ScrollOptionTest extends TestCase
     private function render(bool $scroll): string
     {
         return (string) view('meilifacets::components.reset', [
-            'listing' => new readonly class
-            {
-                public function isPristine(): bool
-                {
-                    return false;
-                }
-            },
+            'hasNothingToClear' => fn (): bool => false,
             'shape' => ResetShape::Text,
             'hook' => fn (string $name): HtmlString => Hook::from($name)->attribute(),
             'scrollMark' => fn (): HtmlString => new HtmlString($scroll ? Contract::ScrollAttribute->value : ''),

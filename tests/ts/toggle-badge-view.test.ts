@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
-import { SelectedCountView } from '../../resources/assets/ts/collapsible/selected-count-view.ts'
+import { ToggleBadgeView } from '../../resources/assets/ts/collapsible/toggle-badge-view.ts'
 import { FacetsView } from '../../resources/assets/ts/facets/facets-view.ts'
 import { filterQueriesOf } from '../../resources/assets/ts/filter-queries.ts'
 import { ListingBinding } from '../../resources/assets/ts/listing/listing-binding.ts'
@@ -23,12 +23,12 @@ const description = described({
 const badges = (contract: Contract) =>
     (contract.all('selected-count') as HTMLElement[]).map((badge) => (badge.hidden ? null : badge.textContent))
 
-describe('SelectedCountView', () => {
+describe('ToggleBadgeView', () => {
     it('counts, on each trigger, the values its own facet holds', () => {
         const { root } = open(listingMarkup({ collapsible: true }))
         const contract = new Contract(root)
 
-        new SelectedCountView(contract, [new FacetsView(contract, description)])
+        new ToggleBadgeView(contract, [new FacetsView(contract, description)])
             .show(new ListingState({ facets: { product_brand: ['acme', 'globex'] }, price: { max: 30 } }))
 
         assert.deepEqual(badges(contract), ['2', null])
@@ -38,7 +38,7 @@ describe('SelectedCountView', () => {
     it('hides and empties a badge at zero', () => {
         const { root } = open(listingMarkup({ collapsible: true }))
         const contract = new Contract(root)
-        const view = new SelectedCountView(contract, [new FacetsView(contract, description)])
+        const view = new ToggleBadgeView(contract, [new FacetsView(contract, description)])
 
         view.show(new ListingState({ facets: { product_cat: ['coats'] } }))
         view.show(new ListingState())
@@ -53,7 +53,7 @@ describe('SelectedCountView', () => {
         const { root } = open(listingMarkup({ collapsible: true, priced: true }))
         const contract = new Contract(root)
         const facets = new FacetsView(contract, description)
-        const view = new SelectedCountView(contract, [facets, new PriceControl(contract, description, () => {})])
+        const view = new ToggleBadgeView(contract, [facets, new PriceControl(contract, description, () => {})])
 
         view.show(new ListingState({ price: { min: 10, max: 30 } }))
         assert.deepEqual(badges(contract), [null, null, '1'])
@@ -72,7 +72,7 @@ describe('SelectedCountView', () => {
 
         price.hidden = false
         price.textContent = '1'
-        new SelectedCountView(contract, [new FacetsView(contract, description)]).show(new ListingState())
+        new ToggleBadgeView(contract, [new FacetsView(contract, description)]).show(new ListingState())
 
         assert.equal(price.textContent, '1')
     })
