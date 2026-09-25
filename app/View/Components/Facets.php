@@ -11,14 +11,19 @@ use Modules\MeiliFacets\Listing\PriceFilter;
 
 final class Facets extends ListingComponent
 {
-    public function __construct(CurrentListing $listings, string $name = '', bool $scroll = false, public bool $collapsible = false)
-    {
+    public function __construct(
+        CurrentListing $listings,
+        string $name = '',
+        bool $scroll = false,
+        public bool $collapsible = false,
+        public bool $withApply = true,
+    ) {
         parent::__construct($listings, $name, $scroll);
     }
 
     public function shouldRender(): bool
     {
-        return $this->listing->remainingFacets() !== [] || $this->listing->applyMode()->needsButton();
+        return $this->listing->remainingFacets() !== [] || $this->rendersApply();
     }
 
     /** The only place that knows which kind renders through what. */
@@ -34,7 +39,12 @@ final class Facets extends ListingComponent
     {
         return view('meilifacets::components.facets', [
             'applyMode' => $this->listing->applyMode()->value,
-            'needsApplyButton' => $this->listing->applyMode()->needsButton(),
+            'needsApplyButton' => $this->rendersApply(),
         ]);
+    }
+
+    private function rendersApply(): bool
+    {
+        return $this->withApply && $this->listing->applyMode()->needsButton();
     }
 }

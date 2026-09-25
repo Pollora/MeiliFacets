@@ -1297,6 +1297,10 @@ filtres déjà rendu, sans doublon. Décisions reportées dans `decisions.md` (�
 Rattachés au chantier : `R-47` (étape 2b), `R-162` (étape 2c), `R-163` (étape 2a), `R-164` (étape 3).
 Reste ouvert jusqu'à la dernière étape.
 
+**Au 2026-09-25** : tiroir mobile (`R-173`, étape 5a), tri en radios (`R-174`, étape 4b) et pied
+« Annuler / Appliquer » (`R-175`, étape 5b) livrés ensemble, non commités ; repliables passés en
+mobile first. Revue des animations appliquée le même jour (`R-176`).
+
 ### R-49 · 🟡 · ouvert · 2026-09-06 — le cul-de-sac « zéro résultat » est atteignable en deux clics
 
 Quand la recherche ne rend rien, toutes les distributions sont vides, donc tous les `<fieldset>`
@@ -3234,6 +3238,301 @@ qu'aucune page n'ait à être chargée.
 
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
+
+### R-176 · 🟠 · **corrigé le 2026-09-25, non commité** · ouvert le 2026-09-25 — revue des animations : le glisser ne démarre jamais au doigt, Tab entre dans un tiroir qui sort
+
+Rattaché à `R-48` (revue des animations des étapes 5a/5b, corrections validées par Louis).
+
+**Bloquants.**
+- `DrawerGesture::#heldElsewhere()` testait `hasPointerCapture()` : au toucher, Chrome capture
+  implicitement le pointeur sur la cible du `pointerdown`, le test était toujours vrai et **le glisser
+  ne démarrait jamais au doigt** (mesuré à la souris seulement dans `R-173`). Remplacé par une
+  exclusion par sélecteur, indépendante du type de pointeur : champs, `price-track`, `price-handle`,
+  ✕ de l'en-tête (`button[data-meili="drawer-close"]` ; la poignée, qui porte le même crochet, reste
+  saisissable).
+- Pendant les 250 ms de sortie, le tiroir restait tabulable. `Drawer::#close()` pose `inert` dès
+  `data-closing`, après avoir rendu le focus à l'ouvreur ; retiré à l'ouverture, à la fin de la sortie
+  et au passage du seuil.
+
+**À corriger / mineurs.** ✕ : plus de `scale(0.95)` au `:focus-visible`, `:active` `scale(0.75)`
+gardé. Panneaux flottants : entrée 180 ms (`--meili-duration-panel-in`, `PanelMotion::pop()`), sortie
+120 ms (`--meili-duration-panel-out`) ; Échap, Tab qui quitte le panneau et passage d'une pill à
+l'autre sans animation (`data-instant` posé puis retiré par `DisclosureGroup`) ; un appui souris
+laisse décider son clic (drapeau « pointeur enfoncé »). Mouvement réduit : sortie de section en
+`--meili-duration-fade`, liste du tri en fondu 160 ms. Décisions dans `decisions.md`.
+
+**Tests.** TS : touche capturée implicitement sur l'en-tête (échoue avec l'ancien test, vérifié par
+mutation), poignée au doigt, exclusions en `touch` et `mouse` ; tiroir `inert` en sortie (✕ et Échap),
+retiré à la fin et à la réouverture, focus sur l'ouvreur ; 180 ms à l'ouverture souris, sorties
+instantanées (Échap, Tab, pill voisine), appui ailleurs → sortie animée ; `pop()` en ms et en s ;
+feuille (durées, `data-instant` après le bloc réduit, ✕, mouvement réduit). Client **484/484**,
+couverture 97,57 % lignes / 93,84 % branches ; `composer check` vert (Unit 301) ; suite `Modules`
+**512** verte.
+
+**Mesuré dans Playwright** (Chrome, `immediate` puis `submit`, `config/meilifacets.php` restauré,
+`cmp` = 0, images interceptées, cache désactivé, 0 erreur console hors images) :
+- **tactile 393 × 852** (CDP `Input.dispatchTouchEvent`) : depuis la poignée et depuis le titre, la
+  feuille suit le doigt (`translateY(50px)` à mi-geste, 80 px en fin) ; 80 px lent → reste ouvert ;
+  260 px (poignée et titre) → ferme ; flick de 60 px en ~25 ms → ferme ; corps défilé à 200 → 24/37,
+  `transform` inchangé ;
+- **✕ puis Tab** (Entrée sur ✕, six Tab immédiats) : jamais dans le tiroir, jamais `body` ; tiroir
+  `inert` pendant la sortie, plus après ;
+- **✕** : focus clavier `transform: none` ; appui souris et tap tactile (`synthesizeTapGesture`)
+  `scale(0.75)` ;
+- **1440 px** : ouverture souris 180 ms, fermeture souris 120 ms (3 transitions), clic dehors 120 ms ;
+  Échap, Shift+Tab hors du panneau, pill voisine : **0 animation** sur l'un et l'autre panneau, aucun
+  `data-instant` restant ;
+- **mouvement réduit** (393 px) : sortie de section 150 ms ; liste du tri : entrée `opacity` 160 ms,
+  sortie `opacity` + `display` 160 ms.
+
+**Reste** : keyframes d'ANIM-3 (`translateY(-4px) scale(0.97)`) non reprises.
+
+### R-175 · 🟡 · **livré le 2026-09-25, non commité** (étape 5b) · ouvert le 2026-09-25 — le tiroir n'a pas de pied « Annuler / Appliquer (X) »
+
+Rattaché à `R-48`, étape 5b de [chantier-filtres.md](chantier-filtres.md), avancée dans le même lot
+que la 5a à la demande de Louis (`D-03` enfreint à sa demande, noté ici).
+
+**Livré.** `<x-meilifacets::apply>` autonome (« Apply »/« Appliquer » + pastille `active-count`, qui
+décrit le bouton), rendu en `submit` ou avec `visible-in-drawer`. En `immediate`, il ne cherche rien de plus
+(`ListingBinding::#applied()`, mutation tuée). Dans le tiroir modal, il le ferme. `<x-meilifacets::facets
+:with-apply="false">` cède le bouton du groupe ; sans l'attribut, le rendu est identique à l'octet
+(test). `<x-meilifacets::reset icon />` : vue à part `reset-icon.blade.php`, bouton rond et carré
+nommé par `aria-label`, `images/trash.svg` en `<img>` décoratif (`loading="lazy"`,
+`fetchpriority="low"`), slot `icon` pour le remplacer, slot vide pour le retirer ; la vue texte est
+inchangée. Classe du pied renommée `meilifacetsDrawerFooter` (une classe, pas un crochet : aucun
+changement de contrat).
+
+**Mesuré** (393 px) : pied sur une ligne, reset 48 × 48, rond, « Appliquer » 283 × 48, pleine
+largeur restante. En `submit` : cocher ne cherche rien (0 requête), X = 2 sur l'ouvreur et sur
+« Appliquer », puis « Appliquer » fait 1 requête, ferme le tiroir et rend le focus à l'ouvreur. En
+`immediate` : « Appliquer » ferme le tiroir, 0 requête (réseau filtré sur l'origine du moteur).
+1440 px : « Appliquer » en fin de rangée, sur la même ligne que les pills, reset du pied masqué par
+le thème.
+
+**Suite du 2026-09-25** (Louis) :
+- **Morph poubelle ↔ « Appliquer »** (393 px, rAF) : cocher → poubelle `display` posé, opacité 0 →
+  1, `scale(0.9)` → 1 et flou 2 → 0 px en ~200 ms ; « Appliquer » 329 → 265 px en ~250–290 ms. Vider →
+  poubelle à 0 et `display: none` en ~155 ms, « Appliquer » 265 → 329 px en ~245 ms. Images ≤ 16,7 ms en
+  `submit` ; mouvement réduit : largeur instantanée, poubelle en fondu seul.
+- **« Appliquer » sheet-only en `immediate`** : `data-only="sheet"` (`Apply::onlyInSheet()`), masqué
+  hors du sheet. 1024/1280/1440 px : `immediate` → `display: none` ; `submit` → visible (115 px), et
+  « Appliquer » referme le panneau flottant ouvert (`?marque=aeris`, 0 panneau ouvert). Test Feature.
+- « Tout effacer » en mots : pastille (rayon 999px, padding `--meili-control-inline`).
+- **Finitions** (Louis, 2026-09-25) : `<x-meilifacets::reset icon />` devient `shape="icon"`
+  (`ResetShape::Icon`, attribut `icon` retiré, slot `icon` inchangé) ; après « Tout effacer » hors
+  tiroir, le focus va au premier « Appliquer » visible du listing (rangée desktop en `submit`), sinon
+  à la racine ; une seule durée de survol, `--meili-duration-hover` (150 ms), pour toutes les
+  transitions de survol (tests `stylesheet.test.ts` « the duration of a hover »).
+
+**Reste pour l'étape 6** : UX-4 (nom « Appliquer 2 filtres »).
+
+**Finitions du 2026-09-25** (Louis, non commité) :
+- **`visible-in-drawer`** remplace l'attribut booléen d'`apply` (`Apply::$visibleInDrawer`, vue, tests,
+  docs, composition du thème). `submit` : visible partout ; `immediate` : seulement dans le tiroir en
+  sheet, où il ferme sans rechercher ; absent en desktop. Documenté sur la classe et dans
+  `configuration.md`.
+- **Focus après la poubelle** (`ResetFocus`) : « Appliquer » du même tiroir, sinon titre du sheet,
+  sinon racine du listing (`tabindex="-1"` posé alors), jamais `body` ; un focus déjà ailleurs ne bouge
+  pas. Mesuré (393 px, deux modes) : souris et Entrée → `apply` du tiroir. 1440 px, « Tout effacer »
+  en pastille → racine du listing (aucun « Appliquer » voisin). 4 tests TS.
+- **`reset shape="pill"`** (`ResetShape`, `data-shape="pill"`) : le lot avait **remplacé** le dessin
+  du bouton texte ; il revient à celui de `25a5aa3`, la pastille devient une variante. Audit des
+  briques de la colonne (même gabarit que `25a5aa3`, feuille actuelle contre feuille `25a5aa3`
+  substituée dans Playwright, 17 propriétés calculées sur `reset`, `active-value`, `sort-trigger`,
+  pastille cochée et non cochée, rangée, `more`, `apply`, `page`, `facet`, `facets`, hauteurs exclues) :
+  écarts trouvés et rendus — `reset` rayon 999px/padding 24 px, `active-value` padding 24 px et gap
+  `0.5rem`, `sort-trigger` padding 24 px, pastille bordure `currentColor`, cochée inversée, appui
+  `scale(0.96)`, `apply` appui `scale(0.97)` et `transform` en transition, rangées et « Voir plus » à
+  150 ms. Après correction : **0 écart** à 393 et 1440 px, `immediate` et `submit`. Les styles neufs
+  vivent sous une variante (`collapsible`, `shape`, composant `apply`) ; le thème repose les 24 px de
+  ses pastilles actives.
+
+
+### R-174 · 🟡 · **livré le 2026-09-25, non commité** (étape 4b) · ouvert le 2026-09-24 — le tri ne se présente pas comme une section
+
+Rattaché à `R-48`, étape 4b (C-4). Demandé pendant la 5a par Louis : la liste déroulante détonnait
+au milieu des sections du tiroir.
+
+**Livré.** Enum `SortWidget` (`listbox` par défaut, `radios`). Nouveaux crochets `sort-choices` et
+`sort-choice`, autorisés au § 5 de l'architecture, additifs, `Contract::VERSION` inchangé. Règles de
+contrat : `sort-choices` exige `sort-choice`, et un `panel` quand il tient un `toggle`. Vue
+`sort-radios.blade.php` avec le même `toggle.blade.php` et la même `Disclosure`. Badge jamais
+rempli : un tri est un ordre, pas un filtre. Client `sort/sort-radios.ts` : choisir trie tout de
+suite dans les deux modes (`D-10`), et une option filtrante qui ne garderait rien est masquée, comme
+dans la listbox. La garde `placeSort()` couvre les deux widgets (test). La feuille étend les règles
+de section par `:is([data-meili="facet"], [data-meili="sort-choices"])`, à spécificité égale.
+
+**Mesuré** : dans le tiroir, section « Trier par » identique aux autres ; choisir « Prix croissant »
+donne 1 requête, `?sort=price_asc`, et le tiroir reste ouvert. 1440 px : pill « Trier par », panneau
+flottant, un seul ouvert.
+
+**Suite du 2026-09-25 (Louis) : la pill ne disait pas quel tri était en force.** Le déclencheur lit
+maintenant « Trier par : Pertinence ». Clé `Sort by: :choice`, fr `Trier par\u00a0: :choice`
+(espace insécable). `SortSummary` découpe le motif autour de la valeur : libellé
+(`.meilifacetsFacetToggleLabel`), séparateur, valeur (`.meilifacetsSortChoice`, nouveau crochet
+`sort-chosen`, optionnel, additif, `Contract::VERSION` inchangé) — la vue n'écrit que des propriétés.
+`toggle.blade.php` enveloppe libellé et slot dans `.meilifacetsFacetToggleName`, pour que le `gap`
+du bouton ne s'insère pas avant le séparateur. Pas d'`aria-label` : le texte **est** le nom, libellé
+en tête (WCAG 2.5.3). Mobile first : la valeur est masquée hors de vue (clip, pas `display: none`)
+dans la section du tiroir, affichée à partir de `48em`. `SortRadios.show()` réécrit la valeur à
+chaque état (choix, `popstate`). Badge toujours vide.
+
+**Mesuré dans Playwright** (`immediate` et `submit`, config restaurée, `cmp` = 0) : 1440 px, bouton
+« Trier par : Pertinence » → « Prix croissant » → nom « Trier par : Prix croissant », URL
+`?sort=price_asc` ; rendu serveur de `?sort=price_asc` juste ; `immediate`, retour arrière →
+« Pertinence », avant → « Prix croissant ». 393 px, tiroir : section « Trier par » seule, valeur
+`clip-path: inset(50%)` sur 1 px, nom « Trier par : Pertinence », U+00A0 dans le DOM. En `submit`,
+le tri remplace l'entrée d'historique (`#keepsHistory`) : pas de `popstate` propre à y mesurer,
+couvert par le test TS.
+
+### R-173 · 🟡 · **livré le 2026-09-25, non commité** (étape 5a) · ouvert le 2026-09-25 — pas de tiroir mobile
+
+Rattaché à `R-48`, étape 5a de [chantier-filtres.md](chantier-filtres.md) : option A (conteneur
+ordinaire promu en dialogue), architecture Q-1 → Q-4.
+
+**Livré.**
+- `<x-meilifacets::drawer>` et `<x-meilifacets::drawer-opener>`, crochets `drawer`, `drawer-title`,
+  `drawer-close`, `drawer-open` (règle : `drawer` exige titre et ✕).
+- `ts/drawer/` : `drawer.ts`, `inert-page.ts`, `drawer-gesture.ts`, `sheet-height.ts` ;
+  `ts/collapsible/panel-motion.ts`.
+- Refonte **mobile first** des repliables : section en ligne en base, panneau flottant à partir de
+  `48em`, et `DisclosureGroup` qui décide par la feuille.
+- Mécanismes et coûts : voir `decisions.md` « En attente de validation ».
+
+**Suites de consignes intégrées au lot** :
+- ouvreur « Filters » avec pastille et icône `filters.svg` ;
+- `--meili-control` à 3rem avec plancher tactile, padding latéral 24 px ;
+- survols unifiés : teinte 8 %, 150 ms, `--meili-ease` ; en-tête de section sans aplat, par la
+  couleur ;
+- flash de tap supprimé sur les en-têtes de section ;
+- poignée, glisser pour fermer ;
+- hauteur qui suit le contenu ;
+- sections animées (principes du Family drawer) ;
+- encre `#2d2b23` des pastilles cochées.
+
+**Causes trouvées en route**, par la mesure :
+- une `<legend>` interrompait le filet de séparation et avalait le padding, d'où la légende flottée ;
+- une marge ne survit pas à `clear` sous un flottant, d'où un padding ;
+- un `border-box` du thème rognait les rangées à 29 px ;
+- l'effet bizarre au tap venait de la cible de 48 px (marges négatives autour d'une ligne de 24),
+  que l'aplat `:active` et `-webkit-tap-highlight-color` peignaient en entier ;
+- la poignée héritait des styles du ✕ (boîte de 48 px en desktop, `scale(0.75)` à l'appui) ;
+- le geste rapide était calculé sur tout le geste, si bien qu'un glisser de 72 px en 540 ms fermait ;
+  il l'est maintenant sur 100 ms ;
+- tirer vers le haut depuis la poignée annulait le geste.
+
+**Mesuré dans Playwright** (390/393 et 1440 px, `submit` et `immediate`, `config/meilifacets.php`
+restauré après chaque passage, `cmp` = 0) :
+- **ouvreur** : 48 px, bordure encre du thème, badge 17,8 × 17,8 px (21,9 px à « 12 »), identique au
+  badge d'un déclencheur ; nom « Filtres », description « 1 » ;
+- **tiroir fermé** : 60 Tab sans jamais y entrer, absent de l'arbre d'accessibilité ;
+- **tiroir ouvert** : `dialog "Filtres"`, 32 à 34 nœuds `inert`, aucun sur ses ancêtres, `html`
+  `overflow: hidden`, défilement de la page bloqué (molette : 0 → 0), focus sur le titre, Tab
+  cantonné au tiroir ;
+- **fermeture** : ✕, voile, Échap (transition coupée, `data-instant`), poignée, « Appliquer » ;
+  `inert` entièrement retiré à chaque fois ; élargie à 1440 px ouverte, le tiroir est rendu
+  non modal, sans `inert`, et le focus reste où il était ;
+- **mouvement** :
+  - entrée 350 ms et sortie 250 ms en `cubic-bezier(0.32, 0.72, 0, 1)` ; voile en opacité, noir
+    50 %, sans `backdrop-filter` ;
+  - hauteur 518 → 654 px en 270 ms ;
+  - section de 140 px ouverte en 270 ms (WAAPI), sortie en 203 ms ;
+  - frames pendant l'ouverture d'une section : ≤ 16,8 ms pour la première, ≤ 9,4 ms ensuite ;
+  - mouvement réduit : `transform: none`, fondu de 150 ms ;
+- **glisser** (souris) :
+  - 80 px puis immobile : la feuille revient ;
+  - vers le haut de 120 px : −11 px, puis retour ;
+  - 200 px : ferme ;
+  - geste rapide de 60 px : ferme ;
+  - le voile suit (0,85 à 80 px) ;
+  - corps défilé : pas de glisser ;
+- **sans JS** : filtres en ligne, ouvreur masqué ;
+- **tri dans le tiroir** : Échap ferme la liste, puis le tiroir ;
+- zéro erreur console.
+
+**Rythme du tiroir à 393 px**, comparé aux valeurs MCP de Figma (`17:754`, relu par `get_design_context`
+le 2026-09-25) — le plafond à 24 px de la première livraison était un malentendu, corrigé :
+
+| Écart | Figma | Mesuré (2026-09-25) |
+| --- | --- | --- |
+| En-tête → corps → pied | 40 | 40 (padding du corps, haut et bas) |
+| En-tête (padding) | 24 × 32 | 24 × 32 |
+| Marges latérales du corps | 32 | 32 (+ 15 de barre de défilement dans Chromium de bureau) |
+| Entre deux sections, filet compris | 24 + 1 + 24 | 24 + 1 + 24 |
+| Titre de section → liste | 16 | 16 (ligne de titre de 24 ; le déclencheur de 48 déborde de 12) |
+| Entre valeurs | 8 | 8 (pastilles, en ligne et en colonne) ; 32 d'un haut de case à l'autre, soit rangées de 24 + 8 |
+| Pastilles, hauteur | 48 | 48 |
+| Pied | 16 × 32 | 16 × 32 ; « Appliquer » 329 px seul, 265 px avec la poubelle |
+
+**Relevé à côté, corrigé ici** : `ActiveValuesComponentTest` codait « Retirer le filtre 10,00 » en dur
+alors que le catalogue dit « Entre :min et :max » depuis `25a5aa3`. Le test lit maintenant le
+catalogue par `__()`.
+
+**Questions ouvertes** : élargie au-delà du seuil tiroir ouvert, la page peut garder plusieurs
+panneaux flottants ouverts jusqu'au clic suivant. Un contenu repeint par une recherche n'a pas de
+fondu (la hauteur, elle, glisse).
+
+**Suite du 2026-09-25** (consignes de Louis, non commité) :
+- **Neutralité** : `--meili-ink` supprimée ; pastille cochée en `CanvasText`/`Canvas`, bordure des
+  pastilles en `currentColor`, trait de `filters.svg` en `currentColor`. Le thème pose `--color-ink`
+  (pastilles, hors `forced-colors`), la couleur du sheet et une icône « filtres » en `currentColor`
+  (slot `icon`). Test `StylesheetNeutralityTest` (aucune couleur écrite par sa valeur, aucune police).
+- **Repos sans transition** (bug « le tiroir descend au chargement ») : transitions de sortie sous
+  `[data-closing]` seulement. Chargement enregistré image par image sur 600 ms, froid et avec cache :
+  393 px, tiroir `hidden`, `translateY(550px)` sur toutes les images, voile 0, aucune animation dans
+  le listing ; 1440 px, aucune animation ; CLS 0,000–0,003, aucune source dans le tiroir. Feuille du
+  module dans le `<head>` (render-blocking). Passage du seuil tiroir fermé : plus aucun mouvement ; les
+  couleurs des déclencheurs changeaient (texte `CanvasText` du sheet contre l'encre de la page) —
+  réglé par la couleur du sheet posée par le thème.
+- **Sections refermées après la sortie** : ✕, Échap, voile, glisser, « Appliquer », dans les deux
+  modes : 60 ms après le geste, `data-closing` et 5 sections encore ouvertes ; à 560 ms, 0 ouverte,
+  focus sur l'ouvreur ; à la réouverture, 0 ouverte. Échap : repli immédiat (transition coupée).
+- **Valeurs gardées en place** (`immediate`, Marque et Contenance ouvertes, « odessa » cochée) : les 10
+  pastilles de Contenance aux mêmes coordonnées avant/après, 7 passées à « 0 résultat », `disabled`,
+  opacité 0,4 ; tiroir fermé : 3 pastilles restent, aucune `disabled`.
+- **Appuis** (souris, `transform` calculé pendant l'appui) : ouvreur et « Appliquer » `scale(0.97)`
+  atteint en ~150 ms, poubelle `scale(0.94)` en ~150 ms, pastille `scale(0.96)` en ~115 ms.
+- **Badge** : 0 → 1, animation WAAPI de 150 ms (`cubic-bezier(0.23, 1, 0.32, 1)`), opacité 0 et
+  `scale(0.9)` → 1 ; 1 → 2 : aucune animation.
+- **Panneaux desktop** (1024, 1280, 1440 px, deux modes) : Trier, Catégorie, Marque 288 px ; Contenance
+  448 px, 10 pastilles sur 2 rangées ; Prix 320 px, piste 273 px ; aucun ne déborde, `data-align-end`
+  jamais nécessaire.
+- **Boucle des tests** : `node --test` sur `disclosure-group.test.ts` restait 150 s à 100 % CPU (142 Go
+  vus par Louis). Pas de boucle dans le code livré : le test « stays open with the focus » tombait
+  désormais sur une case `disabled` (réponse factice sans compte → valeur gardée en place), et
+  l'`assert.equal` en échec entre deux éléments happy-dom faisait inspecter à Node tout le graphe du
+  DOM pour son message. Corrigé : la réponse factice porte des comptes, l'identité se compare par
+  `assert.ok(a === b)`. Prouvé par des lancements bornés (groupe de processus tué à l'échéance,
+  `--test-timeout`, `--max-old-space-size=1024`) : le fichier passe en 0,1 s, aucun `node --test`
+  survivant. Navigateur : aucune boucle observée (images de cadence ≤ 16,7 ms hors repeinte de grille).
+
+**Questions ouvertes** (état au premier passage) : focus de la poubelle sur `body`, case `disabled`
+qui perd le focus, image de ~117 ms pendant le morph en `immediate` — traitées ci-dessous.
+
+**Finitions du 2026-09-25** (Louis, non commité) :
+- **`aria-disabled`** au lieu de `disabled` pour une valeur gardée en place : la case garde le focus
+  et est annoncée ; clic et Espace annulés côté client (`FacetsView::refuses()`), `change` refusé ;
+  une case cochée reste décochable. Mesuré (`immediate`, 393 et 1440 px, Contenance ouverte, « aeris »
+  cochée) : 7 valeurs sur 10 passent `aria-disabled`, restent visibles (opacité 0,4) ; la case qui
+  avait le focus le garde ; arbre d'accessibilité `checkbox "400ml" [disabled]` ; Espace puis clic :
+  toujours décochée, **0 recherche** ; décocher la marque : 1 recherche. 4 tests TS + 2 de vue.
+- **`filters.svg`** : trait `#000` explicite (comme `trash.svg`), tracé inchangé ; publié.
+- **Styles en ligne du sheet** (bug de Louis : ~800 px gardés après un passage desktop ↔ mobile) : la
+  hauteur en ligne est retirée à la fin de la sortie et au passage du seuil, jamais écrite en
+  desktop, remesurée depuis zéro à l'ouverture ; `DrawerGesture::cancel()` retire position, voile et
+  `data-dragging`. Mesuré, deux modes : ouvert 393 px `750px` = contenu (plafond 780) ; élargi à
+  1440 px `''` (hauteur 48) ; revenu à 393 fermé `''` ; rouvert `750px` ; fermé `style=""` ; chargé à
+  1440 puis 393 et ouvert `550px` = contenu ; Échap `''`. 5 tests TS + 1 du geste.
+- **Grille différée** (`HeldPaint`, `ListingDrawers`) : tiroir ouvert ou sortant, grille et
+  pagination attendent ; la dernière réponse est peinte l'image après la sortie. Mesuré en
+  `immediate` : grille inchangée tant que le sheet est ouvert, puis celle de la dernière recherche
+  (`?marque=aeris`, 3 articles). Émulation 393 px, CPU ×4, avant (bundle sans report, substitué) /
+  après, deux passages : **INP** 64–104 ms avant, 88–112 ms après au cocher ; 64–120 / 64–72 ms à la
+  fermeture ; en `submit` 64–104 ms. Scripts longs (LoAF) au cocher : `onchange` 40–57 ms dans les deux
+  variantes ; la repeinte de la grille n'apparaît plus comme script long dans aucune (images
+  interceptées). ⚠️ Des images de 200–275 ms subsistent **avant comme après, dans les deux modes**,
+  sans script ni style (`render` ≤ 16 ms) : rendu logiciel de Chromium sans tête sous ×4. L'objectif
+  « aucune image > 50 ms » n'est donc pas démontrable ici ; INP < 200 ms l'est.
 
 ### R-172 · 🟡 · **fermé le 2026-09-24** (étape 4c) · ouvert le 2026-09-24 — le prix ne peut pas se replier en panneau
 

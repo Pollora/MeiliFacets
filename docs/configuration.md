@@ -776,6 +776,131 @@ ici.
 borne sous `query_parameters` est permis : on y perd la compatibilité des liens, et la garde
 redevient absolue sur le nom libéré.
 
+## Tiroir mobile et barre de filtres
+
+Des briques, que le thème compose (architecture v2) :
+
+```blade
+<div class="flex items-start gap-x-4">
+    <x-meilifacets::drawer-opener />
+    <x-meilifacets::drawer class="md:flex-1">
+        <x-meilifacets::sort widget="radios" collapsible />
+        <x-meilifacets::facets collapsible :with-apply="false" />
+        <x-slot:footer>
+            <x-meilifacets::reset shape="icon" />
+            <x-meilifacets::apply visible-in-drawer />
+        </x-slot:footer>
+    </x-meilifacets::drawer>
+    <x-meilifacets::total class="ml-auto" />
+</div>
+```
+
+**Mobile first.** Sans rien d'autre, un repliable (`collapsible`) est une **section d'accordéon en
+ligne, pleine largeur**, séparée de la suivante par un filet ; les sections s'ouvrent
+indépendamment. À partir de `48em`, il devient une pill dont le panneau **flotte** (un seul ouvert,
+Échap, clic extérieur, alignement droit `data-align-end`). Le client lit ce choix dans la feuille
+(`position: absolute` du panneau) : aucun seuil n'est écrit en TypeScript.
+
+**Le tiroir** (`<x-meilifacets::drawer>`) est un conteneur ordinaire : en-tête (« Filters », bouton
+« ✕ », poignée), corps (le slot), pied (slot `footer`, rendu seulement s'il est fourni, classe
+`meilifacetsDrawerFooter`).
+- À partir de `48em`, c'est une rangée : en-tête et poignée masqués, corps et pied alignés sur une
+  ligne (`--meili-bar-gap`), « Appliquer » en fin de rangée.
+- Sous `48em`, JavaScript actif, c'est un bottom sheet que l'ouvreur promeut en dialogue modal
+  (`role="dialog"`, `aria-modal`, reste de la page `inert`, défilement verrouillé). Échap, « ✕ »,
+  la poignée (tap), le voile, « Appliquer » et un glisser vers le bas ferment ; le focus revient à
+  l'ouvreur. Échap ferme d'abord ce qu'un contrôle du tiroir tient ouvert.
+- Sans JavaScript, rien n'est masqué : les filtres restent en ligne.
+
+**Seuil.** Écrit en dur dans la feuille (`48em`, une media query ne lit pas de variable) et repris
+par l'attribut `media` du tiroir (`Drawer::MOBILE`, `(width < 48em)`) ; un test vérifie que toutes
+les requêtes de largeur de la feuille utilisent cette valeur. Un thème qui en veut une autre passe
+`media="(width < 64em)"` **et** redéclare les blocs de la feuille à sa valeur.
+
+**Attributs du tiroir.** `heading` (`h2` par défaut), `media` ; le sac d'attributs arrive sur le
+conteneur.
+
+**Ouvreur** (`<x-meilifacets::drawer-opener>`). « Filters » (fr « Filtres ») puis le nombre de
+valeurs tenues, en pastille (crochet `active-count`, même style que le badge `selected-count`,
+masqué et vidé à zéro, qui **décrit** le bouton sans entrer dans son nom). Icône par défaut
+`images/filters.svg` en `<img alt="" width="14" height="14">` dans un `<span aria-hidden="true">` ;
+le slot `icon` la remplace, un slot vide la retire sans laisser d'élément :
+
+```blade
+<x-meilifacets::drawer-opener><x-slot:icon><svg …></svg></x-slot:icon></x-meilifacets::drawer-opener>
+<x-meilifacets::drawer-opener><x-slot:icon></x-slot:icon></x-meilifacets::drawer-opener>
+```
+
+Une icône porteuse de sens ne passe pas par ce slot, qui la cache aux lecteurs d'écran : le thème
+surcharge `drawer-opener.blade.php`.
+
+**« Appliquer (X) »** (`<x-meilifacets::apply>`). X = valeurs cochées, attente comprise (crochet
+`active-count`, même pastille). Dans le tiroir modal, il le ferme. Selon le mode :
+- `submit` : rendu et **visible partout** (sheet, rangée desktop), il lance la recherche ;
+- `immediate` : rendu seulement avec `visible-in-drawer`, et alors **visible seulement dans le tiroir
+  en sheet** (`data-only="sheet"`), où il ferme sans rechercher — chaque case a déjà cherché ;
+  **absent en desktop** (masqué par la feuille dans la rangée).
+
+Rendu, il reçoit le focus quand « Tout effacer » se masque après un clic : celui du même tiroir, ou,
+pour un « Tout effacer » hors tiroir, le premier « Appliquer » visible du listing (la rangée desktop
+en `submit`) ; à défaut, le titre du tiroir en sheet, sinon la racine du listing (`tabindex="-1"`
+posé à ce moment-là), jamais `body`. `<x-meilifacets::facets
+:with-apply="false">` cède le sien ; sans l'attribut, le groupe rend son bouton comme avant, à
+l'octet. Plusieurs « Appliquer » sur une page sont légitimes : c'est une commande, pas un contrôle
+qui tient un état (la garde `placeSort()` ne vaut que pour les contrôles).
+
+**« Tout effacer » en icône** (`<x-meilifacets::reset shape="icon" />`, `data-shape="icon"`). Bouton
+rond et carré, nommé par `aria-label` (« Clear all »/« Tout effacer »), icône `images/trash.svg` en
+`<img alt="" width="20" height="20" loading="lazy" fetchpriority="low" decoding="async">`. Le slot
+`icon` la remplace, un slot vide la retire. Les autres formes gardent la vue texte.
+
+**« Tout effacer » en pilule** (`<x-meilifacets::reset shape="pill" />`, `data-shape="pill"`) : la vue
+texte, arrondie et paddée comme les pills des facettes (`--meili-control-inline`). Sans `shape`, le
+bouton texte garde son dessin d'origine (rayon `0.25em`, padding `0.85em`) ; `shape` accepte `text`
+(défaut), `pill` et `icon` (`ResetShape`).
+
+**Tri en radios** (`<x-meilifacets::sort widget="radios" collapsible />`, C-4). Un `<fieldset>`
+(crochet `sort-choices`) de radios (crochet `sort-choice`), repliable comme une facette. Choisir
+trie tout de suite, dans les deux modes (`D-10`). Son déclencheur n'a jamais de compteur : un tri
+est un ordre, pas un filtre. `listbox` reste le défaut ; la garde « un seul tri par page » couvre
+les deux.
+
+Le déclencheur nomme le tri en force : « Trier par : Pertinence », clé `Sort by: :choice` (le
+français met une espace insécable avant les deux-points, surchargeable par le catalogue du thème).
+Le libellé (`.meilifacetsFacetToggleLabel`) et la valeur (`.meilifacetsSortChoice`, crochet
+`sort-chosen`) sont deux `<span>` ; le séparateur est la partie du motif qui suit le libellé. Dans
+la section du tiroir, la valeur est hors de vue, mais reste dans le nom accessible ; elle s'affiche
+dans la pill à partir de `48em`. Le client la met à jour à chaque changement de tri, retour arrière
+compris.
+
+**Glisser pour fermer.** La feuille suit le doigt ou la souris depuis la poignée, l'en-tête ou un
+corps défilé tout en haut ; vers le haut, elle s'étire en résistant (sauf sur une liste qui défile,
+où le geste la fait défiler). Elle ferme au-delà d'un quart de sa hauteur, ou sur un geste rapide :
+plus de 0,11 px/ms **sur les 100 dernières ms** (un glisser lent qui s'arrête n'est pas un geste
+rapide). Le voile suit la progression. Rattrapée pendant son retour, elle repart d'où elle est. Un
+champ, un bouton ou un contrôle qui capture le pointeur (curseur de prix) ne la tire pas. En
+mouvement réduit, elle ne suit pas le doigt, mais le geste ferme toujours.
+
+**Mouvement.** La hauteur du sheet suit son contenu (mesurée à chaque changement,
+`--meili-duration-resize`, `--meili-ease-resize`). Elle est écrite en ligne **seulement tant que le
+tiroir est un sheet ouvert** : retirée à la fin de la sortie et au passage du seuil, jamais écrite en
+desktop, remesurée à chaque ouverture. De même pour la position et le voile d'un glisser, retirés si
+le tiroir ferme ou dépasse le seuil en cours de geste ; une section s'ouvre en fondu et léger scale,
+sur une durée qui suit la hauteur ajoutée (`clamp(150ms, |Δh| / 500 s, 270ms)`, sortie ×0,75,
+`--meili-ease-content`). Mouvement réduit : fondus seuls, hauteur sans animation. Échap ferme sans
+animation.
+
+**Variables** sur `[data-listing]`, surchargeables : `--meili-control` (3rem), `--meili-control-min`
+(plancher tactile), `--meili-control-inline` (1.5rem), `--meili-bar-gap` (0.5rem), `--meili-section-gap` (1.5rem),
+`--meili-section-step` (1rem), `--meili-row-gap` (0.5rem), `--meili-drawer-gutter` (2rem),
+`--meili-drawer-block` (2.5rem), `--meili-panel-min` (18rem), `--meili-panel-max` (28rem),
+`--meili-panel-price` (20rem), `--meili-ease-drawer`, `--meili-duration-drawer-in` (350ms), `--meili-duration-drawer-out`
+(250ms), `--meili-duration-fade` (150ms), `--meili-duration-hover` (150ms, toutes les transitions de
+survol : fonds, bordures, couleurs, poignée du prix), `--meili-scrim`, `--meili-layer-drawer` (100).
+
+**Limite.** `position: fixed` se rattache au premier ancêtre qui porte `transform`, `filter`,
+`contain` ou `container-type` : un tel ancêtre autour du listing enferme le tiroir dans sa boîte.
+
 ## Vérifier les noms de paramètres
 
 ```bash

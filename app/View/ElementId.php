@@ -34,6 +34,41 @@ final readonly class ElementId
         return $this->of('sort', 'option', $key);
     }
 
+    public function sortPanel(): string
+    {
+        return $this->of('sort', 'panel');
+    }
+
+    public function sortSelectedCount(): string
+    {
+        return $this->of('sort', 'selected');
+    }
+
+    public function sortChoiceName(): string
+    {
+        return $this->of('sort', 'choice');
+    }
+
+    public function drawer(): string
+    {
+        return $this->of('drawer');
+    }
+
+    public function drawerTitle(): string
+    {
+        return $this->of('drawer', 'title');
+    }
+
+    public function drawerCount(): string
+    {
+        return $this->of('drawer', 'count');
+    }
+
+    public function applyCount(): string
+    {
+        return $this->of('apply', 'count');
+    }
+
     public function facetPanel(string $facet): string
     {
         return $this->facetScope($facet).'panel';

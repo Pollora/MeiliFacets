@@ -22,6 +22,9 @@ final class ElementIdTest extends TestCase
         $this->assertSame('meilifacets-products-facet-volume--selected', $ids->facetSelectedCount('volume'));
         $this->assertSame('meilifacets-products-facet-volume--count-100ml', $ids->facetCount('volume', '100ml'));
         $this->assertSame('meilifacets-products-facet-volume--label-100ml', $ids->facetValueLabel('volume', '100ml'));
+        $this->assertSame('meilifacets-products-drawer', $ids->drawer());
+        $this->assertSame('meilifacets-products-drawer-title', $ids->drawerTitle());
+        $this->assertSame('meilifacets-products-drawer-count', $ids->drawerCount());
     }
 
     #[Test]
@@ -53,7 +56,7 @@ final class ElementIdTest extends TestCase
             $source[$ids->sortOption($key)][] = "sortOption({$key})";
         }
 
-        foreach ([$ids->sortLabel(), $ids->sortTrigger(), $ids->sortList()] as $fixed) {
+        foreach ([$ids->sortLabel(), $ids->sortTrigger(), $ids->sortList(), $ids->drawer(), $ids->drawerTitle(), $ids->drawerCount(), $ids->applyCount(), $ids->sortPanel(), $ids->sortSelectedCount(), $ids->sortChoiceName()] as $fixed) {
             $source[$fixed][] = 'fixed';
         }
 

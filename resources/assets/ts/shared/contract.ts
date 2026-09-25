@@ -21,9 +21,12 @@ const RULES: Rule[] = [
     { host: 'facet', hooks: ['panel'], whenHolding: 'toggle' },
     { host: 'pagination', hooks: ['page', 'previous', 'next'] },
     { host: 'sort', hooks: ['sort-trigger', 'sort-list', 'sort-option'] },
+    { host: 'sort-choices', hooks: ['sort-choice'] },
+    { host: 'sort-choices', hooks: ['panel'], whenHolding: 'toggle' },
     { host: 'price-range', hooks: ['price-track', 'price-handle'] },
     { host: 'active-values', hooks: ['active-value-template'] },
     { host: 'active-value-template', hooks: ['active-value'] },
+    { host: 'drawer', hooks: ['drawer-title', 'drawer-close'] },
 ]
 
 /** Mirrors the Hook enum: the two lists diverging in silence is what VERSION guards against. */

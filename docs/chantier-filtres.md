@@ -123,24 +123,30 @@ met le compteur à jour ; retirer une pastille décoche la valeur ; « Annuler �
 - [x] cible de 2.75rem au pointeur grossier pour la pastille (44 px mesurés en 3a et 3b) ; les rangées de cases restent à 37,8 px au pointeur grossier, comme avant le chantier — au-dessus du minimum AA (24 px, WCAG 2.5.8), sous la cible AAA de la décision « Hauteur des contrôles », qui ne vise que les boutons : à revoir à l'étape 6
 - [x] colonne actuelle rendue à l'identique quand rien n'est configuré (3a : HTML identique ; 3b : seuls `aria-labelledby` et l'id du libellé s'ajoutent, positions à 0,1 px)
 
-### 4 · Facette repliable (rangée desktop) — ⏳ en cours (4a et 4c livrées)
+### 4 · Facette repliable (rangée desktop) — ⏳ en cours (4a, 4b et 4c livrées)
 
 - [x] C-4 tranché (tri en radios par attribut, `SortWidget`)
 - [x] 4a · pill déclencheur + badge du nombre de valeurs cochées (`R-170`, 2026-09-24) ; prix repris en 4c
 - [x] 4a · panneau déroulant, un seul ouvert à la fois, fermeture par Échap, clic extérieur et focus parti ; sections indépendantes sous `[aria-modal="true"]` (point d'extension de l'étape 5)
+- [x] 4b · tri en radios repliable (`R-174`, 2026-09-25, non commité) : `SortWidget`, crochets `sort-choices`/`sort-choice`, badge jamais rempli, tri immédiat dans les deux modes (`D-10`), garde `placeSort()` pour les deux widgets
+- [x] mobile first (2026-09-25, Louis) : section d'accordéon en ligne en base, panneau flottant ≥ 48em, `DisclosureGroup` lit la feuille
 - [x] 4c · prix dans un panneau fermé (`R-172`, 2026-09-24) : poignées en fraction CSS, piste mesurée à chaque mouvement — rien n'était mis en cache ; badge à 1 si une plage est tenue (`priceFilterCount()`, `R-123`)
 - [ ] « Voir plus » dans un panneau (`R-46`, `R-82`–`R-86`)
 - [ ] zéro résultat : la barre ne disparaît pas entièrement (`R-49`)
 - [x] UX-1 · le panneau reste ouvert pendant une multi-sélection ; le focus ne bouge pas quand la grille est repeinte (4a, test ts en `immediate`)
 - [x] UX-2 · un panneau qui déborderait à droite s'aligne sur le bord droit de sa pill (4a, `data-align-end` ; revérifié sur « Prix » en 4c : 390 px, panneau 159–355, bord droit sur la pill)
 
-### 5 · Tiroir mobile — à venir
+### 5 · Tiroir mobile — ⏳ livré le 2026-09-25, non commité, en attente de validation
 
 - [x] C-1, C-2 et C-3 tranchés
-- [ ] ouvreur « Filtre (n) » (crochet `active-count`) promouvant le conteneur des filtres en bottom sheet (option A : pas de `<dialog>`, `role="dialog"` + `aria-modal` + `inert` sur l'entourage, jamais `display: contents`)
-- [ ] même DOM que la rangée desktop (`R-95`) : aucun filtre dupliqué
-- [ ] sections en accordéon, pied « Annuler » / « Appliquer (N) »
-- [ ] UX-3 · défilement de la page verrouillé, `overscroll-behavior: contain`, en-tête et pied collants, hauteur max en `dvh`, `env(safe-area-inset-bottom)` sous le pied
+- [x] 5a (`R-173`) · ouvreur « Filters » (pastille `active-count`, icône `filters.svg`) promouvant le conteneur des filtres en bottom sheet (option A : pas de `<dialog>`, `role="dialog"` + `aria-modal` + `inert` sur l'entourage, jamais `display: contents`)
+- [x] même DOM que la rangée desktop (`R-95`) : aucun filtre dupliqué ; tri et facettes dans le tiroir, qui est la rangée en desktop
+- [x] sections en accordéon indépendantes ; 5b (`R-175`) · pied « Tout effacer » (icône) / « Appliquer (X) » (`apply visible-in-drawer`, `:with-apply="false"`)
+- [x] morph poubelle ↔ « Appliquer » (2026-09-25, `R-175`) : seule la largeur d'« Appliquer » est animée (270 ms `--meili-ease-resize`), poubelle hors flux, entrée 200 ms par `@starting-style`, sortie 150 ms par `display … allow-discrete` ; mouvement réduit : fondu seul, largeur instantanée
+- [x] valeurs gardées en place dans un panneau ouvert (2026-09-25, `R-173`) ; sections refermées après la sortie du tiroir ; « Appliquer » sheet-only en `immediate`
+- [x] UX-3 · défilement de la page verrouillé (`:root:has(...)`), `overscroll-behavior: contain`, en-tête et pied hors du défilement (seul le corps défile), hauteur max `100dvh - 4.5rem`, `env(safe-area-inset-bottom)` sous le pied
+- [x] glisser pour fermer (ANIM-12, avancé à la demande de Louis), poignée, hauteur qui suit le contenu
+- [x] finitions (2026-09-25, `R-173`/`R-175`, non commité) : `apply visible-in-drawer`, focus rendu après la poubelle (`ResetFocus`), valeurs à 0 en `aria-disabled` (focus gardé, coche refusée), grille différée derrière le sheet (`HeldPaint`), styles en ligne du sheet retirés hors ouverture, `filters.svg` en `#000`, `reset shape="pill"` et dessin de la colonne rendu à `25a5aa3` hors hauteur
 
 ### 6 · Accessibilité — à venir
 
@@ -159,17 +165,22 @@ confirmés avec les skills `pick-ui-library`, `css-animations`, `animation-acces
 Recommandations retenues le 2026-09-24 (revue `emil-design-eng`) :
 
 - [ ] ANIM-1 · prérequis : `[data-meili][hidden]` sans `!important` sur les briques animées, sorties par `transition-behavior: allow-discrete` + `@starting-style` (`R-89`)
+- [x] ANIM-1 · pour le tiroir : état par `aria-modal` + `visibility` différée, sans passer par `hidden` (`R-173`) ; reste à faire pour les autres briques
+- [x] ANIM-2 · tokens (tiroir : `--meili-ease-drawer`, `--meili-duration-drawer-in/out`, `--meili-duration-fade`, `--meili-ease-resize`, `--meili-ease-content`, `--meili-duration-resize`, `--meili-duration-content`, 2026-09-25) ; reste, pour les autres briques :
 - [ ] ANIM-2 · tokens `--meili-ease-out` (`cubic-bezier(0.23, 1, 0.32, 1)`), `--meili-ease-drawer` (`cubic-bezier(0.32, 0.72, 0, 1)`), `--meili-duration-*` sur `[data-listing]`, surchargeables par le thème
-- [ ] ANIM-3 · panneau desktop : `opacity` + `translateY(-4px) scale(0.97)`, `transform-origin` côté pill ; entrée 180 ms, sortie 120 ms
-- [ ] ANIM-4 · pas d'animation au passage d'une pill à l'autre (`data-instant`) ni à la fermeture par Échap
-- [ ] ANIM-5 · tiroir : `translateY(100%)` → `0`, `--meili-ease-drawer`, ≈ 350 ms entrée / 250 ms sortie ; voile en `opacity` seule, pas de `backdrop-filter`
+- [x] ANIM-3 · panneau desktop : entrée 180 ms, sortie 120 ms (`--meili-duration-panel-in/out`), mesuré le 2026-09-25 (`R-176`) ; `transform-origin` côté pill déjà en place
+- [ ] ANIM-3 · keyframes `translateY(-4px) scale(0.97)` : le panneau garde `scale(0.96)` sans translation, non repris dans `R-176`
+- [x] ANIM-4 · pas d'animation au passage d'une pill à l'autre (`data-instant`) ni à la fermeture par Échap ou par Tab, mesuré le 2026-09-25 (`R-176`)
+- [x] ANIM-5 · tiroir, mesuré (350/250 ms, voile 50 % en opacité) — `R-173`
+- [x] ANIM-6 · sections (dans et hors du tiroir) : fondu + scale 0.96 par WAAPI, durée selon la hauteur, sortie ×0,75, chevron 160 ms — `R-173`
 - [ ] ANIM-6 · accordéon : rotation du chevron 200 ms, contenu en `opacity` + `translateY(4px)` ; hauteur par `interpolate-size: allow-keywords` en amélioration progressive, jamais `height` animée à la main
-- [ ] ANIM-7 · pills : `:active { transform: scale(0.97) }` 160 ms ; survol sous `@media (hover: hover) and (pointer: fine)`
-- [ ] ANIM-8 · badge : entrée `scale(0.9)` + `opacity` par `@starting-style` au passage 0 → 1 ; un changement de chiffre ne s'anime pas
+- [x] ANIM-7 · appui, livré le 2026-09-25 (`R-173`) : « Appliquer » et ouvreur `scale(0.97)` 150 ms, poubelle `scale(0.94)` 150 ms, pastilles de valeur `scale(0.96)` 120 ms, neutralisés en mouvement réduit (mesuré) ; survol déjà sous `(hover: hover) and (pointer: fine)`
+- [x] ANIM-8 · badge `active-count`, livré le 2026-09-25 (`R-173`) : entrée `opacity` 0 + `scale(0.9)`, 150 ms `--meili-ease`, au seul passage 0 → 1 — par WAAPI (`CountEntry`), pas `@starting-style`, qui jouerait au premier rendu et à chaque passage du seuil ; fondu seul en mouvement réduit
 - [ ] ANIM-9 · pastilles actives : entrée `opacity` + `scale(0.95)` 150 ms, pas d'animation de sortie
 - [ ] ANIM-10 · grille : `aria-busy`, atténuation seulement au-delà de ~150 ms de recherche
+- [x] ANIM-11 · pour le tiroir et les sections : plus de `transform`, fondu 150 ms, hauteur sans animation (mesuré) ; reste, pour les autres briques :
 - [ ] ANIM-11 · `prefers-reduced-motion` : plus de `translate`/`scale`, fondus conservés (tiroir en fondu 150 ms)
-- [ ] ANIM-12 · option, plus tard : glisser pour fermer le tiroir, avec vitesse du geste (skill `gesture-ui`)
+- [x] ANIM-12 · glisser pour fermer, livré le 2026-09-25 (vitesse sur 100 ms, seuils Vaul, étirement vers le haut, voile lié) ; **au doigt** seulement depuis `R-176` (il ne démarrait jamais au toucher), validé en tactile CDP le 2026-09-25
 - [ ] ANIM-13 · question au graphiste : intention d'animation du composant Figma « Animation filtrage » (le MCP n'y trouve aucune donnée de mouvement)
 
 ### 8 · Habillage Pluralia — à venir
@@ -196,3 +207,7 @@ relevés dans Playwright).
 | 2026-09-24 | 3 | 3a présentation par facette (`R-164`, contrat ouvert `ValuePresentation`, surcharge par gabarit confirmée) ; 3b compteur hors du nom (`R-151`, option C `aria-labelledby`), vue `facet` sans calcul, bouton « Voir plus » habillé (`R-168`), `R-169` ouvert — étape fermée ; titres des étapes 4 et 5 remis au vocabulaire de l'architecture v2 |
 | 2026-09-24 | 4a | `R-170` : `collapsible` sur `facet`/`facets` (prix exclu), déclencheur dans la `<legend>`, badge décrit (`aria-describedby`, `aria-hidden`, vidé à zéro), panneau fermé serveur, `DisclosureGroup` + `SelectedCountView`, UX-1/UX-2 ; HTML sans `collapsible` identique à l'octet ; `collapsible` posé sur `<x-meilifacets::facets>` dans le thème, non commité ; `R-171` ouvert (réglages d'index sans le prix, suite `Modules` rouge avant comme après) |
 | 2026-09-24 | 4c | `R-172` : `collapsible` sur `price`, exclusion de `Facets::collapses()` retirée ; aucune mesure en cache (poignées en `--at`, `ratioAt()` relu à chaque mouvement), donc aucun code de mesure changé ; badge par `SelectionHolder` (`FacetsView`, `PriceControl`) ; HTML sans `collapsible` identique à l'octet ; vérifié en `immediate` (config de Pluralia non commitée), `submit` couvert par les tests TS |
+| 2026-09-25 | 5a, 4b, 5b | `R-173` tiroir (ouvreur, dialog, `inert`, verrou, poignée, glisser, hauteur suivie, sections animées), refonte mobile first des repliables, `R-174` tri en radios, `R-175` pied « Tout effacer / Appliquer » ; `--meili-control` 3rem ; thème recomposé en rangée pleine largeur, non commité ; `ActiveValuesComponentTest` lit le catalogue ; suite `Modules` 508 verte |
+| 2026-09-25 | 5a, 5b (suite) | `R-173` : espacements Figma exacts (40 / 24 × 32 / 32 / 16 × 32), encre Pluralia sortie du module, repos du tiroir sans transition (`data-closing`), sections refermées après la sortie, valeurs à 0 gardées en place panneau ouvert, badge 0 → 1, appuis, panneaux desktop élargis (`--meili-panel-*`) ; `R-175` : morph poubelle ↔ « Appliquer », « Appliquer » sheet-only en `immediate` ; « Tout effacer » texte en pastille (Louis) ; suite `Modules` 511 verte, non commité |
+| 2026-09-25 | 5a, 5b (finitions) | `visible-in-drawer`, focus après la poubelle, `aria-disabled`, grille différée derrière le sheet (INP 64–112 ms, ×4), hauteur en ligne retirée hors sheet ouvert, `filters.svg` `#000`, `reset shape="pill"` ; audit colonne contre `25a5aa3` : 0 écart calculé hors hauteur ; `composer check` vert, suite `Modules` 512 verte, non commité |
+| 2026-09-25 | 5a (revue animations) | `R-176` : glisser au doigt (exclusions par sélecteur au lieu de `hasPointerCapture`), tiroir `inert` pendant la sortie, ✕ sans `scale` au focus, panneaux 180/120 ms et instantanés au clavier et de pill à pill (ANIM-3, ANIM-4), mouvement réduit (sortie de section 150 ms, fondu du tri 160 ms) ; client 484 verts, suite `Modules` 512 verte, non commité |

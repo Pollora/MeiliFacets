@@ -9,14 +9,18 @@ import { ResultsView } from '../results/results-view.ts'
 import { RESULTS } from '../shared/plan.ts'
 import { SortCombobox } from '../sort/sort-combobox.ts'
 import { SortQuery } from '../sort/sort-query.ts'
+import { SortRadios } from '../sort/sort-radios.ts'
 import { TotalView } from './total-view.ts'
 import { ActiveValuesView } from './active-values-view.ts'
 import { SelectionCountView } from './selection-count-view.ts'
 import { DisclosureGroup } from '../collapsible/disclosure-group.ts'
 import { SelectedCountView } from '../collapsible/selected-count-view.ts'
+import { ListingDrawers } from '../drawer/listing-drawers.ts'
+import { ResetFocus } from './reset-focus.ts'
 
 import type { ListingDescription } from '../shared/description.ts'
 import type { ListingState } from './listing-state.ts'
+import type { SearchAnswer } from '../shared/search-client.ts'
 import type { ChangeDetail, Listing, ResultsDetail } from './listing.ts'
 
 /** Ties the theme's markup to the listing: it listens on the root, and reads hooks, never classes. */
@@ -28,6 +32,7 @@ export class ListingBinding {
     #facets: FacetsView
     #pagination: PaginationView
     #sort: SortCombobox
+    #sortRadios: SortRadios
     #price: PriceControl
     #summary: FilterSummaryView
     #selectionCount: SelectionCountView
@@ -36,6 +41,8 @@ export class ListingBinding {
     #total: TotalView
     #activeValues: ActiveValuesView
     #sortQuery: SortQuery
+    #drawers: ListingDrawers
+    #resetFocus: ResetFocus
 
     constructor(contract: Contract, listing: Listing, description: ListingDescription) {
         this.#root = contract.root
@@ -45,14 +52,17 @@ export class ListingBinding {
         this.#facets = new FacetsView(contract, description)
         this.#pagination = new PaginationView(contract)
         this.#sort = new SortCombobox(contract, (sort) => this.#listing.sortBy(sort))
+        this.#sortRadios = new SortRadios(contract, (sort) => this.#listing.sortBy(sort))
         this.#sortQuery = new SortQuery(description.sortFilters)
         this.#summary = new FilterSummaryView(contract, description)
         this.#selectionCount = new SelectionCountView(contract)
         this.#price = new PriceControl(contract, description, (min, max) => this.#listing.priceBetween(min, max))
         this.#selectedCount = new SelectedCountView(contract, [this.#facets, this.#price])
-        this.#disclosures = new DisclosureGroup(contract)
+        this.#disclosures = new DisclosureGroup(contract, () => this.#facets.refold())
         this.#total = new TotalView(contract, description)
         this.#activeValues = new ActiveValuesView(contract, description, listing)
+        this.#drawers = new ListingDrawers(contract, this.#disclosures)
+        this.#resetFocus = new ResetFocus(contract)
     }
 
     start() {
@@ -62,9 +72,11 @@ export class ListingBinding {
         this.#listing.addEventListener('results', (event) => this.#repaint((event as CustomEvent<ResultsDetail>).detail))
         this.#listing.listenToHistory()
         this.#sort.start()
+        this.#sortRadios.start()
         this.#price.start()
         this.#activeValues.start()
         this.#disclosures.start()
+        this.#drawers.start()
 
         return this
     }
@@ -76,6 +88,12 @@ export class ListingBinding {
             return
         }
 
+        if (this.#facets.refuses(input)) {
+            input.checked = false
+
+            return
+        }
+
         const taxonomy = this.#facets.taxonomyOf(input)
 
         if (taxonomy !== undefined) {
@@ -84,6 +102,10 @@ export class ListingBinding {
     }
 
     #clicked(event: Event) {
+        if (this.#refused(event)) {
+            return
+        }
+
         const more = this.#hookOf(event.target, 'more')
 
         if (more !== null) {
@@ -97,20 +119,30 @@ export class ListingBinding {
         }
     }
 
+    /** Cancelling the click unticks the box before any `change` is fired. */
+    #refused(event: Event) {
+        const input = this.#hookOf(event.target, 'input')
+        const refused = input instanceof HTMLInputElement && this.#facets.refuses(input)
+
+        if (refused) {
+            event.preventDefault()
+        }
+
+        return refused
+    }
+
     /**
      * Whether the click was one of the gestures that replace the grid. The sort
      * is picked inside the combobox, so only its choice is seen here.
      */
     #acted(event: Event) {
         if (this.#hookOf(event.target, 'apply')) {
-            void this.#listing.apply()
+            this.#applied()
 
             return true
         }
 
-        if (this.#hookOf(event.target, 'reset')) {
-            this.#listing.reset()
-
+        if (this.#resetFrom(event.target)) {
             return true
         }
 
@@ -127,6 +159,23 @@ export class ListingBinding {
         this.#listing.goToPage(page)
 
         return true
+    }
+
+    #resetFrom(target: EventTarget | null) {
+        const reset = this.#hookOf(target, 'reset')
+
+        if (reset !== null) {
+            this.#listing.reset()
+            this.#resetFocus.landFrom(reset)
+        }
+
+        return reset !== null
+    }
+
+    #applied() {
+        if (!this.#listing.searchesAtOnce) {
+            void this.#listing.apply()
+        }
     }
 
     #reveal(event: Event) {
@@ -150,6 +199,7 @@ export class ListingBinding {
     #moved({ state }: ChangeDetail) {
         this.#facets.showSelection(state)
         this.#sort.show(state)
+        this.#sortRadios.show(state)
         this.#price.show(state)
         this.#summary.show(state)
         this.#selectionCount.show(state)
@@ -158,15 +208,23 @@ export class ListingBinding {
 
     #repaint({ answers, state }: ResultsDetail) {
         const results = answers[RESULTS] ?? {}
+
+        this.#facets.showCounts(new FacetCounts(answers))
+        this.#price.showBounds(answers, state)
+        const matches = this.#sortQuery.matchesIn(results.facetDistribution ?? {})
+
+        this.#sort.showMatches(matches, state)
+        this.#sortRadios.showMatches(matches, state)
+        this.#total.show(results.totalHits ?? 0)
+        this.#activeValues.show(state)
+        this.#drawers.paintPage(() => this.#repaintGrid(results, state))
+    }
+
+    #repaintGrid(results: SearchAnswer, state: ListingState) {
         const pageWindow = this.#pageWindowOf(state, results.totalHits ?? 0)
 
         this.#results.show((results.hits ?? []).map((hit) => hit.card ?? {}), pageWindow)
-        this.#facets.showCounts(new FacetCounts(answers))
-        this.#price.showBounds(answers, state)
-        this.#sort.showMatches(this.#sortQuery.matchesIn(results.facetDistribution ?? {}), state)
         this.#pagination.show(pageWindow)
-        this.#total.show(results.totalHits ?? 0)
-        this.#activeValues.show(state)
     }
 
     #pageWindowOf(state: ListingState, total: number) {

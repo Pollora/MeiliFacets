@@ -24,7 +24,8 @@ const CLASSES = [
     'SVGElement',
 ] as const
 
-export type TestWindow = Window & typeof globalThis
+/** `happyDOM` resizes the window, and the stylesheet's media queries follow. */
+export type TestWindow = Window & typeof globalThis & { happyDOM: { setViewport(viewport: { width: number, height: number }): void } }
 
 export const find = <E extends Element = HTMLElement>(scope: ParentNode, selector: string) => {
     const node = scope.querySelector(selector)
@@ -84,7 +85,7 @@ export const open = (markup: string, options: { styled?: boolean } = {}) => {
 
 /** `detail` tells a real click from one the keyboard raised, and the client reads it. */
 export const click = (window: TestWindow, node: Element, detail = 1) => {
-    node.dispatchEvent(new window.MouseEvent('click', { bubbles: true, detail }))
+    node.dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true, detail }))
 }
 
 export const clickFromKeyboard = (window: TestWindow, node: Element) => click(window, node, 0)
@@ -137,7 +138,7 @@ const OPEN: Folding = { legend: (_name, label) => label, panel: '' }
 const COLLAPSIBLE: Folding = {
     legend: (name, label) => `<button type="button" class="meilifacetsFacetToggle" aria-expanded="false"
                 aria-controls="panel-${name}" aria-describedby="selected-${name}" data-meili="toggle">
-            <span class="meilifacetsFacetToggleLabel">${label}</span>
+            <span class="meilifacetsFacetToggleName"><span class="meilifacetsFacetToggleLabel">${label}</span></span>
             <span class="meilifacetsFacetSelected" id="selected-${name}" aria-hidden="true" hidden data-meili="selected-count"></span>
         </button>`,
     panel: ' hidden data-meili="panel"',

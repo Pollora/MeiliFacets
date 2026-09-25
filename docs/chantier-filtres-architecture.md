@@ -29,7 +29,7 @@ Changements depuis la v1 :
 | Compteur | `<x-meilifacets::total>` | `total` | `TotalView` | « 88 articles », dans une région `aria-live="polite"`. |
 | Pastilles actives | `<x-meilifacets::active-values>` | `active-values`, `active-value`, `active-value-template` | `ActiveValuesView` | C-7 : `<button name value>` retirable, prix compris. Clonée depuis un `<template>`. |
 | Annuler | `<x-meilifacets::reset>` | `reset` | `FilterSummaryView` | C-2 : inchangée. Le thème surcharge la vue et la traduction. |
-| Appliquer | `<x-meilifacets::apply>` + `always` | `apply`, `active-count` | `SelectionCountView` | « Appliquer (X) ». En `submit`, lance la recherche. Avec `always`, le bouton est aussi rendu en `immediate`, sans recherche en plus. |
+| Appliquer | `<x-meilifacets::apply>` + `visible-in-drawer` | `apply`, `active-count` | `SelectionCountView` | « Appliquer (X) ». En `submit`, lance la recherche. Avec `visible-in-drawer`, le bouton est aussi rendu en `immediate`, sans recherche en plus, visible seulement dans le tiroir en sheet. |
 | Tiroir | `<x-meilifacets::drawer>` + `heading`, `media`, slot `footer` | `drawer`, `drawer-title`, `drawer-close` | `Drawer`, `InertPage` | Conteneur ordinaire : en-tête « Filtre ✕ », corps (slot), pied. |
 | Ouvreur | `<x-meilifacets::drawer-opener>` | `drawer-open`, `active-count` | `Drawer`, `SelectionCountView` | « Filtre (n) ». Le CSS du module le masque hors mobile. |
 
@@ -62,7 +62,7 @@ Changements depuis la v1 :
             <x-meilifacets::facets collapsible :with-apply="false" />
             <x-slot:footer>
                 <x-meilifacets::reset />
-                <x-meilifacets::apply always />
+                <x-meilifacets::apply visible-in-drawer />
             </x-slot:footer>
         </x-meilifacets::drawer>
         <x-meilifacets::total class="ml-auto" />
@@ -131,6 +131,7 @@ Tous sont additifs : `Contract::VERSION` reste à 1 (`R-116`). Il faut **demande
 | --- | --- | --- |
 | `toggle`, `panel`, `selected-count` | Déclencheur, panneau, badge | `facet` et `sort-choices` qui contiennent un `toggle` exigent un `panel` (`whenHolding`) |
 | `sort-choices`, `sort-choice` | Tri en radios | l'hôte exige `sort-choice` |
+| `sort-chosen` | Tri en force, dans le déclencheur du tri repliable (`R-174`) | optionnel |
 | `total` | Compteur de résultats | optionnel |
 | `active-values`, `active-value`, `active-value-template` | Pastilles | l'hôte exige le template |
 | `active-count` | Nombre nu (n, X) | optionnel |
@@ -157,7 +158,7 @@ Un thème qui a surchargé `facet.blade.php` n'a pas de `toggle` : il ne déclen
 
 **5 · Tiroir (mobile)**
 - 5a `Drawer`, ouvreur, `InertPage`, `matchMedia`. Tests : ts (ARIA posé puis retiré, `inert` restauré, Échap, focus rendu à l'ouvreur, fermeture au passage en desktop) ; Feature (règles du contrat).
-- 5b `Apply` autonome et `always`, accordéon dans le tiroir (C-1, C-3). Tests : ts pour les deux modes (pas de recherche en `immediate`, fermeture) ; Feature (`withApply`).
+- 5b `Apply` autonome et `visible-in-drawer`, accordéon dans le tiroir (C-1, C-3). Tests : ts pour les deux modes (pas de recherche en `immediate`, fermeture) ; Feature (`withApply`).
 
 ## 7. Risques et questions ouvertes
 

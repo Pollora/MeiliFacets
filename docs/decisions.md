@@ -58,7 +58,7 @@ Voir aussi : [installation.md](installation.md) · [architecture.md](architectur
 | Tri des valeurs de facette | le moteur compte (`sortFacetValuesBy`), la facette déclare l'ordre d'affichage — `DisplayOrder`, ou un `ValueOrder` que le projet fournit |
 | Comparaison par nom (`NameOrder`) | `Collator` avec `NUMERIC_COLLATION`, construit sur `get_locale()` — donc l'ordre suit la langue de WordPress, celle qui a produit les libellés, et non celle de Laravel. Sans `ext-intl`, repli sur `strnatcasecmp` : documenté, jamais silencieux. *Au 2026-09-22, documenté (`suggest`, `architecture.md`) mais sans signal à l'exécution.* Conséquence assumée : `Name` devient sensible à la casse au niveau tertiaire, là où `strnatcasecmp` mettait `abc` et `ABC` à égalité |
 | Facette qui mélange les grandeurs | **on lit l'ordre que WooCommerce porte déjà** (`DisplayOrder::Declared`), on ne le devine pas depuis le libellé. *Renversé le 2026-09-08 — `MeasureOrder` analysait `15ml` au rendu ; supprimé.* |
-| Hauteur des contrôles | `--meili-control` en `rem` — `2.25rem` (36 px), `2.75rem` (44 px) au pointeur grossier, la cible que demande WCAG 2.5.5. *Était `2.4em`, soit 33,6 px : un multiplicateur sur la propre `font-size` du bouton tombe sur une valeur bâtarde. Coût du `rem` : un thème qui grossit `--meili-ui` n'agrandit plus les contrôles — la hauteur d'un contrôle est une contrainte d'ergonomie, pas une conséquence de la taille du texte. Tranché le 2026-09-09.* |
+| Hauteur des contrôles | `--meili-control` en `rem` — **`3rem` (48 px) depuis le 2026-09-25**, dimension reprise de la maquette (pills h 48, nœuds Figma `17:643`, `17:514`, `17:523`, `17:98`), couleurs et polices restant neutres ; au pointeur grossier, un plancher `--meili-control-min: 2.75rem` (44 px, WCAG 2.5.5) que chaque hauteur lit par `max()`, pour qu'un thème qui baisse `--meili-control` ne descende jamais sous la cible tactile et que le pointeur grossier ne réduise jamais la hauteur. Padding latéral `--meili-control-inline: 1.5rem` sur `toggle`, `drawer-open`, `sort-trigger`, `active-value`, gap interne `0.5rem`. *Était `2.25rem`, `2.75rem` au pointeur grossier (2026-09-09), padding `0 0.85em`.* *Était `2.4em`, soit 33,6 px : un multiplicateur sur la propre `font-size` du bouton tombe sur une valeur bâtarde. Coût du `rem` : un thème qui grossit `--meili-ui` n'agrandit plus les contrôles — la hauteur d'un contrôle est une contrainte d'ergonomie, pas une conséquence de la taille du texte. Tranché le 2026-09-09.* |
 | Bouton de dépliage | rendu même quand il n'y a rien à déplier : le client le révèle, il n'en crée aucun |
 | Livraison du client ES | **un seul module empaqueté** par esbuild, minifié, **commité** dans `resources/assets/dist/` et versionné par `?ver=` comme aujourd'hui. *Renversé le 2026-09-16 : c'était un répertoire portant l'empreinte (`R-70`, 2026-09-08), écarté pour ne faire entrer aucune chaîne d'outils ; la performance du client est devenue une priorité.* |
 | Taille de page | dérivée du contexte au rendu, jamais recopiée en configuration |
@@ -682,6 +682,135 @@ Rien de ce qui suit n'est acquis.
   secondes et annule la précédente à chaque nouvelle ; ce qu'il fait après plusieurs échecs
   d'affilée n'est pas tranché.
 - **Stratégie de cache HTTP** des pages de listing.
+- **Tiroir, barre de filtres et repliables : choix des étapes 5a, 4b et 5b** (`R-173`, `R-174`,
+  `R-175`, 2026-09-25, à valider par Louis ; les points marqués « Louis » sont ses consignes).
+  - *État ouvert/fermé* : porté par `aria-modal`, que la feuille lit ; fermé, le tiroir mobile est
+    `visibility: hidden`, hors de la tabulation et de l'arbre d'accessibilité. **Au repos, aucune
+    transition** (2026-09-25, bug de Louis « le tiroir descend au chargement ») : les transitions de
+    sortie ne vivent que sous `[data-closing]`, posé par `Drawer` à la fermeture et retiré quand les
+    animations du tiroir (`getAnimations({ subtree: true })`) sont finies ; une réouverture ou une
+    seconde fermeture entre-temps l'emporte (compteur de fermetures). Coût : un attribut d'état en plus
+    de l'ARIA — l'ARIA dit « ouvert », `data-closing` dit « en train de partir », deux faits
+    distincts. Sans lui, une transition portée par l'état fermé joue dès qu'un style arrive après le
+    premier rendu et à chaque passage du seuil `48em`. *Précision* : une transition l'emporte sur une
+    déclaration `!important` dans la cascade ; `hidden` + `display … allow-discrete` fonctionne donc
+    malgré `[data-meili][hidden]{display:none !important}` (panneaux, poubelle — mesuré). La phrase
+    précédente de cette décision affirmait le contraire.
+  - *Sections refermées « a posteriori »* (Louis, 2026-09-25) : à la fin de la sortie du tiroir,
+    `Drawer` rappelle `DisclosureGroup::collapseWithin()`, qui ferme ses sections sans animation
+    (`PanelMotion::drop()`). En desktop, « Appliquer » ferme le panneau flottant comme tout clic
+    extérieur (déjà le cas, test ajouté).
+  - *Valeurs gardées en place* (Louis, 2026-09-25) : amende « Une valeur de facette est rendue dès
+    que le listing non filtré la propose » — une valeur à 0 visible dans un panneau **ouvert** reste à
+    sa place, **`aria-disabled="true"`** (sauf cochée) et atténuée (`opacity: 0.4`, neutre), et garde
+    son rang pour le repli ; elle part à la fermeture du panneau (`DisclosureGroup` →
+    `FacetsView::refold()`, après la sortie). Une valeur à 0 absente ne revient pas. *Amendé le
+    2026-09-25 (Louis)* : `aria-disabled` plutôt que `disabled`, pour que la case garde le focus
+    qu'elle tenait et reste annoncée « indisponible » ; le client annule le clic (donc Espace) sur une
+    case `aria-disabled` non cochée (`FacetsView::refuses()`, `preventDefault()` avant tout `change`)
+    et refuse un `change` qui la cocherait. Une case cochée n'est jamais `aria-disabled` : elle reste
+    décochable. Coût : le refus est du code client, là où `disabled` était natif.
+  - *Morph poubelle ↔ « Appliquer »* (Louis, 2026-09-25) : dans le pied du tiroir, la poubelle
+    (`reset` `data-shape="icon"`) est hors flux, au bord de début ; « Appliquer » a une largeur
+    explicite (`100 %` ou `100 % − poubelle − 16 px`), seule propriété de mise en page animée, et
+    seulement tiroir ouvert — jamais au chargement ni au passage du seuil. Pas d'`interpolate-size` :
+    les deux bornes sont des longueurs. Sortie de la poubelle par `hidden` + `display … allow-discrete`
+    (même mécanisme que les panneaux), `interactivity: inert` et `pointer-events: none` pendant ses
+    150 ms. Écarté : un attribut d'état + `visibility` (un état de plus pour ce que `hidden` dit déjà).
+  - *Badge `active-count`* : entrée par WAAPI au seul passage 0 → 1 (`CountEntry`), pas par
+    `@starting-style`, qui jouerait au premier rendu et quand un seuil réaffiche l'ouvreur.
+  - *« Appliquer » en `immediate`* (Louis, 2026-09-25) : `visible-in-drawer` le rend avec `data-only="sheet"`, masqué partout par la feuille sauf
+    dans le tiroir en sheet (JS actif, `< 48em`), où il ferme sans rechercher ; absent en desktop ; en
+    `submit`, visible partout. Pas de seuil en TypeScript.
+  - *Focus après « Tout effacer »* (Louis, 2026-09-25) : une remise à zéro qui se masque rend le focus
+    à « Appliquer » du même tiroir (ou voisin hors tiroir), sinon au titre du tiroir en sheet, sinon à
+    la racine du listing, qui reçoit `tabindex="-1"` à ce moment-là (`ResetFocus`) ; jamais `body`. Un
+    focus déjà ailleurs n'est pas déplacé. Coût : un attribut posé par le client sur la racine.
+  - *Grille différée derrière le sheet* (Louis, 2026-09-25) : tant qu'un tiroir couvre la page
+    (ouvert, ou en train de sortir), la grille et la pagination ne sont pas repeintes ; la dernière
+    réponse seulement l'est, l'image qui suit la fin de la sortie ou le passage du seuil
+    (`HeldPaint`, `ListingDrawers`). Compteurs du tiroir, total et pastilles actives restent immédiats.
+    Ne touche pas `D-10` (l'état et la recherche partent comme avant ; seul le dessin attend). Coût :
+    derrière le voile, grille et total peuvent diverger le temps de la sortie.
+  - *Styles en ligne du sheet* (Louis, 2026-09-25) : la hauteur en ligne n'existe que tiroir ouvert en
+    sheet ; retirée à la fin de la sortie et au passage du seuil, remesurée depuis zéro à chaque
+    ouverture ; la position et le voile d'un glisser sont retirés si le tiroir ferme ou dépasse le
+    seuil en cours de geste (`DrawerGesture::cancel()`).
+  - *Variantes plutôt que remplacement* (Louis, 2026-09-25) : une brique déjà rendue en `25a5aa3`
+    garde son dessin sans attribut ; le nouveau vit derrière une variante explicite. `reset` :
+    `shape="pill"` et `shape="icon"` (`ResetShape`, `data-shape`) ; pastilles de valeur :
+    style « barre » (bordure `currentColor`, cochée inversée `CanvasText`/`Canvas`, appui
+    `scale(0.96)`) sous `:has([data-meili="toggle"])`, c'est-à-dire `collapsible` ; appui
+    `scale(0.97)` d'« Appliquer » réservé au composant `apply` (`:has(active-count)`) ; survol 150 ms
+    des rangées réservé aux repliables — levé le 2026-09-25 : tous les survols lisent
+    `--meili-duration-hover` (150 ms, `--meili-ease`), verdict Emil « cohesion matters » (coût : les
+    rangées de la colonne et la poignée du prix passent de 120 à 150 ms). Rendus à l'ancien dessin : `active-value` (padding `0.85em`,
+    gap `0.5em` — le thème Pluralia repose les 24 px), `sort-trigger` (padding `0.85em`), `reset`
+    texte (rayon `0.25em`). Seule la hauteur (`--meili-control`) change pour tous.
+  - *Panneaux flottants desktop* (Louis, 2026-09-25) : `width: max-content` entre `--meili-panel-min`
+    (18rem) et `--meili-panel-max` (28rem, borné au viewport), prix fixe `--meili-panel-price`
+    (20rem, piste ≥ 240 px).
+  - *Mobile first* (Louis) : la base d'un repliable est une section d'accordéon en ligne ; le panneau
+    flottant n'existe qu'à partir de `48em`. `DisclosureGroup` décide « flotte / en ligne » par
+    `getComputedStyle(panel).position`, pour ne pas avoir de second seuil en TypeScript. Coût : une
+    lecture de style par ouverture.
+  - *Événement consommé* : Échap marqué `preventDefault()` par qui l'a traité (liste du tri, tiroir) ;
+    `DisclosureGroup` et le tiroir ignorent un Échap déjà consommé. Le marquage des clics, essayé
+    d'abord, est devenu inutile avec le mobile first (les sections du tiroir ne flottent jamais) : il
+    a été retiré.
+  - *Poignée* : un vrai élément `aria-hidden` qui porte le crochet `drawer-close` (un tap ferme), pour
+    ne pas ajouter de crochet au contrat ; les styles du bouton ✕ sont donc limités à
+    `button[data-meili="drawer-close"]`.
+  - *Hauteur du sheet* : `SheetHeight` somme les hauteurs de ses parties en flux (le corps compté par
+    son contenu) et l'écrit à chaque changement signalé par `ResizeObserver` ; la feuille interpole.
+    C'est la seule propriété de mise en page animée, sur un seul conteneur. Le client prend le sheet
+    comme **le premier enfant du tiroir** : c'est une règle de structure, pas un crochet (en
+    ajouter un demandait l'accord de Louis).
+  - *Sections* : entrée par WAAPI, dont la durée se calcule une fois la hauteur connue ; sortie par la
+    transition `[hidden]` de la feuille, chronométrée avant de masquer. Un `@starting-style` ne
+    pouvait pas recevoir une durée mesurée après l'affichage.
+  - *Glisser* : seuils de Vaul (un quart de la hauteur, 0,11 px/ms), vitesse mesurée sur les 100
+    dernières ms. Le voile suit le geste par une propriété enregistrée **non héritée**
+    (`@property --meili-scrim-shown`), que seul `::before` hérite explicitement : le reste du tiroir
+    ne recalcule rien. La sortie passe par la transition CSS du tiroir, pas par un ressort (aucune
+    dépendance). *Complété le 2026-09-25 (`R-176`)* : les zones qui gèrent leur propre geste — champs,
+    `price-track`, `price-handle`, bouton ✕ — sont exclues **par sélecteur**, plus par
+    `hasPointerCapture()` : au doigt, Chrome capture implicitement le pointeur sur la cible du
+    `pointerdown`, si bien que le test était toujours vrai et que le glisser ne démarrait jamais.
+    Coût : une liste de crochets à tenir à jour si une brique neuve gère son propre glisser.
+  - *Tiroir `inert` pendant la sortie* (`R-176`, 2026-09-25) : posé dès `data-closing`, **après**
+    que le focus a été rendu à l'ouvreur (un nœud `inert` qui tient le focus le lâche sur `body`),
+    retiré à l'ouverture, à la fin de la sortie et au passage du seuil.
+  - *Panneaux flottants* (ANIM-3/ANIM-4, `R-176`, Louis, 2026-09-25) : entrée **180 ms** (WAAPI,
+    `--meili-duration-panel-in`, lu par `PanelMotion::pop()`), sortie **120 ms**
+    (`--meili-duration-panel-out`) — durées fixes, le panneau ne pousse rien autour de lui ; les
+    sections gardent la durée selon la hauteur. **Aucune animation** à la fermeture par Échap, par
+    Tab qui quitte le panneau, ni au passage d'une pill à l'autre : `DisclosureGroup` pose
+    `data-instant` sur le panneau, change son état, vide le style (`getAnimations()`) puis retire
+    l'attribut. Le clic souris d'ouverture et de fermeture garde son animation. Coût : un drapeau
+    « pointeur enfoncé » dans `DisclosureGroup`, parce qu'un appui déplace le focus **avant** son
+    clic — sans lui, un clic sur une autre pill passerait par la sortie « Tab » et ouvrirait la
+    suivante animée.
+  - *Bouton ✕* (Louis, 2026-09-25) : plus de `scale(0.95)` au `:focus-visible` (une action clavier
+    n'anime pas, et le bouton restait rétréci) ; `:active` garde `scale(0.75)` (Family drawer).
+  - *Mouvement réduit* (`R-176`) : la sortie d'une section passe à `--meili-duration-fade` (150 ms,
+    120 ms pour un panneau flottant) ; la liste du tri garde un fondu `opacity` de 160 ms au lieu de
+    rien.
+  - *Dimensions* : `--meili-control` passé à 3rem, padding latéral 24 px des pills (maquette,
+    Louis). Espacements du tiroir **exacts de la maquette** (Figma `17:754`, corrigé le 2026-09-25 :
+    le plafond à 24 px venait d'un malentendu, les « 24 px » de Louis visaient les pills) :
+    `--meili-drawer-gutter` 2rem, `--meili-drawer-block` 2.5rem. **Aucune couleur du thème dans le
+    module** : l'encre `#2d2b23` des pastilles cochées et de `filters.svg` est retirée (défaut neutre
+    `CanvasText`/`Canvas` ; trait de `filters.svg` en `#000` explicite, comme `trash.svg`, puisque
+    `currentColor` est sans effet dans un `<img>` — Louis, 2026-09-25) ; Pluralia la pose dans son
+    thème par les crochets (et garde son icône en ligne, en `currentColor`). « Tout effacer » en mots
+    en pastille (rayon 999px, padding des pills — Louis) : **variante** `shape="pill"`, le bouton texte
+    par défaut garde son dessin (voir « Variantes plutôt que remplacement »).
+  - *« Appliquer »* : plusieurs sur une page sont légitimes (une commande, pas un contrôle, comme
+    `reset`). Pas de garde. `active-count` est désormais **vidé** à zéro en plus d'être masqué : il
+    décrit un bouton, et un nœud masqué décrit quand même.
+  - *Tri en radios* : jamais de badge sur son déclencheur ; un tri est un ordre, pas un filtre, et
+    `active-count` ne le compte pas.
 - **Structure de dossiers du module**, noms de commandes, format de configuration. *Dossiers
   tranchés en partie le 2026-09-24 : `ts/drawer/` et `ts/collapsible/` autorisés (voir « Validées »,
   [chantier-filtres.md](chantier-filtres.md) C-8) ; le reste demeure ouvert.*

@@ -11,6 +11,7 @@ use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Enums\Hook;
 use Modules\MeiliFacets\Listing\ListingState;
 use Modules\MeiliFacets\Listing\StateReader;
+use Modules\MeiliFacets\View\Components\Drawer;
 use Modules\MeiliFacets\View\ListingScript;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -112,6 +113,30 @@ final class ContractParityTest extends TestCase
     public function the_stylesheet_moves_the_panel_the_client_aligns_on_its_end(): void
     {
         preg_match("/ALIGNED_TO_END = '([^']*)'/", $this->read('collapsible/disclosure-group.ts'), $found);
+
+        $this->assertNotSame('', $found[1] ?? '');
+        $this->assertStringContainsString('['.$found[1].']', (string) file_get_contents(self::STYLESHEET));
+    }
+
+    /** Q-3: the client promotes the drawer where `media` holds, the stylesheet draws the sheet where its query does. */
+    #[Test]
+    public function the_stylesheet_draws_the_sheet_where_the_drawer_promotes_it_by_default(): void
+    {
+        $stylesheet = (string) file_get_contents(self::STYLESHEET);
+
+        preg_match('/[0-9.]+em/', Drawer::MOBILE, $threshold);
+        preg_match_all('/\(width\s*[<>]=?\s*([0-9.]+em)\)/', $stylesheet, $widths);
+
+        $this->assertStringContainsString('@media (scripting: enabled) and '.Drawer::MOBILE.' {', $stylesheet);
+        $this->assertNotEmpty($widths[1]);
+        $this->assertSame([$threshold[0]], array_values(array_unique($widths[1])), 'A second threshold would drift from the one the drawer reads.');
+    }
+
+    /** Escape closes at once: the client marks it, and only the stylesheet cuts the transition. */
+    #[Test]
+    public function the_stylesheet_cuts_the_motion_the_client_marks_as_instant(): void
+    {
+        preg_match("/INSTANT = '([^']*)'/", $this->read('drawer/drawer.ts'), $found);
 
         $this->assertNotSame('', $found[1] ?? '');
         $this->assertStringContainsString('['.$found[1].']', (string) file_get_contents(self::STYLESHEET));

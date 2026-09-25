@@ -7,6 +7,7 @@ namespace Modules\MeiliFacets\Tests\Feature;
 use Illuminate\Support\HtmlString;
 use Modules\MeiliFacets\Enums\Contract;
 use Modules\MeiliFacets\Enums\Hook;
+use Modules\MeiliFacets\Enums\ResetShape;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -38,6 +39,7 @@ final class ScrollOptionTest extends TestCase
                     return false;
                 }
             },
+            'shape' => ResetShape::Text,
             'hook' => fn (string $name): HtmlString => Hook::from($name)->attribute(),
             'scrollMark' => fn (): HtmlString => new HtmlString($scroll ? Contract::ScrollAttribute->value : ''),
         ])->render();
