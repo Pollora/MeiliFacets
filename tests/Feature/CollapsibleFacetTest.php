@@ -9,6 +9,7 @@ use Dom\HTMLDocument;
 use Illuminate\Support\Facades\Blade;
 use Modules\MeiliFacets\Enums\Contract;
 use Modules\MeiliFacets\Enums\Hook;
+use Modules\MeiliFacets\Enums\QueryParameter;
 use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\Listing\Facet;
 use Modules\MeiliFacets\Listing\FacetValue;
@@ -20,6 +21,8 @@ use Tests\TestCase;
 /** Step 4a of the filter bar: the facet as the trigger of a panel, closed until the client opens it. */
 final class CollapsibleFacetTest extends TestCase
 {
+    private const string NOTHING_MATCHES = 'qqxxzzww-aucun-produit-ne-correspond';
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -80,6 +83,35 @@ final class CollapsibleFacetTest extends TestCase
 
         $this->assertFalse($badge->hasAttribute('hidden'));
         $this->assertSame('2', $badge->textContent);
+    }
+
+    /** R-49: a search that keeps nothing still leaves the pill of a held value, to lift it. */
+    #[Test]
+    public function it_keeps_the_trigger_of_a_facet_holding_a_value_when_nothing_matches(): void
+    {
+        $held = $this->listing()->valuesOf($this->first())[0]->slug;
+
+        $document = $this->collapsibleUnder([
+            $this->app->make(UrlParameters::class)->reserved(QueryParameter::Query) => self::NOTHING_MATCHES,
+            $this->app->make(UrlParameters::class)->for($this->first()->taxonomy) => $held,
+        ]);
+        $input = $document->querySelector('input[value="'.$held.'"]');
+
+        $this->assertFalse($document->querySelector($this->hooked(Hook::Facet))->hasAttribute('hidden'));
+        $this->assertNotNull($document->querySelector('legend > '.$this->hooked(Hook::Toggle)));
+        $this->assertSame('1', $document->querySelector($this->hooked(Hook::SelectedCount))->textContent);
+        $this->assertTrue($input->hasAttribute('checked'));
+        $this->assertFalse($input->closest($this->hooked(Hook::FacetValue))->hasAttribute('hidden'));
+    }
+
+    #[Test]
+    public function it_hides_the_trigger_of_a_facet_holding_nothing_when_nothing_matches(): void
+    {
+        $document = $this->collapsibleUnder([
+            $this->app->make(UrlParameters::class)->reserved(QueryParameter::Query) => self::NOTHING_MATCHES,
+        ]);
+
+        $this->assertTrue($document->querySelector($this->hooked(Hook::Facet))->hasAttribute('hidden'));
     }
 
     /** The badge describes the trigger: inside its name it would read « Brand 2 », for the group too. */
@@ -144,6 +176,15 @@ final class CollapsibleFacetTest extends TestCase
     private function collapsible(): HTMLDocument
     {
         return HTMLDocument::createFromString(Blade::render($this->placing('collapsible')), LIBXML_NOERROR);
+    }
+
+    /** @param array<string, string> $query */
+    private function collapsibleUnder(array $query): HTMLDocument
+    {
+        request()->query->replace($query);
+        $this->app->forgetScopedInstances();
+
+        return $this->collapsible();
     }
 
     /** Puts back what the plain facet renders: the label alone in the legend, and an open, unhooked panel. */
