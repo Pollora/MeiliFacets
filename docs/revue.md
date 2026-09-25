@@ -1302,6 +1302,7 @@ Reste ouvert jusqu'à la dernière étape.
 mobile first. Revue des animations appliquée le même jour (`R-176`).
 Commités le même jour par fonctionnalité (`7b971d8`, `40822fd`, `860d58c`, `d62e8d9`) ; étape 5
 fermée, `R-173` → `R-176` fermés. Restent l'étape 4d (`R-49`, « Voir plus » en panneau), puis 6 à 8.
+Audit de la branche le même jour : `R-178`, cinq lots (A, B et E faits, C à faire).
 
 ### R-49 · 🟡 · **fermé le 2026-09-25** (étape 4d-1) · ouvert le 2026-09-06 — le cul-de-sac « zéro résultat » est atteignable en deux clics
 
@@ -3262,7 +3263,51 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
-### R-177 · 🟡 · **fermé le 2026-09-25** (étape 4d-2, non commité) · ouvert le 2026-09-25 — un « Voir plus » déplié dans un panneau le reste à la réouverture
+### R-178 · 🟡 · ouvert · 2026-09-25 — audit de la branche `feat/filter-bar` : duplications, fixtures et docs à reprendre
+
+Rattaché à `R-48`. Audit de la branche après la livraison des étapes 4 et 5 (`d1b3d70`), découpé en
+cinq lots appliqués dans l'ordre, un commit par lot. Comportement inchangé partout, sauf le bogue du
+point A1.
+
+| Lot | Objet | État |
+| --- | --- | --- |
+| A | duplications et bogues latents | **fait** — `b1cc621` |
+| B | tests : fixtures alignées sur les vues, aides partagées | **fait** — `0a4ba1d` |
+| C | crochets `drawer-sheet`/`drawer-footer`/rangée du tri, Déméter, `Apply` unique, renommages | à faire |
+| D | — | hors de la consigne de cette passe |
+| E | documentation : architecture, registre, ligne vide du thème | **fait** — ce commit |
+
+**Lot A.** *Bogue* : `CountEntry` lisait `--meili-duration-fade` par un `parseFloat` nu — un thème
+écrivant `0.15s` obtenait 0,15 ms. Lecture partagée par `shared/css-timing.ts` (`CssTiming` : durée en
+ms, `s` ou `ms` ; courbe ; `prefers-reduced-motion`), utilisée par `CountEntry`, `PanelMotion` et le
+tiroir (`REDUCED_MOTION` déclaré une fois au lieu de trois). Test qui échouait avant (0,15 ≠ 150).
+Règle « vide à zéro » en un objet `View\Badge` (`Apply`, `DrawerOpener`, `Disclosure`) et son jumeau
+`shared/badge.ts`. Le tri n'a plus de badge : `Disclosure` accepte l'absence, `ElementId::sortSelectedCount()`,
+l'identifiant et l'`aria-describedby` vers un nœud toujours vide disparaissent. `listing/focus-landing.ts`
+porte le repli du focus sur la racine (`ActiveValuesView`, `ResetFocus`). `ActiveValuePatterns` : les
+quatre motifs traduits une fois par `ActiveValueList::of()`, plus quatre fois par pastille. Six jetons
+de durée (`--meili-duration-press`, `-press-pill`, `-chevron`, `-list`, `-pop-in`, `-pop-out`) : plus
+aucune durée en dur, ANIM-2 cochée. Quatre règles de focus fusionnées ; celle de la pastille reste à
+part (un `:has()` non reconnu invaliderait toute la liste). `EXPANDED`/`INSTANT` dans
+`shared/attributes.ts`, `Contract.window` au lieu de deux `#window()`, `export` inutilisés retirés.
+**Non fait** : factoriser les listes `transition` recopiées — une propriété composée figerait les
+durées à `[data-listing]` (un thème qui surcharge plus bas ne serait plus suivi) et casserait le test
+de cohésion des survols.
+
+**Lot B.** Fixture du tiroir alignée sur `drawer.blade.php` + `reset-icon`/`apply.blade.php` (pied
+réel, `data-only` en `immediate`, `active-count`) ; le morph et `data-only` vérifiés sur le DOM
+(`R-108`, en partie : le pont PHP → fixture reste différé). Fixture du tri alignée sur
+`sort-radios.blade.php` + `toggle.blade.php`. `hooked()` (6 copies) → trait `FindsHooks` ; « deux
+valeurs du catalogue » → trait `HoldsCatalogueValues`, qui saute proprement si le catalogue n'a pas les
+données. `described()` porte les valeurs par défaut (107 lignes retirées dans 13 fichiers). Délais
+réels remplacés : horloge des événements dans `drawer-gesture.test.ts`, trame puis tâche explicites
+dans `drawer.test.ts`. Mutations vérifiées : flush de `HeldPaint` à 30 ms, fenêtre de vitesse à
+1 000 ms, `display: none` de `data-only` retiré, classe du pied changée, badge TS à « 0 » — chacune
+fait échouer un test réécrit.
+
+---
+
+### R-177 · 🟡 · **fermé le 2026-09-25** (étape 4d-2, `d1b3d70`, verrou `e26dc56`) · ouvert le 2026-09-25 — un « Voir plus » déplié dans un panneau le reste à la réouverture
 
 Rattaché à `R-48`, étape 4d-2 de [chantier-filtres.md](chantier-filtres.md) ; suite de `R-46`/`R-82`–`R-86`
 (repli tenu par le client). `FacetsView::#unfolded` gardait une facette dépliée après la fermeture de
@@ -3391,7 +3436,7 @@ le thème.
 
 **Reste pour l'étape 6** : UX-4 (nom « Appliquer 2 filtres »).
 
-**Finitions du 2026-09-25** (Louis, non commité) :
+**Finitions du 2026-09-25** (Louis, commitées dans `860d58c`) :
 - **`visible-in-drawer`** remplace l'attribut booléen d'`apply` (`Apply::$visibleInDrawer`, vue, tests,
   docs, composition du thème). `submit` : visible partout ; `immediate` : seulement dans le tiroir en
   sheet, où il ferme sans rechercher ; absent en desktop. Documenté sur la classe et dans
@@ -3537,7 +3582,7 @@ catalogue par `__()`.
 panneaux flottants ouverts jusqu'au clic suivant. Un contenu repeint par une recherche n'a pas de
 fondu (la hauteur, elle, glisse).
 
-**Suite du 2026-09-25** (consignes de Louis, non commité) :
+**Suite du 2026-09-25** (consignes de Louis, commitée dans `d62e8d9`) :
 - **Neutralité** : `--meili-ink` supprimée ; pastille cochée en `CanvasText`/`Canvas`, bordure des
   pastilles en `currentColor`, trait de `filters.svg` en `currentColor`. Le thème pose `--color-ink`
   (pastilles, hors `forced-colors`), la couleur du sheet et une icône « filtres » en `currentColor`
@@ -3574,7 +3619,7 @@ fondu (la hauteur, elle, glisse).
 **Questions ouvertes** (état au premier passage) : focus de la poubelle sur `body`, case `disabled`
 qui perd le focus, image de ~117 ms pendant le morph en `immediate` — traitées ci-dessous.
 
-**Finitions du 2026-09-25** (Louis, non commité) :
+**Finitions du 2026-09-25** (Louis, commitées dans `40822fd` et `d62e8d9`) :
 - **`aria-disabled`** au lieu de `disabled` pour une valeur gardée en place : la case garde le focus
   et est annoncée ; clic et Espace annulés côté client (`FacetsView::refuses()`), `change` refusé ;
   une case cochée reste décochable. Mesuré (`immediate`, 393 et 1440 px, Contenance ouverte, « aeris »
