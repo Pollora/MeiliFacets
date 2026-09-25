@@ -7,9 +7,18 @@ namespace Modules\MeiliFacets\Indexing;
 use Modules\MeiliFacets\Contracts\IndexAttributes;
 use Modules\MeiliFacets\Enums\PriceField;
 use Modules\MeiliFacets\Enums\ProductMeta;
+use Modules\MeiliFacets\Enums\SearchedMeta;
 
 final readonly class WooCommerceIndexAttributes implements IndexAttributes
 {
+    /**
+     * @return list<string>
+     */
+    public function exactlyMatched(): array
+    {
+        return [SearchedMeta::Sku->path()];
+    }
+
     /**
      * @return list<string>
      */

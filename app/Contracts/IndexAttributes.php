@@ -10,6 +10,13 @@ namespace Modules\MeiliFacets\Contracts;
 interface IndexAttributes
 {
     /**
+     * Searched fields a typo must not match: identifiers, not words. Their rank is `SearchableAttributes`'.
+     *
+     * @return list<string>
+     */
+    public function exactlyMatched(): array;
+
+    /**
      * @return list<string>
      */
     public function filterable(): array;

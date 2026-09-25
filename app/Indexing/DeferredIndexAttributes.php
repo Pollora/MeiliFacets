@@ -24,6 +24,14 @@ final readonly class DeferredIndexAttributes implements IndexAttributes
     /**
      * @return list<string>
      */
+    public function exactlyMatched(): array
+    {
+        return $this->current()->exactlyMatched();
+    }
+
+    /**
+     * @return list<string>
+     */
     public function filterable(): array
     {
         return $this->current()->filterable();

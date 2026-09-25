@@ -56,11 +56,12 @@ final class ProductSearchTest extends TestCase
         $this->assertSame(StateReader::MAX_QUERY_LENGTH, mb_strlen($this->baseQueryOn(['s' => $long])));
     }
 
+    /** R-160: WooCommerce swaps the flag on a search, so a "search results only" product is found. */
     #[Test]
-    public function it_pins_no_term_of_the_catalogue_on_a_search(): void
+    public function it_hides_what_woocommerce_hides_from_its_search_and_pins_no_term(): void
     {
         $this->assertSame(
-            ['post_type = "product"', 'post_status = "publish"', 'NOT facets.product_visibility = "exclude-from-catalog"'],
+            ['post_type = "product"', 'post_status = "publish"', 'NOT facets.product_visibility = "exclude-from-search"'],
             $this->onSearch(['s' => self::TERM], static fn (ProductListing $listing): array => $listing->baseFilter())
         );
     }

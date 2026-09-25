@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Tests\Feature;
 
+use Modules\MeiliFacets\Contracts\SearchableAttributes;
 use Modules\MeiliFacets\Enums\FacetingSetting;
 use Modules\MeiliFacets\Enums\IndexSetting;
 use Modules\MeiliFacets\Indexing\EmptyIndexAttributes;
 use Modules\MeiliFacets\Indexing\FacetedPostIndexable;
+use Modules\MeiliFacets\Indexing\IndexedTaxonomies;
 use Modules\MeiliFacets\Search\EngineLimits;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -38,7 +40,12 @@ final class IndexFacetingTest extends TestCase
      */
     private function facetingFor(EngineLimits $limits): array
     {
-        return new FacetedPostIndexable(new EmptyIndexAttributes, $limits)
+        return new FacetedPostIndexable(
+            new EmptyIndexAttributes,
+            $this->app->make(SearchableAttributes::class),
+            new IndexedTaxonomies,
+            $limits
+        )
             ->getIndexSettings()[IndexSetting::Faceting->value];
     }
 }

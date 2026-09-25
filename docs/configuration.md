@@ -151,6 +151,7 @@ Des bindings du conteneur Laravel, à poser dans le `register()` d'un provider d
 | `Listing` | `ProductListing` si WooCommerce | ce qu'un listing déclare | découverte automatique |
 | `ProductFacets` | `WooCommerceFacets` — catégorie et marque | les taxonomies que la boutique parcourt | oui, `scoped` |
 | `ProductSorts` | `WooCommerceSorts` — prix ↑↓, nouveautés, « Promotions » (`on_sale`, offert seulement si le listing déclare un prix) | les tris offerts | oui, `scoped` |
+| `SearchableAttributes` | `DefaultSearchableAttributes` — titre, marque, catégorie et SKU sous WooCommerce, libellés des taxonomies visibles, extrait, contenu | les champs cherchables et leur rang | oui, `scoped` |
 
 ```php
 // Pluralia, AppServiceProvider
@@ -484,6 +485,51 @@ Ni `MEILI_INDEX_NAME` ni `MEILI_MATCHING_STRATEGY` ne sont lus : l'index s'appel
 non versionné, à refaire sur chaque environnement. Les taxonomies filtrables en découlent
 directement — ce qui est indexé est filtrable.
 
+## Ordre de recherche
+
+`searchableAttributes` fixe à la fois **ce qui est cherchable** et **dans quel ordre**. Le moteur classe une
+correspondance selon le **premier champ** de la liste où elle apparaît : un mot trouvé dans le titre passe devant
+le même mot trouvé dans le contenu. Un champ absent de la liste n'est pas cherchable du tout, même par une requête
+forgée avec la clé publique (`R-27`).
+
+Ordre par défaut (`DefaultSearchableAttributes`) :
+
+1. `post_title` ;
+2. si WooCommerce est actif : `labels.product_brand`, `labels.product_cat`, `metas._sku` ;
+3. `labels.<taxonomie>` pour chaque autre taxonomie **visible** (`is_taxonomy_viewable()`) des types indexés,
+   dans l'ordre où WordPress les a enregistrées ;
+4. `excerpt`, puis `content` — l'extrait et le contenu en texte brut, projetés par le module.
+
+Le contrat `SearchableAttributes` rend la liste **complète** : un projet qui le lie la remplace en entier. Par
+exemple, pour faire passer l'extrait avant les libellés :
+
+```php
+use Modules\MeiliFacets\Contracts\SearchableAttributes;
+
+final readonly class ExcerptFirstSearchableAttributes implements SearchableAttributes
+{
+    public function all(): array
+    {
+        return ['post_title', 'excerpt', 'labels.category', 'content'];
+    }
+}
+```
+
+```php
+// Provider du projet, register()
+$this->app->scoped(SearchableAttributes::class, ExcerptFirstSearchableAttributes::class);
+```
+
+Comme pour `ProductFacets`, le module lie son défaut par `scopedIf` : le projet lie avec `scoped` ou `bind`,
+jamais `scopedIf`. La tolérance aux fautes, elle, reste déclarée par `IndexAttributes::exactlyMatched()`
+(`typoTolerance.disableOnAttributes`, le SKU sous WooCommerce) : changer l'ordre ne change pas ce qui doit
+correspondre exactement.
+
+⚠️ Un nouvel ordre ne vaut qu'après `php artisan discovery:clear` **et** une réindexation : les réglages ne
+partent vers le moteur qu'à l'indexation (et à chaque sauvegarde, qui repousse les réglages avant que les
+documents soient réécrits). ⚠️ Les sous-ensembles `attributesToSearchOn` qu'une recherche envoie doivent rester
+inclus dans cette liste : le moteur refuse un champ qui n'y est pas.
+
 ## Réglages d'index posés par le module
 
 Écrits par `FacetedPostIndexable::getIndexSettings()`, à chaque `ensureIndexExists()`.
@@ -496,6 +542,8 @@ directement — ce qui est indexé est filtrable.
 | `pagination.maxTotalHits` | ce que `engine.reachable_hits` déclare |
 | `displayedAttributes` | `ID` et `card`, plus ce qu'ajoutent `IndexAttributes::displayed()` et `displayed_attributes` — la valeur de MeiliScout (`*`) est remplacée ; `*` dans la liste rouvre tout |
 | `faceting.maxValuesPerFacet` | ce que `engine.max_facet_values` déclare |
+| `searchableAttributes` | ce que rend `SearchableAttributes::all()` — voir « Ordre de recherche » |
+| `typoTolerance.disableOnAttributes` | ce que déclare `IndexAttributes::exactlyMatched()` — `metas._sku` si WooCommerce est actif |
 
 Quatre se règlent sans toucher à la classe : `filterableAttributes`, `sortableAttributes` et
 `displayedAttributes` par `IndexAttributes` et `displayed_attributes`, `maxTotalHits` et `maxValuesPerFacet` par

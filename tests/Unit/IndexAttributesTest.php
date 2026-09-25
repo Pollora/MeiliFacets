@@ -19,6 +19,14 @@ final class IndexAttributesTest extends TestCase
 
         $this->assertSame([], $attributes->filterable());
         $this->assertSame([], $attributes->sortable());
+        $this->assertSame([], $attributes->exactlyMatched());
+    }
+
+    /** `AB-1234` and `AB-1235` are two products, not a typo of each other. */
+    #[Test]
+    public function it_matches_the_sku_without_typo_tolerance(): void
+    {
+        $this->assertSame(['metas._sku'], (new WooCommerceIndexAttributes)->exactlyMatched());
     }
 
     #[Test]
@@ -66,6 +74,7 @@ final class IndexAttributesTest extends TestCase
             $attributes->filterable()
         );
         $this->assertSame(['price.min', 'price.max'], $attributes->sortable());
+        $this->assertSame((new WooCommerceIndexAttributes)->exactlyMatched(), $attributes->exactlyMatched());
     }
 
     /**

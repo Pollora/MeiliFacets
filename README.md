@@ -37,7 +37,8 @@ Container bindings, set in a project service provider's `register()`.
 | `ProductFacets` | category and brand | the taxonomies a shop is browsed by, their labels, order and limits |
 | `ProductSorts` | price ↑↓, newest, and on sale when the facets declare a price filter | the sorts on offer |
 | `CardProjector` | title, link, image, WooCommerce price | what a document carries to paint a card |
-| `IndexAttributes` | WooCommerce price and stock fields | the attributes the index declares filterable, sortable and readable |
+| `IndexAttributes` | WooCommerce price and stock fields | the attributes the index declares filterable, sortable and readable, and the ones matched without typos |
+| `SearchableAttributes` | title, brand, category and SKU, other visible labels, excerpt, content | the searchable fields, most important first |
 | `FacetCounter` | disjunctive `multi-search` | how facet counts are computed on first render |
 | `SearchEngine` | Meilisearch client | how searches are sent |
 | `Listing` | the product listing, when WooCommerce is active | what a listing declares — discovered, never registered |

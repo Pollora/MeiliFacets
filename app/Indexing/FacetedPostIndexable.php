@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Indexing;
 
 use Modules\MeiliFacets\Contracts\IndexAttributes;
+use Modules\MeiliFacets\Contracts\SearchableAttributes;
 use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Enums\FacetingSetting;
 use Modules\MeiliFacets\Enums\FacetValueOrder;
 use Modules\MeiliFacets\Enums\IndexSetting;
 use Modules\MeiliFacets\Enums\PaginationSetting;
+use Modules\MeiliFacets\Enums\TypoToleranceSetting;
 use Modules\MeiliFacets\Search\EngineLimits;
-use Pollora\MeiliScout\Config\Settings;
 use Pollora\MeiliScout\Indexables\PostIndexable;
 
 final class FacetedPostIndexable extends PostIndexable
@@ -26,11 +27,10 @@ final class FacetedPostIndexable extends PostIndexable
      */
     private const array READ_BY_THE_MODULE = ['ID', 'card'];
 
-    /** @var list<string>|null */
-    private ?array $taxonomies = null;
-
     public function __construct(
         private readonly IndexAttributes $attributes,
+        private readonly SearchableAttributes $searchable,
+        private readonly IndexedTaxonomies $taxonomies,
         private readonly EngineLimits $limits,
     ) {}
 
@@ -63,6 +63,24 @@ final class FacetedPostIndexable extends PostIndexable
         $settings[IndexSetting::Pagination->value] = [
             ...$settings[IndexSetting::Pagination->value] ?? [],
             PaginationSetting::MaxTotalHits->value => $this->limits->reachableHits,
+        ];
+
+        return $this->withSearchSettings($settings);
+    }
+
+    /**
+     * A field left out cannot be searched at all, even by a query written with the public key (R-27).
+     *
+     * @param  array<string, mixed>  $settings
+     * @return array<string, mixed>
+     */
+    private function withSearchSettings(array $settings): array
+    {
+        $settings[IndexSetting::SearchableAttributes->value] = $this->searchable->all();
+
+        $settings[IndexSetting::TypoTolerance->value] = [
+            ...$settings[IndexSetting::TypoTolerance->value] ?? [],
+            TypoToleranceSetting::DisableOnAttributes->value => $this->attributes->exactlyMatched(),
         ];
 
         return $settings;
@@ -115,28 +133,8 @@ final class FacetedPostIndexable extends PostIndexable
     {
         return array_map(
             DocumentField::Facets->path(...),
-            $this->indexedTaxonomies()
+            $this->taxonomies->all()
         );
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function indexedTaxonomies(): array
-    {
-        // Reached on every save through ensureIndexExists().
-        return $this->taxonomies ??= $this->resolveIndexedTaxonomies();
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function resolveIndexedTaxonomies(): array
-    {
-        $postTypes = array_values(Settings::get('indexed_post_types', []));
-        $taxonomiesPerPostType = array_map(get_object_taxonomies(...), $postTypes);
-
-        return $this->mergeUnique(...$taxonomiesPerPostType);
     }
 
     /**

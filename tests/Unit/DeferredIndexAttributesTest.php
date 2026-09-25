@@ -23,6 +23,7 @@ final class DeferredIndexAttributesTest extends TestCase
 
         $this->assertSame((new WooCommerceIndexAttributes)->filterable(), $attributes->filterable());
         $this->assertSame((new WooCommerceIndexAttributes)->sortable(), $attributes->sortable());
+        $this->assertSame((new WooCommerceIndexAttributes)->exactlyMatched(), $attributes->exactlyMatched());
     }
 
     #[Test]
@@ -33,6 +34,7 @@ final class DeferredIndexAttributesTest extends TestCase
         $this->assertSame([], $attributes->filterable());
         $this->assertSame([], $attributes->sortable());
         $this->assertSame([], $attributes->displayed());
+        $this->assertSame([], $attributes->exactlyMatched());
     }
 
     private function deferred(): DeferredIndexAttributes

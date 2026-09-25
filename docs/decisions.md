@@ -692,6 +692,35 @@ Rien de ce qui suit n'est acquis.
   Tranchable au lot 4, sur un catalogue qui contient enfin des variations.
 - **`card.title` dans `searchableAttributes`** — `["*"]` rend le titre cherchable deux fois,
   dans `post_title` et dans `card.title`, ce qui dilue la pertinence. À traiter au lot 5.
+  *Réponse proposée le 2026-09-25 (`R-181`, à valider par Louis)* : **`card` n'est jamais cherché**, aucun de
+  ses champs — la carte est de l'affichage. La liste cherchable est explicite et ordonnée : `post_title`, ce
+  sous WooCommerce `labels.product_brand`, `labels.product_cat`,
+  `metas._sku`, les `labels.*` des taxonomies visibles (`is_taxonomy_viewable()`), `excerpt`, puis
+  `content`. **Choix de Louis le 2026-09-25** : `excerpt` et `content` sont deux champs projetés par le module,
+  nettoyés de la même façon (shortcodes, balises, délimiteurs de blocs, entités ; vides pour un post protégé par
+  mot de passe) ; l'extrait se classe au-dessus du corps. `post_excerpt` et `post_content` bruts de MeiliScout
+  sortent de l'ensemble : leur balisage serait cherchable. *Mesuré après la réindexation de Louis* :
+  `attributesToHighlight: ["card.title"]` ne rend plus de `_formatted`, `["card"]` et `["*"]` surlignent bien
+  `card.title` — le client de l'étape 4 demandera `["card"]` et ne lira que `_formatted.card.title`.
+- **L'ordre de recherche est un contrat** (Louis, 2026-09-25, `R-184`) : `SearchableAttributes::all()` rend la
+  liste complète, défaut du module en `scopedIf`, surchargeable en entier par le projet — « la modularité reste
+  valable ». `IndexAttributes::searchable()`, qui ne portait que la contribution de WooCommerce au rang, est
+  retiré : deux notions pour un même rang. `exactlyMatched()` reste à `IndexAttributes` : quels champs
+  correspondent sans faute est une propriété du champ contribué, pas de son rang, et un projet qui réordonne
+  n'a pas à la redéclarer. Coût : le défaut du module connaît les champs WooCommerce (marque, catégorie, SKU),
+  comme `WooCommerceFacets` ; pas de `taxonomy_exists('product_brand')`, Louis n'installe que des WooCommerce
+  récents.
+- **Autres choix de l'étape « pertinence et index »** (`R-181`, 2026-09-25, à valider par Louis) :
+  - *Recherche produit* : `exclude-from-search` **remplace** `exclude-from-catalog` sur une recherche, comme
+    WooCommerce (`class-wc-query.php:929`) ; le plan disait « en plus ». Effet : un produit « résultats de
+    recherche uniquement » apparaît dans la recherche ; un produit « boutique uniquement » ou « masqué » n'y
+    apparaît pas. « En plus » aurait écarté les deux premiers, à tort.
+  - *Libellés* : seules les taxonomies que WordPress montre (`is_taxonomy_viewable()`) ont des `labels`,
+    sinon `featured`, `exclude-from-search` ou `simple` deviendraient des mots trouvables.
+  - *Extrait de carte* : sur toute carte qui n'est pas un produit, borné par `excerpt_length` ; la carte produit
+    est inchangée. Rien pour un article protégé par mot de passe, ni dans `excerpt` ni dans `content`.
+  - *SKU* : cherchable, sans tolérance aux fautes (`typoTolerance.disableOnAttributes`), déclaré par la couche
+    WooCommerce ; absent si `indexed_meta_keys` est renseigné sans `_sku`.
 - **Stock et variations WooCommerce.** Le prix est tranché : projection `price` du module (`D-b`,
   `D-i`, `D-e`, [prix.md](prix.md)). Le stock est différé (`D-f`, `D-g`) ; les variations relèvent
   du lot 4.

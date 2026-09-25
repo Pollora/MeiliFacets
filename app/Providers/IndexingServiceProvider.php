@@ -7,12 +7,17 @@ namespace Modules\MeiliFacets\Providers;
 use Illuminate\Support\ServiceProvider;
 use Modules\MeiliFacets\Contracts\CardProjector;
 use Modules\MeiliFacets\Contracts\IndexAttributes;
+use Modules\MeiliFacets\Contracts\SearchableAttributes;
 use Modules\MeiliFacets\Contracts\TermHierarchy;
 use Modules\MeiliFacets\Indexing\ConfiguredIndexAttributes;
 use Modules\MeiliFacets\Indexing\DefaultCardProjector;
+use Modules\MeiliFacets\Indexing\DefaultSearchableAttributes;
 use Modules\MeiliFacets\Indexing\DeferredCardProjector;
 use Modules\MeiliFacets\Indexing\DeferredIndexAttributes;
 use Modules\MeiliFacets\Indexing\EmptyIndexAttributes;
+use Modules\MeiliFacets\Indexing\ExcerptCardProjector;
+use Modules\MeiliFacets\Indexing\IndexedTaxonomies;
+use Modules\MeiliFacets\Indexing\PostText;
 use Modules\MeiliFacets\Indexing\WooCommerceCardProjector;
 use Modules\MeiliFacets\Indexing\WooCommerceIndexAttributes;
 use Modules\MeiliFacets\Indexing\WordPressTermHierarchy;
@@ -28,6 +33,12 @@ final class IndexingServiceProvider extends ServiceProvider
         // A hook can resolve these before WordPress loads its plugins: WooCommerce is asked on every call.
         $this->app->bind(IndexAttributes::class, fn (): IndexAttributes => $this->attributes());
         $this->app->bindIf(CardProjector::class, fn (): CardProjector => $this->card());
+
+        $this->app->scoped(IndexedTaxonomies::class);
+        $this->app->scopedIf(SearchableAttributes::class, fn (): SearchableAttributes => new DefaultSearchableAttributes(
+            $this->app->make(IndexedTaxonomies::class)->all(...),
+            WooCommerce::isActive(...)
+        ));
     }
 
     /** The two methods below are the only place a plugin reaches the index. */
@@ -48,6 +59,12 @@ final class IndexingServiceProvider extends ServiceProvider
             (string) config('meilifacets.card.image_size', DefaultCardProjector::DEFAULT_IMAGE_SIZE)
         );
 
-        return new DeferredCardProjector(WooCommerce::isActive(...), new WooCommerceCardProjector($card), $card);
+        $excerptCard = new ExcerptCardProjector($card, new PostText);
+
+        return new DeferredCardProjector(
+            WooCommerce::isActive(...),
+            new WooCommerceCardProjector($card, $excerptCard),
+            $excerptCard
+        );
     }
 }

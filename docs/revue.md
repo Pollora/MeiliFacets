@@ -864,7 +864,7 @@ privilégié).
 seuil de refiltrage est écrit dans la décision « Markup du prix » (`decisions.md:42`). Reste à
 marquer `Q-11` répondue — c'est à Louis de le confirmer.
 
-### R-27 · 🟡 · ouvert · 2026-09-06 — `searchableAttributes` reste à `["*"]`
+### R-27 · 🟡 · **fermé le 2026-09-25** · ouvert le 2026-09-06 — `searchableAttributes` reste à `["*"]`
 
 **Vérifié** sur l'index réel : `searchableAttributes: ["*"]`, `displayedAttributes: ["ID","card"]`.
 La restriction d'affichage empêche de **lire** `post_content` et les metas ; elle n'empêche pas de
@@ -874,6 +874,19 @@ booléenne la présence d'une valeur dans n'importe quel champ indexé — `_edi
 
 C'est noté « lot 5, question de pertinence ». Ç'en est aussi une de fuite d'information, et elle
 n'est pas évaluée comme telle.
+
+**Mesuré le 2026-09-25** (chantier recherche) : `pluralia` trouve les 67 documents (domaine dans `url`,
+`guid`, `card.url`, `card.image_url`) ; `spacer` en trouve 4 (balisage des blocs de `post_content`).
+
+**Au 2026-09-25** (`R-181`, non commité) : `searchableAttributes` est une liste explicite — `post_title`,
+`labels.*` des taxonomies visibles, `metas._sku`, `excerpt`, `content` ; plus aucune métadonnée technique,
+adresse, `card.*` ni `post_content` brut. Fermeture après réindexation et mesure : `pluralia` ne doit plus rendre tout l'index, une
+requête `attributesToSearchOn: ["url"]` ou `["metas._edit_lock"]` doit être refusée par le moteur.
+
+**Mesuré le 2026-09-25 après les deux réindexations de Louis** (lecture seule) : `pluralia` → 0 ;
+`attributesToSearchOn: ["url"]` refusé ; `"spacer"` et `"strong"` en recherche exacte → 0, sans guillemets 3 et
+4 résultats par la seule tolérance aux fautes dans `content` ; `attributesToSearchOn: ["metas._edit_lock"]`
+refusé (`invalid_search_attributes_to_search_on`). **Fermé le 2026-09-25** sur validation de Louis.
 
 ### R-28 · 🟠 · à trancher (Q-03) · 2026-09-06 — tout filtre de sécurité posé côté serveur devient cosmétique
 
@@ -3269,6 +3282,203 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
+### R-184 · 🟡 · ouvert (en attente de commit) · ouvert le 2026-09-25 — l'ordre de recherche n'est pas surchargeable par le projet
+
+Rattaché à `R-180`/`R-181`, demandé par Louis (« la modularité reste valable »). L'ordre des
+`searchableAttributes` était calculé dans `FacetedPostIndexable` ; un projet ne pouvait qu'y ajouter des champs
+par `IndexAttributes::searchable()`, placés après le titre.
+
+**Livré.** Contrat `Contracts\SearchableAttributes::all()` (liste complète, ordonnée), sur le modèle de
+`ProductFacets::all()` ; défaut `DefaultSearchableAttributes` lié en **`scopedIf`** dans
+`IndexingServiceProvider`, qui reprend l'ordre existant. Ses deux entrées — taxonomies indexées, WooCommerce
+actif — sont des closures lues **à chaque appel** (`R-171` : le pont est construit avant WooCommerce).
+`IndexedTaxonomies` (lié `scoped`, mémoïsé) remplace la résolution privée de `FacetedPostIndexable` et sert les
+deux lecteurs, facettes et libellés, sans duplication ; `SearchedMeta::Sku` porte le chemin du SKU pour le rang
+et pour la tolérance. `FacetedPostIndexable` ne fait plus que lire le contrat.
+
+**Contrat public.** `IndexAttributes::searchable()` est **retiré** — une seule notion pour le rang. Ajouté par
+`R-181`, jamais commité : aucun projet ne l'implémente (Pluralia ne lie pas `IndexAttributes`). `exactlyMatched()`
+reste à `IndexAttributes` (raison dans `decisions.md`). Constructeurs changés : `FacetedPostIndexable` (4
+paramètres) et `MeiliScoutBridge` (5 : il construit l'indexable à la demande, comme avant, pour ne rien résoudre
+de MeiliScout avant son chargement) — deux classes internes, `final`.
+
+**Vérifié à l'exécution.** `getIndexSettings()` du vrai indexable (`wp eval-file`, sans envoi), capturé avant
+puis après : **identique à l'octet près** ; `searchableAttributes` égal à la liste lue dans le moteur (GET),
+`disableOnAttributes` `["metas._sku"]`, `displayedAttributes` `["ID","card"]`.
+
+**Tests.** `IndexSearchSettingsTest` (7) : ordre par défaut identique à l'actuel (attendu recalculé depuis
+WordPress, sans valeur Pluralia), ordre sans WooCommerce sans aucun champ produit, **ordre lié par un projet
+poussé tel quel** (instance liée au conteneur, retirée ensuite), aucun champ technique, taxonomies non visibles
+exclues, SKU sans tolérance, liste vide sans plugin. `IndexAttributesTest` et `DeferredIndexAttributesTest`
+allégés, `IndexFacetingTest` et `IndexPaginationTest` suivent le constructeur. `composer check` vert (Unit 321,
+client 541/541, `build:check`) ; suite `Modules` **OK (575 tests, 1759 assertions)**.
+
+**Doc.** `configuration.md` : section « Ordre de recherche » (défaut, règle du premier champ, exemple générique
+de surcharge et sa liaison, `discovery:clear` + réindexation, `attributesToSearchOn` sous-ensemble) ; tableaux
+des points d'extension et des réglages d'index ; `README.md` et `architecture.md`.
+
+**Les cinq passes.** *Lisibilité* : un nom par concept — « searchable attributes » comme le réglage du moteur ;
+`all()` comme les contrats voisins ; méthodes de 3 à 10 lignes, aucun booléen en paramètre. *Commentaires* : deux
+lignes, `R-171` sur les closures et la raison de `SearchedMeta` hors de `ProductMeta`. *Performance* : taxonomies
+résolues une fois par requête pour les deux lecteurs (deux fois auparavant si les deux avaient existé) ; une
+closure et un `is_taxonomy_viewable()` par taxonomie à chaque `ensureIndexExists()`. *Sécurité* : la liste
+définit la surface ciblable par la clé publique — la doc le rappelle ; un projet qui ajoute un champ technique
+le rend ciblable, c'est à lui de le savoir. *Contexte* : sans WooCommerce, aucun champ produit (testé).
+
+**Commit proposé.** `feat(indexing): let the project rank the searchable fields`.
+
+### R-183 · ⚪ · ouvert · 2026-09-25 — une classe de test `KeepsTheIndexOut` lancée seule échoue avant WordPress
+
+Relevé pendant `R-182`. `--filter ProductPriceProjectionTest` (fichier non touché) : **9 erreurs**,
+`Call to undefined function add_filter()` dans `KeepsTheIndexOut::keepTheIndexOut()` — la méthode `#[Before]`
+s'exécute avant que le `setUp()` de `Tests\TestCase` ait démarré l'application, quand aucun test précédent ne l'a
+fait. Dans la suite complète l'application partagée est déjà là, d'où le vert. Aucun envoi au moteur n'en résulte
+(le test s'arrête avant d'enregistrer quoi que ce soit), mais une classe ne peut pas se lancer seule. À traiter
+comme un point à part.
+
+### R-182 · 🟡 · ouvert (en attente de commit) · ouvert le 2026-09-25 — le pont MeiliScout porte six filtres et huit dépendances
+
+Rattaché à `R-180`/`R-181`, refonte validée par Louis. `MeiliScoutBridge` portait six
+`#[Filter('meiliscout/post/document')]` ; `addFacets` et `addLabels` lisaient et vérifiaient `terms` chacun et
+appelaient chacun `TermAncestry::expand()` — deux passes de fusion et de dédoublonnage par document, la
+mémoïsation des chaînes épargnant seulement la seconde remontée en base.
+
+**Livré.** `PostDocument` (final readonly) construit les champs du module dans un ordre explicite : termes étendus
+une fois → `facets` et `labels` (taxonomies visibles, `hasViewableTaxonomy` déplacé ici depuis le pont) ;
+`excerpt`, `content` ; `card` puis `price` (s'il n'est pas vide) dans **un seul** passage en visiteur anonyme à
+l'adresse de la boutique (deux auparavant). `MeiliScoutBridge` garde deux accroches — `addModuleFields()` et
+`declareFacetAttributes()` — et trois dépendances (`PostDocument`, `IndexAttributes`, `EngineLimits`).
+`PostDocument` est résolu par le conteneur ; `CardProjector` reste le contrat surchargeable qu'il reçoit.
+Comportement gardé : `terms` absent → `facets` et `labels` vides ; `terms` illisible → ni l'un ni l'autre, le
+reste projeté (testé). `TermAncestry` reste `final` (Louis, 2026-09-25) : pas de test qui compte les expansions — il
+aurait fallu ouvrir la classe pour vérifier un détail d'implémentation ; l'appel unique se lit dans
+`PostDocument` et le test d'égalité du document protège le résultat.
+
+**Vérifié à l'exécution** (`wp eval-file`, `PostIndexable::formatForIndexing()` réel donc
+`apply_filters('meiliscout/post/document')`, sans envoi) sur #176, #116 et #560 : sortie capturée avant la
+refonte puis après — **identique à l'octet près** (mêmes clés, même ordre, mêmes valeurs). `discovery:clear`
+lancé avant et après. Dernière tâche du moteur antérieure à la session de tests (réindexation de Louis, 14:28 UTC).
+
+**Tests.** `PostDocumentTest` (7, remplace `SearchFieldsProjectionTest`) : libellés par taxonomie, taxonomie non
+visible filtrée mais facettée, document sans termes, `terms` illisible, extrait et contenu en texte brut,
+pas de `price` pour une carte sans prix, document identique par l'accroche
+unique sur un produit réel (clés et ordre, facettes, libellés, contenu, carte, prix). `AnonymousIndexingTest` et
+`ShownPriceProjectionTest` passent par `PostDocument::complete()`. Aucun appelant hors du module (thème,
+`pluralia-fulfillments` : `grep`, 0). `composer check` vert (Unit 322, client 541/541, `build:check`) ; suite
+`Modules` **OK (577 tests, 1766 assertions)**.
+
+**Les cinq passes.** *Lisibilité* : méthodes de 3 à 10 lignes, un niveau chacune (`complete` n'énumère que des
+groupes de champs) ; aucun booléen en paramètre. *Commentaires* : un commentaire de justification retiré avant
+livraison (l'expansion est déjà décrite par `TermAncestry`). *Performance* : une expansion et un changement de
+contexte (visiteur + adresse de taxe) par document au lieu de deux chacun. *Sécurité* : rien de nouveau, champs
+inchangés. *Contexte* : sans WooCommerce, `price` absent comme avant.
+
+**Commit proposé.** `refactor(indexing): build the module's document fields in one place`.
+
+### R-181 · 🟡 · ouvert (en attente de commit et de réindexation) · ouvert le 2026-09-25 — étape « pertinence et index » de la recherche du site
+
+Rattaché à `R-180`, étape 2 de [chantier-recherche.md](chantier-recherche.md) (« Pertinence et index »), avec
+l'extrait de carte avancé de l'étape 3 à la demande. Ferme dans le code `R-27` et `R-160` ; tranche en
+proposition « `card.title` dans `searchableAttributes` » (`decisions.md`, « En attente »). **Rien n'est commité,
+rien n'est réindexé** : le moteur garde ses réglages et ses documents jusqu'à la réindexation que Louis lancera.
+
+**Livré.**
+- *Champs de document* (`MeiliScoutBridge`, filtre `meiliscout/post/document`) : `labels.<taxonomie>` — noms des
+  termes, ancêtres compris, entités décodées, **taxonomies visibles seulement** (`is_taxonomy_viewable()` : ni
+  `product_visibility`, ni `product_type`, ni `pa_contenance`) ; `content` — le seul `post_content`, en texte
+  brut (`PostText::content()` : délimiteurs de blocs, balises, `<script>`/`<style>`, shortcodes enregistrés
+  retirés, entités décodées, espaces Unicode repliés) ; `excerpt` — le seul `post_excerpt`, même traitement
+  (`PostText::excerpt()`). Décisions de Louis en cours d'étape (2026-09-25) : le premier jet, `text`, portait
+  extrait puis contenu ; il est devenu `content` seul, puis l'extrait brut `post_excerpt` de MeiliScout a été
+  remplacé par ce champ nettoyé. `card.excerpt` (`ExcerptCardProjector`) : extrait de l'auteur, sinon début
+  du contenu, borné par `excerpt_length` (55 mots par défaut, lu à chaque carte) ; posé sur toute carte **qui
+  n'est pas un produit** (`WooCommerceCardProjector` délègue désormais les non-produits) : la carte produit est
+  inchangée. Un article protégé par mot de passe n'a ni `content` ni `card.excerpt`.
+- *Réglages* (`FacetedPostIndexable`, via `SearchableAttributes::all()` depuis `R-184`, et `IndexAttributes::exactlyMatched()`) :
+  `searchableAttributes` = `post_title`, ce que le plugin déclare (`labels.product_brand`, `labels.product_cat`,
+  `metas._sku`), les `labels.*` des autres taxonomies visibles, `excerpt`, `content` ;
+  `typoTolerance.disableOnAttributes` =
+  `["metas._sku"]` (vide sans WooCommerce, écrit vide plutôt qu'omis). `displayedAttributes` **inchangé**
+  (`ID`, `card`) : `card.excerpt` voyage dans `card`, rien de plus n'est lisible par la clé publique.
+- *`R-160`* : sur une recherche, `ProductListing::baseFilter()` exclut `exclude-from-search` **à la place de**
+  `exclude-from-catalog`, comme `WC_Query::get_tax_query()` (`class-wc-query.php:929`) — un produit « résultats de
+  recherche uniquement » est trouvé, un produit « boutique uniquement » ne l'est pas. Le plan disait « plus » ;
+  la plateforme dit « à la place », d'où l'écart signalé à Louis.
+- `TermGrouping` factorise ce que `FacetProjection` (slugs) et `LabelProjection` (noms) faisaient chacun.
+
+**Réglages qui seraient poussés** (lus par `getIndexSettings()`, sans envoi) : `searchableAttributes` =
+`post_title`, `labels.product_brand`, `labels.product_cat`, `metas._sku`, `labels.category`, `labels.post_tag`,
+`labels.post_format`, `labels.contenu`, `labels.pluralia_selection`, `labels.essentiel`, `labels.product_tag`,
+`excerpt`, `content`. Avant réindexation, dans le moteur : `["*"]`, `disableOnAttributes: []` (lu en GET).
+
+**Projection réelle, sans envoi** (appel direct du pont en `wp eval-file`) : article #176 — `labels`
+`{category: [Visage], contenu: [Article]}`, `content` de 2 353 caractères commençant par
+« Introduction Lorem ipsum… », **aucune occurrence de `spacer`**, `card.excerpt` = l'extrait ; produit #116
+(« Sérum Éclat Vitamine C ») — `labels.product_brand: [Lumen]`, `product_cat: [Visage]`,
+`pluralia_selection: [Grossesse & post-partum, …]` (entité décodée), `content` vide (produit sans description longue), `excerpt` =
+« Coup d’éclat quotidien, texture fluide. », carte sans extrait ;
+produit #560 — contenu HTML ramené à 1 026 caractères de texte, carte avec `price` et sans extrait.
+
+**Conséquence de déploiement.** `AbstractSingleIndexer::ensureIndexExists()` repousse les réglages **à chaque
+sauvegarde** : dès que ce code tourne, la première sauvegarde d'un article ou d'un produit écrit la nouvelle liste
+cherchable, alors que les documents n'ont pas encore `labels` ni `content` — la recherche ne trouve plus que par le
+titre, l'extrait, les marques et le SKU jusqu'à la réindexation complète. Réindexer aussitôt après le déploiement.
+
+**Tests.** Unit : `PlainTextTest` (+6 : délimiteurs de blocs, frontière entre éléments, code embarqué, entités et
+espaces, balise échappée gardée en texte), `LabelProjectionTest` (4), `IndexAttributesTest` (+2),
+`DeferredIndexAttributesTest` (étendu). Feature : `IndexSearchSettingsTest` (7 : ordre, plugin juste après le
+titre, **aucun champ technique ni adresse**, labels des taxonomies visibles seulement, SKU sans tolérance, liste
+vide sans plugin), `PostTextTest` (10, dont le contenu seul et l'extrait seul), `ExcerptCardProjectorTest` (5, dont la carte produit inchangée),
+`SearchFieldsProjectionTest` (5), `ProductSearchTest` (attente mise à jour). Aucun test n'enregistre de post :
+`updatedAt` de l'index `posts` et dernière tâche du moteur identiques avant et après la suite.
+
+**Vérifié.** `composer check` vert (Pint, Rector, Unit **322**, ESLint, types, client **541/541** — 97,84 %
+lignes, 94,19 % branches —, `build:check`) ; suite `Modules` **OK (574 tests, 1752 assertions)** après le passage à `content` puis `excerpt`. Un premier
+passage a échoué sur `PublishedAssetsTest` : copies publiées identiques (`cmp`) mais plus anciennes que les
+sources après le changement de branche ; `module:publish MeiliFacets` les a rafraîchies, sans lien avec l'étape.
+
+**Les cinq passes.** *Lisibilité* : un concept, un nom — « visible » pour `is_taxonomy_viewable()` dans les deux
+fichiers (`hasViewableTaxonomy`, `$viewable`, d'abord nommés « public ») ; `TermGrouping` remplace deux boucles
+jumelles ; pas de booléen en paramètre ; `summary()` prend un nombre de mots, pas un drapeau. *Commentaires* :
+chaque ligne ajoutée dit une anomalie amont ou un contournement (`wp_trim_words()` qui retire les balises,
+délimiteurs de blocs en commentaires, `<li>` accolés) ; un commentaire périmé corrigé
+(`WordPressTermHierarchy::describe()`, qui citait `terms.name` cherchable). *Performance* : par document, une
+expansion d'ancêtres déjà mémoïsée, un `is_taxonomy_viewable()` par terme, trois regex et un
+`strip_shortcodes()` ; poids ajouté ≈ la taille du contenu nettoyé (2,4 Ko pour l'article le plus long mesuré).
+*Sécurité* : trouvée et corrigée — le contenu d'un article protégé par mot de passe serait parti dans `content`
+(ciblable) et dans `card.excerpt` (lisible par la clé publique) ; reste, hors étape, que la carte d'un brouillon
+porte désormais un extrait (`R-28`, filtre de base réécrivable). *Contexte et i18n* : sans WooCommerce, pas de SKU
+ni de `product_*` (listes vides, testé) ; aucune chaîne visible ; bornage par `wp_trim_words()`, qui compte en
+caractères pour les langues qui le déclarent.
+
+**Mesuré après la réindexation de Louis** (2026-09-25, lecture seule, version où l'extrait était encore
+`post_excerpt` brut) : réglages poussés conformes — ordre, `displayedAttributes` = `ID`, `card`, SKU sans
+tolérance ; `pluralia` → 0, `srum` → 0, `sérum` → 2, `serom` → 2, `lumen` → 5 ; `attributesToSearchOn:
+["url"]` refusé par le moteur. `spacer` → 3 (#560, #555, #778) : par tolérance aux fautes sur « space » /
+« spaces » du contenu, plus aucun balisage indexé — comportement normal. Surlignage : `["card.title"]` ne rend
+plus de `_formatted`, `["card"]` et `["*"]` surlignent `card.title` ; l'étape 4 demandera `["card"]`. **Le champ
+`excerpt` nettoyé est venu après : une nouvelle réindexation est nécessaire pour qu'il existe dans le moteur.**
+`R-27` reste à fermer après elle (contrôle `excerpt` présent, `post_excerpt` hors de l'ensemble).
+
+**Mesuré après la seconde réindexation de Louis** (2026-09-25, lecture seule, `excerpt` nettoyé présent) :
+`excerpt` et `content` sans balise ; `pluralia` → 0 ; `"spacer"` et `"strong"` en recherche exacte → 0 ;
+`spacer` (3) et `strong` (4) sans guillemets ne remontent que par la tolérance aux fautes, dans `content`
+seulement — aucun balisage n'est plus indexé.
+
+**Laissé aux étapes suivantes.** `attributesToSearchOn` par usage : il appartient à `SearchableType::searchOn`
+(étape 3), qui n'existe pas encore ; les sous-ensembles proposés sont corrigés dans le plan (`post_excerpt` y devient
+`excerpt`). `R-159` (terme sans lettre ni chiffre) : placé à l'étape 2 par le plan mais hors du
+périmètre demandé pour cette livraison — reste ouvert. Mesures sur les termes de référence : après réindexation.
+
+**Messages de commit proposés.** `feat(indexing): project term labels, excerpt and content as plain text`,
+`feat(indexing): rank searchable fields and match the sku exactly`, `feat(cards): give non-product cards an
+excerpt`, `fix(listing): hide what WooCommerce hides from its search`, `docs(search): record the relevance step`.
+
+### R-180 · 🟠 · ouvert · 2026-09-25 — recherche du site (lot 5)
+
+Parapluie du chantier [chantier-recherche.md](chantier-recherche.md), branche `feat/site-search`. Rattachés :
+`R-27`, `R-159`, `R-160`, `R-181` (étape « pertinence et index »), `R-182` (refonte du pont), `R-184` (ordre de recherche surchargeable) ; `R-29` à compléter (clé limitée à `posts`).
+
 ### R-179 · 🟡 · ouvert (en attente de commit) · ouvert le 2026-09-25 — étape 7 : panneaux desktop, pastilles actives et grille occupée
 
 Rattaché à `R-48`, étape 7 de [chantier-filtres.md](chantier-filtres.md) (ANIM-3, ANIM-9, ANIM-10 ;
@@ -4179,7 +4389,7 @@ pourtant vrai (`is_search()`), donc la page est traitée comme une page de listi
 d'indexation et par le chargement du client. Sans conséquence aujourd'hui — le cœur pose déjà le
 `noindex` sur une recherche — mais la garde ment sur ce qu'elle garde.
 
-### R-160 · 🟡 · ouvert · 2026-09-23 — sur une recherche, le module n'exclut pas ce que WooCommerce exclut
+### R-160 · 🟡 · corrigé dans l'arbre (remplacement du drapeau à valider par Louis, en attente de commit) · ouvert le 2026-09-23 — sur une recherche, le module n'exclut pas ce que WooCommerce exclut
 
 Relevé par la passe de conformité de `R-158`, lu dans la source. Sur une recherche, WooCommerce écarte
 les produits marqués `exclude-from-search` (`class-wc-query.php:929`, appliqué depuis `:424-437`), alors
@@ -4188,6 +4398,11 @@ que le module écarte toujours `exclude-from-catalog`, quelle que soit la page
 moteur : elle rend donc un ensemble qui n'est pas celui de WooCommerce. Sur Pluralia, un produit est
 `exclude-from-search` seulement (#400, mesuré au lot prix) : il reste trouvable ici, alors que la
 recherche native le cacherait.
+
+**Au 2026-09-25** (`R-181`, non commité) : sur une recherche, le filtre de base exclut `exclude-from-search`
+**au lieu de** `exclude-from-catalog`, comme `class-wc-query.php:929` (lu dans la source : WooCommerce échange le
+drapeau, il n'en ajoute pas un). Test : `ProductSearchTest`. Aucun produit local ne porte `exclude-from-search` (compte 0
+relevé le 2026-09-25) : pas de mesure sur données réelles sans modifier la base.
 
 ### R-159 · 🟡 · ouvert · 2026-09-23 — un terme que le moteur ne tokenise pas sert tout le catalogue
 

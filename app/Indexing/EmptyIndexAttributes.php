@@ -11,6 +11,14 @@ final readonly class EmptyIndexAttributes implements IndexAttributes
     /**
      * @return list<string>
      */
+    public function exactlyMatched(): array
+    {
+        return [];
+    }
+
+    /**
+     * @return list<string>
+     */
     public function filterable(): array
     {
         return [];

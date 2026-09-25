@@ -149,7 +149,7 @@ découverte des listings, cascade de vues du thème — et enregistre **un provi
 
 | Provider | Ce qu'il lie |
 | --- | --- |
-| `IndexingServiceProvider` | `IndexAttributes`, `CardProjector`, `TermHierarchy` — ce que le document porte |
+| `IndexingServiceProvider` | `IndexAttributes`, `CardProjector`, `TermHierarchy`, `SearchableAttributes`, `IndexedTaxonomies` — ce que le document porte et ce que l'index cherche |
 | `SearchServiceProvider` | `SearchEngine`, `BrowserConnection`, `EngineLimits`, `FacetCounter` — l'envoi des recherches |
 | `ListingServiceProvider` | les adaptateurs de termes, `SiteCollator`, `NameOrder`, `ProductFacets`, `ProductSorts`, le registre, `CurrentListing`, `UrlParameters` |
 | `RenderingServiceProvider` | `ListingScript`, `CardSettings`, `CountLabel`, `Unavailable` — ce dont la page a besoin en plus. *Nommé ainsi et pas `ViewServiceProvider` : Laravel en charge déjà un du même nom court.* |

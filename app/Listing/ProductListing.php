@@ -26,6 +26,8 @@ final readonly class ProductListing implements Listing
 
     private const string HIDDEN_FROM_CATALOG = 'exclude-from-catalog';
 
+    private const string HIDDEN_FROM_SEARCH = 'exclude-from-search';
+
     private const string SEARCH_QUERY_VAR = 's';
 
     /** Discovery builds every listing it finds: the dependency has to refuse itself. */
@@ -81,10 +83,19 @@ final readonly class ProductListing implements Listing
             FilterExpression::equals('post_status', self::PUBLISHED),
             FilterExpression::without(
                 DocumentField::Facets->path(ProductTaxonomy::Visibility->value),
-                self::HIDDEN_FROM_CATALOG
+                $this->hiddenHere()
             ),
             ...$this->browsedClause(),
         ];
+    }
+
+    /**
+     * WooCommerce swaps the flag on a search rather than adding one (`WC_Query::get_tax_query()`):
+     * a "search results only" product is found, a "shop only" one is not (R-160).
+     */
+    private function hiddenHere(): string
+    {
+        return is_search() ? self::HIDDEN_FROM_SEARCH : self::HIDDEN_FROM_CATALOG;
     }
 
     /**
