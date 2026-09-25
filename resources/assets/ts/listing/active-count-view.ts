@@ -1,10 +1,10 @@
 import { Badge } from '../shared/badge.ts'
-import { Entrance } from './entrance.ts'
+import { Entrance } from '../shared/entrance.ts'
 
 import type { Contract } from '../shared/contract.ts'
 import type { ListingState } from './listing-state.ts'
 
-const FROM_SCALE = 0.9
+const ENTRANCE = { from: 'scale(0.9)', duration: '--meili-duration-fade', easing: '--meili-ease' }
 
 /**
  * The bare number of values the visitor holds, pending ones included, for the
@@ -13,11 +13,11 @@ const FROM_SCALE = 0.9
  */
 export class ActiveCountView {
     #contract: Contract
-    #entry: Entrance
+    #entrance: Entrance
 
     constructor(contract: Contract) {
         this.#contract = contract
-        this.#entry = new Entrance(contract.root.ownerDocument, FROM_SCALE)
+        this.#entrance = new Entrance(contract.root.ownerDocument, ENTRANCE)
     }
 
     show(state: ListingState) {
@@ -37,7 +37,7 @@ export class ActiveCountView {
         badge.show(count)
 
         if (appears) {
-            this.#entry.play(counter)
+            this.#entrance.play(counter)
         }
     }
 }

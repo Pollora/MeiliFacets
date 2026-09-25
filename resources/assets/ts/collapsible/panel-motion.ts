@@ -1,7 +1,8 @@
-import { CssTiming } from '../shared/css-timing.ts'
+import { Entrance } from '../shared/entrance.ts'
 
 const DURATION = '--meili-duration-content'
-const EASING = '--meili-ease-content'
+
+const ENTRANCE = { from: 'scale(0.96)', duration: DURATION, easing: '--meili-ease-content' }
 
 /** |Δh| / 500 in seconds, held between 150 and 270 ms: a small change is quick, a large one a little longer. */
 const PER_PIXEL = 2
@@ -15,15 +16,15 @@ const EXIT_SHARE = 0.75
  * A floating panel: in and out by the stylesheet alone, from its `@starting-style` to its `[hidden]` state.
  */
 export class PanelMotion {
-    #timing: CssTiming
+    #entrance: Entrance
 
     constructor(document: Document) {
-        this.#timing = new CssTiming(document)
+        this.#entrance = new Entrance(document, ENTRANCE)
     }
 
     show(panel: HTMLElement) {
         panel.hidden = false
-        panel.animate(this.#entry(), { duration: this.#durationFor(panel.offsetHeight), easing: this.#timing.easing(panel, EASING) })
+        this.#entrance.play(panel, this.#durationFor(panel.offsetHeight))
     }
 
     /** A transition, not an animation: a second click turns it back from where it stands. */
@@ -36,7 +37,7 @@ export class PanelMotion {
      * Settles once the panel is out, whether its exit ran to the end or was cut short.
      */
     hide(panel: HTMLElement) {
-        this.#scripted(panel).forEach((animation) => animation.finish())
+        this.#scriptedAnimations(panel).forEach((animation) => animation.finish())
         panel.style.setProperty(DURATION, `${Math.round(this.#durationFor(panel.offsetHeight) * EXIT_SHARE)}ms`)
         panel.hidden = true
 
@@ -50,19 +51,11 @@ export class PanelMotion {
     }
 
     /** A stylesheet transition is retargeted by the next state; only what `animate()` started must end first. */
-    #scripted(panel: HTMLElement) {
+    #scriptedAnimations(panel: HTMLElement) {
         return panel.getAnimations().filter((animation) => !('transitionProperty' in animation))
     }
 
     #durationFor(height: number) {
         return Math.min(Math.max(height * PER_PIXEL, SHORTEST), LONGEST)
-    }
-
-    #entry(): Keyframe[] {
-        if (this.#timing.prefersReducedMotion()) {
-            return [{ opacity: 0 }, { opacity: 1 }]
-        }
-
-        return [{ opacity: 0, transform: 'scale(0.96)' }, { opacity: 1, transform: 'none' }]
     }
 }

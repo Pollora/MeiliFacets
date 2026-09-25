@@ -1303,6 +1303,7 @@ mobile first. Revue des animations appliquée le même jour (`R-176`).
 Commités le même jour par fonctionnalité (`7b971d8`, `40822fd`, `860d58c`, `d62e8d9`) ; étape 5
 fermée, `R-173` → `R-176` fermés. Restent l'étape 4d (`R-49`, « Voir plus » en panneau), puis 6 à 8.
 Audit de la branche le même jour : `R-178`, cinq lots (tous faits).
+Étape 7 (animations) le même jour : `R-179` — ANIM-3 et ANIM-9 commités, ANIM-10 et refonte non commités, ANIM-13 en question.
 
 ### R-49 · 🟡 · **fermé le 2026-09-25** (étape 4d-1) · ouvert le 2026-09-06 — le cul-de-sac « zéro résultat » est atteignable en deux clics
 
@@ -3263,6 +3264,90 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
+### R-179 · 🟡 · ouvert (en attente de commit) · ouvert le 2026-09-25 — étape 7 : panneaux desktop, pastilles actives et grille occupée
+
+Rattaché à `R-48`, étape 7 de [chantier-filtres.md](chantier-filtres.md) (ANIM-3, ANIM-9, ANIM-10 ;
+ANIM-13 posé en question). Reprend le reste de `R-176` (keyframes d'ANIM-3).
+
+**Commits.** ANIM-3 `b02e098`, ANIM-9 `d325a58`. Le reste est **dans l'arbre, non commité** (consigne de
+Louis en cours de lot) : ANIM-10, la refonte demandée ensuite (entrée commune, grille occupée dans sa classe,
+renommages, puis le découpage ci-dessous) et ces docs. Messages proposés : `feat(results): dim the grid while a
+slow search runs`, `refactor(motion): share one entrance across badge, pills and sections`,
+`refactor(client): give input source and new pills their own classes`, `docs(filters): close the animation step`.
+
+**Livré.**
+- *ANIM-3* : l'entrée du panneau flottant passe du WAAPI de `PanelMotion::pop()` à une transition CSS
+  (`@starting-style` sous `48em`, état `[hidden]` = `translateY(-4px) scale(0.97)`), donc interruptible et
+  surchargeable par le thème ; 180/120 ms, `--meili-ease`. `hide()` ne termine plus que les animations scriptées
+  (une transition est retournée par l'état suivant). Un clic clavier (`detail === 0`) sur la pill ouvre et ferme
+  un panneau flottant sans animation, comme Échap, Tab et la pill voisine.
+- *ANIM-9* : `shared/entrance.ts` (`Entrance`, départ + jetons en paramètre) remplace `CountEntry` et l'entrée
+  des sections de `PanelMotion` ; `ActiveValuesView` ne fait entrer que les pastilles dont l'identité
+  (`kind`, `name`, `value`) n'était pas dans la liste avant le redessin.
+- *ANIM-10* : `Listing` annonce `searching` et `settled` autour des recherches en vol (compteur : une recherche
+  dépassée ou une réponse périmée ne libère pas la grille tant qu'une autre est dehors) ; `results/busy-grid.ts`
+  pose et retire `aria-busy` ; la feuille atténue après `--meili-duration-busy-delay`, jamais derrière un tiroir
+  qui couvre la page. Aucune région `aria-live` ajoutée.
+
+**Tests.** TS : ouverture souris sans WAAPI ni coupure, clavier instantané dans les deux sens, transition non
+terminée par `hide()`, feuille (keyframes, `@starting-style`, variante réduite) ; nouvelle pastille seule,
+serveur et prix redessiné immobiles, retrait sans animation et focus rendu, mouvement réduit (mutation : filtre
+d'identité retiré → 4 échecs) ; `searching`/`settled` sur réponse, refus, recherche dépassée, réponse périmée,
+`submit` sans recherche ; `aria-busy` par `BusyGrid` ; feuille (délai, retour sans délai, tiroir). Client
+**533/533** (97,82 % lignes, 94,15 % branches), `composer check` vert (Unit 310), suite `Modules` **535** verte.
+
+**Mesuré dans Playwright** (Chrome, `submit` puis `immediate`, images `/content/uploads` interceptées, cache
+désactivé, caches WP Rocket vidés — un premier vidage raté par un glob zsh servait une feuille périmée, relevé et
+refait —, `config/meilifacets.php` restauré, `cmp` = 0 ; 0 erreur console hors images) :
+- **1440 px** : ouverture souris 2 `CSSTransition` 180 ms `cubic-bezier(0.23, 1, 0.32, 1)`, fermeture 3 à 120 ms ;
+  Entrée, Échap, Tab, pill voisine : 0 animation ; mouvement réduit : `opacity` seule, `transform: none` à
+  chaque image. Pastille nouvelle : 1 `Animation` 150 ms `scale(0.95)`, les autres 0, après retrait 0, focus sur
+  la pastille suivante ; mouvement réduit : `opacity` seule. Grille, latence 500 ms : `aria-busy` à ~25 ms,
+  opacité 1 à 120 ms, 0,55 à 300 ms, rendue 1 en ~130 ms après la réponse ; réponse rapide : opacité jamais < 1 ;
+  deux recherches chevauchées : une seule libération ;
+- **393 px** : sections du tiroir inchangées (WAAPI 270 ms `scale(0.96)`) ; tiroir ouvert ou sortant pendant une
+  recherche de 600–800 ms : opacité 1, atténuée seulement une fois la page découverte ;
+- aucune long task ni long-animation-frame ; image la plus longue 9,3 ms (16,6 ms dans une mesure).
+
+**Écarts.** Sortie des sections au clavier toujours animée (hors périmètre ANIM-3). Aucun sélecteur d'état CSS
+partagé (`[data-entering]`) : les entrées scriptées sont en WAAPI, celle des panneaux en `@starting-style`, il
+n'y a donc pas de règle d'entrée par brique à regrouper. `getKeyframes()` sérialise la translation à
+`-8px` alors que la matrice mesurée confirme −4 px (bizarrerie de Chrome, sans effet).
+
+**Les cinq passes.** *Lisibilité* : noms relus (`Entrance.play`, `BusyGrid.watch`, `#markSearching`/
+`#markSettled`, `#isKeyboardOnFloatingPanel`, `#closeFromClick`/`#openFromClick`, `NewPills.among`,
+`InputSource.isKeyboard`/`isPointerDown`, `#scriptedAnimations`) ; pas de
+booléen en paramètre ; fichiers sous les limites ESLint. *Commentaires* : une ligne de pourquoi technique par
+méthode, rien sur l'historique ; aucun commentaire CSS. *Performance* : une lecture de style par pastille
+nouvelle, aucune boucle par image ; `:has()` sur `[data-listing]` limité à l'état busy. *Sécurité* : aucune
+donnée de l'URL. *Contexte et i18n* : aucune chaîne, rien de WooCommerce.
+
+**Découpage (2026-09-25, demandé par Louis ; comportement inchangé).**
+- `shared/input-source.ts` (`InputSource`) : d'où vient une interaction. `InputSource.isKeyboard(click)`
+  (`detail === 0`) et `isPointerDown()` (d'un `pointerdown` à son clic, remis à faux par une touche) sortent de
+  `DisclosureGroup`, qui ne garde que les panneaux (236 → 234 lignes : `#clicked` aiguille désormais vers
+  `#closeFromClick`/`#openFromClick`). `ListingBinding#reveal` lisait aussi `detail` : il passe par
+  `InputSource.isKeyboard`. Le tiroir n'a pas cette détection (son geste suit ses propres pointeurs).
+- `listing/new-pills.ts` (`NewPills`) : quelles pastilles un redessin a amenées, reconnues au filtre qu'elles
+  retirent (`data-kind`, `name`, `value`, `KIND` exporté par `active-value-list.ts`). `ActiveValuesView`
+  (170 → 157) ne fait plus que dessiner, et joue `Entrance` sur `newPills.among(…)`.
+- `BusyGrid.follow` → `watch` ; le champ `#busyGrid` de `ListingBinding` disparaît
+  (`new BusyGrid(this.#contract).watch(this.#listing)` dans `start()`, `#root` remplacé par `#contract`).
+- `EntranceMotion` → `EntranceStyle` (d'où l'élément arrive **et** ses jetons de durée/courbe : `EntranceFrom`
+  n'en aurait nommé que la moitié) ; `#entry` d'`ActiveCountView` → `#entrance`, comme partout ailleurs.
+- Gardés, relus : `#scriptedAnimations` (oppose exactement `animate()` aux transitions de la feuille),
+  `searching`/`settled` (paire d'événements symétrique, `settled` couvre réponse, refus et dépassement),
+  `--meili-duration-busy-delay`, `--meili-duration-settle`, `--meili-busy-opacity` (préfixes du système de jetons
+  existant, chacun ne désigne qu'une valeur).
+
+Tests ajoutés : `input-source.test.ts` (4), `new-pills.test.ts` (4). Client **541/541** (97,84 % lignes,
+94,19 % branches), `composer check` vert (Unit 310), suite `Modules` 535 verte (un échec isolé sur quatre
+passages, non reproduit, sans lien : aucun PHP touché). Recette Playwright rejouée à 1440 et 393 px dans les deux
+modes, `cmp` = 0 : mêmes valeurs qu'au-dessus (2×180 / 3×120 ms, 0 au clavier, Échap, pill voisine ; pastille
+nouvelle seule à 150 ms ; grille 1 à 125 ms, 0,55 à 301 ms, 1 à ~135 ms de la réponse ; réponse rapide jamais
+< 1 ; sections du tiroir WAAPI 270 ms à la souris comme au clavier). En `submit` à 393 px, « Appliquer » ferme le
+tiroir : l'atténuation ne commence qu'à ~410 ms, une fois la page découverte.
+
 ### R-178 · 🟡 · **fermé le 2026-09-25** · ouvert le 2026-09-25 — audit de la branche `feat/filter-bar` : duplications, fixtures et docs à reprendre
 
 Rattaché à `R-48`. Audit de la branche après la livraison des étapes 4 et 5 (`d1b3d70`), découpé en
@@ -3464,7 +3549,7 @@ couverture 97,57 % lignes / 93,84 % branches ; `composer check` vert (Unit 301) 
 - **mouvement réduit** (393 px) : sortie de section 150 ms ; liste du tri : entrée `opacity` 160 ms,
   sortie `opacity` + `display` 160 ms.
 
-**Reste** : keyframes d'ANIM-3 (`translateY(-4px) scale(0.97)`) non reprises.
+**Reste** : keyframes d'ANIM-3 (`translateY(-4px) scale(0.97)`) non reprises — **repris dans `R-179`** (`b02e098`).
 
 ### R-175 · 🟡 · **fermé le 2026-09-25** (étape 5b, `860d58c`, `d62e8d9`) · ouvert le 2026-09-25 — le tiroir n'a pas de pied « Annuler / Appliquer (X) »
 

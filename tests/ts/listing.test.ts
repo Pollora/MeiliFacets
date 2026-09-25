@@ -9,6 +9,7 @@ import { connection, described, FakeClient, FakeHistory, served } from './fixtur
 import type { StateChanges } from '../../resources/assets/ts/listing/listing-state.ts'
 import type { FailedDetail, ResultsDetail } from '../../resources/assets/ts/listing/listing.ts'
 import type { ListingDescription } from '../../resources/assets/ts/shared/description.ts'
+import type { Answers } from '../../resources/assets/ts/shared/search-client.ts'
 
 const description = described({
     perPage: 16,
@@ -262,5 +263,98 @@ describe('Listing', () => {
         const { listing } = build({ facets: { product_brand: ['acme'] }, page: 3, sort: 'price_asc' })
 
         assert.equal(listing.reset().state.isPristine(), true)
+    })
+})
+
+/** ANIM-10: what the grid reads to say it is busy — one start, one end, however many searches overlap. */
+describe('a listing with searches under way', () => {
+    /** Every search waits for the test to end it, as a slow engine would. */
+    class HeldClient {
+        #ends: { answer: () => void, fail: (failure: Error) => void }[] = []
+
+        search() {
+            return new Promise<Answers>((resolve, reject) => {
+                this.#ends.push({ answer: () => resolve({ results: { hits: [], totalHits: 0 } }), fail: reject })
+            })
+        }
+
+        end(rank: number) {
+            return this.#ends[rank] as { answer: () => void, fail: (failure: Error) => void }
+        }
+    }
+
+    const heldBuild = (overrides: Partial<ListingDescription> = {}) => {
+        const listed = described({ ...description, state: served(), ...overrides })
+        const client = new HeldClient()
+        const listing = new Listing(listed, connection, { filterQueries: filterQueriesOf(listed), client, history: new FakeHistory() })
+        const heard: string[] = []
+
+        for (const name of ['searching', 'results', 'failed', 'settled']) {
+            listing.addEventListener(name, () => heard.push(name))
+        }
+
+        return { listing, client, heard }
+    }
+    const turn = () => new Promise((resolve) => setTimeout(resolve, 0))
+
+    it('says a search is under way as it leaves, and settles after the answer is out', async () => {
+        const { listing, client, heard } = heldBuild()
+
+        void listing.apply()
+        assert.deepEqual(heard, ['searching'])
+
+        client.end(0).answer()
+        await turn()
+        assert.deepEqual(heard, ['searching', 'results', 'settled'])
+    })
+
+    it('settles on a refusal too', async () => {
+        const { listing, client, heard } = heldBuild()
+
+        void listing.apply()
+        client.end(0).fail(new SearchError('nope'))
+        await turn()
+
+        assert.deepEqual(heard, ['searching', 'failed', 'settled'])
+    })
+
+    it('stays under way while the search that overtook another is out, and settles once', async () => {
+        const { listing, client, heard } = heldBuild()
+
+        void listing.apply()
+        void listing.apply()
+        client.end(0).fail(new SearchSuperseded())
+        await turn()
+        assert.deepEqual(heard, ['searching'])
+
+        client.end(1).answer()
+        await turn()
+        assert.deepEqual(heard, ['searching', 'results', 'settled'])
+    })
+
+    it('keeps a stale answer from settling a search still out', async () => {
+        const { listing, client, heard } = heldBuild()
+
+        void listing.apply()
+        void listing.apply()
+        client.end(0).answer()
+        await turn()
+        assert.equal(heard.includes('settled'), false)
+
+        client.end(1).answer()
+        await turn()
+        assert.equal(heard.filter((name) => name === 'settled').length, 1)
+    })
+
+    it('says nothing while a box is ticked on submit, until the search really leaves', async () => {
+        const { listing, client, heard } = heldBuild()
+
+        listing.toggle('product_brand', 'acme')
+        assert.deepEqual(heard, [])
+
+        void listing.apply()
+        client.end(0).answer()
+        await turn()
+        assert.deepEqual(heard, ['searching', 'results', 'settled'])
     })
 })

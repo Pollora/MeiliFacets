@@ -4,7 +4,9 @@ import { FacetsView } from '../facets/facets-view.ts'
 import { PageWindow } from '../pagination/page-window.ts'
 import { PaginationView } from '../pagination/pagination-view.ts'
 import { PriceControl } from '../price/price-control.ts'
+import { BusyGrid } from '../results/busy-grid.ts'
 import { ResultsView } from '../results/results-view.ts'
+import { InputSource } from '../shared/input-source.ts'
 import { RESULTS } from '../shared/plan.ts'
 import { SortCombobox } from '../sort/sort-combobox.ts'
 import { SortQuery } from '../sort/sort-query.ts'
@@ -21,7 +23,7 @@ import type { ChangeDetail, Listing, ResultsDetail } from './listing.ts'
 
 /** Ties the theme's markup to the listing: it listens on the root, and reads hooks, never classes. */
 export class ListingBinding {
-    #root: Element
+    #contract: Contract
     #listing: Listing
     #description: ListingDescription
     #results: ResultsView
@@ -37,7 +39,7 @@ export class ListingBinding {
     #resetFocus: ResetFocus
 
     constructor(contract: Contract, listing: Listing, description: ListingDescription) {
-        this.#root = contract.root
+        this.#contract = contract
         this.#listing = listing
         this.#description = description
         this.#results = new ResultsView(contract)
@@ -54,11 +56,12 @@ export class ListingBinding {
     }
 
     start() {
-        this.#root.addEventListener('change', (event) => this.#ticked(event))
-        this.#root.addEventListener('click', (event) => this.#clicked(event))
+        this.#contract.root.addEventListener('change', (event) => this.#ticked(event))
+        this.#contract.root.addEventListener('click', (event) => this.#clicked(event))
         this.#listing.addEventListener('change', (event) => this.#moved((event as CustomEvent<ChangeDetail>).detail))
         this.#listing.addEventListener('results', (event) => this.#repaint((event as CustomEvent<ResultsDetail>).detail))
         this.#listing.listenToHistory()
+        new BusyGrid(this.#contract).watch(this.#listing)
         this.#sort.start()
         this.#sortRadios.start()
         this.#price.start()
@@ -169,10 +172,9 @@ export class ListingBinding {
     #reveal(event: Event) {
         const asked = event.target instanceof Element && event.target.closest(Contract.SCROLL) !== null
 
-        // `detail` is 0 on a click the keyboard raised, and non-zero on a real one.
-        if (asked && (event as MouseEvent).detail > 0) {
+        if (asked && !InputSource.isKeyboard(event as MouseEvent)) {
             // No `behavior`: the theme's `scroll-behavior` decides, reduced-motion guard included.
-            this.#root.scrollIntoView({ block: 'start' })
+            this.#contract.root.scrollIntoView({ block: 'start' })
         }
     }
 

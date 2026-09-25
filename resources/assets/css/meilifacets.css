@@ -50,6 +50,9 @@ button[data-meili="drawer-close"],
     --meili-duration-list: 160ms;
     --meili-duration-pop-in: 200ms;
     --meili-duration-pop-out: 150ms;
+    --meili-duration-busy-delay: 150ms;
+    --meili-duration-settle: 120ms;
+    --meili-busy-opacity: 0.55;
     --meili-scrim: color-mix(in srgb, CanvasText 50%, transparent);
     --meili-card: 15em;
     --meili-ui: 0.875rem;
@@ -619,6 +622,17 @@ button[data-meili="drawer-close"]:active {
     margin: 0;
     padding: 0;
     list-style: none;
+    transition: opacity var(--meili-duration-settle) var(--meili-ease);
+}
+
+[data-meili="results"][aria-busy="true"] {
+    opacity: var(--meili-busy-opacity);
+    transition: opacity var(--meili-duration-fade) var(--meili-ease);
+    transition-delay: var(--meili-duration-busy-delay);
+}
+
+[data-listing]:has([data-meili="drawer"]:is([aria-modal="true"], [data-closing])) [data-meili="results"][aria-busy="true"] {
+    opacity: 1;
 }
 
 [data-meili="apply"],

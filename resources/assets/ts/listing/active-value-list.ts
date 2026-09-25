@@ -7,6 +7,7 @@ import type { ListingState } from './listing-state.ts'
 const PLACEHOLDER = /:([A-Za-z]+)/g
 
 /** Mirrors `Enums\ActiveValueKind`: what a pill takes off, written on it as `data-kind`. */
+export const KIND = 'data-kind'
 export const TERM_KIND = 'term'
 export const PRICE_KIND = 'price'
 

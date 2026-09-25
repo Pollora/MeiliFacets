@@ -463,3 +463,29 @@ describe('the motion of the panels and the drawer', () => {
         assert.doesNotMatch(declared(reduced, `${Contract.selector('sort-list')}[hidden]`), /opacity: 1;/)
     })
 })
+
+/** ANIM-10. Read as written: happy-dom plays no transition and does not wait for a delay. */
+describe('the grid while a search is out', () => {
+    const source = readFileSync(new URL('../../resources/assets/css/meilifacets.css', import.meta.url), 'utf8')
+    const BUSY = `${Contract.selector('results')}[aria-busy="true"]`
+
+    it('dims only after the delay a quick answer never reaches, through variables a theme can move', () => {
+        assert.match(declared(source, '[data-listing]'), /--meili-duration-busy-delay: 150ms;/)
+        assert.match(declared(source, BUSY), /opacity: var\(--meili-busy-opacity\);/)
+        assert.match(declared(source, BUSY), /transition-delay: var\(--meili-duration-busy-delay\);/)
+    })
+
+    it('comes back without waiting, over the settle length', () => {
+        assert.match(declared(source, '[data-listing]'), /--meili-duration-settle: 120ms;/)
+        assert.match(declared(source, Contract.selector('results')), /transition: opacity var\(--meili-duration-settle\) var\(--meili-ease\);/)
+        assert.doesNotMatch(declared(source, Contract.selector('results')), /transition-delay/)
+    })
+
+    it('dims nothing behind a drawer that covers the page, open or on its way out', () => {
+        assert.match(declared(source, `[data-listing]:has(${Contract.selector('drawer')}:is([aria-modal="true"], [data-closing])) ${BUSY}`), /opacity: 1;/)
+    })
+
+    it('fades the grid rather than moving it, so reduced motion keeps it', () => {
+        assert.doesNotMatch(declared(source, BUSY), /transform/)
+    })
+})

@@ -30,9 +30,11 @@ export interface FailedDetail {
 /**
  * What the visitor asked for and what the engine answered: it announces both, the DOM listens.
  *
- * @fires Listing#change   the state moved, nothing has been searched yet
- * @fires Listing#results  the engine answered
- * @fires Listing#failed   the engine refused or never answered
+ * @fires Listing#change    the state moved, nothing has been searched yet
+ * @fires Listing#searching a search left while none was under way
+ * @fires Listing#results   the engine answered
+ * @fires Listing#failed    the engine refused or never answered
+ * @fires Listing#settled   no search is under way any more: answered, refused or overtaken
  */
 export class Listing extends EventTarget {
     #description: ListingDescription
@@ -42,6 +44,7 @@ export class Listing extends EventTarget {
     #history: HistorySeam
     #state: ListingState
     #searchedFor: string | null = null
+    #searchesUnderWay = 0
 
     /** A page change is a place a visitor can come back to; a filter is not. */
     #keepsHistory = false
@@ -133,6 +136,8 @@ export class Listing extends EventTarget {
 
     /** A search the visitor overtook is not a failure and says nothing. */
     async #search() {
+        this.#markSearching()
+
         try {
             const state = this.#state
             const answers = await this.#client.search(this.#query.plan(state))
@@ -143,6 +148,25 @@ export class Listing extends EventTarget {
             if (!(failure instanceof SearchSuperseded)) {
                 this.#announce('failed', { failure })
             }
+        } finally {
+            this.#markSettled()
+        }
+    }
+
+    /** Counted, not flagged: an overtaken search ends while the one that overtook it is still out. */
+    #markSearching() {
+        this.#searchesUnderWay += 1
+
+        if (this.#searchesUnderWay === 1) {
+            this.#announce('searching', null)
+        }
+    }
+
+    #markSettled() {
+        this.#searchesUnderWay -= 1
+
+        if (this.#searchesUnderWay === 0) {
+            this.#announce('settled', null)
         }
     }
 
@@ -187,7 +211,7 @@ export class Listing extends EventTarget {
         return this.#description.facets.find((facet) => facet.taxonomy === taxonomy)
     }
 
-    #announce(name: string, detail: ChangeDetail | ResultsDetail | FailedDetail) {
+    #announce(name: string, detail: ChangeDetail | ResultsDetail | FailedDetail | null) {
         this.dispatchEvent(new CustomEvent(name, { detail }))
     }
 }

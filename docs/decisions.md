@@ -736,8 +736,20 @@ Rien de ce qui suit n'est acquis.
     les deux bornes sont des longueurs. Sortie de la poubelle par `hidden` + `display … allow-discrete`
     (même mécanisme que les panneaux), `interactivity: inert` et `pointer-events: none` pendant ses
     150 ms. Écarté : un attribut d'état + `visibility` (un état de plus pour ce que `hidden` dit déjà).
-  - *Badge `active-count`* : entrée par WAAPI au seul passage 0 → 1 (`CountEntry`), pas par
-    `@starting-style`, qui jouerait au premier rendu et quand un seuil réaffiche l'ouvreur.
+  - *Badge `active-count`* : entrée par WAAPI au seul passage 0 → 1 (`CountEntry`, devenu `Entrance`
+    le 2026-09-25, `R-179`), pas par `@starting-style`, qui jouerait au premier rendu et quand un seuil
+    réaffiche l'ouvreur.
+  - *Une seule entrée scriptée* (`R-179`, Louis, 2026-09-25) : `shared/entrance.ts` (départ, jeton de durée,
+    jeton de courbe) sert le badge, les pastilles actives et les sections ; une durée mesurée (section) passe
+    en argument. Les panneaux flottants n'en ont pas besoin : leur entrée est une transition CSS.
+  - *Pastilles actives* (ANIM-9, `R-179`) : seule une pastille dont l'identité (`kind`, `name`, `value`)
+    n'était pas dans la liste entre, `scale(0.95)` 150 ms ; aucune sortie (décision UX). Coût : une identité
+    relue dans le DOM à chaque redessin.
+  - *Grille occupée* (ANIM-10, `R-179`) : `aria-busy` du départ de la première recherche à la fin de la
+    dernière (`Listing` compte les recherches en vol et annonce `searching`/`settled` ; `BusyGrid` écrit
+    l'attribut) ; atténuation par la feuille seule, après `--meili-duration-busy-delay` — pas de minuterie
+    à annuler ; jamais derrière un tiroir qui couvre la page. Coût : deux événements de plus sur `Listing`,
+    et trois jetons (`--meili-duration-busy-delay`, `--meili-duration-settle`, `--meili-busy-opacity`).
   - *« Appliquer » en `immediate`* (Louis, 2026-09-25) : `visible-in-drawer` le rend avec `data-only="sheet"`, masqué partout par la feuille sauf
     dans le tiroir en sheet (JS actif, `< 48em`), où il ferme sans rechercher ; absent en desktop ; en
     `submit`, visible partout. Pas de seuil en TypeScript.
@@ -817,7 +829,10 @@ Rien de ce qui suit n'est acquis.
     retiré à l'ouverture, à la fin de la sortie et au passage du seuil.
   - *Panneaux flottants* (ANIM-3/ANIM-4, `R-176`, Louis, 2026-09-25) : entrée **180 ms** (WAAPI,
     `--meili-duration-panel-in`, lu par `PanelMotion::pop()`), sortie **120 ms**
-    (`--meili-duration-panel-out`) — durées fixes, le panneau ne pousse rien autour de lui ; les
+    (`--meili-duration-panel-out`) — durées fixes, le panneau ne pousse rien autour de lui ; *amendé le
+    2026-09-25 (`R-179`)* : l'entrée n'est plus un WAAPI mais une transition CSS depuis `@starting-style`
+    (`translateY(-4px) scale(0.97)`, `--meili-ease`), interruptible et surchargeable par le thème, et un clic
+    que le clavier a levé (`detail === 0`) ouvre ou ferme sans animation ; les
     sections gardent la durée selon la hauteur. **Aucune animation** à la fermeture par Échap, par
     Tab qui quitte le panneau, ni au passage d'une pill à l'autre : `DisclosureGroup` pose
     `data-instant` sur le panneau, change son état, vide le style (`getAnimations()`) puis retire

@@ -1,5 +1,6 @@
 import { EXPANDED, INSTANT } from '../shared/attributes.ts'
 import { Contract } from '../shared/contract.ts'
+import { InputSource } from '../shared/input-source.ts'
 import { PanelMotion } from './panel-motion.ts'
 
 const ALIGNED_TO_END = 'data-align-end'
@@ -9,14 +10,15 @@ export class DisclosureGroup {
     #contract: Contract
     #document: Document
     #motion: PanelMotion
+    #input: InputSource
     #closed: () => void
-    #pointing = false
 
     /** `closed` runs once a panel is out of sight. */
     constructor(contract: Contract, closed: () => void = () => {}) {
         this.#contract = contract
         this.#document = contract.root.ownerDocument
         this.#motion = new PanelMotion(this.#document)
+        this.#input = new InputSource(this.#document)
         this.#closed = closed
     }
 
@@ -26,12 +28,7 @@ export class DisclosureGroup {
         root.addEventListener('click', (event) => this.#clicked(event))
         root.addEventListener('keydown', (event) => this.#pressed(event as KeyboardEvent))
         root.addEventListener('focusout', (event) => this.#left(event as FocusEvent))
-        this.#document.addEventListener('pointerdown', () => {
-            this.#pointing = true
-        }, { capture: true })
-        this.#document.addEventListener('keydown', () => {
-            this.#pointing = false
-        }, { capture: true })
+        this.#input.start()
         this.#document.addEventListener('click', (event) => this.#clickedAnywhere(event))
 
         return this
@@ -64,14 +61,28 @@ export class DisclosureGroup {
         }
 
         if (this.#isOpen(toggle)) {
-            this.#closeFrom(event, toggle)
+            this.#closeFromClick(toggle, event as MouseEvent)
 
             return
         }
 
+        this.#openFromClick(toggle, event as MouseEvent)
+    }
+
+    #closeFromClick(toggle: HTMLElement, click: MouseEvent) {
+        if (this.#isKeyboardOnFloatingPanel(toggle, click)) {
+            this.#closeInstantly(toggle)
+
+            return
+        }
+
+        this.#close(toggle)
+    }
+
+    #openFromClick(toggle: HTMLElement, click: MouseEvent) {
         const others = this.#openFloating()
 
-        if (others.length > 0 || this.#floatsFromKeyboard(event, toggle)) {
+        if (others.length > 0 || this.#isKeyboardOnFloatingPanel(toggle, click)) {
             others.forEach((other) => this.#closeInstantly(other))
             this.#openInstantly(toggle)
 
@@ -81,19 +92,8 @@ export class DisclosureGroup {
         this.#open(toggle)
     }
 
-    #closeFrom(event: Event, toggle: HTMLElement) {
-        if (this.#floatsFromKeyboard(event, toggle)) {
-            this.#closeInstantly(toggle)
-
-            return
-        }
-
-        this.#close(toggle)
-    }
-
-    /** `detail` is 0 on a click the keyboard raised: a floating panel it opens or closes does not animate. */
-    #floatsFromKeyboard(event: Event, toggle: Element) {
-        return (event as MouseEvent).detail === 0 && this.#floats(toggle)
+    #isKeyboardOnFloatingPanel(toggle: Element, click: MouseEvent) {
+        return InputSource.isKeyboard(click) && this.#floats(toggle)
     }
 
     #pressed(event: KeyboardEvent) {
@@ -116,7 +116,7 @@ export class DisclosureGroup {
     #left(event: FocusEvent) {
         const next = event.relatedTarget
 
-        if (next instanceof Node && !this.#pointing) {
+        if (next instanceof Node && !this.#input.isPointerDown()) {
             this.#openFloating().filter((open) => !this.#holds(open, next)).forEach((open) => this.#closeInstantly(open))
         }
     }
@@ -124,8 +124,6 @@ export class DisclosureGroup {
     /** The path, not `contains()`: the click may have replaced the node it landed on. */
     #clickedAnywhere(event: Event) {
         const path = event.composedPath()
-
-        this.#pointing = false
 
         this.#openFloating().filter((open) => !this.#isOnPath(open, path)).forEach((open) => this.#close(open))
     }
