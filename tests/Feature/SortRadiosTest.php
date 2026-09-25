@@ -47,6 +47,22 @@ final class SortRadiosTest extends TestCase
         $this->assertSame(['radio'], array_values(array_unique(array_map(static fn ($choice): string => $choice->getAttribute('type'), iterator_to_array($choices)))));
     }
 
+    /** The client hides a row and names the order in force through these, never through a tag. */
+    #[Test]
+    public function it_hooks_each_choice_row_and_publishes_each_label(): void
+    {
+        $sorts = $this->app->make(CurrentListing::class)->sole()->sorts();
+        $rows = $this->rendered('<x-meilifacets::sort widget="radios" />')->querySelectorAll($this->hooked(Hook::SortChoiceRow));
+
+        $this->assertCount(count($sorts) + 1, $rows);
+
+        foreach ($rows as $row) {
+            $choice = $row->querySelector($this->hooked(Hook::SortChoice));
+
+            $this->assertSame(trim($row->textContent), $choice->getAttribute('data-label'));
+        }
+    }
+
     #[Test]
     public function it_names_the_group_and_closes_it_behind_a_trigger_when_collapsible(): void
     {

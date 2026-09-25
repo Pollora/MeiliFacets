@@ -8,9 +8,9 @@
         <div class="meilifacetsFacetPanel" id="{{ $panelId() }}"@if ($collapsible) hidden {{ $hook('panel') }}@endif>
             <ul class="meilifacetsFacetValues">
                 @foreach ($choices as $choice)
-                    <li class="meilifacetsFacetValue" @if ($choice->hidden) hidden @endif>
+                    <li class="meilifacetsFacetValue" @if ($choice->hidden) hidden @endif {{ $hook('sort-choice-row') }}>
                         <label>
-                            <input type="radio" name="{{ $choiceName() }}" value="{{ $choice->value }}"
+                            <input type="radio" name="{{ $choiceName() }}" value="{{ $choice->value }}" data-label="{{ $choice->label }}"
                                    @checked($choice->selected) {{ $hook('sort-choice') }}>
                             <span class="meilifacetsFacetName">{{ $choice->label }}</span>
                         </label>

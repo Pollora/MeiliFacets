@@ -7,8 +7,8 @@ import { find, load } from './dom.ts'
 import type { TestWindow } from './dom.ts'
 
 const SHEET = `
-<div id="drawer">
-    <div id="sheet">
+<div id="drawer" data-meili="drawer">
+    <div id="sheet" data-meili="drawer-sheet">
         <div id="head"><span id="title">Filter</span><button type="button" id="close" data-meili="drawer-close">✕</button></div>
         <div id="handle" data-meili="drawer-close"></div>
         <div id="body">
@@ -62,6 +62,14 @@ describe('DrawerGesture', () => {
         assert.equal(sheet().style.transform, 'translateY(30px)')
         assert.equal(drawer().hasAttribute('data-dragging'), true)
         assert.equal(sheet().hasPointerCapture(1), true)
+    })
+
+    it('moves only the part the markup hooks as its sheet', () => {
+        sheet().removeAttribute('data-meili')
+        drag(find(window.document, '#head'), 10, 30)
+
+        assert.equal(sheet().style.transform, '')
+        assert.equal(drawer().hasAttribute('data-dragging'), false)
     })
 
     it('fades the scrim with the pull, and gives it back on release', () => {

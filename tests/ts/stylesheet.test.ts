@@ -312,22 +312,22 @@ describe('the drawer as a sheet', () => {
         assert.match(source, /--meili-drawer-block: 2\.5rem;/)
         assert.match(declared(sheet, '.meilifacetsDrawerHead'), /padding: var\(--meili-section-gap\) var\(--meili-drawer-gutter\);/)
         assert.match(declared(sheet, '.meilifacetsDrawerBody'), /padding: var\(--meili-drawer-block\) var\(--meili-drawer-gutter\);/)
-        assert.match(declared(sheet, '.meilifacetsDrawerFooter'), /padding: var\(--meili-section-step\) var\(--meili-drawer-gutter\)/)
+        assert.match(declared(sheet, Contract.selector('drawer-footer')), /padding: var\(--meili-section-step\) var\(--meili-drawer-gutter\)/)
     })
 
     /** At rest nothing may move: a transition there plays on the first render and on every crossing of the threshold. */
     it('holds no transition while closed at rest, and plays its way out only while it closes', () => {
-        for (const selector of [DRAWER, `${DRAWER}::before`, '.meilifacetsDrawerSheet']) {
+        for (const selector of [DRAWER, `${DRAWER}::before`, Contract.selector('drawer-sheet')]) {
             assert.doesNotMatch(declared(sheet, selector), /transition/, selector)
         }
 
         assert.match(declared(sheet, `${DRAWER}[data-closing]`), /transition: visibility 0s linear var\(--meili-duration-drawer-out\);/)
-        assert.match(declared(sheet, `${DRAWER}[data-closing] .meilifacetsDrawerSheet`), /transform var\(--meili-duration-drawer-out\)/)
+        assert.match(declared(sheet, `${DRAWER}[data-closing] ${Contract.selector('drawer-sheet')}`), /transform var\(--meili-duration-drawer-out\)/)
     })
 
     /** R-173 (3): one layout property moves — the width of « Apply » — and only in an open drawer. */
     it('lets « Apply » take the room the bin leaves, by its width alone', () => {
-        const footer = '.meilifacetsDrawerFooter'
+        const footer = Contract.selector('drawer-footer')
         const bin = `${Contract.selector('reset')}[data-shape="icon"]`
         const open = `${DRAWER}[aria-modal="true"] ${footer} > `
 

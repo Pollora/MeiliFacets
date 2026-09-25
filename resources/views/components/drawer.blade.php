@@ -1,5 +1,5 @@
 <div {{ $attributes->class('meilifacetsDrawer') }} id="{{ $drawerId }}" data-media="{{ $media }}" {{ $hook('drawer') }}>
-    <div class="meilifacetsDrawerSheet">
+    <div class="meilifacetsDrawerSheet" {{ $hook('drawer-sheet') }}>
         <div class="meilifacetsDrawerHead">
             <{{ $heading->value }} class="meilifacetsDrawerTitle" id="{{ $titleId }}" tabindex="-1" {{ $hook('drawer-title') }}>{{ __('Filters') }}</{{ $heading->value }}>
             <button type="button" class="meilifacetsDrawerClose" aria-label="{{ __('Close the filters') }}" {{ $hook('drawer-close') }}>
@@ -11,7 +11,7 @@
             {{ $slot }}
         </div>
         @isset($footer)
-            <div {{ $footer->attributes->class('meilifacetsDrawerFooter') }}>
+            <div {{ $footer->attributes->class('meilifacetsDrawerFooter') }} {{ $hook('drawer-footer') }}>
                 {{ $footer }}
             </div>
         @endisset

@@ -40,7 +40,11 @@ export class Drawer {
             { isOpen: () => this.#isOpen(), dismiss: () => this.#close() },
             contract.window.matchMedia(REDUCED_MOTION),
         )
-        this.#height = drawer.firstElementChild instanceof HTMLElement ? new SheetHeight(drawer.firstElementChild) : null
+        this.#height = Drawer.#heightOf(contract.one('drawer-sheet', drawer))
+    }
+
+    static #heightOf(sheet: Element | null) {
+        return sheet instanceof HTMLElement ? new SheetHeight(sheet) : null
     }
 
     start() {

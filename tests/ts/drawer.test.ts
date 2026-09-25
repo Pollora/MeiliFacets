@@ -22,7 +22,7 @@ type ApplyMode = 'submit' | 'immediate'
 
 /** Mirrors `reset-icon.blade.php` and `apply.blade.php` in the foot, as the theme slots them. */
 const drawerFooter = (apply: ApplyMode) => `
-            <div class="meilifacetsDrawerFooter">
+            <div class="meilifacetsDrawerFooter" data-meili="drawer-footer">
                 <button type="button" class="meilifacetsReset" aria-label="Clear all" data-shape="icon" hidden data-meili="reset">
                     <img class="meilifacetsResetIcon" src="trash.svg" alt="" width="20" height="20">
                 </button>
@@ -43,7 +43,7 @@ const drawerMarkup = ({ close = true, apply = 'submit' }: { close?: boolean, app
         <span class="meilifacetsDrawerCount" id="drawer-count" aria-hidden="true" hidden data-meili="active-count"></span>
     </button>
     <div class="meilifacetsDrawer" id="drawer" data-media="(width < 48em)" data-meili="drawer">
-        <div class="meilifacetsDrawerSheet">
+        <div class="meilifacetsDrawerSheet" data-meili="drawer-sheet">
             <div class="meilifacetsDrawerHead">
                 <h2 class="meilifacetsDrawerTitle" id="drawer-title" tabindex="-1" data-meili="drawer-title">Filters</h2>
                 ${close ? '<button type="button" class="meilifacetsDrawerClose" aria-label="Close the filters" data-meili="drawer-close"><span aria-hidden="true">✕</span></button>' : ''}
@@ -346,7 +346,7 @@ describe('Drawer', () => {
     })
 
     describe('its inline height', () => {
-        const sheet = () => find(drawer(), '.meilifacetsDrawerSheet')
+        const sheet = () => find(drawer(), Contract.selector('drawer-sheet'))
 
         it('is written while it is an open sheet', () => {
             click(window, opener())
@@ -646,7 +646,7 @@ describe('the foot of the drawer', () => {
         const { window, drawer, box } = boundUnderDrawer('submit')
         const apply = find(drawer, Contract.selector('apply'))
 
-        assert.deepEqual([FOOT, RESIZED], ['.meilifacetsDrawerFooter', Contract.selector('apply')])
+        assert.deepEqual([FOOT, RESIZED], [Contract.selector('drawer-footer'), Contract.selector('apply')])
         assert.equal(resized(apply), false)
 
         tick(window, box('acme'))

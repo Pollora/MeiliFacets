@@ -765,7 +765,11 @@ Rien de ce qui suit n'est acquis.
     son contenu) et l'écrit à chaque changement signalé par `ResizeObserver` ; la feuille interpole.
     C'est la seule propriété de mise en page animée, sur un seul conteneur. Le client prend le sheet
     comme **le premier enfant du tiroir** : c'est une règle de structure, pas un crochet (en
-    ajouter un demandait l'accord de Louis).
+    ajouter un demandait l'accord de Louis). *Levé le 2026-09-25 (`R-178`, lot C, accord de Louis)* :
+    le sheet et le pied portent les crochets `drawer-sheet` et `drawer-footer`, la rangée du tri en
+    radios `sort-choice-row` ; feuille du module, thème et client les visent au lieu des classes et
+    des balises. Additifs et hors de `RULES` : un tiroir surchargé sans eux démarre encore (sans
+    hauteur animée ni glisser), donc `Contract::VERSION` reste à 1.
   - *Sections* : entrée par WAAPI, dont la durée se calcule une fois la hauteur connue ; sortie par la
     transition `[hidden]` de la feuille, chronométrée avant de masquer. Un `@starting-style` ne
     pouvait pas recevoir une durée mesurée après l'affichage.

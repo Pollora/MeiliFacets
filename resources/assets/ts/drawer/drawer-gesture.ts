@@ -1,6 +1,7 @@
 import { Contract } from '../shared/contract.ts'
 
 const DRAGGING = 'data-dragging'
+const SHEET = Contract.selector('drawer-sheet')
 const SCRIM = '--meili-scrim-shown'
 /** What moves under its own press: a field, the price's track and handles, and the ✕ the head keeps for its tap. */
 const OWN_GESTURES = [
@@ -205,9 +206,9 @@ export class DrawerGesture {
     }
 
     #sheetUnder(target: EventTarget | null) {
-        const sheet = [...this.#drawer.children].find((child) => target instanceof Node && child.contains(target))
+        const sheet = target instanceof Element ? target.closest(SHEET) : null
 
-        return sheet instanceof HTMLElement ? sheet : null
+        return sheet instanceof HTMLElement && this.#drawer.contains(sheet) ? sheet : null
     }
 
     /** Not `hasPointerCapture()`: a touch captures its pointer on whatever it lands on, the drawer's own head included. */

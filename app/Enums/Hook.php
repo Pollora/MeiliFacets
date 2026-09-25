@@ -45,6 +45,7 @@ enum Hook: string
     case SortOption = 'sort-option';
     case SortChoices = 'sort-choices';
     case SortChoice = 'sort-choice';
+    case SortChoiceRow = 'sort-choice-row';
     case SortChosen = 'sort-chosen';
     case PriceRange = 'price-range';
     case PriceTrack = 'price-track';
@@ -66,6 +67,8 @@ enum Hook: string
     case DrawerTitle = 'drawer-title';
     case DrawerClose = 'drawer-close';
     case DrawerOpen = 'drawer-open';
+    case DrawerSheet = 'drawer-sheet';
+    case DrawerFooter = 'drawer-footer';
 
     public function attribute(): HtmlString
     {

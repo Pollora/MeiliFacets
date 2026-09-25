@@ -1,8 +1,9 @@
-import type { Contract } from '../shared/contract.ts'
+import { Contract } from '../shared/contract.ts'
 import type { ListingState } from '../listing/listing-state.ts'
 
 /** The engine's own order, the value the default choice carries. */
 const DEFAULT_VALUE = ''
+const ROW = Contract.selector('sort-choice-row')
 
 export class SortRadios {
     #contract: Contract
@@ -33,7 +34,7 @@ export class SortRadios {
         const current = state.sort ?? DEFAULT_VALUE
 
         for (const choice of this.#choices()) {
-            const row = choice.closest('li')
+            const row = choice.closest(ROW)
 
             if (row instanceof HTMLElement) {
                 row.hidden = choice.value !== current && matches[choice.value] === 0
@@ -51,7 +52,7 @@ export class SortRadios {
 
     #showChosen(current: string) {
         const chosen = this.#contract.one('sort-chosen')
-        const label = this.#choices().find((choice) => choice.value === current)?.closest('label')?.textContent?.trim()
+        const label = this.#choices().find((choice) => choice.value === current)?.dataset.label
 
         if (chosen !== null && label !== undefined) {
             chosen.textContent = label

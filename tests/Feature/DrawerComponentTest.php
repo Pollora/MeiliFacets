@@ -49,7 +49,7 @@ final class DrawerComponentTest extends TestCase
         $this->assertSame(Drawer::MOBILE, $drawer->getAttribute('data-media'));
         $this->assertSame('meilifacetsDrawer flex-1', $drawer->getAttribute('class'));
         $this->assertNotNull($drawer->querySelector('#inside'));
-        $this->assertNotNull($drawer->querySelector('.meilifacetsDrawerFooter '.$this->hooked(Hook::Reset)));
+        $this->assertNotNull($drawer->querySelector($this->hooked(Hook::DrawerSheet).' '.$this->hooked(Hook::DrawerFooter).' '.$this->hooked(Hook::Reset)));
     }
 
     /** The rule the client refuses to start without: `drawer` holds `drawer-title` and `drawer-close`. */
@@ -168,7 +168,8 @@ final class DrawerComponentTest extends TestCase
     {
         $document = HTMLDocument::createFromString(Blade::render('<x-meilifacets::drawer>Facets</x-meilifacets::drawer>'), LIBXML_NOERROR);
 
-        $this->assertNull($document->querySelector('.meilifacetsDrawerFooter'));
+        $this->assertNotNull($document->querySelector($this->hooked(Hook::DrawerSheet)));
+        $this->assertNull($document->querySelector($this->hooked(Hook::DrawerFooter)));
     }
 
     /** Q-3: a theme with another threshold passes it, and restates the stylesheet block. */

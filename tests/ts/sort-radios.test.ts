@@ -13,9 +13,9 @@ import { connection, described, FakeClient, FakeHistory } from './fixtures.ts'
 import type { ListingDescription } from '../../resources/assets/ts/shared/description.ts'
 
 const choice = (value: string, label: string, checked = false) => `
-                <li class="meilifacetsFacetValue">
+                <li class="meilifacetsFacetValue" data-meili="sort-choice-row">
                     <label>
-                        <input type="radio" name="sort" value="${value}"${checked ? ' checked' : ''} data-meili="sort-choice">
+                        <input type="radio" name="sort" value="${value}" data-label="${label}"${checked ? ' checked' : ''} data-meili="sort-choice">
                         <span class="meilifacetsFacetName">${label}</span>
                     </label>
                 </li>`
@@ -90,7 +90,7 @@ describe('SortRadios', () => {
     it('hides a sort that would keep nothing, unless it is the one in force', () => {
         const { root } = open(radiosMarkup())
         const radios = new SortRadios(new Contract(root), () => undefined)
-        const row = (value: string) => find(root, `input[value="${value}"]`).closest('li') as HTMLElement
+        const row = (value: string) => find(root, `input[value="${value}"]`).closest(Contract.selector('sort-choice-row')) as HTMLElement
 
         radios.showMatches({ on_sale: 0 }, new ListingState())
         assert.equal(row('on_sale').hidden, true)
@@ -109,6 +109,15 @@ describe('SortRadios', () => {
 
             assert.equal(find(root, Contract.selector('sort-chosen')).textContent, 'Price, low to high')
             assert.equal(trigger(root).textContent?.trim(), 'Sort by: Price, low to high')
+        })
+
+        it('names the order by the label its choice publishes, whatever its row holds', () => {
+            const { window, root } = bound('submit', COLLAPSIBLE)
+            find(root, 'input[value="price_asc"] + .meilifacetsFacetName').append(' (12)')
+
+            tick(window, find<HTMLInputElement>(root, 'input[value="price_asc"]'))
+
+            assert.equal(find(root, Contract.selector('sort-chosen')).textContent, 'Price, low to high')
         })
 
         it('names the order the history goes back to', () => {
