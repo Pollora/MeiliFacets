@@ -4,6 +4,7 @@ import globals from 'globals'
 import tseslint from 'typescript-eslint'
 
 export default defineConfig(
+    { ignores: ['website/**'] },
     js.configs.recommended,
     tseslint.configs.recommendedTypeChecked,
     {

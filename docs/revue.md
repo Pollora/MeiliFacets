@@ -106,6 +106,9 @@ Ce qui reste ouvert, et qu'il faut garder en tête : **rien ne relie aujourd'hui
 projet à une révision du module**. Tant que c'est le cas, « ce qui est déployé » n'est pas une
 information disponible. À rouvrir avant la première mise en production, pas avant.
 
+**Au 2026-09-25** (`T-43`) : le dépôt est **public**. Vérifié via l'API GitHub (`visibility: public`),
+confirmé par Louis. Le « privé » du titre n'est plus exact, et tout `docs/` est lisible, noms de client compris.
+
 ### D-03 — Fondations d'abord, un point à la fois
 
 *Répond à Q-04.*
@@ -6494,6 +6497,7 @@ parallèle : il ne touche pas au rendu.
 | T-40 | Ramener le regard en haut du listing après pagination et tri | R-73 | **fait** |
 | T-41 | Rendre l'ordre d'une facette réglable en configuration | Q-07 (partiel) | **différé après livraison** — décidé le 2026-09-08 |
 | T-42 | Sortir le module du dépôt imbriqué : ignoré, sous-module ou paquet composer | R-38 | **différé en fin de projet** — décidé le 2026-09-08 |
+| T-43 | Documentation publique en anglais : site Docusaurus dans `website/`, publié sur GitHub Pages | Q-13 (partiel), lot 7 | **squelette livré le 2026-09-25** — contenu à écrire |
 
 #### T-41 · Ordre d'une facette réglable en configuration
 
@@ -6534,6 +6538,37 @@ globale à tous les listings — sans objet avec un seul, à revoir avec deux.
 **Écarté au passage** : un filtre `meilifacets/facets`. Reconstruire une `Facet` dans un filtre
 oblige à réénumérer sept arguments de constructeur pour en changer un, et c'est un réglage, pas un
 comportement — les filtres sont pour le comportement.
+
+#### T-43 · Documentation publique
+
+**Ouvert le 2026-09-25, à la demande de Louis**, qui fait passer ce point avant la file du 2026-09-24 :
+il ne touche pas au code du module. Outil retenu : Docusaurus, contre GitBook (pas de script ni
+d'iframe libre dans une page, payant dès le deuxième éditeur) et Starlight.
+
+**Livré le 2026-09-25 — le squelette.** `website/` a son propre `package.json` et son propre
+lockfile (Docusaurus 3.10.2, options `future.v4`), une page d'introduction, pas de blog. Il est
+publié sur `https://pollora.github.io/MeiliFacets/`, avec `trailingSlash: false`, par
+`.github/workflows/docs.yml` : build et typecheck sur chaque PR qui touche `website/`, déploiement
+sur `main`. C'est la première CI du dépôt, et elle **ne lance pas** `composer check`.
+`eslint.config.js` ignore `website/**`. Observé : le build passe, la page servie répond `200`, et
+son rendu a été vérifié dans Chromium sans erreur de console. La partie JavaScript de
+`composer check` est verte ; la partie PHP n'a pas pu tourner (`composer install` refusé, faute
+d'authentification sur la dépendance `amphibee/meiliscout`).
+
+**Reste à faire, dans l'ordre :**
+1. Activer Pages : *Settings → Pages → Source : GitHub Actions*. Cette action revient à Louis.
+2. Trancher la source de la doc utilisateur. Soit `website/docs/` remplace `docs/installation.md` et
+   `docs/configuration.md`, ce qui modifie la ligne « Documentation » de `decisions.md`. Soit on
+   garde deux copies, ce que `Q-13` déconseille.
+3. Écrire le contenu (démarrer, guides, référence, comprendre) sans nom de client ni infrastructure
+   AmphiBee. Il doit garder les limites de `D-07`, `R-09`, `R-10` et `R-11`, et le tableau des
+   crochets `data-meili`.
+4. Mettre à jour la section *Documentation* du README quand le site couvre l'installation.
+
+**Hors périmètre** : la démo en direct. `listing.js` démarre seul et lit
+`wp-script-module-data-*`, balise que seul WordPress écrit. Il réécrit aussi l'URL et n'offre
+aucun arrêt. Si la démo se fait, ce sera une page autonome, avec un HTML généré depuis les vues
+(`R-25`), et elle dépendra de `R-28`, `R-29`, `I-02` et `R-41`.
 
 ---
 
@@ -6861,3 +6896,9 @@ continuer à décider sur 76 produits sans variations.
   décisif revérifié dans la source. Le prix, le passage au TypeScript et `resolveIndexable()` n'avaient
   pas atteint `architecture.md` ; `decisions.md` portait des décisions que le code ne tient plus, annotées
   sans être réécrites ; le registre avait fermé `R-05` à tort et laissé répondues cinq questions ouvertes.
+- **2026-09-25** — **`T-43` ouvert, squelette livré.** Louis demande une documentation publique.
+  GitBook et Starlight sont écartés au profit de Docusaurus. Livré : `website/` et
+  `.github/workflows/docs.yml`, sans démo. Deux écarts relevés en passant :
+  - `D-02` dit le dépôt privé, alors qu'il est public ;
+  - `eslint .` échoue sur `eslint.config.js` et `resources/assets/dist/listing.js`, hors du périmètre
+    de `npm run lint`. Ce défaut existait avant ce changement.
