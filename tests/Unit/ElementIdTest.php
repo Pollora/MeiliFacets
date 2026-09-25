@@ -56,7 +56,7 @@ final class ElementIdTest extends TestCase
             $source[$ids->sortOption($key)][] = "sortOption({$key})";
         }
 
-        foreach ([$ids->sortLabel(), $ids->sortTrigger(), $ids->sortList(), $ids->drawer(), $ids->drawerTitle(), $ids->drawerCount(), $ids->applyCount(), $ids->sortPanel(), $ids->sortSelectedCount(), $ids->sortChoiceName()] as $fixed) {
+        foreach ([$ids->sortLabel(), $ids->sortTrigger(), $ids->sortList(), $ids->drawer(), $ids->drawerTitle(), $ids->drawerCount(), $ids->applyCount(), $ids->sortPanel(), $ids->sortChoiceName()] as $fixed) {
             $source[$fixed][] = 'fixed';
         }
 

@@ -136,7 +136,7 @@ final class ContractParityTest extends TestCase
     #[Test]
     public function the_stylesheet_cuts_the_motion_the_client_marks_as_instant(): void
     {
-        preg_match("/INSTANT = '([^']*)'/", $this->read('drawer/drawer.ts'), $found);
+        preg_match("/INSTANT = '([^']*)'/", $this->read('shared/attributes.ts'), $found);
 
         $this->assertNotSame('', $found[1] ?? '');
         $this->assertStringContainsString('['.$found[1].']', (string) file_get_contents(self::STYLESHEET));

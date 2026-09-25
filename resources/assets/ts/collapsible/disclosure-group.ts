@@ -1,9 +1,8 @@
+import { EXPANDED, INSTANT } from '../shared/attributes.ts'
 import { Contract } from '../shared/contract.ts'
 import { PanelMotion } from './panel-motion.ts'
 
-const EXPANDED = 'aria-expanded'
 const ALIGNED_TO_END = 'data-align-end'
-const INSTANT = 'data-instant'
 
 /** The APG disclosure pattern on every toggle of the listing. */
 export class DisclosureGroup {

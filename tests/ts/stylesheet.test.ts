@@ -334,8 +334,10 @@ describe('the drawer as a sheet', () => {
         assert.match(declared(sheet, `${footer} > ${bin}`), /position: absolute;/)
         assert.match(declared(sheet, `${footer}:has(> ${bin}:not([hidden])) > ${Contract.selector('apply')}`), /width: calc\(/)
         assert.match(declared(sheet, `${open}${Contract.selector('apply')}`), /width var\(--meili-duration-resize\) var\(--meili-ease-resize\)/)
-        assert.match(declared(sheet, `${open}${bin}`), /display 200ms allow-discrete/)
-        assert.match(declared(sheet, `${open}${bin}[hidden]`), /transition-duration: 150ms;/)
+        assert.match(declared(source, '[data-listing]'), /--meili-duration-pop-in: 200ms;/)
+        assert.match(declared(source, '[data-listing]'), /--meili-duration-pop-out: 150ms;/)
+        assert.match(declared(sheet, `${open}${bin}`), /display var\(--meili-duration-pop-in\) allow-discrete/)
+        assert.match(declared(sheet, `${open}${bin}[hidden]`), /transition-duration: var\(--meili-duration-pop-out\);/)
         assert.match(declared(sheet, `${open}${bin}[hidden]`), /interactivity: inert;/)
     })
 
@@ -412,6 +414,13 @@ describe('the motion of the panels and the drawer', () => {
         assert.match(desktop, /\[data-meili="panel"\] \{[^}]*opacity var\(--meili-duration-panel-out\)/)
     })
 
+    /** ANIM-2: a length written in a rule is a length no theme can move. */
+    it('writes every length on a variable of the listing', () => {
+        const written = source.split('\n').filter((line) => /\b[1-9]\d*m?s\b/.test(line) && !/^\s*--meili-duration-[a-z-]+: /.test(line))
+
+        assert.deepEqual(written, [])
+    })
+
     it('cuts the transition of a panel the keyboard closes or a pill hands over', () => {
         assert.match(declared(source, `${PANEL}[data-instant][hidden]`), /transition: none;/)
         assert.ok(source.indexOf(`${PANEL}[data-instant]`) > source.length - reduced.length, 'after the reduced-motion rules, which it must beat')
@@ -429,7 +438,8 @@ describe('the motion of the panels and the drawer', () => {
     })
 
     it('keeps a short fade on the sort list under reduced motion', () => {
-        assert.match(declared(reduced, `${Contract.selector('sort-list')}[hidden]`), /opacity 160ms/)
+        assert.match(declared(source, '[data-listing]'), /--meili-duration-list: 160ms;/)
+        assert.match(declared(reduced, `${Contract.selector('sort-list')}[hidden]`), /opacity var\(--meili-duration-list\)/)
         assert.doesNotMatch(declared(reduced, `${Contract.selector('sort-list')}[hidden]`), /opacity: 1;/)
     })
 })

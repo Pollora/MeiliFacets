@@ -3,7 +3,7 @@ import { beforeEach, describe, it } from 'node:test'
 
 import { DisclosureGroup } from '../../resources/assets/ts/collapsible/disclosure-group.ts'
 import { Drawer } from '../../resources/assets/ts/drawer/drawer.ts'
-import { REDUCED_MOTION } from '../../resources/assets/ts/drawer/drawer-gesture.ts'
+import { REDUCED_MOTION } from '../../resources/assets/ts/shared/css-timing.ts'
 import { filterQueriesOf } from '../../resources/assets/ts/filter-queries.ts'
 import { ListingBinding } from '../../resources/assets/ts/listing/listing-binding.ts'
 import { Listing } from '../../resources/assets/ts/listing/listing.ts'

@@ -44,6 +44,12 @@ button[data-meili="drawer-close"],
     --meili-duration-panel-in: 180ms;
     --meili-duration-panel-out: 120ms;
     --meili-duration-hover: 150ms;
+    --meili-duration-press: 150ms;
+    --meili-duration-press-pill: 120ms;
+    --meili-duration-chevron: 160ms;
+    --meili-duration-list: 160ms;
+    --meili-duration-pop-in: 200ms;
+    --meili-duration-pop-out: 150ms;
     --meili-scrim: color-mix(in srgb, CanvasText 50%, transparent);
     --meili-card: 15em;
     --meili-ui: 0.875rem;
@@ -118,7 +124,18 @@ button[data-meili="drawer-close"],
 }
 
 [data-meili="input"]:focus-visible,
-[data-meili="sort-choice"]:focus-visible {
+[data-meili="sort-choice"]:focus-visible,
+[data-meili="toggle"]:focus-visible,
+[data-meili="drawer-open"]:focus-visible,
+button[data-meili="drawer-close"]:focus-visible,
+[data-meili="apply"]:focus-visible,
+[data-meili="reset"]:focus-visible,
+[data-meili="page"]:focus-visible,
+[data-meili="previous"]:focus-visible,
+[data-meili="next"]:focus-visible,
+[data-meili="more"]:focus-visible,
+[data-meili="active-value"]:focus-visible,
+[data-meili="sort-trigger"]:focus-visible {
     outline: 2px solid currentColor;
     outline-offset: 2px;
 }
@@ -191,7 +208,7 @@ button[data-meili="drawer-close"],
     transition:
         background-color var(--meili-duration-hover) var(--meili-ease),
         border-color var(--meili-duration-hover) var(--meili-ease),
-        transform 120ms var(--meili-ease);
+        transform var(--meili-duration-press-pill) var(--meili-ease);
 }
 
 [data-meili="facet"][data-presentation="pill"] [data-meili="input"],
@@ -303,7 +320,7 @@ button[data-meili="drawer-close"],
     transition:
         background-color var(--meili-duration-hover) var(--meili-ease),
         border-color var(--meili-duration-hover) var(--meili-ease),
-        transform 150ms var(--meili-ease);
+        transform var(--meili-duration-press) var(--meili-ease);
 }
 
 [data-meili="toggle"] :has(> [data-meili="sort-chosen"]) {
@@ -326,7 +343,7 @@ button[data-meili="drawer-close"],
     border-right: 1px solid currentColor;
     border-bottom: 1px solid currentColor;
     transform: translateY(-0.15em) rotate(45deg);
-    transition: transform 160ms var(--meili-ease);
+    transition: transform var(--meili-duration-chevron) var(--meili-ease);
 }
 
 [data-meili="toggle"][aria-expanded="true"] {
@@ -335,13 +352,6 @@ button[data-meili="drawer-close"],
 
 [data-meili="toggle"][aria-expanded="true"]::after {
     transform: translateY(0.1em) rotate(-135deg);
-}
-
-[data-meili="toggle"]:focus-visible,
-[data-meili="drawer-open"]:focus-visible,
-button[data-meili="drawer-close"]:focus-visible {
-    outline: 2px solid currentColor;
-    outline-offset: 2px;
 }
 
 [data-meili="drawer-open"],
@@ -383,7 +393,7 @@ button[data-meili="drawer-close"] {
     line-height: 1;
     transition:
         background-color var(--meili-duration-hover) var(--meili-ease),
-        transform 150ms var(--meili-ease);
+        transform var(--meili-duration-press) var(--meili-ease);
 }
 
 button[data-meili="drawer-close"]:active {
@@ -623,17 +633,6 @@ button[data-meili="drawer-close"]:active {
     display: none;
 }
 
-[data-meili="apply"]:focus-visible,
-[data-meili="reset"]:focus-visible,
-[data-meili="page"]:focus-visible,
-[data-meili="previous"]:focus-visible,
-[data-meili="next"]:focus-visible,
-[data-meili="more"]:focus-visible,
-[data-meili="active-value"]:focus-visible {
-    outline: 2px solid currentColor;
-    outline-offset: 2px;
-}
-
 [data-meili="apply"] {
     width: 100%;
     border-color: CanvasText;
@@ -654,7 +653,7 @@ button[data-meili="drawer-close"]:active {
     transition:
         background-color var(--meili-duration-hover) var(--meili-ease),
         border-color var(--meili-duration-hover) var(--meili-ease),
-        transform 150ms var(--meili-ease);
+        transform var(--meili-duration-press) var(--meili-ease);
 }
 
 [data-meili="apply"] [data-meili="active-count"] {
@@ -676,7 +675,7 @@ button[data-meili="drawer-close"]:active {
     transition:
         background-color var(--meili-duration-hover) var(--meili-ease),
         border-color var(--meili-duration-hover) var(--meili-ease),
-        transform 150ms var(--meili-ease);
+        transform var(--meili-duration-press) var(--meili-ease);
 }
 
 .meilifacetsResetIcon {
@@ -738,12 +737,7 @@ button[data-meili="drawer-close"]:active {
     border-right: 1px solid currentColor;
     border-bottom: 1px solid currentColor;
     transform: translateY(-0.15em) rotate(45deg);
-    transition: transform 160ms var(--meili-ease);
-}
-
-[data-meili="sort-trigger"]:focus-visible {
-    outline: 2px solid currentColor;
-    outline-offset: 2px;
+    transition: transform var(--meili-duration-chevron) var(--meili-ease);
 }
 
 [data-meili="sort-trigger"][aria-expanded="true"] {
@@ -773,9 +767,9 @@ button[data-meili="drawer-close"]:active {
     opacity: 1;
     transform: none;
     transition:
-        opacity 160ms var(--meili-ease),
-        transform 160ms var(--meili-ease),
-        display 160ms allow-discrete;
+        opacity var(--meili-duration-list) var(--meili-ease),
+        transform var(--meili-duration-list) var(--meili-ease),
+        display var(--meili-duration-list) allow-discrete;
 }
 
 @starting-style {
@@ -989,8 +983,8 @@ button[data-meili="drawer-close"]:active {
     [data-meili="sort-list"][hidden] {
         transform: none;
         transition:
-            opacity 160ms var(--meili-ease),
-            display 160ms allow-discrete;
+            opacity var(--meili-duration-list) var(--meili-ease),
+            display var(--meili-duration-list) allow-discrete;
     }
 
     @starting-style {
@@ -1182,22 +1176,22 @@ button[data-meili="drawer-close"]:active {
         transition:
             background-color var(--meili-duration-hover) var(--meili-ease),
             border-color var(--meili-duration-hover) var(--meili-ease),
-            transform 150ms var(--meili-ease),
+            transform var(--meili-duration-press) var(--meili-ease),
             width var(--meili-duration-resize) var(--meili-ease-resize);
     }
 
     [data-meili="drawer"][aria-modal="true"] .meilifacetsDrawerFooter > [data-meili="reset"][data-shape="icon"] {
         transition:
-            opacity 200ms var(--meili-ease),
-            transform 200ms var(--meili-ease),
-            filter 200ms var(--meili-ease),
-            display 200ms allow-discrete,
+            opacity var(--meili-duration-pop-in) var(--meili-ease),
+            transform var(--meili-duration-pop-in) var(--meili-ease),
+            filter var(--meili-duration-pop-in) var(--meili-ease),
+            display var(--meili-duration-pop-in) allow-discrete,
             background-color var(--meili-duration-hover) var(--meili-ease),
             border-color var(--meili-duration-hover) var(--meili-ease);
     }
 
     [data-meili="drawer"][aria-modal="true"] .meilifacetsDrawerFooter > [data-meili="reset"][data-shape="icon"]:active {
-        transition-duration: 150ms;
+        transition-duration: var(--meili-duration-press);
     }
 
     [data-meili="drawer"][aria-modal="true"] .meilifacetsDrawerFooter > [data-meili="reset"][data-shape="icon"][hidden] {
@@ -1206,7 +1200,7 @@ button[data-meili="drawer-close"]:active {
         filter: blur(2px);
         pointer-events: none;
         interactivity: inert;
-        transition-duration: 150ms;
+        transition-duration: var(--meili-duration-pop-out);
     }
 
     @starting-style {
@@ -1256,8 +1250,8 @@ button[data-meili="drawer-close"]:active {
 
         [data-meili="drawer"][aria-modal="true"] .meilifacetsDrawerFooter > [data-meili="reset"][data-shape="icon"] {
             transition:
-                opacity 200ms var(--meili-ease),
-                display 200ms allow-discrete;
+                opacity var(--meili-duration-pop-in) var(--meili-ease),
+                display var(--meili-duration-pop-in) allow-discrete;
         }
 
         [data-meili="drawer"][aria-modal="true"] .meilifacetsDrawerFooter > [data-meili="reset"][data-shape="icon"][hidden] {

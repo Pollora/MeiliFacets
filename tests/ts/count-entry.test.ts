@@ -31,6 +31,14 @@ describe('CountEntry', () => {
         assert.deepEqual(played[0]?.options, { duration: 150, easing: 'ease-in-out' })
     })
 
+    it('reads a length the theme wrote in seconds', () => {
+        counter.style.setProperty('--meili-duration-fade', '0.15s')
+
+        new CountEntry(window.document).play(counter)
+
+        assert.equal(played[0]?.options.duration, 150)
+    })
+
     it('only fades in under reduced motion', () => {
         reduced = true
 

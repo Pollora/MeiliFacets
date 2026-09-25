@@ -6,7 +6,6 @@ namespace Modules\MeiliFacets\View;
 
 use Modules\MeiliFacets\Enums\QueryParameter;
 use Modules\MeiliFacets\Listing\Facet;
-use Modules\MeiliFacets\Listing\Range;
 use Modules\MeiliFacets\Listing\ResolvedListing;
 use Modules\MeiliFacets\Support\Money;
 
@@ -20,24 +19,16 @@ final readonly class ActiveValueList
      */
     public function of(ResolvedListing $listing): array
     {
-        $ticked = array_map(fn (Facet $facet): array => $this->tickedIn($listing, $facet), $listing->facets());
+        $patterns = ActiveValuePatterns::translated();
+        $ticked = array_map(fn (Facet $facet): array => $this->tickedIn($listing, $facet, $patterns), $listing->facets());
 
-        return [...array_merge(...$ticked), ...$this->priced($listing)];
+        return [...array_merge(...$ticked), ...$this->priced($listing, $patterns)];
     }
 
-    /**
-     * Written once here and read by the client, which fills the placeholders itself.
-     *
-     * @return array{remove: string, between: string, from: string, upTo: string}
-     */
+    /** Written once here and read by the client, which fills the placeholders itself. */
     public function patterns(): array
     {
-        return [
-            'remove' => __('Remove the :label filter'),
-            'between' => __(':min – :max'),
-            'from' => __('From :min'),
-            'upTo' => __('Up to :max'),
-        ];
+        return ActiveValuePatterns::translated()->toArray();
     }
 
     /**
@@ -46,14 +37,14 @@ final readonly class ActiveValueList
      *
      * @return list<ActiveValue>
      */
-    private function tickedIn(ResolvedListing $listing, Facet $facet): array
+    private function tickedIn(ResolvedListing $listing, Facet $facet, ActiveValuePatterns $patterns): array
     {
         $labels = $listing->labelsOf($facet);
         $parameter = $listing->parameterFor($facet->taxonomy);
         $labelled = array_intersect($listing->state()->selected($facet->taxonomy), array_keys($labels));
 
         return array_map(
-            fn (string $slug): ActiveValue => $this->removable($labels[$slug], $parameter, $slug),
+            fn (string $slug): ActiveValue => $this->removable($labels[$slug], $parameter, $slug, $patterns),
             array_values($labelled),
         );
     }
@@ -61,7 +52,7 @@ final readonly class ActiveValueList
     /**
      * @return list<ActiveValue>
      */
-    private function priced(ResolvedListing $listing): array
+    private function priced(ResolvedListing $listing, ActiveValuePatterns $patterns): array
     {
         $price = $listing->state()->price;
 
@@ -69,27 +60,13 @@ final readonly class ActiveValueList
             return [];
         }
 
-        return [$this->removable($this->priceLabel($price), $listing->parameterForReserved(QueryParameter::MinPrice), '')];
+        $label = $patterns->range($price, $this->money->of($price->min), $this->money->of($price->max));
+
+        return [$this->removable($label, $listing->parameterForReserved(QueryParameter::MinPrice), '', $patterns)];
     }
 
-    private function priceLabel(Range $price): string
+    private function removable(string $label, string $parameter, string $value, ActiveValuePatterns $patterns): ActiveValue
     {
-        $patterns = $this->patterns();
-        $written = [':min' => $this->money->of($price->min), ':max' => $this->money->of($price->max)];
-
-        if ($price->max === null) {
-            return strtr($patterns['from'], $written);
-        }
-
-        if ($price->min === null) {
-            return strtr($patterns['upTo'], $written);
-        }
-
-        return strtr($patterns['between'], $written);
-    }
-
-    private function removable(string $label, string $parameter, string $value): ActiveValue
-    {
-        return new ActiveValue($label, $parameter, $value, strtr($this->patterns()['remove'], [':label' => $label]));
+        return new ActiveValue($label, $parameter, $value, $patterns->removal($label));
     }
 }

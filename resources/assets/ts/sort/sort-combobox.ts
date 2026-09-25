@@ -1,3 +1,4 @@
+import { EXPANDED } from '../shared/attributes.ts'
 import { Contract } from '../shared/contract.ts'
 import { ListboxKeys } from './listbox-keys.ts'
 import { ShownOptions } from './shown-options.ts'
@@ -6,7 +7,6 @@ import { TypeAhead } from './type-ahead.ts'
 import type { ListingState } from '../listing/listing-state.ts'
 import type { ListboxMove } from './listbox-keys.ts'
 
-const EXPANDED = 'aria-expanded'
 const SELECTED = 'aria-selected'
 const ACTIVE = 'aria-activedescendant'
 

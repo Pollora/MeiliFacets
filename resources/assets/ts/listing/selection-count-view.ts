@@ -1,3 +1,4 @@
+import { Badge } from '../shared/badge.ts'
 import { CountEntry } from './count-entry.ts'
 
 import type { Contract } from '../shared/contract.ts'
@@ -28,10 +29,10 @@ export class SelectionCountView {
     }
 
     #write(counter: HTMLElement, count: number) {
-        const appears = counter.hidden && count > 0
+        const badge = new Badge(counter)
+        const appears = badge.appearsWith(count)
 
-        counter.textContent = count === 0 ? '' : String(count)
-        counter.hidden = count === 0
+        badge.show(count)
 
         if (appears) {
             this.#entry.play(counter)

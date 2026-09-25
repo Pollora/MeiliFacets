@@ -6,6 +6,7 @@ namespace Modules\MeiliFacets\View\Components;
 
 use Illuminate\Contracts\View\View;
 use Modules\MeiliFacets\Listing\CurrentListing;
+use Modules\MeiliFacets\View\Badge;
 
 /**
  * Rendered in `submit`, where it searches, and seen everywhere. With `visible-in-drawer`, rendered in
@@ -31,12 +32,8 @@ final class Apply extends ListingComponent
 
     public function render(): View
     {
-        $count = $this->listing->activeFilterCount();
-
         return view('meilifacets::components.apply', [
-            'countId' => $this->ids->applyCount(),
-            'badge' => $count === 0 ? '' : (string) $count,
-            'holdsNothing' => $count === 0,
+            'badge' => new Badge($this->ids->applyCount(), $this->listing->activeFilterCount()),
         ]);
     }
 }

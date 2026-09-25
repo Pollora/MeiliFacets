@@ -12,6 +12,7 @@ use Modules\MeiliFacets\Enums\Presentation;
 use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\Listing\Facet as Declaration;
 use Modules\MeiliFacets\Listing\FacetValue;
+use Modules\MeiliFacets\View\Badge;
 use Modules\MeiliFacets\View\CountLabel;
 use Modules\MeiliFacets\View\Disclosure;
 
@@ -65,11 +66,12 @@ final class Facet extends ListingComponent
 
     public function disclosure(): Disclosure
     {
+        $selected = $this->listing->state()->selected($this->facet->taxonomy);
+
         return new Disclosure(
             label: $this->facet->label,
             panelId: $this->panelId(),
-            selectedCountId: $this->ids->facetSelectedCount($this->facet->name),
-            selectedCount: count($this->listing->state()->selected($this->facet->taxonomy)),
+            badge: new Badge($this->ids->facetSelectedCount($this->facet->name), count($selected)),
         );
     }
 

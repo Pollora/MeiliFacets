@@ -12,6 +12,7 @@ use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\Listing\PriceFilter as Declaration;
 use Modules\MeiliFacets\Listing\Range;
 use Modules\MeiliFacets\Support\Money;
+use Modules\MeiliFacets\View\Badge;
 use Modules\MeiliFacets\View\Disclosure;
 use Modules\MeiliFacets\View\Fill;
 use Modules\MeiliFacets\View\RangeHandle;
@@ -58,8 +59,7 @@ final class Price extends ListingComponent
         return new Disclosure(
             label: $this->facet->label,
             panelId: $this->panelId(),
-            selectedCountId: $this->ids->facetSelectedCount($this->facet->name),
-            selectedCount: $this->listing->state()->priceFilterCount(),
+            badge: new Badge($this->ids->facetSelectedCount($this->facet->name), $this->listing->state()->priceFilterCount()),
         );
     }
 

@@ -55,7 +55,7 @@ final class Sort extends ListingComponent
 
     public function disclosure(): Disclosure
     {
-        return new Disclosure($this->summary->label, $this->ids->sortPanel(), $this->ids->sortSelectedCount(), 0);
+        return new Disclosure($this->summary->label, $this->ids->sortPanel());
     }
 
     public function panelId(): string

@@ -1,26 +1,25 @@
+import { CssTiming } from '../shared/css-timing.ts'
+
 const DURATION = '--meili-duration-fade'
 const EASING = '--meili-ease'
-const REDUCED_MOTION = '(prefers-reduced-motion: reduce)'
 
 /** Not `@starting-style`: it would also play on the first render and when a breakpoint shows the button again. */
 export class CountEntry {
-    #view: Window | null
+    #timing: CssTiming
 
     constructor(document: Document) {
-        this.#view = document.defaultView
+        this.#timing = new CssTiming(document)
     }
 
     play(counter: HTMLElement) {
-        const style = this.#view?.getComputedStyle(counter)
-
         counter.animate(this.#keyframes(), {
-            duration: Number.parseFloat(style?.getPropertyValue(DURATION) ?? '') || 0,
-            easing: style?.getPropertyValue(EASING).trim() || 'ease-out',
+            duration: this.#timing.duration(counter, DURATION) ?? 0,
+            easing: this.#timing.easing(counter, EASING),
         })
     }
 
     #keyframes(): Keyframe[] {
-        if (this.#view?.matchMedia(REDUCED_MOTION).matches) {
+        if (this.#timing.prefersReducedMotion()) {
             return [{ opacity: 0 }, { opacity: 1 }]
         }
 

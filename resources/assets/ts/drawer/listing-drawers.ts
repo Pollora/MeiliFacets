@@ -10,7 +10,7 @@ export class ListingDrawers {
     #held: HeldPaint
 
     constructor(contract: Contract, disclosures: DisclosureGroup) {
-        this.#held = new HeldPaint(this.#windowOf(contract), () => this.#coverThePage())
+        this.#held = new HeldPaint(contract.window, () => this.#coverThePage())
         this.#drawers = contract.all('drawer')
             .filter((drawer): drawer is HTMLElement => drawer instanceof HTMLElement)
             .map((drawer) => new Drawer(contract, drawer, {
@@ -31,15 +31,5 @@ export class ListingDrawers {
 
     #coverThePage() {
         return this.#drawers.some((drawer) => drawer.coversThePage())
-    }
-
-    #windowOf(contract: Contract) {
-        const view = contract.root.ownerDocument.defaultView
-
-        if (view === null) {
-            throw new Error('[meilifacets] the listing is not in a window.')
-        }
-
-        return view
     }
 }

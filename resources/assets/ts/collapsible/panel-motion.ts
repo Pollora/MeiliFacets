@@ -1,7 +1,8 @@
+import { CssTiming } from '../shared/css-timing.ts'
+
 const DURATION = '--meili-duration-content'
 const EASING = '--meili-ease-content'
 const POP_DURATION = '--meili-duration-panel-in'
-const REDUCED_MOTION = '(prefers-reduced-motion: reduce)'
 
 /** |Δh| / 500 in seconds, held between 150 and 270 ms: a small change is quick, a large one a little longer. */
 const PER_PIXEL = 2
@@ -14,10 +15,10 @@ const POP_FALLBACK = 180
 
 /** In by WAAPI, timed once the height is known; out by the stylesheet's `[hidden]` transition, timed before. */
 export class PanelMotion {
-    #view: Window | null
+    #timing: CssTiming
 
     constructor(document: Document) {
-        this.#view = document.defaultView
+        this.#timing = new CssTiming(document)
     }
 
     show(panel: HTMLElement) {
@@ -53,18 +54,11 @@ export class PanelMotion {
     }
 
     #popDuration(panel: HTMLElement) {
-        const declared = this.#view?.getComputedStyle(panel).getPropertyValue(POP_DURATION).trim() ?? ''
-        const amount = Number.parseFloat(declared)
-
-        if (Number.isNaN(amount)) {
-            return POP_FALLBACK
-        }
-
-        return declared.endsWith('ms') ? amount : amount * 1000
+        return this.#timing.duration(panel, POP_DURATION) ?? POP_FALLBACK
     }
 
     #entry(): Keyframe[] {
-        if (this.#view?.matchMedia(REDUCED_MOTION).matches) {
+        if (this.#timing.prefersReducedMotion()) {
             return [{ opacity: 0 }, { opacity: 1 }]
         }
 
@@ -72,6 +66,6 @@ export class PanelMotion {
     }
 
     #easing(panel: HTMLElement) {
-        return this.#view?.getComputedStyle(panel).getPropertyValue(EASING).trim() || 'ease-out'
+        return this.#timing.easing(panel, EASING)
     }
 }

@@ -2,7 +2,6 @@ import { Contract } from '../shared/contract.ts'
 
 const DRAGGING = 'data-dragging'
 const SCRIM = '--meili-scrim-shown'
-export const REDUCED_MOTION = '(prefers-reduced-motion: reduce)'
 /** What moves under its own press: a field, the price's track and handles, and the ✕ the head keeps for its tap. */
 const OWN_GESTURES = [
     'input',
@@ -23,7 +22,7 @@ const SLOP = 4
 /** The window a flick's speed is measured over. */
 const RECENT_MS = 100
 
-export interface Dismissible {
+interface Dismissible {
     isOpen(): boolean
     dismiss(): void
 }

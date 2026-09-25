@@ -1,3 +1,4 @@
+import { Badge } from '../shared/badge.ts'
 import { Contract } from '../shared/contract.ts'
 
 import type { ListingState } from '../listing/listing-state.ts'
@@ -25,7 +26,7 @@ export class SelectedCountView {
             const count = this.#countFor(badge, state)
 
             if (badge instanceof HTMLElement && count !== undefined) {
-                this.#write(badge, count)
+                new Badge(badge).show(count)
             }
         }
     }
@@ -38,11 +39,5 @@ export class SelectedCountView {
         }
 
         return this.#holders.map((holder) => holder.heldIn(block, state)).find((count) => count !== undefined)
-    }
-
-    /** The toggle is described by the badge, and a hidden node still describes: zero must say nothing. */
-    #write(badge: HTMLElement, count: number) {
-        badge.textContent = count === 0 ? '' : String(count)
-        badge.hidden = count === 0
     }
 }

@@ -39,11 +39,6 @@ final readonly class ElementId
         return $this->of('sort', 'panel');
     }
 
-    public function sortSelectedCount(): string
-    {
-        return $this->of('sort', 'selected');
-    }
-
     public function sortChoiceName(): string
     {
         return $this->of('sort', 'choice');

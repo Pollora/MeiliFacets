@@ -1,14 +1,13 @@
 import { ActiveValueList } from './active-value-list.ts'
 import { Contract } from '../shared/contract.ts'
+import { FocusLanding } from './focus-landing.ts'
 
 import type { ListingDescription } from '../shared/description.ts'
 import type { ActiveValue } from './active-value-list.ts'
 import type { Listing } from './listing.ts'
 import type { ListingState } from './listing-state.ts'
 
-export type WithdrawSeam = Pick<Listing, 'withdraw' | 'withdrawPrice'>
-
-const LANDING = '-1'
+type WithdrawSeam = Pick<Listing, 'withdraw' | 'withdrawPrice'>
 
 /** The pills of every list the theme placed: one per filter held, each taking its own filter off. */
 export class ActiveValuesView {
@@ -16,6 +15,7 @@ export class ActiveValuesView {
     #description: ListingDescription
     #listing: WithdrawSeam
     #list: ActiveValueList
+    #landing: FocusLanding
     #taxonomies: Map<string, string>
     #drawn: string | null = null
     #refocusing: { host: Element, rank: number } | null = null
@@ -25,6 +25,7 @@ export class ActiveValuesView {
         this.#description = description
         this.#listing = listing
         this.#list = new ActiveValueList(description)
+        this.#landing = new FocusLanding(contract.root)
         this.#taxonomies = new Map(Object.entries(description.params).map(([taxonomy, name]) => [name, taxonomy]))
     }
 
@@ -94,32 +95,16 @@ export class ActiveValuesView {
         const asked = this.#refocusing
         this.#refocusing = null
 
-        if (asked === null || !this.#focusWasLost(asked.host)) {
+        if (asked === null || !this.#landing.isLost(asked.host)) {
             return
         }
 
         const pills = this.#contract.all('active-value', asked.host)
-        const target = pills[asked.rank] ?? pills[asked.rank - 1] ?? this.#landing()
+        const target = pills[asked.rank] ?? pills[asked.rank - 1] ?? this.#landing.root()
 
         if (target instanceof HTMLElement) {
             target.focus({ preventScroll: true })
         }
-    }
-
-    #focusWasLost(host: Element) {
-        const focused = host.ownerDocument.activeElement
-
-        return focused === null || focused === host.ownerDocument.body || host.contains(focused)
-    }
-
-    #landing() {
-        const { root } = this.#contract
-
-        if (!root.hasAttribute('tabindex')) {
-            root.setAttribute('tabindex', LANDING)
-        }
-
-        return root
     }
 
     #paint(host: Element, values: ActiveValue[]) {

@@ -1,17 +1,17 @@
+import { EXPANDED, INSTANT } from '../shared/attributes.ts'
 import { Contract } from '../shared/contract.ts'
-import { DrawerGesture, REDUCED_MOTION } from './drawer-gesture.ts'
+import { REDUCED_MOTION } from '../shared/css-timing.ts'
+import { DrawerGesture } from './drawer-gesture.ts'
 import { InertPage } from './inert-page.ts'
 import { SheetHeight } from './sheet-height.ts'
 
 const MEDIA = 'data-media'
-const INSTANT = 'data-instant'
 const CLOSING = 'data-closing'
 const INERT = 'inert'
-const EXPANDED = 'aria-expanded'
 const MODAL = 'aria-modal'
 const LABELLED_BY = 'aria-labelledby'
 
-export interface DrawerListeners {
+interface DrawerListeners {
     /** Runs once a close has played out, out of sight: whatever it changes is never seen moving. */
     hidden: (drawer: HTMLElement) => void
     /** Runs whenever the page behind stops being hidden by the sheet, the threshold included. */
@@ -34,11 +34,11 @@ export class Drawer {
         this.#drawer = drawer
         this.#listeners = { hidden: () => {}, uncovered: () => {}, ...listeners }
         this.#page = new InertPage(drawer)
-        this.#media = this.#window().matchMedia(drawer.getAttribute(MEDIA) ?? 'all')
+        this.#media = contract.window.matchMedia(drawer.getAttribute(MEDIA) ?? 'all')
         this.#gesture = new DrawerGesture(
             drawer,
             { isOpen: () => this.#isOpen(), dismiss: () => this.#close() },
-            this.#window().matchMedia(REDUCED_MOTION),
+            contract.window.matchMedia(REDUCED_MOTION),
         )
         this.#height = drawer.firstElementChild instanceof HTMLElement ? new SheetHeight(drawer.firstElementChild) : null
     }
@@ -166,15 +166,5 @@ export class Drawer {
         return this.#contract.all('drawer-open')
             .filter((opener): opener is HTMLElement => opener instanceof HTMLElement)
             .filter((opener) => opener.getAttribute('aria-controls') === this.#drawer.id)
-    }
-
-    #window() {
-        const view = this.#drawer.ownerDocument.defaultView
-
-        if (view === null) {
-            throw new Error('[meilifacets] the drawer is not in a window.')
-        }
-
-        return view
     }
 }

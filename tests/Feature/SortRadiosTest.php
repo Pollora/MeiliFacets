@@ -97,17 +97,17 @@ final class SortRadiosTest extends TestCase
         $this->assertSame("Trier par\u{00A0}: Pertinence", $this->nameOf($toggle));
     }
 
-    /** A sort is an order: its trigger never shows a count. */
+    /** A sort is an order: its trigger has no count, and nothing it could be described by. */
     #[Test]
-    public function it_keeps_the_badge_of_its_trigger_empty(): void
+    public function it_gives_its_trigger_no_badge(): void
     {
         request()->query->replace(['sort' => array_key_first($this->app->make(CurrentListing::class)->sole()->sorts())]);
         $this->app->forgetScopedInstances();
 
-        $badge = $this->rendered('<x-meilifacets::sort widget="radios" collapsible />')->querySelector($this->hooked(Hook::SelectedCount));
+        $document = $this->rendered('<x-meilifacets::sort widget="radios" collapsible />');
 
-        $this->assertTrue($badge->hasAttribute('hidden'));
-        $this->assertSame('', $badge->textContent);
+        $this->assertNull($document->querySelector($this->hooked(Hook::SelectedCount)));
+        $this->assertFalse($document->querySelector($this->hooked(Hook::Toggle))->hasAttribute('aria-describedby'));
     }
 
     #[Test]
@@ -135,7 +135,7 @@ final class SortRadiosTest extends TestCase
         return HTMLDocument::createFromString('<div>'.Blade::render($blade).'</div>', LIBXML_NOERROR);
     }
 
-    /** The badge is `aria-hidden`, and empty for a sort: the rest of the text is the name. */
+    /** A sort's trigger holds no badge: its whole text is the name. */
     private function nameOf(Element $toggle): string
     {
         return trim($toggle->textContent);

@@ -41,6 +41,16 @@ export class Contract {
         return this.#root
     }
 
+    get window() {
+        const view = this.#root.ownerDocument.defaultView
+
+        if (view === null) {
+            throw new Error('[meilifacets] the listing is not in a window.')
+        }
+
+        return view
+    }
+
     static selector(hook: string) {
         return `[${ATTRIBUTE}="${hook}"]`
     }

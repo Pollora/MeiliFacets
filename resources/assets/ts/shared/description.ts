@@ -15,7 +15,7 @@ export interface FacetDescription {
 }
 
 /** `:label`, `:min` and `:max` are filled by the client */
-export interface ActiveValuePatterns {
+interface ActiveValuePatterns {
     remove: string
     between: string
     from: string

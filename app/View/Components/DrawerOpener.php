@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\View\Components;
 
 use Illuminate\Contracts\View\View;
+use Modules\MeiliFacets\View\Badge;
 
 final class DrawerOpener extends ListingComponent
 {
@@ -18,13 +19,9 @@ final class DrawerOpener extends ListingComponent
 
     public function render(): View
     {
-        $count = $this->listing->activeFilterCount();
-
         return view('meilifacets::components.drawer-opener', [
             'drawerId' => $this->ids->drawer(),
-            'countId' => $this->ids->drawerCount(),
-            'badge' => $count === 0 ? '' : (string) $count,
-            'holdsNothing' => $count === 0,
+            'badge' => new Badge($this->ids->drawerCount(), $this->listing->activeFilterCount()),
         ]);
     }
 }
