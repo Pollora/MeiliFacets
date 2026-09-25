@@ -531,9 +531,21 @@ button[data-meili="drawer-close"]:active {
     [data-meili="panel"] {
         transform-origin: top left;
         transition:
-            opacity var(--meili-duration-panel-out) var(--meili-ease-content),
-            transform var(--meili-duration-panel-out) var(--meili-ease-content),
-            display var(--meili-duration-panel-out) allow-discrete;
+            opacity var(--meili-duration-panel-in) var(--meili-ease),
+            transform var(--meili-duration-panel-in) var(--meili-ease),
+            display var(--meili-duration-panel-in) allow-discrete;
+    }
+
+    [data-meili="panel"][hidden] {
+        transform: translateY(-4px) scale(0.97);
+        transition-duration: var(--meili-duration-panel-out);
+    }
+
+    @starting-style {
+        [data-meili="panel"] {
+            opacity: 0;
+            transform: translateY(-4px) scale(0.97);
+        }
     }
 
     [data-meili="panel"]:has([data-meili="price-track"]) {
@@ -1025,9 +1037,18 @@ button[data-meili="drawer-close"]:active {
     }
 
     @media (width >= 48em) {
-        [data-meili="panel"],
+        [data-meili="panel"] {
+            transition-duration: var(--meili-duration-panel-in);
+        }
+
         [data-meili="panel"][hidden] {
             transition-duration: var(--meili-duration-panel-out);
+        }
+
+        @starting-style {
+            [data-meili="panel"] {
+                transform: none;
+            }
         }
     }
 }

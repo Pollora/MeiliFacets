@@ -411,7 +411,27 @@ describe('the motion of the panels and the drawer', () => {
     it('pops a floating panel in over 180 ms and out over 120, through variables a theme can move', () => {
         assert.match(declared(source, '[data-listing]'), /--meili-duration-panel-in: 180ms;/)
         assert.match(declared(source, '[data-listing]'), /--meili-duration-panel-out: 120ms;/)
-        assert.match(desktop, /\[data-meili="panel"\] \{[^}]*opacity var\(--meili-duration-panel-out\)/)
+        assert.match(desktop, /\[data-meili="panel"\] \{[^}]*opacity var\(--meili-duration-panel-in\) var\(--meili-ease\),\s+transform var\(--meili-duration-panel-in\) var\(--meili-ease\)/)
+        assert.match(declared(desktop, `${PANEL}[hidden]`), /transition-duration: var\(--meili-duration-panel-out\);/)
+    })
+
+    /** ANIM-3: a floating panel drops from its pill, a few pixels above and a touch smaller, and goes back there. */
+    it('drops a floating panel in from its pill and sends it back there', () => {
+        const from = /opacity: 0;\s+transform: translateY\(-4px\) scale\(0\.97\);/
+        const starting = desktop.slice(desktop.indexOf('@starting-style'))
+
+        assert.match(declared(desktop, `${PANEL}[hidden]`), /transform: translateY\(-4px\) scale\(0\.97\);/)
+        assert.match(declared(starting, PANEL), from)
+        assert.ok(desktop.indexOf('@starting-style') < desktop.indexOf('\n}\n'), 'inside the floating block')
+    })
+
+    it('only fades a floating panel in and out under reduced motion', () => {
+        const floating = reduced.slice(reduced.indexOf('@media (width >= 48em)'))
+
+        assert.match(declared(reduced, `${PANEL}[hidden]`), /transform: none;/)
+        assert.match(declared(floating, PANEL), /transition-duration: var\(--meili-duration-panel-in\);/)
+        assert.match(declared(floating, `${PANEL}[hidden]`), /transition-duration: var\(--meili-duration-panel-out\);/)
+        assert.match(declared(floating.slice(floating.indexOf('@starting-style')), PANEL), /transform: none;/)
     })
 
     /** ANIM-2: a length written in a rule is a length no theme can move. */

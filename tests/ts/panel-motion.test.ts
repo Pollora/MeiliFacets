@@ -102,17 +102,24 @@ describe('PanelMotion', () => {
         assert.equal(panel.style.getPropertyValue('--meili-duration-content'), '')
     })
 
-    /** ANIM-3: floating, a panel moves nothing around it — the stylesheet's fixed time, whatever its height. */
-    it('pops a floating panel in over the time the stylesheet gives, in milliseconds or seconds', () => {
-        const motion = new PanelMotion(window.document)
-        tall(400)
+    /** ANIM-3: the stylesheet plays a floating panel in, so that a second click turns it back instead of cutting it. */
+    it('pops a floating panel in without scripting its motion', () => {
+        new PanelMotion(window.document).pop(panel)
 
-        for (const declared of ['220ms', '0.2s', '']) {
-            panel.style.setProperty('--meili-duration-panel-in', declared)
-            motion.pop(panel)
-        }
-
-        assert.deepEqual(played.map(({ options }) => options.duration), [220, 200, 180])
+        assert.deepEqual(played, [])
         assert.equal(panel.hidden, false)
+    })
+
+    it('lets a transition under way be turned back by the exit, and ends a scripted entry', () => {
+        const finished: string[] = []
+        panel.hidden = false
+        panel.getAnimations = () => [
+            { finish: () => finished.push('transition'), transitionProperty: 'opacity' } as unknown as Animation,
+            { finish: () => finished.push('animation') } as unknown as Animation,
+        ]
+
+        void new PanelMotion(window.document).hide(panel)
+
+        assert.deepEqual(finished, ['animation'])
     })
 })

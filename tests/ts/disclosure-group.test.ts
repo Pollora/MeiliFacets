@@ -8,7 +8,7 @@ import { Listing } from '../../resources/assets/ts/listing/listing.ts'
 import { Contract } from '../../resources/assets/ts/shared/contract.ts'
 import { facetField } from '../../resources/assets/ts/shared/description.ts'
 import { FacetQuery } from '../../resources/assets/ts/facets/facet-query.ts'
-import { click, closestHook, find, listingMarkup, nth, open, press, tick } from './dom.ts'
+import { click, clickFromKeyboard, closestHook, find, listingMarkup, nth, open, press, tick } from './dom.ts'
 import { connection, described, FakeClient, FakeHistory } from './fixtures.ts'
 
 import type { TestWindow } from './dom.ts'
@@ -237,17 +237,34 @@ describe('DisclosureGroup', () => {
         return durations
     }
 
-    /** ANIM-3: a panel that floats pops in over the stylesheet's fixed time, whatever its height. */
-    it('pops a floating panel in over 180 ms, and plays its exit on a second click', async () => {
+    /** ANIM-3: a floating panel enters by the stylesheet's transition, which a second click turns back. */
+    it('leaves the entry of a floating panel to the stylesheet, and plays its exit on a second click', async () => {
         const entries = watchEntries(0)
         const exits = watchExits(0)
 
         click(window, toggle(0))
-        assert.deepEqual(entries, [180])
+        assert.equal(isOpen(0), true)
+        assert.equal(entries.length, 0)
+        assert.equal(exits.length, 0)
 
         click(window, toggle(0))
         await settle()
         assert.equal(exits.includes(true), false)
+        assert.equal(closings, 1)
+    })
+
+    /** Emil: a key never animates — Enter or Space on a pill opens and closes its panel at once. */
+    it('opens and closes a floating panel at once from the keyboard', () => {
+        const exits = watchExits(0)
+
+        clickFromKeyboard(window, toggle(0))
+        assert.equal(isOpen(0), true)
+        assert.deepEqual(exits, [true])
+
+        clickFromKeyboard(window, toggle(0))
+        assert.equal(isOpen(0), false)
+        assert.ok(exits.length > 1 && exits.every(Boolean))
+        assert.equal(panel(0).hasAttribute('data-instant'), false)
         assert.equal(closings, 1)
     })
 

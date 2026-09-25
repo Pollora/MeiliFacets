@@ -64,14 +64,14 @@ export class DisclosureGroup {
         }
 
         if (this.#isOpen(toggle)) {
-            this.#close(toggle)
+            this.#closeFrom(event, toggle)
 
             return
         }
 
         const others = this.#openFloating()
 
-        if (others.length > 0) {
+        if (others.length > 0 || this.#floatsFromKeyboard(event, toggle)) {
             others.forEach((other) => this.#closeInstantly(other))
             this.#openInstantly(toggle)
 
@@ -79,6 +79,21 @@ export class DisclosureGroup {
         }
 
         this.#open(toggle)
+    }
+
+    #closeFrom(event: Event, toggle: HTMLElement) {
+        if (this.#floatsFromKeyboard(event, toggle)) {
+            this.#closeInstantly(toggle)
+
+            return
+        }
+
+        this.#close(toggle)
+    }
+
+    /** `detail` is 0 on a click the keyboard raised: a floating panel it opens or closes does not animate. */
+    #floatsFromKeyboard(event: Event, toggle: Element) {
+        return (event as MouseEvent).detail === 0 && this.#floats(toggle)
     }
 
     #pressed(event: KeyboardEvent) {
