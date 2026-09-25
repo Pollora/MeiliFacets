@@ -6551,7 +6551,10 @@ publié sur `https://pollora.github.io/MeiliFacets/`, avec `trailingSlash: false
 `.github/workflows/docs.yml` : build et typecheck sur chaque PR qui touche `website/`, déploiement
 sur `main`. C'est la première CI du dépôt, et elle **ne lance pas** `composer check`.
 `eslint.config.js` ignore `website/**`. `.gitattributes` exclut `website/` et `.github/`
-des archives : vérifié par `git archive`, qui est la source des archives que distribue Packagist. Observé : le build passe, la page servie répond `200`, et
+des archives : vérifié par `git archive`, qui est la source des archives que distribue Packagist.
+`.github/dependabot.yml` demande à Dependabot de vérifier chaque semaine Composer et npm à la racine,
+npm dans `website/` (les paquets `@docusaurus/*` groupés) et les actions GitHub. Une PR de
+Dependabot sur le module ne passe aucun test automatique, tant que le module n'a pas sa propre CI. Observé : le build passe, la page servie répond `200`, et
 son rendu a été vérifié dans Chromium sans erreur de console. La partie JavaScript de
 `composer check` est verte ; la partie PHP n'a pas pu tourner (`composer install` refusé, faute
 d'authentification sur la dépendance `amphibee/meiliscout`).
