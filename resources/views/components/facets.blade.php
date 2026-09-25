@@ -4,8 +4,6 @@
                              :collapsible="$collapsible" />
     @endforeach
     @if ($needsApplyButton)
-        <button type="button" class="meilifacetsFacetsApply" {{ $hook('apply') }}>
-            {{ __('Apply filters') }}
-        </button>
+        <x-meilifacets::apply :name="$name" shape="block" />
     @endif
 </div>

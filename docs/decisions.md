@@ -741,12 +741,23 @@ Rien de ce qui suit n'est acquis.
     `shape="pill"` et `shape="icon"` (`ResetShape`, `data-shape`) ; pastilles de valeur :
     style « barre » (bordure `currentColor`, cochée inversée `CanvasText`/`Canvas`, appui
     `scale(0.96)`) sous `:has([data-meili="toggle"])`, c'est-à-dire `collapsible` ; appui
-    `scale(0.97)` d'« Appliquer » réservé au composant `apply` (`:has(active-count)`) ; survol 150 ms
+    `scale(0.97)` d'« Appliquer » réservé au composant `apply` (`:has(active-count)`, devenu `data-shape="pill"` le 2026-09-25, voir « Un seul « Appliquer » » plus bas) ; survol 150 ms
     des rangées réservé aux repliables — levé le 2026-09-25 : tous les survols lisent
     `--meili-duration-hover` (150 ms, `--meili-ease`), verdict Emil « cohesion matters » (coût : les
     rangées de la colonne et la poignée du prix passent de 120 à 150 ms). Rendus à l'ancien dessin : `active-value` (padding `0.85em`,
     gap `0.5em` — le thème Pluralia repose les 24 px), `sort-trigger` (padding `0.85em`), `reset`
     texte (rayon `0.25em`). Seule la hauteur (`--meili-control`) change pour tous.
+  - *Un seul « Appliquer »* (Louis, 2026-09-25, `R-178` lot C) : le groupe ne rend plus son propre
+    bouton, il rend le composant `<x-meilifacets::apply shape="block" />`. Deux variantes
+    (`ApplyShape`) : `pill` (défaut du composant, `data-shape="pill"`, « Apply » suivi du compte,
+    rayon 999px, appui `scale(0.97)`) et `block` (la colonne : aucune marque, « Apply filters », pas
+    de compte, rayon `0.25em`, pleine largeur). Le libellé suit la variante : le compte de la pastille
+    nomme ce qu'elle applique ; le bloc, seul sous une colonne, le dit en mots. La feuille distingue
+    les deux par `[data-shape="pill"]` au lieu de `:has([data-meili="active-count"])`. **Coût : fin
+    de l'identité à l'octet de la colonne pour ce bouton** — sa classe passe de
+    `meilifacetsFacetsApply` (visée par aucune feuille) à `meilifacetsApply`, et le gabarit
+    `configuration.md` promettait « comme avant, à l'octet » ; accepté pour n'avoir qu'un markup à
+    maintenir. Rendu mesuré inchangé (styles calculés avant/après, 393 et 1440 px, `submit`).
   - *Panneaux flottants desktop* (Louis, 2026-09-25) : `width: max-content` entre `--meili-panel-min`
     (18rem) et `--meili-panel-max` (28rem, borné au viewport), prix fixe `--meili-panel-price`
     (20rem, piste ≥ 240 px).

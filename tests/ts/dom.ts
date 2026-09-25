@@ -199,7 +199,7 @@ export const listingMarkup = ({ scroll = [], collapsible = false, priced = false
 ${facetBlock('product_brand', 'brand', 'Brand', `${facetValue('brand', 'acme', 'Acme')}${facetValue('brand', 'globex', 'Globex')}`, folding)}
 ${facetBlock('product_cat', 'category', 'Category', facetValue('categorie', 'coats', 'Coats'), folding)}
 ${priced ? priceBlock(folding) : ''}
-        <button type="button" data-meili="apply">Apply filters</button>
+        <button type="button" class="meilifacetsApply" data-meili="apply">Apply filters</button>
     </div>
 
     <button type="button" class="meilifacetsReset" hidden data-meili="reset" ${mark('reset')}>Clear all</button>

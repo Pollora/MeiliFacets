@@ -845,8 +845,9 @@ Rendu, il reçoit le focus quand « Tout effacer » se masque après un clic : c
 pour un « Tout effacer » hors tiroir, le premier « Appliquer » visible du listing (la rangée desktop
 en `submit`) ; à défaut, le titre du tiroir en sheet, sinon la racine du listing (`tabindex="-1"`
 posé à ce moment-là), jamais `body`. `<x-meilifacets::facets
-:with-apply="false">` cède le sien ; sans l'attribut, le groupe rend son bouton comme avant, à
-l'octet. Plusieurs « Appliquer » sur une page sont légitimes : c'est une commande, pas un contrôle
+:with-apply="false">` cède le sien ; sans l'attribut, le groupe rend ce même composant en bloc
+(`shape="block"` : « Apply filters », pleine largeur, sans compte ; `shape="pill"`, le défaut, est la
+forme ci-dessus). Plusieurs « Appliquer » sur une page sont légitimes : c'est une commande, pas un contrôle
 qui tient un état (la garde `placeSort()` ne vaut que pour les contrôles).
 
 **« Tout effacer » en icône** (`<x-meilifacets::reset shape="icon" />`, `data-shape="icon"`). Bouton

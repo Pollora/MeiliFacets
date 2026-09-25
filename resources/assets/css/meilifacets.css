@@ -551,7 +551,7 @@ button[data-meili="drawer-close"]:active {
         gap: var(--meili-bar-gap);
     }
 
-    [data-meili="apply"]:has([data-meili="active-count"]) {
+    [data-meili="apply"][data-shape="pill"] {
         flex: none;
         width: auto;
     }
@@ -644,7 +644,7 @@ button[data-meili="drawer-close"]:active {
     outline-color: CanvasText;
 }
 
-[data-meili="apply"]:has([data-meili="active-count"]) {
+[data-meili="apply"][data-shape="pill"] {
     flex: 1 1 auto;
     gap: 0.5rem;
     width: 100%;
@@ -867,7 +867,7 @@ button[data-meili="drawer-close"]:active {
     background: color-mix(in srgb, CanvasText 70%, Canvas);
 }
 
-[data-meili="apply"]:has([data-meili="active-count"]):active {
+[data-meili="apply"][data-shape="pill"]:active {
     transform: scale(0.97);
 }
 
@@ -1013,7 +1013,7 @@ button[data-meili="drawer-close"]:active {
         transition: none;
     }
 
-    [data-meili="apply"]:has([data-meili="active-count"]):active,
+    [data-meili="apply"][data-shape="pill"]:active,
     [data-meili="reset"][data-shape="icon"]:active,
     [data-meili="drawer-open"]:active,
     [data-meili="facet"][data-presentation="pill"]:has([data-meili="toggle"]) [data-meili="facet-value"] label:active {

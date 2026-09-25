@@ -46,6 +46,7 @@ final class DrawerFooterTest extends TestCase
         $count = $apply->querySelector($this->hooked(Hook::ActiveCount));
 
         $this->assertSame('button', $apply->getAttribute('type'));
+        $this->assertSame('pill', $apply->getAttribute('data-shape'));
         $this->assertSame(__('Apply'), trim($apply->firstChild->textContent));
         $this->assertSame('2', $count->textContent);
         $this->assertSame($count->getAttribute('id'), $apply->getAttribute('aria-describedby'));
@@ -95,9 +96,8 @@ final class DrawerFooterTest extends TestCase
         $this->assertStringNotContainsString(Hook::Apply->attribute()->toHtml(), Blade::render('<x-meilifacets::facets :with-apply="false" />'));
     }
 
-    /** What the column renders today must not move by a byte. */
     #[Test]
-    public function the_group_renders_its_button_as_before_unless_asked(): void
+    public function the_group_renders_its_button_unless_asked(): void
     {
         config(['meilifacets.apply_mode' => 'submit']);
         $explicit = Blade::render('<x-meilifacets::facets :with-apply="true" />');
@@ -105,6 +105,25 @@ final class DrawerFooterTest extends TestCase
 
         $this->assertSame($explicit, Blade::render('<x-meilifacets::facets />'));
         $this->assertStringContainsString(Hook::Apply->attribute()->toHtml(), $explicit);
+    }
+
+    /** The column keeps its look: a block named in words, with no count, through the one « Apply » component. */
+    #[Test]
+    public function the_group_renders_the_apply_component_as_a_block(): void
+    {
+        config(['meilifacets.apply_mode' => 'submit']);
+        $this->holdTwoValues();
+
+        $group = $this->rendered('<x-meilifacets::facets />')->querySelector($this->hooked(Hook::Facets));
+        $applies = $group->querySelectorAll($this->hooked(Hook::Apply));
+        $apply = $applies[0];
+
+        $this->assertCount(1, $applies);
+        $this->assertSame('meilifacetsApply', $apply->getAttribute('class'));
+        $this->assertSame(__('Apply filters'), trim($apply->textContent));
+        $this->assertFalse($apply->hasAttribute('data-shape'));
+        $this->assertFalse($apply->hasAttribute('aria-describedby'));
+        $this->assertNull($apply->querySelector($this->hooked(Hook::ActiveCount)));
     }
 
     #[Test]

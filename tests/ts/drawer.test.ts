@@ -16,7 +16,7 @@ import type { TestWindow } from './dom.ts'
 
 const FACETS = '    <div class="meilifacetsFacets"'
 /** The theme renders its facets `:with-apply="false"`: « Apply » lives in the drawer's foot. */
-const FACETS_APPLY = '        <button type="button" data-meili="apply">Apply filters</button>\n    </div>'
+const FACETS_APPLY = '        <button type="button" class="meilifacetsApply" data-meili="apply">Apply filters</button>\n    </div>'
 
 type ApplyMode = 'submit' | 'immediate'
 
@@ -26,7 +26,7 @@ const drawerFooter = (apply: ApplyMode) => `
                 <button type="button" class="meilifacetsReset" aria-label="Clear all" data-shape="icon" hidden data-meili="reset">
                     <img class="meilifacetsResetIcon" src="trash.svg" alt="" width="20" height="20">
                 </button>
-                <button type="button" class="meilifacetsApply" aria-describedby="apply-count"${apply === 'immediate' ? ' data-only="sheet"' : ''} data-meili="apply">
+                <button type="button" class="meilifacetsApply" aria-describedby="apply-count" data-shape="pill"${apply === 'immediate' ? ' data-only="sheet"' : ''} data-meili="apply">
                     Apply
                     <span class="meilifacetsApplyCount" id="apply-count" aria-hidden="true" hidden data-meili="active-count"></span>
                 </button>
