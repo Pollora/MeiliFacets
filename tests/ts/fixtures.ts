@@ -5,8 +5,20 @@ import type { Connection, ListingDescription, StateDescription } from '../../res
 import type { HistorySeam, SearchSeam } from '../../resources/assets/ts/listing/listing.ts'
 import type { Answers, SearchQuery } from '../../resources/assets/ts/shared/search-client.ts'
 
+/** A listing of products, ten to a page, applied on submit: each test writes only what it is about. */
 export const described = (partial: Partial<ListingDescription>) =>
     ({
+        name: 'products',
+        perPage: 10,
+        reachableHits: 1000,
+        filter: 'post_type = "product"',
+        attributes: ['card'],
+        apply: 'submit',
+        countPattern: ':count result|:count results',
+        filterPattern: ':count active filter|:count active filters',
+        totalPattern: ':count item|:count items',
+        reserved: { sort: 'sort', query: 'q', page: 'pg', minPrice: 'min_price', maxPrice: 'max_price' },
+        sorts: {},
         locale: 'en',
         pagePath: '/shop',
         pageQuery: '',

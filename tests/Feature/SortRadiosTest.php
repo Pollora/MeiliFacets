@@ -7,7 +7,6 @@ namespace Modules\MeiliFacets\Tests\Feature;
 use Dom\Element;
 use Dom\HTMLDocument;
 use Illuminate\Support\Facades\Blade;
-use Modules\MeiliFacets\Enums\Contract;
 use Modules\MeiliFacets\Enums\Hook;
 use Modules\MeiliFacets\Listing\CurrentListing;
 use PHPUnit\Framework\Attributes\Test;
@@ -16,6 +15,7 @@ use Tests\TestCase;
 /** Step 4b: the sort drawn as radios, in a section like a facet's (C-4). */
 final class SortRadiosTest extends TestCase
 {
+    use FindsHooks;
     use SwitchesTheSiteLocale;
 
     private const string COLLAPSIBLE = '<x-meilifacets::sort widget="radios" collapsible />';
@@ -139,10 +139,5 @@ final class SortRadiosTest extends TestCase
     private function nameOf(Element $toggle): string
     {
         return trim($toggle->textContent);
-    }
-
-    private function hooked(Hook $hook): string
-    {
-        return '['.Contract::Attribute->value.'="'.$hook->value.'"]';
     }
 }

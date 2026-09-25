@@ -11,7 +11,6 @@ import type { StateDescription } from '../../resources/assets/ts/shared/descript
 const listing = described({
     facets: [{ taxonomy: 'product_brand', multiple: true, cap: 30, visible: 10, labels: {}, counts: {} }, { taxonomy: 'pa_size', multiple: true, cap: 30, visible: 10, labels: {}, counts: {} }],
     params: { product_brand: 'brand', pa_size: 'f_pa_size' },
-    reserved: { sort: 'sort', query: 'q', page: 'pg', minPrice: 'min_price', maxPrice: 'max_price' },
     sorts: { price_asc: ['metas._price:asc'] },
 })
 
@@ -101,7 +100,6 @@ describe('a state written by the client', () => {
             { taxonomy: 'product_cat', multiple: false, cap: 1, visible: 10, labels: {}, counts: {} },
         ],
         params: { product_brand: 'brand', product_cat: 'f_product_cat' },
-        reserved: { sort: 'sort', query: 'q', page: 'pg', minPrice: 'min_price', maxPrice: 'max_price' },
         sorts: { price_asc: ['metas._price:asc'] },
         priceFields: { min: 'price.min', max: 'price.max' },
     }))

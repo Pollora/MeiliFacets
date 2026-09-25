@@ -10,17 +10,8 @@ import { listingMarkup, open } from './dom.ts'
 import { connection, described, FakeClient, FakeHistory } from './fixtures.ts'
 
 const description = described({
-    name: 'products',
-    perPage: 10,
-    reachableHits: 1000,
-    filter: 'post_type = "product"',
-    apply: 'submit',
-    attributes: ['card'],
-    totalPattern: ':count item|:count items',
     facets: [],
     params: {},
-    reserved: { sort: 'sort', query: 'q', page: 'pg', minPrice: 'min_price', maxPrice: 'max_price' },
-    sorts: {},
 })
 
 describe('TotalView', () => {

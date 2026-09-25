@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { beforeEach, describe, it } from 'node:test'
 
 import { DisclosureGroup } from '../../resources/assets/ts/collapsible/disclosure-group.ts'
@@ -14,27 +15,44 @@ import { connection, described, FakeClient, FakeHistory } from './fixtures.ts'
 import type { TestWindow } from './dom.ts'
 
 const FACETS = '    <div class="meilifacetsFacets"'
-const FACETS_END = '<button type="button" data-meili="apply">Apply filters</button>\n    </div>'
+/** The theme renders its facets `:with-apply="false"`: « Apply » lives in the drawer's foot. */
+const FACETS_APPLY = '        <button type="button" data-meili="apply">Apply filters</button>\n    </div>'
+
+type ApplyMode = 'submit' | 'immediate'
+
+/** Mirrors `reset-icon.blade.php` and `apply.blade.php` in the foot, as the theme slots them. */
+const drawerFooter = (apply: ApplyMode) => `
+            <div class="meilifacetsDrawerFooter">
+                <button type="button" class="meilifacetsReset" aria-label="Clear all" data-shape="icon" hidden data-meili="reset">
+                    <img class="meilifacetsResetIcon" src="trash.svg" alt="" width="20" height="20">
+                </button>
+                <button type="button" class="meilifacetsApply" aria-describedby="apply-count"${apply === 'immediate' ? ' data-only="sheet"' : ''} data-meili="apply">
+                    Apply
+                    <span class="meilifacetsApplyCount" id="apply-count" aria-hidden="true" hidden data-meili="active-count"></span>
+                </button>
+            </div>`
 
 /** Mirrors `drawer-opener.blade.php` and `drawer.blade.php` around the facets of the listing fixture. */
-const drawerMarkup = ({ close = true } = {}) => `
+const drawerMarkup = ({ close = true, apply = 'submit' }: { close?: boolean, apply?: ApplyMode } = {}) => `
 <header id="header"><a href="/">Home</a></header>
 <main id="main">${listingMarkup({ collapsible: true })
         .replace(FACETS, `
-    <button type="button" aria-expanded="false" aria-controls="drawer" aria-describedby="drawer-count" data-meili="drawer-open">
-        Filters <span id="drawer-count" aria-hidden="true" hidden data-meili="active-count"></span>
+    <button type="button" class="meilifacetsDrawerOpen" aria-expanded="false" aria-controls="drawer" aria-describedby="drawer-count" data-meili="drawer-open">
+        <span class="meilifacetsDrawerIcon" aria-hidden="true"><img src="filters.svg" alt="" width="14" height="14"></span>
+        Filters
+        <span class="meilifacetsDrawerCount" id="drawer-count" aria-hidden="true" hidden data-meili="active-count"></span>
     </button>
     <div class="meilifacetsDrawer" id="drawer" data-media="(width < 48em)" data-meili="drawer">
         <div class="meilifacetsDrawerSheet">
             <div class="meilifacetsDrawerHead">
-                <h2 id="drawer-title" tabindex="-1" data-meili="drawer-title">Filters</h2>
-                ${close ? '<button type="button" aria-label="Close the filters" data-meili="drawer-close">✕</button>' : ''}
+                <h2 class="meilifacetsDrawerTitle" id="drawer-title" tabindex="-1" data-meili="drawer-title">Filters</h2>
+                ${close ? '<button type="button" class="meilifacetsDrawerClose" aria-label="Close the filters" data-meili="drawer-close"><span aria-hidden="true">✕</span></button>' : ''}
             </div>
             ${close ? '<div class="meilifacetsDrawerHandle" aria-hidden="true" data-meili="drawer-close"></div>' : ''}
             <div class="meilifacetsDrawerBody">
 ${FACETS}`)
-        .replace(FACETS_END, `${FACETS_END}
-            </div>
+        .replace(FACETS_APPLY, `    </div>
+            </div>${drawerFooter(apply)}
         </div>
     </div>`)}</main>
 <footer id="footer"></footer>`
@@ -50,22 +68,11 @@ class FakeMedia extends EventTarget {
 }
 
 const description = described({
-    name: 'products',
-    perPage: 10,
-    reachableHits: 1000,
-    filter: 'post_type = "product"',
-    apply: 'submit',
-    attributes: ['card'],
-    countPattern: ':count result|:count results',
-    filterPattern: ':count active filter|:count active filters',
-    totalPattern: ':count item|:count items',
     facets: [
         { taxonomy: 'product_brand', multiple: true, cap: 5, visible: 10, labels: {}, counts: { acme: 3, globex: 2 } },
         { taxonomy: 'product_cat', multiple: false, cap: 1, visible: 10, labels: {}, counts: { coats: 1 } },
     ],
     params: { product_brand: 'brand', product_cat: 'categorie' },
-    reserved: { sort: 'sort', query: 'q', page: 'pg', minPrice: 'min_price', maxPrice: 'max_price' },
-    sorts: {},
 })
 
 describe('Drawer', () => {
@@ -469,12 +476,9 @@ describe('a drawer over a listing that applies on submit', () => {
     })
 })
 
-const APPLY = '<button type="button" data-meili="apply">Apply filters</button>'
-const DRAWER_RESET = '<button type="button" aria-label="Clear all" hidden data-shape="icon" data-meili="reset"></button>'
-
 /** A listing bound under its drawer, the drawer's foot holding a reset beside « Apply ». */
-const boundUnderDrawer = (apply: 'submit' | 'immediate') => {
-    const { window, root } = open(drawerMarkup().replace(APPLY, `${DRAWER_RESET}${APPLY}`))
+const boundUnderDrawer = (apply: ApplyMode, { styled = false } = {}) => {
+    const { window, root } = open(drawerMarkup({ apply }), { styled })
     window.matchMedia = (() => Object.assign(new EventTarget(), { matches: true })) as unknown as typeof window.matchMedia
     const client = new FakeClient()
     const described_ = { ...description, apply }
@@ -492,7 +496,14 @@ const boundUnderDrawer = (apply: 'submit' | 'immediate') => {
     }
 }
 
-const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+/** One task later: every answer already settled has been handled. */
+const settled = (window: TestWindow) => new Promise((resolve) => window.setTimeout(resolve, 0))
+
+/** The frame then the task `HeldPaint` waits for, asked once the close has settled: they run after its own. */
+const painted = async (window: TestWindow) => {
+    await settled(window)
+    await new Promise((resolve) => window.requestAnimationFrame(() => window.setTimeout(resolve, 0)))
+}
 const hit = (title: string) => ({ card: { title, url: `https://example.test/${title}` } })
 
 const outsideReset = (root: Element, drawer: Element) => {
@@ -572,16 +583,16 @@ describe('a grid behind an open sheet', () => {
 
         client.answer = { results: { hits: [hit('First')], totalHits: 1 } }
         tick(window, box('acme'))
-        await wait(0)
+        await settled(window)
         client.answer = { results: { hits: [hit('Second')], totalHits: 1 } }
         tick(window, box('globex'))
-        await wait(0)
+        await settled(window)
 
         assert.deepEqual(cards(), [])
         assert.equal(find(window.document, Contract.selector('total')).textContent, '1 item')
 
         click(window, find(drawer, 'button' + Contract.selector('drawer-close')))
-        await wait(50)
+        await painted(window)
 
         assert.deepEqual(cards(), ['Second'])
     })
@@ -591,7 +602,7 @@ describe('a grid behind an open sheet', () => {
         client.answer = { results: { hits: [hit('First')], totalHits: 1 } }
 
         tick(window, box('acme'))
-        await wait(0)
+        await settled(window)
 
         assert.deepEqual(cards(), ['First'])
     })
@@ -601,13 +612,64 @@ describe('a grid behind an open sheet', () => {
         click(window, find(window.document, Contract.selector('drawer-open')))
         client.answer = { results: { hits: [hit('Held')], totalHits: 1 } }
         tick(window, box('acme'))
-        await wait(0)
+        await settled(window)
 
         click(window, find(drawer, 'button' + Contract.selector('drawer-close')))
         client.answer = { results: { hits: [hit('Later')], totalHits: 1 } }
         tick(window, box('globex'))
-        await wait(50)
+        await painted(window)
 
         assert.deepEqual(cards(), ['Later'])
+    })
+})
+
+/** R-108: the sheet's rules, read from the stylesheet, must reach the foot the views render. */
+describe('the foot of the drawer', () => {
+    const source = readFileSync(new URL('../../resources/assets/css/meilifacets.css', import.meta.url), 'utf8')
+    const sheet = source.slice(source.indexOf('@media (scripting: enabled) and (width < 48em)'))
+    /** The selector of the rule that holds a declaration. */
+    const holding = (css: string, declaration: string) => {
+        const at = css.indexOf(declaration)
+
+        assert.notEqual(at, -1, declaration)
+
+        return css.slice(css.lastIndexOf('}', at) + 1, css.lastIndexOf('{', at)).trim()
+    }
+    /** happy-dom matches no `:has()` holding `:not()`: the rule's three parts are matched one by one. */
+    const [, FOOT = '', BIN = '', RESIZED = ''] = /^(\S+):has\(> (.+)\) > (\S+)$/.exec(holding(sheet, 'width: calc(')) ?? []
+    const resized = (apply: HTMLElement) => apply.matches(`${FOOT} > ${RESIZED}`)
+        && [...apply.parentElement?.children ?? []].some((sibling) => sibling.matches(BIN))
+    const SHEET_ONLY = `${Contract.selector('apply')}[data-only="sheet"]`
+    const IN_SHEET = `${Contract.selector('drawer')} ${SHEET_ONLY}`
+
+    it('lets « Apply » take the room of the bin only while the bin is shown', () => {
+        const { window, drawer, box } = boundUnderDrawer('submit')
+        const apply = find(drawer, Contract.selector('apply'))
+
+        assert.deepEqual([FOOT, RESIZED], ['.meilifacetsDrawerFooter', Contract.selector('apply')])
+        assert.equal(resized(apply), false)
+
+        tick(window, box('acme'))
+        assert.equal(find(drawer, Contract.selector('reset')).hidden, false)
+        assert.equal(resized(apply), true)
+
+        click(window, find(drawer, Contract.selector('reset')))
+        assert.equal(resized(apply), false)
+    })
+
+    it('marks « Apply » for the sheet alone in `immediate`, and hides it outside the sheet', () => {
+        const { window, drawer } = boundUnderDrawer('immediate', { styled: true })
+        const apply = find(drawer, Contract.selector('apply'))
+
+        assert.equal(apply.matches(SHEET_ONLY), true)
+        assert.ok(sheet.includes(`${IN_SHEET} {\n        display: inline-flex;`), IN_SHEET)
+        assert.equal(apply.matches(IN_SHEET), true)
+        assert.equal(window.getComputedStyle(apply).display, 'none')
+    })
+
+    it('shows « Apply » everywhere in `submit`', () => {
+        const { drawer } = boundUnderDrawer('submit')
+
+        assert.equal(find(drawer, Contract.selector('apply')).matches(SHEET_ONLY), false)
     })
 })

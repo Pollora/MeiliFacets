@@ -12,7 +12,6 @@ import { described } from './fixtures.ts'
 
 const description = described({
     params: { product_brand: 'brand', product_cat: 'categorie' },
-    countPattern: ':count result|:count results',
     facets: [
         { taxonomy: 'product_brand', multiple: true, cap: 3, visible: 10, labels: {}, counts: { acme: 3, globex: 1 } },
         { taxonomy: 'product_cat', multiple: false, cap: 1, visible: 10, labels: {}, counts: { coats: 2 } },

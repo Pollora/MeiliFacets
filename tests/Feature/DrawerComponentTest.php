@@ -7,11 +7,7 @@ namespace Modules\MeiliFacets\Tests\Feature;
 use Dom\Element;
 use Dom\HTMLDocument;
 use Illuminate\Support\Facades\Blade;
-use Modules\MeiliFacets\Enums\Contract;
 use Modules\MeiliFacets\Enums\Hook;
-use Modules\MeiliFacets\Listing\CurrentListing;
-use Modules\MeiliFacets\Listing\FacetValue;
-use Modules\MeiliFacets\Support\UrlParameters;
 use Modules\MeiliFacets\View\Components\Drawer;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -19,6 +15,8 @@ use Tests\TestCase;
 /** Step 5a of the filter bar: a plain container the client promotes to a modal sheet, and the button that opens it. */
 final class DrawerComponentTest extends TestCase
 {
+    use FindsHooks;
+    use HoldsCatalogueValues;
     use SwitchesTheSiteLocale;
 
     private const string PLACED = '<x-meilifacets::drawer-opener /><x-meilifacets::drawer class="flex-1"><p id="inside">Facets</p>'
@@ -94,11 +92,7 @@ final class DrawerComponentTest extends TestCase
     #[Test]
     public function it_counts_on_the_opener_the_values_the_address_holds(): void
     {
-        $listing = $this->app->make(CurrentListing::class)->sole();
-        $facet = $listing->facets()[0];
-        [$one, $two] = array_map(static fn (FacetValue $value): string => $value->slug, $listing->valuesOf($facet));
-        request()->query->replace([$this->app->make(UrlParameters::class)->for($facet->taxonomy) => $one.','.$two]);
-        $this->app->forgetScopedInstances();
+        $this->holdTwoValues();
 
         $count = $this->placed()->querySelector($this->hooked(Hook::DrawerOpen).' '.$this->hooked(Hook::ActiveCount));
 
@@ -229,10 +223,5 @@ final class DrawerComponentTest extends TestCase
     private function drawer(HTMLDocument $document): Element
     {
         return $document->querySelector($this->hooked(Hook::Drawer));
-    }
-
-    private function hooked(Hook $hook): string
-    {
-        return '['.Contract::Attribute->value.'="'.$hook->value.'"]';
     }
 }

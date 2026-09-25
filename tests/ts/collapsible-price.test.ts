@@ -11,22 +11,11 @@ import { connection, described, FakeClient, FakeHistory } from './fixtures.ts'
 import type { TestWindow } from './dom.ts'
 
 const description = described({
-    name: 'products',
-    perPage: 10,
-    reachableHits: 1000,
-    filter: 'post_type = "product"',
-    apply: 'submit',
-    attributes: ['card'],
-    countPattern: ':count result|:count results',
-    filterPattern: ':count active filter|:count active filters',
-    totalPattern: ':count item|:count items',
     facets: [
         { taxonomy: 'product_brand', multiple: true, cap: 5, visible: 10, labels: {}, counts: {} },
         { taxonomy: 'product_cat', multiple: false, cap: 1, visible: 10, labels: {}, counts: {} },
     ],
     params: { product_brand: 'brand', product_cat: 'categorie' },
-    reserved: { sort: 'sort', query: 'q', page: 'pg', minPrice: 'min_price', maxPrice: 'max_price' },
-    sorts: {},
 })
 
 const TRACK_WIDTH = 199

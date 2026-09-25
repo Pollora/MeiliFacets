@@ -12,24 +12,13 @@ import type { ListingDescription } from '../../resources/assets/ts/shared/descri
 import type { TestWindow } from './dom.ts'
 
 const base = described({
-    name: 'products',
-    perPage: 10,
-    reachableHits: 1000,
-    filter: 'post_type = "product"',
-    apply: 'submit',
-    attributes: ['card'],
-    countPattern: ':count result|:count results',
-    filterPattern: ':count active filter|:count active filters',
-    totalPattern: ':count item|:count items',
     facets: [
         { taxonomy: 'product_brand', multiple: true, cap: 30, visible: 1, labels: { acme: 'Acme', globex: 'Globex' }, counts: {} },
         { taxonomy: 'product_cat', multiple: true, cap: 30, visible: 10, labels: { coats: 'Coats & <b>hats</b>' }, counts: {} },
     ],
     params: { product_brand: 'brand', product_cat: 'category' },
-    reserved: { sort: 'sort', query: 'q', page: 'pg', minPrice: 'min_price', maxPrice: 'max_price' },
     priceFields: { min: 'price.min', max: 'price.max' },
     money: { format: '%2$s %1$s', symbol: '€', decimals: 2, decimal: ',', thousand: ' ' },
-    sorts: {},
 })
 
 describe('ActiveValuesView', () => {

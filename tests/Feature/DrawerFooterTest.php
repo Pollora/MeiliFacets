@@ -6,17 +6,16 @@ namespace Modules\MeiliFacets\Tests\Feature;
 
 use Dom\HTMLDocument;
 use Illuminate\Support\Facades\Blade;
-use Modules\MeiliFacets\Enums\Contract;
 use Modules\MeiliFacets\Enums\Hook;
-use Modules\MeiliFacets\Listing\CurrentListing;
-use Modules\MeiliFacets\Listing\FacetValue;
-use Modules\MeiliFacets\Support\UrlParameters;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /** Step 5b: « Apply (X) » on its own, and « Clear all » drawn as an icon, for the footer of the drawer. */
 final class DrawerFooterTest extends TestCase
 {
+    use FindsHooks;
+    use HoldsCatalogueValues;
+
     private mixed $applyMode;
 
     protected function setUp(): void
@@ -174,22 +173,8 @@ final class DrawerFooterTest extends TestCase
         $this->assertFileEquals(module_path('MeiliFacets', 'resources/assets/images/trash.svg'), $published);
     }
 
-    private function holdTwoValues(): void
-    {
-        $listing = $this->app->make(CurrentListing::class)->sole();
-        $facet = $listing->facets()[0];
-        [$one, $two] = array_map(static fn (FacetValue $value): string => $value->slug, $listing->valuesOf($facet));
-        request()->query->replace([$this->app->make(UrlParameters::class)->for($facet->taxonomy) => $one.','.$two]);
-        $this->app->forgetScopedInstances();
-    }
-
     private function rendered(string $blade): HTMLDocument
     {
         return HTMLDocument::createFromString('<div>'.Blade::render($blade).'</div>', LIBXML_NOERROR);
-    }
-
-    private function hooked(Hook $hook): string
-    {
-        return '['.Contract::Attribute->value.'="'.$hook->value.'"]';
     }
 }

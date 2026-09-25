@@ -18,6 +18,8 @@ use Tests\TestCase;
 /** Step 4c of the filter bar: the price behind the same trigger as a facet, closed until the client opens it. */
 final class CollapsiblePriceTest extends TestCase
 {
+    use FindsHooks;
+
     private const string LABEL = 'Price';
 
     protected function setUp(): void
@@ -161,10 +163,5 @@ final class CollapsiblePriceTest extends TestCase
     private function one(ParentNode $within, Hook $hook): ?Element
     {
         return $within->querySelector($this->hooked($hook));
-    }
-
-    private function hooked(Hook $hook): string
-    {
-        return '['.Contract::Attribute->value.'="'.$hook->value.'"]';
     }
 }

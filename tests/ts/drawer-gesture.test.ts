@@ -20,20 +20,25 @@ const SHEET = `
 
 const HEIGHT = 400
 
-/** The gesture's clock is the event's own: a pause between two events is a real one. */
-const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
-
 describe('DrawerGesture', () => {
     let window: TestWindow
     let open: boolean
     let dismissed: number
     let reduced: { matches: boolean }
     let gesture: DrawerGesture
+    let now: number
 
     const sheet = () => find(window.document, '#sheet')
     const drawer = () => find(window.document, '#drawer')
+    /** The gesture's clock is the event's own: every event is stamped with the test's clock. */
     const pointer = (type: string, node: Element, clientY: number, init: PointerEventInit = {}) => {
-        node.dispatchEvent(new window.PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 1, isPrimary: true, clientY, ...init }))
+        const event = new window.PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 1, isPrimary: true, clientY, ...init })
+
+        Object.defineProperty(event, 'timeStamp', { value: now })
+        node.dispatchEvent(event)
+    }
+    const later = (ms: number) => {
+        now += ms
     }
     const drag = (from: Element, ...moves: number[]) => {
         pointer('pointerdown', from, 100)
@@ -45,6 +50,7 @@ describe('DrawerGesture', () => {
         window = load(SHEET)
         open = true
         dismissed = 0
+        now = 1000
         reduced = { matches: false }
         Object.defineProperty(sheet(), 'offsetHeight', { value: HEIGHT })
         gesture = new DrawerGesture(drawer(), { isOpen: () => open, dismiss: () => dismissed++ }, reduced as MediaQueryList).start()
@@ -96,9 +102,9 @@ describe('DrawerGesture', () => {
         assert.equal(sheet().style.transform, 'translateY(-4px)')
     })
 
-    it('goes back when a slow pull stops short of a quarter of the sheet', async () => {
+    it('goes back when a slow pull stops short of a quarter of the sheet', () => {
         drag(find(window.document, '#head'), 10)
-        await pause(250)
+        later(250)
         pointer('pointermove', sheet(), 120)
         lift(20)
 
@@ -107,9 +113,9 @@ describe('DrawerGesture', () => {
         assert.equal(drawer().hasAttribute('data-dragging'), false)
     })
 
-    it('dismisses past a quarter of the sheet, however slow', async () => {
+    it('dismisses past a quarter of the sheet, however slow', () => {
         drag(find(window.document, '#head'), 10)
-        await pause(250)
+        later(250)
         pointer('pointermove', sheet(), 100 + HEIGHT / 4 + 1)
         lift(HEIGHT / 4 + 1)
 
@@ -160,9 +166,9 @@ describe('DrawerGesture', () => {
     })
 
     /** A slow pull that ends still is not a flick, however long it lasted. */
-    it('takes the speed of the end of the gesture, not of all of it', async () => {
+    it('takes the speed of the end of the gesture, not of all of it', () => {
         drag(find(window.document, '#head'), 10, 80)
-        await pause(150)
+        later(150)
         pointer('pointermove', sheet(), 180)
         lift(80)
 

@@ -13,37 +13,37 @@ import { connection, described, FakeClient, FakeHistory } from './fixtures.ts'
 import type { ListingDescription } from '../../resources/assets/ts/shared/description.ts'
 
 const choice = (value: string, label: string, checked = false) => `
-    <li><label><input type="radio" name="sort" value="${value}"${checked ? ' checked' : ''} data-meili="sort-choice"><span>${label}</span></label></li>`
+                <li class="meilifacetsFacetValue">
+                    <label>
+                        <input type="radio" name="sort" value="${value}"${checked ? ' checked' : ''} data-meili="sort-choice">
+                        <span class="meilifacetsFacetName">${label}</span>
+                    </label>
+                </li>`
 
 const PLAIN = { legend: 'Sort by', panel: '' }
 
-/** The trigger holds the order in force next to its label, text included in its name. */
+/** Mirrors `toggle.blade.php` holding the sort summary: no badge, the order in force inside the name. */
 const COLLAPSIBLE = {
-    legend: `<button type="button" aria-expanded="false" aria-controls="sort-panel" data-meili="toggle"><span><span>Sort by</span><span>: <span data-meili="sort-chosen">Relevance</span></span></span></button>`,
+    legend: `<button type="button" class="meilifacetsFacetToggle" aria-expanded="false" aria-controls="sort-panel" data-meili="toggle">
+            <span class="meilifacetsFacetToggleName"><span class="meilifacetsFacetToggleLabel">Sort by</span><span class="meilifacetsSortSummary">: <span class="meilifacetsSortChoice" data-meili="sort-chosen">Relevance</span></span></span>
+        </button>`,
     panel: ' hidden data-meili="panel"',
 }
 
 /** Mirrors `sort-radios.blade.php`, in place of the listbox. */
 const radiosMarkup = (folding = PLAIN) => listingMarkup().replace(/<div class="meilifacetsSort"[\s\S]*?<\/ul>\s*<\/div>/, `
-    <fieldset class="meilifacetsFacet" data-meili="sort-choices">
-        <legend>${folding.legend}</legend>
-        <div id="sort-panel"${folding.panel}><ul>${choice('', 'Relevance', true)}${choice('price_asc', 'Price, low to high')}${choice('on_sale', 'On sale')}</ul></div>
+    <fieldset class="meilifacetsFacet meilifacetsSortChoices" data-meili="sort-choices">
+        <legend class="meilifacetsFacetLabel">${folding.legend}</legend>
+        <div class="meilifacetsFacetPanel" id="sort-panel"${folding.panel}>
+            <ul class="meilifacetsFacetValues">${choice('', 'Relevance', true)}${choice('price_asc', 'Price, low to high')}${choice('on_sale', 'On sale')}
+            </ul>
+        </div>
     </fieldset>`)
 
 const description = (apply: ListingDescription['apply']) => described({
-    name: 'products',
-    perPage: 10,
-    reachableHits: 1000,
-    filter: 'post_type = "product"',
     apply,
-    attributes: ['card'],
-    countPattern: ':count result|:count results',
-    filterPattern: ':count active filter|:count active filters',
-    totalPattern: ':count item|:count items',
     facets: [{ taxonomy: 'product_brand', multiple: true, cap: 5, visible: 10, labels: {}, counts: {} }],
     params: { product_brand: 'brand' },
-    reserved: { sort: 'sort', query: 'q', page: 'pg', minPrice: 'min_price', maxPrice: 'max_price' },
-    sorts: {},
 })
 
 const bound = (apply: ListingDescription['apply'], folding = PLAIN) => {
@@ -108,7 +108,7 @@ describe('SortRadios', () => {
             tick(window, find<HTMLInputElement>(root, 'input[value="price_asc"]'))
 
             assert.equal(find(root, Contract.selector('sort-chosen')).textContent, 'Price, low to high')
-            assert.equal(trigger(root).textContent, 'Sort by: Price, low to high')
+            assert.equal(trigger(root).textContent?.trim(), 'Sort by: Price, low to high')
         })
 
         it('names the order the history goes back to', () => {
@@ -117,7 +117,7 @@ describe('SortRadios', () => {
             tick(window, find<HTMLInputElement>(root, 'input[value="on_sale"]'))
             history.goBackTo('products', new ListingState({ sort: 'price_asc' }).toDescription())
 
-            assert.equal(trigger(root).textContent, 'Sort by: Price, low to high')
+            assert.equal(trigger(root).textContent?.trim(), 'Sort by: Price, low to high')
         })
 
         /** Mobile first: the section reads its label alone, the pill its label and the order in force. */

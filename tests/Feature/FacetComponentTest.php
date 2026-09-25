@@ -33,6 +33,7 @@ use Tests\TestCase;
  */
 final class FacetComponentTest extends TestCase
 {
+    use FindsHooks;
     use SwitchesTheSiteLocale;
 
     private const string NOTHING_MATCHES = 'qqxxzzww-aucun-produit-ne-correspond';
@@ -387,11 +388,6 @@ final class FacetComponentTest extends TestCase
     private function reserved(QueryParameter $parameter): string
     {
         return $this->app->make(UrlParameters::class)->reserved($parameter);
-    }
-
-    private function hooked(Hook $hook): string
-    {
-        return '['.Contract::Attribute->value.'="'.$hook->value.'"]';
     }
 
     private function renderOne(): string

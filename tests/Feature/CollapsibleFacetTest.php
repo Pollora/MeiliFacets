@@ -10,10 +10,6 @@ use Illuminate\Support\Facades\Blade;
 use Modules\MeiliFacets\Enums\Contract;
 use Modules\MeiliFacets\Enums\Hook;
 use Modules\MeiliFacets\Enums\QueryParameter;
-use Modules\MeiliFacets\Listing\CurrentListing;
-use Modules\MeiliFacets\Listing\Facet;
-use Modules\MeiliFacets\Listing\FacetValue;
-use Modules\MeiliFacets\Listing\ResolvedListing;
 use Modules\MeiliFacets\Support\UrlParameters;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -21,6 +17,9 @@ use Tests\TestCase;
 /** Step 4a of the filter bar: the facet as the trigger of a panel, closed until the client opens it. */
 final class CollapsibleFacetTest extends TestCase
 {
+    use FindsHooks;
+    use HoldsCatalogueValues;
+
     private const string NOTHING_MATCHES = 'qqxxzzww-aucun-produit-ne-correspond';
 
     protected function setUp(): void
@@ -45,7 +44,7 @@ final class CollapsibleFacetTest extends TestCase
 
         $this->assertNotNull($toggle, 'The legend holds no trigger.');
         $this->assertSame('button', $toggle->getAttribute('type'));
-        $this->assertSame($this->first()->label, $toggle->querySelector('.meilifacetsFacetToggleLabel')->textContent);
+        $this->assertSame($this->firstFacet()->label, $toggle->querySelector('.meilifacetsFacetToggleLabel')->textContent);
     }
 
     /** Q-4: closed on the server, or every panel flashes open until the client runs. */
@@ -75,9 +74,7 @@ final class CollapsibleFacetTest extends TestCase
     #[Test]
     public function it_counts_on_the_badge_the_values_the_address_holds(): void
     {
-        [$one, $two] = array_map(static fn (FacetValue $value): string => $value->slug, $this->listing()->valuesOf($this->first()));
-        request()->query->replace([$this->app->make(UrlParameters::class)->for($this->first()->taxonomy) => $one.','.$two]);
-        $this->app->forgetScopedInstances();
+        $this->holdTwoValues();
 
         $badge = $this->collapsible()->querySelector($this->hooked(Hook::SelectedCount));
 
@@ -89,11 +86,11 @@ final class CollapsibleFacetTest extends TestCase
     #[Test]
     public function it_keeps_the_trigger_of_a_facet_holding_a_value_when_nothing_matches(): void
     {
-        $held = $this->listing()->valuesOf($this->first())[0]->slug;
+        [$held] = $this->valuesOfTheFirstFacet(1);
 
         $document = $this->collapsibleUnder([
             $this->app->make(UrlParameters::class)->reserved(QueryParameter::Query) => self::NOTHING_MATCHES,
-            $this->app->make(UrlParameters::class)->for($this->first()->taxonomy) => $held,
+            $this->app->make(UrlParameters::class)->for($this->firstFacet()->taxonomy) => $held,
         ]);
         $input = $document->querySelector('input[value="'.$held.'"]');
 
@@ -150,7 +147,7 @@ final class CollapsibleFacetTest extends TestCase
             $this->assertFalse($block->hasAttribute('collapsible'));
         }
 
-        $this->assertCount(count($this->listing()->filters()), $document->querySelectorAll($this->hooked(Hook::Toggle)));
+        $this->assertCount(count($this->catalogue()->filters()), $document->querySelectorAll($this->hooked(Hook::Toggle)));
     }
 
     #[Test]
@@ -209,23 +206,8 @@ final class CollapsibleFacetTest extends TestCase
         return HTMLDocument::createFromString($rendered, LIBXML_NOERROR)->saveHtml();
     }
 
-    private function listing(): ResolvedListing
-    {
-        return $this->app->make(CurrentListing::class)->sole();
-    }
-
-    private function first(): Facet
-    {
-        return $this->listing()->facets()[0];
-    }
-
     private function placing(string $attributes = ''): string
     {
-        return '<x-meilifacets::facet facet="'.$this->first()->name.'" '.$attributes.' />';
-    }
-
-    private function hooked(Hook $hook): string
-    {
-        return '['.Contract::Attribute->value.'="'.$hook->value.'"]';
+        return '<x-meilifacets::facet facet="'.$this->firstFacet()->name.'" '.$attributes.' />';
     }
 }

@@ -9,16 +9,11 @@ import { PriceQuery } from '../../resources/assets/ts/price/price-query.ts'
 import { described } from './fixtures.ts'
 
 const description = described({
-    name: 'products',
     facets: [{ taxonomy: 'product_brand', multiple: true, cap: 30, visible: 10, labels: {}, counts: {} }],
     params: { product_brand: 'marque' },
-    reserved: { sort: 'sort', query: 'q', page: 'pg', minPrice: 'min_price', maxPrice: 'max_price' },
     sorts: { newest: ['post_date:desc'] },
     priceFields: { min: 'price.min', max: 'price.max' },
-    filter: 'post_type = "product"',
     perPage: 16,
-    attributes: ['card'],
-    reachableHits: 1000,
 })
 
 describe('a price range in the client state', () => {

@@ -148,7 +148,12 @@ describe('ListingQuery', () => {
 
     it('restricts the retrieved attributes when the listing names them', () => {
         assert.deepEqual(build({}, { attributes: ['card'] }).attributesToRetrieve, ['card'])
-        assert.equal(build({}).attributesToRetrieve, undefined)
+
+        const unnamed: Partial<ListingDescription> = described(listing)
+        delete unnamed.attributes
+        const query = new ListingQuery(unnamed as ListingDescription, filterQueriesOf(unnamed as ListingDescription))
+
+        assert.equal(query.plan(new ListingState())[RESULTS].attributesToRetrieve, undefined)
     })
 })
 
