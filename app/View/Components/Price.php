@@ -41,7 +41,7 @@ final class Price extends ListingComponent
 
     private function asked(): Range
     {
-        return $this->listing->state()->price;
+        return $this->listing->askedPrice();
     }
 
     public function bounds(): Range
@@ -59,7 +59,7 @@ final class Price extends ListingComponent
         return new Disclosure(
             label: $this->facet->label,
             panelId: $this->panelId(),
-            badge: new Badge($this->ids->facetSelectedCount($this->facet->name), $this->listing->state()->priceFilterCount()),
+            badge: new Badge($this->ids->facetSelectedCount($this->facet->name), $this->listing->priceFilterCount()),
         );
     }
 

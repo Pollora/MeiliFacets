@@ -281,6 +281,24 @@ final class ResolvedListing
         return $this->state->activeFilterCount();
     }
 
+    /**
+     * @return list<string>
+     */
+    public function selectedIn(Facet $facet): array
+    {
+        return $this->state->selected($facet->taxonomy);
+    }
+
+    public function priceFilterCount(): int
+    {
+        return $this->state->priceFilterCount();
+    }
+
+    public function askedPrice(): Range
+    {
+        return $this->state->price;
+    }
+
     public function name(): string
     {
         return $this->listing->name();

@@ -66,7 +66,7 @@ final class Facet extends ListingComponent
 
     public function disclosure(): Disclosure
     {
-        $selected = $this->listing->state()->selected($this->facet->taxonomy);
+        $selected = $this->listing->selectedIn($this->facet);
 
         return new Disclosure(
             label: $this->facet->label,

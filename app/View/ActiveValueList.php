@@ -41,7 +41,7 @@ final readonly class ActiveValueList
     {
         $labels = $listing->labelsOf($facet);
         $parameter = $listing->parameterFor($facet->taxonomy);
-        $labelled = array_intersect($listing->state()->selected($facet->taxonomy), array_keys($labels));
+        $labelled = array_intersect($listing->selectedIn($facet), array_keys($labels));
 
         return array_map(
             fn (string $slug): ActiveValue => $this->removable($labels[$slug], $parameter, $slug, $patterns),
@@ -54,7 +54,7 @@ final readonly class ActiveValueList
      */
     private function priced(ResolvedListing $listing, ActiveValuePatterns $patterns): array
     {
-        $price = $listing->state()->price;
+        $price = $listing->askedPrice();
 
         if ($price->isEmpty()) {
             return [];
