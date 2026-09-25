@@ -251,3 +251,92 @@ describe('ActiveValuesView', () => {
         assert.equal(window.document.activeElement, window.document.body, 'no focus is taken on a later answer')
     })
 })
+
+/** ANIM-9: only a filter just taken on comes in; nothing leaves animated, nothing the server drew moves. */
+describe('the entrance of an active value', () => {
+    let window: TestWindow
+    let root: HTMLElement
+    let contract: Contract
+    let entered: { label: string | null, keyframes: Keyframe[] }[]
+    let reduced: boolean
+
+    const start = (description: ListingDescription = base) => {
+        const listing = new Listing(description, connection, { filterQueries: filterQueriesOf(description), client: new FakeClient(), history: new FakeHistory() })
+
+        new ListingBinding(contract, listing, description).start()
+
+        return listing
+    }
+    const list = () => contract.one('active-values') as HTMLElement
+    const pill = (rank: number) => contract.all('active-value', list())[rank] as HTMLElement
+    const answered = () => new Promise((resolve) => setTimeout(resolve, 0))
+
+    beforeEach(() => {
+        ({ window, root } = open(listingMarkup(), { styled: true }))
+        contract = new Contract(root)
+        entered = []
+        reduced = false
+        window.matchMedia = (() => ({ matches: reduced })) as unknown as typeof window.matchMedia
+        window.HTMLElement.prototype.animate = function (this: HTMLElement, keyframes: Keyframe[]) {
+            entered.push({ label: this.getAttribute('value'), keyframes })
+
+            return {} as Animation
+        }
+    })
+
+    /** Its length is `Entrance`'s to read: happy-dom does not inherit custom properties down to the pill. */
+    it('fades and scales in a pill the answer adds', async () => {
+        await start().toggle('product_brand', 'acme').apply()
+
+        assert.deepEqual(entered, [{ label: 'acme', keyframes: [{ opacity: 0, transform: 'scale(0.95)' }, { opacity: 1, transform: 'none' }] }])
+    })
+
+    it('brings in the new pill only, not the ones the redraw rebuilds', async () => {
+        const listing = await start().toggle('product_brand', 'acme').apply()
+        entered = []
+
+        await listing.toggle('product_cat', 'coats').toggle('product_brand', 'globex').apply()
+
+        assert.deepEqual(entered.map(({ label }) => label), ['globex', 'coats'])
+    })
+
+    it('leaves a pill the server rendered still when the client redraws it', async () => {
+        list().hidden = false
+        list().insertAdjacentHTML('afterbegin', '<li><button type="button" name="brand" value="acme" data-kind="term" data-meili="active-value">Acme</button></li>')
+        const listing = start({ ...base, state: served({ facets: { product_brand: ['acme'] } }) })
+
+        await listing.toggle('product_brand', 'globex').apply()
+
+        assert.deepEqual(entered.map(({ label }) => label), ['globex'])
+    })
+
+    it('plays nothing when a pill goes, and lets the focus land on the one that took its place', async () => {
+        const listing = await start().toggle('product_brand', 'acme').toggle('product_brand', 'globex').apply()
+        entered = []
+        pill(0).focus()
+
+        click(window, pill(0))
+        await answered()
+
+        assert.deepEqual(entered, [])
+        assert.deepEqual(listing.state.selected('product_brand'), ['globex'])
+        assert.ok(window.document.activeElement === pill(0), 'the focus is on the pill left')
+    })
+
+    it('keeps a price range redrawn with other bounds still', async () => {
+        const listing = await start().priceBetween(10, 50).apply()
+        entered = []
+
+        await listing.priceBetween(20, 50).apply()
+
+        assert.deepEqual(entered, [])
+    })
+
+    it('only fades in under reduced motion', async () => {
+        reduced = true
+
+        await start().toggle('product_brand', 'acme').apply()
+
+        assert.deepEqual(entered[0]?.keyframes, [{ opacity: 0 }, { opacity: 1 }])
+    })
+})

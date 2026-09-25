@@ -1,8 +1,10 @@
 import { Badge } from '../shared/badge.ts'
-import { CountEntry } from './count-entry.ts'
+import { Entrance } from './entrance.ts'
 
 import type { Contract } from '../shared/contract.ts'
 import type { ListingState } from './listing-state.ts'
+
+const FROM_SCALE = 0.9
 
 /**
  * The bare number of values the visitor holds, pending ones included, for the
@@ -11,11 +13,11 @@ import type { ListingState } from './listing-state.ts'
  */
 export class ActiveCountView {
     #contract: Contract
-    #entry: CountEntry
+    #entry: Entrance
 
     constructor(contract: Contract) {
         this.#contract = contract
-        this.#entry = new CountEntry(contract.root.ownerDocument)
+        this.#entry = new Entrance(contract.root.ownerDocument, FROM_SCALE)
     }
 
     show(state: ListingState) {

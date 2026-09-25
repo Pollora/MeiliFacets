@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict'
 import { beforeEach, describe, it } from 'node:test'
 
-import { CountEntry } from '../../resources/assets/ts/listing/count-entry.ts'
+import { Entrance } from '../../resources/assets/ts/listing/entrance.ts'
 import { find, load } from './dom.ts'
 
 import type { TestWindow } from './dom.ts'
 
-describe('CountEntry', () => {
+describe('Entrance', () => {
     let window: TestWindow
     let counter: HTMLElement
     let played: { keyframes: Keyframe[], options: KeyframeAnimationOptions }[]
@@ -26,7 +26,7 @@ describe('CountEntry', () => {
     })
 
     it('comes in at the stylesheet\'s pace', () => {
-        new CountEntry(window.document).play(counter)
+        new Entrance(window.document, 0.9).play(counter)
 
         assert.deepEqual(played[0]?.options, { duration: 150, easing: 'ease-in-out' })
     })
@@ -34,15 +34,21 @@ describe('CountEntry', () => {
     it('reads a length the theme wrote in seconds', () => {
         counter.style.setProperty('--meili-duration-fade', '0.15s')
 
-        new CountEntry(window.document).play(counter)
+        new Entrance(window.document, 0.9).play(counter)
 
         assert.equal(played[0]?.options.duration, 150)
+    })
+
+    it('scales in from where its owner asks, never from nothing', () => {
+        new Entrance(window.document, 0.95).play(counter)
+
+        assert.deepEqual(played[0]?.keyframes, [{ opacity: 0, transform: 'scale(0.95)' }, { opacity: 1, transform: 'none' }])
     })
 
     it('only fades in under reduced motion', () => {
         reduced = true
 
-        new CountEntry(window.document).play(counter)
+        new Entrance(window.document, 0.9).play(counter)
 
         assert.deepEqual(played[0]?.keyframes, [{ opacity: 0 }, { opacity: 1 }])
     })

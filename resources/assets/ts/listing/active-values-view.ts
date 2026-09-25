@@ -1,5 +1,6 @@
 import { ActiveValueList, PRICE_KIND } from './active-value-list.ts'
 import { Contract } from '../shared/contract.ts'
+import { Entrance } from './entrance.ts'
 import { FocusLanding } from './focus-landing.ts'
 
 import type { ListingDescription } from '../shared/description.ts'
@@ -11,12 +12,15 @@ type WithdrawSeam = Pick<Listing, 'withdraw' | 'withdrawPrice'>
 
 const KIND = 'data-kind'
 
+const FROM_SCALE = 0.95
+
 /** The pills of every list the theme placed: one per filter held, each taking its own filter off. */
 export class ActiveValuesView {
     #contract: Contract
     #listing: WithdrawSeam
     #list: ActiveValueList
     #landing: FocusLanding
+    #entrance: Entrance
     #taxonomies: Map<string, string>
     #drawn: string | null = null
     #refocusing: { host: Element, rank: number } | null = null
@@ -26,6 +30,7 @@ export class ActiveValuesView {
         this.#listing = listing
         this.#list = new ActiveValueList(description)
         this.#landing = new FocusLanding(contract.root)
+        this.#entrance = new Entrance(contract.root.ownerDocument, FROM_SCALE)
         this.#taxonomies = new Map(Object.entries(description.params).map(([taxonomy, name]) => [name, taxonomy]))
     }
 
@@ -112,9 +117,25 @@ export class ActiveValuesView {
             return
         }
 
-        this.#contract.all('active-value', host).forEach((pill) => this.#itemOf(pill, host).remove())
+        const shown = this.#contract.all('active-value', host)
+        const before = new Set(shown.map((pill) => this.#identityOf(pill)))
+
+        shown.forEach((pill) => this.#itemOf(pill, host).remove())
         template.before(...values.flatMap((value) => this.#pill(template, value)))
         host.hidden = values.length === 0
+        this.#enter(host, before)
+    }
+
+    /** Only a filter just taken on comes in: a pill redrawn in place stays still, and one withdrawn leaves at once. */
+    #enter(host: Element, before: Set<string>) {
+        this.#contract.all('active-value', host)
+            .filter((pill): pill is HTMLElement => pill instanceof HTMLElement && !before.has(this.#identityOf(pill)))
+            .forEach((pill) => this.#entrance.play(pill))
+    }
+
+    /** The filter a pill takes off, whatever its label says: a price range redrawn is the same pill. */
+    #identityOf(pill: Element) {
+        return [pill.getAttribute(KIND), pill.getAttribute('name'), pill.getAttribute('value')].join(' ')
     }
 
     #pill(template: HTMLTemplateElement, value: ActiveValue) {
