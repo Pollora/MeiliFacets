@@ -10,6 +10,12 @@ Un travail antérieur sur le même sujet a été mis de côté sans être relu n
 (`git stash list` : « wip R-48 session perdue (2026-09-24) »). On ne le rejoue pas ; on peut y
 piocher une idée, une fois la décision correspondante prise ici.
 
+**État au 2026-09-25 — chantier en pause, branche prête pour `main`.** Étapes 0 à 5 et 7 livrées et
+commitées ; audit de branche `R-178` (lots A à F) fermé. **Étapes 6 (accessibilité) et 8 (habillage
+Pluralia) mises en attente par Louis le 2026-09-25**, à reprendre plus tard ; leurs points restent
+listés ci-dessous. Le chantier suivant (recherche du site) est cadré dans
+[chantier-recherche.md](chantier-recherche.md).
+
 ---
 
 ## Objet
@@ -125,7 +131,7 @@ met le compteur à jour ; retirer une pastille décoche la valeur ; « Annuler �
 - [x] cible de 2.75rem au pointeur grossier pour la pastille (44 px mesurés en 3a et 3b) ; les rangées de cases restent à 37,8 px au pointeur grossier, comme avant le chantier — au-dessus du minimum AA (24 px, WCAG 2.5.8), sous la cible AAA de la décision « Hauteur des contrôles », qui ne vise que les boutons : à revoir à l'étape 6
 - [x] colonne actuelle rendue à l'identique quand rien n'est configuré (3a : HTML identique ; 3b : seuls `aria-labelledby` et l'id du libellé s'ajoutent, positions à 0,1 px)
 
-### 4 · Facette repliable (rangée desktop) — ⏳ 4d livrée le 2026-09-25, non commitée (4a, 4b, 4c commitées)
+### 4 · Facette repliable (rangée desktop) — ✅ fermée le 2026-09-25 (4d : `e26dc56`, `d1b3d70`)
 
 - [x] C-4 tranché (tri en radios par attribut, `SortWidget`)
 - [x] 4a · pill déclencheur + badge du nombre de valeurs cochées (`R-170`, 2026-09-24, `2cf8acf`) ; prix repris en 4c
@@ -156,7 +162,7 @@ validation » dans `decisions.md` (bloc « Tiroir, barre de filtres et repliable
 - [x] glisser pour fermer (ANIM-12, avancé à la demande de Louis), poignée, hauteur qui suit le contenu
 - [x] finitions (2026-09-25, `R-173`/`R-175`) : `apply visible-in-drawer`, focus rendu après la poubelle (`ResetFocus`), valeurs à 0 en `aria-disabled` (focus gardé, coche refusée), grille différée derrière le sheet (`HeldPaint`), styles en ligne du sheet retirés hors ouverture, `filters.svg` en `#000`, `reset shape="pill"` et dessin de la colonne rendu à `25a5aa3` hors hauteur
 
-### 6 · Accessibilité — à venir
+### 6 · Accessibilité — ⏸ en attente (décision de Louis, 2026-09-25)
 
 Audit séparé, par sous-agent : motif APG de chaque widget, piège et retour du focus, Échap,
 `aria-expanded`/`aria-controls`, annonces, `forced-colors`, défense de `hidden` (`R-72`).
@@ -168,7 +174,7 @@ Audit séparé, par sous-agent : motif APG de chaque widget, piège et retour du
 - [ ] contraste du Vert `#A7C5B7` de la maquette (≈ 1,8:1, sous les 3:1 de WCAG 1.4.11
       pour un composant d'interface) : à arbitrer avant l'étape 8
 
-### 7 · Animations — ANIM-3, 9, 10 livrés le 2026-09-25 ; ANIM-6 et ANIM-13 ouverts
+### 7 · Animations — ✅ fermée le 2026-09-25 (`b02e098`, `d325a58`, `299aa77`) ; ANIM-13 en attente du graphiste
 
 CSS natif, sans dépendance : `@starting-style`, `transition-behavior: allow-discrete`,
 `transform`/`opacity` uniquement, variante `prefers-reduced-motion` pour chaque mouvement. Choix
@@ -192,7 +198,7 @@ Relu contre le code le 2026-09-25 (`meilifacets.css` = la feuille du module, num
 - [x] ANIM-12 · glisser pour fermer (`drawer-gesture.ts` : vitesse sur 100 ms, `FLICK_SPEED` 0,11 px/ms, seuil d'un quart, étirement vers le haut, voile lié par `--meili-scrim-shown`) ; **au doigt** depuis `R-176`, validé en tactile CDP le 2026-09-25
 - [ ] ANIM-13 · **question pour Louis, à transmettre au graphiste** (2026-09-25) : le composant Figma « Animation filtrage » (`17:592`, fichier `URXURsgp0hWOmDeDVA37qs`) ne porte **aucune donnée de mouvement** — `get_motion_context` (récursif) rend `{"nodes":[]}` ; `get_metadata` n'y montre que la pill « Trier » avec badge « 2 » et chevron, plus un cadre masqué de 287 × 136 (`Frame 634032`, vraisemblablement le panneau ouvert). Question : *« Que doit montrer ce composant ? (a) l'ouverture du panneau sous la pill — déjà livrée : fondu + descente de 4 px + `scale(0.97)` en 180 ms, sortie 120 ms ; (b) l'apparition du badge « 2 » quand un filtre est coché — livrée : fondu + `scale(0.9)` en 150 ms ; (c) autre chose (le chevron, la grille qui se met à jour, un prototype Smart Animate) ? Si c'est (c), merci d'indiquer les états de départ et d'arrivée, la durée et la courbe, ou de poser des variantes reliées par un prototype pour que le MCP les lise. »* Rien n'est codé tant que la réponse n'est pas là
 
-### 8 · Habillage Pluralia — à venir
+### 8 · Habillage Pluralia — ⏸ en attente (décision de Louis, 2026-09-25)
 
 Dans le thème, par les crochets `data-meili` et non par les classes (`R-128`), avec les tokens de
 `theme-vars.css`. Validation par sous-agents, desktop et mobile : l'ensemble comparé à
@@ -237,4 +243,6 @@ Déjà décidé :
 | 2026-09-25 | 4b, 5 | Commits par fonctionnalité : `7b971d8` (tri en radios), `40822fd` (panneaux animés, valeurs gardées en place), `860d58c` (`apply` autonome, formes de `reset`), `d62e8d9` (tiroir) ; thème Pluralia `b2c84db` (Contenance en pastilles) et `2f7a473` (rangée et tiroir) |
 | 2026-09-25 | 5, 7 | Plan relu contre le code : étape 5 fermée, `R-173` → `R-176` fermés ; ANIM-4, 5, 7, 8, 11, 12 prouvés ligne à ligne, écarts précis écrits pour ANIM-1, 2, 3, 6 ; 4d découpée (4d-1 zéro résultat, 4d-2 « Voir plus » en panneau) ; étapes 6 et 8 complétées |
 | 2026-09-25 | 4d | 4d-1 (`R-49` fermé) : aucun cul-de-sac mesuré à 0 résultat (1440/393, deux modes), tests Feature + TS ajoutés, plage de prix sous bornes vides laissée à Louis (`R-127`) ; 4d-2 (`R-177`) : repli rendu à la fermeture du panneau, focus gardé, sheet qui suit ; client 495, Unit 301, suite `Modules` 517 verts, non commité |
-| 2026-09-25 | 7 | `R-179` : ANIM-3 (`b02e098`), ANIM-9 (`d325a58`), ANIM-10 et refonte en briques réutilisables (`shared/entrance.ts`, `results/busy-grid.ts`) **non commités** à la demande de Louis ; ANIM-13 posé en question ; client 533, Unit 310, suite `Modules` 535 verts ; recette 1440/393 deux modes, `config/meilifacets.php` restauré (`cmp` = 0) |
+| 2026-09-25 | 7 | `R-179` : ANIM-3 (`b02e098`), ANIM-9 (`d325a58`), ANIM-10 et refonte en briques réutilisables (`shared/entrance.ts`, `results/busy-grid.ts`, `shared/input-source.ts`, `listing/new-pills.ts`) commités en un seul `299aa77` avec l'accord de Louis ; ANIM-13 posé en question ; client 533, Unit 310, suite `Modules` 535 verts ; recette 1440/393 deux modes, `config/meilifacets.php` restauré (`cmp` = 0) |
+| 2026-09-25 | audit | `R-178` fermé : lots A (`b1cc621`), B (`0a4ba1d`), C (`2be5b05`, `0ea40d8`, `d028e8b`, `00758a2`), D (`9692266`), E (`bfc0279`), F (`90dabac`, `251128d`) ; thème `ad9fa12`, `cbef7ce` |
+| 2026-09-25 | — | Recherche du site cadrée (`741a334`, [chantier-recherche.md](chantier-recherche.md)) ; **étapes 6 et 8 mises en attente par Louis**, branche `feat/filter-bar` prête à rejoindre `main` |

@@ -1305,6 +1305,11 @@ fermée, `R-173` → `R-176` fermés. Restent l'étape 4d (`R-49`, « Voir plus 
 Audit de la branche le même jour : `R-178`, cinq lots (tous faits).
 Étape 7 (animations) le même jour : `R-179` — ANIM-3 et ANIM-9 commités, ANIM-10 et refonte non commités, ANIM-13 en question.
 
+**Au 2026-09-25 (fin de session)** : étapes 0 à 5 et 7 du chantier livrées et commitées, audit `R-178`
+fermé ; étapes 6 (accessibilité) et 8 (habillage Pluralia) **mises en attente par Louis**. `R-48` reste
+ouvert jusqu'à leur reprise : le mobile est couvert (tiroir), l'accessibilité et l'habillage restent à
+finir. Suivi : [chantier-filtres.md](chantier-filtres.md).
+
 ### R-49 · 🟡 · **fermé le 2026-09-25** (étape 4d-1) · ouvert le 2026-09-06 — le cul-de-sac « zéro résultat » est atteignable en deux clics
 
 Quand la recherche ne rend rien, toutes les distributions sont vides, donc tous les `<fieldset>`
