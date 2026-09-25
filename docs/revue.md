@@ -1300,6 +1300,8 @@ Reste ouvert jusqu'à la dernière étape.
 **Au 2026-09-25** : tiroir mobile (`R-173`, étape 5a), tri en radios (`R-174`, étape 4b) et pied
 « Annuler / Appliquer » (`R-175`, étape 5b) livrés ensemble, non commités ; repliables passés en
 mobile first. Revue des animations appliquée le même jour (`R-176`).
+Commités le même jour par fonctionnalité (`7b971d8`, `40822fd`, `860d58c`, `d62e8d9`) ; étape 5
+fermée, `R-173` → `R-176` fermés. Restent l'étape 4d (`R-49`, « Voir plus » en panneau), puis 6 à 8.
 
 ### R-49 · 🟡 · ouvert · 2026-09-06 — le cul-de-sac « zéro résultat » est atteignable en deux clics
 
@@ -3239,7 +3241,7 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
-### R-176 · 🟠 · **corrigé le 2026-09-25, non commité** · ouvert le 2026-09-25 — revue des animations : le glisser ne démarre jamais au doigt, Tab entre dans un tiroir qui sort
+### R-176 · 🟠 · **fermé le 2026-09-25** (`40822fd`, `d62e8d9`) · ouvert le 2026-09-25 — revue des animations : le glisser ne démarre jamais au doigt, Tab entre dans un tiroir qui sort
 
 Rattaché à `R-48` (revue des animations des étapes 5a/5b, corrections validées par Louis).
 
@@ -3287,7 +3289,7 @@ couverture 97,57 % lignes / 93,84 % branches ; `composer check` vert (Unit 301) 
 
 **Reste** : keyframes d'ANIM-3 (`translateY(-4px) scale(0.97)`) non reprises.
 
-### R-175 · 🟡 · **livré le 2026-09-25, non commité** (étape 5b) · ouvert le 2026-09-25 — le tiroir n'a pas de pied « Annuler / Appliquer (X) »
+### R-175 · 🟡 · **fermé le 2026-09-25** (étape 5b, `860d58c`, `d62e8d9`) · ouvert le 2026-09-25 — le tiroir n'a pas de pied « Annuler / Appliquer (X) »
 
 Rattaché à `R-48`, étape 5b de [chantier-filtres.md](chantier-filtres.md), avancée dans le même lot
 que la 5a à la demande de Louis (`D-03` enfreint à sa demande, noté ici).
@@ -3348,7 +3350,7 @@ le thème.
   ses pastilles actives.
 
 
-### R-174 · 🟡 · **livré le 2026-09-25, non commité** (étape 4b) · ouvert le 2026-09-24 — le tri ne se présente pas comme une section
+### R-174 · 🟡 · **fermé le 2026-09-25** (étape 4b, `7b971d8`) · ouvert le 2026-09-24 — le tri ne se présente pas comme une section
 
 Rattaché à `R-48`, étape 4b (C-4). Demandé pendant la 5a par Louis : la liste déroulante détonnait
 au milieu des sections du tiroir.
@@ -3385,7 +3387,7 @@ chaque état (choix, `popstate`). Badge toujours vide.
 le tri remplace l'entrée d'historique (`#keepsHistory`) : pas de `popstate` propre à y mesurer,
 couvert par le test TS.
 
-### R-173 · 🟡 · **livré le 2026-09-25, non commité** (étape 5a) · ouvert le 2026-09-25 — pas de tiroir mobile
+### R-173 · 🟡 · **fermé le 2026-09-25** (étape 5a, `40822fd`, `d62e8d9`) · ouvert le 2026-09-25 — pas de tiroir mobile
 
 Rattaché à `R-48`, étape 5a de [chantier-filtres.md](chantier-filtres.md) : option A (conteneur
 ordinaire promu en dialogue), architecture Q-1 → Q-4.
