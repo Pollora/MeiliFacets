@@ -3282,6 +3282,102 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
+### R-190 · 🟡 · ouvert (en attente de commit) · ouvert le 2026-09-28 — étape 4, client de recherche : chargeur, client, surlignage, clavier
+
+Rattaché à `R-180`, seconde partie de l'étape 4 de [chantier-recherche.md](chantier-recherche.md) (D-2, D-7, S-4, S-8,
+S-9, S-12, S-17, S-18, S-21 ; `R-159` côté client). Rien n'est commité, réindexé ni écrit en base ou dans le moteur. Le
+thème n'est pas touché : les vues des briques sont l'étape 5.
+
+**Livré** (`ts/site-search/`, dossier autorisé au § 8).
+- `Typing` : seuil et délai lus dans la description, terme compté après `trim()` en points de code, **garde `R-159`**
+  (aucune lettre ni chiffre → pas de recherche, `\p{L}`/`\p{N}`), un terme qui ne change qu'en espaces ne repart pas.
+- `SiteSearchQuery` : une sous-requête multi-search par section posée, clé = type — `q`, `filter` =
+  `FilterExpression.all(baseFilter)`, `page: 1`, `hitsPerPage: limit`, `attributesToSearchOn: searchOn`,
+  `attributesToRetrieve: ["ID","card"]`, `attributesToHighlight: ["card"]`, balises U+E000/U+E001.
+- `Highlight` : nœuds texte + `<mark>`, jamais d'`innerHTML` sur une chaîne du moteur ; ne lit que
+  `_formatted.card.title` et `_formatted.card.summary`.
+- `SectionView` : lit les sections **présentes dans le DOM** (`data-type`, `data-limit`, sinon la limite de la
+  racine), nomme en console une section dont le type n'est pas décrit ; peint compte (`CountLabel` + `countPattern`)
+  et cartes (`CardView` + `Highlight`), masque la section vide.
+- `StatusView` : `aria-busy` sur `search-panel` ; annonce **après** la peinture — « Produits : 2 résultats et
+  Articles : 1 résultat » (motif `sectionPattern`, conjonction `Intl.ListFormat` de la locale), sinon le texte de
+  `search-empty` ; en panne, `search-unavailable` seul révélé et annoncé.
+- `ComboboxKeys` : ↓/↑ (↑ depuis le champ = dernière option, bornés aux extrémités), `aria-activedescendant` sur le
+  champ, `data-active` sur l'option, Entrée = `click()` du lien de l'option, **Entrée sans option active : rien**
+  (touche consommée, S-9) ; `Home`/`End`/←/→ rendent l'option et laissent le curseur au texte (motif APG du combobox
+  éditable) ; composition d'une méthode de saisie respectée. **Rien extrait de `ListboxKeys`** : seules deux flèches
+  seraient communes, et leurs bornes diffèrent.
+- `SiteSearch` : un `SearchClient` par racine ; `abandon()` quand le terme redescend sous le seuil ; une réponse
+  dépassée n'est jamais peinte (rejet `SearchSuperseded`) ; panne (refus, délai, réseau) → sections masquées, message
+  seul ; latence `performance.mark('meilifacets:search-sent')` → `measure('meilifacets:search-shown')`, hors délai.
+- Chargeur `site-search-page.ts` → `dist/site-search.js` (5 299 o, 2 172 o gzip) : `SearchPanel` ouvre, écrit
+  `aria-expanded` et met le focus dans le champ **avant** l'import ; au premier survol ou focus de la loupe (ou du
+  champ, ou à l'ouverture), `preconnect` (sauf si la page le porte déjà) et `import()` du client ; client absent →
+  `search-unavailable`. Client `site-search-client.ts` → `dist/site-search-client.js` (9 150 o, 3 694 o gzip),
+  importé sous `?ver=<empreinte sha-256 de son contenu>`, écrite dans le chargeur par `bundle.ts` (`define`) : le
+  `?ver=` du chargeur n'atteint pas un import relatif.
+- Contrat : crochets `summary`, `search-toggle`, `search-panel`, `search-input`, `search-status`, `search-empty`,
+  `search-unavailable`, `search-section`, `search-count`, `search-results`, `search-card-template` (§ 8, renommé depuis `search-template` sur décision de Louis), règles
+  dans `RootComponent.SEARCH` ; `Contract::VERSION` reste 1. Description : clé `sectionPattern` (`:heading: :count`,
+  fr `:heading : :count`).
+
+**Corrigé dans le code existant.** `SearchSeam` déplacé de `listing.ts` vers `search-client.ts` (le client qu'il
+abstrait) ; compteur de recherches en vol, dupliqué, extrait en `shared/searches-under-way.ts` (`SearchesUnderWay`,
+utilisé par `Listing` et `SiteSearch`) ; `' AND '` écrit deux fois → `FilterExpression.all()` (miroir de la méthode
+PHP), repris par `ListingQuery` et `PriceQuery` ; `aria-activedescendant`, `data-active` et `aria-busy` locaux au tri et
+à la grille → `shared/attributes.ts` ; `SearchQuery.facets` optionnel, le listing garde un `FacetedQuery` qui l'exige ;
+`CardView` écrit `summary` ; `bundle.ts` en classe `Bundle`, trois paquets ; script `test` avec `--test-timeout=10000`
+(dette de `R-189`) ; `ClientScriptTest` ne suppose plus le paquet de recherche absent (`usePublicPath()` vers un
+dossier vide) ; huit copies publiées orphelines supprimées de `public/modules/meilifacets/ts/`.
+
+**Vérifié.** Multi-search réel, clé publique, requête identique à `SiteSearchQuery` (« ser ») : accepté (les deux
+`attributesToSearchOn` sont dans `searchableAttributes`), produits 1 (#116) et articles 1 (#178), `_formatted.card.title`
+= `Sérum Éclat Vitamine C`, `summary` présent pour l'article seul, `_formatted.card` porte aussi `url`, prix
+et dimensions (en chaînes) — non lus. Dans Chromium (Playwright, gabarit injecté sur `/boutique`, description réelle
+lue par `SiteSearchDescription`) : loupe → panneau ouvert, focus dans le champ, client pas encore chargé ; « creme » →
+« Produits : 2 résultats et Articles : 1 résultat », 3 `<mark>` ; Entrée sans option : rien ; ↓↓ → option 2 ; `Home` →
+option rendue ; « zzzz » → message vide ; « ?( » → aucune recherche ; moteur coupé → « Recherche indisponible », URL
+inchangée ; ↓ + Entrée → `/produit/creme-hydratante-riche`. Aucune erreur console hors la panne provoquée. `/boutique`
+inchangé (case → 1 résultat, `?categorie=cheveux`). **Latence** (28 recherches, local) : médiane 9,3 ms, **p95
+21,9 ms**, max 25,5 ms — sous l'objectif proposé de 100 ms.
+
+**Tests.** Client : `typing` (6), `highlight` (4, dont `<script>`), `site-search-query` (3), `section-view` (6),
+`status-view` (6), `combobox-keys` (9), `search-panel` (5), `site-search` (9 : un seul envoi, réponse dépassée non peinte,
+abandon sous le seuil, vide, refus et réseau, `aria-busy`, options, mesure), `bundle` (+4), `contract` (+1 net : la racine
+de recherche exige ses briques, section et template) ; `page-roots` : gabarit de recherche complété, assertions
+inchangées. Fetch simulé honorant l'annulation : c'est le vrai `SearchClient` qui annule. PHP : `ContractParityTest` +5
+(module, clé et paquet de chaque chargeur, champ `card`), `ClientScriptTest` +2. **Résultats** : client 606/606 (les 553
+d'avant verts, listing sans assertion changée ; 98,97 % lignes, 93,80 % branches), Unit 345, `composer check` vert,
+`build:check` vert, suite `Modules` **OK (635 tests, 1863 assertions)**.
+
+**Les cinq passes.**
+- *Lisibilité* : méthodes de 1 à 19 lignes ; aucun booléen en paramètre (`#open`/`#close`) ; un nom par concept
+  (`SearchesUnderWay`, `FilterExpression.all`, attributs partagés) ; `SectionView.allIn()` porte la lecture du DOM.
+- *Commentaires* : gardés, anomalies ou contournements : `R-159`, surlignage par objet entier, `card.title` sans
+  `_formatted`, `length` en UTF-16, composition IME, `?ver=` d'un import relatif, `preconnect` déjà posé par le listing ;
+  retirés à la relecture : cinq justifications de conception (reportées ici et dans `decisions.md`).
+- *Performance* : une requête par terme retenu (délai, dédoublonnage des espaces), une annulation par frappe ; chargeur
+  2,2 Ko gzip sur toutes les pages, client 3,7 Ko à la première intention ; paquet du listing +559 o, +152 o gzip (règles de la racine de recherche, `summary`, `SearchesUnderWay`).
+- *Sécurité* : aucune chaîne du moteur en HTML hormis le prix (décision « Markup du prix », inchangée) ; titre et extrait
+  en texte, testé avec `<script>` et `<img onerror>` ; seule la clé de recherche voyage ; rien dans l'URL.
+- *Contexte et i18n* : diagnostics en anglais ; annonce composée de libellés traduits et de la conjonction de la
+  locale ; sans WooCommerce, la section produits n'est pas posée et rien n'est cherché pour elle.
+
+**Hors périmètre, noté.**
+- `ts/facets/facets-view.ts:156,162,189-191` écrit `'aria-expanded'` en dur alors que `EXPANDED` existe ; correctif :
+  importer `EXPANDED` de `shared/attributes.ts`.
+- `app/Indexing/FacetedPostIndexable.php:29` écrit `['ID', 'card']` en dur, et `ID` n'a pas de cas `DocumentField` ;
+  correctif : `DocumentField::Id`, puis un jumeau de parité pour `RETRIEVED` de `site-search-query.ts`.
+- `ts/listing/listing.ts:147` annonce `failed`, que personne n'écoute côté listing : une panne après le premier rendu ne
+  montre rien ; à rattacher au lot 6 (panne du moteur).
+- `Escape`, clic extérieur et Tab qui sort (S-12, `shared/light-dismiss.ts`) : étape 5, comme prévu au plan.
+
+**Arbitrages de Louis (2026-09-28).** Validés (`decisions.md`, « Validées ») : annonce par `sectionPattern`, crochet
+`search-template` renommé `search-card-template` sans alias, clavier du combobox. Restent en attente : attributs de
+section, version du client, chargement, abandon.
+
+**Commit proposé.** `feat(search): add the site search loader and client`.
+
 ### R-189 · 🟡 · ouvert (en attente de commit) · ouvert le 2026-09-28 — étape 4, extractions : racines du contrat, lecture des données publiées, feuille paramétrée
 
 Rattaché à `R-180`, première partie de l'étape 4 de [chantier-recherche.md](chantier-recherche.md) (§ 4 « Réutilisé
@@ -3805,7 +3901,7 @@ excerpt`, `fix(listing): hide what WooCommerce hides from its search`, `docs(sea
 ### R-180 · 🟠 · ouvert · 2026-09-25 — recherche du site (lot 5)
 
 Parapluie du chantier [chantier-recherche.md](chantier-recherche.md), branche `feat/site-search`. Rattachés :
-`R-27`, `R-159`, `R-160`, `R-181` (étape « pertinence et index »), `R-182` (refonte du pont), `R-184` (ordre de recherche surchargeable), `R-185` (corrections de la revue de `fd595a3`), `R-186` (réglages repoussés à chaque sauvegarde), `R-187` (étape 3a, déclaration des types), `R-188` (étape 3b, racine, réglages, publication partagée), `R-189` (étape 4, extractions partagées) ; `R-29` à compléter (clé limitée à `posts`).
+`R-27`, `R-159`, `R-160`, `R-181` (étape « pertinence et index »), `R-182` (refonte du pont), `R-184` (ordre de recherche surchargeable), `R-185` (corrections de la revue de `fd595a3`), `R-186` (réglages repoussés à chaque sauvegarde), `R-187` (étape 3a, déclaration des types), `R-188` (étape 3b, racine, réglages, publication partagée), `R-189` (étape 4, extractions partagées), `R-190` (étape 4, client de recherche) ; `R-29` à compléter (clé limitée à `posts`).
 
 ### R-179 · 🟡 · ouvert (en attente de commit) · ouvert le 2026-09-25 — étape 7 : panneaux desktop, pastilles actives et grille occupée
 

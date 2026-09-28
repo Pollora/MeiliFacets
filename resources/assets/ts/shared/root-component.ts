@@ -28,7 +28,11 @@ const LISTING_RULES: Rule[] = [
     { host: 'drawer', hooks: ['drawer-title', 'drawer-close'] },
 ]
 
-const SEARCH_RULES: Rule[] = []
+const SEARCH_RULES: Rule[] = [
+    { host: null, hooks: ['search-panel', 'search-input', 'search-status', 'search-empty', 'search-unavailable'] },
+    { host: 'search-section', hooks: ['search-results', 'search-card-template', 'search-count'] },
+    { host: 'search-card-template', hooks: ['card', 'url', 'title'] },
+]
 
 /** A root component a client binds to, named by its attribute, and the rules its markup must meet. */
 export class RootComponent {

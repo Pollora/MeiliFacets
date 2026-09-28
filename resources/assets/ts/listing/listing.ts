@@ -2,17 +2,16 @@ import { ListingQuery } from './listing-query.ts'
 import { ListingState } from './listing-state.ts'
 import { ListingUrl } from './listing-url.ts'
 import { SearchClient, SearchSuperseded } from '../shared/search-client.ts'
+import { SearchesUnderWay } from '../shared/searches-under-way.ts'
 
 import type { BrowserHistory } from './browser-history.ts'
 import type { Connection, FacetDescription, ListingDescription, StateDescription } from '../shared/description.ts'
 import type { FilterQuery } from '../shared/filter-query.ts'
-import type { Answers } from '../shared/search-client.ts'
+import type { Answers, SearchSeam } from '../shared/search-client.ts'
 
 const IMMEDIATE = 'immediate'
 
 export type HistorySeam = Pick<BrowserHistory, 'record' | 'replace' | 'push' | 'onPopState'>
-
-export type SearchSeam = Pick<SearchClient, 'search'>
 
 export interface ChangeDetail {
     state: ListingState
@@ -44,7 +43,10 @@ export class Listing extends EventTarget {
     #history: HistorySeam
     #state: ListingState
     #searchedFor: string | null = null
-    #searchesUnderWay = 0
+    #searchesUnderWay = new SearchesUnderWay({
+        searching: () => this.#announce('searching', null),
+        settled: () => this.#announce('settled', null),
+    })
 
     /** A page change is a place a visitor can come back to; a filter is not. */
     #keepsHistory = false
@@ -136,7 +138,7 @@ export class Listing extends EventTarget {
 
     /** A search the visitor overtook is not a failure and says nothing. */
     async #search() {
-        this.#markSearching()
+        this.#searchesUnderWay.leave()
 
         try {
             const state = this.#state
@@ -149,24 +151,7 @@ export class Listing extends EventTarget {
                 this.#announce('failed', { failure })
             }
         } finally {
-            this.#markSettled()
-        }
-    }
-
-    /** Counted, not flagged: an overtaken search ends while the one that overtook it is still out. */
-    #markSearching() {
-        this.#searchesUnderWay += 1
-
-        if (this.#searchesUnderWay === 1) {
-            this.#announce('searching', null)
-        }
-    }
-
-    #markSettled() {
-        this.#searchesUnderWay -= 1
-
-        if (this.#searchesUnderWay === 0) {
-            this.#announce('settled', null)
+            this.#searchesUnderWay.end()
         }
     }
 

@@ -20,6 +20,7 @@ enum Hook: string
     case Image = 'image';
     case Title = 'title';
     case Price = 'price';
+    case Summary = 'summary';
 
     case Facets = 'facets';
     case Facet = 'facet';
@@ -71,6 +72,16 @@ enum Hook: string
     case DrawerFooter = 'drawer-footer';
 
     case Search = 'search';
+    case SearchToggle = 'search-toggle';
+    case SearchPanel = 'search-panel';
+    case SearchInput = 'search-input';
+    case SearchStatus = 'search-status';
+    case SearchEmpty = 'search-empty';
+    case SearchUnavailable = 'search-unavailable';
+    case SearchSection = 'search-section';
+    case SearchCount = 'search-count';
+    case SearchResults = 'search-results';
+    case SearchCardTemplate = 'search-card-template';
 
     public function attribute(): HtmlString
     {

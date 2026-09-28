@@ -13,6 +13,7 @@ export class CardView {
         this.#link(this.#contract.one('url', node), card)
         this.#image(this.#contract.one('image', node), card)
         this.#text(this.#contract.one('title', node), card.title)
+        this.#summary(this.#contract.one('summary', node), card.summary)
         this.#markup(this.#contract.one('price', node), card.price)
 
         return node
@@ -56,6 +57,13 @@ export class CardView {
     #text(node: Element | null, value: unknown) {
         if (node) {
             node.textContent = this.#textOf(value)
+        }
+    }
+
+    #summary(node: Element | null, value: unknown) {
+        if (node instanceof HTMLElement) {
+            node.textContent = this.#textOf(value)
+            node.hidden = node.textContent === ''
         }
     }
 

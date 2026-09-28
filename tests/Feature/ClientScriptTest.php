@@ -19,6 +19,8 @@ final class ClientScriptTest extends TestCase
 {
     private const string LISTING_DATA = 'script_module_data_'.ScriptModule::Listing->value;
 
+    private const string SEARCH_DATA = 'script_module_data_'.ScriptModule::SiteSearch->value;
+
     protected function tearDown(): void
     {
         remove_all_filters(self::LISTING_DATA);
@@ -109,22 +111,49 @@ final class ClientScriptTest extends TestCase
     }
 
     #[Test]
-    public function it_inscribes_no_bundle_the_module_has_not_published(): void
+    public function it_inscribes_the_search_loader_like_the_listing_and_files_its_roots_under_their_key(): void
     {
-        $this->assertFileDoesNotExist(
-            public_path(ScriptModule::SiteSearch->source()),
-            'The search bundle is built at step 4 of the site search: this test then has to pick another bundle.'
-        );
-
         $printed = $this->printedModules(fn () => $this->script()->require(
             ScriptModule::SiteSearch,
-            'search',
-            static fn (): array => [],
+            'header',
+            static fn (): array => ['name' => 'header'],
         ));
 
-        $this->assertStringNotContainsString(ScriptModule::SiteSearch->value, $printed);
-        $this->assertFalse(has_filter('script_module_data_'.ScriptModule::SiteSearch->value));
-        $this->assertFalse($this->isExcluded($this->moduleTag(ScriptModule::SiteSearch->source())));
+        try {
+            $this->assertStringContainsString('src="'.asset(ScriptModule::SiteSearch->source()).'?ver=', $printed);
+            $this->assertStringContainsString('fetchpriority="low"', $printed);
+            $this->assertSame(['header' => ['name' => 'header']], apply_filters(self::SEARCH_DATA, [])['searches'] ?? null);
+        } finally {
+            remove_all_filters(self::SEARCH_DATA);
+        }
+    }
+
+    /** The client is imported by the loader, never printed: Delay JS has no tag of it to hold back. */
+    #[Test]
+    public function it_keeps_the_search_loader_out_of_the_scripts_wp_rocket_delays(): void
+    {
+        $this->assertTrue($this->isExcluded($this->moduleTag(ScriptModule::SiteSearch->source())));
+    }
+
+    #[Test]
+    public function it_inscribes_no_bundle_the_module_has_not_published(): void
+    {
+        $published = public_path();
+        $this->app->usePublicPath(sys_get_temp_dir().'/meilifacets-unpublished');
+
+        try {
+            $printed = $this->printedModules(fn () => $this->script()->require(
+                ScriptModule::SiteSearch,
+                'search',
+                static fn (): array => [],
+            ));
+
+            $this->assertStringNotContainsString(ScriptModule::SiteSearch->value, $printed);
+            $this->assertFalse(has_filter(self::SEARCH_DATA));
+            $this->assertFalse($this->isExcluded($this->moduleTag(ScriptModule::SiteSearch->source())));
+        } finally {
+            $this->app->usePublicPath($published);
+        }
     }
 
     /**

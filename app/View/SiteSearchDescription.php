@@ -23,6 +23,7 @@ final readonly class SiteSearchDescription
      *     limit: int,
      *     types: list<array<string, mixed>>,
      *     countPattern: string,
+     *     sectionPattern: string,
      *     locale: string,
      *     preconnect: string,
      * }
@@ -36,6 +37,7 @@ final readonly class SiteSearchDescription
             'limit' => $root->settings->limit,
             'types' => array_values(array_map($this->type(...), $root->types)),
             'countPattern' => __(':count result|:count results'),
+            'sectionPattern' => __(':heading: :count'),
             'locale' => $this->countLabel->languageTag(),
             'preconnect' => $this->preconnect->origin(),
         ];

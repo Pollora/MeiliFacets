@@ -241,12 +241,42 @@ describe('a hook left outside every listing', () => {
 })
 
 describe('a search root', () => {
-    it('asks nothing of the bricks the theme composes in it', () => {
-        const root = node('search')
+    const searchRoot = (children: Element[]) => {
+        const root = node('search', children)
         root.setAttribute('data-search', 'header')
         root.setAttribute('data-meili-contract', String(CONTRACT))
 
-        assert.deepEqual(new Contract(root).breaches(), [])
+        return root
+    }
+
+    const searchTemplate = (...hooks: string[]) => {
+        const element = window.document.createElement('template')
+
+        element.setAttribute('data-meili', 'search-card-template')
+        element.content.append(...hooks.map((hook) => node(hook)))
+
+        return element
+    }
+
+    const bricks = () => ['search-panel', 'search-input', 'search-status', 'search-empty', 'search-unavailable'].map((hook) => node(hook))
+
+    it('requires the panel, the field, the live region and both messages, the magnifier being optional', () => {
+        assert.deepEqual(new Contract(searchRoot([])).breaches(), ['search-panel', 'search-input', 'search-status', 'search-empty', 'search-unavailable'])
+        assert.deepEqual(new Contract(searchRoot(bricks())).breaches(), [])
+    })
+
+    it('requires of each section its results, its template and its count, and of the template a linked, titled card', () => {
+        const sections = [
+            node('search-section', [node('search-results'), node('search-count'), searchTemplate('card', 'url', 'title')]),
+            node('search-section', [searchTemplate('card')]),
+        ]
+
+        assert.deepEqual(new Contract(searchRoot([...bricks(), ...sections])).breaches(), [
+            'search-section > search-results',
+            'search-section > search-count',
+            'search-card-template > url',
+            'search-card-template > title',
+        ])
     })
 
     it('is told from a listing by its attribute, and a bare element is neither', () => {

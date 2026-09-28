@@ -34,7 +34,9 @@ const listing = (name: string, inner = '<div data-meili="results"></div><templat
     `<div id="listing-${name}" data-listing="${name}" data-meili-contract="${CONTRACT}">${inner}</div>`
 
 const search = (name: string) =>
-    `<div id="search-${name}" data-meili="search" data-search="${name}" data-meili-contract="${CONTRACT}"></div>`
+    `<div id="search-${name}" data-meili="search" data-search="${name}" data-meili-contract="${CONTRACT}">
+        <div data-meili="search-panel"><input data-meili="search-input"><p data-meili="search-status"></p>
+        <p data-meili="search-empty"></p><p data-meili="search-unavailable"></p></div></div>`
 
 const started = (t: TestContext, markup: string, component: RootComponent, module: ScriptModule) => {
     const errors = t.mock.method(console, 'error', () => undefined)

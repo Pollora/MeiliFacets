@@ -642,6 +642,15 @@ thème périmée dégrade donc vers le rendu serveur, jamais vers une interactio
 | `price-min` `price-max` | idem | les deux `input` qui portent les bornes, visibles ou masqués |
 | `reset` | `<x-meilifacets::reset>` | le bouton « tout effacer » |
 | `active-filters` | `<x-meilifacets::active-filters>` | le compteur de filtres actifs |
+| `summary` | carte de recherche (étape 5) | l'extrait d'une carte qui n'est pas un produit, masqué vide ; surligné par `Highlight` |
+| `search` | `<x-meilifacets::search>` | la racine d'une recherche du site (`data-search="<nom>"`) |
+| `search-toggle` | loupe (étape 5) | le bouton du disclosure, lié par le chargeur ; optionnel |
+| `search-panel` | panneau (étape 5) | révélé à l'ouverture, porte `aria-busy` pendant une recherche |
+| `search-input` | champ (étape 5) | le combobox : `aria-expanded`, `aria-activedescendant` écrits par `ComboboxKeys` |
+| `search-status` | panneau | l'unique région vivante, écrite une fois la réponse posée |
+| `search-empty` `search-unavailable` | panneau | les deux messages, révélés à la place des sections ; leur texte est aussi celui de l'annonce |
+| `search-section` | section (étape 5) | une section, son type dans `data-type`, sa limite dans `data-limit` ; masquée quand son type n'a rien |
+| `search-count` `search-results` `search-card-template` | idem | le compte, la liste repeinte et le `<template>` d'une carte (`card`, `url`, `title` exigés) |
 
 **Ce qui est exigé et ce qui est toléré.** Le refus ne peut porter que sur ce que le thème
 contrôle, jamais sur ce que la donnée décide :
@@ -653,6 +662,9 @@ contrôle, jamais sur ce que la donnée décide :
   `page`/`previous`/`next` dans une `pagination`,
   `sort-trigger`/`sort-list`/`sort-option` dans un `sort`,
   `price-track`/`price-handle` dans un `price-range` ;
+- sous une racine `search` : toujours `search-panel`, `search-input`, `search-status`, `search-empty`,
+  `search-unavailable` ; dans chaque `search-section`, `search-results`, `search-card-template`,
+  `search-count` ; dans chaque `search-card-template`, `card`, `url`, `title` ;
 - optionnels : tout le reste. Un thème peut légitimement ne pas afficher de facettes, de tri ou
   de compteurs — et une catégorie feuille ne rend aucune `facet-value`. **Un bloc `facet` vide
   n'est donc pas une infraction** (`R-84`) : une catégorie feuille et une URL filtrée sans

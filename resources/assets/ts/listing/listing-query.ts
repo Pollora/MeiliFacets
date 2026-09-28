@@ -1,10 +1,10 @@
+import { FilterExpression } from '../shared/filter-expression.ts'
 import { RESULTS } from '../shared/plan.ts'
 import { FIRST_PAGE } from './listing-state.ts'
 
 import type { ListingDescription } from '../shared/description.ts'
 import type { FilterQuery } from '../shared/filter-query.ts'
-import type { Plan } from '../shared/plan.ts'
-import type { SearchQuery } from '../shared/search-client.ts'
+import type { FacetedQuery, Plan } from '../shared/plan.ts'
 import type { ListingState } from './listing-state.ts'
 
 const NO_HIT = 0
@@ -34,7 +34,7 @@ export class ListingQuery {
         return queries
     }
 
-    #results(state: ListingState): SearchQuery {
+    #results(state: ListingState): FacetedQuery {
         const { perPage, attributes, sorts } = this.#listing
         const sort = state.sort !== null && Object.hasOwn(sorts, state.sort) ? sorts[state.sort] : undefined
 
@@ -53,7 +53,7 @@ export class ListingQuery {
         return state.query !== '' ? state.query : this.#listing.baseQuery
     }
 
-    #apart(lifted: FilterQuery, state: ListingState): SearchQuery {
+    #apart(lifted: FilterQuery, state: ListingState): FacetedQuery {
         return {
             q: this.#text(state),
             filter: this.#filterExpression(state, lifted),
@@ -68,6 +68,6 @@ export class ListingQuery {
             .filter((query) => query.key !== lifted?.key)
             .map((query) => query.clause(state))
 
-        return [this.#listing.filter, ...clauses].filter((clause) => clause !== '').join(' AND ')
+        return FilterExpression.all([this.#listing.filter, ...clauses])
     }
 }

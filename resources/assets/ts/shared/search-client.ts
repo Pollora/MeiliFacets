@@ -5,15 +5,25 @@ const DEFAULT_TIMEOUT = 5000
 export interface SearchQuery {
     q: string
     filter: string
-    facets: string[]
+    facets?: string[]
     hitsPerPage: number
     page: number
     attributesToRetrieve?: string[]
+    attributesToSearchOn?: string[]
+    attributesToHighlight?: string[]
+    highlightPreTag?: string
+    highlightPostTag?: string
     sort?: string[]
 }
 
+export interface SearchHit {
+    card?: Card
+    /** The retrieved fields again, highlighted terms wrapped in the query's tags. */
+    _formatted?: { card?: Card }
+}
+
 export interface SearchAnswer {
-    hits?: { card?: Card }[]
+    hits?: SearchHit[]
     totalHits?: number
     facetDistribution?: Partial<Record<string, Record<string, number>>>
     facetStats?: Partial<Record<string, { min: number, max: number }>>
@@ -60,6 +70,8 @@ const REASONS: Partial<Record<string, () => Error>> = {
     TimeoutError: () => new SearchError('The engine did not answer in time.'),
 }
 
+export type SearchSeam = Pick<SearchClient, 'search'>
+
 export class SearchClient {
     #endpoint: string
     #index: string
@@ -91,6 +103,12 @@ export class SearchClient {
         } catch (error) {
             throw this.#reasonFor(error)
         }
+    }
+
+    /** What was asked is no longer wanted: its search ends as overtaken, and nothing replaces it. */
+    abandon() {
+        this.#pending?.abort()
+        this.#pending = null
     }
 
     async #post(signal: AbortSignal, queries: Record<string, SearchQuery>): Promise<Answers> {

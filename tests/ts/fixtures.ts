@@ -2,8 +2,8 @@ import { ListingState } from '../../resources/assets/ts/listing/listing-state.ts
 
 import type { StateChanges } from '../../resources/assets/ts/listing/listing-state.ts'
 import type { Connection, ListingDescription, StateDescription } from '../../resources/assets/ts/shared/description.ts'
-import type { HistorySeam, SearchSeam } from '../../resources/assets/ts/listing/listing.ts'
-import type { Answers, SearchQuery } from '../../resources/assets/ts/shared/search-client.ts'
+import type { HistorySeam } from '../../resources/assets/ts/listing/listing.ts'
+import type { Answers, SearchQuery, SearchSeam } from '../../resources/assets/ts/shared/search-client.ts'
 
 /** A listing of products, ten to a page, applied on submit: each test writes only what it is about. */
 export const described = (partial: Partial<ListingDescription>) =>

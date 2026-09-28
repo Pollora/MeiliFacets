@@ -1,3 +1,4 @@
+import { FilterExpression } from '../shared/filter-expression.ts'
 import { RESULTS } from '../shared/plan.ts'
 import { Range } from '../shared/range.ts'
 
@@ -35,10 +36,10 @@ export class PriceQuery implements FilterQuery {
     clause(state: ListingState) {
         const { min, max } = state.price
 
-        return [
+        return FilterExpression.all([
             max === null ? '' : `${this.#fields.min} <= ${Range.boundTo(max)}`,
             min === null ? '' : `${this.#fields.max} >= ${Range.boundTo(min)}`,
-        ].filter(Boolean).join(' AND ')
+        ])
     }
 
     boundsFrom(answers: Answers) {

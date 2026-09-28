@@ -40,6 +40,7 @@ final class SiteSearchDescriptionTest extends TestCase
                     $this->described('post', 'Posts', null),
                 ],
                 'countPattern' => __(':count result|:count results'),
+                'sectionPattern' => __(':heading: :count'),
                 'locale' => $countLabel->languageTag(),
                 'preconnect' => 'https://engine.test:7700',
             ],

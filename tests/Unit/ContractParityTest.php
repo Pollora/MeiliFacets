@@ -68,16 +68,39 @@ final class ContractParityTest extends TestCase
         $this->assertContains('results', $this->hooksAddressedByTheClient());
     }
 
-    #[Test]
-    public function both_sides_name_the_script_module_the_same(): void
+    /**
+     * The loader of each bundle, which reads the data published under the module's id.
+     *
+     * @return Generator<string, array{ScriptModule, string}>
+     */
+    public static function loaders(): Generator
     {
-        $this->assertStringContainsString("'".ScriptModule::Listing->value."'", $this->read('listing-page.ts'));
+        yield 'listing' => [ScriptModule::Listing, 'listing-page.ts'];
+        yield 'site search' => [ScriptModule::SiteSearch, 'site-search-page.ts'];
     }
 
+    #[DataProvider('loaders')]
     #[Test]
-    public function both_sides_file_the_listing_descriptions_under_the_same_key(): void
+    public function both_sides_name_the_script_module_the_same(ScriptModule $module, string $loader): void
     {
-        $this->assertStringContainsString("roots: '".ScriptModule::Listing->roots()."'", $this->read('listing-page.ts'));
+        $this->assertStringContainsString("id: '".$module->value."'", $this->read($loader));
+    }
+
+    #[DataProvider('loaders')]
+    #[Test]
+    public function both_sides_file_the_descriptions_under_the_same_key(ScriptModule $module, string $loader): void
+    {
+        $this->assertStringContainsString("roots: '".$module->roots()."'", $this->read($loader));
+    }
+
+    /** The bundle PHP inscribes is the one `bundle.ts` writes from that loader. */
+    #[DataProvider('loaders')]
+    #[Test]
+    public function the_inscribed_bundle_is_built_from_its_loader(ScriptModule $module, string $loader): void
+    {
+        $bundle = basename($module->source());
+
+        $this->assertStringContainsString("new Bundle('{$loader}', '{$bundle}')", (string) file_get_contents(__DIR__.'/../../bundle.ts'));
     }
 
     /**
@@ -113,6 +136,7 @@ final class ContractParityTest extends TestCase
         yield 'markup attribute' => ['shared/contract.ts', "ATTRIBUTE = '([^']*)'", Contract::Attribute->value];
         yield 'version attribute' => ['shared/contract.ts', "VERSION_ATTRIBUTE = '([^']*)'", Contract::VersionAttribute->value];
         yield 'scroll attribute' => ['shared/contract.ts', "SCROLL_ATTRIBUTE = '([^']*)'", Contract::ScrollAttribute->value];
+        yield 'retrieved card' => ['site-search/site-search-query.ts', "RETRIEVED = \\['ID', '([^']*)'\\]", DocumentField::Card->value];
         yield 'search brick prefix' => ['shared/root-component.ts', "SEARCH_PREFIX = '([^']*)'", Hook::Search->value];
         yield 'facet field prefix' => ['shared/description.ts', "FACET_FIELD_PREFIX = '([^']*)'", DocumentField::Facets->value.'.'];
         yield 'value separator' => ['listing/listing-state.ts', "VALUE_SEPARATOR = '([^']*)'", StateReader::VALUE_SEPARATOR];
@@ -135,7 +159,7 @@ final class ContractParityTest extends TestCase
     #[Test]
     public function the_stylesheet_marks_the_option_the_client_points_at(): void
     {
-        preg_match("/ACTIVE_OPTION = '([^']*)'/", $this->read('sort/sort-combobox.ts'), $found);
+        preg_match("/ACTIVE_OPTION = '([^']*)'/", $this->read('shared/attributes.ts'), $found);
 
         $this->assertNotSame('', $found[1] ?? '');
         $this->assertStringContainsString('['.$found[1].']', (string) file_get_contents(self::STYLESHEET));
