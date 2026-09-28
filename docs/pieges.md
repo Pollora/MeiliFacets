@@ -387,7 +387,7 @@ injection de `.meilifacetsCardPrice { display: block !important }`. Et son séle
 les `[hidden]` du thème, qui a les siens (`.pluralia-panel[hidden]`, `.pluralia-drawer[hidden]`).
 
 ⚠️ **`Modules/` est hors du docroot** : la feuille n'est servie qu'une fois publiée dans
-`public/modules/meilifacets/` (voir [installation.md](installation.md)). `Stylesheet` ne l'inscrit
+`public/modules/meilifacets/` (voir [installation.md](installation.md)). `ClientStylesheet` ne l'inscrit
 que si le fichier existe, donc une publication oubliée ne produit pas de 404 — elle produit des
 nœuds `hidden` visibles à l'écran, ce qui se voit tout de suite. Le module n'écrit jamais dans
 `public/` à l'exécution.

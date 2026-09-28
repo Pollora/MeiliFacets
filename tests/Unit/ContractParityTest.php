@@ -30,6 +30,8 @@ final class ContractParityTest extends TestCase
 
     private const string STYLESHEET = __DIR__.'/../../resources/assets/css/meilifacets.css';
 
+    private const string VIEWS = __DIR__.'/../../resources/views/components';
+
     #[Test]
     public function both_sides_claim_the_same_contract_version(): void
     {
@@ -72,6 +74,33 @@ final class ContractParityTest extends TestCase
         $this->assertStringContainsString("'".ScriptModule::Listing->value."'", $this->read('listing-page.ts'));
     }
 
+    #[Test]
+    public function both_sides_file_the_listing_descriptions_under_the_same_key(): void
+    {
+        $this->assertStringContainsString("roots: '".ScriptModule::Listing->roots()."'", $this->read('listing-page.ts'));
+    }
+
+    /**
+     * The client finds a root by this attribute: rendered under another name, the root is served and never bound.
+     *
+     * @return Generator<string, array{string, string}>
+     */
+    public static function roots(): Generator
+    {
+        yield 'listing' => ['LISTING_ATTRIBUTE', 'listing'];
+        yield 'search' => ['SEARCH_ATTRIBUTE', 'search'];
+    }
+
+    #[DataProvider('roots')]
+    #[Test]
+    public function every_root_is_rendered_under_the_attribute_the_client_finds_it_by(string $constant, string $view): void
+    {
+        preg_match("/{$constant} = '([^']*)'/", $this->read('shared/root-component.ts'), $found);
+
+        $this->assertNotSame('', $found[1] ?? '');
+        $this->assertStringContainsString(($found[1] ?? '').'="', (string) file_get_contents(self::VIEWS."/{$view}.blade.php"));
+    }
+
     /**
      * Values written on both sides. Nothing forces them there — `cap` and
      * `reachableHits` travel in the description — but an attribute name cannot,
@@ -84,6 +113,7 @@ final class ContractParityTest extends TestCase
         yield 'markup attribute' => ['shared/contract.ts', "ATTRIBUTE = '([^']*)'", Contract::Attribute->value];
         yield 'version attribute' => ['shared/contract.ts', "VERSION_ATTRIBUTE = '([^']*)'", Contract::VersionAttribute->value];
         yield 'scroll attribute' => ['shared/contract.ts', "SCROLL_ATTRIBUTE = '([^']*)'", Contract::ScrollAttribute->value];
+        yield 'search brick prefix' => ['shared/root-component.ts', "SEARCH_PREFIX = '([^']*)'", Hook::Search->value];
         yield 'facet field prefix' => ['shared/description.ts', "FACET_FIELD_PREFIX = '([^']*)'", DocumentField::Facets->value.'.'];
         yield 'value separator' => ['listing/listing-state.ts', "VALUE_SEPARATOR = '([^']*)'", StateReader::VALUE_SEPARATOR];
         yield 'query bound' => ['listing/listing-state.ts', 'MAX_QUERY_LENGTH = (\d+)', (string) StateReader::MAX_QUERY_LENGTH];

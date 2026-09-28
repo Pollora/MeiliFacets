@@ -100,6 +100,8 @@ Voir aussi : [installation.md](installation.md) · [architecture.md](architectur
 | Surcharge des types | contrat `SearchableTypes`, défaut `WooCommerceSearchableTypes` **décorable**, lié par nom de classe en `scopedIf` comme `DefaultSearchableAttributes`. `SearchableType` (`final readonly`) n'offre de `with…()` immuable que pour ce qu'un projet a une raison de changer : titre, libellé « voir tous », carte, champs cherchés — pas le filtre de base ni l'archive : `SearchableTypeFactory::make()` suffit (Louis, 2026-09-28). Ajouter ou retirer un type = décorer `all()`. *Tranché par Louis le 2026-09-28 (`R-187`).* |
 | Carte de la recherche | `<x-meilifacets::search-card>`, **distincte** de la carte du listing et commune à tous les types : titre, image, `summary` s'il est présent, prix s'il est présent. Nommée par `SearchableType::card` dès l'étape 3a, vue écrite à l'étape 5. Remplace l'`excerpt-card` du plan. *Tranché par Louis le 2026-09-28 (`R-187`).* |
 | Réutilisation pour le client du panneau | le panneau réutilise ce qui existe au lieu d'en écrire une copie : `ListingScript` extrait en classe partagée paramétrée par module et source de données, `Stylesheet` paramétrée, `SearchClient` étendu au surlignage (une instance par racine), `Contract` avec des règles par racine, squelette de `listing-page.ts` extrait, `BrowserConnection::origin()`, `ListboxKeys` en partie. *Tranché par Louis le 2026-09-28 : le plan prévoyait `SiteSearchScript` et `SiteSearchStylesheet` neufs.* Coût : les extractions touchent le listing, dont les tests doivent rester verts à l'identique |
+| Racines du contrat et propriété des crochets | une racine dit son composant par son attribut (`data-listing`, `data-search`) : `Contract` le lit sur l'élément (`RootComponent.of()`) et applique ses règles, sans paramètre à passer. Un crochet hors de **toute** racine est orphelin, signalé par le client qui le possède : **`search` et `search-*` appartiennent à la recherche** (nommage S-18), tout autre crochet au listing. *Tranché par Louis le 2026-09-28 (`R-189`).* Contrepartie : un crochet du listing posé **dans** une racine de recherche n'est signalé par personne (il ne se lie pas, sans bruit) ; un futur crochet de recherche qui ne commencerait pas par `search` serait attribué au listing ; le paquet du listing embarque le composant `search` (+1 082 o, +360 o compressés) |
+| Poignée de la feuille de la recherche | `meilifacets-site-search` (cas `Enums\Stylesheet` à ajouter avec `site-search.css`, étape 5) : un nom public, qu'un thème désinscrit. *Tranché par Louis le 2026-09-28 (`R-189`) ; la feuille n'est pas encore créée.* |
 
 ### Pourquoi la production doit monter de version
 
@@ -661,7 +663,7 @@ savoir ce que la vue rendra, Pollora lançant la requête principale (`wp()`) av
 
 Validé par Louis (`R-178`, lot D). *Amende « Le module livre ses assets, il ne les injecte pas » :
 la feuille reste une feuille inscrite, désinscriptible, mais n'est plus mise en file partout.* Le
-composant `<x-meilifacets::listing>` la demande en même temps que son script ; `Stylesheet` n'inscrit
+composant `<x-meilifacets::listing>` la demande en même temps que son script ; `Stylesheet` (aujourd'hui `ClientStylesheet`, `R-189`) n'inscrit
 plus que la poignée à `wp_enqueue_scripts`.
 
 Pourquoi au rendu du listing et pas avant `wp_head` : Pollora lance la requête principale avant de choisir
@@ -703,6 +705,13 @@ Rien de ce qui suit n'est acquis.
   S-4 veut la préconnexion à la première intention, par le chargeur ; `Preconnect::origin()` la fournit, sans
   copie JavaScript de `BrowserConnection::origin()`. La balise `<link rel="preconnect">` du `<head>` reste
   réservée aux pages de listing. Coût : une clé de plus dans la description, redondante avec `connection.url`.
+
+- **Feuilles du module nommées par un enum** (`R-189`, proposé le 2026-09-28). `Enums\Stylesheet` (valeur =
+  poignée WordPress, `source()` = chemin publié), sur le modèle de `ScriptModule` ; le service devient
+  `View\ClientStylesheet` (`register()` inscrit chaque feuille publiée, `require(Stylesheet)`), comme
+  `ClientScript`. Un seul cas, `Listing` = `meilifacets`, inchangé ; la poignée de la recherche est validée
+  (voir « Validées »). Coût : un renommage de classe, sans alias ; aucune référence dans le thème ni dans
+  `pluralia-fulfillments` (`grep`).
 
 - **Alléger la requête principale des archives.** Le listing ne vient jamais de WordPress, mais
   sa requête principale s'exécute quand même — elle porte le routage, le contexte et le SEO, donc

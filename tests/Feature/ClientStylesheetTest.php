@@ -6,14 +6,15 @@ namespace Modules\MeiliFacets\Tests\Feature;
 
 use Closure;
 use Illuminate\Support\Facades\Blade;
-use Modules\MeiliFacets\View\Stylesheet;
+use Modules\MeiliFacets\Enums\Stylesheet;
+use Modules\MeiliFacets\View\ClientStylesheet;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 use WP_Styles;
 
-final class StylesheetTest extends TestCase
+final class ClientStylesheetTest extends TestCase
 {
-    private const string LINK = "id='".Stylesheet::HANDLE."-css'";
+    private const string LINK = "id='".Stylesheet::Listing->value."-css'";
 
     /** The suite shares one application: a listing resolved here would reach a later class. */
     protected function tearDown(): void
@@ -53,10 +54,10 @@ final class StylesheetTest extends TestCase
     public function it_prints_the_stylesheet_once_before_listings_rendered_after_the_head(): void
     {
         $body = $this->withFreshStyles(fn (): string => $this->afterTheHead(static function (): string {
-            $stylesheet = new Stylesheet;
+            $stylesheet = new ClientStylesheet;
             $stylesheet->register();
 
-            return self::printed($stylesheet->require(...)).self::printed($stylesheet->require(...));
+            return self::printed(static fn () => $stylesheet->require(Stylesheet::Listing)).self::printed(static fn () => $stylesheet->require(Stylesheet::Listing));
         }));
 
         $this->assertSame(1, substr_count($body, self::LINK));
@@ -66,10 +67,10 @@ final class StylesheetTest extends TestCase
     public function it_lets_a_theme_dequeue_the_stylesheet(): void
     {
         $head = $this->withFreshStyles(static function (): string {
-            $stylesheet = new Stylesheet;
-            $stylesheet->require();
+            $stylesheet = new ClientStylesheet;
+            $stylesheet->require(Stylesheet::Listing);
             $stylesheet->register();
-            wp_dequeue_style(Stylesheet::HANDLE);
+            wp_dequeue_style(Stylesheet::Listing->value);
 
             return self::printed('wp_print_styles');
         });
@@ -81,11 +82,11 @@ final class StylesheetTest extends TestCase
     public function it_lets_a_theme_deregister_the_stylesheet_of_a_listing_rendered_after_the_head(): void
     {
         $body = $this->withFreshStyles(fn (): string => $this->afterTheHead(static function (): string {
-            $stylesheet = new Stylesheet;
+            $stylesheet = new ClientStylesheet;
             $stylesheet->register();
-            wp_deregister_style(Stylesheet::HANDLE);
+            wp_deregister_style(Stylesheet::Listing->value);
 
-            return self::printed($stylesheet->require(...));
+            return self::printed(static fn () => $stylesheet->require(Stylesheet::Listing));
         }));
 
         $this->assertStringNotContainsString(self::LINK, $body);

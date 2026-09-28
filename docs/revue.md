@@ -3282,6 +3282,88 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
+### R-189 · 🟡 · ouvert (en attente de commit) · ouvert le 2026-09-28 — étape 4, extractions : racines du contrat, lecture des données publiées, feuille paramétrée
+
+Rattaché à `R-180`, première partie de l'étape 4 de [chantier-recherche.md](chantier-recherche.md) (§ 4 « Réutilisé
+plutôt que réécrit », S-4, S-17, S-18) ; lève les deux dettes notées par `R-188`. Rien n'est commité, réindexé ni
+écrit en base ou dans le moteur. Le comportement du listing est inchangé.
+
+**Extrait.**
+- `ts/shared/root-component.ts` — `RootComponent` : `LISTING` (`data-listing`, règles du listing, reprises telles quelles
+  de `contract.ts`) et `SEARCH` (`data-search`, **aucune règle** : la racine ne rend qu'un conteneur ; les règles
+  `search-*` viendront de façon additive, `Contract::VERSION` reste 1, `R-116`). API : `RootComponent.of(element)`,
+  `RootComponent.ownerOf(hook)`, `RootComponent.anySelector`, et par composant `name`, `attribute`, `rules`, `selector`,
+  `tag` (`<x-meilifacets::search>`), `nameOf(element)`.
+- `Contract` lit le composant racine sur son élément et applique ses règles ; un élément qui n'est aucune racine est refusé
+  (« no root: expected one of … »). `Contract.orphans(document, owner)` : un crochet hors de **toute** racine
+  est orphelin, nommé par le client qui le possède (`search`/`search-*` → recherche, S-18 ; le reste → listing).
+  Ferme la dette `contract.ts:62-69` de `R-188`.
+- `ts/shared/page-roots.ts` — `PageRoots<Description>(document, component, module)` et `start(binder)` : lit
+  `wp-script-module-data-<module.id>`, prend les descriptions sous `module.roots`, signale l'absence de données,
+  les orphelins du composant, une racine non décrite et les infractions, puis appelle `binder.bind({ contract,
+  description, connection })` pour chaque racine valide. Types exportés : `ScriptModule` (`{ id, roots }`, miroir de
+  l'enum PHP), `RootBinder<D>`, `BoundRoot<D>`. `listing-page.ts` n'est plus que `ListingPage implements
+  RootBinder<ListingDescription>` et une ligne `new PageRoots(document, RootComponent.LISTING, MODULE).start(…)` ;
+  messages console identiques à l'octet pour le listing.
+- PHP : `Enums\Stylesheet` (valeur = poignée, `source()` = chemin publié ; un cas, `Listing` = `meilifacets`) et
+  `View\ClientStylesheet` (`register()` inscrit chaque feuille publiée, `require(Stylesheet)`), sur le modèle de
+  `ClientScript`/`ScriptModule`. Ferme la dette `Stylesheet.php:14` de `R-188`. La feuille de recherche n'est pas
+  créée ; sa poignée est une question (ci-dessous).
+
+**Non extrait : `ListboxKeys`.** Seuls 4 des 8 déplacements de `whileOpen()` (flèches, `Home`, `End`) sont communs ;
+Entrée/Espace/Tab y « choisissent », ce qui contredit S-9 et l'Entrée « suivre le lien » du combobox, et dans un
+champ éditable `Home`/`End` déplacent le curseur (APG combobox, optionnels). La forme de l'extraction dépend de ce
+choix, qui appartient à `ComboboxKeys` : laissé à la partie suivante.
+
+**Corrigé dans le code existant.** `View\Stylesheet` → `View\ClientStylesheet` (classe qui sert plusieurs feuilles),
+sans alias ; `StylesheetTest` → `ClientStylesheetTest`. Message « the listing is not in a window » → « the contract
+root … » (`Contract` sert aussi la recherche). `listing-page.ts` : `listings` absent de la donnée publiée ne lève plus
+de `TypeError`, il tombe sur « describes no listing named ». Docs : `configuration.md`, `architecture.md`,
+`pieges.md`, `decisions.md`.
+
+**Tests.** Client : `page-roots.test.ts` (7 : liaison par nom, composant et clé du paquet, silence sans racine ni
+donnée, paquet nommé, racine non décrite, infraction, orphelins du composant) ; `contract.test.ts` +5 (racine de
+recherche sans exigence, composant lu sur l'attribut, élément sans composant refusé, racine de recherche à côté d'un
+listing non signalée ni son contenu, orphelin nommé par son seul propriétaire). Adaptations sans toucher aux
+assertions : le gabarit `versioned()` pose `data-listing` ; `orphans()` reçoit le composant. `ContractParityTest` +4 :
+clé `listings` des deux côtés, attributs `data-listing`/`data-search` rendus par les vues, préfixe `search` =
+`Hook::Search`. **Résultats** : client 553/553 (les 541 d'avant inchangés ; 97,91 % lignes, 94,22 % branches),
+Unit 340, `composer check` vert, `build:check` vert, suite `Modules` **OK (628 tests, 1845 assertions)** — après
+`module:publish` (sans lui, `PublishedAssetsTest` signale les copies périmées, attendu).
+
+**Vérifié dans Playwright** (`/boutique`, paquet neuf servi, `?ver` et contenu contrôlés) : `immediate` (config de
+Louis) — une case cochée filtre (62 → 1, `?categorie=cheveux`), le tri « Prix croissant » réordonne
+(`?sort=price_asc`), le tiroir s'ouvre à 393 px (`aria-modal`, focus dedans) ; `submit` (config modifiée puis
+restaurée, `cmp` = 0, md5 identique) — la case ne cherche pas, « Appliquer » filtre puis rend 62, tri et tiroir
+idem. Aucune erreur console hors un `/boutique/` → `http://` de l'hôte (redirection de la barre oblique, sans
+rapport avec le module).
+
+**Les cinq passes.**
+- *Lisibilité* : méthodes de 1 à 17 lignes ; `RootComponent` (le composant racine) distinct de `Contract.root` (l'élément) ;
+  `ScriptModule` même nom des deux côtés ; `anySelector` plutôt qu'un statique homonyme de `selector` ; aucun
+  booléen en paramètre ; enregistrement PHP découpé (`registerHandle()`).
+- *Commentaires* : ajoutés : trois docblocs de classe, le miroir de `ScriptModule` ; déplacés : deux ; retirés à
+  la relecture : deux justifications de conception (règles vides de la recherche, préfixe S-18), reportées ici et
+  dans `decisions.md`.
+- *Performance* : un `querySelectorAll` de plus au démarrage (toutes les racines) ; paquet du listing +1 082 o
+  (+360 o compressés), dû au composant `search` ; PHP : mêmes appels par requête (un `is_file` par feuille publiée).
+- *Sécurité* : aucune entrée d'URL ; le nom de racine vient du rendu serveur ; rien de secret ajouté à la page.
+- *Contexte et i18n* : diagnostics en anglais ; aucune chaîne d'interface.
+
+**Hors périmètre, noté.**
+- `package.json:11` : le script `test` ne pose ni `--test-timeout` ni plafond mémoire, alors que la consigne
+  l'exige ; correctif proposé : `node --test --test-timeout=10000 …` (et `NODE_OPTIONS` documenté).
+- `resources/views/components/listing.blade.php:1` et `search.blade.php:1` écrivent `data-listing`/`data-search`
+  en dur, sans constante PHP ; désormais tenus par `ContractParityTest`. Correctif proposé si besoin : deux cas de
+  plus dans `Enums\Contract`.
+
+**Arbitrages de Louis (2026-09-28).** `RootKind` renommé `RootComponent` (`ts/shared/root-component.ts`, membre
+`component` → `tag`), sans alias ; répartition des crochets par préfixe `search` et poignée `meilifacets-site-search`
+validées (`decisions.md`, « Validées »). Reste en attente : feuilles nommées par un enum (`Enums\Stylesheet` +
+`ClientStylesheet`).
+
+**Commit proposé.** `refactor(client): share the root loader, root rules and stylesheets`.
+
 ### R-188 · 🟡 · ouvert (en attente de commit) · ouvert le 2026-09-28 — étape 3b : racine de recherche, réglages et publication partagée
 
 Rattaché à `R-180`, seconde moitié de l'étape 3 de [chantier-recherche.md](chantier-recherche.md) (S-4, S-17,
@@ -3344,7 +3426,8 @@ conteneur, défauts, `min-chars`/`delay`, liaison projet + attribut, deux racine
 **Hors périmètre, noté.** `Contract.orphans()` (`ts/shared/contract.ts:62-69`) signalera `data-meili="search"` hors
 d'un listing dès qu'un thème posera la racine sur une page de listing — correctif prévu à l'étape 5 (règles par
 racine). `Stylesheet` (`app/View/Stylesheet.php:14`) ne sert que la feuille du listing — paramétrage prévu à
-l'étape 5 avec `site-search.css`.
+l'étape 5 avec `site-search.css`. *Les deux levées le 2026-09-28 par `R-189` (étape 4, extractions) : `RootComponent` et
+`Contract.orphans(document, owner)`, `Enums\Stylesheet` + `ClientStylesheet`.*
 
 **Questions pour Louis.** Voir `decisions.md` « En attente de validation » : doublon de nom refusé, `preconnect`
 dans la description, API de `ClientScript` ; et l'attribut `data-search` (calqué sur `data-listing`).
@@ -3722,7 +3805,7 @@ excerpt`, `fix(listing): hide what WooCommerce hides from its search`, `docs(sea
 ### R-180 · 🟠 · ouvert · 2026-09-25 — recherche du site (lot 5)
 
 Parapluie du chantier [chantier-recherche.md](chantier-recherche.md), branche `feat/site-search`. Rattachés :
-`R-27`, `R-159`, `R-160`, `R-181` (étape « pertinence et index »), `R-182` (refonte du pont), `R-184` (ordre de recherche surchargeable), `R-185` (corrections de la revue de `fd595a3`), `R-186` (réglages repoussés à chaque sauvegarde), `R-187` (étape 3a, déclaration des types), `R-188` (étape 3b, racine, réglages, publication partagée) ; `R-29` à compléter (clé limitée à `posts`).
+`R-27`, `R-159`, `R-160`, `R-181` (étape « pertinence et index »), `R-182` (refonte du pont), `R-184` (ordre de recherche surchargeable), `R-185` (corrections de la revue de `fd595a3`), `R-186` (réglages repoussés à chaque sauvegarde), `R-187` (étape 3a, déclaration des types), `R-188` (étape 3b, racine, réglages, publication partagée), `R-189` (étape 4, extractions partagées) ; `R-29` à compléter (clé limitée à `posts`).
 
 ### R-179 · 🟡 · ouvert (en attente de commit) · ouvert le 2026-09-25 — étape 7 : panneaux desktop, pastilles actives et grille occupée
 

@@ -719,7 +719,7 @@ d'indexation. Un projet peut s'y brancher à son tour ; sa priorité décide de 
 ## Feuille de style du module
 
 `meilifacets.css` (poignée `meilifacets`) n'est chargée que sur les pages qui rendent un listing :
-c'est le composant `<x-meilifacets::listing>` qui la demande (`Stylesheet::require()`), comme il demande
+c'est le composant `<x-meilifacets::listing>` qui la demande (`ClientStylesheet::require(Stylesheet::Listing)`), comme il demande
 le script. Une page sans listing ne la charge plus (`R-178`, lot D).
 
 Elle reste dans le `<head>` : un gabarit Blade (`@extends`, composant de mise en page) rend ses sections

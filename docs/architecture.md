@@ -238,7 +238,8 @@ Modules/MeiliFacets/
 │   ├── assets/css/  la seule feuille de style du module
 │   ├── assets/ts/   client de recherche navigateur, en TypeScript, rangé par fonctionnalité :
 │   │                listing, facets, price, sort, results, pagination, et shared pour ce que
-│   │                plusieurs partagent (contrat, description, plan, étendue de prix, transport) ;
+│   │                plusieurs partagent (contrat et ses racines, lecture des données publiées,
+│   │                description, plan, étendue de prix, transport) ;
 │   │                `listing-page.ts` est le point d'entrée empaqueté par `bundle.ts`
 │   ├── assets/dist/ le même client empaqueté et commité, seul fichier que la page charge
 │   └── views/       vues Blade, toutes surchargeables par le thème
@@ -662,7 +663,7 @@ qui les oublie casse le client sans qu'aucune infraction ne soit signalée :
 
 | Ce qu'une vue doit rendre | Ce qui casse sinon |
 | --- | --- |
-| `data-listing="<nom>"` sur la racine | le client ne lie aucun listing ; la console nomme les crochets restés hors de toute racine (`Contract.orphans()`), sans qu'aucune infraction au contrat ne soit comptée |
+| `data-listing="<nom>"` sur la racine | le client ne lie aucun listing ; la console nomme les crochets restés hors de toute racine (`Contract.orphans()`, qui ne nomme que ceux du listing : `search` et `search-*` reviennent à la recherche), sans qu'aucune infraction au contrat ne soit comptée |
 | `name="<paramètre d'URL de la taxonomie>"` sur l'`<input>` d'une facette | `FacetsView` ne sait retrouver la taxonomie que par ce nom : les cases deviennent inertes |
 | un élément racine unique dans le `<template>` de carte | seul le premier élément est cloné : le reste de la carte disparaît sans erreur, et un template sans élément ne peint aucune carte |
 | `hidden` sur le bloc `facet` tant que `$hasReadableValues()` est faux, et non plus quand `$values === []` | une page filtrée rend aussi les valeurs sans résultat : la légende reste affichée au-dessus de rien jusqu'à la première recherche |

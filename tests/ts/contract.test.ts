@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
 import { Contract } from '../../resources/assets/ts/shared/contract.ts'
+import { RootComponent } from '../../resources/assets/ts/shared/root-component.ts'
 import { CONTRACT, load } from './dom.ts'
 
 const window = load('')
@@ -28,6 +29,7 @@ const template = (...hooks: string[]) => {
 }
 
 const versioned = (root: Element, version: number) => {
+    root.setAttribute('data-listing', 'products')
     root.setAttribute('data-meili-contract', String(version))
 
     return root
@@ -194,12 +196,7 @@ describe('Contract', () => {
 })
 
 describe('a hook left outside every listing', () => {
-    const inDocument = (markup: string) => {
-        const window = load(markup)
-        const roots = [...window.document.querySelectorAll('[data-listing]')]
-
-        return Contract.orphans(window.document, roots)
-    }
+    const inDocument = (markup: string) => Contract.orphans(load(markup).document, RootComponent.LISTING)
 
     it('is named once, and not through the hooks it contains', () => {
         assert.deepEqual(
@@ -240,5 +237,52 @@ describe('a hook left outside every listing', () => {
                 </div>`),
             []
         )
+    })
+})
+
+describe('a search root', () => {
+    it('asks nothing of the bricks the theme composes in it', () => {
+        const root = node('search')
+        root.setAttribute('data-search', 'header')
+        root.setAttribute('data-meili-contract', String(CONTRACT))
+
+        assert.deepEqual(new Contract(root).breaches(), [])
+    })
+
+    it('is told from a listing by its attribute, and a bare element is neither', () => {
+        const root = node()
+        root.setAttribute('data-search', 'header')
+
+        assert.equal(RootComponent.of(root), RootComponent.SEARCH)
+        assert.equal(RootComponent.of(complete()), RootComponent.LISTING)
+        assert.equal(RootComponent.of(node()), null)
+    })
+
+    it('refuses to check an element that is no root at all', () => {
+        const root = node()
+        root.setAttribute('data-meili-contract', String(CONTRACT))
+
+        assert.deepEqual(new Contract(root).breaches(), ['no root: expected one of [data-listing], [data-search]'])
+    })
+})
+
+describe('a hook left outside every root', () => {
+    const inDocument = (markup: string, owner: RootComponent) => Contract.orphans(load(markup).document, owner)
+    const page = `
+        <div data-meili="search" data-search="header" data-meili-contract="${CONTRACT}">
+            <template data-meili="card-template"><a data-meili="card"></a></template>
+        </div>
+        <div data-listing="products" data-meili-contract="${CONTRACT}"></div>`
+
+    it('leaves a search root beside a listing unnamed, and the hooks it holds', () => {
+        assert.deepEqual(inDocument(page, RootComponent.LISTING), [])
+        assert.deepEqual(inDocument(page, RootComponent.SEARCH), [])
+    })
+
+    it('is named by the client that owns it, and by no other', () => {
+        const markup = `${page}<div data-meili="search-panel"></div><button data-meili="reset"></button>`
+
+        assert.deepEqual(inDocument(markup, RootComponent.SEARCH), ['search-panel'])
+        assert.deepEqual(inDocument(markup, RootComponent.LISTING), ['reset'])
     })
 })

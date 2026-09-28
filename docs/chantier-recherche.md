@@ -164,7 +164,7 @@ cherchable » s'ajoutent à `R-27` (même cause, même correctif). Sous le parap
 - **Type sans archive** : `get_post_type_archive_link()` rend `false` (type sans `has_archive`, ou `post` sans page des articles) — la section n'a alors pas de lien « voir tous », elle ne casse pas.
 - **Le lien « voir tous » mène à l'archive entière, pas aux résultats** : le compte de la section (« 12 produits correspondent ») ne se retrouve pas sur la page d'arrivée. Choix de Louis, noté en risque.
 - **Index vieilli** : nouveaux réglages et nouveaux champs — réindexation au moment voulu, avec l'accord de Louis.
-- **Crochets du panneau hors listing** : signalés comme orphelins par le client du listing (`Contract.orphans()`), à exclure.
+- **Crochets du panneau hors listing** : signalés comme orphelins par le client du listing (`Contract.orphans()`), à exclure. *Fait le 2026-09-28 (`R-189`) : chaque client ne nomme que ses crochets, et aucun crochet posé dans une racine `search` n'est orphelin.*
 - **Terme sans mot** (`?(`, espace insécable) : le moteur sert tout l'index (`R-159`).
 - **Jetons de mouvement** déclarés sur `[data-listing]` : le panneau n'y est pas, il doit les redéclarer sur sa racine.
 - **Article par défaut** « Bonjour tout le monde ! » indexé et publié : contenu à retirer par Louis, pas un défaut de code.
@@ -366,9 +366,11 @@ par attribut : `min-chars` et `delay` sur la racine, `limit` sur la section.
   lecture de `_formatted`), **une instance par racine** — son `AbortController` unique annule alors la recherche
   précédente de sa seule racine ;
 - `Contract` (`ts/shared/contract.ts`) : réutilisé, avec des règles **propres à chaque racine** (`listing`,
-  `search`) — **à extraire** : aujourd'hui les règles et `orphans()` ne connaissent que `data-listing` ;
+  `search`) — **extrait** (`R-189`) : `RootComponent` (`ts/shared/root-component.ts`) porte attribut, règles et propriété des
+  crochets ; `orphans(document, owner)` connaît les deux racines ;
 - chargeur : le squelette de `listing-page.ts` (lecture des données publiées sous un module, orphelins, une liaison
-  par racine) **à extraire** et partagé par `listing-page.ts` et `site-search-page.ts` ;
+  par racine) **extrait** dans `PageRoots` (`ts/shared/page-roots.ts`, `R-189`), partagé par `listing-page.ts` et
+  `site-search-page.ts` ;
 - `ListboxKeys` (`ts/sort/listbox-keys.ts`), **en partie** : les déplacements de l'état ouvert (flèches,
   `Home`/`End`) ; l'ouverture et la sélection du tri n'ont pas d'équivalent dans le combobox du panneau ;
 - côté PHP, la préconnexion lit `BrowserConnection::origin()`.
@@ -446,7 +448,7 @@ par attribut : `min-chars` et `delay` sur la racine, `limit` sur la section.
 - `app/Indexing/` : `LabelProjection`, `TermGrouping`, `PostText`, `PostDocument` ; `MeiliScoutBridge` n'a plus qu'un filtre de document, `addModuleFields()` (`R-182`) ;
   `SummaryCardProjector` (décorateur) ; `IndexedPostTypes` (seule lecture de `indexed_post_types`, `R-187`).
 - `app/Search/` : `PublishedPosts`, `VisibleProducts` (filtres de base partagés par le listing et la recherche, `R-187`).
-- `app/View/` : `SiteSearchDescription` ; `ClientScript` (extrait de `ListingScript` à l'étape 3b, paquet `Enums\ScriptModule`, description paresseuse ; remplace `SiteSearchScript`) ; **à extraire** : `Stylesheet` paramétrée (remplace
+- `app/View/` : `SiteSearchDescription` ; `ClientScript` (extrait de `ListingScript` à l'étape 3b, paquet `Enums\ScriptModule`, description paresseuse ; remplace `SiteSearchScript`) ; `ClientStylesheet` + `Enums\Stylesheet` (`Stylesheet` paramétrée, extraite à l'étape 4, `R-189` ; remplace
   `SiteSearchStylesheet`) ; `Components/` : `Search`, `SearchToggle`, `SearchPanel`, `SearchInput`,
   `SearchSection`, `SearchEmpty`, `SearchUnavailable`, `SearchCard` (les briques héritent d'un `SearchComponent`
   qui résout leur racine, comme `ListingComponent`).
@@ -461,8 +463,8 @@ par attribut : `min-chars` et `delay` sur la racine, `limit` sur la section.
 **TypeScript** — `resources/assets/ts/site-search/` (autorisé) : `search-panel.ts`, `site-search.ts`,
 `typing.ts`, `site-search-query.ts`, `section-view.ts`, `status-view.ts`, `highlight.ts`,
 `combobox-keys.ts`, `panel-room.ts` ; entrées `site-search-page.ts` et `site-search-client.ts` à la racine ;
-**à extraire** dans `shared/` : `light-dismiss.ts` (de `DisclosureGroup`, S-12), le squelette du chargeur (de
-`listing-page.ts`), les règles de `Contract` par racine ; **réutilisés** : `SearchClient` (étendu au surlignage,
+**à extraire** dans `shared/` : `light-dismiss.ts` (de `DisclosureGroup`, S-12) ; **extraits** (`R-189`) :
+`page-roots.ts` (squelette du chargeur), `root-component.ts` (règles de `Contract` par racine) ; **réutilisés** : `SearchClient` (étendu au surlignage,
 une instance par racine), `ListboxKeys` en partie, `CardView` ; `bundle.ts` construit et vérifie trois paquets.
 
 **CSS** — `resources/assets/css/site-search.css`, mobile first, seuil `48em`, jetons redéclarés sur
@@ -627,7 +629,7 @@ acceptables ; sans WooCommerce, les articles seuls fonctionnent ; archives `/bou
 
 Décisions : D-2, D-7, S-4, S-8.
 
-- [ ] extractions d'abord : squelette du chargeur (`listing-page.ts`), règles de `Contract` par racine, `Stylesheet` paramétrée ; listing inchangé, prouvé par ses tests — `ListingScript` partagé **fait à l'étape 3b** (`ClientScript`, `R-188`)
+- [x] extractions d'abord : squelette du chargeur (`shared/page-roots.ts`, `PageRoots`), règles de `Contract` par racine (`shared/root-component.ts`, `RootComponent`), `Stylesheet` paramétrée (`Enums\Stylesheet` + `View\ClientStylesheet`) ; listing inchangé, prouvé par ses tests et dans le navigateur (`R-189`) — `ListingScript` partagé **fait à l'étape 3b** (`ClientScript`, `R-188`) ; `ListboxKeys` laissé à la partie suivante (`R-189`)
 - [ ] `SearchQuery` étendu (additif, surlignage) ; `SearchClient` réutilisé, une instance par racine ; `SiteSearchQuery`, `Typing`, `Highlight`, `SectionView`, `StatusView`
 - [ ] chargeur + client en deux paquets, `bundle.ts` et `build:check` étendus, exclusion du Delay JS
 - [ ] latence frappe → affichage mesurée (objectif proposé : 100 ms au 95ᵉ centile en local)
@@ -686,6 +688,7 @@ sauf avis contraire, et sont confirmées à la clôture de l'étape 1.
 
 | Date | Étape | Fait |
 | --- | --- | --- |
+| 2026-09-28 | 4 (extractions) | `R-189` : `PageRoots` (squelette du chargeur), `RootComponent` (règles et orphelins par racine, dette `R-188` sur `Contract.orphans()` levée), `Enums\Stylesheet` + `ClientStylesheet` (dette `R-188` sur `Stylesheet` levée) ; `ListboxKeys` laissé à la partie suivante ; client 553/553 (541 inchangés), Unit 340, suite `Modules` 628, `build:check` vert ; `/boutique` vérifié en `immediate` et `submit` (filtre, tri, tiroir 393 px, aucune erreur console), `config/meilifacets.php` restauré à l'identique ; ni commit ni réindexation |
 | 2026-09-28 | 3b | Seconde moitié de l'étape 3 (`R-188`) : `SearchSettings` (2, 120 ms, 4), racine `<x-meilifacets::search>` (`name`, `min-chars`, `delay`), `SearchRegistry` sur une base `NamedRegistry` extraite de `ListingRegistry`, `SiteSearchDescription`, `ListingScript` → `ClientScript` partagé (paquet `ScriptModule`, description paresseuse), `Preconnect::origin()` ; pages de listing identiques à l'octet avant/après ; `composer check` et suite `Modules` (624) verts ; ni commit ni réindexation. Trois propositions en attente dans `decisions.md` |
 | 2026-09-28 | 3a | Arbitrages de Louis sur la refonte (`R-187`) : `FieldsOutsideSearchOrder` à la validation, pas de `withBaseFilter()`, `product` d'un autre plugin écarté (validé), `product` jamais dérivé par le défaut WordPress (`SearchablePostTypes`) ; `composer check` vert, suite `Modules` 604 verte |
 | 2026-09-28 | 3a | Refonte de la déclaration des types sur revue de Louis (`R-187`) : types dérivés de WordPress (`SearchableTypeFactory`, libellés natifs, plus aucune chaîne du module), types retenus = indexés + publics + non `exclude_from_search`, produits en tête, `with…()` pour la surcharge, `NoFieldToSearch`, carte `search-card`, `VisibleProducts` dans `Search\`, `PostTypeArchive` et l'expression des chemins `labels.*` dédoublonnés ; plan des étapes 4-5 réécrit sur la réutilisation ; `composer check` et suite `Modules` (601) verts ; ni commit ni réindexation |
