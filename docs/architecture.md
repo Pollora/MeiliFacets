@@ -146,7 +146,7 @@ découverte des listings, cascade de vues du thème — et enregistre **un provi
 | `IndexingServiceProvider` | `IndexAttributes`, `CardProjector`, `TermHierarchy`, `SearchableAttributes`, `IndexedTaxonomies` — ce que le document porte et ce que l'index cherche |
 | `SearchServiceProvider` | `SearchEngine`, `BrowserConnection`, `EngineLimits`, `FacetCounter` — l'envoi des recherches |
 | `ListingServiceProvider` | les adaptateurs de termes, `SiteCollator`, `NameOrder`, `ProductFacets`, `ProductSorts`, le registre, `CurrentListing`, `UrlParameters` |
-| `RenderingServiceProvider` | `ListingScript`, `CardSettings`, `CountLabel`, `Unavailable` — ce dont la page a besoin en plus. *Nommé ainsi et pas `ViewServiceProvider` : Laravel en charge déjà un du même nom court.* |
+| `RenderingServiceProvider` | `ClientScript`, `CardSettings`, `CountLabel`, `Unavailable` — ce dont la page a besoin en plus. *Nommé ainsi et pas `ViewServiceProvider` : Laravel en charge déjà un du même nom court.* |
 
 Les fabriques privées restent avec leurs liaisons : c'est là que les réglages sont lus, avec leur
 défaut, comme la règle l'impose — jamais depuis un objet de domaine. ⚠️ Trois ne le sont pas

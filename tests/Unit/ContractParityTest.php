@@ -10,10 +10,10 @@ use Modules\MeiliFacets\Enums\ActiveValueKind;
 use Modules\MeiliFacets\Enums\Contract;
 use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Enums\Hook;
+use Modules\MeiliFacets\Enums\ScriptModule;
 use Modules\MeiliFacets\Listing\ListingState;
 use Modules\MeiliFacets\Listing\StateReader;
 use Modules\MeiliFacets\View\Components\Drawer;
-use Modules\MeiliFacets\View\ListingScript;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -69,7 +69,7 @@ final class ContractParityTest extends TestCase
     #[Test]
     public function both_sides_name_the_script_module_the_same(): void
     {
-        $this->assertStringContainsString("'".ListingScript::MODULE."'", $this->read('listing-page.ts'));
+        $this->assertStringContainsString("'".ScriptModule::Listing->value."'", $this->read('listing-page.ts'));
     }
 
     /**

@@ -5,45 +5,21 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Discovery;
 
 use Modules\MeiliFacets\Contracts\Listing;
-use RuntimeException;
+use Modules\MeiliFacets\Support\NamedRegistry;
 
-final class ListingRegistry
+/**
+ * @extends NamedRegistry<Listing>
+ */
+final class ListingRegistry extends NamedRegistry
 {
-    /** @var array<string, Listing> */
-    private array $listings = [];
-
+    /** Idempotent: Pollora re-applies every discovery when a plugin registers itself (`R-171`). */
     public function add(Listing $listing): void
     {
-        $this->listings[$listing->name()] = $listing;
+        $this->entries[$listing->name()] = $listing;
     }
 
-    public function get(string $name): ?Listing
+    protected function kind(): string
     {
-        return $this->listings[$name] ?? null;
-    }
-
-    /**
-     * The listing a template means when it names none. Ambiguity is refused
-     * rather than guessed: a second listing changes what the first one shows.
-     */
-    public function sole(): Listing
-    {
-        return count($this->listings) === 1
-            ? reset($this->listings)
-            : throw new RuntimeException(
-                'Name the listing: '.(
-                    $this->listings === []
-                        ? 'none is declared.'
-                        : count($this->listings).' are declared ('.implode(', ', $this->names()).').'
-                )
-            );
-    }
-
-    /**
-     * @return list<string>
-     */
-    public function names(): array
-    {
-        return array_keys($this->listings);
+        return 'listing';
     }
 }

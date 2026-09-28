@@ -549,7 +549,7 @@ Ce que ça coûte :
 Tranché par Louis : « la meilleure configuration possible, avec la possibilité de la surcharger par un
 filtre ». Le script est inscrit en `fetchpriority="low"`, comme WordPress inscrit ses propres modules
 depuis 6.9 : le listing est rendu par le serveur, le script ne fait que l'enrichir. Le filtre
-`meilifacets/script_fetchpriority` (`ListingScript::PRIORITY_FILTER`) rend la main au projet ; la valeur
+`meilifacets/script_fetchpriority` (`ClientScript::PRIORITY_FILTER`, d'abord `ListingScript`) rend la main au projet ; la valeur
 n'est pas validée par le module, WordPress le fait et retombe sur `auto`.
 
 Ce que ça achète : 232 ms de LCP en « 4G lente » sur `/boutique` (`R-134`). Ce que ça coûte : le listing
@@ -560,8 +560,8 @@ points d'extension sont des contrats du conteneur.
 
 Tranché par Louis (`R-134`). Activé, le Delay JS de WP Rocket réécrit un `type="module"` en
 `text/rocketlazyloadscript` et ne l'exécute qu'au premier geste du visiteur (`DelayJS/HTML.php:219-263`) :
-le listing resterait inerte jusque-là. `ListingScript::excludeFromDelayedScripts()` ajoute le chemin du
-paquet à `rocket_delay_js_exclusions`, brut : WP Rocket y échappe lui-même `+`, `?ver` et `#`, et un chemin
+le listing resterait inerte jusque-là. `ClientScript::excludeFromDelayedScripts()` (d'abord `ListingScript`) ajoute le chemin de chaque
+paquet publié à `rocket_delay_js_exclusions`, brut : WP Rocket y échappe lui-même `+`, `?ver` et `#`, et un chemin
 passé par `preg_quote` casserait sa regex.
 
 Ce que ça coûte : le paquet s'exécute au chargement, y compris pour un visiteur qui ne touche à rien — la
@@ -684,6 +684,25 @@ Ce n'est pas un modèle de code, de découpage ni de conventions.
 ## En attente de validation
 
 Rien de ce qui suit n'est acquis.
+
+- **Publication d'un paquet du client, partagée par le listing et la recherche** (`R-188`, 2026-09-28,
+  **validé par Louis**). `ListingScript` devient `ClientScript`, paramétré par le paquet (`ScriptModule`, ensemble fermé :
+  `Listing`, `SiteSearch`) et par une **source de description paresseuse** (`Closure`), lue seulement quand
+  le paquet est effectivement inscrit — l'ancienne classe ne calculait pas non plus la description sans
+  connexion ni paquet. Le filtre `script_module_data_<paquet>` est posé à la première inscription (WordPress
+  le nomme d'après le paquet, aucun attribut ne peut le déclarer pour chacun) ; l'exclusion du Delay JS ne
+  nomme que les paquets **publiés** ; `meilifacets/script_fetchpriority` reçoit l'identifiant du paquet en
+  second argument. Coût : un filtre de plus posé à l'exécution plutôt que découvert, et `ScriptModule::SiteSearch`
+  nomme dès maintenant un paquet que l'étape 4 construira.
+- **Deux racines de recherche du même nom lèvent** (`R-188`, **validé par Louis le 2026-09-28**). Le listing refuse l'ambiguïté
+  (`sole()`), jamais un doublon — ses déclarations sont réappliquées par Pollora (`R-171`), son `add()` reste
+  idempotent. Une racine de recherche, elle, est rendue : deux du même nom publieraient une seule
+  description et rendraient les mêmes identifiants. Coût : un en-tête rendu deux fois dans une même requête
+  (gabarit inclus deux fois) casse au lieu de dupliquer en silence.
+- **L'origine à préchauffer voyage dans la description de la racine** (`preconnect`, `R-188`, **validé par Louis le 2026-09-28**).
+  S-4 veut la préconnexion à la première intention, par le chargeur ; `Preconnect::origin()` la fournit, sans
+  copie JavaScript de `BrowserConnection::origin()`. La balise `<link rel="preconnect">` du `<head>` reste
+  réservée aux pages de listing. Coût : une clé de plus dans la description, redondante avec `connection.url`.
 
 - **Alléger la requête principale des archives.** Le listing ne vient jamais de WordPress, mais
   sa requête principale s'exécute quand même — elle porte le routage, le contexte et le SEO, donc

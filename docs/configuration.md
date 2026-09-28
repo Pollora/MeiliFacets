@@ -156,6 +156,7 @@ Des bindings du conteneur Laravel, à poser dans le `register()` d'un provider d
 | `ProductFacets` | `WooCommerceFacets` — catégorie et marque | les taxonomies que la boutique parcourt | oui, `scoped` |
 | `ProductSorts` | `WooCommerceSorts` — prix ↑↓, nouveautés, « Promotions » (`on_sale`, offert seulement si le listing déclare un prix) | les tris offerts | oui, `scoped` |
 | `SearchableAttributes` | `DefaultSearchableAttributes` — titre, marque, catégorie et SKU sous WooCommerce, libellés des autres taxonomies hors techniques, extrait, contenu | les champs cherchables et leur rang | oui, `scoped` (décorer le défaut) |
+| `SearchSettings` | `new SearchSettings` — 2 caractères, 120 ms, 4 résultats | les défauts de la recherche du site : seuil, temporisation, limite par section | oui, `bind` — voir « Réglages de la recherche du site » |
 | `SearchableTypes` | `WooCommerceSearchableTypes` — produits en tête sous WooCommerce, puis les types indexés, publics et non `exclude_from_search`, libellés et archive lus dans WordPress | les types que la recherche du site peut interroger | oui, `scoped` (décorer le défaut) |
 
 ```php
@@ -617,6 +618,40 @@ Pas de `withBaseFilter()` : un projet qui doit changer le filtre de base constru
 Comme pour `SearchableAttributes`, le module lie son défaut par `scopedIf` : le projet lie avec `scoped` ou
 `bind`, jamais `scopedIf`.
 
+## Réglages de la recherche du site
+
+Seuil de saisie, temporisation et nombre de résultats par section ne sont **pas** des clés de configuration
+(S-21) : leurs défauts vivent dans l'objet de valeur `SearchSettings`, lié par `SiteSearchServiceProvider`
+(`bindIf`).
+
+| Réglage | Défaut | Constante | Surcharge ponctuelle |
+| --- | --- | --- | --- |
+| `minChars` — caractères tapés avant la première recherche | 2 | `SearchSettings::DEFAULT_MIN_CHARS` | attribut `min-chars` de `<x-meilifacets::search>` |
+| `delay` — millisecondes de frappe calme avant qu'une recherche parte | 120 | `SearchSettings::DEFAULT_DELAY` | attribut `delay` de `<x-meilifacets::search>` |
+| `limit` — résultats par section | 4 | `SearchSettings::DEFAULT_LIMIT` | attribut `limit` de `<x-meilifacets::search-section>` (étape 5) |
+
+Un projet qui veut d'autres défauts **partout** relie l'objet dans le `register()` d'un de ses providers
+(`bind` ou `scoped`, jamais `bindIf`) ; les arguments nommés ne changent que ce qu'ils citent :
+
+```php
+use Modules\MeiliFacets\SiteSearch\SearchSettings;
+
+$this->app->bind(SearchSettings::class, fn (): SearchSettings => new SearchSettings(minChars: 3, limit: 6));
+```
+
+Un gabarit surcharge une racine seulement ; l'attribut l'emporte sur le défaut, lié ou non :
+
+```blade
+<x-meilifacets::search name="header" min-chars="3" delay="200">
+    …
+</x-meilifacets::search>
+```
+
+`name` distingue les racines d'une même page (défaut : `search`). Deux racines du même nom **lèvent** au
+rendu : elles publieraient une seule description et rendraient les mêmes identifiants. La racine rend un
+simple conteneur (`data-meili="search"`, `data-search="<name>"`, version du contrat) ; ses briques sont
+composées dans son slot (étape 5).
+
 ## Réglages d'index posés par le module
 
 Écrits par `FacetedPostIndexable::getIndexSettings()`, à chaque `ensureIndexExists()`.
@@ -710,6 +745,15 @@ lié 75 ms plus tard (`R-134`). Un projet choisit une autre valeur par filtre :
 
 ```php
 add_filter('meilifacets/script_fetchpriority', fn (): string => 'auto');
+```
+
+Le filtre reçoit en second argument l'identifiant du paquet (`@meilifacets/listing`, et à l'étape 4 de la
+recherche du site `@meilifacets/site-search`) ; un projet qui veut une priorité par paquet le déclare avec
+`accepted_args` à 2 :
+
+```php
+add_filter('meilifacets/script_fetchpriority', fn (string $priority, string $module): string =>
+    $module === '@meilifacets/listing' ? 'auto' : $priority, 10, 2);
 ```
 
 Valeurs admises par WordPress : `high`, `low`, `auto`. Une autre valeur est refusée par WordPress

@@ -3282,7 +3282,76 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
-### R-187 · 🟡 · ouvert (en attente de commit, seconde moitié à venir) · ouvert le 2026-09-28 — étape 3a : déclaration des types cherchables
+### R-188 · 🟡 · ouvert (en attente de commit) · ouvert le 2026-09-28 — étape 3b : racine de recherche, réglages et publication partagée
+
+Rattaché à `R-180`, seconde moitié de l'étape 3 de [chantier-recherche.md](chantier-recherche.md) (S-4, S-17,
+S-19, S-21) ; suit `R-187`. Rien n'est commité, réindexé ni écrit en base ou dans le moteur.
+
+**Livré.**
+- `SiteSearch\SearchSettings` (`final readonly`, `DEFAULT_MIN_CHARS` 2, `DEFAULT_DELAY` 120 ms, `DEFAULT_LIMIT` 4,
+  `withMinChars()`/`withDelay()`), lié en `bindIf` dans `SiteSearchServiceProvider` ; aucune clé de config.
+- Racine `<x-meilifacets::search>` (`View\Components\Search`, vue `components/search.blade.php`) : attributs `name`
+  (défaut `SearchRoot::DEFAULT_NAME`), `min-chars`, `delay` ; rend un conteneur `data-meili="search"`
+  (`Hook::Search`, autorisé au § 8), `data-search="<name>"`, version du contrat, slot. Construit un
+  `SiteSearch\SearchRoot` (nom, réglages effectifs, types acceptés dans l'ordre de `AcceptedSearchTypes::all()` —
+  la donnée des sections automatiques de l'étape 5) et l'ouvre dans `SiteSearch\SearchRegistry` (`scoped`), qui
+  refuse un nom en double.
+- `View\SiteSearchDescription::of(SearchRoot)` : `name`, `minChars`, `delay`, `limit`, `types` (liste ordonnée de
+  `postType`, `heading`, `seeAllLabel`, `baseFilter`, `searchOn`, `archive`), `countPattern` (clé existante
+  `:count result|:count results`), `locale`, `preconnect`.
+- `View\ClientScript` remplace `ListingScript` : paquet choisi par `Enums\ScriptModule` (`Listing`, `SiteSearch`),
+  description passée en `Closure` paresseuse, filtre `script_module_data_<paquet>` posé à l'inscription, exclusion
+  du Delay JS limitée aux paquets publiés, `fetchpriority` filtré avec l'identifiant du paquet en second argument.
+  La racine de recherche l'appelle déjà ; tant que `dist/site-search.js` n'existe pas, rien n'est inscrit.
+- `Preconnect::origin()` public, lu par la balise du `<head>` des listings et par la description.
+
+**Corrigé dans le code existant.** `ListingScript` supprimé (sans alias), remplacé par `ClientScript` dans
+`Listing`, `RenderingServiceProvider`, `ContractParityTest`, les docs (`installation.md`, `architecture.md`,
+`decisions.md`). `ListingRegistry` réduit à `add()` sur une base extraite `Support\NamedRegistry` (`named()`,
+`sole()`, `names()`), partagée avec `SearchRegistry` ; son `get()` disparaît : le « No listing named » de
+`CurrentListing` passe dans `named()` (message désormais « Declared: a, b. »). `Preconnect` ne recopie plus
+l'expression « configurée ? origine : '' ». Thème et `pluralia-fulfillments` : aucune référence (`grep`).
+
+**Vérifié.** Avant toute modification, `/`, `/boutique`, `/journal`, `/?s=creme&post_type=product` et
+`/categorie-produit/visage` capturés ; après (`discovery:clear`, `view:clear`), les trois pages de listing sont
+**identiques à l'octet**, `/` et `/journal` ne diffèrent que par les jetons chiffrés de Gravity Forms (aléatoires
+à chaque requête, 4 lignes chacun) ; tous en 200. `rocket_delay_js_exclusions` identique :
+`["modules/meilifacets/dist/listing.js"]`.
+
+**Tests.** Feature `ClientScriptTest` (8, ex-`ListingScriptTest`) : priorité basse et filtrée, exclusion WP Rocket,
+**publication du listing égale, en JSON, à la formule d'avant l'extraction**, aucune valeur égale à la clé
+maîtresse de MeiliScout et `connection.key` = clé du navigateur (assertions booléennes, la clé n'est jamais
+imprimée), description jamais lue sans connexion, paquet non publié ni inscrit ni exclu. `SearchComponentTest` (7) :
+conteneur, défauts, `min-chars`/`delay`, liaison projet + attribut, deux racines, doublon refusé, types dans l'ordre.
+`SiteSearchDescriptionTest` (2). Unit `SearchSettingsTest` (2), `SearchRegistryTest` (5). `indexed_post_types`
+épinglé en `setUp()` (`PinsIndexedPostTypes`), aucun `#[Before]` WordPress, aucun post enregistré. Lancées seules :
+8/8, 7/7, 2/2, 5/5, 2/2 ; `ListingRegistryTest` 3/3. `composer check` vert (Unit 336, client 541/541,
+`build:check`) ; suite `Modules` **OK (624 tests, 1839 assertions)**.
+
+**Les cinq passes.**
+- *Lisibilité* : méthodes de 1 à 10 lignes ; gardes composées nommées (`canLoad()`, `isPublished()`) ; aucun
+  booléen en paramètre ; la surcharge des réglages en deux ternaires simples (Rector refusait la forme en `if`).
+  Constructeur de `Search` à 8 paramètres, dont 5 injectés — comme `Facet` (7).
+- *Commentaires* : ajoutés et gardés : contournement du filtre de données nommé par WordPress (`ClientScript`),
+  idempotence due à `R-171` (`ListingRegistry`). Quatre retirés à la relecture (justifications de conception de
+  `SearchSettings`, `SearchRegistry::open()`, `SearchRoot`, `Preconnect::origin()`), reportées dans `decisions.md`.
+- *Performance* : types acceptés calculés une fois par racine ; description construite seulement si le paquet est
+  inscrit ; deux `is_file` de plus par page pour l'exclusion du Delay JS.
+- *Sécurité* : aucune entrée d'URL ; seule la clé de recherche part au navigateur (testé) ; `name` échappé par Blade.
+- *Contexte et i18n* : motif de compte traduit sans domaine, `locale` publiée ; sans WooCommerce, la racine ne porte
+  que les types non produits (dérivation `R-187`).
+
+**Hors périmètre, noté.** `Contract.orphans()` (`ts/shared/contract.ts:62-69`) signalera `data-meili="search"` hors
+d'un listing dès qu'un thème posera la racine sur une page de listing — correctif prévu à l'étape 5 (règles par
+racine). `Stylesheet` (`app/View/Stylesheet.php:14`) ne sert que la feuille du listing — paramétrage prévu à
+l'étape 5 avec `site-search.css`.
+
+**Questions pour Louis.** Voir `decisions.md` « En attente de validation » : doublon de nom refusé, `preconnect`
+dans la description, API de `ClientScript` ; et l'attribut `data-search` (calqué sur `data-listing`).
+
+**Commit proposé.** `feat(search): add the search root, its settings and shared script`.
+
+### R-187 · 🟡 · ouvert (en attente de commit ; seconde moitié livrée par `R-188`) · ouvert le 2026-09-28 — étape 3a : déclaration des types cherchables
 
 Rattaché à `R-180`, première moitié de l'étape 3 de [chantier-recherche.md](chantier-recherche.md) (D-3, S-2,
 S-19, S-21, `R-160`). La seconde moitié — racine `<x-meilifacets::search>`, `SearchSettings`, description publiée —
@@ -3653,7 +3722,7 @@ excerpt`, `fix(listing): hide what WooCommerce hides from its search`, `docs(sea
 ### R-180 · 🟠 · ouvert · 2026-09-25 — recherche du site (lot 5)
 
 Parapluie du chantier [chantier-recherche.md](chantier-recherche.md), branche `feat/site-search`. Rattachés :
-`R-27`, `R-159`, `R-160`, `R-181` (étape « pertinence et index »), `R-182` (refonte du pont), `R-184` (ordre de recherche surchargeable), `R-185` (corrections de la revue de `fd595a3`), `R-186` (réglages repoussés à chaque sauvegarde), `R-187` (étape 3a, déclaration des types) ; `R-29` à compléter (clé limitée à `posts`).
+`R-27`, `R-159`, `R-160`, `R-181` (étape « pertinence et index »), `R-182` (refonte du pont), `R-184` (ordre de recherche surchargeable), `R-185` (corrections de la revue de `fd595a3`), `R-186` (réglages repoussés à chaque sauvegarde), `R-187` (étape 3a, déclaration des types), `R-188` (étape 3b, racine, réglages, publication partagée) ; `R-29` à compléter (clé limitée à `posts`).
 
 ### R-179 · 🟡 · ouvert (en attente de commit) · ouvert le 2026-09-25 — étape 7 : panneaux desktop, pastilles actives et grille occupée
 

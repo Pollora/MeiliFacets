@@ -143,7 +143,7 @@ fichiers qui existent déjà, sans le dire. `module:publish`, lui, écrase — v
 
 ### Deux pannes, et la seconde est muette
 
-**Publication absente** : le listing est **entièrement inerte**. `ListingScript::require()` sort
+**Publication absente** : le listing est **entièrement inerte**. `ClientScript::require()` sort
 sans rien faire quand `public/modules/meilifacets/dist/listing.js` manque, donc aucun filtre ne
 répond — et les éléments que le module masque par `hidden` réapparaissent. Voyant, donc trouvé vite.
 

@@ -442,12 +442,11 @@ par attribut : `min-chars` et `delay` sur la racine, `limit` sur la section.
   `FieldsOutsideSearchOrder` (livrés, `R-187`),
   `SearchSettings` (seuil, temporisation, limite par défaut), `SearchTypeRefused` (section d'un type non déclaré
   ou non indexé), `SearchRegistry` (les racines d'une page
-  par `name`, et la garde « une section par type et par racine »).
+  par `name`, et la garde « une section par type et par racine »), `SearchRoot` (une racine rendue : nom, réglages effectifs, types acceptés) ; `app/Support/NamedRegistry` (base de `ListingRegistry` et `SearchRegistry`, `R-188`).
 - `app/Indexing/` : `LabelProjection`, `TermGrouping`, `PostText`, `PostDocument` ; `MeiliScoutBridge` n'a plus qu'un filtre de document, `addModuleFields()` (`R-182`) ;
   `SummaryCardProjector` (décorateur) ; `IndexedPostTypes` (seule lecture de `indexed_post_types`, `R-187`).
 - `app/Search/` : `PublishedPosts`, `VisibleProducts` (filtres de base partagés par le listing et la recherche, `R-187`).
-- `app/View/` : `SiteSearchDescription` ; **à extraire** : `ListingScript` en une classe partagée, paramétrée par
-  module et source de données (remplace `SiteSearchScript`), `Stylesheet` paramétrée (remplace
+- `app/View/` : `SiteSearchDescription` ; `ClientScript` (extrait de `ListingScript` à l'étape 3b, paquet `Enums\ScriptModule`, description paresseuse ; remplace `SiteSearchScript`) ; **à extraire** : `Stylesheet` paramétrée (remplace
   `SiteSearchStylesheet`) ; `Components/` : `Search`, `SearchToggle`, `SearchPanel`, `SearchInput`,
   `SearchSection`, `SearchEmpty`, `SearchUnavailable`, `SearchCard` (les briques héritent d'un `SearchComponent`
   qui résout leur racine, comme `ListingComponent`).
@@ -609,17 +608,17 @@ déploiement, en local comme en préprod.
 `metas._edit_lock` ou `url` est refusée par le moteur ; tests Unit (réglages écrits, ordre) et Feature
 (filtre de recherche produit).
 
-### 3 · Déclaration des types
+### 3 · Déclaration des types — livrée le 2026-09-28 (`R-187`, `R-188`), en attente de commit
 
 Décisions : D-3, D-5, D-6, S-2, S-3, S-7, S-8, S-17, S-19, S-21.
 
 - [x] contrat `SearchableTypes`, `SearchableType` (+ `with…()`), fabrique `SearchableTypeFactory` (libellés, archive, filtre et champs dérivés de WordPress), défauts WordPress / WooCommerce en `scopedIf` (`R-187`, refondu le 2026-09-28)
 - [x] types retenus = indexés, publics, non `exclude_from_search` (`SearchablePostTypes`) ; produits en tête sous WooCommerce, jamais dérivés par le défaut WordPress ; `searchOn` vide lève (`NoFieldToSearch`), hors de l'ordre lève (`FieldsOutsideSearchOrder`) ; surcharge documentée (`configuration.md`) et testée
-- [ ] racine `<x-meilifacets::search>` et registre des racines par `name` ; `SearchSettings` et attributs `min-chars`, `delay`, `limit`
+- [x] racine `<x-meilifacets::search>` et registre des racines par `name` (`SearchRegistry`, base `NamedRegistry` partagée avec `ListingRegistry`, doublon refusé) ; `SearchSettings` et attributs `min-chars`, `delay` ; `limit` reste un attribut de section (étape 5), défaut dans `SearchSettings` (`R-188`)
 - [x] une section d'un type non déclaré ou non indexé lève (`SearchTypeRefused`) — validation `AcceptedSearchTypes::get()` livrée, appelée par la section à l'étape 5 (`R-187`)
 - [x] adresse d'archive par type (`get_post_type_archive_link()`, `null` sans archive), lue par la fabrique (`R-187`)
 - [x] extrait projeté (`CardField::Summary`, `SummaryCardProjector`) — avancé à l'étape 2 (`R-181`, renommé par `R-185`)
-- [ ] description publiée par la racine (`SiteSearchDescription`) : connexion, types autorisés, seuil, délai, libellés
+- [x] description publiée par la racine (`SiteSearchDescription`) : types acceptés, seuil, délai, limite, motif de compte, locale, origine à préchauffer ; connexion publiée à côté par `ClientScript` (extrait de `ListingScript`), inerte tant que `dist/site-search.js` n'existe pas (`R-188`)
 
 **Recette —** `<x-meilifacets::search-section type="page" />` lève en nommant `page` et les types
 acceptables ; sans WooCommerce, les articles seuls fonctionnent ; archives `/boutique` et `/journal` résolues ; tests Unit et Feature.
@@ -628,7 +627,7 @@ acceptables ; sans WooCommerce, les articles seuls fonctionnent ; archives `/bou
 
 Décisions : D-2, D-7, S-4, S-8.
 
-- [ ] extractions d'abord : squelette du chargeur (`listing-page.ts`), règles de `Contract` par racine, `ListingScript` partagé, `Stylesheet` paramétrée ; listing inchangé, prouvé par ses tests
+- [ ] extractions d'abord : squelette du chargeur (`listing-page.ts`), règles de `Contract` par racine, `Stylesheet` paramétrée ; listing inchangé, prouvé par ses tests — `ListingScript` partagé **fait à l'étape 3b** (`ClientScript`, `R-188`)
 - [ ] `SearchQuery` étendu (additif, surlignage) ; `SearchClient` réutilisé, une instance par racine ; `SiteSearchQuery`, `Typing`, `Highlight`, `SectionView`, `StatusView`
 - [ ] chargeur + client en deux paquets, `bundle.ts` et `build:check` étendus, exclusion du Delay JS
 - [ ] latence frappe → affichage mesurée (objectif proposé : 100 ms au 95ᵉ centile en local)
@@ -687,6 +686,7 @@ sauf avis contraire, et sont confirmées à la clôture de l'étape 1.
 
 | Date | Étape | Fait |
 | --- | --- | --- |
+| 2026-09-28 | 3b | Seconde moitié de l'étape 3 (`R-188`) : `SearchSettings` (2, 120 ms, 4), racine `<x-meilifacets::search>` (`name`, `min-chars`, `delay`), `SearchRegistry` sur une base `NamedRegistry` extraite de `ListingRegistry`, `SiteSearchDescription`, `ListingScript` → `ClientScript` partagé (paquet `ScriptModule`, description paresseuse), `Preconnect::origin()` ; pages de listing identiques à l'octet avant/après ; `composer check` et suite `Modules` (624) verts ; ni commit ni réindexation. Trois propositions en attente dans `decisions.md` |
 | 2026-09-28 | 3a | Arbitrages de Louis sur la refonte (`R-187`) : `FieldsOutsideSearchOrder` à la validation, pas de `withBaseFilter()`, `product` d'un autre plugin écarté (validé), `product` jamais dérivé par le défaut WordPress (`SearchablePostTypes`) ; `composer check` vert, suite `Modules` 604 verte |
 | 2026-09-28 | 3a | Refonte de la déclaration des types sur revue de Louis (`R-187`) : types dérivés de WordPress (`SearchableTypeFactory`, libellés natifs, plus aucune chaîne du module), types retenus = indexés + publics + non `exclude_from_search`, produits en tête, `with…()` pour la surcharge, `NoFieldToSearch`, carte `search-card`, `VisibleProducts` dans `Search\`, `PostTypeArchive` et l'expression des chemins `labels.*` dédoublonnés ; plan des étapes 4-5 réécrit sur la réutilisation ; `composer check` et suite `Modules` (601) verts ; ni commit ni réindexation |
 | 2026-09-28 | 3a | Premier jet de la déclaration des types (`R-187`) : `SearchableTypes`/`SearchableType`, défauts WordPress puis WooCommerce (`scopedIf`), filtre produits partagé avec `ProductListing` (`VisibleProducts`), `searchOn` lu dans l'ordre de recherche, archives `/boutique` et `/journal` résolues, `SearchTypeRefused` à la validation (`AcceptedSearchTypes`) ; `composer check` et suite `Modules` (595) verts ; ni commit ni réindexation. Reste la seconde moitié (racine, `SearchSettings`, description) |

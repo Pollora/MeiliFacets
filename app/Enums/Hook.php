@@ -70,6 +70,8 @@ enum Hook: string
     case DrawerSheet = 'drawer-sheet';
     case DrawerFooter = 'drawer-footer';
 
+    case Search = 'search';
+
     public function attribute(): HtmlString
     {
         return new HtmlString(Contract::Attribute->value.'="'.$this->value.'"');

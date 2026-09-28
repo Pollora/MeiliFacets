@@ -10,6 +10,8 @@ use Modules\MeiliFacets\Indexing\WooCommerceProductFields;
 use Modules\MeiliFacets\SiteSearch\AcceptedSearchTypes;
 use Modules\MeiliFacets\SiteSearch\SearchablePostTypes;
 use Modules\MeiliFacets\SiteSearch\SearchableTypeFactory;
+use Modules\MeiliFacets\SiteSearch\SearchRegistry;
+use Modules\MeiliFacets\SiteSearch\SearchSettings;
 use Modules\MeiliFacets\SiteSearch\WooCommerceSearchableTypes;
 use Modules\MeiliFacets\SiteSearch\WordPressSearchableTypes;
 use Modules\MeiliFacets\Support\WooCommerce;
@@ -23,6 +25,9 @@ final class SiteSearchServiceProvider extends ServiceProvider
         $this->app->scopedIf(SearchableTypes::class, WooCommerceSearchableTypes::class);
 
         $this->app->scoped(AcceptedSearchTypes::class);
+
+        $this->app->bindIf(SearchSettings::class, static fn (): SearchSettings => new SearchSettings);
+        $this->app->scoped(SearchRegistry::class);
     }
 
     private function wooCommerce(): WooCommerceSearchableTypes

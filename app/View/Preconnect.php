@@ -24,12 +24,18 @@ final readonly class Preconnect
     #[Action('wp_head', priority: 2)]
     public function warmTheEngineOrigin(): void
     {
-        $origin = $this->connection->isConfigured() ? $this->connection->origin() : '';
+        $origin = $this->origin();
 
         if ($origin === '' || ! $this->page->isCurrent()) {
             return;
         }
 
         printf('<link rel="preconnect" href="%s" crossorigin>'."\n", esc_url($origin));
+    }
+
+    /** Empty while the browser has no engine to reach. */
+    public function origin(): string
+    {
+        return $this->connection->isConfigured() ? $this->connection->origin() : '';
     }
 }

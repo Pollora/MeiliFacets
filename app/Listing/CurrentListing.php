@@ -11,7 +11,6 @@ use Modules\MeiliFacets\Http\Unavailable;
 use Modules\MeiliFacets\Search\EngineLimits;
 use Modules\MeiliFacets\Search\ListingSearch;
 use Modules\MeiliFacets\Support\UrlParameters;
-use RuntimeException;
 
 /** One per name for the whole request: components placed anywhere share a single search. */
 final class CurrentListing
@@ -42,10 +41,7 @@ final class CurrentListing
 
     private function resolve(string $name): ResolvedListing
     {
-        $listing = $this->registry->get($name) ?? throw new RuntimeException(
-            "No listing named \"{$name}\". Declared listings: ".implode(', ', $this->registry->names()).'.'
-        );
-
+        $listing = $this->registry->named($name);
         $query = $this->requestQuery();
 
         return new ResolvedListing(
