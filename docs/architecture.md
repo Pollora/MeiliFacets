@@ -62,7 +62,7 @@ sans la moindre erreur.
 
 | Besoin | Point d'extension |
 | --- | --- |
-| Ajouter `facets.*`, `card` et `price` au document | filtre `meiliscout/post/document` — `addFacets()`, `addCard()`, `addPrice()` de `MeiliScoutBridge` |
+| Ajouter `facets`, `labels`, `excerpt`, `content`, `card` et `price` au document | filtre `meiliscout/post/document` — `MeiliScoutBridge::addModuleFields()`, qui délègue à `PostDocument::complete()` |
 | Déclarer les attributs filtrables et le tri des valeurs | `meiliscout/indexables` + `getIndexSettings()` |
 
 **Les champs, par le filtre document.** Il est appliqué à l'intérieur même de
@@ -73,21 +73,15 @@ WordPress, une fois par terme parent (`TermAncestry`).
 
 ```php
 #[Filter('meiliscout/post/document')]
-public function addFacets(array $document): array
+public function addModuleFields(array $document, WP_Post $post): array
 {
-    $terms = $document[DocumentField::Terms->value] ?? [];
-
-    if (! is_array($terms)) {
-        return $document;
-    }
-
-    $document[DocumentField::Facets->value] = FacetProjection::fromTerms(
-        $this->ancestry->expand($terms)
-    );
-
-    return $document;
+    return $this->postDocument->complete($document, $post);
 }
 ```
+
+`PostDocument::complete()` construit les champs dans un ordre fixe : termes étendus une seule fois
+(`facets`, puis `labels` hors taxonomies techniques), `excerpt` et `content`, puis `card` et `price` lus en
+visiteur anonyme à l'adresse de la boutique (`R-182`).
 
 **Les réglages, par l'indexable.** `Indexer` lit bien l'indexable filtré pour appeler
 `updateSettings($indexable->getIndexSettings())`. Une classe qui étend celle de MeiliScout et

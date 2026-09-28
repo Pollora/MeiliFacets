@@ -3282,6 +3282,81 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
+### R-186 · 🟡 · ouvert · 2026-09-25 — MeiliScout repousse les réglages d'index à chaque sauvegarde
+
+Relevé par la revue de `fd595a3` (hors lot, rien codé). `AbstractSingleIndexer::ensureIndexExists()` appelle
+`updateSettings()` à **chaque** sauvegarde d'un post (commentaire amont : « idempotent »). Avec une liste
+cherchable calculée (`SearchableAttributes`, taxonomies indexées), une liste qui diffère de la précédente relance
+un retraitement complet de l'index côté moteur, et une sauvegarde faite avant réindexation pousse de nouveaux
+réglages sur des documents anciens. Correctif amont proposé : n'envoyer les réglages que si leur empreinte a
+changé, sur le modèle de l'option `meiliscout/last_indexing_structure`. Patch à proposer à MeiliScout plus tard.
+
+### R-185 · 🟠 · **fermé le 2026-09-28** (point 2 reporté, taxonomies techniques laissées ouvertes) · ouvert le 2026-09-25 — corrections de la revue de `fd595a3`
+
+Rattaché à `R-181` et `R-184`. `fd595a3` (« feat(search): rank and clean what the index searches ») est commité ;
+ce lot ne l'est pas.
+
+| # | Constat de la revue | Suite |
+| --- | --- | --- |
+| 1 | 🔴 les libellés suivaient `is_taxonomy_viewable()`, qui écarte les attributs `pa_*` sans archives : « 100ml » et « 50ml » → 0, la facette `pa_contenance` en compte (mesuré par la coordination, lecture seule) | **fait** — liste interdite figée dans la couche WooCommerce (`ProductTaxonomy::technical()`, quatre taxonomies lues dans `class-wc-post-types.php`, dont `pos_product_visibility`), écrite une fois dans `IndexedTaxonomies::labelled()`, lue par l'ordre par défaut et par `PostDocument` ; les deux copies de la règle ont disparu. Surcharge : seulement par le contrat (décision de Louis) |
+| 2 | `ProductListing::hiddenHere()` suit `is_search()`, alors que `/boutique?q=creme` est aussi une recherche texte | **arrêté et rapporté, rien modifié** — voir ci-dessous |
+| 3 | `DefaultSearchableAttributes` n'était pas instanciable par le conteneur : l'exemple de surcharge était inutilisable | **fait** — dépendances injectées (`IndexedTaxonomies`, `WooCommerceProductFields`, qui lit WooCommerce à chaque appel, `R-171`), liaison par nom de classe en `scopedIf` ; exemple de `configuration.md` réécrit en décorateur, exercé par un test |
+| 4 | `card.excerpt` tronquait l'extrait écrit à la main ; commentaire « comme `wp_trim_excerpt()` » faux ; `hasOwnExcerpt()` refaisait mot de passe et nettoyage | **fait** — extrait de l'auteur entier, seul le repli sur le contenu est borné ; un seul nettoyage de l'extrait par appel ; commentaire corrigé (`get_the_excerpt()`) ; note « rendu en texte » dans `configuration.md`. Le renommage `excerpt` → `summary` (`CardField::Summary`, `SummaryCardProjector`, clé `summary` — rien ne lisait `card.excerpt` : ni client, ni Blade, ni JSON-LD) — **validé par Louis** : `summary` pour la carte, `excerpt` reste le nom du champ cherchable |
+| 5 | test circulaire : l'attendu était recalculé par le nouveau code | **fait** — remplacé par un instantané figé (valeurs littérales, clés et ordre) sur un post **en mémoire** : aucune écriture en base, rien qui dépende du catalogue |
+| 6a | `architecture.md` citait `addFacets`/`addCard`/`addPrice` | **fait** |
+| 6b | `MeiliScoutBridge` à cinq dépendances | **fait** — deux (`PostDocument`, `FacetedPostIndexable` lié `scoped`). Rien de MeiliScout n'est résolu trop tôt : ses classes sont chargées par l'autoload Composer de l'hôte, `PostIndexable` n'a pas de constructeur, et toutes les lectures de `FacetedPostIndexable` ont lieu dans `getIndexSettings()` |
+| 6c | `array_values(array_unique(array_merge()))` en trois endroits, lecture « chaîne non vide d'un terme » en trois | **fait** — `Support\UniqueList::merge()` ; `TermField::textIn()` (utilisé par `TermGrouping`, `TermAncestry`, `PostDocument`) |
+| 6d | `PostText.php:48` au-delà de 120 caractères, commentaire qui justifiait un choix | **fait** — commentaire retiré, raison dans `decisions.md` |
+
+**Point 2, pourquoi arrêté.** Le filtre de base ne dépend d'aucun état : `Listing::baseFilter()` n'a pas de
+paramètre, `ListingDescription` le publie une fois (`filter`), et le client le recopie tel quel dans chaque
+sous-requête (`listing-query.ts`, `#filterExpression()`), quel que soit `state.query`. Faire dépendre la
+visibilité de `q` demande donc : (a) côté PHP, que le filtre de base lise l'état (`QueryPlan` et `unfiltered()`
+l'appellent sans lui) ; (b) côté client, deux filtres publiés (catalogue, recherche) et un choix selon
+`state.query`, sinon le premier rendu PHP et les requêtes du navigateur divergent dès le premier geste (compte
+et cartes différents). C'est une modification du contrat `Listing`, de la description publiée et du client —
+plus large que prévu. Aujourd'hui aucun champ ne saisit `q` (`R-44`) : seul un `?q=` écrit à la main est
+concerné. **Reporté sur décision de Louis (2026-09-28)** au second livrable du chantier, la facette de recherche
+reliée à un listing : c'est elle qui remplira `q`, la règle de visibilité se traite avec elle.
+
+**Revue anti-dette avant commit (2026-09-28, deux relecteurs).** Corrigé : `card.excerpt` → `card.summary` dans le
+plan (S-7, surlignage de l'étape 4) ; `PostText::summary()` réutilise `excerpt()` ; test « sans WooCommerce » de
+`IndexSearchSettingsTest` supprimé (il ne prouvait rien, `WooCommerceProductFieldsTest` couvre) ; test « relu à
+chaque appel » renforcé (lecture avant et après bascule) ; puces de `decisions.md` fusionnées dans R-184 ;
+commentaire inexact du provider retiré ; `PostDocumentTest` et `IndexSearchSettingsTest` ne dépendent plus de
+l'option `meiliscout/indexed_post_types` de la base locale (trait `PinsIndexedPostTypes`, posé dans `setUp()`
+et non en `#[Before]`, cf. `R-183`). Non traité : `R-183` lui-même, hors lot.
+
+**Laissé ouvert (Louis, 2026-09-28).** La liste des taxonomies techniques (`ProductTaxonomy::technical()`) est
+figée : un projet ne peut pas en rendre une cherchable — le contrat `SearchableAttributes` peut ajouter
+`labels.<technique>`, mais les documents ne portent pas ces libellés. Pistes : labelliser toutes les
+taxonomies et n'exclure les techniques que de l'ordre par défaut, ou une méthode d'`IndexAttributes`.
+
+**Vérifié à l'exécution** (sans envoi, `discovery:clear` avant) : `getIndexSettings()` du vrai indexable
+contient `labels.pa_contenance` (entre `labels.product_tag` et `excerpt`) et aucun des quatre `labels.<technique>` ;
+`formatForIndexing()` sur #116 → `labels.pa_contenance: ["30ml"]`, sur #126 et #127 → `["100ml"]`.
+
+**Tests.** Échouent avec l'ancienne règle (vérifié en la réintroduisant le temps d'un passage : 3 échecs) :
+`PostDocumentTest::it_labels_a_taxonomy_without_archives`,
+`IndexSearchSettingsTest::it_searches_the_labels_of_a_taxonomy_without_archives` (taxonomie `pa_test_volume`
+enregistrée en mémoire, sans archives), et l'ordre par défaut. Ajoutés aussi : taxonomies techniques exclues des
+libellés mais facettées, décorateur de `configuration.md` poussé tel quel, `WooCommerceProductFieldsTest` (3,
+Unit), extrait entier. `composer check` vert (Unit 324, client 541/541, `build:check`) ; suite `Modules`
+**OK (582 tests, 1766 assertions)**.
+
+**Réindexation nécessaire** (nouveaux `labels.pa_*`, clé `card.summary`) : procédure et contrôles dans
+`chantier-recherche.md`.
+
+**Les cinq passes.** *Lisibilité* : un endroit par règle (technique, fusion, lecture de terme) ; `summary()`
+à un niveau, `opening()` pour le bornage ; `$openingWords` dit ce qu'il borne ; aucun booléen en paramètre.
+*Commentaires* : un retiré (justification), un corrigé (faux), un gardé (contournement de `wp_trim_words()`).
+*Performance* : `labelled()` = un `array_diff` sur la liste mémoïsée, une fois par document ; un nettoyage de
+l'extrait de moins par carte. *Sécurité* : `summary` décodé, à rendre en texte (documenté) ; rien de protégé
+par mot de passe n'est projeté. *Contexte* : sans WooCommerce, ni champ produit ni exclusion (testé pour les
+champs).
+
+**Commit proposé.** `fix(search): label every non-technical taxonomy and let the project decorate the order`.
+
 ### R-184 · 🟡 · ouvert (en attente de commit) · ouvert le 2026-09-25 — l'ordre de recherche n'est pas surchargeable par le projet
 
 Rattaché à `R-180`/`R-181`, demandé par Louis (« la modularité reste valable »). L'ordre des
@@ -3477,7 +3552,7 @@ excerpt`, `fix(listing): hide what WooCommerce hides from its search`, `docs(sea
 ### R-180 · 🟠 · ouvert · 2026-09-25 — recherche du site (lot 5)
 
 Parapluie du chantier [chantier-recherche.md](chantier-recherche.md), branche `feat/site-search`. Rattachés :
-`R-27`, `R-159`, `R-160`, `R-181` (étape « pertinence et index »), `R-182` (refonte du pont), `R-184` (ordre de recherche surchargeable) ; `R-29` à compléter (clé limitée à `posts`).
+`R-27`, `R-159`, `R-160`, `R-181` (étape « pertinence et index »), `R-182` (refonte du pont), `R-184` (ordre de recherche surchargeable), `R-185` (corrections de la revue de `fd595a3`), `R-186` (réglages repoussés à chaque sauvegarde) ; `R-29` à compléter (clé limitée à `posts`).
 
 ### R-179 · 🟡 · ouvert (en attente de commit) · ouvert le 2026-09-25 — étape 7 : panneaux desktop, pastilles actives et grille occupée
 

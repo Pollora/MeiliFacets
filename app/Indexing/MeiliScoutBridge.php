@@ -4,24 +4,16 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Indexing;
 
-use Modules\MeiliFacets\Contracts\IndexAttributes;
-use Modules\MeiliFacets\Contracts\SearchableAttributes;
-use Modules\MeiliFacets\Search\EngineLimits;
 use Pollora\Attributes\Filter;
 use Pollora\MeiliScout\Contracts\Indexable;
 use Pollora\MeiliScout\Indexables\PostIndexable;
 use WP_Post;
 
-final class MeiliScoutBridge
+final readonly class MeiliScoutBridge
 {
-    private ?FacetedPostIndexable $facetedPosts = null;
-
     public function __construct(
-        private readonly PostDocument $postDocument,
-        private readonly IndexAttributes $attributes,
-        private readonly SearchableAttributes $searchable,
-        private readonly IndexedTaxonomies $taxonomies,
-        private readonly EngineLimits $limits,
+        private PostDocument $postDocument,
+        private FacetedPostIndexable $facetedPosts,
     ) {}
 
     /**
@@ -47,20 +39,9 @@ final class MeiliScoutBridge
     {
         return array_map(
             fn (Indexable $indexable): Indexable => $this->needsFacetAttributes($indexable)
-                ? $this->facetedPosts()
+                ? $this->facetedPosts
                 : $indexable,
             $indexables
-        );
-    }
-
-    // `meiliscout/indexables` runs on every indexed item, not once per request.
-    private function facetedPosts(): FacetedPostIndexable
-    {
-        return $this->facetedPosts ??= new FacetedPostIndexable(
-            $this->attributes,
-            $this->searchable,
-            $this->taxonomies,
-            $this->limits
         );
     }
 

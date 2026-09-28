@@ -15,6 +15,7 @@ use Modules\MeiliFacets\Indexing\IndexedTaxonomies;
 use Modules\MeiliFacets\Indexing\MeiliScoutBridge;
 use Modules\MeiliFacets\Indexing\WooCommerceIndexAttributes;
 use Modules\MeiliFacets\Search\EngineLimits;
+use Modules\MeiliFacets\Tests\Unit\Doubles\ExcerptFirstSearchableAttributes;
 use PHPUnit\Framework\Attributes\Test;
 use Pollora\MeiliScout\Indexables\PostIndexable;
 use Tests\TestCase;
@@ -23,15 +24,37 @@ use WooCommerce;
 /** Runs here rather than standalone: the label fields follow the taxonomies WordPress registered. */
 final class IndexSearchSettingsTest extends TestCase
 {
+    use PinsIndexedPostTypes;
+
     private const int REACHABLE_HITS = 1000;
 
     private const array PRODUCT_FIELDS = ['labels.product_brand', 'labels.product_cat', 'metas._sku'];
+
+    private const array TECHNICAL = ['product_visibility', 'product_type', 'product_shipping_class', 'pos_product_visibility'];
+
+    private const string ATTRIBUTE = 'pa_test_volume';
 
     /** Everything MeiliScout copies from `wp_posts`, and what the module adds for display. */
     private const array NEVER_SEARCHED = [
         '*', 'url', 'guid', 'post_content', 'post_excerpt', 'post_name', 'card', 'card.title', 'card.url',
         'terms', 'terms.name', 'metas', 'metas._edit_lock', 'facets', 'price',
     ];
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->pinIndexedPostTypes();
+        $this->forgetIndexWiring();
+    }
+
+    protected function tearDown(): void
+    {
+        $this->forgetIndexWiring();
+        $this->unpinIndexedPostTypes();
+
+        parent::tearDown();
+    }
 
     #[Test]
     public function it_ranks_the_title_then_the_product_then_every_other_label_then_the_prose_by_default(): void
@@ -40,19 +63,29 @@ final class IndexSearchSettingsTest extends TestCase
 
         $labels = array_map(
             static fn (string $taxonomy): string => 'labels.'.$taxonomy,
-            array_values(array_filter(new IndexedTaxonomies()->all(), is_taxonomy_viewable(...)))
+            array_values(array_diff(new IndexedTaxonomies()->all(), self::TECHNICAL))
         );
         $expected = array_values(array_unique(['post_title', ...self::PRODUCT_FIELDS, ...$labels, 'excerpt', 'content']));
 
         $this->assertSame($expected, $this->pushedSearchable());
     }
 
+    /** The example of `configuration.md`, bound the way it tells a project to. */
     #[Test]
-    public function it_ranks_no_product_field_without_woocommerce(): void
+    public function it_pushes_what_a_decorator_of_the_default_moves(): void
     {
-        $searchable = new DefaultSearchableAttributes(static fn (): array => ['category'], static fn (): bool => false);
+        $default = $this->pushedSearchable();
+        $this->app->scoped(SearchableAttributes::class, ExcerptFirstSearchableAttributes::class);
+        $this->forgetIndexWiring();
 
-        $this->assertSame(['post_title', 'labels.category', 'excerpt', 'content'], $searchable->all());
+        try {
+            $moved = $this->pushedSearchable();
+        } finally {
+            $this->app->scoped(SearchableAttributes::class, DefaultSearchableAttributes::class);
+        }
+
+        $this->assertSame(['post_title', 'excerpt'], array_slice($moved, 0, 2));
+        $this->assertSame(array_values(array_diff($default, ['excerpt'])), array_values(array_diff($moved, ['excerpt'])));
     }
 
     #[Test]
@@ -78,7 +111,7 @@ final class IndexSearchSettingsTest extends TestCase
         try {
             $this->assertSame($projectOrder, $this->pushedSearchable());
         } finally {
-            $this->app->forgetInstance(SearchableAttributes::class);
+            $this->forgetIndexWiring();
         }
     }
 
@@ -95,13 +128,27 @@ final class IndexSearchSettingsTest extends TestCase
 
     /** `product_visibility` files `exclude-from-search` and `featured`, `product_type` files `simple`. */
     #[Test]
-    public function it_leaves_the_taxonomies_wordpress_does_not_show_out(): void
+    public function it_leaves_the_technical_taxonomies_out(): void
     {
         $this->requireWooCommerce();
         $searchable = $this->pushedSearchable();
 
-        $this->assertNotContains('labels.product_visibility', $searchable);
-        $this->assertNotContains('labels.product_type', $searchable);
+        foreach (self::TECHNICAL as $taxonomy) {
+            $this->assertNotContains('labels.'.$taxonomy, $searchable);
+        }
+    }
+
+    /** A WooCommerce attribute without archives (`pa_*`) is not viewable, yet `100ml` has to be found. */
+    #[Test]
+    public function it_searches_the_labels_of_a_taxonomy_without_archives(): void
+    {
+        register_taxonomy(self::ATTRIBUTE, 'post', ['public' => false]);
+
+        try {
+            $this->assertContains('labels.'.self::ATTRIBUTE, $this->pushedSearchable());
+        } finally {
+            unregister_taxonomy(self::ATTRIBUTE);
+        }
     }
 
     #[Test]
@@ -127,6 +174,14 @@ final class IndexSearchSettingsTest extends TestCase
         $indexable = $this->app->make(MeiliScoutBridge::class)->declareFacetAttributes([new PostIndexable])[0];
 
         return $indexable->getIndexSettings()[IndexSetting::SearchableAttributes->value];
+    }
+
+    /** All three are scoped: kept, they would carry the taxonomies and the order of a former test. */
+    private function forgetIndexWiring(): void
+    {
+        $this->app->forgetInstance(SearchableAttributes::class);
+        $this->app->forgetInstance(IndexedTaxonomies::class);
+        $this->app->forgetInstance(FacetedPostIndexable::class);
     }
 
     /**

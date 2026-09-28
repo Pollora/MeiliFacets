@@ -13,6 +13,7 @@ use Modules\MeiliFacets\Enums\IndexSetting;
 use Modules\MeiliFacets\Enums\PaginationSetting;
 use Modules\MeiliFacets\Enums\TypoToleranceSetting;
 use Modules\MeiliFacets\Search\EngineLimits;
+use Modules\MeiliFacets\Support\UniqueList;
 use Pollora\MeiliScout\Indexables\PostIndexable;
 
 final class FacetedPostIndexable extends PostIndexable
@@ -95,7 +96,7 @@ final class FacetedPostIndexable extends PostIndexable
 
         return in_array(self::EVERY_FIELD, $declared, true)
             ? [self::EVERY_FIELD]
-            : $this->mergeUnique(self::READ_BY_THE_MODULE, $declared);
+            : UniqueList::merge(self::READ_BY_THE_MODULE, $declared);
     }
 
     /**
@@ -105,7 +106,7 @@ final class FacetedPostIndexable extends PostIndexable
      */
     private function mergeInto(array $settings, IndexSetting $setting, array ...$lists): array
     {
-        $settings[$setting->value] = $this->mergeUnique($settings[$setting->value] ?? [], ...$lists);
+        $settings[$setting->value] = UniqueList::merge($settings[$setting->value] ?? [], ...$lists);
 
         return $settings;
     }
@@ -135,14 +136,5 @@ final class FacetedPostIndexable extends PostIndexable
             DocumentField::Facets->path(...),
             $this->taxonomies->all()
         );
-    }
-
-    /**
-     * @param  list<string>  ...$lists
-     * @return list<string>
-     */
-    private function mergeUnique(array ...$lists): array
-    {
-        return array_values(array_unique(array_merge(...$lists)));
     }
 }

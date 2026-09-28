@@ -6,8 +6,8 @@ namespace Modules\MeiliFacets\Tests\Feature;
 
 use Modules\MeiliFacets\Contracts\CardProjector;
 use Modules\MeiliFacets\Enums\CardField;
-use Modules\MeiliFacets\Indexing\ExcerptCardProjector;
 use Modules\MeiliFacets\Indexing\PostText;
+use Modules\MeiliFacets\Indexing\SummaryCardProjector;
 use Modules\MeiliFacets\Indexing\WooCommerceCardProjector;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -15,48 +15,48 @@ use WC_Product;
 use WooCommerce;
 use WP_Post;
 
-final class ExcerptCardProjectorTest extends TestCase
+final class SummaryCardProjectorTest extends TestCase
 {
     private const string EXCERPT_LENGTH_FILTER = 'excerpt_length';
 
     #[Test]
-    public function it_adds_the_excerpt_to_the_card_it_decorates(): void
+    public function it_adds_the_summary_to_the_card_it_decorates(): void
     {
-        $card = $this->excerptCard()->project($this->article('<p>Un geste simple.</p>'));
+        $card = $this->summaryCard()->project($this->article('<p>Un geste simple.</p>'));
 
-        $this->assertSame(['from' => 'card', CardField::Excerpt->value => 'Un geste simple.'], $card);
+        $this->assertSame(['from' => 'card', CardField::Summary->value => 'Un geste simple.'], $card);
     }
 
     /** A card with nothing to say keeps the shape of one that has no image. */
     #[Test]
-    public function it_leaves_the_excerpt_out_when_the_post_says_nothing(): void
+    public function it_leaves_the_summary_out_when_the_post_says_nothing(): void
     {
-        $this->assertSame(['from' => 'card'], $this->excerptCard()->project($this->article('')));
+        $this->assertSame(['from' => 'card'], $this->summaryCard()->project($this->article('')));
     }
 
     #[Test]
-    public function it_bounds_the_excerpt_to_the_length_the_theme_asks_for(): void
+    public function it_bounds_the_opening_to_the_length_the_theme_asks_for(): void
     {
         $threeWords = static fn (): int => 3;
         add_filter(self::EXCERPT_LENGTH_FILTER, $threeWords);
 
         try {
-            $card = $this->excerptCard()->project($this->article('<p>Un geste simple et doux.</p>'));
+            $card = $this->summaryCard()->project($this->article('<p>Un geste simple et doux.</p>'));
         } finally {
             remove_filter(self::EXCERPT_LENGTH_FILTER, $threeWords);
         }
 
-        $this->assertSame('Un geste simple…', $card[CardField::Excerpt->value]);
+        $this->assertSame('Un geste simple…', $card[CardField::Summary->value]);
     }
 
     #[Test]
-    public function it_gives_an_article_the_excerpt_card_once_woocommerce_is_there(): void
+    public function it_gives_an_article_the_summary_card_once_woocommerce_is_there(): void
     {
         $this->requireWooCommerce();
 
         $card = $this->shopCard()->project($this->article('<p>Un geste simple.</p>'));
 
-        $this->assertSame(['from' => 'card', CardField::Excerpt->value => 'Un geste simple.'], $card);
+        $this->assertSame(['from' => 'card', CardField::Summary->value => 'Un geste simple.'], $card);
     }
 
     #[Test]
@@ -72,12 +72,12 @@ final class ExcerptCardProjectorTest extends TestCase
 
     private function shopCard(): WooCommerceCardProjector
     {
-        return new WooCommerceCardProjector($this->card(), $this->excerptCard());
+        return new WooCommerceCardProjector($this->card(), $this->summaryCard());
     }
 
-    private function excerptCard(): ExcerptCardProjector
+    private function summaryCard(): SummaryCardProjector
     {
-        return new ExcerptCardProjector($this->card(), new PostText);
+        return new SummaryCardProjector($this->card(), new PostText);
     }
 
     private function card(): CardProjector

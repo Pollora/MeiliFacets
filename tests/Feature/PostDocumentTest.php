@@ -7,9 +7,7 @@ namespace Modules\MeiliFacets\Tests\Feature;
 use Modules\MeiliFacets\Contracts\CardProjector;
 use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Indexing\AnonymousVisitor;
-use Modules\MeiliFacets\Indexing\FacetProjection;
-use Modules\MeiliFacets\Indexing\LabelProjection;
-use Modules\MeiliFacets\Indexing\MeiliScoutBridge;
+use Modules\MeiliFacets\Indexing\IndexedTaxonomies;
 use Modules\MeiliFacets\Indexing\PostDocument;
 use Modules\MeiliFacets\Indexing\PostText;
 use Modules\MeiliFacets\Indexing\ProductPriceProjector;
@@ -17,16 +15,33 @@ use Modules\MeiliFacets\Indexing\ShopTaxLocation;
 use Modules\MeiliFacets\Indexing\TermAncestry;
 use Modules\MeiliFacets\Indexing\WordPressTermHierarchy;
 use PHPUnit\Framework\Attributes\Test;
-use Pollora\MeiliScout\Indexables\PostIndexable;
 use Tests\TestCase;
-use WC_Product;
-use WooCommerce;
 use WP_Post;
 
 /** The fields the module adds to a MeiliScout document, as the single hook writes them. */
 final class PostDocumentTest extends TestCase
 {
+    use PinsIndexedPostTypes;
+
     private const array CARD = ['title' => 'Routine'];
+
+    private const string ATTRIBUTE = 'pa_test_volume';
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->pinIndexedPostTypes();
+        register_taxonomy(self::ATTRIBUTE, 'post', ['public' => false]);
+    }
+
+    protected function tearDown(): void
+    {
+        unregister_taxonomy(self::ATTRIBUTE);
+        $this->unpinIndexedPostTypes();
+
+        parent::tearDown();
+    }
 
     #[Test]
     public function it_files_term_names_under_their_taxonomy(): void
@@ -34,15 +49,23 @@ final class PostDocumentTest extends TestCase
         $labels = $this->completed([
             $this->term(1, 'Visage', 'category'),
             $this->term(2, 'Laits &amp; crèmes', 'category'),
-            $this->term(3, 'Article', 'contenu'),
         ])[DocumentField::Labels->value];
 
-        $this->assertSame(['category' => ['Visage', 'Laits & crèmes'], 'contenu' => ['Article']], $labels);
+        $this->assertSame(['category' => ['Visage', 'Laits & crèmes']], $labels);
+    }
+
+    /** A WooCommerce attribute without archives is not viewable, yet its values are what a visitor types. */
+    #[Test]
+    public function it_labels_a_taxonomy_without_archives(): void
+    {
+        $labels = $this->completed([$this->term(1, '100ml', self::ATTRIBUTE)])[DocumentField::Labels->value];
+
+        $this->assertSame([self::ATTRIBUTE => ['100ml']], $labels);
     }
 
     /** `exclude-from-search` is a term of `product_visibility`: labelled, it would be found by its own name. */
     #[Test]
-    public function it_labels_no_term_of_a_taxonomy_wordpress_does_not_show_yet_filters_on_it(): void
+    public function it_labels_no_term_of_a_technical_taxonomy_yet_filters_on_it(): void
     {
         $document = $this->completed([$this->term(1, 'exclude-from-search', 'product_visibility')]);
 
@@ -87,32 +110,24 @@ final class PostDocumentTest extends TestCase
         $this->assertArrayNotHasKey(DocumentField::Price->value, $this->completed([]));
     }
 
-    /** What the six filters of the bridge wrote before they became one, key for key and in the same order. */
+    /** A frozen snapshot: every field, every value and the key order, on a post that lives only in memory. */
     #[Test]
-    public function it_writes_the_same_document_through_the_single_hook(): void
+    public function it_writes_this_exact_document(): void
     {
-        $post = $this->aPricedProductWithTerms();
-        $original = get_object_vars($post);
-        $original[DocumentField::Terms->value] = $this->termsOf($post);
-
-        $document = $this->app->make(MeiliScoutBridge::class)->addModuleFields($original, $post);
-        $expanded = $this->app->make(TermAncestry::class)->expand($original[DocumentField::Terms->value]);
-
-        $this->assertSame(
-            [...array_keys($original), 'facets', 'labels', 'excerpt', 'content', 'card', 'price'],
-            array_keys($document)
+        $document = $this->postDocument()->complete(
+            ['ID' => 7, DocumentField::Terms->value => [$this->term(1, 'Soins &amp; rituels', 'category')]],
+            $this->article()
         );
-        $this->assertSame(FacetProjection::fromTerms($expanded), $document[DocumentField::Facets->value]);
-        $this->assertSame(new PostText()->content($post), $document[DocumentField::Content->value]);
-        $this->assertSame($this->app->make(CardProjector::class)->project($post), $document[DocumentField::Card->value]);
-        $this->assertSame(new ProductPriceProjector()->project($post), $document[DocumentField::Price->value]);
-        $this->assertSame(
-            LabelProjection::fromTerms(array_values(array_filter(
-                $expanded,
-                static fn (array $term): bool => is_taxonomy_viewable($term['taxonomy'])
-            ))),
-            $document[DocumentField::Labels->value]
-        );
+
+        $this->assertSame([
+            'ID' => 7,
+            'terms' => [['term_id' => 1, 'name' => 'Soins &amp; rituels', 'slug' => 'soins-rituels', 'taxonomy' => 'category', 'parent' => 0]],
+            'facets' => ['category' => ['soins-rituels']],
+            'labels' => ['category' => ['Soins & rituels']],
+            'excerpt' => 'Doux & frais',
+            'content' => 'Routine',
+            'card' => ['title' => 'Routine'],
+        ], $document);
     }
 
     /**
@@ -128,6 +143,7 @@ final class PostDocumentTest extends TestCase
     {
         return new PostDocument(
             new TermAncestry(new WordPressTermHierarchy),
+            new IndexedTaxonomies,
             new PostText,
             $this->card(),
             new ProductPriceProjector,
@@ -172,32 +188,5 @@ final class PostDocumentTest extends TestCase
     private function term(int $id, string $name, string $taxonomy): array
     {
         return ['term_id' => $id, 'name' => $name, 'slug' => sanitize_title($name), 'taxonomy' => $taxonomy, 'parent' => 0];
-    }
-
-    private function aPricedProductWithTerms(): WP_Post
-    {
-        if (! class_exists(WooCommerce::class)) {
-            $this->markTestSkipped('The price is WooCommerce\'s.');
-        }
-
-        foreach (wc_get_products(['status' => 'publish', 'limit' => -1]) as $product) {
-            if ($product instanceof WC_Product && $product->get_price() !== '' && $product->get_category_ids() !== []) {
-                return get_post($product->get_id());
-            }
-        }
-
-        $this->markTestSkipped('The catalogue has no published, priced and filed product.');
-    }
-
-    /**
-     * The terms MeiliScout attaches, read the way `PostIndexable` reads them.
-     *
-     * @return list<array<string, mixed>>
-     */
-    private function termsOf(WP_Post $post): array
-    {
-        $document = new PostIndexable()->formatForIndexing($post);
-
-        return $document[DocumentField::Terms->value];
     }
 }

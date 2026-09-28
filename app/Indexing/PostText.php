@@ -30,30 +30,33 @@ final readonly class PostText
         return $this->plain($post->post_excerpt);
     }
 
-    /** The excerpt the author wrote, else the opening of the content — as `wp_trim_excerpt()` does. */
-    public function summary(WP_Post $post, int $words): string
+    /** The excerpt the author wrote, whole; else the opening of the content — as `get_the_excerpt()` does. */
+    public function summary(WP_Post $post, int $openingWords): string
     {
         if ($this->isProtected($post)) {
             return '';
         }
 
-        $source = $this->hasOwnExcerpt($post) ? $post->post_excerpt : $post->post_content;
+        $ownExcerpt = $this->excerpt($post);
 
-        // Counted before decoding: `wp_trim_words()` strips tags, and a decoded `&lt;` would read as one.
-        $bounded = wp_trim_words(PlainText::withoutTags(strip_shortcodes($source)), $words, self::ELLIPSIS);
+        if ($ownExcerpt !== '') {
+            return $ownExcerpt;
+        }
 
-        return PlainText::fromMarkup($bounded);
+        return $this->opening($post->post_content, $openingWords);
     }
 
-    /** The card is public and the excerpt and content searchable with the public key: neither may reveal what a password guards. */
+    private function opening(string $markup, int $words): string
+    {
+        $text = PlainText::withoutTags(strip_shortcodes($markup));
+
+        // Counted before decoding: `wp_trim_words()` strips tags, and a decoded `&lt;` would read as one.
+        return PlainText::fromMarkup(wp_trim_words($text, $words, self::ELLIPSIS));
+    }
+
     private function isProtected(WP_Post $post): bool
     {
         return $post->post_password !== '';
-    }
-
-    private function hasOwnExcerpt(WP_Post $post): bool
-    {
-        return $this->excerpt($post) !== '';
     }
 
     private function plain(string $markup): string

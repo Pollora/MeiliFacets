@@ -20,8 +20,8 @@ final readonly class TermGrouping
         $grouped = [];
 
         foreach ($terms as $term) {
-            $taxonomy = $this->readString($term, TermField::Taxonomy);
-            $value = $this->readString($term, $this->kept);
+            $taxonomy = TermField::Taxonomy->textIn($term);
+            $value = $this->kept->textIn($term);
 
             if ($taxonomy === null || $value === null) {
                 continue;
@@ -43,15 +43,5 @@ final readonly class TermGrouping
             static fn (array $values): array => array_values(array_unique($values)),
             $grouped
         );
-    }
-
-    /**
-     * @param  array<string, mixed>  $term
-     */
-    private function readString(array $term, TermField $field): ?string
-    {
-        $value = $term[$field->value] ?? null;
-
-        return is_string($value) && $value !== '' ? $value : null;
     }
 }

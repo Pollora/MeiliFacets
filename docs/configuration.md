@@ -133,6 +133,10 @@ enum BrandCardField: string
 }
 ```
 
+⚠️ `card.summary` (extrait de l'auteur entier, sinon début du contenu borné par `excerpt_length`) est stocké
+**décodé** : `&` y vaut `&`, pas `&amp;`. Il se rend **en texte** — `textContent`, `{{ }}` en Blade — jamais par
+`innerHTML` ni `{!! !!}`, sinon un `<` écrit dans l'extrait devient une balise.
+
 Un champ absent doit être **absent**, pas vide : `image()` rend `[]` plutôt qu'une chaîne vide, pour qu'un
 document ne porte jamais une clé qui ne veut rien dire. `price()` aussi, pour un contenu qui n'est pas un
 produit — mais un produit sans prix porte `card.price` vide, ce que rend `get_price_html()`.
@@ -151,7 +155,7 @@ Des bindings du conteneur Laravel, à poser dans le `register()` d'un provider d
 | `Listing` | `ProductListing` si WooCommerce | ce qu'un listing déclare | découverte automatique |
 | `ProductFacets` | `WooCommerceFacets` — catégorie et marque | les taxonomies que la boutique parcourt | oui, `scoped` |
 | `ProductSorts` | `WooCommerceSorts` — prix ↑↓, nouveautés, « Promotions » (`on_sale`, offert seulement si le listing déclare un prix) | les tris offerts | oui, `scoped` |
-| `SearchableAttributes` | `DefaultSearchableAttributes` — titre, marque, catégorie et SKU sous WooCommerce, libellés des taxonomies visibles, extrait, contenu | les champs cherchables et leur rang | oui, `scoped` |
+| `SearchableAttributes` | `DefaultSearchableAttributes` — titre, marque, catégorie et SKU sous WooCommerce, libellés des autres taxonomies hors techniques, extrait, contenu | les champs cherchables et leur rang | oui, `scoped` (décorer le défaut) |
 
 ```php
 // Pluralia, AppServiceProvider
@@ -496,21 +500,31 @@ Ordre par défaut (`DefaultSearchableAttributes`) :
 
 1. `post_title` ;
 2. si WooCommerce est actif : `labels.product_brand`, `labels.product_cat`, `metas._sku` ;
-3. `labels.<taxonomie>` pour chaque autre taxonomie **visible** (`is_taxonomy_viewable()`) des types indexés,
-   dans l'ordre où WordPress les a enregistrées ;
+3. `labels.<taxonomie>` pour chaque autre taxonomie des types indexés, dans l'ordre où WordPress les a
+   enregistrées — attributs `pa_*` sans archives compris — **sauf** les taxonomies techniques de WooCommerce
+   (`product_visibility`, `product_type`, `product_shipping_class`, `pos_product_visibility`), dont les termes
+   sont des drapeaux (`featured`, `simple`…), pas des mots ;
 4. `excerpt`, puis `content` — l'extrait et le contenu en texte brut, projetés par le module.
 
-Le contrat `SearchableAttributes` rend la liste **complète** : un projet qui le lie la remplace en entier. Par
-exemple, pour faire passer l'extrait avant les libellés :
+Le contrat `SearchableAttributes` rend la liste **complète** ; c'est le seul point de surcharge des champs
+cherchables et de leur rang. La liste des taxonomies techniques, elle, est figée dans le module. Un projet le **décore** plutôt que de réécrire la liste : il reçoit le défaut, déplace
+ou retire un champ, et suit sans rien faire les taxonomies ajoutées ensuite. Pour faire passer l'extrait juste
+après le titre :
 
 ```php
 use Modules\MeiliFacets\Contracts\SearchableAttributes;
+use Modules\MeiliFacets\Indexing\DefaultSearchableAttributes;
 
 final readonly class ExcerptFirstSearchableAttributes implements SearchableAttributes
 {
+    public function __construct(private DefaultSearchableAttributes $default) {}
+
     public function all(): array
     {
-        return ['post_title', 'excerpt', 'labels.category', 'content'];
+        $fields = array_values(array_diff($this->default->all(), ['excerpt']));
+        array_splice($fields, 1, 0, ['excerpt']);
+
+        return $fields;
     }
 }
 ```
@@ -519,6 +533,9 @@ final readonly class ExcerptFirstSearchableAttributes implements SearchableAttri
 // Provider du projet, register()
 $this->app->scoped(SearchableAttributes::class, ExcerptFirstSearchableAttributes::class);
 ```
+
+Retirer un champ, c'est un `array_diff` sans le réinsérer. ⚠️ Les documents ne portent pas de `labels` pour
+une taxonomie technique : un projet qui en ajoute une par ce contrat obtient un champ cherchable vide.
 
 Comme pour `ProductFacets`, le module lie son défaut par `scopedIf` : le projet lie avec `scoped` ou `bind`,
 jamais `scopedIf`. La tolérance aux fautes, elle, reste déclarée par `IndexAttributes::exactlyMatched()`

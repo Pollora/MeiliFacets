@@ -695,7 +695,7 @@ Rien de ce qui suit n'est acquis.
   *Réponse proposée le 2026-09-25 (`R-181`, à valider par Louis)* : **`card` n'est jamais cherché**, aucun de
   ses champs — la carte est de l'affichage. La liste cherchable est explicite et ordonnée : `post_title`, ce
   sous WooCommerce `labels.product_brand`, `labels.product_cat`,
-  `metas._sku`, les `labels.*` des taxonomies visibles (`is_taxonomy_viewable()`), `excerpt`, puis
+  `metas._sku`, les `labels.*` des autres taxonomies hors techniques (`R-185`), `excerpt`, puis
   `content`. **Choix de Louis le 2026-09-25** : `excerpt` et `content` sont deux champs projetés par le module,
   nettoyés de la même façon (shortcodes, balises, délimiteurs de blocs, entités ; vides pour un post protégé par
   mot de passe) ; l'extrait se classe au-dessus du corps. `post_excerpt` et `post_content` bruts de MeiliScout
@@ -709,16 +709,31 @@ Rien de ce qui suit n'est acquis.
   correspondent sans faute est une propriété du champ contribué, pas de son rang, et un projet qui réordonne
   n'a pas à la redéclarer. Coût : le défaut du module connaît les champs WooCommerce (marque, catégorie, SKU),
   comme `WooCommerceFacets` ; pas de `taxonomy_exists('product_brand')`, Louis n'installe que des WooCommerce
-  récents.
+  récents. *Complété le 2026-09-25 (`R-185`)* : un contrat plutôt qu'un filtre WordPress — typé, cohérent avec
+  `ProductFacets`, `ProductSorts` et `CardProjector`, testable sans état global ; coût : une classe et une
+  liaison pour le projet, là où un filtre ne demanderait qu'une méthode `#[Filter]`. Le défaut
+  (`DefaultSearchableAttributes`) est lié par nom de classe en `scopedIf` ; un projet le décore. La liste des
+  taxonomies techniques reste figée dans le module (laissé ouvert, `R-185`).
 - **Autres choix de l'étape « pertinence et index »** (`R-181`, 2026-09-25, à valider par Louis) :
   - *Recherche produit* : `exclude-from-search` **remplace** `exclude-from-catalog` sur une recherche, comme
     WooCommerce (`class-wc-query.php:929`) ; le plan disait « en plus ». Effet : un produit « résultats de
     recherche uniquement » apparaît dans la recherche ; un produit « boutique uniquement » ou « masqué » n'y
     apparaît pas. « En plus » aurait écarté les deux premiers, à tort.
-  - *Libellés* : seules les taxonomies que WordPress montre (`is_taxonomy_viewable()`) ont des `labels`,
-    sinon `featured`, `exclude-from-search` ou `simple` deviendraient des mots trouvables.
-  - *Extrait de carte* : sur toute carte qui n'est pas un produit, borné par `excerpt_length` ; la carte produit
-    est inchangée. Rien pour un article protégé par mot de passe, ni dans `excerpt` ni dans `content`.
+  - *Libellés* — **remplacé le 2026-09-25 (Louis, `R-185`)** : la règle « taxonomies visibles »
+    (`is_taxonomy_viewable()`) écartait les attributs `pa_*` sans archives — « 100ml » et « 50ml » ne trouvaient
+    rien alors que la facette les comptait. Règle en vigueur : **toutes** les taxonomies des types indexés ont
+    des `labels`, sauf une liste **figée** de taxonomies techniques de WooCommerce (`ProductTaxonomy::technical()` :
+    `product_visibility`, `product_type`, `product_shipping_class`, `pos_product_visibility`, lues dans
+    `class-wc-post-types.php`). Écrite une fois (`IndexedTaxonomies::labelled()`), lue par l'ordre par défaut et
+    par les documents. Sans WooCommerce, ces taxonomies n'existent pas : la liste n'écarte rien. Pas de second
+    point de surcharge : un projet ajoute ou retire des `labels.*` en décorant `SearchableAttributes`.
+  - *Extrait de carte* (`card.summary`) : sur toute carte qui n'est pas un produit. L'extrait écrit par l'auteur
+    est rendu **entier** ; seul le repli sur le début du contenu est borné par `excerpt_length` — ce que fait
+    `get_the_excerpt()` (R-185). Rien pour un article protégé par mot de passe, ni dans `excerpt` ni dans
+    `content` : la carte est publique et ces champs cherchables avec la clé publique, aucun ne doit révéler ce
+    qu'un mot de passe garde. **Noms tranchés par Louis (2026-09-25)** : `card.summary` pour la carte (extrait de l'auteur, sinon début du contenu), `excerpt` pour le champ cherchable du document (extrait de l'auteur seul).
+  - *Bornage avant décodage* : `wp_trim_words()` retire les balises ; le début du contenu est donc compté
+    encore encodé, sinon un `&lt;` décodé serait pris pour une balise et effacé.
   - *SKU* : cherchable, sans tolérance aux fautes (`typoTolerance.disableOnAttributes`), déclaré par la couche
     WooCommerce ; absent si `indexed_meta_keys` est renseigné sans `_sku`.
 - **Stock et variations WooCommerce.** Le prix est tranché : projection `price` du module (`D-b`,

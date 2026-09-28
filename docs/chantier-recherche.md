@@ -198,7 +198,7 @@ cherchable » s'ajoutent à `R-27` (même cause, même correctif). Sous le parap
 | S-4 | Livraison du client | **tranché** (Louis) — un chargeur minimal inscrit sur toutes les pages (`@meilifacets/site-search`, priorité basse, exclu du Delay JS) qui ouvre et ferme le panneau, et importe le client (`dist/site-search-client.js`) à la **première intention** (survol ou focus de la loupe, sinon ouverture) |
 | S-5 | Feuille de style | **tranché** (Louis) — `site-search.css` à part, demandée par le composant du panneau |
 | S-6 | Champs projetés pour la pertinence | **tranché** (Louis) — `labels.<taxonomie>` (noms des termes, ancêtres compris, sur le modèle de `facets`) et `content` (contenu en texte brut ; d'abord nommé `text`, renommé le 2026-09-25) ; `excerpt` (extrait nettoyé, ajouté le 2026-09-25) ; `post_content` et `post_excerpt` bruts restent dans le document mais ne sont plus cherchables. Réindexation au moment voulu, avec l'accord de Louis |
-| S-7 | Extrait de la carte d'article | **tranché** (Louis, `card.excerpt`) — projeté par le module (texte brut, borné) ; date, rubrique et temps de lecture = décoration Pluralia (`extend` de `CardProjector`), selon la maquette |
+| S-7 | Extrait de la carte d'article | **tranché** (Louis, `card.summary`, renommé depuis `card.excerpt` le 2026-09-25) — projeté par le module (texte brut ; extrait de l'auteur entier, sinon début du contenu borné) ; date, rubrique et temps de lecture = décoration Pluralia (`extend` de `CardProjector`), selon la maquette |
 | S-8 | Compte d'une section | **proposé** — `page: 1, hitsPerPage: 4` : le moteur rend `totalHits` exact (jusqu'à `maxTotalHits`) au lieu d'une estimation |
 | S-9 | Entrée sans option active | **tranché** (Louis) — **ne fait rien** tant qu'aucune option n'est désignée (motif APG « liste sans sélection automatique ») ; les comptes ont déjà été annoncés, les flèches mènent aux résultats |
 | S-10 | Mobile | **tranché** (Louis) — sous 48em, le panneau occupe la largeur et la hauteur restantes sous l'en-tête, défile en interne (`overscroll-behavior: contain`), et **le défilement de la page est verrouillé** tant qu'il est ouvert (`:root:has([data-meili="search-toggle"][aria-expanded="true"])`, comme le tiroir) ; au-delà de 48em, pas de verrou |
@@ -268,7 +268,7 @@ crochets confondus (S-18).
 | Indisponible | `<x-meilifacets::search-unavailable>` | `search-unavailable` | `StatusView` | « Recherche indisponible » (D-7), révélé en panne ; sections masquées. |
 | Carte produit | `<x-meilifacets::card>` (template d'une section) | `card`, `url`, `image`, `title`, `price` | `CardView` (existant) | La carte du listing, telle quelle. |
 | Carte d'article | `<x-meilifacets::excerpt-card>` (template d'une section) | `card`, `url`, `image`, `title`, `excerpt` | `CardView` + `excerpt` | Titre, extrait, image. |
-| Surlignage | — | — | `Highlight` | Balises en caractères privés (U+E000/U+E001), découpe en nœuds texte + `<mark>` : jamais d'`innerHTML` sur une chaîne du moteur. Ne lit que `_formatted.card.title` et `_formatted.card.excerpt`. |
+| Surlignage | — | — | `Highlight` | Balises en caractères privés (U+E000/U+E001), découpe en nœuds texte + `<mark>` : jamais d'`innerHTML` sur une chaîne du moteur. Ne lit que `_formatted.card.title` et `_formatted.card.summary`. |
 
 **Répartition module / thème.** Le module rend chaque brique et son comportement, habillés neutres
 (`site-search.css` : ni couleur, ni police de marque). Le thème **compose** : il pose la racine dans son
@@ -539,12 +539,23 @@ Registre : `R-27`, `R-159`, `R-160`, décision en attente « `card.title` ». D�
   balisage n'est plus indexé, comportement normal ;
 - surlignage : `attributesToHighlight: ["card.title"]` ne rend plus de `_formatted`, `["card"]` et `["*"]`
   surlignent `card.title` — **l'étape 4 demandera `["card"]`** et ne lira que `_formatted.card.title`
-  (et `_formatted.card.excerpt`).
+  (et `_formatted.card.summary`).
 
 **Mesuré après la seconde réindexation de Louis** (2026-09-25, lecture seule, `excerpt` nettoyé présent) :
 `excerpt` et `content` sans balise ; `pluralia` → 0 ; `"spacer"` et `"strong"` en recherche exacte → 0 ;
 `spacer` (3) et `strong` (4) sans guillemets ne remontent que par la tolérance aux fautes, dans `content`
 seulement — aucun balisage n'est plus indexé.
+
+**Réindexation après `R-185`** (à lancer par Louis) : `ddev exec php artisan discovery:clear`, puis
+`ddev wp meiliscout index`. Contrôles en lecture :
+- `GET /indexes/posts/settings` : `labels.pa_contenance` présent, entre les autres libellés et `excerpt` ;
+  aucun `labels.product_visibility`, `labels.product_type`, `labels.product_shipping_class`,
+  `labels.pos_product_visibility` ;
+- un produit avec contenance : `labels.pa_contenance` renseigné ; un article : `card.summary` (plus de
+  `card.excerpt`), l'extrait de l'auteur entier s'il en a un ;
+- multi-search produits : `100ml` et `50ml` trouvent les produits de cette contenance (autant que la facette
+  `pa_contenance` en compte) ; `featured`, `simple`, `exclude-from-search` → 0 ;
+- non-régression : `pluralia` 0, `sérum` 2, `lumen` 5, `srum` 0, `attributesToSearchOn: ["url"]` refusé.
 
 ⚠️ Dès que ce code tourne, **toute sauvegarde** d'un article ou d'un produit repousse les nouveaux réglages
 (`ensureIndexExists()`) avant que les documents aient `labels`, `excerpt` et `content` : réindexer aussitôt après le
@@ -635,7 +646,9 @@ sauf avis contraire, et sont confirmées à la clôture de l'étape 1.
 | 2026-09-25 | 1 | Louis tranche S-21 et S-19 : types = contrat `SearchableTypes` (défaut `scopedIf`), recherche = sections posées (aucun `types` sur la racine), réglages scalaires = `SearchSettings` + attributs, aucune clé de config |
 | 2026-09-25 | 1 | Louis tranche D-4 (`q` inchangé), D-7 (message seul, aucun repli), S-2 (lien vers l'archive du type, sans query var : plus de page de résultats ni de second listing), S-4 → S-7 et le § 8 ; plan réduit à huit étapes ; restent S-9 et S-10 |
 | 2026-09-25 | 1 | Louis tranche S-9 (Entrée inerte), S-10 (verrou mobile), S-18 (crochets `search-*`) ; relecture de cohérence du document |
+| 2026-09-28 | 2 | Lot de revue (`R-185`) réindexé en local : `100ml` 3, `50ml` 1, `30ml` 1, `pluralia` 0, `featured` et `exclude-from-search` 0, `labels.product_type` refusé par le moteur, `card.summary` présent ; point 2 reporté à la facette de recherche du listing ; taxonomies techniques figées, laissé ouvert |
 | 2026-09-25 | 2 | `R-27` fermé sur validation de Louis (`pluralia` 0, `url` et `metas._edit_lock` refusés par le moteur, aucun balisage indexé) ; étape commitée |
+| 2026-09-25 | 2 | Corrections de la revue de `fd595a3` (`R-185`) : libellés de toutes les taxonomies hors techniques (`pa_*` compris), défaut de l'ordre décorable, extrait de l'auteur entier (`card.summary`), test figé, pont à deux dépendances ; point 2 (`q`) arrêté et rapporté ; `R-186` noté ; suite `Modules` 582 verte ; réindexation à faire |
 | 2026-09-25 | 2 | Seconde réindexation par Louis, mesures conformes (`excerpt`/`content` sans balise, `pluralia` 0, `"spacer"`/`"strong"` exacts 0) ; ordre de recherche surchargeable en entier par le contrat `SearchableAttributes` (`R-184`), réglages identiques à l'octet et égaux à ceux du moteur ; suite `Modules` 575 verte |
 | 2026-09-25 | 2 | Refonte du pont (`R-182`) : un seul filtre `meiliscout/post/document`, champs construits par `PostDocument`, une expansion des termes par document ; documents #176, #116, #560 identiques à l'octet avant/après ; suite `Modules` 577 verte |
 | 2026-09-25 | 2 | Réindexation par Louis et mesures (conformes ; `spacer` = tolérance aux fautes ; surlignage par `["card"]`) ; puis `excerpt` projeté et nettoyé à la place de `post_excerpt` (suite `Modules` 574 verte), seconde réindexation à faire |

@@ -15,6 +15,7 @@ final readonly class PostDocument
 {
     public function __construct(
         private TermAncestry $ancestry,
+        private IndexedTaxonomies $taxonomies,
         private PostText $postText,
         private CardProjector $cards,
         private ProductPriceProjector $prices,
@@ -52,29 +53,22 @@ final readonly class PostDocument
 
         return [
             DocumentField::Facets->value => FacetProjection::fromTerms($expanded),
-            DocumentField::Labels->value => LabelProjection::fromTerms($this->viewableOnly($expanded)),
+            DocumentField::Labels->value => LabelProjection::fromTerms($this->labelledOnly($expanded)),
         ];
     }
 
     /**
-     * `product_visibility` files `exclude-from-search` and `featured` as terms: words no visitor searches for.
-     *
      * @param  list<array<string, mixed>>  $terms
      * @return list<array<string, mixed>>
      */
-    private function viewableOnly(array $terms): array
+    private function labelledOnly(array $terms): array
     {
-        return array_values(array_filter($terms, $this->hasViewableTaxonomy(...)));
-    }
+        $labelled = $this->taxonomies->labelled();
 
-    /**
-     * @param  array<string, mixed>  $term
-     */
-    private function hasViewableTaxonomy(array $term): bool
-    {
-        $taxonomy = $term[TermField::Taxonomy->value] ?? null;
-
-        return is_string($taxonomy) && is_taxonomy_viewable($taxonomy);
+        return array_values(array_filter(
+            $terms,
+            static fn (array $term): bool => in_array(TermField::Taxonomy->textIn($term), $labelled, true)
+        ));
     }
 
     /**

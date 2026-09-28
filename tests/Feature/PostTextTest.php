@@ -64,8 +64,17 @@ final class PostTextTest extends TestCase
         $this->assertSame('Routine Laits & crèmes, l’essentiel.', new PostText()->summary($this->aPost(self::BLOCKS), self::WORDS));
     }
 
+    /** WordPress trims only the excerpt it generates: the one an author wrote is shown whole. */
     #[Test]
-    public function it_bounds_the_summary_to_the_words_it_is_given(): void
+    public function it_keeps_the_excerpt_the_author_wrote_whole(): void
+    {
+        $summary = new PostText()->summary($this->aPost(self::BLOCKS, 'Un geste simple, doux et quotidien'), 3);
+
+        $this->assertSame('Un geste simple, doux et quotidien', $summary);
+    }
+
+    #[Test]
+    public function it_bounds_the_opening_of_the_content_to_the_words_it_is_given(): void
     {
         $this->assertSame('Routine Laits &…', new PostText()->summary($this->aPost(self::BLOCKS), 3));
     }

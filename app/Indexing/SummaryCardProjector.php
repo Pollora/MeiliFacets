@@ -8,7 +8,7 @@ use Modules\MeiliFacets\Contracts\CardProjector;
 use Modules\MeiliFacets\Enums\CardField;
 use WP_Post;
 
-final readonly class ExcerptCardProjector implements CardProjector
+final readonly class SummaryCardProjector implements CardProjector
 {
     private const int WORDPRESS_EXCERPT_LENGTH = 55;
 
@@ -23,18 +23,18 @@ final readonly class ExcerptCardProjector implements CardProjector
     {
         return [
             ...$this->card->project($post),
-            ...$this->excerpt($post),
+            ...$this->summary($post),
         ];
     }
 
     /**
      * @return array<string, string>
      */
-    private function excerpt(WP_Post $post): array
+    private function summary(WP_Post $post): array
     {
         $summary = $this->postText->summary($post, $this->length());
 
-        return $summary === '' ? [] : [CardField::Excerpt->value => $summary];
+        return $summary === '' ? [] : [CardField::Summary->value => $summary];
     }
 
     /** Read on every card: the theme adds its filter after the module is wired (R-171). */
