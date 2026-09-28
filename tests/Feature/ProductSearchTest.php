@@ -5,11 +5,17 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Tests\Feature;
 
 use Closure;
+use Modules\MeiliFacets\Indexing\WooCommerceProductFields;
 use Modules\MeiliFacets\Listing\NameOrder;
 use Modules\MeiliFacets\Listing\ProductListing;
 use Modules\MeiliFacets\Listing\StateReader;
 use Modules\MeiliFacets\Listing\WooCommerceFacets;
 use Modules\MeiliFacets\Listing\WooCommerceSorts;
+use Modules\MeiliFacets\Search\VisibleProducts;
+use Modules\MeiliFacets\SiteSearch\SearchablePostTypes;
+use Modules\MeiliFacets\SiteSearch\SearchableTypeFactory;
+use Modules\MeiliFacets\SiteSearch\WooCommerceSearchableTypes;
+use Modules\MeiliFacets\SiteSearch\WordPressSearchableTypes;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 use WooCommerce;
@@ -17,6 +23,8 @@ use WP_Query;
 
 final class ProductSearchTest extends TestCase
 {
+    use PinsIndexedPostTypes;
+
     private const string TERM = 'creme';
 
     protected function setUp(): void
@@ -63,6 +71,29 @@ final class ProductSearchTest extends TestCase
         $this->assertSame(
             ['post_type = "product"', 'post_status = "publish"', 'NOT facets.product_visibility = "exclude-from-search"'],
             $this->onSearch(['s' => self::TERM], static fn (ProductListing $listing): array => $listing->baseFilter())
+        );
+    }
+
+    #[Test]
+    public function it_hides_from_the_site_search_what_it_hides_from_its_own(): void
+    {
+        $this->pinIndexedPostTypes();
+
+        try {
+            $types = new WooCommerceSearchableTypes(
+                $this->app->build(WordPressSearchableTypes::class),
+                $this->app->make(SearchablePostTypes::class),
+                $this->app->make(SearchableTypeFactory::class),
+                $this->app->make(WooCommerceProductFields::class),
+                static fn (): bool => true,
+            )->all();
+        } finally {
+            $this->unpinIndexedPostTypes();
+        }
+
+        $this->assertSame(
+            $this->onSearch(['s' => self::TERM], static fn (ProductListing $listing): array => $listing->baseFilter()),
+            $types[VisibleProducts::POST_TYPE]->baseFilter
         );
     }
 

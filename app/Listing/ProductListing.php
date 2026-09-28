@@ -11,22 +11,14 @@ use Modules\MeiliFacets\Contracts\ProductSorts;
 use Modules\MeiliFacets\Enums\ApplyMode;
 use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Enums\PriceField;
-use Modules\MeiliFacets\Enums\ProductTaxonomy;
 use Modules\MeiliFacets\Search\FilterExpression;
+use Modules\MeiliFacets\Search\VisibleProducts;
 use Modules\MeiliFacets\Support\WooCommerce;
 use WP_Term;
 
 final readonly class ProductListing implements Listing
 {
     public const string NAME = 'products';
-
-    private const string POST_TYPE = 'product';
-
-    private const string PUBLISHED = 'publish';
-
-    private const string HIDDEN_FROM_CATALOG = 'exclude-from-catalog';
-
-    private const string HIDDEN_FROM_SEARCH = 'exclude-from-search';
 
     private const string SEARCH_QUERY_VAR = 's';
 
@@ -79,23 +71,17 @@ final readonly class ProductListing implements Listing
     public function baseFilter(): array
     {
         return [
-            FilterExpression::equals('post_type', self::POST_TYPE),
-            FilterExpression::equals('post_status', self::PUBLISHED),
-            FilterExpression::without(
-                DocumentField::Facets->path(ProductTaxonomy::Visibility->value),
-                $this->hiddenHere()
-            ),
+            ...$this->visibleHere(),
             ...$this->browsedClause(),
         ];
     }
 
     /**
-     * WooCommerce swaps the flag on a search rather than adding one (`WC_Query::get_tax_query()`):
-     * a "search results only" product is found, a "shop only" one is not (R-160).
+     * @return list<string>
      */
-    private function hiddenHere(): string
+    private function visibleHere(): array
     {
-        return is_search() ? self::HIDDEN_FROM_SEARCH : self::HIDDEN_FROM_CATALOG;
+        return is_search() ? VisibleProducts::inSearch() : VisibleProducts::inCatalogue();
     }
 
     /**
@@ -133,7 +119,7 @@ final readonly class ProductListing implements Listing
         $term = get_queried_object();
 
         // A product carries no field for a taxonomy that is not its own: filtering on it would empty the listing.
-        if (! $term instanceof WP_Term || ! is_object_in_taxonomy(self::POST_TYPE, $term->taxonomy)) {
+        if (! $term instanceof WP_Term || ! is_object_in_taxonomy(VisibleProducts::POST_TYPE, $term->taxonomy)) {
             return null;
         }
 

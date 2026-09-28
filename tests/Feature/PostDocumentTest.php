@@ -7,6 +7,7 @@ namespace Modules\MeiliFacets\Tests\Feature;
 use Modules\MeiliFacets\Contracts\CardProjector;
 use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Indexing\AnonymousVisitor;
+use Modules\MeiliFacets\Indexing\IndexedPostTypes;
 use Modules\MeiliFacets\Indexing\IndexedTaxonomies;
 use Modules\MeiliFacets\Indexing\PostDocument;
 use Modules\MeiliFacets\Indexing\PostText;
@@ -143,7 +144,7 @@ final class PostDocumentTest extends TestCase
     {
         return new PostDocument(
             new TermAncestry(new WordPressTermHierarchy),
-            new IndexedTaxonomies,
+            new IndexedTaxonomies(new IndexedPostTypes),
             new PostText,
             $this->card(),
             new ProductPriceProjector,

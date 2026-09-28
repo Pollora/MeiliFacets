@@ -6,13 +6,14 @@ namespace Modules\MeiliFacets\Indexing;
 
 use Modules\MeiliFacets\Enums\ProductTaxonomy;
 use Modules\MeiliFacets\Support\UniqueList;
-use Pollora\MeiliScout\Config\Settings;
 
 /** The taxonomies of every post type MeiliScout indexes, in the order WordPress registered them. */
 final class IndexedTaxonomies
 {
     /** @var list<string>|null */
     private ?array $taxonomies = null;
+
+    public function __construct(private readonly IndexedPostTypes $postTypes) {}
 
     /**
      * @return list<string>
@@ -38,8 +39,7 @@ final class IndexedTaxonomies
      */
     private function resolve(): array
     {
-        $postTypes = array_values(Settings::get('indexed_post_types', []));
-        $taxonomiesPerPostType = array_map(get_object_taxonomies(...), $postTypes);
+        $taxonomiesPerPostType = array_map(get_object_taxonomies(...), $this->postTypes->all());
 
         return UniqueList::merge(...$taxonomiesPerPostType);
     }

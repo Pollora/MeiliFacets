@@ -6,6 +6,8 @@ namespace Modules\MeiliFacets\Enums;
 
 enum DocumentField: string
 {
+    case PostType = 'post_type';
+    case Status = 'post_status';
     case Title = 'post_title';
     case Excerpt = 'excerpt';
     case Terms = 'terms';
@@ -19,5 +21,14 @@ enum DocumentField: string
     public function path(string $key): string
     {
         return $this->value.'.'.$key;
+    }
+
+    /**
+     * @param  list<string>  $keys
+     * @return list<string>
+     */
+    public function paths(array $keys): array
+    {
+        return array_map($this->path(...), $keys);
     }
 }

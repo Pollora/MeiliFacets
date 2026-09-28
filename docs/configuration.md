@@ -156,6 +156,7 @@ Des bindings du conteneur Laravel, à poser dans le `register()` d'un provider d
 | `ProductFacets` | `WooCommerceFacets` — catégorie et marque | les taxonomies que la boutique parcourt | oui, `scoped` |
 | `ProductSorts` | `WooCommerceSorts` — prix ↑↓, nouveautés, « Promotions » (`on_sale`, offert seulement si le listing déclare un prix) | les tris offerts | oui, `scoped` |
 | `SearchableAttributes` | `DefaultSearchableAttributes` — titre, marque, catégorie et SKU sous WooCommerce, libellés des autres taxonomies hors techniques, extrait, contenu | les champs cherchables et leur rang | oui, `scoped` (décorer le défaut) |
+| `SearchableTypes` | `WooCommerceSearchableTypes` — produits en tête sous WooCommerce, puis les types indexés, publics et non `exclude_from_search`, libellés et archive lus dans WordPress | les types que la recherche du site peut interroger | oui, `scoped` (décorer le défaut) |
 
 ```php
 // Pluralia, AppServiceProvider
@@ -546,6 +547,75 @@ correspondre exactement.
 partent vers le moteur qu'à l'indexation (et à chaque sauvegarde, qui repousse les réglages avant que les
 documents soient réécrits). ⚠️ Les sous-ensembles `attributesToSearchOn` qu'une recherche envoie doivent rester
 inclus dans cette liste : le moteur refuse un champ qui n'y est pas.
+
+## Types cherchables
+
+La recherche du site (`<x-meilifacets::search>`, chantier en cours) interroge des **types de contenu**. Chacun
+est décrit par un `SearchableType` : `postType`, `heading`, `seeAllLabel`, `baseFilter`, `searchOn`, `card`,
+`archive`. Le module les **dérive de WordPress**, sans aucune chaîne à lui :
+
+| Champ | Source |
+| --- | --- |
+| `heading` | `get_post_type_object($type)->labels->name` |
+| `seeAllLabel` | `labels->all_items` |
+| `archive` | `get_post_type_archive_link($type)`, `null` sans archive (le lien « voir tous » n'est alors pas rendu) |
+| `baseFilter` | publié et du type ; pour `product`, en plus, sans les produits cachés de la recherche (`exclude-from-search`) |
+| `searchOn` | titre, `labels.*` des taxonomies du type, `excerpt` — pour `product` : titre, marque, catégorie, SKU — **filtrés par l'ordre de recherche** |
+| `card` | `meilifacets::search-card` |
+
+Types retenus par défaut : ceux que MeiliScout **indexe**, qui sont **publics** et **non `exclude_from_search`**
+(`SearchablePostTypes`). Un type personnalisé indexé apparaît donc sans une ligne de code. `product` appartient à
+WooCommerce : le défaut WordPress l'ignore toujours, le décorateur WooCommerce le déclare en tête quand le plugin est
+actif ; sans WooCommerce, aucun `product`, même enregistré par un autre plugin. Les autres suivent l'ordre de l'option `indexed_post_types`.
+
+`searchOn` est toujours un sous-ensemble de l'ordre de recherche (le moteur refuse un champ qui n'y est pas) : un
+projet qui retire `excerpt` de l'ordre le retire aussi des types. Un type à qui l'ordre ne laisse aucun champ lève
+`NoFieldToSearch`.
+
+Pour corriger un type sans tout reconstruire, un projet **décore** le défaut et appelle les méthodes `with…()`
+de `SearchableType`, immuables : `withHeading()`, `withSeeAllLabel()`, `withCard()`, `withSearchOn()`. Pour
+renommer la section des articles :
+
+```php
+use Modules\MeiliFacets\Contracts\SearchableTypes;
+use Modules\MeiliFacets\SiteSearch\WooCommerceSearchableTypes;
+
+final readonly class RetitledSearchableTypes implements SearchableTypes
+{
+    public function __construct(private WooCommerceSearchableTypes $default) {}
+
+    public function all(): array
+    {
+        $types = $this->default->all();
+
+        if (isset($types['post'])) {
+            $types['post'] = $types['post']
+                ->withHeading(__('News'))
+                ->withSeeAllLabel(__('All the news'));
+        }
+
+        return $types;
+    }
+}
+```
+
+```php
+// Provider du projet, register()
+$this->app->scoped(SearchableTypes::class, RetitledSearchableTypes::class);
+```
+
+Ajouter un type, c'est l'insérer dans le tableau rendu (`SearchableTypeFactory::forPostType('mon_type')` le
+construit comme les autres) ; en retirer un, `unset()`. Un type déclaré mais **non indexé** reste refusé à la
+section qui le demande (`SearchTypeRefused`) : le moteur ne le contient pas.
+
+⚠️ `withSearchOn()` prend la liste telle quelle ; un champ hors de l'ordre de recherche fait lever
+`FieldsOutsideSearchOrder` à la validation du type (`AcceptedSearchTypes`), qui nomme le type et les champs —
+le moteur refuserait sinon la requête entière.
+
+Pas de `withBaseFilter()` : un projet qui doit changer le filtre de base construit son type par `SearchableTypeFactory::make()`.
+
+Comme pour `SearchableAttributes`, le module lie son défaut par `scopedIf` : le projet lie avec `scoped` ou
+`bind`, jamais `scopedIf`.
 
 ## Réglages d'index posés par le module
 

@@ -263,12 +263,17 @@ crochets confondus (S-18).
 | Loupe | `<x-meilifacets::search-toggle>` + slot `icon` | `search-toggle` | `SearchPanel` (chargeur) | `<button aria-expanded="false" aria-controls="…">` vers le panneau de sa racine, nommé « Search » / « Rechercher » (`aria-label`). Icône par défaut `images/search.svg` en `<img alt="">` dans un `<span aria-hidden="true">`, remplacée par le slot `icon`, retirée par un slot vide — même mécanique que l'ouvreur « Filtres ». |
 | Panneau | `<x-meilifacets::search-panel>` + slot | `search-panel`, `search-status` | `SearchPanel`, `StatusView`, `PanelRoom` | `hidden` au rendu ; conteneur `role="search"` (pas de `<form action>` : rien ne part vers WordPress) ; porte l'unique région `aria-live="polite"`. Ce qu'il contient, c'est le thème qui le pose. |
 | Champ | `<x-meilifacets::search-input>` | `search-input` | `Typing`, `ComboboxKeys` | `<input type="search" role="combobox" aria-expanded aria-controls aria-autocomplete="list">`, libellé visuellement masqué, traduisible. |
-| Section | `<x-meilifacets::search-section>` + `type` (requis), `limit` (défaut de `SearchSettings` : 4), `heading` | `search-section` (`data-type`), `search-count`, `search-results`, `search-template`, `search-see-all` | `SectionView` | En-tête (titre du type + compte « 3 produits correspondent », CLDR par `CountLabel`), liste `role="group"` dans la listbox, template de la carte que le type déclare, lien « Voir tous les produits » : `<a href>` **rendu par le serveur** vers l'archive du type, jamais réécrit ; absent si le type n'a pas d'archive. Masquée quand son type n'a rien. Un `type` non déclaré ou non indexé lève (`SearchTypeRefused`). Une section par type et par racine. |
+| Section | `<x-meilifacets::search-section>` + `type` (requis), `limit` (défaut de `SearchSettings` : 4), `heading` | `search-section` (`data-type`), `search-count`, `search-results`, `search-template`, `search-see-all` | `SectionView` | En-tête (titre du type, `labels->name` de WordPress, + compte « 3 résultats » : clé existante `:count result|:count results`, CLDR par `CountLabel`), liste `role="group"` dans la listbox, template de la carte que le type déclare, lien « voir tous » (`labels->all_items`, « Tous les produits ») : `<a href>` **rendu par le serveur** vers l'archive du type, jamais réécrit ; absent si le type n'a pas d'archive. Masquée quand son type n'a rien. Un `type` non déclaré ou non indexé lève (`SearchTypeRefused`). Une section par type et par racine. |
 | Vide | `<x-meilifacets::search-empty>` | `search-empty` | `StatusView` | « Aucun élément ne correspond à votre recherche », révélé quand toutes les sections posées sont vides. Libellé traduisible, slot pour le remplacer. |
 | Indisponible | `<x-meilifacets::search-unavailable>` | `search-unavailable` | `StatusView` | « Recherche indisponible » (D-7), révélé en panne ; sections masquées. |
-| Carte produit | `<x-meilifacets::card>` (template d'une section) | `card`, `url`, `image`, `title`, `price` | `CardView` (existant) | La carte du listing, telle quelle. |
-| Carte d'article | `<x-meilifacets::excerpt-card>` (template d'une section) | `card`, `url`, `image`, `title`, `excerpt` | `CardView` + `excerpt` | Titre, extrait, image. |
+| Carte de recherche | `<x-meilifacets::search-card>` (template d'une section, **tous types**, distincte de la carte du listing `<x-meilifacets::card>`) | `card`, `url`, `image`, `title`, `summary`, `price` | `CardView` + `summary` | Titre, image, `summary` s'il est présent, prix s'il est présent. Nommée par `SearchableType::card` depuis l'étape 3a (`R-187`), vue écrite à l'étape 5. |
 | Surlignage | — | — | `Highlight` | Balises en caractères privés (U+E000/U+E001), découpe en nœuds texte + `<mark>` : jamais d'`innerHTML` sur une chaîne du moteur. Ne lit que `_formatted.card.title` et `_formatted.card.summary`. |
+
+**Réutilisé plutôt que réécrit** (Louis, 2026-09-28) : le panneau s'appuie sur les briques du listing, dont
+certaines sont **à extraire** avant d'être partagées — voir § 4 et § 7. Côté PHP : `ListingScript` (à extraire en
+une classe partagée, paramétrée par module et source de données, à la place d'un `SiteSearchScript`),
+`Stylesheet` (à paramétrer par poignée et chemin, à la place d'un `SiteSearchStylesheet`),
+`BrowserConnection::origin()` pour la préconnexion.
 
 **Répartition module / thème.** Le module rend chaque brique et son comportement, habillés neutres
 (`site-search.css` : ni couleur, ni police de marque). Le thème **compose** : il pose la racine dans son
@@ -315,18 +320,33 @@ interface SearchableTypes
 ```
 
 `SearchableType` (objet de valeur, `final readonly`) porte ce qui ne change pas d'un gabarit à l'autre :
-`postType`, `heading` (« Products »), `countPattern` (« :count product matches|:count products match »),
-`seeAllLabel` (« See all products »), `baseFilter` (clauses), `searchOn` (`attributesToSearchOn`), `card`
-(vue de carte) et `archive` (`?string`, l'adresse du lien « voir tous » ; défaut
-`get_post_type_archive_link($postType)`, `null` si le type n'en a pas). La **limite** et l'**ordre** ne sont
-pas dans la déclaration : ils appartiennent au gabarit (`limit`, ordre des sections). `heading` se surcharge
-ponctuellement par l'attribut de la section.
+`postType`, `heading`, `seeAllLabel`, `baseFilter` (clauses), `searchOn` (`attributesToSearchOn`), `card`
+(nom du composant de carte) et `archive` (`?string`, l'adresse du lien « voir tous »). La **limite** et
+l'**ordre** ne sont pas dans la déclaration : ils appartiennent au gabarit (`limit`, ordre des sections).
+`heading` se surcharge ponctuellement par l'attribut de la section. Aucun motif de compte par type : la section
+réutilise `:count result|:count results` (Louis, 2026-09-28).
 
-Défaut du module : `WordPressSearchableTypes` (articles) décoré par `WooCommerceSearchableTypes` (produits),
-lié en `scopedIf` ; le projet lie le sien en `scoped`. Le filtre de base des produits **reprend celui du
-catalogue** (`post_type`, `post_status`) avec, sur une recherche, **`exclude-from-search` à la place de
-`exclude-from-catalog`** (`R-160` ; WooCommerce échange le drapeau, `class-wc-query.php:929` — corrigé le
-2026-09-25, le plan disait « plus »), une seule source partagée avec `ProductListing` sur une recherche.
+**Tout est dérivé de WordPress** (Louis, 2026-09-28, livré par `R-187`) : `SearchableTypeFactory::forPostType()`
+lit `heading` = `labels->name`, `seeAllLabel` = `labels->all_items`, `archive` =
+`get_post_type_archive_link()` (`null` sans archive), `baseFilter` = publié + type (`PublishedPosts`), `searchOn`
+= titre, `labels.*` des taxonomies **du type**, `excerpt`, filtrés par l'ordre de recherche
+(`AttributesToSearchOn::among()`) ; `card` = `meilifacets::search-card`. Un type à qui l'ordre ne laisse aucun
+champ lève `NoFieldToSearch` ; un `searchOn` qui sort de l'ordre (posé par un projet) lève
+`FieldsOutsideSearchOrder` à la validation. Aucune chaîne propre au module.
+
+Défaut du module : `WordPressSearchableTypes` — les types **indexés**, **publics** et **non
+`exclude_from_search`** (`SearchablePostTypes`), dans l'ordre de `indexed_post_types`, `product` excepté, mémoïsés
+par requête — décoré par
+`WooCommerceSearchableTypes`, lié par nom de classe en `scopedIf`. Sous WooCommerce actif (lu à chaque appel,
+`R-171`), les produits passent **en tête** et surchargent la fabrique (`SearchableTypeFactory::make()`) : filtre
+`VisibleProducts::inSearch()`, champs titre + `WooCommerceProductFields` ; sans WooCommerce, aucun `product`. Le
+filtre de base des produits **reprend celui du catalogue** avec, sur une recherche, **`exclude-from-search` à la
+place de `exclude-from-catalog`** (`R-160` ; WooCommerce échange le drapeau, `class-wc-query.php:929`), une seule
+source partagée avec `ProductListing` sur une recherche.
+
+**Surcharge** : un projet décore le défaut. Il corrige un type par `withHeading()`, `withSeeAllLabel()`,
+`withCard()`, `withSearchOn()` (immuables), en ajoute ou en retire un en modifiant `all()`. Exemple :
+`configuration.md`, « Types cherchables ».
 
 **Validation d'une section**, à sa construction : son `type` doit figurer dans
 `SearchableTypes::all()` **et** dans `indexed_post_types` (lu par la même frontière MeiliScout que
@@ -340,6 +360,18 @@ un projet le relie par le conteneur s'il veut d'autres défauts partout. Un gaba
 par attribut : `min-chars` et `delay` sur la racine, `limit` sur la section.
 
 ### 4. Client TypeScript
+
+**Réutilisé plutôt que réécrit** (Louis, 2026-09-28) — rien n'est écrit avant les étapes 4 et 5 :
+- `SearchClient` (`ts/shared/search-client.ts`) : étendu de façon additive au surlignage (`attributesToHighlight`,
+  lecture de `_formatted`), **une instance par racine** — son `AbortController` unique annule alors la recherche
+  précédente de sa seule racine ;
+- `Contract` (`ts/shared/contract.ts`) : réutilisé, avec des règles **propres à chaque racine** (`listing`,
+  `search`) — **à extraire** : aujourd'hui les règles et `orphans()` ne connaissent que `data-listing` ;
+- chargeur : le squelette de `listing-page.ts` (lecture des données publiées sous un module, orphelins, une liaison
+  par racine) **à extraire** et partagé par `listing-page.ts` et `site-search-page.ts` ;
+- `ListboxKeys` (`ts/sort/listbox-keys.ts`), **en partie** : les déplacements de l'état ouvert (flèches,
+  `Home`/`End`) ; l'ouverture et la sélection du tri n'ont pas d'équivalent dans le combobox du panneau ;
+- côté PHP, la préconnexion lit `BrowserConnection::origin()`.
 
 - **Chargeur** (`site-search-page.ts`, paquet `dist/site-search.js`) : lie chaque racine `search` (disclosure,
   S-12), ouvre le panneau et met le focus dans le champ **avant** que le client n'arrive ; au premier survol
@@ -355,7 +387,7 @@ par attribut : `min-chars` et `delay` sur la racine, `limit` sur la section.
   - annulation : celle de `SearchClient` ; une réponse dépassée n'est jamais peinte ;
   - `SectionView` peint compte et cartes ; `StatusView` annonce **une fois la réponse posée**
     (« 4 produits et 2 articles », message vide, message de panne) ;
-  - `ComboboxKeys` : flèches, `Home`/`End`, Entrée sur une option = suivre son lien, `aria-activedescendant`
+  - `ComboboxKeys` : flèches et `Home`/`End` repris de `ListboxKeys`, Entrée sur une option = suivre son lien, `aria-activedescendant`
     sur le champ ; Entrée sans option active ne fait rien (S-9) ;
   - occupé : `aria-busy` sur le panneau pendant une recherche, atténuation différée par la feuille (comme ANIM-10) ;
   - panne (refus, délai dépassé, connexion absente) : sections masquées, message indisponible révélé.
@@ -387,13 +419,14 @@ par attribut : `min-chars` et `delay` sur la racine, `limit` sur la section.
   Procédure et exemple : `configuration.md`, « Ordre de recherche ».
 - **Chaque requête restreint, jamais ne réordonne** : `attributesToSearchOn` (≥ 1.3). Proposé :
   - panneau, produits : `post_title`, `labels.product_brand`, `labels.product_cat`, `metas._sku` ;
-  - panneau, articles : `post_title`, `labels.category`, `labels.contenu`, `excerpt`
-    (`attributesToSearchOn` doit rester un sous-ensemble de `searchableAttributes`) ;
+  - panneau, autres types : `post_title`, `labels.*` des taxonomies du type, `excerpt` — sur Pluralia, articles :
+    `post_title`, `labels.category`, `labels.post_tag`, `labels.post_format`, `labels.contenu`, `excerpt`
+    (lu le 2026-09-28 ; toujours un sous-ensemble de `searchableAttributes`, par construction) ;
   - listing produit (recherche routée) : tout l'ensemble (paramètre omis).
   Déclarés dans `SearchableType::searchOn`. Deux ordres différents exigeraient deux index : hors cahier des charges.
 - **Projections** (S-6) posées par `meiliscout/post/document`, comme `facets` : `labels.<taxonomie>`, `excerpt`, `content`,
-  `card.excerpt`. Nouveaux cas `DocumentField::Labels`, `DocumentField::Content`, `DocumentField::Title`,
-  `DocumentField::Excerpt`, `CardField::Excerpt`. `card.excerpt` n'est posé que sur les cartes qui ne sont pas
+  `card.summary`. Nouveaux cas `DocumentField::Labels`, `DocumentField::Content`, `DocumentField::Title`,
+  `DocumentField::Excerpt`, `CardField::Summary` (d'abord `card.excerpt`, renommé par `R-185`). `card.summary` n'est posé que sur les cartes qui ne sont pas
   des produits ; ni `content` ni
   extrait pour un article protégé par mot de passe.
 - **Tolérance** : défauts de Meilisearch (D-8) ; `typoTolerance.disableOnAttributes: ["metas._sku"]`. Pas de
@@ -404,27 +437,34 @@ par attribut : `min-chars` et `delay` sur la racine, `limit` sur la section.
 
 **PHP**
 - `app/Contracts/SearchableTypes.php` ; `app/Contracts/SearchableAttributes.php` (livré, `R-184`) ; `IndexAttributes` gagne `exactlyMatched()`.
-- `app/SiteSearch/` (autorisé) : `SearchableType`, `WordPressSearchableTypes`, `WooCommerceSearchableTypes`,
+- `app/SiteSearch/` (autorisé) : `SearchableType`, `SearchableTypeFactory`, `WordPressSearchableTypes`,
+  `WooCommerceSearchableTypes`, `SearchablePostTypes`, `AttributesToSearchOn`, `AcceptedSearchTypes`, `NoFieldToSearch`,
+  `FieldsOutsideSearchOrder` (livrés, `R-187`),
   `SearchSettings` (seuil, temporisation, limite par défaut), `SearchTypeRefused` (section d'un type non déclaré
   ou non indexé), `SearchRegistry` (les racines d'une page
   par `name`, et la garde « une section par type et par racine »).
 - `app/Indexing/` : `LabelProjection`, `TermGrouping`, `PostText`, `PostDocument` ; `MeiliScoutBridge` n'a plus qu'un filtre de document, `addModuleFields()` (`R-182`) ;
-  `ExcerptCardProjector` (décorateur).
-- `app/View/` : `SiteSearchDescription`, `SiteSearchScript`, `SiteSearchStylesheet` ; `Components/` :
-  `Search`, `SearchToggle`, `SearchPanel`, `SearchInput`, `SearchSection`, `SearchEmpty`, `SearchUnavailable`,
-  `ExcerptCard` (les briques héritent d'un `SearchComponent` qui résout leur racine, comme `ListingComponent`).
-- `app/Enums/` : `Hook` (+ crochets du § 8), `DocumentField` (+ `Labels`, `Text`), `CardField` (+ `Excerpt`),
+  `SummaryCardProjector` (décorateur) ; `IndexedPostTypes` (seule lecture de `indexed_post_types`, `R-187`).
+- `app/Search/` : `PublishedPosts`, `VisibleProducts` (filtres de base partagés par le listing et la recherche, `R-187`).
+- `app/View/` : `SiteSearchDescription` ; **à extraire** : `ListingScript` en une classe partagée, paramétrée par
+  module et source de données (remplace `SiteSearchScript`), `Stylesheet` paramétrée (remplace
+  `SiteSearchStylesheet`) ; `Components/` : `Search`, `SearchToggle`, `SearchPanel`, `SearchInput`,
+  `SearchSection`, `SearchEmpty`, `SearchUnavailable`, `SearchCard` (les briques héritent d'un `SearchComponent`
+  qui résout leur racine, comme `ListingComponent`).
+- `app/Enums/` : `Hook` (+ crochets du § 8), `DocumentField` (+ `Labels`, `Content`, `PostType`, `Status`), `CardField` (+ `Summary`),
   `IndexSetting` (+ `SearchableAttributes`, `TypoTolerance`) ; `ElementId` : `searchPanel`, `searchInput`,
   `searchListbox`, `searchSection`, `searchOption`.
 - `app/Providers/SiteSearchServiceProvider.php` (liaison `scopedIf` du contrat, lecture des défauts).
 
 **Blade** — à plat dans `components/` : `search`, `search-toggle`, `search-panel`, `search-input`,
-`search-section`, `search-empty`, `search-unavailable`, `excerpt-card`.
+`search-section`, `search-empty`, `search-unavailable`, `search-card`.
 
 **TypeScript** — `resources/assets/ts/site-search/` (autorisé) : `search-panel.ts`, `site-search.ts`,
 `typing.ts`, `site-search-query.ts`, `section-view.ts`, `status-view.ts`, `highlight.ts`,
 `combobox-keys.ts`, `panel-room.ts` ; entrées `site-search-page.ts` et `site-search-client.ts` à la racine ;
-`shared/light-dismiss.ts` extrait de `DisclosureGroup` (S-12) ; `bundle.ts` construit et vérifie trois paquets.
+**à extraire** dans `shared/` : `light-dismiss.ts` (de `DisclosureGroup`, S-12), le squelette du chargeur (de
+`listing-page.ts`), les règles de `Contract` par racine ; **réutilisés** : `SearchClient` (étendu au surlignage,
+une instance par racine), `ListboxKeys` en partie, `CardView` ; `bundle.ts` construit et vérifie trois paquets.
 
 **CSS** — `resources/assets/css/site-search.css`, mobile first, seuil `48em`, jetons redéclarés sur
 `[data-meili="search"]` : `--meili-layer-search`, `--meili-search-room`, durées et courbes du module.
@@ -435,7 +475,7 @@ par attribut : `min-chars` et `delay` sur la racine, `limit` sur la section.
 renommés `search-*` par Louis (S-18) : `search` (racine),
 `search-toggle`, `search-panel`, `search-input`, `search-status`, `search-empty`,
 `search-unavailable`, `search-section`, `search-count`, `search-results`,
-`search-template`, `search-see-all`, `excerpt`. `search-panel` s'ajoute à la liste
+`search-template`, `search-see-all`, `summary` (d'abord `excerpt`, suit `card.summary`). `search-panel` s'ajoute à la liste
 autorisée avec la racine composable (le panneau n'est plus la racine). Règles proposées dans `RULES` : `search` → `search-panel`, `search-input`, `search-status`, `search-empty`,
 `search-unavailable` ; `search-section` → `search-results`, `search-template`,
 `search-count` ; `search-template` → `card`, `url`, `title` (ni `image` ni `price` exigés ;
@@ -449,7 +489,11 @@ sous-ensembles et archive : déclaration des types.
 **Dossiers** : `app/SiteSearch/`, `resources/assets/ts/site-search/`. **Fichiers publiés** :
 `dist/site-search.js`, `dist/site-search-client.js`, `css/site-search.css`, `images/search.svg`.
 
-**Champs de document** : `labels`, `content` (d'abord nommé `text`, renommé par Louis le 2026-09-25), `card.excerpt` ; **réindexation** au moment voulu, avec l'accord de Louis.
+**Composants** : `search-card` (carte de recherche, tous types, remplace `excerpt-card` — Louis, 2026-09-28).
+**Réutilisation** : `ListingScript`, `Stylesheet`, le squelette de `listing-page.ts` et les règles de `Contract`
+sont extraits en place plutôt que doublés (§ 4, § 7) ; aucun fichier ni dossier de plus que ceux listés ici.
+
+**Champs de document** : `labels`, `content` (d'abord nommé `text`, renommé par Louis le 2026-09-25), `card.summary` (d'abord `card.excerpt`) ; **réindexation** au moment voulu, avec l'accord de Louis.
 
 ### 9. Risques
 
@@ -504,7 +548,7 @@ Registre : `R-27`, `R-159`, `R-160`, décision en attente « `card.title` ». D�
 - [x] `SearchableAttributes::all()` (`R-184`) / `IndexAttributes::exactlyMatched()` et leur écriture par `FacetedPostIndexable` (`IndexSetting::SearchableAttributes`, `IndexSetting::TypoTolerance`)
 - [x] projections `labels.<taxonomie>`, `excerpt` et `content` ; `typoTolerance.disableOnAttributes` sur le SKU
 - [x] `exclude-from-search` sur la recherche produit (`R-160`), à la place de `exclude-from-catalog` comme WooCommerce — **à valider par Louis**
-- [x] avancé de l'étape 3 : `card.excerpt` (`ExcerptCardProjector`)
+- [x] avancé de l'étape 3 : `card.summary` (`SummaryCardProjector`, d'abord `card.excerpt`/`ExcerptCardProjector`)
 - [ ] terme sans lettre ni chiffre = zéro résultat, serveur et client, mêmes cas partagés (`R-159`) — **hors de cette livraison**, reste ouvert
 - [x] réindexation locale par Louis et mesures (ci-dessous), sur la version où l'extrait était `post_excerpt` brut
 - [x] seconde réindexation par Louis pour le champ `excerpt` nettoyé, mesures conformes (ci-dessous)
@@ -569,11 +613,12 @@ déploiement, en local comme en préprod.
 
 Décisions : D-3, D-5, D-6, S-2, S-3, S-7, S-8, S-17, S-19, S-21.
 
-- [ ] contrat `SearchableTypes`, `SearchableType`, défauts WordPress / WooCommerce en `scopedIf`
+- [x] contrat `SearchableTypes`, `SearchableType` (+ `with…()`), fabrique `SearchableTypeFactory` (libellés, archive, filtre et champs dérivés de WordPress), défauts WordPress / WooCommerce en `scopedIf` (`R-187`, refondu le 2026-09-28)
+- [x] types retenus = indexés, publics, non `exclude_from_search` (`SearchablePostTypes`) ; produits en tête sous WooCommerce, jamais dérivés par le défaut WordPress ; `searchOn` vide lève (`NoFieldToSearch`), hors de l'ordre lève (`FieldsOutsideSearchOrder`) ; surcharge documentée (`configuration.md`) et testée
 - [ ] racine `<x-meilifacets::search>` et registre des racines par `name` ; `SearchSettings` et attributs `min-chars`, `delay`, `limit`
-- [ ] une section d'un type non déclaré ou non indexé lève (`SearchTypeRefused`)
-- [ ] adresse d'archive par type (`get_post_type_archive_link()`, `null` sans archive)
-- [x] extrait projeté (`CardField::Excerpt`, `ExcerptCardProjector`) — avancé à l'étape 2 (`R-181`)
+- [x] une section d'un type non déclaré ou non indexé lève (`SearchTypeRefused`) — validation `AcceptedSearchTypes::get()` livrée, appelée par la section à l'étape 5 (`R-187`)
+- [x] adresse d'archive par type (`get_post_type_archive_link()`, `null` sans archive), lue par la fabrique (`R-187`)
+- [x] extrait projeté (`CardField::Summary`, `SummaryCardProjector`) — avancé à l'étape 2 (`R-181`, renommé par `R-185`)
 - [ ] description publiée par la racine (`SiteSearchDescription`) : connexion, types autorisés, seuil, délai, libellés
 
 **Recette —** `<x-meilifacets::search-section type="page" />` lève en nommant `page` et les types
@@ -583,7 +628,8 @@ acceptables ; sans WooCommerce, les articles seuls fonctionnent ; archives `/bou
 
 Décisions : D-2, D-7, S-4, S-8.
 
-- [ ] `SearchQuery` étendu (additif) ; `SiteSearchQuery`, `Typing`, `Highlight`, `SectionView`, `StatusView`
+- [ ] extractions d'abord : squelette du chargeur (`listing-page.ts`), règles de `Contract` par racine, `ListingScript` partagé, `Stylesheet` paramétrée ; listing inchangé, prouvé par ses tests
+- [ ] `SearchQuery` étendu (additif, surlignage) ; `SearchClient` réutilisé, une instance par racine ; `SiteSearchQuery`, `Typing`, `Highlight`, `SectionView`, `StatusView`
 - [ ] chargeur + client en deux paquets, `bundle.ts` et `build:check` étendus, exclusion du Delay JS
 - [ ] latence frappe → affichage mesurée (objectif proposé : 100 ms au 95ᵉ centile en local)
 
@@ -594,8 +640,9 @@ compte, section vide masquée, panne → message seul) ; un terme tapé vite ne 
 
 Décisions : S-1, S-5, S-9, S-10, S-11, S-12, D-7.
 
-- [ ] briques `search-toggle`, `search-panel`, `search-input`, `search-section` (`type`, `limit`), `search-empty`, `search-unavailable`, `excerpt-card` ; règles de composition (§ 2) ; feuille `site-search.css`, neutre, mobile first
+- [ ] briques `search-toggle`, `search-panel`, `search-input`, `search-section` (`type`, `limit`), `search-empty`, `search-unavailable`, `search-card` (titre, image, `summary` et prix s'ils sont présents) ; règles de composition (§ 2) ; feuille `site-search.css`, neutre, mobile first
 - [ ] une section de type non autorisé lève ; seules les sections posées sont cherchées ; deux sections du même type dans une racine lèvent
+- [ ] `ComboboxKeys` sur les déplacements de `ListboxKeys` ; préconnexion par `BrowserConnection::origin()`
 - [ ] disclosure : focus dans le champ, Échap rend le focus à la loupe, clic extérieur, Tab qui sort (`shared/light-dismiss.ts`, filtres inchangés)
 - [ ] place mesurée sous l'en-tête, défilement interne, verrou du défilement de la page sous 48em (S-10) ; Entrée sans option active inerte (S-9)
 - [ ] liens « voir tous » vers l'archive ; message vide ; message de panne (D-7) ; `Contract.orphans()` connaît la racine `search`
@@ -640,6 +687,9 @@ sauf avis contraire, et sont confirmées à la clôture de l'étape 1.
 
 | Date | Étape | Fait |
 | --- | --- | --- |
+| 2026-09-28 | 3a | Arbitrages de Louis sur la refonte (`R-187`) : `FieldsOutsideSearchOrder` à la validation, pas de `withBaseFilter()`, `product` d'un autre plugin écarté (validé), `product` jamais dérivé par le défaut WordPress (`SearchablePostTypes`) ; `composer check` vert, suite `Modules` 604 verte |
+| 2026-09-28 | 3a | Refonte de la déclaration des types sur revue de Louis (`R-187`) : types dérivés de WordPress (`SearchableTypeFactory`, libellés natifs, plus aucune chaîne du module), types retenus = indexés + publics + non `exclude_from_search`, produits en tête, `with…()` pour la surcharge, `NoFieldToSearch`, carte `search-card`, `VisibleProducts` dans `Search\`, `PostTypeArchive` et l'expression des chemins `labels.*` dédoublonnés ; plan des étapes 4-5 réécrit sur la réutilisation ; `composer check` et suite `Modules` (601) verts ; ni commit ni réindexation |
+| 2026-09-28 | 3a | Premier jet de la déclaration des types (`R-187`) : `SearchableTypes`/`SearchableType`, défauts WordPress puis WooCommerce (`scopedIf`), filtre produits partagé avec `ProductListing` (`VisibleProducts`), `searchOn` lu dans l'ordre de recherche, archives `/boutique` et `/journal` résolues, `SearchTypeRefused` à la validation (`AcceptedSearchTypes`) ; `composer check` et suite `Modules` (595) verts ; ni commit ni réindexation. Reste la seconde moitié (racine, `SearchSettings`, description) |
 | 2026-09-25 | 0 | Cadrage : cahier des charges, existant, décisions D-1 → D-9 (`741a334`) |
 | 2026-09-25 | 0 → 1 | Branche `feat/site-search` ; passe de conformité ; index lu (67 documents, champs d'un article, surlignage, tolérance, seuil) ; D-1, D-3, D-8 et S-1 tranchés par Louis ; architecture rendue, non commitée |
 | 2026-09-25 | 1 | Louis tranche S-17 (racine `<x-meilifacets::search>` + briques composées par le thème) ; S-20 : la page unifiée du lot 5 est remplacée ; S-18 (nom des crochets) ouvert ; place de la déclaration des types mise en suspens (S-21, avec S-19) |

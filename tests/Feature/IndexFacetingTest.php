@@ -9,6 +9,7 @@ use Modules\MeiliFacets\Enums\FacetingSetting;
 use Modules\MeiliFacets\Enums\IndexSetting;
 use Modules\MeiliFacets\Indexing\EmptyIndexAttributes;
 use Modules\MeiliFacets\Indexing\FacetedPostIndexable;
+use Modules\MeiliFacets\Indexing\IndexedPostTypes;
 use Modules\MeiliFacets\Indexing\IndexedTaxonomies;
 use Modules\MeiliFacets\Search\EngineLimits;
 use PHPUnit\Framework\Attributes\Test;
@@ -43,7 +44,7 @@ final class IndexFacetingTest extends TestCase
         return new FacetedPostIndexable(
             new EmptyIndexAttributes,
             $this->app->make(SearchableAttributes::class),
-            new IndexedTaxonomies,
+            new IndexedTaxonomies(new IndexedPostTypes),
             $limits
         )
             ->getIndexSettings()[IndexSetting::Faceting->value];

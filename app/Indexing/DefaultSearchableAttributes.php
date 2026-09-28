@@ -24,16 +24,8 @@ final readonly class DefaultSearchableAttributes implements SearchableAttributes
         return UniqueList::merge(
             [DocumentField::Title->value],
             $this->productFields->all(),
-            $this->labelFields(),
+            DocumentField::Labels->paths($this->taxonomies->labelled()),
             [DocumentField::Excerpt->value, DocumentField::Content->value]
         );
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function labelFields(): array
-    {
-        return array_map(DocumentField::Labels->path(...), $this->taxonomies->labelled());
     }
 }

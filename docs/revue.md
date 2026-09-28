@@ -3282,6 +3282,107 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
+### R-187 · 🟡 · ouvert (en attente de commit, seconde moitié à venir) · ouvert le 2026-09-28 — étape 3a : déclaration des types cherchables
+
+Rattaché à `R-180`, première moitié de l'étape 3 de [chantier-recherche.md](chantier-recherche.md) (D-3, S-2,
+S-19, S-21, `R-160`). La seconde moitié — racine `<x-meilifacets::search>`, `SearchSettings`, description publiée —
+reste à faire. Rien n'est commité, rien n'est réindexé, rien n'est écrit en base ni dans le moteur.
+
+**Refonte du 2026-09-28, sur revue de Louis** (décisions dans `decisions.md` « Validées » : types dérivés de
+WordPress, types retenus, ordre, `searchOn`, surcharge, carte de recherche, réutilisation pour le client). Le
+premier jet déclarait deux types en dur avec ses propres chaînes (`__('Posts')`, `See all …`, un motif de compte
+par type) ; il est remplacé ainsi :
+
+- *Objet de valeur* `SiteSearch\SearchableType` (`final readonly`) : `postType`, `heading`, `seeAllLabel`,
+  `baseFilter`, `searchOn`, `card`, `archive` — `countPattern` retiré (la section réutilisera la clé existante
+  `:count result|:count results`, vérifiée dans `lang/fr.json` et lue par `Facet` et `ListingDescription`).
+  `withHeading()`, `withSeeAllLabel()`, `withCard()`, `withSearchOn()`, immuables ; un `searchOn` vide lève
+  `NoFieldToSearch` (nomme le type), à la construction.
+- *Fabrique* `SearchableTypeFactory` : `forPostType()` lit `labels->name`, `labels->all_items`,
+  `get_post_type_archive_link()` (`null` sans archive), filtre `PublishedPosts`, champs titre + `labels.*` des
+  taxonomies du type + `excerpt` filtrés par `AttributesToSearchOn::among()`, carte `meilifacets::search-card` ;
+  `make()` pour un type dont le filtre et les champs diffèrent ; un type non enregistré lève
+  `SearchTypeRefused::unregistered()`.
+- *Défauts* : `SearchablePostTypes` = types indexés, publics, non `exclude_from_search`, dans l'ordre de
+  `indexed_post_types` ; `WordPressSearchableTypes` les dérive, **`product` toujours ignoré**, mémoïsés par
+  requête ; `WooCommerceSearchableTypes` le décore : sous WooCommerce actif (closure lue à chaque appel, `R-171`)
+  et `product` retenu, les produits passent en tête par `make()` (`VisibleProducts::inSearch()`, titre +
+  `WooCommerceProductFields`). Aucun `product` générique construit puis jeté. Liés dans `SiteSearchServiceProvider` :
+  les deux en `scoped`, le contrat en `scopedIf` par nom de classe.
+- *Validation* : `AcceptedSearchTypes` lève `SearchTypeRefused` si le type n'est pas déclaré **ou** pas indexé, et
+  `FieldsOutsideSearchOrder` (nomme le type et les champs) si un `searchOn` sort de l'ordre de recherche
+  (`AttributesToSearchOn::outside()`), dans `all()` comme dans `get()`.
+- *Surcharge* : `configuration.md`, section « Types cherchables » (exemple décorateur générique, liaison, ajout et
+  retrait d'un type) et ligne du tableau des points d'extension ; l'exemple est exercé tel quel
+  (`Tests\Unit\Doubles\RetitledSearchableTypes`).
+- *Chaînes* : les six clés du premier jet retirées de `lang/fr.json` (fichier revenu à l'identique de `ce4160d`).
+
+**Doublons, vérifiés avant d'agir.**
+- `searchedFields()` / `DefaultSearchableAttributes::labelFields()` : même expression (chemins `labels.*` d'une
+  liste de taxonomies) sur deux entrées différentes → **supprimé** : `DocumentField::paths()`, utilisé par les
+  deux ; `labelFields()` disparaît.
+- `$pluginIsActive` dans `WooCommerceSearchableTypes` et `WooCommerceProductFields` → **gardé** : pas un doublon.
+  `WooCommerceProductFields` sert aussi `DefaultSearchableAttributes`, qui n'a pas d'autre garde ; le décorateur,
+  lui, en a besoin pour le filtre et la place des produits (sans WooCommerce, `facets.product_visibility` n'est
+  pas déclaré filtrable). Seule conséquence : sur le chemin du décorateur, la garde des champs est relue une fois,
+  toujours vraie.
+- `PostTypeArchive` → **supprimé** : il ne faisait que normaliser `false` en `null` ; c'est désormais une méthode
+  privée de la fabrique, seul lecteur.
+- `VisibleProducts` → **déplacé** de `Listing\` à `Search\`, à côté de `PublishedPosts`.
+- `IndexedPostTypes`, `PublishedPosts` → gardés, justes (une lecture de l'option, un filtre partagé).
+
+**Corrigé dans le code existant (avant 3a).** `IndexedTaxonomies` perd son constructeur à défaut
+(`= new IndexedPostTypes`), gardé au premier jet pour ne pas toucher les tests : c'était une compatibilité ; les
+quatre tests qui l'instancient passent la dépendance. `DefaultSearchableAttributes::labelFields()` remplacé par
+`DocumentField::paths()` (ci-dessus). Thème et `pluralia-fulfillments` : aucun usage des classes touchées (`grep`).
+
+**Vérifié à l'exécution** (`wp eval`, lecture seule, après `discovery:clear`) : `indexed_post_types` =
+`post, product` ; **`page` n'est pas indexée** (publique, non `exclude_from_search`) : elle n'entre pas, elle
+entrerait dès que MeiliScout l'indexerait. Types acceptés : `product` → « Produits », « Tous les produits »,
+`/boutique`, `post_title, labels.product_brand, labels.product_cat, metas._sku`, filtre `exclude-from-search` ;
+`post` → « Articles », « Tous les articles », `/journal`, `post_title, labels.category, labels.post_tag,
+labels.post_format, labels.contenu, excerpt`. `/`, `/boutique`, `/journal`, `/?s=creme&post_type=product` : 200.
+
+**Tests.** Feature `SearchableTypesTest` (17) : défaut WordPress sans `product` même indexé ; `withSearchOn(['url'])`
+d'un décorateur refusé en nommant `post` et `url` ; liaison par défaut ; CPT indexé, public et cherchable déclaré sans
+code (enregistré en mémoire, libellés natifs, carte, `null` sans archive, filtre) ; type `exclude_from_search` et
+`page` non indexée absents ; libellés et archives égaux à ceux de WordPress ; `null` sans archive ; produits en tête
+puis ordre de l'index ; sans WooCommerce aucun produit ; `searchOn` ⊆ ordre ; champs attendus littéraux ; ordre
+restreint suivi ; `searchOn` vide lève ; `SearchTypeRefused` nomme `page` et `product, post` ; type déclaré non
+indexé refusé ; type non enregistré refusé ; décorateur de la doc lié au conteneur. Unit `SearchableTypeTest` (2 :
+`with…()` sans toucher au reste, `withSearchOn([])` lève), `AttributesToSearchOnTest` (3, dont `outside()`). `ProductSearchTest` :
+filtre produits de la recherche = filtre de `ProductListing` sur une recherche. `indexed_post_types` épinglé partout
+(`PinsIndexedPostTypes`, dans `setUp()` ou le test, jamais en `#[Before]`) ; aucun post enregistré, donc aucun
+`KeepsTheIndexOut`. Lancées seules : 17/17, 6/6, 2/2, 3/3. `composer check` vert (Unit 329, client 541/541,
+`build:check`) ; suite `Modules` **OK (604 tests, 1800 assertions)**.
+
+**Les cinq passes.**
+- *Lisibilité* : méthodes de 1 à 12 lignes, un niveau chacune ; aucun booléen en paramètre ; conditions
+  composées nommées (`isSearchable()`, `searchesProducts()`) ; un nom par concept (`forPostType`/`make`,
+  `paths`). `make()` a trois paramètres, le maximum admis. Le décorateur retire `product` **avant** de le remettre
+  en tête : un spread de clés chaînes garderait la position du premier et la valeur du second.
+- *Commentaires* : seize retirés — six docblocks de classe, trois `@param` scalaires, un `@var` répétant le
+  contrat, six commentaires de tests (récits ou redites d'un docblock) ; un réduit (`VisibleProducts`, à l'anomalie
+  R-160). Gardés : `AttributesToSearchOn` (anomalie du moteur), la closure `R-171`, les formes
+  `list<string>` de `SearchableType`, le docblock « runs here » du test (convention des tests Feature voisins).
+  Ajoutés : la constante `WIRING` du test (contournement : instances `scoped` à oublier), le docblock du double
+  (convention de `ExcerptFirstSearchableAttributes`).
+- *Performance* : une dérivation par type retenu et par requête (liaisons `scoped`, déclarations mémoïsées) ;
+  plus aucune dérivation perdue pour `product` (corrigé sur demande de Louis). Par appel de `all()` : un
+  `get_option` en cache et un `get_post_type_object()` par type indexé (`SearchablePostTypes::contains()`), un
+  `array_intersect_key`, un `array_diff` par type pour l'ordre.
+- *Sécurité* : aucune entrée d'URL ; le type vient du gabarit, les libellés et l'archive de WordPress ; les
+  produits cachés de la recherche restent exclus, y compris d'un `product` indexé sans WooCommerce.
+- *Contexte et i18n* : sans WooCommerce, aucun produit (testé) ; plus aucune chaîne propre : les libellés sont ceux
+  que WordPress et les plugins traduisent, dans la langue de la requête.
+
+**Questions tranchées par Louis (2026-09-28).** (1) inclusion de `searchOn` vérifiée à la validation →
+`FieldsOutsideSearchOrder` ; (2) pas de `withBaseFilter()`, `make()` suffit (écrit dans `configuration.md`) ; (3)
+sans WooCommerce, un `product` d'un autre plugin est écarté (`decisions.md`, « Validées ») ; (4) le `product`
+générique n'est plus construit. Aucune question ouverte.
+
+**Commit proposé.** `feat(search): derive the searchable post types from WordPress`.
+
 ### R-186 · 🟡 · ouvert · 2026-09-25 — MeiliScout repousse les réglages d'index à chaque sauvegarde
 
 Relevé par la revue de `fd595a3` (hors lot, rien codé). `AbstractSingleIndexer::ensureIndexExists()` appelle
@@ -3552,7 +3653,7 @@ excerpt`, `fix(listing): hide what WooCommerce hides from its search`, `docs(sea
 ### R-180 · 🟠 · ouvert · 2026-09-25 — recherche du site (lot 5)
 
 Parapluie du chantier [chantier-recherche.md](chantier-recherche.md), branche `feat/site-search`. Rattachés :
-`R-27`, `R-159`, `R-160`, `R-181` (étape « pertinence et index »), `R-182` (refonte du pont), `R-184` (ordre de recherche surchargeable), `R-185` (corrections de la revue de `fd595a3`), `R-186` (réglages repoussés à chaque sauvegarde) ; `R-29` à compléter (clé limitée à `posts`).
+`R-27`, `R-159`, `R-160`, `R-181` (étape « pertinence et index »), `R-182` (refonte du pont), `R-184` (ordre de recherche surchargeable), `R-185` (corrections de la revue de `fd595a3`), `R-186` (réglages repoussés à chaque sauvegarde), `R-187` (étape 3a, déclaration des types) ; `R-29` à compléter (clé limitée à `posts`).
 
 ### R-179 · 🟡 · ouvert (en attente de commit) · ouvert le 2026-09-25 — étape 7 : panneaux desktop, pastilles actives et grille occupée
 

@@ -11,6 +11,7 @@ use Modules\MeiliFacets\Enums\TypoToleranceSetting;
 use Modules\MeiliFacets\Indexing\DefaultSearchableAttributes;
 use Modules\MeiliFacets\Indexing\EmptyIndexAttributes;
 use Modules\MeiliFacets\Indexing\FacetedPostIndexable;
+use Modules\MeiliFacets\Indexing\IndexedPostTypes;
 use Modules\MeiliFacets\Indexing\IndexedTaxonomies;
 use Modules\MeiliFacets\Indexing\MeiliScoutBridge;
 use Modules\MeiliFacets\Indexing\WooCommerceIndexAttributes;
@@ -63,7 +64,7 @@ final class IndexSearchSettingsTest extends TestCase
 
         $labels = array_map(
             static fn (string $taxonomy): string => 'labels.'.$taxonomy,
-            array_values(array_diff(new IndexedTaxonomies()->all(), self::TECHNICAL))
+            array_values(array_diff(new IndexedTaxonomies(new IndexedPostTypes)->all(), self::TECHNICAL))
         );
         $expected = array_values(array_unique(['post_title', ...self::PRODUCT_FIELDS, ...$labels, 'excerpt', 'content']));
 
@@ -192,7 +193,7 @@ final class IndexSearchSettingsTest extends TestCase
         $settings = new FacetedPostIndexable(
             $attributes,
             $this->app->make(SearchableAttributes::class),
-            new IndexedTaxonomies,
+            new IndexedTaxonomies(new IndexedPostTypes),
             new EngineLimits(self::REACHABLE_HITS)
         )->getIndexSettings();
 
