@@ -134,4 +134,41 @@ describe('ComboboxKeys', () => {
         assert.equal(event.defaultPrevented, false)
         assert.deepEqual(followed, [])
     })
+
+    it('keeps the option reached while it is still offered, at its new rank', () => {
+        const { keys, options, pressed, active, input } = combobox(3)
+        const [first, second, third] = options
+
+        pressed('ArrowDown')
+        pressed('ArrowDown')
+        keys.offer([third, second, first].filter((option) => option !== undefined))
+
+        assert.equal(input.getAttribute('aria-activedescendant'), second?.id)
+        assert.equal(second?.hasAttribute('data-active'), true)
+        pressed('ArrowDown')
+        assert.equal(input.getAttribute('aria-activedescendant'), first?.id)
+        assert.equal(active(), 0)
+    })
+
+    it('lets go of the option reached once it is no longer offered, its mark with it', () => {
+        const { keys, options, pressed, input } = combobox(3)
+        const [first, second] = options
+
+        pressed('ArrowDown')
+        keys.offer([second].filter((option) => option !== undefined))
+
+        assert.equal(input.hasAttribute('aria-activedescendant'), false)
+        assert.equal(first?.hasAttribute('data-active'), false)
+        assert.equal(pressed('ArrowDown'), true)
+        assert.equal(input.getAttribute('aria-activedescendant'), second?.id)
+    })
+
+    it('never gives a new option the id a kept one holds', () => {
+        const { window, keys, options } = combobox(2)
+        const fresh = window.document.createElement('li')
+
+        keys.offer([fresh, ...options.slice(1)] as HTMLElement[])
+
+        assert.equal(new Set([fresh.id, ...options.map((option) => option.id)]).size, 3)
+    })
 })

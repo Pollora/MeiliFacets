@@ -1,4 +1,4 @@
-import { EXPANDED, INSTANT } from '../shared/attributes.ts'
+import { CONTROLS, EXPANDED, INSTANT } from '../shared/attributes.ts'
 import { Contract } from '../shared/contract.ts'
 import { REDUCED_MOTION } from '../shared/css-timing.ts'
 import { DrawerGesture } from './drawer-gesture.ts'
@@ -169,6 +169,6 @@ export class Drawer {
     #openers() {
         return this.#contract.all('drawer-open')
             .filter((opener): opener is HTMLElement => opener instanceof HTMLElement)
-            .filter((opener) => opener.getAttribute('aria-controls') === this.#drawer.id)
+            .filter((opener) => opener.getAttribute(CONTROLS) === this.#drawer.id)
     }
 }

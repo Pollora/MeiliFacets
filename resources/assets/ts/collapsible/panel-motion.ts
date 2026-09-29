@@ -24,7 +24,7 @@ export class PanelMotion {
 
     show(panel: HTMLElement) {
         panel.hidden = false
-        this.#entrance.play(panel, this.#durationFor(panel.offsetHeight))
+        this.#entrance.play(panel, { duration: this.#durationFor(panel.offsetHeight) })
     }
 
     /** A transition, not an animation: a second click turns it back from where it stands. */

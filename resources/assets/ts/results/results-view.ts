@@ -22,7 +22,7 @@ export class ResultsView {
             return
         }
 
-        list.replaceChildren(...cards.flatMap((card) => this.#card(template, card)))
+        list.replaceChildren(...cards.flatMap((card) => this.#cardView.stamp(template, card)))
         list.hidden = cards.length === 0
         this.#showEmpty(cards, pageWindow)
     }
@@ -40,11 +40,5 @@ export class ResultsView {
             noResults.hidden = pageWindow.isPastTheEnd
             pastTheEnd.hidden = !pageWindow.isPastTheEnd
         }
-    }
-
-    #card(template: HTMLTemplateElement, card: Card) {
-        const node = template.content.firstElementChild?.cloneNode(true)
-
-        return node instanceof Element ? [this.#cardView.show(node, card)] : []
     }
 }

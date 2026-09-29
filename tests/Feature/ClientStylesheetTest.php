@@ -50,6 +50,23 @@ final class ClientStylesheetTest extends TestCase
         $this->assertLessThan(strpos($page, '</head>'), strpos($page, self::LINK));
     }
 
+    /** A header renders after the `<head>` its layout printed. */
+    #[Test]
+    public function it_prints_the_search_stylesheet_before_a_search_rendered_after_the_head(): void
+    {
+        $body = $this->withFreshStyles(fn (): string => $this->afterTheHead(static function (): string {
+            new ClientStylesheet()->register();
+
+            return Blade::render('<x-meilifacets::search />');
+        }));
+
+        $link = "id='".Stylesheet::SiteSearch->value."-css'";
+
+        $this->assertStringContainsString($link, $body);
+        $this->assertLessThan(strpos($body, 'data-meili="search"'), strpos($body, $link));
+        $this->assertStringNotContainsString(self::LINK, $body);
+    }
+
     #[Test]
     public function it_prints_the_stylesheet_once_before_listings_rendered_after_the_head(): void
     {

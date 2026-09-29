@@ -1,4 +1,4 @@
-import { CONTRACT, find, load } from './dom.ts'
+import { CONTRACT, SEARCH_STYLESHEET, find, load } from './dom.ts'
 
 import type { TestContext } from 'node:test'
 import type { SearchTypeDescription, SiteSearchDescription } from '../../resources/assets/ts/shared/description.ts'
@@ -32,37 +32,40 @@ export const searchDescribed = (partial: Partial<SiteSearchDescription> = {}): S
 })
 
 export const searchSection = (postType: string, limit: number | null = null) => `
-        <section data-meili="search-section" data-type="${postType}"${limit === null ? '' : ` data-limit="${limit}"`} hidden>
+        <div data-meili="search-section" data-type="${postType}"${limit === null ? '' : ` data-limit="${limit}"`} hidden>
             <h2 id="heading-${postType}">${postType} <span data-meili="search-count"></span></h2>
-            <ul role="group" aria-labelledby="heading-${postType}" data-meili="search-results"></ul>
+            <a href="https://example.test/${postType}" data-meili="search-see-all">All</a>
+            <ul id="results-${postType}" role="listbox" aria-labelledby="heading-${postType}" data-meili="search-results"></ul>
             <template data-meili="search-card-template">
                 <li role="option" data-meili="card">
-                    <a href="" data-meili="url"><img alt="" data-meili="image"><span data-meili="title"></span></a>
-                    <p data-meili="summary"></p>
-                    <span data-meili="price"></span>
+                    <a href="" data-meili="url">
+                        <img alt="" hidden data-meili="image"><span data-meili="title"></span>
+                        <span hidden data-meili="summary"></span><span hidden data-meili="price"></span>
+                    </a>
                 </li>
             </template>
-        </section>`
+        </div>`
 
-/** Mirrors the bricks the plan composes (§ 2): the Blade views come at step 5. */
+/** Mirrors the default composition the module renders (`components/search.blade.php`). */
 export const searchMarkup = (sections = searchSection('product') + searchSection('post')) => `
 <header>
     <div data-meili="search" data-search="search" data-meili-contract="${CONTRACT}">
-        <button type="button" aria-expanded="false" aria-controls="search-panel" data-meili="search-toggle">Search</button>
+        <button type="button" aria-expanded="false" aria-controls="search-panel" aria-label="Search" data-meili="search-toggle"></button>
         <div id="search-panel" role="search" hidden data-meili="search-panel">
-            <input id="search-input" type="search" role="combobox" aria-expanded="false" aria-controls="search-listbox"
-                   aria-autocomplete="list" data-meili="search-input">
-            <div id="search-listbox" role="listbox">${sections}
-            </div>
+            <div data-meili="search-field">
+                <input id="search-input" type="search" role="combobox" aria-expanded="false" aria-autocomplete="list"
+                       aria-label="Search" data-meili="search-input">
+            </div>${sections}
             <p hidden data-meili="search-empty">Nothing matches   your search</p>
             <p hidden data-meili="search-unavailable">Search is unavailable</p>
             <p aria-live="polite" data-meili="search-status"></p>
         </div>
     </div>
-</header>`
+</header>
+<main><a href="/elsewhere" id="elsewhere">Elsewhere</a></main>`
 
-export const openSearch = (markup = searchMarkup()) => {
-    const window = load(markup)
+export const openSearch = (markup = searchMarkup(), { styled = false } = {}) => {
+    const window = load(markup, { styled, stylesheet: SEARCH_STYLESHEET })
 
     return { window, root: find(window.document, '[data-search]') }
 }

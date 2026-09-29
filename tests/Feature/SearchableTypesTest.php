@@ -16,6 +16,8 @@ use Modules\MeiliFacets\SiteSearch\NoFieldToSearch;
 use Modules\MeiliFacets\SiteSearch\SearchablePostTypes;
 use Modules\MeiliFacets\SiteSearch\SearchableType;
 use Modules\MeiliFacets\SiteSearch\SearchableTypeFactory;
+use Modules\MeiliFacets\SiteSearch\SearchRoot;
+use Modules\MeiliFacets\SiteSearch\SearchSettings;
 use Modules\MeiliFacets\SiteSearch\SearchTypeRefused;
 use Modules\MeiliFacets\SiteSearch\WooCommerceSearchableTypes;
 use Modules\MeiliFacets\SiteSearch\WordPressSearchableTypes;
@@ -186,7 +188,7 @@ final class SearchableTypesTest extends TestCase
             .'Searchable here: product, post.'
         );
 
-        $this->accepted($this->withWooCommerce())->get('page');
+        $this->rootOf($this->accepted($this->withWooCommerce()))->type('page');
     }
 
     #[Test]
@@ -206,7 +208,7 @@ final class SearchableTypesTest extends TestCase
         $this->expectException(SearchTypeRefused::class);
         $this->expectExceptionMessage('Post type "page" is not searchable');
 
-        $this->accepted($declared)->get('page');
+        $this->rootOf($this->accepted($declared))->type('page');
     }
 
     #[Test]
@@ -247,7 +249,7 @@ final class SearchableTypesTest extends TestCase
         $this->expectException(FieldsOutsideSearchOrder::class);
         $this->expectExceptionMessage('Post type "post" is searched on fields the index does not search: url.');
 
-        $this->accepted($outside)->get('post');
+        $this->accepted($outside)->all();
     }
 
     #[Test]
@@ -257,7 +259,7 @@ final class SearchableTypesTest extends TestCase
         $this->app->scoped(SearchableTypes::class, RetitledSearchableTypes::class);
 
         try {
-            $post = $this->app->make(AcceptedSearchTypes::class)->get('post');
+            $post = $this->app->make(AcceptedSearchTypes::class)->all()['post'];
         } finally {
             $this->app->scoped(SearchableTypes::class, WooCommerceSearchableTypes::class);
             $this->forgetWiring();
@@ -327,6 +329,11 @@ final class SearchableTypesTest extends TestCase
             new IndexedPostTypes,
             new AttributesToSearchOn($this->app->make(SearchableAttributes::class))
         );
+    }
+
+    private function rootOf(AcceptedSearchTypes $accepted): SearchRoot
+    {
+        return new SearchRoot(SearchRoot::DEFAULT_NAME, new SearchSettings, $accepted->all());
     }
 
     /**

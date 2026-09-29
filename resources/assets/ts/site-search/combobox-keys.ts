@@ -1,4 +1,4 @@
-import { ACTIVE_DESCENDANT, ACTIVE_OPTION, EXPANDED } from '../shared/attributes.ts'
+import { ACTIVE_DESCENDANT, ACTIVE_OPTION, CONTROLS, EXPANDED } from '../shared/attributes.ts'
 
 import type { Contract } from '../shared/contract.ts'
 
@@ -24,6 +24,8 @@ export class ComboboxKeys {
     #input: HTMLInputElement
     #options: HTMLElement[] = []
     #active = NONE
+    /** Ids are issued once per node, never by rank: a card kept from one answer to the next keeps its own. */
+    #issued = 0
 
     constructor(contract: Contract, input: HTMLInputElement) {
         this.#contract = contract
@@ -51,12 +53,26 @@ export class ComboboxKeys {
         return this
     }
 
+    control(listboxes: Element[]) {
+        const ids = listboxes.map((listbox) => listbox.id).filter((id) => id !== '')
+
+        this.#input.setAttribute(CONTROLS, ids.join(' '))
+    }
+
+    /** The option the arrows reached stays reached while it is still offered, wherever it now stands. */
     offer(options: HTMLElement[]) {
-        this.#activate(NONE)
+        const reached = this.#options[this.#active]
+        const stillOffered = reached !== undefined && options.includes(reached)
+
+        if (!stillOffered) {
+            this.#activate(NONE)
+        }
+
         this.#options = options
-        this.#options.forEach((option, rank) => {
-            option.id ||= `${this.#input.id || OPTION_ID_PREFIX}-option-${rank}`
+        this.#options.forEach((option) => {
+            option.id ||= `${this.#input.id || OPTION_ID_PREFIX}-option-${this.#issued++}`
         })
+        this.#active = stillOffered ? options.indexOf(reached) : NONE
         this.#input.setAttribute(EXPANDED, String(options.length > 0))
     }
 

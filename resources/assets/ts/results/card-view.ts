@@ -9,14 +9,26 @@ export class CardView {
         this.#contract = contract
     }
 
+    /** A copy of the template's first node, filled; nothing when the template holds no element. */
+    stamp(template: HTMLTemplateElement, card: Card) {
+        const node = template.content.firstElementChild?.cloneNode(true)
+
+        return node instanceof Element ? [this.show(node, card)] : []
+    }
+
     show(node: Element, card: Card) {
         this.#link(this.#contract.one('url', node), card)
         this.#image(this.#contract.one('image', node), card)
-        this.#text(this.#contract.one('title', node), card.title)
-        this.#summary(this.#contract.one('summary', node), card.summary)
+        this.showWords(node, card)
         this.#markup(this.#contract.one('price', node), card.price)
 
         return node
+    }
+
+    /** The words alone: what changes on a card already drawn when another term finds it again. */
+    showWords(node: Element, card: Card) {
+        this.#text(this.#contract.one('title', node), card.title)
+        this.#summary(this.#contract.one('summary', node), card.summary)
     }
 
     #link(node: Element | null, card: Card) {

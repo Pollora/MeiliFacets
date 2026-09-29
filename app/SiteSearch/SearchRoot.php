@@ -16,4 +16,12 @@ final readonly class SearchRoot
         public SearchSettings $settings,
         public array $types,
     ) {}
+
+    /**
+     * @throws SearchTypeRefused
+     */
+    public function type(string $postType): SearchableType
+    {
+        return $this->types[$postType] ?? throw SearchTypeRefused::for($postType, array_keys($this->types));
+    }
 }

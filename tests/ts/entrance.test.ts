@@ -48,7 +48,7 @@ describe('Entrance', () => {
     })
 
     it('takes a length measured at the time over the stylesheet\'s', () => {
-        new Entrance(window.document, badge).play(counter, 240)
+        new Entrance(window.document, badge).play(counter, { duration: 240 })
 
         assert.equal(played[0]?.options.duration, 240)
     })

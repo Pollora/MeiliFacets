@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\View;
 
 /**
- * Identifiers a template hands to `aria-*` attributes. They carry the listing
- * name because a page may hold two listings, and nothing else may collide.
+ * Identifiers a template hands to `aria-*` attributes. They carry the name of
+ * their listing or search root because a page may hold two, and nothing else may collide.
  */
 final readonly class ElementId
 {
     private const string PREFIX = 'meilifacets';
 
-    public function __construct(private string $listing) {}
+    public function __construct(private string $root) {}
 
     public function sortLabel(): string
     {
@@ -64,6 +64,26 @@ final readonly class ElementId
         return $this->of('apply', 'count');
     }
 
+    public function searchPanel(): string
+    {
+        return $this->of('search', 'panel');
+    }
+
+    public function searchInput(): string
+    {
+        return $this->of('search', 'input');
+    }
+
+    public function searchHeading(string $postType): string
+    {
+        return $this->of('search', $postType, 'heading');
+    }
+
+    public function searchListbox(string $postType): string
+    {
+        return $this->of('search', $postType, 'results');
+    }
+
     public function facetPanel(string $facet): string
     {
         return $this->facetScope($facet).'panel';
@@ -92,6 +112,6 @@ final readonly class ElementId
 
     private function of(string ...$parts): string
     {
-        return implode('-', [self::PREFIX, $this->listing, ...$parts]);
+        return implode('-', [self::PREFIX, $this->root, ...$parts]);
     }
 }

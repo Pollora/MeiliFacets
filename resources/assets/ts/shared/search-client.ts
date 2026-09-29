@@ -17,6 +17,8 @@ export interface SearchQuery {
 }
 
 export interface SearchHit {
+    /** The document's identity, the same whatever term found it. */
+    ID?: number | string
     card?: Card
     /** The retrieved fields again, highlighted terms wrapped in the query's tags. */
     _formatted?: { card?: Card }

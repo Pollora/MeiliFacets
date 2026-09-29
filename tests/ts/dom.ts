@@ -6,6 +6,8 @@ import { Contract } from '../../resources/assets/ts/shared/contract.ts'
 
 const STYLESHEET = new URL('../../resources/assets/css/meilifacets.css', import.meta.url)
 
+export const SEARCH_STYLESHEET = new URL('../../resources/assets/css/site-search.css', import.meta.url)
+
 /** Read from the client, so an increment never sends anyone editing fixtures. */
 export const CONTRACT = Number(/const VERSION = (\d+)/.exec(
     readFileSync(new URL('../../resources/assets/ts/shared/contract.ts', import.meta.url), 'utf8')
@@ -61,11 +63,11 @@ export type StyleProperty = {
     [Key in keyof CSSStyleDeclaration]: CSSStyleDeclaration[Key] extends string ? Key : never
 }[keyof CSSStyleDeclaration] & string
 
-export const load = (markup: string, { styled = false } = {}) => {
+export const load = (markup: string, { styled = false, stylesheet = STYLESHEET }: { styled?: boolean, stylesheet?: URL } = {}) => {
     const window = new HappyWindow({ url: 'https://example.test/shop' }) as unknown as TestWindow
 
     if (styled) {
-        window.document.head.innerHTML = `<style>${readFileSync(STYLESHEET, 'utf8')}</style>`
+        window.document.head.innerHTML = `<style>${readFileSync(stylesheet, 'utf8')}</style>`
     }
 
     for (const name of CLASSES) {

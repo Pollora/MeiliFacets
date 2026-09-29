@@ -1,4 +1,7 @@
-import { EXPANDED } from '../shared/attributes.ts'
+import { EXPANDED, INSTANT } from '../shared/attributes.ts'
+import { InputSource } from '../shared/input-source.ts'
+import { LightDismiss } from '../shared/light-dismiss.ts'
+import { PanelRoom } from './panel-room.ts'
 
 import type { Contract } from '../shared/contract.ts'
 
@@ -10,53 +13,82 @@ const INTENTS = ['pointerenter', 'focus'] as const
  * calls for the client at the first sign the visitor is about to search.
  */
 export class SearchPanel {
+    #contract: Contract
     #toggle: HTMLElement | null
     #panel: HTMLElement | null
     #input: HTMLElement | null
-    #unavailable: HTMLElement | null
+    #room: PanelRoom | null
     #intent: () => void
     #intended = false
 
     constructor(contract: Contract, intent: () => void) {
-        this.#toggle = SearchPanel.#element(contract, 'search-toggle')
-        this.#panel = SearchPanel.#element(contract, 'search-panel')
-        this.#input = SearchPanel.#element(contract, 'search-input')
-        this.#unavailable = SearchPanel.#element(contract, 'search-unavailable')
+        this.#contract = contract
+        this.#toggle = this.#element('search-toggle')
+        this.#panel = this.#element('search-panel')
+        this.#input = this.#element('search-input')
+        this.#room = this.#panel === null ? null : new PanelRoom(this.#panel)
         this.#intent = intent
     }
 
-    static #element(contract: Contract, hook: string) {
-        const element = contract.one(hook)
-
-        return element instanceof HTMLElement ? element : null
-    }
-
     start() {
-        this.#toggle?.addEventListener('click', () => this.#toggled())
+        this.#toggle?.addEventListener('click', (click) => this.#toggled(click))
 
         for (const target of [this.#toggle, this.#input]) {
             INTENTS.forEach((intent) => target?.addEventListener(intent, () => this.#call(), { once: true }))
         }
+
+        this.#dismissal().start()
+        this.#contract.window.addEventListener('resize', () => this.#remeasure())
 
         return this
     }
 
     /** The client never arrived: the panel says so rather than stay silent. */
     unavailable() {
-        this.#reveal(this.#unavailable)
-    }
+        const unavailable = this.#element('search-unavailable')
 
-    #toggled() {
-        if (this.#panel?.hidden === false) {
-            this.#close()
-        } else {
-            this.#open()
+        if (unavailable !== null) {
+            unavailable.hidden = false
         }
     }
 
+    #dismissal() {
+        return new LightDismiss(this.#contract.root, {
+            open: () => (this.#toggle !== null && this.#isOpen() ? [this.#toggle] : []),
+            panelOf: () => this.#panel,
+            closeInstantly: () => this.#instantly(() => this.#close()),
+            close: () => this.#close(),
+        })
+    }
+
+    #toggled(click: MouseEvent) {
+        const change = () => (this.#isOpen() ? this.#close() : this.#open())
+
+        if (InputSource.isKeyboard(click)) {
+            this.#instantly(change)
+        } else {
+            change()
+        }
+    }
+
+    /** `getAnimations()` flushes the style while the stylesheet cuts the transitions: none starts once the attribute goes. */
+    #instantly(change: () => void) {
+        const root = this.#contract.root
+
+        root.setAttribute(INSTANT, '')
+        change()
+        root.getAnimations()
+        root.removeAttribute(INSTANT)
+    }
+
     #open() {
-        this.#reveal(this.#panel)
+        if (this.#panel === null) {
+            return
+        }
+
+        this.#panel.hidden = false
         this.#toggle?.setAttribute(EXPANDED, 'true')
+        this.#room?.measure()
         this.#input?.focus()
         this.#call()
     }
@@ -67,12 +99,17 @@ export class SearchPanel {
         }
 
         this.#toggle?.setAttribute(EXPANDED, 'false')
+        this.#room?.release()
     }
 
-    #reveal(element: HTMLElement | null) {
-        if (element !== null) {
-            element.hidden = false
+    #remeasure() {
+        if (this.#isOpen()) {
+            this.#room?.measure()
         }
+    }
+
+    #isOpen() {
+        return this.#panel?.hidden === false
     }
 
     #call() {
@@ -80,5 +117,11 @@ export class SearchPanel {
             this.#intended = true
             this.#intent()
         }
+    }
+
+    #element(hook: string) {
+        const element = this.#contract.one(hook)
+
+        return element instanceof HTMLElement ? element : null
     }
 }

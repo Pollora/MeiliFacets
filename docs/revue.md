@@ -3282,6 +3282,312 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
+### R-193 · 🟡 · ouvert (en attente de commit) · ouvert le 2026-09-29 — les résultats clignotaient en bloc à chaque lettre
+
+Rattaché à `R-180`, étape 7 de [chantier-recherche.md](chantier-recherche.md), sur l'état non commité de `R-191`/`R-192`.
+Constat validé par Louis : `SectionView::show()` détruisait et reconstruisait toute la liste (`replaceChildren`) à chaque
+réponse, y compris les résultats inchangés. Rien n'est commité, réindexé ni écrit en base ou dans le moteur ;
+`config/meilifacets.php` de l'hôte non touché.
+
+**Conformité.** *Change* : `SectionView`, `ComboboxKeys`, `SiteSearch`, `SearchPanel`, `Entrance`, `CardView`,
+`ResultsView`, `site-search.css` ; nouveaux `ResultsMotion` et `Departure` (`ts/site-search/`). *Ferme* : trois points
+« à revoir » de `R-192` (voile en retard, arête de la ligne active, mise en page des premiers résultats) et tranche le
+quatrième (flèche). *Contredit* : l'étape 7 disait « rien au remplacement des résultats » et « fondu des premières
+sections par `@starting-style` » — remplacé par ce point, à la demande de Louis. *La plateforme offre* : WAAPI
+(`composite: 'add'`, `getAnimations()`), aucune dépendance ; aucun crochet ajouté (la barre vit sur `search-field`),
+`Contract::VERSION` inchangé.
+
+**Livré.** Valeurs dans `decisions.md` (« Étape 7 : résultats pendant la frappe »).
+- Réconciliation par `ID` : un résultat retrouvé garde son nœud, seuls titre et résumé sont réécrits, et seulement s'ils
+  changent (le compte aussi) ; nouveaux nœuds depuis le gabarit ; ordre remis par `insertBefore` des seuls nœuds hors
+  place. Une section masquée garde ses cartes. `CardView::stamp()` sert désormais la grille du listing **et** les
+  sections (doublon de clonage levé), `showWords()` les mots seuls.
+- `ComboboxKeys` : l'option atteinte reste atteinte si elle est encore proposée (au nouveau rang), sinon
+  `aria-activedescendant` et `data-active` tombent ; identifiants émis une fois par nœud, plus par rang (un nœud gardé et
+  un nœud neuf pouvaient porter le même).
+- `ResultsMotion` : une lecture groupée avant l'écriture, une après, jamais entre deux écritures ; FLIP additif
+  (`composite: 'add'`) relatif à la section, ce qui rend l'interruption continue sans rien annuler ; entrée, sortie hors
+  flux (`Departure` : la carte elle-même, ou une copie sans `id` pour une section ou un message), fondu enchaîné vers et
+  depuis l'état vide, compte en fondu ; rien si le panneau entre encore, rien au clavier ; fondus seuls en mouvement
+  réduit. Les entrées de section passent de `@starting-style` à WAAPI (`SearchPanel::#showWithItsContent()` retiré).
+- Barre de recherche lente : `::after` du champ sous `aria-busy`, après `--meili-duration-busy-delay`, transform seul.
+- Reprises : voile sur `--meili-ease` ; barre de la ligne active retirée (teinte seule) ; vignette à taille fixe (une
+  image lente ou absente faisait grandir la rangée **après** la mesure, les cartes sautaient en fin de glissement).
+
+**Vérifié image par image** (Chrome DevTools, 1440, animations mises en pause à leur création puis positionnées ;
+`typing-x4.gif` et `typing-*.png`). « s » → « se » : sections en fondu, cartes immobiles. « se » → « ser » : trois
+cartes produits et une carte article s'effacent à leur place (opacité 1 → 0,2 à 40 ms), la carte restante ne bouge pas
+d'un pixel, les comptes changent en fondu + 2 px. « ser » → « seru » : aucune animation. « set » → « set h » : trois
+cartes glissent de 76 px en 150 ms, « Valentine's Day set » entre en fondu + 4 px. Vide ↔ résultats : 150 ms, sans flou
+(message centré et cartes à gauche ne partagent aucun pixel). Premier essai : sortie de 80 ms sur la courbe forte déjà à
+3 % à 40 ms (un saut) → fondus sur `ease` ; copie de section qui étirait le défilement du panneau (barre de défilement de
+20 px le temps du fondu) → fantômes bornés au bas visible du panneau. 393 : largeur du panneau constante, aucun fantôme
+restant.
+
+**Performance** (traces, « serum v » puis « creme vi » à 180 ms par lettre). Hors premiers résultats, par réponse :
+tâche 0,95–2,3 ms + image suivante 0,9–2 ms (style ≤ 0,75, layout ≤ 0,36, peinture comprise) sans bridage ; ×4 :
+tâche 3,9–7,3 ms dont style ~1,5 et layout ~1 (la lecture après écriture, que l'image suivante n'a plus à refaire :
+layout 0,05–0,9 ms), + image suivante 2,8–7 ms peinture comprise. Premiers résultats à ×4 : layout 1,4–2 ms (seuil
+16 ms loin : rien à réduire). Aucune long task imputable (la seule, 64 ms, est le démarrage du profileur dans un rAF
+du thème). Images : 0 intervalle > 1,5 × 8,3 ms à 120 Hz, avec et sans ×4 (pire 10,4 ms). `will-change` non posé.
+Tailles : client 9 333 → 15 775 o (3 765 → 5 979 gzip) ; chargeur 7 526 → 7 449 (2 833 → 2 819) ; listing 51 547 →
+51 793 (15 956 → 16 027) ; `site-search.css` 13 099 → 14 368 (2 864 → 3 078). Un import de `Contract` en valeur avait
+fait entrer les règles du listing dans le client (18 617 o) : retiré.
+
+**Recette.** Ouverture (focus dans le champ), « ser » (Produits 1 · Articles 1, annonce une fois), Échap (fermé, terme
+gardé, focus à la loupe), clic sur le voile (fermé), ↓ + Entrée → `/produit/serum-eclat-vitamine-c` (aucune animation à
+la touche, ligne sans arête), « zzzzq » → message vide, moteur bloqué → « Recherche indisponible », retour → sections ;
+« Slow 3G » : barre invisible avant 150 ms, balayage ensuite, retirée à la réponse. `/boutique` : « Catégorie » au
+pointeur (transitions opacity + transform), filtre appliqué (1 carte, `?categorie=cheveux`), Échap et focus rendu,
+retour à 16 cartes ; tiroir 393 ouvert, `data-closing`, fermé, focus rendu. Console : la seule erreur est celle de la
+panne provoquée. Les touches CDP n'atteignent pas une page en contexte isolé : ↓ et Entrée ont été émis en `keydown`
+sur le champ.
+
+**Tests.** Client +21 : réconciliation (même nœud, ordre, `insertBefore` compté, carte sans identité, section masquée,
+aucune écriture inutile), clavier (option gardée au nouveau rang, lâchée si perdue, identifiants uniques), mouvement
+(`results-motion.test.ts` : entrée, glissement additif, interruption continue sans annulation, fantôme placé et retiré,
+copie de section sans `id`, fondu enchaîné 150 ms, panneau qui entre, mouvement réduit, clavier, option perdue, fantôme
+hors de vue), feuille (barre, `data-leaving`, ligne active, compte). `composer check` vert (Unit 358, client 655/655,
+99,03 % lignes, 93,75 % branches, `build:check`), suite `Modules` **OK (666 tests, 1947 assertions)**.
+
+**Cinq passes.** *Lisibilité* : méthodes ≤ 12 lignes, trois paramètres au plus (règle ESLint), aucun booléen en
+paramètre ; `#recount` ne parcourt plus que les sections. *Commentaires* : docblocs de contournement (lecture groupée,
+FLIP additif, fantôme borné, identifiants par nœud, happy-dom dans les tests) ; aucun dans la CSS. *Performance* : deux
+lectures par réponse, écritures seulement si le texte change, aucune écoute ajoutée. *Sécurité* : rien de nouveau n'est
+interprété (les copies clonent un DOM déjà échappé). *Contexte/i18n* : aucune chaîne ; la barre balaie de gauche à droite
+même en RTL.
+
+**À revoir.** Coût à ×4 au-dessus de 5 ms (tâche ~4,5 ms, le reste est la mise en page que la frame aurait faite) ;
+`scaleX` de la barre orienté à gauche en RTL ; mouvement réduit vérifié par les tests seulement (Chrome MCP n'émule pas
+la préférence) ; vignettes absentes en local (fichiers d'`uploads` non synchronisés).
+
+**Commit proposé** (module) : `feat(search): keep results in place while typing and animate their changes`.
+
+### R-192 · 🟡 · ouvert (en attente de commit) · ouvert le 2026-09-28 — étape 7, mouvement et reprise du style du panneau
+
+Rattaché à `R-180`, étape 7 de [chantier-recherche.md](chantier-recherche.md), sur l'état non commité de `R-191`
+(étape 5 et première passe de style). Retour de Louis : apparition brute, ombre laide. Rien n'est commité, réindexé ni
+écrit en base ou dans le moteur ; `config/meilifacets.php` de l'hôte non touché.
+
+**Conformité.** *Change* : `site-search.css`, `SearchPanel`, `PanelRoom`. *Ferme* : étape 7 du plan, deux points « à
+trancher » de `R-191` (voile éclaircissant en sombre, 3rem entre sections sur mobile). *Contredit* : rien ; reprend
+ANIM-4 (clavier instantané), ANIM-10 (atténuation différée) et la transition `[hidden]` + `@starting-style` des
+panneaux flottants. *La plateforme offre* : `@starting-style`, `transition-behavior: allow-discrete` ; aucun JS
+d'animation.
+
+**Livré.** Valeurs dans `decisions.md` (« Étape 7 : mouvement de la recherche »).
+- Style : ombre retirée (filet `--meili-rule` + voile) ; halo 12 → 8 % ; champ → première section 1.5rem
+  (`--meili-search-lead`, marge négative du champ seulement quand une section est visible) ; entre sections 2rem,
+  3rem à partir de `48em` ; ligne compensée (`margin-inline: -0.75rem`) : vignette sur le bord du filet et du titre
+  (136,5 px pour les trois à 1440, 16 px à 393), `contain: layout paint` → `layout` sur la liste (la teinte déborde) ;
+  titre 400, `mark` 600 ; voile `black` à 20 %.
+- Mouvement : panneau 200/150 ms, voile 200/150 ms `ease`, premières sections 120 ms, atténuation différée, loupe
+  `scale(0.97)`, flèche +2 px, ligne active instantanée, mouvement réduit en fondus.
+- Client : `SearchPanel` pose `data-instant` sur la racine au clavier, Échap et Tab ; montre le panneau avec ses
+  sections sous `data-instant` (une seule entrée) ; `PanelRoom` mesure depuis l'ancre.
+- Demande du coordinateur, même feuille : loupe alignée dans l'en-tête (`display: flex` + `inline-size:
+  fit-content`). 1440 avant : racine 26,5 px, bouton 20 px, centres 40 / 36,75 ; après : racine = bouton = 20 px,
+  centre 40 (« À propos » 40, liens du menu 41 — ils diffèrent eux-mêmes de 1 px, les deux cibles ne peuvent être
+  tenues à ±0,5 ensemble), identique avec `.is-scrolled`. 393 (pointeur grossier) : racine = bouton = 44 px, centre
+  36 = burger, avant comme après ; fenêtre étroite au pointeur fin : 20 px, centre 36 = burger.
+
+**Vérifié image par image** (Chrome DevTools, 1440, caches vidés, `module:publish` sans orpheline, aucun
+`public/*.hot`). Échantillons `requestAnimationFrame` (~8,3 ms, écran 120 Hz) : ouverture au pointeur `opacity`
+0 → 1 et `translateY` −8 → 0 en 200 ms, monotones, 50 % de l'opacité avant 30 ms (ease-out marqué), voile 0 → 1 en
+200 ms, aucun saut ; fermeture 1 → 0 et 0 → −4 px en ~150 ms, `display: none` à 154 ms, voile retiré au même moment.
+Tab jusqu'à la loupe + Entrée : première image déjà à 1 / 0 px ; Échap : première image déjà `display: none`, focus sur
+la loupe. Réouverture avec des résultats : seules les transitions du panneau et du voile démarrent. Premières
+réponses : `opacity` 120 ms sur les sections ; frappe suivante : aucune animation. Réseau « Slow 3G » : liste à 0.55
+après ~150 ms, retour en 120 ms. Mouvement réduit (règles du bloc `reduce` injectées, Chrome MCP n'émule pas la
+préférence) : `transform` à `none` sur toute l'entrée et la sortie, fondus gardés, loupe sans transition.
+Chronogramme scrubbé `anim-open-x4.gif` (0, 20, 40, 70, 110, 199 ms).
+
+**Performance** (traces non bridées). Ouverture : tâche la plus longue 1,2 ms, recalcul de style 0,75 ms (17
+éléments), une image sautée à 120 Hz (celle du clic), jamais deux de suite. Premières réponses : tâche 10,7 ms
+(style 2,8 ms / 43 éléments, layout 6,1 ms), une image sautée. Frappes suivantes : tâche max 5,4 ms, style max
+0,43 ms, layout 0,3 ms. Aucune long task. Les images sautées à 500 ms d'intervalle sont le clignotement du curseur :
+présentes à l'identique dans une trace au repos (champ focalisé, rien tapé). Aucun intervalle > 16,7 ms imputable au
+module. `will-change` non posé (rien ne le justifie). Feuille 10 046 → 13 099 o (2 352 → 2 864 o gzip).
+
+**Recette.** Ouverture, « ser » (Produits 1 · Articles 1), Échap, clic sur le voile (rien d'activé dessous : 0 clic sur
+« Slide suivante »), ↓ + Entrée → `/produit/serum-eclat-vitamine-c` (393) ; sombre forcé : voile
+`color(srgb 0 0 0 / 0.2)` ; `/boutique` : filtre « Catégorie » ouvert au pointeur (180 ms, `opacity` + `transform`),
+Échap instantané et focus rendu, tiroir 393 animé puis fermé, 16 cartes ; aucune erreur ni avertissement console.
+`.htaccess` de `cache/wp-rocket` : absent, non revenu (aucun n'est versionné).
+
+**Tests.** Client : `search-panel` +5 (clavier instantané, pointeur animé, Échap/Tab instantanés, sections entrées
+avec le panneau, place depuis l'ancre) ; `site-search-stylesheet` +4 (propriétés animées, aucune ombre sous le
+panneau, coupure `data-instant`, mouvement réduit, vignette compensée), voile réécrit. `composer check` vert (Unit 358,
+client 634/634, 98,97 % lignes, 93,71 % branches, `build:check`), suite `Modules` **OK (666 tests, 1947 assertions)**.
+
+**Cinq passes.** *Lisibilité* : `#instantly()` et `#showWithItsContent()` de 4 lignes, `#top()` de 7 ; aucun booléen
+en paramètre. *Commentaires* : trois docblocs de contournement (vidage de style, section sans style de départ, boîte
+décalée par la transformation) ; un justificatif retiré ; aucun dans la CSS. *Performance* : seuls `transform` et
+`opacity` animés (plus la couleur au survol), aucune mesure ajoutée (`PanelRoom` lisait déjà la géométrie à
+l'ouverture), `:has()` limité aux enfants du panneau. *Sécurité* : rien de dynamique. *Contexte/i18n* : aucune chaîne ;
+la flèche avance de 2 px à droite même en RTL (le glyphe `→` l'était déjà).
+
+**À revoir à tête reposée.** Courbe du voile (`ease`) plus lente que celle du panneau au départ ; flèche de « voir
+tous » qui n'est plus soulignée ; fine arête visible autour de la ligne désignée (barre de 2 px sur un coin arrondi) ;
+layout de 6 ms à la première réponse, à mesurer sur un téléphone moyen.
+
+**Commit proposé** (module) : `feat(search): animate the search panel and refine its style`.
+
+### R-191 · 🟡 · ouvert (en attente de commit) · ouvert le 2026-09-28 — étape 5, panneau et sections
+
+Rattaché à `R-180`, étape 5 de [chantier-recherche.md](chantier-recherche.md) (S-1, S-5, S-9, S-10, S-11, S-12, S-18,
+D-7, D-9). Rien n'est commité, réindexé ni écrit en base ou dans le moteur ; `config/meilifacets.php` de l'hôte non
+touché (md5 identique avant et après).
+
+**Passe de conformité.** *Change* : briques Blade de la recherche, composition par défaut, fermeture légère partagée,
+feuille `site-search.css`, loupe du thème remplacée. *Ferme* : S-12 (`shared/light-dismiss.ts`), S-10, S-5, cases 5 du
+plan. *Contredit* : aucune décision validée ; s'écarte de la lettre du plan § 2 sur deux points (listbox par section,
+messages sans slot), écrits dans `decisions.md`. *La plateforme offre* : `get_post_type_archive_link()` et les libellés
+des types (déjà lus, `R-187`), le motif APG disclosure ; rien de natif pour un panneau de recherche.
+
+**Livré.**
+- Composants `SearchComponent` (base : racine par `name`, sinon `sole()` ; `ElementId` de la racine), `SearchToggle`,
+  `SearchPanel`, `SearchInput`, `SearchSection` (`type`, `limit`, `name`), `SearchEmpty`, `SearchUnavailable`,
+  `SearchCard` ; vues à plat dans `components/`. `<x-meilifacets::search>` sans contenu compose tout
+  (`sectionTypes()`), son slot `icon` passe à la loupe ; avec contenu, rien n'est ajouté.
+- `SearchRoot::type()` (lève `SearchTypeRefused` en nommant les types de la racine), `SearchRegistry::placeSection()`
+  (une section par type et par racine), `limit` ≥ 1.
+- Crochet `search-see-all` (`Hook::SearchSeeAll`, autorisé au § 8, additif, `Contract::VERSION` = 1) ;
+  `Stylesheet::SiteSearch` = `meilifacets-site-search` ; `images/search.svg` ; `ElementId::searchPanel()`,
+  `searchInput()`, `searchHeading()`, `searchListbox()` ; trois chaînes (`Search`, `Nothing matches your search`,
+  `Search unavailable`) et leur français.
+- Client : `shared/light-dismiss.ts` (`LightDismiss`, extrait de `DisclosureGroup` : Échap consommée et focus rendu,
+  focus sorti hors appui, clic hors du chemin), `site-search/panel-room.ts` (`PanelRoom`, `--meili-search-room`),
+  `SearchPanel` qui s'en sert (fermeture, remesure au redimensionnement) ; `ComboboxKeys.control()` écrit
+  `aria-controls` du champ ; `SectionView.listbox`.
+- `site-search.css` : neutre, mobile first, par crochets, sans commentaire, jetons redéclarés sur
+  `[data-meili="search"]` ; verrou de page sous `(scripting: enabled) and (width < 48em)`.
+- Thème : `parts/header/row.blade.php` pose `<x-meilifacets::search>` avec l'icône du thème dans `icon` ; la règle
+  morte `.pluralia-header__search-toggle` retirée de `header.css`. Aucun CSS ajouté au thème : `.pluralia-header__bar`
+  (déjà `position: relative`) sert d'ancre.
+
+**Corrigé dans le code existant.** `AcceptedSearchTypes::get()` retiré (doublon de la liste que la racine tient déjà ;
+tests de refus passés sur `SearchRoot::type()`) ; `DisclosureGroup` réduit de ~40 lignes (fermeture légère extraite) ;
+`'aria-controls'` écrit en dur dans `disclosure-group.ts` et `drawer.ts` → `CONTROLS` (`shared/attributes.ts`) ;
+paramètre `ElementId::$listing` → `$root` (il sert aussi les racines de recherche) ; fixtures TS de la recherche alignées
+sur les vues réelles ; `load()` des tests accepte une feuille ; `ContractParityTest` : seuil `48em` vérifié sur les deux
+feuilles, crochets de `site-search.css` comptés, jumeaux `data-type`/`data-limit` ; `StylesheetNeutralityTest` sur les
+deux feuilles (+ aucun `display: contents`).
+
+**Vérifié dans Playwright** (Chromium, accueil, clé publique, caches vidés, `module:publish` sans orpheline, aucun
+`public/*.hot`). **1440 px** : loupe → panneau ouvert sous la barre (y = 80 = bas de l'en-tête, pleine largeur),
+focus dans le champ, `aria-expanded="true"`, `--meili-search-room` 820px ; « ser » → Produits 1 résultat, Articles
+1 résultat (le moteur n'en trouve pas plus : ≤ 4 tenu), liens `/boutique` et `/journal`, annonce « Produits : 1 résultat
+et Articles : 1 résultat » ; « zzzz » → « Aucun élément ne correspond à votre recherche » ; Échap → fermé, focus sur la
+loupe, terme gardé ; clic extérieur → fermé ; Entrée sans option → URL inchangée ; ↓ + Entrée →
+`/produit/serum-eclat-vitamine-c` ; page non verrouillée. **393 px** : panneau y = 72, 393 × 780 (toute la hauteur
+restante), `overflow-y: auto`, page verrouillée ouverte, déverrouillée après Échap ; mêmes résultats, mêmes messages,
+Échap, clic extérieur, ↓ + Entrée. **Moteur bloqué** (`page.route` → `abort`) : « Recherche indisponible » affiché et
+annoncé, sections masquées, URL inchangée (erreurs console = la panne provoquée). **`/boutique`** : filtre Catégorie
+ouvert, Échap le ferme et rend le focus, clic extérieur et Maj+Tab le ferment, case « cheveux » → 62 → 1 article,
+`?categorie=cheveux` ; recherche « creme » depuis la boutique → « Produits : 2 résultats et Articles : 1 résultat » ;
+tiroir à 393 px ouvert puis fermé par Échap. Aucune erreur console hors la panne provoquée. Une lecture isolée a
+montré la loupe absente de `/boutique?categorie=cheveux` après un enchaînement de gestes ; rejouée trois fois à
+l'identique, jamais reproduite (loupe présente au rendu serveur comme après chaque geste).
+
+**Tests.** Client : `light-dismiss` (5), `search-panel` (+4 : Échap, clic extérieur, Tab, place mesurée),
+`site-search` (+1 : `aria-controls`), `site-search-stylesheet` (6). PHP : Feature `SearchCompositionTest` (15),
+`ClientStylesheetTest` (+1) ; Unit `SearchRegistryTest` (+4), `ElementIdTest` (+1, collisions étendues),
+`StylesheetNeutralityTest` (2 → 6), `ContractParityTest` (+3). **Résultats** : client 622/622 (les 606 d'avant verts,
+`disclosure-group` et `drawer` sans retouche ; 98,96 % lignes, 93,68 % branches), Unit 358, `composer check` vert,
+suite `Modules` **OK (664 tests, 1942 assertions)** ; lancées seules : `SearchCompositionTest` 15/15,
+`SearchComponentTest` 7/7, `ClientStylesheetTest` 6/6, `SearchableTypesTest` 17/17.
+
+**Les cinq passes.**
+- *Lisibilité* : méthodes de 1 à 14 lignes ; aucun booléen en paramètre ; `LightDismiss` ne connaît que
+  l'interface `Dismissible` ; un nom par concept (`search-results` = la liste, `listbox` = son rôle, lu par
+  `ComboboxKeys.control()`) ; vues sans calcul (`sectionTypes()`, identifiants préparés par la classe).
+- *Commentaires* : ajoutés et gardés : Échap non consommée qui vide un champ de recherche (anomalie navigateur),
+  aliases figés de `<x-dynamic-component>` (test, contournement) ; retiré : un docbloc de `SearchCard` (justification) ;
+  aucun dans la CSS.
+- *Performance* : aucune requête ajoutée ; une recherche dans un tableau par section ; `AcceptedSearchTypes::all()`
+  une fois par racine ; côté client, un écouteur `resize` par racine qui ne mesure que panneau ouvert ; chargeur
+  +545 o gzip.
+- *Sécurité* : tout passe par `{{ }}` ; archive et libellés viennent de WordPress ; rien de neuf ne part au
+  navigateur ; le panneau n'écrit rien dans l'URL.
+- *Contexte et i18n* : trois chaînes traduisibles sans domaine, titres et « voir tous » natifs ; sans WooCommerce, la
+  composition par défaut ne pose pas de section produits (type non accepté).
+
+**Hors périmètre, noté.**
+- `resources/assets/css/meilifacets.css:1324,1355,1458,1509` : quatre commentaires dans la feuille du listing
+  (contraire à la règle « aucun commentaire en CSS ») ; correctif : reporter les trois raisons dans `decisions.md`,
+  supprimer les quatre, puis étendre le test `display: contents` de `StylesheetNeutralityTest` à une garde « aucun
+  commentaire » sur les deux feuilles.
+- Thème : `productSearch` (`js/frontend/product-search.js`, importé par `app.js:11`) n'est plus référencé par aucune
+  vue — il ne l'était déjà plus avant cette étape ; la route `/api/products/search` (`routes/api.php:18`) n'est
+  référencée que par `window.PluraliaSearch` (`app/Providers/AssetServiceProvider.php:103-111`), lu par ce seul
+  composant. Code mort, retrait prévu à l'étape 8 (S-16) : signalé, non supprimé.
+- Hôte : `ddev exec bash -c "cd themes/pluralia && npm run build"` échoue (`@rolldown/binding-linux-arm64-gnu`
+  absent : le `node_modules` du thème a été installé sur macOS) ; build fait sur la machine
+  (`cd themes/pluralia && npm run build`). Correctif : aligner `CLAUDE.md` de l'hôte sur la règle du module (outillage
+  Node sur la machine), ou réinstaller le `node_modules` du thème dans ddev.
+
+**Complément du 2026-09-28 — première passe de style (proposition validée par Louis).** Aucune animation
+(étape 7) ; seule transition : la couleur au survol d'une ligne, 150 ms `ease`, posée dans l'état `:hover` (la
+désignation au clavier reste instantanée), coupée sous `prefers-reduced-motion`.
+- *Appliqué.* Fond du panneau en pleine largeur, contenu centré par le seul `padding-inline`
+  (`max(--meili-search-inline, (100% − --meili-search-max) / 2)`, aucune enveloppe) ; champ à bordure fine, au
+  focus bordure `currentColor` + halo 4 px à 12 % + `outline` transparent (visible en `forced-colors`) ; loupe à
+  gauche et croix native neutralisée (`::-webkit-search-cancel-button`, masque en data URI, **CSS seul**, aucun
+  bouton maison : visible seulement avec un terme, comportement natif) ; `mark` sans fond, graisse 600 ; titre 500,
+  résumé et prix à 65 % en 0.8125rem ; en-tête de section en capitales espacées à 70 %, compte en chiffres
+  tabulaires, filet `--meili-rule` sous l'en-tête ; « voir tous » à droite de l'en-tête, flèche en `content`
+  muette pour les lecteurs d'écran (`"→" / ""`), soulignée au survol ; survol 6 %, option désignée 10 % + barre de
+  2 px ; vignette 3rem à coins de 0.5rem sur un fond teinté à 6 % (pseudo-élément, recouvert par l'image quand elle
+  existe) ; ombre `0 16px 32px -16px` à 20 % ; champ collant ; 3rem entre sections, 0.25rem entre lignes, 0.75rem
+  de marge interne ; messages centrés à 65 %, 2rem de marge verticale. `contain: layout paint` sur le panneau et
+  sur chaque liste (anneau de focus d'un lien d'option ramené à l'intérieur, `outline-offset: -2px`).
+- *Adapté.* **Voile** : premier jet en `position: fixed` sur `::after` de la racine ; retour de Louis, l'en-tête
+  passait dessous. Il est désormais placé **comme le panneau** (`absolute`, `top: 100%` de l'ancre, `100dvh`, un
+  cran sous le panneau) : il couvre la page sous l'en-tête et rien d'autre, sans JS ni mesure en plus, et échappe du
+  même coup au piège du `backdrop-filter` de `.pluralia-header__bar` (bloc conteneur des `fixed`). Opacité ramenée
+  de 30 à **20 %**. Un clic sur le voile tombe sur la racine : clic extérieur, fermeture, rien d'activé dessous.
+  **Champ collant** : `top` négatif de la marge du panneau (Chromium colle au bord de contenu d'un conteneur
+  paddé ; sans ce décalage, une bande de 1.5rem laissait voir les options défiler au-dessus du champ).
+- *Crochet ajouté* (additif, `Contract::VERSION` inchangé, aucune règle de contrat : le client ne l'adresse
+  pas) : `search-field` (`Hook::SearchField`), enveloppe statique du champ dans `search-input.blade.php`, qui porte
+  la loupe et le collage. *Déplacé* : `search-see-all` passe entre le titre et la liste dans
+  `search-section.blade.php` (ordre de lecture = ordre visuel) ; le client ne le lit pas, le compte et les options
+  sont cherchés dans la section (`contract.one(…, section)`) : inchangés. Fixtures TS alignées sur les vues.
+- *Tokens ajoutés* (`[data-meili="search"]`) : `--meili-tint-active`, `--meili-halo`, `--meili-muted`,
+  `--meili-label`, `--meili-glyph`, `--meili-shadow`, `--meili-scrim`, `--meili-duration-hover`, `--meili-small`,
+  `--meili-search-max`, `--meili-search-row`, `--meili-search-message`, `--meili-search-glyph`,
+  `--meili-search-glyph-inline`, `--meili-search-mark`, `--meili-search-clear` ; modifiés : `--meili-tint` 8 → 6 %,
+  `--meili-search-gap` 1.5 → 3rem, `--meili-search-thumb` 3.5 → 3rem. Documentés dans `configuration.md`.
+- *Mesures.* `site-search.css` : 4 893 → 10 046 o brut, 1 331 → 2 352 o gzip (les deux masques SVG pèsent ~0.9 ko
+  brut). Trace Chrome (1440, ouverture puis frappe de « serum », CPU non bridé) : aucune long task (tâche max
+  3.96 ms), recalcul de style max **0.76 ms** (celui forcé par `PanelRoom.measure()` à l'ouverture, déjà là à
+  l'étape 5, un seul), layout max 1.17 ms à l'arrivée des résultats, paint max 0.24 ms, pas de layout thrash
+  (6 lectures forcées, toutes à l'ouverture, `measure` et `focus`), INP 42 ms.
+- *Contrastes* (texte atténué sur `Canvas`) : 65 % → 6.98:1 sur blanc, 8.6:1 sur noir, 6.4:1 sur une ligne
+  désignée ; 70 % → 8.52:1 et 9.96:1. Rien à remonter.
+- *Recette* (Chrome DevTools, accueil, caches vidés, `module:publish`) : ouverture → focus dans le champ ; « ser »
+  → Produits 1 · Articles 1 ; Échap ferme et rend le focus à la loupe, voile retiré ; clic sur le voile ferme, la
+  loupe et les liens de l'en-tête restent au-dessus et cliquables ; ↓ puis Entrée ouvre
+  `/produit/serum-eclat-vitamine-c` ; aucune erreur console ; `/boutique` : 4 filtres, 16 cartes, tiroir, rendu
+  inchangé. Mode sombre émulé : Pluralia ne déclare pas `color-scheme`, le panneau reste clair ; avec
+  `color-scheme: dark` posé à la main sur la racine, `Canvas`/`CanvasText` basculent (fond #121212, texte blanc,
+  voile clair). Playwright MCP n'a délivré aucun événement souris à la page pendant la session (hors module :
+  `element.click()` ouvrait) ; recette faite dans Chrome DevTools.
+- *Tests.* Feature : `it_wraps_the_field_in_the_box_that_carries_its_magnifier`,
+  `it_places_the_link_to_the_archive_between_the_heading_and_the_options` ; client
+  (`site-search-stylesheet.test.ts`) : champ collant, « voir tous » sur la ligne du titre, voile à partir de 48em
+  sous l'ancre et aucun `filter`. `composer check` vert (358 PHP, 625 Node), `--testsuite Modules` vert (666).
+- *Cinq passes.* Lisibilité : aucun PHP de logique ajouté. Commentaires : aucun dans la feuille, aucun ajouté
+  ailleurs. Performance : aucun JS de style, aucun `backdrop-filter`/`filter`, masques inline, pas de police ni
+  d'image. Sécurité : rien de dynamique ajouté. Contexte/i18n : aucune chaîne ajoutée ; flèche décorative muette.
+- *À trancher (goût).* Voile éclaircissant sous un `color-scheme: dark` (il suit `CanvasText`) ; 3rem entre sections
+  aussi sur mobile, où il sépare aussi le champ de la première section ; barre de 2 px épousant l'arrondi de la
+  ligne ; titre en 500 qui paraît gras avec la police de Pluralia.
+
+**Commit proposé.** Module : `feat(search): compose the search panel and its sections` ; hôte :
+`feat(header): open the site search from the header magnifier`.
+
 ### R-190 · 🟡 · ouvert (en attente de commit) · ouvert le 2026-09-28 — étape 4, client de recherche : chargeur, client, surlignage, clavier
 
 Rattaché à `R-180`, seconde partie de l'étape 4 de [chantier-recherche.md](chantier-recherche.md) (D-2, D-7, S-4, S-8,
@@ -3901,7 +4207,7 @@ excerpt`, `fix(listing): hide what WooCommerce hides from its search`, `docs(sea
 ### R-180 · 🟠 · ouvert · 2026-09-25 — recherche du site (lot 5)
 
 Parapluie du chantier [chantier-recherche.md](chantier-recherche.md), branche `feat/site-search`. Rattachés :
-`R-27`, `R-159`, `R-160`, `R-181` (étape « pertinence et index »), `R-182` (refonte du pont), `R-184` (ordre de recherche surchargeable), `R-185` (corrections de la revue de `fd595a3`), `R-186` (réglages repoussés à chaque sauvegarde), `R-187` (étape 3a, déclaration des types), `R-188` (étape 3b, racine, réglages, publication partagée), `R-189` (étape 4, extractions partagées), `R-190` (étape 4, client de recherche) ; `R-29` à compléter (clé limitée à `posts`).
+`R-27`, `R-159`, `R-160`, `R-181` (étape « pertinence et index »), `R-182` (refonte du pont), `R-184` (ordre de recherche surchargeable), `R-185` (corrections de la revue de `fd595a3`), `R-186` (réglages repoussés à chaque sauvegarde), `R-187` (étape 3a, déclaration des types), `R-188` (étape 3b, racine, réglages, publication partagée), `R-189` (étape 4, extractions partagées), `R-190` (étape 4, client de recherche), `R-191` (étape 5, panneau et sections), `R-192` (étape 7, mouvement et reprise du style), `R-193` (résultats pendant la frappe) ; `R-29` à compléter (clé limitée à `posts`).
 
 ### R-179 · 🟡 · ouvert (en attente de commit) · ouvert le 2026-09-25 — étape 7 : panneaux desktop, pastilles actives et grille occupée
 

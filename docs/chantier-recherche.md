@@ -617,7 +617,7 @@ Décisions : D-3, D-5, D-6, S-2, S-3, S-7, S-8, S-17, S-19, S-21.
 - [x] contrat `SearchableTypes`, `SearchableType` (+ `with…()`), fabrique `SearchableTypeFactory` (libellés, archive, filtre et champs dérivés de WordPress), défauts WordPress / WooCommerce en `scopedIf` (`R-187`, refondu le 2026-09-28)
 - [x] types retenus = indexés, publics, non `exclude_from_search` (`SearchablePostTypes`) ; produits en tête sous WooCommerce, jamais dérivés par le défaut WordPress ; `searchOn` vide lève (`NoFieldToSearch`), hors de l'ordre lève (`FieldsOutsideSearchOrder`) ; surcharge documentée (`configuration.md`) et testée
 - [x] racine `<x-meilifacets::search>` et registre des racines par `name` (`SearchRegistry`, base `NamedRegistry` partagée avec `ListingRegistry`, doublon refusé) ; `SearchSettings` et attributs `min-chars`, `delay` ; `limit` reste un attribut de section (étape 5), défaut dans `SearchSettings` (`R-188`)
-- [x] une section d'un type non déclaré ou non indexé lève (`SearchTypeRefused`) — validation `AcceptedSearchTypes::get()` livrée, appelée par la section à l'étape 5 (`R-187`)
+- [x] une section d'un type non déclaré ou non indexé lève (`SearchTypeRefused`) — validation livrée (`R-187`), portée par `SearchRoot::type()` à l'étape 5 (`R-191`, `AcceptedSearchTypes::get()` retiré)
 - [x] adresse d'archive par type (`get_post_type_archive_link()`, `null` sans archive), lue par la fabrique (`R-187`)
 - [x] extrait projeté (`CardField::Summary`, `SummaryCardProjector`) — avancé à l'étape 2 (`R-181`, renommé par `R-185`)
 - [x] description publiée par la racine (`SiteSearchDescription`) : types acceptés, seuil, délai, limite, motif de compte, locale, origine à préchauffer ; connexion publiée à côté par `ClientScript` (extrait de `ListingScript`), inerte tant que `dist/site-search.js` n'existe pas (`R-188`)
@@ -638,16 +638,19 @@ Décisions : D-2, D-7, S-4, S-8.
 **Recette —** tests TS (seuil, temporisation, annulation d'une réponse dépassée, surlignage sans HTML,
 compte, section vide masquée, panne → message seul) ; un terme tapé vite ne peint que la dernière réponse.
 
-### 5 · Panneau et sections
+### 5 · Panneau et sections — livrée le 2026-09-28 (`R-191`), en attente de commit
 
 Décisions : S-1, S-5, S-9, S-10, S-11, S-12, D-7.
 
-- [ ] briques `search-toggle`, `search-panel`, `search-input`, `search-section` (`type`, `limit`), `search-empty`, `search-unavailable`, `search-card` (titre, image, `summary` et prix s'ils sont présents) ; règles de composition (§ 2) ; feuille `site-search.css`, neutre, mobile first
-- [ ] une section de type non autorisé lève ; seules les sections posées sont cherchées ; deux sections du même type dans une racine lèvent
+- [x] briques `search-toggle`, `search-panel`, `search-input`, `search-section` (`type`, `limit`), `search-empty`, `search-unavailable`, `search-card` (titre, image, `summary` et prix s'ils sont présents) ; composition par défaut d'une racine sans contenu ; feuille `site-search.css`, neutre, mobile first (`R-191`)
+- [x] une section de type non autorisé lève ; seules les sections posées sont cherchées ; deux sections du même type dans une racine lèvent (`R-191`)
 - [x] `ComboboxKeys` (livré à l'étape 4, sans rien partager avec `ListboxKeys`) ; préconnexion à la première intention (`R-190`)
-- [ ] disclosure : focus dans le champ, Échap rend le focus à la loupe, clic extérieur, Tab qui sort (`shared/light-dismiss.ts`, filtres inchangés)
-- [ ] place mesurée sous l'en-tête, défilement interne, verrou du défilement de la page sous 48em (S-10) ; Entrée sans option active inerte (S-9)
-- [ ] liens « voir tous » vers l'archive ; message vide ; message de panne (D-7) ; `Contract.orphans()` connaît la racine `search`
+- [x] disclosure : focus dans le champ, Échap rend le focus à la loupe, clic extérieur, Tab qui sort (`shared/light-dismiss.ts`, filtres inchangés, `R-191`)
+- [x] place mesurée sous l'en-tête, défilement interne, verrou du défilement de la page sous 48em (S-10) ; Entrée sans option active inerte (S-9)
+- [x] liens « voir tous » vers l'archive ; message vide ; message de panne (D-7) ; `Contract.orphans()` connaît la racine `search` (`R-189`)
+- [x] loupe du thème Pluralia remplacée par `<x-meilifacets::search>` (icône du thème en slot, aucun CSS de thème)
+- [ ] une listbox par section ou une brique `search-sections` : question pour Louis (`decisions.md`)
+- [ ] commits, après relecture de Louis
 
 **Recette —** Playwright 393 et 1440 px : « ser » montre au plus 4 produits et 4 articles avec leurs
 comptes et leurs liens vers `/boutique` et `/journal` ; « zzzz » affiche « Aucun élément ne correspond à
@@ -661,11 +664,17 @@ console ; suite des filtres verte.
 - [ ] `forced-colors`, cibles tactiles (`--meili-control-min`), nom de la loupe
 - [ ] audit par sous-agent, lecteur d'écran (VoiceOver macOS et iOS)
 
-### 7 · Animations
+### 7 · Animations — livrée le 2026-09-28 (`R-192`), reprise le 2026-09-29 (`R-193`), en attente de commit
 
-- [ ] panneau : entrée/sortie par `@starting-style` + `allow-discrete`, instantanée au clavier (comme ANIM-4)
-- [ ] aucune animation par frappe ; atténuation différée pendant une recherche (comme ANIM-10)
-- [ ] mouvement réduit : fondus seuls
+- [x] panneau : entrée/sortie par `@starting-style` + `allow-discrete`, instantanée au clavier (comme ANIM-4) ; voile en fondu calé sur lui (`R-192`)
+- [x] aucune animation par frappe ; atténuation différée pendant une recherche (comme ANIM-10) ; fondu court des premières sections seulement (`R-192`)
+- [x] mouvement réduit : fondus seuls (`R-192`)
+- [x] résultats pendant la frappe : réconciliation par `ID`, entrée 120 ms + 4 px, sortie 80 ms hors flux, FLIP additif
+  150 ms, compte en fondu + 2 px, vide ↔ résultats 150 ms sans flou, barre lente après 150 ms, rien au clavier ni
+  pendant l'entrée du panneau (`ResultsMotion`, `Departure`, `R-193`)
+- [x] reprises de `R-192` : voile sur la courbe du panneau, ligne active sans arête, soulignement du texte seul,
+  vignette à taille fixe ; premiers résultats à ×4 : layout 1,4–2 ms, rien à réduire (`R-193`)
+- [ ] commits, après relecture de Louis
 
 ### 8 · Habillage Pluralia — attend les maquettes (D-9)
 
@@ -689,6 +698,9 @@ sauf avis contraire, et sont confirmées à la clôture de l'étape 1.
 
 | Date | Étape | Fait |
 | --- | --- | --- |
+| 2026-09-29 | 7 (frappe) | `R-193` : les résultats ne sont plus reconstruits à chaque lettre (réconciliation par `ID`, option atteinte gardée, identifiants par nœud) ; `ResultsMotion` (FLIP additif, entrées, sorties hors flux, fondu enchaîné vers le vide, compte) et `Departure` ; barre de recherche lente ; `CardView::stamp()` partagé avec le listing ; voile, ligne active, vignette ; vérifié image par image (`typing-x4.gif`) ; par réponse 1–2,3 ms sans bridage, ~4,5 ms à ×4, 0 image perdue ; client 655/655, Unit 358, suite `Modules` 666 ; ni commit ni réindexation |
+| 2026-09-28 | 7 (animations) | `R-192` : panneau en fondu + `translateY(-8px)` 200 ms / sortie `-4px` 150 ms, voile en fondu (`ease`), rien au clavier (`data-instant` sur la racine), premières sections en fondu 120 ms, atténuation différée, loupe `scale(0.97)`, flèche +2 px ; corrections de style (ombre retirée, halo 8 %, 1,5/2/3rem, vignette alignée, titre 400, voile noir) ; `PanelRoom` mesure depuis l'ancre ; loupe alignée dans l'en-tête ; vérifié image par image dans Chrome ; client 634/634, Unit 358, suite `Modules` 666 ; ni commit ni réindexation |
+| 2026-09-28 | 5 (panneau) | `R-191` : briques Blade et composition par défaut (une section par type accepté, icône du thème en slot), `SearchRoot::type()` et une section par type (`AcceptedSearchTypes::get()` retiré), `LightDismiss` extrait de `DisclosureGroup` (Échap consommée), `PanelRoom`, `aria-controls` du champ, `site-search.css`, loupe de Pluralia remplacée ; recette Playwright 393/1440 conforme (« ser », « zzzz », Échap, clic extérieur, ↓ + Entrée, panne, `/boutique`) ; client 622/622, Unit 358, suite `Modules` 664 ; ni commit ni réindexation |
 | 2026-09-28 | 4 (client) | `R-190` : chargeur `site-search.js` (disclosure, focus avant l'import, `preconnect`, `import()` à la première intention) et client `site-search-client.js` (`Typing` + garde `R-159`, `SiteSearchQuery`, `Highlight`, `SectionView`, `StatusView`, `ComboboxKeys`, `aria-busy`, panne), onze crochets `search-*`/`summary` additifs, `sectionPattern` ; doublons levés (`SearchesUnderWay`, `FilterExpression.all`, attributs partagés, `SearchSeam`) ; multi-search réel accepté, vérifié dans Chromium ; p95 21,9 ms ; client 606/606, Unit 345, suite `Modules` 635 ; ni commit ni réindexation |
 | 2026-09-28 | 4 (extractions) | `R-189` : `PageRoots` (squelette du chargeur), `RootComponent` (règles et orphelins par racine, dette `R-188` sur `Contract.orphans()` levée), `Enums\Stylesheet` + `ClientStylesheet` (dette `R-188` sur `Stylesheet` levée) ; `ListboxKeys` laissé à la partie suivante ; client 553/553 (541 inchangés), Unit 340, suite `Modules` 628, `build:check` vert ; `/boutique` vérifié en `immediate` et `submit` (filtre, tri, tiroir 393 px, aucune erreur console), `config/meilifacets.php` restauré à l'identique ; ni commit ni réindexation |
 | 2026-09-28 | 3b | Seconde moitié de l'étape 3 (`R-188`) : `SearchSettings` (2, 120 ms, 4), racine `<x-meilifacets::search>` (`name`, `min-chars`, `delay`), `SearchRegistry` sur une base `NamedRegistry` extraite de `ListingRegistry`, `SiteSearchDescription`, `ListingScript` → `ClientScript` partagé (paquet `ScriptModule`, description paresseuse), `Preconnect::origin()` ; pages de listing identiques à l'octet avant/après ; `composer check` et suite `Modules` (624) verts ; ni commit ni réindexation. Trois propositions en attente dans `decisions.md` |

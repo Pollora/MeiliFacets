@@ -7,11 +7,13 @@ namespace Modules\MeiliFacets\View\Components;
 use Illuminate\Contracts\View\View;
 use Modules\MeiliFacets\Enums\Contract;
 use Modules\MeiliFacets\Enums\ScriptModule;
+use Modules\MeiliFacets\Enums\Stylesheet;
 use Modules\MeiliFacets\SiteSearch\AcceptedSearchTypes;
 use Modules\MeiliFacets\SiteSearch\SearchRegistry;
 use Modules\MeiliFacets\SiteSearch\SearchRoot;
 use Modules\MeiliFacets\SiteSearch\SearchSettings;
 use Modules\MeiliFacets\View\ClientScript;
+use Modules\MeiliFacets\View\ClientStylesheet;
 use Modules\MeiliFacets\View\SiteSearchDescription;
 
 final class Search extends ContractComponent
@@ -22,6 +24,7 @@ final class Search extends ContractComponent
         SearchRegistry $roots,
         SearchSettings $defaults,
         AcceptedSearchTypes $types,
+        ClientStylesheet $stylesheet,
         ClientScript $script,
         SiteSearchDescription $description,
         string $name = SearchRoot::DEFAULT_NAME,
@@ -31,7 +34,16 @@ final class Search extends ContractComponent
         $this->root = new SearchRoot($name, $this->settings($defaults, $minChars, $delay), $types->all());
         $roots->open($this->root);
 
+        $stylesheet->require(Stylesheet::SiteSearch);
         $script->require(ScriptModule::SiteSearch, $name, fn (): array => $description->of($this->root));
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function sectionTypes(): array
+    {
+        return array_keys($this->root->types);
     }
 
     public function render(): View

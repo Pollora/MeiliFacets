@@ -1,6 +1,7 @@
 import { SearchClient, SearchSuperseded } from '../shared/search-client.ts'
 import { SearchesUnderWay } from '../shared/searches-under-way.ts'
 import { ComboboxKeys } from './combobox-keys.ts'
+import { ResultsMotion } from './results-motion.ts'
 import { SectionView } from './section-view.ts'
 import { SiteSearchQuery } from './site-search-query.ts'
 import { StatusView } from './status-view.ts'
@@ -24,9 +25,11 @@ export class SiteSearch {
     #input: HTMLInputElement | null
     #keys: ComboboxKeys | null
     #searchesUnderWay: SearchesUnderWay
+    #motion: ResultsMotion | null
 
     constructor({ contract, description, connection }: BoundRoot<SiteSearchDescription>) {
         const input = contract.one('search-input')
+        const panel = contract.one('search-panel')
 
         this.#description = description
         this.#client = new SearchClient(connection)
@@ -36,6 +39,7 @@ export class SiteSearch {
         this.#searchesUnderWay = new SearchesUnderWay(this.#status)
         this.#input = input instanceof HTMLInputElement ? input : null
         this.#keys = this.#input === null ? null : new ComboboxKeys(contract, this.#input)
+        this.#motion = panel instanceof HTMLElement ? new ResultsMotion(contract, panel) : null
     }
 
     start() {
@@ -45,7 +49,7 @@ export class SiteSearch {
             return this
         }
 
-        this.#keys.start()
+        this.#keys.start().control(this.#sections.flatMap((section) => section.listbox ?? []))
         new Typing(this.#input, this.#description).start({
             search: (term) => void this.#search(term),
             clear: () => this.#clear(),
@@ -71,21 +75,35 @@ export class SiteSearch {
     }
 
     #show(answers: Answers) {
-        this.#sections.forEach((section) => section.show(answers[section.searched.type.postType] ?? {}))
-        this.#keys?.offer(this.#sections.flatMap((section) => section.options))
-        this.#status.answered(this.#sections.map((section) => section.count))
+        this.#paint(() => {
+            this.#sections.forEach((section) => section.show(answers[section.searched.type.postType] ?? {}))
+            this.#keys?.offer(this.#sections.flatMap((section) => section.options))
+            this.#status.answered(this.#sections.map((section) => section.count))
+        })
     }
 
     #fail(failure: unknown) {
         console.error('[meilifacets] the search failed:', failure)
-        this.#hideSections()
-        this.#status.failed()
+        this.#paint(() => {
+            this.#hideSections()
+            this.#status.failed()
+        })
     }
 
     #clear() {
         this.#client.abandon()
-        this.#hideSections()
-        this.#status.cleared()
+        this.#paint(() => {
+            this.#hideSections()
+            this.#status.cleared()
+        })
+    }
+
+    #paint(change: () => void) {
+        if (this.#motion === null) {
+            change()
+        } else {
+            this.#motion.around(change)
+        }
     }
 
     #hideSections() {

@@ -74,6 +74,7 @@ enum Hook: string
     case Search = 'search';
     case SearchToggle = 'search-toggle';
     case SearchPanel = 'search-panel';
+    case SearchField = 'search-field';
     case SearchInput = 'search-input';
     case SearchStatus = 'search-status';
     case SearchEmpty = 'search-empty';
@@ -82,6 +83,7 @@ enum Hook: string
     case SearchCount = 'search-count';
     case SearchResults = 'search-results';
     case SearchCardTemplate = 'search-card-template';
+    case SearchSeeAll = 'search-see-all';
 
     public function attribute(): HtmlString
     {

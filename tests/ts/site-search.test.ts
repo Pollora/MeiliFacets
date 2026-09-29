@@ -28,7 +28,7 @@ const started = (t: TestContext) => {
         input,
         titles: (postType: string) => [...element(`[data-type="${postType}"]`).querySelectorAll(Contract.selector('title'))].map((title) => title.textContent),
         said: () => element(Contract.selector('search-status')).textContent,
-        hiddenSections: () => [...root.querySelectorAll<HTMLElement>(Contract.selector('search-section'))].map((section) => section.hidden),
+        hiddenSections: () => [...root.querySelectorAll<HTMLElement>(`${Contract.selector('search-section')}:not([data-leaving])`)].map((section) => section.hidden),
         typed: (term: string) => {
             typeInto(window, input, term)
             t.mock.timers.tick(120)
@@ -131,6 +131,12 @@ describe('SiteSearch', () => {
         engine.last.answer([{ hits: [], totalHits: 0 }, { hits: [], totalHits: 0 }])
         await settle()
         assert.equal(busy(), null)
+    })
+
+    it('names the listbox of every section it searches as what the field controls', (t) => {
+        const { input } = started(t)
+
+        assert.equal(input.getAttribute('aria-controls'), 'results-product results-post')
     })
 
     it('offers the cards of every section to the keyboard, in the order they are shown', async (t) => {

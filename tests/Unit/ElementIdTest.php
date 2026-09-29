@@ -27,6 +27,18 @@ final class ElementIdTest extends TestCase
         $this->assertSame('meilifacets-products-drawer-count', $ids->drawerCount());
     }
 
+    /** A header and a footer search on one page must not name each other's panel. */
+    #[Test]
+    public function it_carries_the_search_root_name(): void
+    {
+        $ids = new ElementId('header');
+
+        $this->assertSame('meilifacets-header-search-panel', $ids->searchPanel());
+        $this->assertSame('meilifacets-header-search-input', $ids->searchInput());
+        $this->assertSame('meilifacets-header-search-post-heading', $ids->searchHeading('post'));
+        $this->assertSame('meilifacets-header-search-post-results', $ids->searchListbox('post'));
+    }
+
     #[Test]
     public function it_keeps_two_listings_apart(): void
     {
@@ -54,9 +66,11 @@ final class ElementIdTest extends TestCase
 
         foreach ($this->hostileNames() as $key) {
             $source[$ids->sortOption($key)][] = "sortOption({$key})";
+            $source[$ids->searchHeading($key)][] = "searchHeading({$key})";
+            $source[$ids->searchListbox($key)][] = "searchListbox({$key})";
         }
 
-        foreach ([$ids->sortLabel(), $ids->sortTrigger(), $ids->sortList(), $ids->drawer(), $ids->drawerTitle(), $ids->drawerCount(), $ids->applyCount(), $ids->sortPanel(), $ids->sortChoiceName()] as $fixed) {
+        foreach ([$ids->searchPanel(), $ids->searchInput(), $ids->sortLabel(), $ids->sortTrigger(), $ids->sortList(), $ids->drawer(), $ids->drawerTitle(), $ids->drawerCount(), $ids->applyCount(), $ids->sortPanel(), $ids->sortChoiceName()] as $fixed) {
             $source[$fixed][] = 'fixed';
         }
 

@@ -8,10 +8,15 @@ export interface EntranceStyle {
     easing: string
 }
 
+export interface EntranceTiming {
+    duration: number
+    easing: string
+}
+
 /**
- * An element that appears — a badge, an active value, a section — faded in from `from`, and only faded under
- * reduced motion. By WAAPI, not `@starting-style`: that would also play on the first render, when a breakpoint
- * shows the element again, and on every node a redraw rebuilds.
+ * An element that appears — a badge, an active value, a section, a search result — faded in from `from`, and
+ * only faded under reduced motion. By WAAPI, not `@starting-style`: that would also play on the first render,
+ * when a breakpoint shows the element again, and on every node a redraw rebuilds.
  */
 export class Entrance {
     #timing: CssTiming
@@ -22,9 +27,27 @@ export class Entrance {
         this.#style = style
     }
 
-    /** `duration` for a length measured at the time, such as a section's by its height. */
-    play(element: HTMLElement, duration = this.#timing.duration(element, this.#style.duration) ?? 0) {
-        element.animate(this.#keyframes(), { duration, easing: this.#timing.easing(element, this.#style.easing) })
+    /** Read ahead by a caller that writes several nodes at once: a read between two writes would force a style pass. */
+    timingOf(element: Element): EntranceTiming {
+        return {
+            duration: this.#timing.duration(element, this.#style.duration) ?? 0,
+            easing: this.#timing.easing(element, this.#style.easing),
+        }
+    }
+
+    /** A timing given in part, such as a section's duration measured by its height, is completed from the stylesheet. */
+    play(element: HTMLElement, timing: Partial<EntranceTiming> = {}) {
+        return element.animate(this.#keyframes(), this.#complete(element, timing))
+    }
+
+    #complete(element: Element, { duration, easing }: Partial<EntranceTiming>): EntranceTiming {
+        if (duration !== undefined && easing !== undefined) {
+            return { duration, easing }
+        }
+
+        const declared = this.timingOf(element)
+
+        return { duration: duration ?? declared.duration, easing: easing ?? declared.easing }
     }
 
     #keyframes(): Keyframe[] {

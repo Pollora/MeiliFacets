@@ -28,21 +28,6 @@ final readonly class AcceptedSearchTypes
         return $accepted;
     }
 
-    /**
-     * @throws SearchTypeRefused
-     * @throws FieldsOutsideSearchOrder
-     */
-    public function get(string $postType): SearchableType
-    {
-        $accepted = $this->all();
-
-        if (! array_key_exists($postType, $accepted)) {
-            throw SearchTypeRefused::for($postType, array_keys($accepted));
-        }
-
-        return $accepted[$postType];
-    }
-
     private function ensureWithinOrder(SearchableType $type): void
     {
         $outside = $this->searchOn->outside($type->searchOn);

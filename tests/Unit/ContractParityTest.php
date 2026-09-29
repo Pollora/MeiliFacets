@@ -30,6 +30,8 @@ final class ContractParityTest extends TestCase
 
     private const string STYLESHEET = __DIR__.'/../../resources/assets/css/meilifacets.css';
 
+    private const string SEARCH_STYLESHEET = __DIR__.'/../../resources/assets/css/site-search.css';
+
     private const string VIEWS = __DIR__.'/../../resources/views/components';
 
     #[Test]
@@ -179,14 +181,53 @@ final class ContractParityTest extends TestCase
     #[Test]
     public function the_stylesheet_draws_the_sheet_where_the_drawer_promotes_it_by_default(): void
     {
-        $stylesheet = (string) file_get_contents(self::STYLESHEET);
+        $this->assertStringContainsString(
+            '@media (scripting: enabled) and '.Drawer::MOBILE.' {',
+            (string) file_get_contents(self::STYLESHEET)
+        );
+    }
 
+    /**
+     * S-10: the search panel turns from a full-height sheet into a capped panel where the drawer turns into a bar.
+     *
+     * @return Generator<string, array{string}>
+     */
+    public static function stylesheets(): Generator
+    {
+        yield 'listing' => [self::STYLESHEET];
+        yield 'site search' => [self::SEARCH_STYLESHEET];
+    }
+
+    #[DataProvider('stylesheets')]
+    #[Test]
+    public function every_stylesheet_breaks_where_the_drawer_does(string $path): void
+    {
         preg_match('/[0-9.]+em/', Drawer::MOBILE, $threshold);
-        preg_match_all('/\(width\s*[<>]=?\s*([0-9.]+em)\)/', $stylesheet, $widths);
+        preg_match_all('/\(width\s*[<>]=?\s*([0-9.]+em)\)/', (string) file_get_contents($path), $widths);
 
-        $this->assertStringContainsString('@media (scripting: enabled) and '.Drawer::MOBILE.' {', $stylesheet);
         $this->assertNotEmpty($widths[1]);
         $this->assertSame([$threshold[0]], array_values(array_unique($widths[1])), 'A second threshold would drift from the one the drawer reads.');
+    }
+
+    /**
+     * The client reads a section's type and limit on the element the view renders.
+     *
+     * @return Generator<string, array{string}>
+     */
+    public static function sectionAttributes(): Generator
+    {
+        yield 'type' => ['TYPE_ATTRIBUTE'];
+        yield 'limit' => ['LIMIT_ATTRIBUTE'];
+    }
+
+    #[DataProvider('sectionAttributes')]
+    #[Test]
+    public function the_section_renders_what_the_client_reads_on_it(string $constant): void
+    {
+        preg_match("/{$constant} = '([^']*)'/", $this->read('site-search/section-view.ts'), $found);
+
+        $this->assertNotSame('', $found[1] ?? '');
+        $this->assertStringContainsString(($found[1] ?? '').'="', (string) file_get_contents(self::VIEWS.'/search-section.blade.php'));
     }
 
     /** Escape closes at once: the client marks it, and only the stylesheet cuts the transition. */
@@ -205,7 +246,8 @@ final class ContractParityTest extends TestCase
     private function hooksAddressedByTheClient(): array
     {
         $source = implode('', array_map($this->read(...), $this->clientFiles()))
-            .(string) file_get_contents(self::STYLESHEET);
+            .(string) file_get_contents(self::STYLESHEET)
+            .(string) file_get_contents(self::SEARCH_STYLESHEET);
 
         // `one`/`all`/`selector` take the hook first, `hookOf` takes the node first.
         preg_match_all("/(?:one|all|selector)\(\s*'([a-z-]+)'/", $source, $calls);

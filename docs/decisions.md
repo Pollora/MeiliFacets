@@ -96,7 +96,7 @@ Voir aussi : [installation.md](installation.md) · [architecture.md](architectur
 | Types de la recherche du site | **dérivés de WordPress** par `SearchableTypeFactory` : titre = `labels->name`, « voir tous » = `labels->all_items`, archive = `get_post_type_archive_link()` (`null` sans archive), filtre = publié + type, champs cherchés = titre, `labels.*` des taxonomies **du type**, `excerpt` — jamais `content`. Aucune chaîne du module, aucun motif de compte par type : la section réutilise `:count result|:count results`. Libellés lus une fois par requête (déclarations mémoïsées, liaisons `scoped`). *Tranché par Louis le 2026-09-28 (`R-187`) : le premier jet portait ses propres `__('Posts')`, `__('See all products')` et un motif de compte par type — des traductions à tenir en double de celles que WordPress et WooCommerce livrent déjà.* Coût : un projet qui veut un autre libellé que celui de l'enregistrement du type passe par `withHeading()`/`withSeeAllLabel()` |
 | Types retenus par défaut | les types **indexés** par MeiliScout, **publics** et **non `exclude_from_search`** (la notion native de WordPress) : un CPT indexé apparaît sans code. Sous WooCommerce actif (lu à chaque appel, `R-171`), `product` surcharge la fabrique — filtre `VisibleProducts::inSearch()`, champs titre + marque, catégorie, SKU. **Sans WooCommerce, aucun `product`**, même si un autre plugin enregistre et indexe un type de ce nom : sans le filtre de visibilité, la recherche montrerait ce que la boutique cache, et le filtre porte sur `facets.product_visibility`, que seul WooCommerce déclare. Découpage : `SearchablePostTypes` dit quels types sont retenus ; `WordPressSearchableTypes` ignore toujours `product`, que seul `WooCommerceSearchableTypes` déclare — jamais construit pour être jeté. *Tranché par Louis le 2026-09-28 (`R-187`), cas limite « `product` d'un autre plugin écarté » compris.* |
 | Ordre des types déclarés | **produits en tête** quand WooCommerce est actif, puis les autres dans l'ordre de `indexed_post_types`. Le cahier des charges nomme les produits d'abord, et sur une boutique ils sont le contenu principal ; pour le reste, l'ordre choisi par l'administrateur dans MeiliScout est la seule préférence exprimée, le module n'en invente pas. Cet ordre ne décide **pas** de l'affichage — les sections posées par le gabarit le font (S-21) — mais celui de la liste « Searchable here » de `SearchTypeRefused` et de la description publiée. *Tranché par Louis le 2026-09-28 (`R-187`).* |
-| Champs cherchés par type (`searchOn`) | **lus dans l'ordre de recherche** (`AttributesToSearchOn::among()`, intersection dans l'ordre de `SearchableAttributes::all()`), jamais listés à côté : le moteur refuse une requête entière dès qu'elle nomme un champ qu'il ne cherche pas, et un projet qui retire un champ de l'ordre le retire aussi des sections. Un champ de `searchOn` hors de l'ordre — posé par `withSearchOn()` — lève `FieldsOutsideSearchOrder` à la validation (`AcceptedSearchTypes::all()`/`get()`), en nommant le type et les champs. Un type à qui l'ordre ne laisse **aucun** champ lève `NoFieldToSearch`, qui le nomme : une section qui ne peut rien trouver est une faute de configuration, pas un état à rendre en silence. *Proposé le 2026-09-28 (premier jet), les deux erreurs tranchées par Louis le même jour (`R-187`).* Coût : un champ souhaité par le module mais absent de l'ordre disparaît en silence de la dérivation ; un champ posé par un projet, lui, lève |
+| Champs cherchés par type (`searchOn`) | **lus dans l'ordre de recherche** (`AttributesToSearchOn::among()`, intersection dans l'ordre de `SearchableAttributes::all()`), jamais listés à côté : le moteur refuse une requête entière dès qu'elle nomme un champ qu'il ne cherche pas, et un projet qui retire un champ de l'ordre le retire aussi des sections. Un champ de `searchOn` hors de l'ordre — posé par `withSearchOn()` — lève `FieldsOutsideSearchOrder` à la validation (`AcceptedSearchTypes::all()`), en nommant le type et les champs. Un type à qui l'ordre ne laisse **aucun** champ lève `NoFieldToSearch`, qui le nomme : une section qui ne peut rien trouver est une faute de configuration, pas un état à rendre en silence. *Proposé le 2026-09-28 (premier jet), les deux erreurs tranchées par Louis le même jour (`R-187`).* Coût : un champ souhaité par le module mais absent de l'ordre disparaît en silence de la dérivation ; un champ posé par un projet, lui, lève |
 | Surcharge des types | contrat `SearchableTypes`, défaut `WooCommerceSearchableTypes` **décorable**, lié par nom de classe en `scopedIf` comme `DefaultSearchableAttributes`. `SearchableType` (`final readonly`) n'offre de `with…()` immuable que pour ce qu'un projet a une raison de changer : titre, libellé « voir tous », carte, champs cherchés — pas le filtre de base ni l'archive : `SearchableTypeFactory::make()` suffit (Louis, 2026-09-28). Ajouter ou retirer un type = décorer `all()`. *Tranché par Louis le 2026-09-28 (`R-187`).* |
 | Carte de la recherche | `<x-meilifacets::search-card>`, **distincte** de la carte du listing et commune à tous les types : titre, image, `summary` s'il est présent, prix s'il est présent. Nommée par `SearchableType::card` dès l'étape 3a, vue écrite à l'étape 5. Remplace l'`excerpt-card` du plan. *Tranché par Louis le 2026-09-28 (`R-187`).* |
 | Réutilisation pour le client du panneau | le panneau réutilise ce qui existe au lieu d'en écrire une copie : `ListingScript` extrait en classe partagée paramétrée par module et source de données, `Stylesheet` paramétrée, `SearchClient` étendu au surlignage (une instance par racine), `Contract` avec des règles par racine, squelette de `listing-page.ts` extrait, `BrowserConnection::origin()`, `ListboxKeys` en partie. *Tranché par Louis le 2026-09-28 : le plan prévoyait `SiteSearchScript` et `SiteSearchStylesheet` neufs.* Coût : les extractions touchent le listing, dont les tests doivent rester verts à l'identique |
@@ -693,6 +693,104 @@ Ce n'est pas un modèle de code, de découpage ni de conventions.
 ## En attente de validation
 
 Rien de ce qui suit n'est acquis.
+
+- **Une liste `role="listbox"` par section de recherche** (`R-191`, 2026-09-28, **question pour Louis**). Le plan
+  (§ 2) voulait une listbox unique à groupes nommés ; aucune brique ne peut la rendre : le champ et les sections sont
+  posés côte à côte dans le slot du panneau, et un conteneur autour des seules sections serait une brique de plus.
+  Livré : chaque section rend sa liste `role="listbox"` nommée par son titre (`aria-labelledby`), options
+  `<li role="option">` ; le champ nomme ces listes en `aria-controls`, écrit par le client (il ne les connaît qu'une
+  fois les sections posées). C'est la forme d'Algolia Autocomplete (une listbox par source). Alternative : une brique
+  `<x-meilifacets::search-sections>` (crochet `search-sections`, composant et vue en plus, hors § 8) qui rend la
+  listbox unique, `role="group"` par section et `aria-controls` rendu par le serveur ; coût : une brique de plus à
+  poser dans toute composition manuelle. À trancher avant l'audit de l'étape 6.
+- **Étape 5 : choix arrêtés** (`R-191`, 2026-09-28 ; une seule réponse sensée, écrits pour mémoire) :
+  - *composition par défaut* : une racine au slot vide rend toutes les briques, une section par type accepté ; son
+    slot `icon` est passé à la loupe. Avec contenu, rien n'est ajouté ;
+  - *validation d'une section* contre **les types de sa racine** (`SearchRoot::type()`), ceux que la description
+    publie et où le client cherche la section ; `AcceptedSearchTypes::get()`, qui recalculait la même liste, est
+    retiré. Une section par type et par racine (`SearchRegistry::placeSection()`) ; `limit` < 1 lève ;
+  - *messages vide et de panne* sans slot : leur libellé passe par le catalogue du thème ou une vue surchargée (le
+    plan § 2 prévoyait un slot : une seconde voie pour la même chose) ;
+  - *Échap consommé* par `LightDismiss` (`preventDefault`), pour la recherche **et** les panneaux flottants des filtres,
+    comme le tiroir le fait déjà : un `<input type="search">` se vide sur une Échap non consommée (Chrome, Safari), le
+    terme survit donc à la fermeture. Seul effet côté filtres : un écouteur posé **au-dessus** du listing voit
+    `defaultPrevented` ; le tiroir écoute en dessous, inchangé (tests des filtres verts sans retouche) ;
+  - *place sous l'en-tête* : `window.innerHeight` − haut du panneau, écrite en `--meili-search-room` à l'ouverture
+    et au redimensionnement, retirée à la fermeture ; plein écran restant sous `48em`, plafond au-delà ;
+  - *verrou de la page* sous `(scripting: enabled) and (width < 48em)` : amélioration mobile qui n'existe qu'avec
+    JavaScript, comme le tiroir ;
+  - *champ* à `font-size: max(1rem, var(--meili-ui))` : iOS agrandit la page au focus d'un champ sous 16 px ;
+  - *loupe* : cible tactile `--meili-control-min` (44 px au pointeur grossier), icône à `1.25em` ;
+  - *panneau* : `Canvas`/`CanvasText`, sections côte à côte à partir de `48em` (flex, base `--meili-search-column`),
+    carte en rangée vignette + texte ; aucune transition (étape 7).
+  Coût : le paquet du chargeur passe de 5 299 à 7 154 o (2 172 → 2 717 o gzip) — `LightDismiss`, `InputSource`,
+  `PanelRoom` ; celui du listing +321 o (+82 o gzip).
+- **Étape 7 : mouvement de la recherche** (`R-192`, 2026-09-28, valeurs demandées par Louis) :
+  - *panneau* : entrée depuis `@starting-style` (`opacity: 0`, `translateY(-8px)`, origine en haut) en **200 ms**
+    `--meili-ease` (`cubic-bezier(0.23, 1, 0.32, 1)`), sortie par `[hidden]` + `display … allow-discrete` en **150 ms**
+    vers `translateY(-4px)`, `pointer-events: none` pendant la sortie ; transitions, pas de keyframes (interruptible) ;
+  - *voile* : fondu seul, 200 ms en entrée et 150 ms en sortie, sur `--meili-ease` comme le panneau (*amendé le 2026-09-29,
+    `R-193`* : sur `ease`, il démarrait visiblement après le panneau) ; toujours présent comme `::after` à partir de
+    `48em` mais `display: none` fermé, pour ne pas créer de débordement permanent ; **noir à 20 %** quel que soit
+    `color-scheme` (il éclaircissait la page en sombre) ;
+  - *clavier* : ouverture ou fermeture levée par le clavier (`InputSource.isKeyboard`, clic `detail === 0`), Échap et Tab
+    qui sort : `SearchPanel` pose `data-instant` **sur la racine** (le voile est son pseudo-élément), change l'état, vide
+    le style (`getAnimations()`), retire l'attribut — même mécanisme que `DisclosureGroup` ; le clic sur le voile ou
+    hors du panneau garde la sortie animée ;
+  - *une seule entrée par conteneur* : les sections montrées **avec** le panneau n'ont pas leur propre fondu ; *remplacé
+    le 2026-09-29 (`R-193`)* : l'entrée des sections n'est plus un `@starting-style` mais un WAAPI de `ResultsMotion`,
+    joué seulement quand une réponse les montre et jamais tant que le panneau a une animation en cours ;
+    `SearchPanel::#showWithItsContent()` et la coupure `data-instant` des sections sont retirés ;
+  - *premières sections* : fondu 120 ms, sans décalage ni cascade ; *le reste (« rien au remplacement des résultats ni
+    quand une section disparaît ») est remplacé par « Étape 7 : résultats pendant la frappe » ci-dessous* ;
+  - *recherche en vol* : liste à `--meili-busy-opacity` (0.55) après `--meili-duration-busy-delay` (150 ms), fondu
+    150 ms, retour 120 ms — la grammaire d'ANIM-10, sans code de plus (`aria-busy` du panneau existait) ;
+  - *ligne* : désignée au clavier sans transition, **par la teinte seule** (*2026-09-29, `R-193`* : la barre
+    `inset 2px` dessinait une arête sur le coin arrondi) ; survol : couleur seule, 150 ms `ease`, sous `(hover: hover) and
+    (pointer: fine)` et `no-preference` ; loupe `scale(0.97)` à l'appui, 150 ms ; flèche de « voir tous » +2 px au
+    survol (`inline-block`) ; *tranché le 2026-09-29* : le soulignement couvre **le texte seul**, partout — un
+    soulignement sous une flèche qui avance de 2 px se décalerait de celui du texte ;
+  - *mouvement réduit* : aucune translation ni échelle, fondus gardés (panneau, voile, sections, atténuation) ;
+  - *mesure de la place* (`PanelRoom`) : depuis l'ancre (`offsetParent` + `offsetTop`), plus depuis la boîte du
+    panneau, que la translation d'entrée décalait de 8 px (place mesurée 734 au lieu de 726 à 1440 × 806) ;
+  - *loupe* : `display: flex` + `inline-size: fit-content` au lieu d'`inline-flex` : posée sur la ligne de base d'une
+    racine `block`, elle laissait sous elle la place des jambages (racine 26,5 px, bouton 20, centre 3,2 px trop haut).
+  Coût : chargeur 7 154 → 7 526 o (2 717 → 2 833 o gzip) ; `site-search.css` 10 046 → 13 099 o (2 352 → 2 864 o
+  gzip) ; un attribut posé deux fois par ouverture (panneau, et racine au clavier).
+
+- **Étape 7 : résultats pendant la frappe** (`R-193`, 2026-09-29, valeurs demandées par Louis, à valider) :
+  - *réconciliation par `ID`* : un résultat retrouvé garde son nœud ; titre et résumé réécrits seulement s'ils changent,
+    comme le compte ; ordre remis en ne déplaçant que les nœuds hors place ; une section masquée garde ses cartes ; un
+    résultat sans `ID` est toujours neuf ;
+  - *option atteinte* gardée tant qu'elle est proposée, au nouveau rang ; sinon lâchée (`aria-activedescendant` et
+    `data-active` retirés) ; identifiant d'option émis une fois par nœud ;
+  - *entrée d'un résultat* : `opacity` 0 → 1 et `translateY(4px)` → 0, **120 ms** (`--meili-duration-settle`),
+    `--meili-ease`, sans décalage entre lignes ; aucune dans une section qui entre elle-même ;
+  - *sortie* : fondu **80 ms** (`--meili-duration-leave`, nouveau), hors flux immédiatement (`data-leaving` :
+    `position: absolute` à la place mesurée, `overflow: hidden`, `inert`, `aria-hidden`), borné au bas visible du
+    panneau et abandonné au-delà ; une section ou un message part en **copie** sans `id`, la carte part elle-même ;
+  - *changement de rang* : FLIP **150 ms** (`--meili-duration-move`, nouveau), `--meili-ease`, `composite: 'add'`,
+    décalage d'une carte net de celui de sa section ; une lecture groupée avant l'écriture, une après, aucune entre deux
+    écritures ; en dessous d'un demi-pixel, rien ;
+  - *interruption* : additive — rien n'est annulé, la nouvelle glissade part de la position vue (écart de mise en page,
+    le reste étant porté par les animations en cours) ; un fantôme part de l'opacité courante ;
+  - *compte* : fondu + `translateY(2px)`, 120 ms, `--meili-ease` (le compte devient `inline-block`, chiffres tabulaires
+    déjà en place) ;
+  - *section qui apparaît ou disparaît* : fondu 120 ms / 80 ms sur `--meili-ease-fade` (**`ease`**, nouveau jeton : un
+    fondu de 80 ms sur la courbe forte était à 3 % dès 40 ms, un saut) ; hauteur sans animation ;
+  - *vide ↔ résultats* : fondu enchaîné **150 ms** (`--meili-duration-fade`), **sans flou** : message centré et cartes
+    alignées à gauche ne partagent aucun pixel, les deux états ne se superposent pas ;
+  - *recherche lente* : `::after` du champ sous `aria-busy`, 2 px (`--meili-search-bar`), balayage linéaire `translateX` +
+    `scaleX` dans la largeur du champ (jamais au-delà, le panneau défile en `auto`), cycle **1,2 s**
+    (`--meili-duration-bar`), après `--meili-duration-busy-delay` (150 ms) ; retiré à la réponse ; mouvement réduit :
+    barre fixe à 40 % en fondu. Aucun crochet ajouté ;
+  - *sans animation* : touche, surlignage, texte du champ, et tout le rendu tant que le panneau entre ;
+  - *mouvement réduit* : fondus seuls — ni glissade, ni translation d'entrée, ni flou ;
+  - *vignette* à taille fixe (`--meili-search-thumb` en largeur et hauteur, texte alternatif masqué) : une image lente
+    ou absente agrandissait la rangée après la mesure.
+  Coût : client 9 333 → 15 775 o (3 765 → 5 979 gzip) ; feuille 13 099 → 14 368 o (2 864 → 3 078 gzip) ; deux lectures
+  de mise en page par réponse ; `Entrance::play()` prend une durée **et** une courbe partielles (`{ duration }` pour les
+  sections du tiroir) et `timingOf()` lit d'avance ; un attribut d'état de plus (`data-leaving`).
 
 - **Publication d'un paquet du client, partagée par le listing et la recherche** (`R-188`, 2026-09-28,
   **validé par Louis**). `ListingScript` devient `ClientScript`, paramétré par le paquet (`ScriptModule`, ensemble fermé :

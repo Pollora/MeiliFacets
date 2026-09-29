@@ -81,4 +81,81 @@ describe('SectionView', () => {
         assert.equal(section(root, 'product').hidden, true)
         assert.deepEqual(products?.count, { heading: 'Products', total: 0 })
     })
+
+    it('keeps the node of a card another term finds again, and rewrites only its words', (t) => {
+        const { root, views } = sections(t)
+        const [products] = views
+
+        products?.show({ hits: [hit(1, 'Sérum', { title: `${OPENING}S${CLOSING}érum` }), hit(2, 'Savon')], totalHits: 2 })
+        const [serum, soap] = products?.options ?? []
+
+        products?.show({ hits: [hit(1, 'Sérum', { title: `${OPENING}Sér${CLOSING}um` })], totalHits: 1 })
+        const [kept] = products?.options ?? []
+
+        assert.ok(kept !== undefined && kept === serum, 'the same node')
+        assert.equal(find(section(root, 'product'), Contract.selector('title')).innerHTML, '<mark>Sér</mark>um')
+        assert.equal(soap?.isConnected, false)
+        assert.equal(section(root, 'product').querySelectorAll(Contract.selector('card')).length, 1)
+    })
+
+    it('puts the cards in the order of the answer, moving only those out of place', (t) => {
+        const { root, views } = sections(t)
+        const [products] = views
+        const titles = () => [...section(root, 'product').querySelectorAll(Contract.selector('title'))].map((title) => title.textContent)
+
+        products?.show({ hits: [hit(1, 'One'), hit(2, 'Two'), hit(3, 'Three')], totalHits: 3 })
+        const [one] = products?.options ?? []
+        const moved = t.mock.method(section(root, 'product').querySelector(Contract.selector('search-results')) as Element, 'insertBefore')
+
+        products?.show({ hits: [hit(3, 'Three'), hit(1, 'One'), hit(4, 'Four')], totalHits: 3 })
+
+        assert.deepEqual(titles(), ['Three', 'One', 'Four'])
+        assert.ok(products?.options[1] === one, 'the same node, one rank down')
+        assert.equal(moved.mock.callCount(), 2)
+    })
+
+    it('draws a card the engine gave no identity afresh every time', (t) => {
+        const { views } = sections(t)
+        const [products] = views
+
+        products?.show({ hits: [{ card: { title: 'Nameless' } }], totalHits: 1 })
+        const [first] = products?.options ?? []
+        products?.show({ hits: [{ card: { title: 'Nameless' } }], totalHits: 1 })
+        const [second] = products?.options ?? []
+
+        assert.ok(first !== undefined && second !== undefined && first !== second, 'two nodes')
+        assert.equal(first?.isConnected, false)
+    })
+
+    it('keeps the cards of a section it hides, and finds them again when it shows it', (t) => {
+        const { views } = sections(t)
+        const [products] = views
+
+        products?.show({ hits: [hit(1, 'Sérum')], totalHits: 1 })
+        const [serum] = products?.options ?? []
+        products?.show({ hits: [], totalHits: 0 })
+        products?.show({ hits: [hit(1, 'Sérum')], totalHits: 1 })
+
+        assert.ok(products?.options[0] === serum, 'the same node')
+    })
+
+    it('leaves alone a card found again with the same words, and a count that did not change', async (t) => {
+        const { root, views } = sections(t)
+        const [products] = views
+
+        products?.show({ hits: [hit(1, 'Sérum')], totalHits: 1 })
+        const title = find(section(root, 'product'), Contract.selector('title'))
+        const count = find(section(root, 'product'), Contract.selector('search-count'))
+        const titleWrites = t.mock.method(title, 'replaceChildren')
+        let countWrites = 0
+
+        const view = root.ownerDocument.defaultView as Window & typeof globalThis
+
+        new view.MutationObserver(() => countWrites++).observe(count, { childList: true, characterData: true, subtree: true })
+        products?.show({ hits: [hit(1, 'Sérum')], totalHits: 1 })
+        await new Promise((resolve) => setImmediate(resolve))
+
+        assert.equal(titleWrites.mock.callCount(), 0)
+        assert.equal(countWrites, 0)
+    })
 })
