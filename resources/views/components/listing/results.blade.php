@@ -1,5 +1,5 @@
 @if ($listing->failed())
-    <x-meilifacets::unavailable />
+    <x-meilifacets::listing.unavailable />
 @else
     @php($pastTheEnd = $listing->pagination()->isPastTheEnd())
     <p class="meilifacetsResultsEmpty" @unless ($cards === []) hidden @endunless {{ $hook('empty') }}>
@@ -10,14 +10,14 @@
     <ul class="meilifacetsResults" @if ($cards === []) hidden @endif {{ $hook('results') }}>
         @foreach ($cards as $card)
             <li class="meilifacetsResultsItem" {{ $hook('card') }}>
-                <x-meilifacets::card :card="$card" :priority="$priority($loop->index)" />
+                <x-meilifacets::listing.card :card="$card" :priority="$priority($loop->index)" />
             </li>
         @endforeach
     </ul>
 
     <template {{ $hook('card-template') }}>
         <li class="meilifacetsResultsItem" {{ $hook('card') }}>
-            <x-meilifacets::card :card="[]" />
+            <x-meilifacets::listing.card :card="[]" />
         </li>
     </template>
 

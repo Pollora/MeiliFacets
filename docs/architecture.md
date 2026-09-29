@@ -323,8 +323,8 @@ jamais vu le début.
 **Désactivé par défaut, demandé composant par composant** :
 
 ```blade
-<x-meilifacets::pagination scroll />
-<x-meilifacets::sort />            {{-- ne déplace rien --}}
+<x-meilifacets::listing.pagination scroll />
+<x-meilifacets::listing.sort />            {{-- ne déplace rien --}}
 ```
 
 Le composant rend alors `data-meili-scroll`, et le client ne déplace la page que si le contrôle
@@ -613,35 +613,35 @@ thème périmée dégrade donc vers le rendu serveur, jamais vers une interactio
 
 | Crochet | Où | Rôle |
 | --- | --- | --- |
-| `results` | `<x-meilifacets::results>` | la liste que le client repeint |
+| `results` | `<x-meilifacets::listing.results>` | la liste que le client repeint |
 | `card-template` | idem | `<template>` cloné pour chaque résultat |
 | `empty` | idem | message « aucun résultat », révélé ou masqué |
 | `no-results` `past-the-end` | idem, dans `empty` | les deux raisons, rendues toutes deux : le client révèle celle de `Pagination::isPastTheEnd()`. Facultatifs — une vue qui n'en rend pas garde son message |
 | `card` | idem | un résultat |
-| `url` `image` `title` `price` | `<x-meilifacets::card>` | les valeurs écrites dans une carte |
-| `facets` | `<x-meilifacets::facets>` | le conteneur qui écoute les changements |
-| `facet-value` | `<x-meilifacets::facet>` | une valeur, rendue même sans résultat, masquée quand son compte tombe à zéro sauf si le visiteur la tient |
+| `url` `image` `title` `price` | `<x-meilifacets::listing.card>` | les valeurs écrites dans une carte |
+| `facets` | `<x-meilifacets::listing.facets>` | le conteneur qui écoute les changements |
+| `facet-value` | `<x-meilifacets::listing.facet>` | une valeur, rendue même sans résultat, masquée quand son compte tombe à zéro sauf si le visiteur la tient |
 | `input` | idem | la case ou le bouton radio qui porte la valeur |
 | `count` | idem | le compte réécrit à chaque recherche |
-| `apply` | `<x-meilifacets::facets>` | le bouton « appliquer », en mode `submit` |
-| `pagination` | `<x-meilifacets::pagination>` | la nav, masquée s'il n'y a qu'une page |
+| `apply` | `<x-meilifacets::listing.facets>` | le bouton « appliquer », en mode `submit` |
+| `pagination` | `<x-meilifacets::listing.pagination>` | la nav, masquée s'il n'y a qu'une page |
 | `page` `previous` `next` | idem | les sept slots de la fenêtre et les deux flèches |
-| `sort` | `<x-meilifacets::sort>` | le conteneur du tri |
+| `sort` | `<x-meilifacets::listing.sort>` | le conteneur du tri |
 | `sort-trigger` | idem | le bouton qui ouvre la liste et affiche le tri courant |
 | `sort-list` | idem | la `listbox`, masquée à la fermeture |
 | `sort-option` | idem | une option, sa clé dans `data-value` ; rendue `hidden` quand un tri qui filtre ne garderait rien, sauf s'il est choisi |
-| `facet` | `<x-meilifacets::facet>`, `<x-meilifacets::price>` | un bloc de facette. **Le crochet va sur l'élément le plus extérieur** : c'est celui-là que le client masque quand la facette n'a plus rien à montrer, donc un thème qui enrobe le déplace avec lui |
+| `facet` | `<x-meilifacets::listing.facet>`, `<x-meilifacets::listing.price>` | un bloc de facette. **Le crochet va sur l'élément le plus extérieur** : c'est celui-là que le client masque quand la facette n'a plus rien à montrer, donc un thème qui enrobe le déplace avec lui |
 | `more` | idem | le bouton qui lit la facette en entier |
 | `more-label` `less-label` | idem, dans `more` | les deux libellés du bouton, rendus tous deux : le client révèle celui de l'état courant et ne réécrit jamais le contenu du bouton. Facultatifs, mais **les deux ou aucun** — une vue qui n'en rend qu'un garde son libellé figé, comme une vue qui n'en rend aucun (`R-143`) |
-| `price-range` | `<x-meilifacets::price>` | la piste entière, porte `--from`/`--to` |
+| `price-range` | `<x-meilifacets::listing.price>` | la piste entière, porte `--from`/`--to` |
 | `price-track` | idem | la barre sur laquelle les poignées se déplacent |
 | `price-handle` | idem | une extrémité, son bord dans `data-bound` |
 | `price-tip` | idem | la bulle de valeur d'une poignée |
 | `price-readout` | idem | la plage écrite en toutes lettres, réécrite au glissement |
 | `price-bounds-min` `price-bounds-max` | idem | les deux extrémités sous la piste, réécrites quand le filtrage déplace les bornes |
 | `price-min` `price-max` | idem | les deux `input` qui portent les bornes, visibles ou masqués |
-| `reset` | `<x-meilifacets::reset>` | le bouton « tout effacer » |
-| `active-filters` | `<x-meilifacets::active-filters>` | le compteur de filtres actifs |
+| `reset` | `<x-meilifacets::listing.reset>` | le bouton « tout effacer » |
+| `active-filters` | `<x-meilifacets::listing.active-filters>` | le compteur de filtres actifs |
 | `summary` | carte de recherche (étape 5) | l'extrait d'une carte qui n'est pas un produit, masqué vide ; surligné par `Highlight` |
 | `search` | `<x-meilifacets::search>` | la racine d'une recherche du site (`data-search="<nom>"`) |
 | `search-toggle` | loupe (étape 5) | le bouton du disclosure, lié par le chargeur ; optionnel |

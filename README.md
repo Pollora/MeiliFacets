@@ -116,12 +116,12 @@ Components go anywhere in the template and share a single search.
 
 ```blade
 <x-meilifacets::listing>
-    <x-meilifacets::active-filters />
-    <x-meilifacets::sort />
-    <x-meilifacets::reset />
-    <x-meilifacets::facets />
-    <x-meilifacets::results />
-    <x-meilifacets::pagination />
+    <x-meilifacets::listing.active-filters />
+    <x-meilifacets::listing.sort />
+    <x-meilifacets::listing.reset />
+    <x-meilifacets::listing.facets />
+    <x-meilifacets::listing.results />
+    <x-meilifacets::listing.pagination />
 </x-meilifacets::listing>
 ```
 
@@ -130,8 +130,8 @@ Any other content gets a listing by implementing `Listing`; the class is discove
 ### Overriding the markup
 
 The module looks for its views in the active theme first. A file in
-`<theme>/resources/views/modules/meilifacets/components/` replaces one view; the others keep
-following the module's updates.
+`<theme>/resources/views/modules/meilifacets/components/` replaces one view, under the same path as the
+module's (`listing/facet.blade.php`, `search/card.blade.php`); the others keep following the module's updates.
 
 Tags, classes and styles belong to the theme. The `data-meili` hooks do not: when a required hook
 is missing, or the contract version on the listing root no longer matches the client's, the client

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Modules\MeiliFacets\View\Components;
+namespace Modules\MeiliFacets\View\Components\Listing;
 
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\HtmlString;
@@ -11,6 +11,7 @@ use Modules\MeiliFacets\Enums\HeadingLevel;
 use Modules\MeiliFacets\Enums\ImagePriority;
 use Modules\MeiliFacets\View\CardDocument;
 use Modules\MeiliFacets\View\CardImage;
+use Modules\MeiliFacets\View\Components\ContractComponent;
 
 final class Card extends ContractComponent
 {
@@ -45,6 +46,6 @@ final class Card extends ContractComponent
 
     public function render(): View
     {
-        return view('meilifacets::components.card');
+        return view('meilifacets::components.listing.card');
     }
 }

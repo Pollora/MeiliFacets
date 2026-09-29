@@ -2,12 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Modules\MeiliFacets\View\Components;
+namespace Modules\MeiliFacets\View\Components\Listing;
 
 use Illuminate\Contracts\View\View;
 use Modules\MeiliFacets\Contracts\Placeable;
 use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\Listing\PriceFilter;
+use Modules\MeiliFacets\View\Components\ListingComponent;
 
 final class Facets extends ListingComponent
 {
@@ -30,14 +31,14 @@ final class Facets extends ListingComponent
     public function componentFor(Placeable $filter): string
     {
         return match (true) {
-            $filter instanceof PriceFilter => 'meilifacets::price',
-            default => 'meilifacets::facet',
+            $filter instanceof PriceFilter => 'meilifacets::listing.price',
+            default => 'meilifacets::listing.facet',
         };
     }
 
     public function render(): View
     {
-        return view('meilifacets::components.facets', [
+        return view('meilifacets::components.listing.facets', [
             'applyMode' => $this->listing->applyMode()->value,
             'needsApplyButton' => $this->rendersApply(),
         ]);

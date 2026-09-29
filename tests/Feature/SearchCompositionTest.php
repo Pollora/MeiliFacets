@@ -158,13 +158,13 @@ final class SearchCompositionTest extends TestCase
     {
         $page = $this->rendered(<<<'BLADE'
             <x-meilifacets::search>
-                <x-meilifacets::search-toggle />
-                <x-meilifacets::search-panel>
-                    <x-meilifacets::search-input />
-                    <x-meilifacets::search-section type="post" limit="2" />
-                    <x-meilifacets::search-empty />
-                    <x-meilifacets::search-unavailable />
-                </x-meilifacets::search-panel>
+                <x-meilifacets::search.toggle />
+                <x-meilifacets::search.panel>
+                    <x-meilifacets::search.input />
+                    <x-meilifacets::search.section type="post" limit="2" />
+                    <x-meilifacets::search.empty-state />
+                    <x-meilifacets::search.unavailable />
+                </x-meilifacets::search.panel>
             </x-meilifacets::search>
             BLADE);
 
@@ -179,7 +179,7 @@ final class SearchCompositionTest extends TestCase
         $this->app->bind(SearchSettings::class, static fn (): SearchSettings => new SearchSettings(limit: 6));
 
         try {
-            $page = $this->rendered('<x-meilifacets::search><x-meilifacets::search-section type="post" /></x-meilifacets::search>');
+            $page = $this->rendered('<x-meilifacets::search><x-meilifacets::search.section type="post" /></x-meilifacets::search>');
         } finally {
             $this->app->bind(SearchSettings::class, $binding['concrete'], $binding['shared']);
         }
@@ -193,7 +193,7 @@ final class SearchCompositionTest extends TestCase
         $this->expectException(ViewException::class);
         $this->expectExceptionMessage('Post type "page" is not searchable');
 
-        $this->rendered('<x-meilifacets::search><x-meilifacets::search-section type="page" /></x-meilifacets::search>');
+        $this->rendered('<x-meilifacets::search><x-meilifacets::search.section type="page" /></x-meilifacets::search>');
     }
 
     #[Test]
@@ -204,8 +204,8 @@ final class SearchCompositionTest extends TestCase
 
         $this->rendered(<<<'BLADE'
             <x-meilifacets::search>
-                <x-meilifacets::search-section type="post" />
-                <x-meilifacets::search-section type="post" />
+                <x-meilifacets::search.section type="post" />
+                <x-meilifacets::search.section type="post" />
             </x-meilifacets::search>
             BLADE);
     }
@@ -214,8 +214,8 @@ final class SearchCompositionTest extends TestCase
     public function it_lets_two_roots_each_hold_a_section_of_the_same_type(): void
     {
         $page = $this->rendered(<<<'BLADE'
-            <x-meilifacets::search name="header"><x-meilifacets::search-section name="header" type="post" /></x-meilifacets::search>
-            <x-meilifacets::search name="footer"><x-meilifacets::search-section name="footer" type="post" /></x-meilifacets::search>
+            <x-meilifacets::search name="header"><x-meilifacets::search.section name="header" type="post" /></x-meilifacets::search>
+            <x-meilifacets::search name="footer"><x-meilifacets::search.section name="footer" type="post" /></x-meilifacets::search>
             BLADE);
 
         $this->assertSame(['post', 'post'], $this->sectionTypes($page));
@@ -227,7 +227,7 @@ final class SearchCompositionTest extends TestCase
         $this->expectException(ViewException::class);
         $this->expectExceptionMessage('asks for 0 results');
 
-        $this->rendered('<x-meilifacets::search><x-meilifacets::search-section type="post" limit="0" /></x-meilifacets::search>');
+        $this->rendered('<x-meilifacets::search><x-meilifacets::search.section type="post" limit="0" /></x-meilifacets::search>');
     }
 
     #[Test]

@@ -18,7 +18,7 @@ final class SortRadiosTest extends TestCase
     use FindsHooks;
     use SwitchesTheSiteLocale;
 
-    private const string COLLAPSIBLE = '<x-meilifacets::sort widget="radios" collapsible />';
+    private const string COLLAPSIBLE = '<x-meilifacets::listing.sort widget="radios" collapsible />';
 
     /** A locale no catalogue ships, whose sentence puts the order first. */
     private const string VALUE_FIRST = 'xx';
@@ -42,7 +42,7 @@ final class SortRadiosTest extends TestCase
     public function it_draws_one_radio_per_sort_with_the_one_in_force_checked(): void
     {
         $sorts = $this->app->make(CurrentListing::class)->sole()->sorts();
-        $choices = $this->rendered('<x-meilifacets::sort widget="radios" />')->querySelectorAll($this->hooked(Hook::SortChoice));
+        $choices = $this->rendered('<x-meilifacets::listing.sort widget="radios" />')->querySelectorAll($this->hooked(Hook::SortChoice));
 
         $this->assertCount(count($sorts) + 1, $choices);
         $this->assertSame('', $choices[0]->getAttribute('value'));
@@ -55,7 +55,7 @@ final class SortRadiosTest extends TestCase
     public function it_hooks_each_choice_row_and_publishes_each_label(): void
     {
         $sorts = $this->app->make(CurrentListing::class)->sole()->sorts();
-        $rows = $this->rendered('<x-meilifacets::sort widget="radios" />')->querySelectorAll($this->hooked(Hook::SortChoiceRow));
+        $rows = $this->rendered('<x-meilifacets::listing.sort widget="radios" />')->querySelectorAll($this->hooked(Hook::SortChoiceRow));
 
         $this->assertCount(count($sorts) + 1, $rows);
 
@@ -69,7 +69,7 @@ final class SortRadiosTest extends TestCase
     #[Test]
     public function it_names_the_group_and_closes_it_behind_a_trigger_when_collapsible(): void
     {
-        $document = $this->rendered('<x-meilifacets::sort widget="radios" collapsible />');
+        $document = $this->rendered('<x-meilifacets::listing.sort widget="radios" collapsible />');
         $group = $document->querySelector($this->hooked(Hook::SortChoices));
         $toggle = $group->querySelector('legend > '.$this->hooked(Hook::Toggle));
         $panel = $document->getElementById($toggle->getAttribute('aria-controls'));
@@ -146,7 +146,7 @@ final class SortRadiosTest extends TestCase
         request()->query->replace(['sort' => array_key_first($this->app->make(CurrentListing::class)->sole()->sorts())]);
         $this->app->forgetScopedInstances();
 
-        $document = $this->rendered('<x-meilifacets::sort widget="radios" collapsible />');
+        $document = $this->rendered('<x-meilifacets::listing.sort widget="radios" collapsible />');
 
         $this->assertNull($document->querySelector($this->hooked(Hook::SelectedCount)));
         $this->assertFalse($document->querySelector($this->hooked(Hook::Toggle))->hasAttribute('aria-describedby'));
@@ -157,17 +157,17 @@ final class SortRadiosTest extends TestCase
     {
         $this->expectExceptionMessageMatches('/The sort of listing "[^"]+" is rendered twice/');
 
-        Blade::render('<x-meilifacets::sort /><x-meilifacets::sort widget="radios" />');
+        Blade::render('<x-meilifacets::listing.sort /><x-meilifacets::listing.sort widget="radios" />');
     }
 
     /** The listbox stays the default, and the column renders as it did. */
     #[Test]
     public function it_draws_the_listbox_unless_asked(): void
     {
-        $default = Blade::render('<x-meilifacets::sort />');
+        $default = Blade::render('<x-meilifacets::listing.sort />');
         $this->app->forgetScopedInstances();
 
-        $this->assertSame(Blade::render('<x-meilifacets::sort widget="listbox" />'), $default);
+        $this->assertSame(Blade::render('<x-meilifacets::listing.sort widget="listbox" />'), $default);
         $this->assertStringContainsString(Hook::SortTrigger->attribute()->toHtml(), $default);
         $this->assertStringNotContainsString(Hook::SortChoices->attribute()->toHtml(), $default);
     }

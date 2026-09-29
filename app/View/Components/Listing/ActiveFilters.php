@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Modules\MeiliFacets\View\Components;
+namespace Modules\MeiliFacets\View\Components\Listing;
 
 use Illuminate\Contracts\View\View;
 use Modules\MeiliFacets\Listing\CurrentListing;
+use Modules\MeiliFacets\View\Components\ListingComponent;
 use Modules\MeiliFacets\View\CountLabel;
 
 final class ActiveFilters extends ListingComponent
@@ -19,7 +20,7 @@ final class ActiveFilters extends ListingComponent
     {
         $count = $this->listing->activeFilterCount();
 
-        return view('meilifacets::components.active-filters', [
+        return view('meilifacets::components.listing.active-filters', [
             'count' => $count,
             'label' => $this->countLabel->of(__(':count active filter|:count active filters'), $count),
         ]);

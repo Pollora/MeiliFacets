@@ -21,7 +21,7 @@ use Modules\MeiliFacets\Listing\PriceFilter;
 use Modules\MeiliFacets\Listing\ResolvedListing;
 use Modules\MeiliFacets\Support\UrlParameters;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakePresentation;
-use Modules\MeiliFacets\View\Components\Facet as FacetComponent;
+use Modules\MeiliFacets\View\Components\Listing\Facet as FacetComponent;
 use Modules\MeiliFacets\View\ElementId;
 use Modules\MeiliFacets\View\ListingDescription;
 use PHPUnit\Framework\Attributes\Test;
@@ -131,7 +131,7 @@ final class FacetComponentTest extends TestCase
     #[Test]
     public function it_places_a_named_facet_outside_the_group(): void
     {
-        $rendered = Blade::render($this->placing($this->first()).'<x-meilifacets::facets />');
+        $rendered = Blade::render($this->placing($this->first()).'<x-meilifacets::listing.facets />');
 
         $this->assertSame($this->declaredCount(), $this->countFacets($rendered));
         $this->assertSame(1, substr_count($rendered, 'data-taxonomy="'.$this->first()->taxonomy.'"'));
@@ -143,7 +143,7 @@ final class FacetComponentTest extends TestCase
     {
         config(['meilifacets.apply_mode' => 'immediate']);
 
-        $rendered = $this->placingEveryFacet().Blade::render('<x-meilifacets::facets />');
+        $rendered = $this->placingEveryFacet().Blade::render('<x-meilifacets::listing.facets />');
 
         $this->assertSame($this->declaredCount(), $this->countFacets($rendered));
         $this->assertStringNotContainsString('data-meili="facets"', $rendered);
@@ -182,7 +182,7 @@ final class FacetComponentTest extends TestCase
         @unlink($empty);
 
         $this->placingEveryFacet();
-        Blade::render('<x-meilifacets::facets />');
+        Blade::render('<x-meilifacets::listing.facets />');
 
         $this->assertFileDoesNotExist($empty);
     }
@@ -193,7 +193,7 @@ final class FacetComponentTest extends TestCase
     {
         config(['meilifacets.apply_mode' => 'submit']);
 
-        $rendered = $this->placingEveryFacet().Blade::render('<x-meilifacets::facets />');
+        $rendered = $this->placingEveryFacet().Blade::render('<x-meilifacets::listing.facets />');
 
         $this->assertStringContainsString('data-meili="facets"', $rendered);
         $this->assertStringContainsString('data-meili="apply"', $rendered);
@@ -261,7 +261,7 @@ final class FacetComponentTest extends TestCase
     #[Test]
     public function it_leaves_every_computation_to_the_component(): void
     {
-        $view = file_get_contents(dirname(__DIR__, 2).'/resources/views/components/facet.blade.php');
+        $view = file_get_contents(dirname(__DIR__, 2).'/resources/views/components/listing/facet.blade.php');
 
         $this->assertStringNotContainsString('@php', $view);
         $this->assertStringNotContainsString('$ids->', $view);
@@ -316,7 +316,7 @@ final class FacetComponentTest extends TestCase
     {
         $declared = new Facet($this->first()->taxonomy, $this->first()->label, presentation: Presentation::Pill);
 
-        $html = Blade::render('<x-meilifacets::facet :facet="$declared" />', ['declared' => $declared]);
+        $html = Blade::render('<x-meilifacets::listing.facet :facet="$declared" />', ['declared' => $declared]);
 
         $this->assertStringContainsString('data-presentation="pill"', $html);
     }
@@ -326,7 +326,7 @@ final class FacetComponentTest extends TestCase
     public function it_marks_a_theme_presentation_a_template_binds_with_its_name(): void
     {
         $html = Blade::render(
-            '<x-meilifacets::facet :facet="$name" :presentation="$presentation" />',
+            '<x-meilifacets::listing.facet :facet="$name" :presentation="$presentation" />',
             ['name' => $this->first()->name, 'presentation' => FakePresentation::Tile],
         );
 
@@ -397,7 +397,7 @@ final class FacetComponentTest extends TestCase
 
     private function placing(Facet $facet, string $attributes = ''): string
     {
-        return '<x-meilifacets::facet facet="'.$facet->name.'" '.$attributes.' />';
+        return '<x-meilifacets::listing.facet facet="'.$facet->name.'" '.$attributes.' />';
     }
 
     private function placingEveryFacet(): string
@@ -413,7 +413,7 @@ final class FacetComponentTest extends TestCase
     {
         $component = $filter instanceof PriceFilter ? 'price' : 'facet';
 
-        return '<x-meilifacets::'.$component.' facet="'.$filter->name.'" />';
+        return '<x-meilifacets::listing.'.$component.' facet="'.$filter->name.'" />';
     }
 
     private function documentOf(string $rendered): HTMLDocument

@@ -20,7 +20,7 @@ const FACETS_APPLY = '        <button type="button" class="meilifacetsApply" dat
 
 type ApplyMode = 'submit' | 'immediate'
 
-/** Mirrors `reset-icon.blade.php` and `apply.blade.php` in the foot, as the theme slots them. */
+/** Mirrors `listing/reset-icon.blade.php` and `listing/apply.blade.php` in the foot, as the theme slots them. */
 const drawerFooter = (apply: ApplyMode) => `
             <div class="meilifacetsDrawerFooter" data-meili="drawer-footer">
                 <button type="button" class="meilifacetsReset" aria-label="Clear all" data-shape="icon" hidden data-meili="reset">
@@ -32,7 +32,7 @@ const drawerFooter = (apply: ApplyMode) => `
                 </button>
             </div>`
 
-/** Mirrors `drawer-opener.blade.php` and `drawer.blade.php` around the facets of the listing fixture. */
+/** Mirrors `listing/drawer-opener.blade.php` and `listing/drawer.blade.php` around the facets of the listing fixture. */
 const drawerMarkup = ({ close = true, apply = 'submit' }: { close?: boolean, apply?: ApplyMode } = {}) => `
 <header id="header"><a href="/">Home</a></header>
 <main id="main">${listingMarkup({ collapsible: true })

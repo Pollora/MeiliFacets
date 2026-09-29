@@ -24,16 +24,16 @@ Changements depuis la v1 :
 
 | Brique | Composant, attributs | Crochets | TS | Rôle |
 | --- | --- | --- | --- | --- |
-| Facette | `<x-meilifacets::facet>` + `presentation="control\|pill"`, `collapsible` | `facet`, `toggle`, `panel`, `selected-count` | `FacetsView`, `DisclosureGroup`, `PanelMotion`, `ToggleBadgeView` | Le `<fieldset>`. En mode repliable, la `<legend>` contient le déclencheur `toggle.blade.php` (`aria-expanded`, `aria-controls`, `aria-describedby` vers le badge, chevron en CSS) et le panneau porte `panel`. `data-presentation` n'est écrit que pour `Pill`. |
-| Groupe | `<x-meilifacets::facets>` + `collapsible`, `:with-apply` | `facets` | — | Transmet `collapsible` aux facettes restantes. Rend `<x-meilifacets::apply shape="block">` sauf `:with-apply="false"` (`R-178`). |
-| Prix | `<x-meilifacets::price>` + `collapsible` | idem facette | `PriceControl` | Même repliable. Le badge vaut 1 si une plage est posée (`R-123`). |
-| Tri | `<x-meilifacets::sort>` + `widget="listbox\|radios"`, `collapsible` | `sort-choices`, `sort-choice`, `sort-choice-row`, `sort-chosen` (+ `toggle`, `panel`) | `SortRadios` (`radios`), `SortCombobox` (`listbox`) | C-4 : `radios` rend un `<fieldset>` de radios avec le même repliable que la facette ; `listbox` (défaut) garde la liste déroulante. Le déclencheur du tri repliable lit `SortSummary` (`label` = clé `Sort by`, seul dans le tiroir et `aria-hidden` ; puis la phrase `Sort by: :choice` en `lead` · `choice` · `trail`, que le composant `Sort` découpe autour d'un marqueur privé substitué à `:choice` — `R-178`) ; `sort-chosen` porte l'ordre en force et le JS réécrit la phrase depuis `sortPattern` (`R-174`). **Pas de badge** : un tri n'est pas un filtre, son `Disclosure` n'a pas de `Badge`, donc ni `selected-count` ni `aria-describedby`. |
-| Compteur | `<x-meilifacets::total>` | `total` | `TotalView` | « 88 articles », dans une région `aria-live="polite"`. |
-| Pastilles actives | `<x-meilifacets::active-values>` | `active-values`, `active-value`, `active-value-template` | `ActiveValuesView`, `ActiveValueList`, `FocusLanding` | C-7 : `<button name value>` retirable, prix compris. Clonée depuis un `<template>`. Les libellés viennent d'`ActiveValuePatterns` (serveur) et sont publiés dans la description pour le client. |
-| Annuler | `<x-meilifacets::reset>` + `shape="text\|pill\|icon"` | `reset` | `FilterSummaryView`, `ResetFocus` | `ResetShape` : `text` (défaut, markup historique, sans `data-shape`), `pill`, `icon` (`reset-icon.blade.php`, icône publiée ou slot `icon`). Une fois pressé il se cache : le focus va à « Appliquer » voisin, sinon au titre du tiroir, sinon au listing (`FocusLanding`), jamais à `body` (`R-175`). |
-| Appliquer | `<x-meilifacets::apply>` + `visible-in-drawer`, `shape="pill\|block"` | `apply`, `active-count` | `ActiveCountView`, `Entrance` | « Appliquer (X) ». En `submit`, lance la recherche. Avec `visible-in-drawer`, le bouton est aussi rendu en `immediate`, marqué `data-only="sheet"` : sans recherche en plus, visible seulement dans le tiroir en sheet. |
-| Tiroir | `<x-meilifacets::drawer>` + `heading`, `media` (défaut `Drawer::MOBILE` = `(width < 48em)`), slot `footer` | `drawer`, `drawer-title`, `drawer-close`, `drawer-sheet`, `drawer-footer` | `ListingDrawers`, `Drawer`, `InertPage`, `DrawerGesture`, `SheetHeight`, `HeldPaint` | Conteneur ordinaire : en-tête (titre + ✕), poignée (`drawer-close` aussi), corps (slot), pied (`drawer-footer`), le tout dans la feuille (`drawer-sheet`). |
-| Ouvreur | `<x-meilifacets::drawer-opener>` + slot `icon` | `drawer-open`, `active-count` | `Drawer`, `ActiveCountView` | « Filtres (n) ». Le CSS du module le masque hors mobile. |
+| Facette | `<x-meilifacets::listing.facet>` + `presentation="control\|pill"`, `collapsible` | `facet`, `toggle`, `panel`, `selected-count` | `FacetsView`, `DisclosureGroup`, `PanelMotion`, `ToggleBadgeView` | Le `<fieldset>`. En mode repliable, la `<legend>` contient le déclencheur `toggle.blade.php` (`aria-expanded`, `aria-controls`, `aria-describedby` vers le badge, chevron en CSS) et le panneau porte `panel`. `data-presentation` n'est écrit que pour `Pill`. |
+| Groupe | `<x-meilifacets::listing.facets>` + `collapsible`, `:with-apply` | `facets` | — | Transmet `collapsible` aux facettes restantes. Rend `<x-meilifacets::listing.apply shape="block">` sauf `:with-apply="false"` (`R-178`). |
+| Prix | `<x-meilifacets::listing.price>` + `collapsible` | idem facette | `PriceControl` | Même repliable. Le badge vaut 1 si une plage est posée (`R-123`). |
+| Tri | `<x-meilifacets::listing.sort>` + `widget="listbox\|radios"`, `collapsible` | `sort-choices`, `sort-choice`, `sort-choice-row`, `sort-chosen` (+ `toggle`, `panel`) | `SortRadios` (`radios`), `SortCombobox` (`listbox`) | C-4 : `radios` rend un `<fieldset>` de radios avec le même repliable que la facette ; `listbox` (défaut) garde la liste déroulante. Le déclencheur du tri repliable lit `SortSummary` (`label` = clé `Sort by`, seul dans le tiroir et `aria-hidden` ; puis la phrase `Sort by: :choice` en `lead` · `choice` · `trail`, que le composant `Sort` découpe autour d'un marqueur privé substitué à `:choice` — `R-178`) ; `sort-chosen` porte l'ordre en force et le JS réécrit la phrase depuis `sortPattern` (`R-174`). **Pas de badge** : un tri n'est pas un filtre, son `Disclosure` n'a pas de `Badge`, donc ni `selected-count` ni `aria-describedby`. |
+| Compteur | `<x-meilifacets::listing.total>` | `total` | `TotalView` | « 88 articles », dans une région `aria-live="polite"`. |
+| Pastilles actives | `<x-meilifacets::listing.active-values>` | `active-values`, `active-value`, `active-value-template` | `ActiveValuesView`, `ActiveValueList`, `FocusLanding` | C-7 : `<button name value>` retirable, prix compris. Clonée depuis un `<template>`. Les libellés viennent d'`ActiveValuePatterns` (serveur) et sont publiés dans la description pour le client. |
+| Annuler | `<x-meilifacets::listing.reset>` + `shape="text\|pill\|icon"` | `reset` | `FilterSummaryView`, `ResetFocus` | `ResetShape` : `text` (défaut, markup historique, sans `data-shape`), `pill`, `icon` (`reset-icon.blade.php`, icône publiée ou slot `icon`). Une fois pressé il se cache : le focus va à « Appliquer » voisin, sinon au titre du tiroir, sinon au listing (`FocusLanding`), jamais à `body` (`R-175`). |
+| Appliquer | `<x-meilifacets::listing.apply>` + `visible-in-drawer`, `shape="pill\|block"` | `apply`, `active-count` | `ActiveCountView`, `Entrance` | « Appliquer (X) ». En `submit`, lance la recherche. Avec `visible-in-drawer`, le bouton est aussi rendu en `immediate`, marqué `data-only="sheet"` : sans recherche en plus, visible seulement dans le tiroir en sheet. |
+| Tiroir | `<x-meilifacets::listing.drawer>` + `heading`, `media` (défaut `Drawer::MOBILE` = `(width < 48em)`), slot `footer` | `drawer`, `drawer-title`, `drawer-close`, `drawer-sheet`, `drawer-footer` | `ListingDrawers`, `Drawer`, `InertPage`, `DrawerGesture`, `SheetHeight`, `HeldPaint` | Conteneur ordinaire : en-tête (titre + ✕), poignée (`drawer-close` aussi), corps (slot), pied (`drawer-footer`), le tout dans la feuille (`drawer-sheet`). |
+| Ouvreur | `<x-meilifacets::listing.drawer-opener>` + slot `icon` | `drawer-open`, `active-count` | `Drawer`, `ActiveCountView` | « Filtres (n) ». Le CSS du module le masque hors mobile. |
 
 **Badge** : la règle « vide et caché à zéro » (un nœud caché décrit toujours son contrôle) vit dans un seul objet de valeur, `View\Badge` (`id`, `holdsNothing()`, `text()`), utilisé par `Disclosure` (facette, prix), `Apply` et `DrawerOpener`. Son jumeau client est `shared/badge.ts`, utilisé par `ToggleBadgeView` et `ActiveCountView`.
 
@@ -58,31 +58,31 @@ Changements depuis la v1 :
 {{-- themes/pluralia/resources/views/woocommerce/archive-product.blade.php, tel qu'il est --}}
 <x-meilifacets::listing class="mx-auto max-w-site pt-6">
     @if (is_tax('product_cat'))
-        <x-meilifacets::facet :facet="ShopFacet::Category" />
+        <x-meilifacets::listing.facet :facet="ShopFacet::Category" />
     @endif
 
     <div class="flex items-center justify-between gap-x-4">
-        <x-meilifacets::drawer-opener>
+        <x-meilifacets::listing.drawer-opener>
             <x-slot:icon>@include('parts.icons.filters')</x-slot:icon>
-        </x-meilifacets::drawer-opener>
-        <x-meilifacets::drawer class="md:flex-1">
-            <x-meilifacets::sort widget="radios" collapsible />
-            <x-meilifacets::facets scroll collapsible :with-apply="false" />
+        </x-meilifacets::listing.drawer-opener>
+        <x-meilifacets::listing.drawer class="md:flex-1">
+            <x-meilifacets::listing.sort widget="radios" collapsible />
+            <x-meilifacets::listing.facets scroll collapsible :with-apply="false" />
             <x-slot:footer>
-                <x-meilifacets::reset shape="icon" />
-                <x-meilifacets::apply visible-in-drawer />
+                <x-meilifacets::listing.reset shape="icon" />
+                <x-meilifacets::listing.apply visible-in-drawer />
             </x-slot:footer>
-        </x-meilifacets::drawer>
-        <x-meilifacets::total class="ml-auto self-center" />
+        </x-meilifacets::listing.drawer>
+        <x-meilifacets::listing.total class="ml-auto self-center" />
     </div>
 
     <div class="flex flex-wrap items-center gap-2 pt-4 pb-6">
-        <x-meilifacets::active-values />
-        <x-meilifacets::reset shape="pill" />
+        <x-meilifacets::listing.active-values />
+        <x-meilifacets::listing.reset shape="pill" />
     </div>
 
-    <x-meilifacets::results />
-    <x-meilifacets::pagination scroll />
+    <x-meilifacets::listing.results />
+    <x-meilifacets::listing.pagination scroll />
 </x-meilifacets::listing>
 ```
 
@@ -95,17 +95,17 @@ La présentation `Pill` n'est pas passée en attribut : Pluralia la déclare sur
 
 ## 4. Arborescence
 
-État au 2026-09-25. Les dossiers `resources/assets/ts/drawer/` et `resources/assets/ts/collapsible/` ont été autorisés et créés ; côté Blade, tout reste à plat dans `components/` (sauf `price/`, antérieur).
+État au 2026-09-25. Les dossiers `resources/assets/ts/drawer/` et `resources/assets/ts/collapsible/` ont été autorisés et créés ; côté Blade, tout est resté à plat dans `components/` (sauf `price/`, antérieur) jusqu'au rangement par racine du 2026-09-29 (`R-194`) : les briques du listing vivent depuis dans `components/listing/` et `Components/Listing/`.
 
 **PHP — `app/View/`**
 - Objets de valeur : `ActiveValue`, `ActiveValueList`, `ActiveValuePatterns`, `Badge`, `CardDocument`, `CardImage`, `CardSettings`, `CountLabel`, `Disclosure` (libellé, id du panneau, `?Badge`, libellé redit par le slot), `ElementId`, `Fill`, `RangeHandle`, `SortChoice`, `SortChoices`, `SortSummary`.
 - Rendu de page : `ListingDescription` (publie `labels`, `totalPattern`, `activeValuePatterns`), `ListingScript`, `Preconnect`, `Stylesheet`.
-- `Components/` : `ActiveFilters`, `ActiveValues`, `Apply`, `Card`, `ContractComponent`, `Drawer`, `DrawerOpener`, `Facet`, `Facets`, `Listing`, `ListingComponent`, `Pagination`, `Price`, `Reset`, `Results`, `Sort`, `Total`, `Unavailable`.
+- `Components/` : `Listing` (racine), `ContractComponent`, `ListingComponent` ; `Components/Listing/` : `ActiveFilters`, `ActiveValues`, `Apply`, `Card`, `Drawer`, `DrawerOpener`, `Facet`, `Facets`, `Pagination`, `Price`, `Reset`, `Results`, `Sort`, `Total`, `Unavailable`.
 - Enums du chantier : `Presentation` (`Control`/`Pill`, implémente `Contracts\ValuePresentation`), `SortWidget` (`Listbox`/`Radios`), `ResetShape` (`Text`/`Pill`/`Icon`), `ApplyShape` (`Block`/`Pill`), `HeadingLevel` — les quatre variantes lues par le trait `ComponentVariant::fromAttribute()` —, `ActiveValueKind` (`Term`/`Price`, écrit en `data-kind` sur la pastille) ; `Hook` porte les crochets du §5.
 - `ElementId` sert `sortLabel`, `sortTrigger`, `sortList`, `sortOption`, `sortPanel`, `sortChoiceName`, `drawer`, `drawerTitle`, `drawerCount`, `applyCount`, `facetPanel`, `facetSelectedCount`, `facetCount`, `facetValueLabel`.
 
-**Blade — `resources/views/components/`**
-`active-filters`, `active-values`, `apply`, `card`, `drawer-opener`, `drawer`, `facet`, `facets`, `listing`, `pagination`, `price` (+ `price/fields`, `price/hidden`, `price/range`), `reset`, `reset-icon`, `results`, `sort-radios`, `sort`, `toggle` (déclencheur partagé par facette, prix et tri ; badge seulement si le `Disclosure` en porte un), `total`, `unavailable`.
+**Blade — `resources/views/components/`** : `listing` (racine) ; dans `listing/` :
+`active-filters`, `active-values`, `apply`, `card`, `drawer-opener`, `drawer`, `facet`, `facets`, `pagination`, `price` (+ `price/fields`, `price/hidden`, `price/range`), `reset`, `reset-icon`, `results`, `sort-radios`, `sort`, `toggle` (déclencheur partagé par facette, prix et tri ; badge seulement si le `Disclosure` en porte un), `total`, `unavailable`.
 
 **TypeScript — `resources/assets/ts/`**
 - racine : `filter-queries.ts`, `listing-page.ts` (point d'entrée).

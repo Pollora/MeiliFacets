@@ -207,7 +207,7 @@ attributs filtrables et triables.
 ## Ce qui se règle sur un composant, pas en configuration
 
 Le retour du regard en haut du listing après un geste ne se déclare pas ici : il s'active
-**composant par composant**, par l'attribut `scroll` (`<x-meilifacets::pagination scroll />`). Une
+**composant par composant**, par l'attribut `scroll` (`<x-meilifacets::listing.pagination scroll />`). Une
 clé de configuration aurait imposé le même choix à la pagination, au tri et à la remise à zéro,
 alors qu'un thème veut couramment l'un sans les autres. Voir `architecture.md`.
 
@@ -562,7 +562,7 @@ est décrit par un `SearchableType` : `postType`, `heading`, `seeAllLabel`, `bas
 | `archive` | `get_post_type_archive_link($type)`, `null` sans archive (le lien « voir tous » n'est alors pas rendu) |
 | `baseFilter` | publié et du type ; pour `product`, en plus, sans les produits cachés de la recherche (`exclude-from-search`) |
 | `searchOn` | titre, `labels.*` des taxonomies du type, `excerpt` — pour `product` : titre, marque, catégorie, SKU — **filtrés par l'ordre de recherche** |
-| `card` | `meilifacets::search-card` |
+| `card` | `meilifacets::search.card` |
 
 Types retenus par défaut : ceux que MeiliScout **indexe**, qui sont **publics** et **non `exclude_from_search`**
 (`SearchablePostTypes`). Un type personnalisé indexé apparaît donc sans une ligne de code. `product` appartient à
@@ -628,7 +628,7 @@ Seuil de saisie, temporisation et nombre de résultats par section ne sont **pas
 | --- | --- | --- | --- |
 | `minChars` — caractères tapés avant la première recherche | 2 | `SearchSettings::DEFAULT_MIN_CHARS` | attribut `min-chars` de `<x-meilifacets::search>` |
 | `delay` — millisecondes de frappe calme avant qu'une recherche parte | 120 | `SearchSettings::DEFAULT_DELAY` | attribut `delay` de `<x-meilifacets::search>` |
-| `limit` — résultats par section | 4 | `SearchSettings::DEFAULT_LIMIT` | attribut `limit` de `<x-meilifacets::search-section>` (au moins 1, sinon la section lève) |
+| `limit` — résultats par section | 4 | `SearchSettings::DEFAULT_LIMIT` | attribut `limit` de `<x-meilifacets::search.section>` (au moins 1, sinon la section lève) |
 
 Un projet qui veut d'autres défauts **partout** relie l'objet dans le `register()` d'un de ses providers
 (`bind` ou `scoped`, jamais `bindIf`) ; les arguments nommés ne changent que ce qu'ils citent :
@@ -678,28 +678,28 @@ sections posées sont cherchées** :
 
 ```blade
 <x-meilifacets::search name="header" min-chars="3">
-    <x-meilifacets::search-toggle name="header"><x-slot:icon>…</x-slot:icon></x-meilifacets::search-toggle>
-    <x-meilifacets::search-panel name="header">
-        <x-meilifacets::search-input name="header" placeholder="…" />
-        <x-meilifacets::search-section name="header" type="post" limit="3" />
+    <x-meilifacets::search.toggle name="header"><x-slot:icon>…</x-slot:icon></x-meilifacets::search.toggle>
+    <x-meilifacets::search.panel name="header">
+        <x-meilifacets::search.input name="header" placeholder="…" />
+        <x-meilifacets::search.section name="header" type="post" limit="3" />
         @if (WooCommerce::isActive())
-            <x-meilifacets::search-section name="header" type="product" />
+            <x-meilifacets::search.section name="header" type="product" />
         @endif
-        <x-meilifacets::search-empty />
-        <x-meilifacets::search-unavailable />
-    </x-meilifacets::search-panel>
+        <x-meilifacets::search.empty-state />
+        <x-meilifacets::search.unavailable />
+    </x-meilifacets::search.panel>
 </x-meilifacets::search>
 ```
 
 | Brique | Attributs | Rend |
 | --- | --- | --- |
-| `search-toggle` | `name`, slot `icon` | `<button aria-expanded aria-controls>` vers le panneau |
-| `search-panel` | `name` | `<div role="search" hidden>`, son slot, puis la région d'état (`search-status`, `aria-live="polite"`, masquée visuellement) |
-| `search-input` | `name` ; le sac d'attributs arrive sur l'`<input>` | `<div data-meili="search-field">` (porte la loupe, reste collé en haut du panneau qui défile) autour de `<input type="search" role="combobox" aria-autocomplete="list">` |
-| `search-section` | `type` (requis), `limit`, `name` | titre natif du type (`labels->name`) et compte, lien « voir tous » (`labels->all_items`) vers l'archive — lu juste après le titre, posé à sa droite, **absent** si le type n'a pas d'archive —, liste `role="listbox"` nommée par ce titre, `<template>` de la carte |
-| `search-empty` | — | « Nothing matches your search » (fr « Aucun élément ne correspond à votre recherche ») |
-| `search-unavailable` | — | « Search unavailable » (fr « Recherche indisponible ») |
-| `search-card` | — | la carte de résultat, rendue vide dans le template de chaque section |
+| `search.toggle` | `name`, slot `icon` | `<button aria-expanded aria-controls>` vers le panneau |
+| `search.panel` | `name` | `<div role="search" hidden>`, son slot, puis la région d'état (`search-status`, `aria-live="polite"`, masquée visuellement) |
+| `search.input` | `name` ; le sac d'attributs arrive sur l'`<input>` | `<div data-meili="search-field">` (porte la loupe, reste collé en haut du panneau qui défile) autour de `<input type="search" role="combobox" aria-autocomplete="list">` |
+| `search.section` | `type` (requis), `limit`, `name` | titre natif du type (`labels->name`) et compte, lien « voir tous » (`labels->all_items`) vers l'archive — lu juste après le titre, posé à sa droite, **absent** si le type n'a pas d'archive —, liste `role="listbox"` nommée par ce titre, `<template>` de la carte |
+| `search.empty-state` | — | « Nothing matches your search » (fr « Aucun élément ne correspond à votre recherche ») |
+| `search.unavailable` | — | « Search unavailable » (fr « Recherche indisponible ») |
+| `search.card` | — | la carte de résultat, rendue vide dans le template de chaque section |
 
 `name` désigne la racine ; il n'est requis que si la page en porte plusieurs (même règle que le listing :
 `sole()`, sinon `named()`). Règles, levées au rendu :
@@ -772,7 +772,7 @@ Chromium et Safari), neutralisée ; Firefox n'en dessine pas.
 
 ### Surcharger la carte de recherche
 
-**Pour tout le site** : `resources/views/modules/meilifacets/components/search-card.blade.php` dans le thème
+**Pour tout le site** : `resources/views/modules/meilifacets/components/search/card.blade.php` dans le thème
 (même cascade que les autres vues du module). **Pour un type** : `withCard()` sur sa déclaration (voir « Types
 cherchables ») avec le nom d'un composant Blade du projet, enregistré dans un provider — `<x-dynamic-component>`
 ne connaît que les alias déclarés avant sa première utilisation dans le processus.
@@ -1004,8 +1004,8 @@ reste**. Chaque déclaration se place avec le composant de son espèce.
 @use('App\Cms\Products\ShopFacet')
 
 <x-meilifacets::listing>
-    <x-meilifacets::facet :facet="ShopFacet::Category" class="lg:col-span-2" scroll />
-    <x-meilifacets::facets />
+    <x-meilifacets::listing.facet :facet="ShopFacet::Category" class="lg:col-span-2" scroll />
+    <x-meilifacets::listing.facets />
 </x-meilifacets::listing>
 ```
 
@@ -1019,7 +1019,7 @@ et `results` sans exception. Un composant posé dehors est signalé au démarrag
 [meilifacets] the client binds inside [data-listing] only. Move inside <x-meilifacets::listing> : facet.
 ```
 
-`<x-meilifacets::facets />` rend toutes les facettes qu'aucun `<x-meilifacets::facet>` n'a déjà
+`<x-meilifacets::listing.facets />` rend toutes les facettes qu'aucun `<x-meilifacets::listing.facet>` n'a déjà
 placées, dans l'ordre déclaré. Placer une facette **après** le groupe lève : le groupe l'a déjà
 prise. Un groupe auquel il ne reste rien, et qui ne porte pas le bouton d'envoi, ne rend aucune
 balise.
@@ -1041,8 +1041,8 @@ n'est à déclarer pour démarrer. Ranger les noms dans une énumération évite
 chaîne libre, et donne à l'analyse statique de quoi voir une faute de frappe. Au rendu, un nom
 inconnu lève en nommant les facettes déclarées, dans les deux formes.
 
-`<x-meilifacets::facet>` accepte aussi une déclaration directement (`:facet="$facet"`), ce dont se
-sert `<x-meilifacets::facets>` en interne.
+`<x-meilifacets::listing.facet>` accepte aussi une déclaration directement (`:facet="$facet"`), ce dont se
+sert `<x-meilifacets::listing.facets>` en interne.
 
 ### Présenter les valeurs d'une facette
 
@@ -1066,7 +1066,7 @@ un radio masqué ne se décoche pas (`R-10`).
 
 Un gabarit surcharge ponctuellement : `presentation="pill"` ou `presentation="control"` (cas du
 module), `:presentation="ThemePresentation::Swatch"` pour celle d'un thème — même garde.
-`<x-meilifacets::price>` n'en a pas : le prix n'a pas de valeurs à cocher.
+`<x-meilifacets::listing.price>` n'en a pas : le prix n'a pas de valeurs à cocher.
 
 ### Ce que le composant transmet
 
@@ -1076,7 +1076,7 @@ Une facette placée à part se comporte donc comme celles du groupe.
 
 ### Surcharger le markup
 
-`components/facet.blade.php` est une vue à part entière : un thème la surcharge **seule** — pour un
+`components/listing/facet.blade.php` est une vue à part entière : un thème la surcharge **seule** — pour un
 menu déroulant, une modale — sans figer le reste du markup du module ni se décrocher des versions
 suivantes du contrat. Le crochet `data-meili="facet"` est sur l'élément le plus extérieur, parce que
 c'est celui que le client masque : un thème qui enrobe doit déplacer le crochet avec lui.
@@ -1087,9 +1087,9 @@ Le composant prix assemble trois vues surchargeables une par une, sous le même 
 
 | Vue | Rendue quand | Ce qu'elle reçoit |
 | --- | --- | --- |
-| `components/price/range.blade.php` | `PricePart::Slider` est déclaré | `label`, `readout`, `fill`, `handles`, `bounds`, `money` |
-| `components/price/fields.blade.php` | `PricePart::Fields` est déclaré | `handles`, `bounds`, `money` |
-| `components/price/hidden.blade.php` | `PricePart::Fields` ne l'est pas | `handles` |
+| `components/listing/price/range.blade.php` | `PricePart::Slider` est déclaré | `label`, `readout`, `fill`, `handles`, `bounds`, `money` |
+| `components/listing/price/fields.blade.php` | `PricePart::Fields` est déclaré | `handles`, `bounds`, `money` |
+| `components/listing/price/hidden.blade.php` | `PricePart::Fields` ne l'est pas | `handles` |
 
 **Une vue peut ne dessiner qu'une poignée.** Le contrat n'en exige qu'une, et le client suit : la
 poignée absente vaut alors le bord de la piste, jamais zéro, et le champ qui la reflète reçoit ce
@@ -1119,16 +1119,16 @@ Des briques, que le thème compose (architecture v2) :
 
 ```blade
 <div class="flex items-start gap-x-4">
-    <x-meilifacets::drawer-opener />
-    <x-meilifacets::drawer class="md:flex-1">
-        <x-meilifacets::sort widget="radios" collapsible />
-        <x-meilifacets::facets collapsible :with-apply="false" />
+    <x-meilifacets::listing.drawer-opener />
+    <x-meilifacets::listing.drawer class="md:flex-1">
+        <x-meilifacets::listing.sort widget="radios" collapsible />
+        <x-meilifacets::listing.facets collapsible :with-apply="false" />
         <x-slot:footer>
-            <x-meilifacets::reset shape="icon" />
-            <x-meilifacets::apply visible-in-drawer />
+            <x-meilifacets::listing.reset shape="icon" />
+            <x-meilifacets::listing.apply visible-in-drawer />
         </x-slot:footer>
-    </x-meilifacets::drawer>
-    <x-meilifacets::total class="ml-auto" />
+    </x-meilifacets::listing.drawer>
+    <x-meilifacets::listing.total class="ml-auto" />
 </div>
 ```
 
@@ -1138,7 +1138,7 @@ indépendamment. À partir de `48em`, il devient une pill dont le panneau **flot
 Échap, clic extérieur, alignement droit `data-align-end`). Le client lit ce choix dans la feuille
 (`position: absolute` du panneau) : aucun seuil n'est écrit en TypeScript.
 
-**Le tiroir** (`<x-meilifacets::drawer>`) est un conteneur ordinaire : en-tête (« Filters », bouton
+**Le tiroir** (`<x-meilifacets::listing.drawer>`) est un conteneur ordinaire : en-tête (« Filters », bouton
 « ✕ », poignée), corps (le slot), pied (slot `footer`, rendu seulement s'il est fourni, classe
 `meilifacetsDrawerFooter`).
 - À partir de `48em`, c'est une rangée : en-tête et poignée masqués, corps et pied alignés sur une
@@ -1157,21 +1157,21 @@ les requêtes de largeur de la feuille utilisent cette valeur. Un thème qui en 
 **Attributs du tiroir.** `heading` (`h2` par défaut), `media` ; le sac d'attributs arrive sur le
 conteneur.
 
-**Ouvreur** (`<x-meilifacets::drawer-opener>`). « Filters » (fr « Filtres ») puis le nombre de
+**Ouvreur** (`<x-meilifacets::listing.drawer-opener>`). « Filters » (fr « Filtres ») puis le nombre de
 valeurs tenues, en pastille (crochet `active-count`, même style que le badge `selected-count`,
 masqué et vidé à zéro, qui **décrit** le bouton sans entrer dans son nom). Icône par défaut
 `images/filters.svg` en `<img alt="" width="14" height="14">` dans un `<span aria-hidden="true">` ;
 le slot `icon` la remplace, un slot vide la retire sans laisser d'élément :
 
 ```blade
-<x-meilifacets::drawer-opener><x-slot:icon><svg …></svg></x-slot:icon></x-meilifacets::drawer-opener>
-<x-meilifacets::drawer-opener><x-slot:icon></x-slot:icon></x-meilifacets::drawer-opener>
+<x-meilifacets::listing.drawer-opener><x-slot:icon><svg …></svg></x-slot:icon></x-meilifacets::listing.drawer-opener>
+<x-meilifacets::listing.drawer-opener><x-slot:icon></x-slot:icon></x-meilifacets::listing.drawer-opener>
 ```
 
 Une icône porteuse de sens ne passe pas par ce slot, qui la cache aux lecteurs d'écran : le thème
 surcharge `drawer-opener.blade.php`.
 
-**« Appliquer (X) »** (`<x-meilifacets::apply>`). X = valeurs cochées, attente comprise (crochet
+**« Appliquer (X) »** (`<x-meilifacets::listing.apply>`). X = valeurs cochées, attente comprise (crochet
 `active-count`, même pastille). Dans le tiroir modal, il le ferme. Selon le mode :
 - `submit` : rendu et **visible partout** (sheet, rangée desktop), il lance la recherche ;
 - `immediate` : rendu seulement avec `visible-in-drawer`, et alors **visible seulement dans le tiroir
@@ -1181,23 +1181,23 @@ surcharge `drawer-opener.blade.php`.
 Rendu, il reçoit le focus quand « Tout effacer » se masque après un clic : celui du même tiroir, ou,
 pour un « Tout effacer » hors tiroir, le premier « Appliquer » visible du listing (la rangée desktop
 en `submit`) ; à défaut, le titre du tiroir en sheet, sinon la racine du listing (`tabindex="-1"`
-posé à ce moment-là), jamais `body`. `<x-meilifacets::facets
+posé à ce moment-là), jamais `body`. `<x-meilifacets::listing.facets
 :with-apply="false">` cède le sien ; sans l'attribut, le groupe rend ce même composant en bloc
 (`shape="block"` : « Apply filters », pleine largeur, sans compte ; `shape="pill"`, le défaut, est la
 forme ci-dessus). Plusieurs « Appliquer » sur une page sont légitimes : c'est une commande, pas un contrôle
 qui tient un état (la garde `placeSort()` ne vaut que pour les contrôles).
 
-**« Tout effacer » en icône** (`<x-meilifacets::reset shape="icon" />`, `data-shape="icon"`). Bouton
+**« Tout effacer » en icône** (`<x-meilifacets::listing.reset shape="icon" />`, `data-shape="icon"`). Bouton
 rond et carré, nommé par `aria-label` (« Clear all »/« Tout effacer »), icône `images/trash.svg` en
 `<img alt="" width="20" height="20" loading="lazy" fetchpriority="low" decoding="async">`. Le slot
 `icon` la remplace, un slot vide la retire. Les autres formes gardent la vue texte.
 
-**« Tout effacer » en pilule** (`<x-meilifacets::reset shape="pill" />`, `data-shape="pill"`) : la vue
+**« Tout effacer » en pilule** (`<x-meilifacets::listing.reset shape="pill" />`, `data-shape="pill"`) : la vue
 texte, arrondie et paddée comme les pills des facettes (`--meili-control-inline`). Sans `shape`, le
 bouton texte garde son dessin d'origine (rayon `0.25em`, padding `0.85em`) ; `shape` accepte `text`
 (défaut), `pill` et `icon` (`ResetShape`).
 
-**Tri en radios** (`<x-meilifacets::sort widget="radios" collapsible />`, C-4). Un `<fieldset>`
+**Tri en radios** (`<x-meilifacets::listing.sort widget="radios" collapsible />`, C-4). Un `<fieldset>`
 (crochet `sort-choices`) de radios (crochet `sort-choice`), repliable comme une facette. Choisir
 trie tout de suite, dans les deux modes (`D-10`). Son déclencheur n'a jamais de compteur : un tri
 est un ordre, pas un filtre. `listbox` reste le défaut ; la garde « un seul tri par page » couvre

@@ -2,11 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Modules\MeiliFacets\View\Components;
+namespace Modules\MeiliFacets\View\Components\Listing;
 
 use Illuminate\Contracts\View\View;
 use Modules\MeiliFacets\Enums\ResetShape;
 use Modules\MeiliFacets\Listing\CurrentListing;
+use Modules\MeiliFacets\View\Components\ListingComponent;
 
 final class Reset extends ListingComponent
 {
@@ -39,8 +40,8 @@ final class Reset extends ListingComponent
     public function render(): View
     {
         return view(match ($this->shape) {
-            ResetShape::Text, ResetShape::Pill => 'meilifacets::components.reset',
-            ResetShape::Icon => 'meilifacets::components.reset-icon',
+            ResetShape::Text, ResetShape::Pill => 'meilifacets::components.listing.reset',
+            ResetShape::Icon => 'meilifacets::components.listing.reset-icon',
         });
     }
 }

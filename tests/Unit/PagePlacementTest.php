@@ -34,7 +34,7 @@ final class PagePlacementTest extends TestCase
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage(
             'The sort of listing "products" is rendered twice on this page: its list and ids '
-            .'would be duplicated. Render <x-meilifacets::sort> once per page.'
+            .'would be duplicated. Render <x-meilifacets::listing.sort> once per page.'
         );
 
         $placement->placeSort();

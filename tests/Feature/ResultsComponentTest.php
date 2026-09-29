@@ -150,7 +150,7 @@ final class ResultsComponentTest extends TestCase
         };
 
         // Blade leaves a run of spaces where a conditional attribute was.
-        return (string) preg_replace('/\s+/', ' ', view('meilifacets::components.results', [
+        return (string) preg_replace('/\s+/', ' ', view('meilifacets::components.listing.results', [
             'listing' => $resolved,
             'cards' => $cards,
             'items' => $items,

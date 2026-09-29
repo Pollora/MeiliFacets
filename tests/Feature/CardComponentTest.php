@@ -73,7 +73,7 @@ final class CardComponentTest extends TestCase
     #[Test]
     public function it_defers_the_image_of_a_card_nobody_placed(): void
     {
-        $this->assertStringContainsString('loading="lazy"', Blade::render('<x-meilifacets::card :card="[]" />'));
+        $this->assertStringContainsString('loading="lazy"', Blade::render('<x-meilifacets::listing.card :card="[]" />'));
     }
 
     #[Test]
@@ -101,7 +101,7 @@ final class CardComponentTest extends TestCase
         $this->expectExceptionMessageMatches('/not a valid backing value/');
 
         Blade::render(
-            '<x-meilifacets::card :card="[]" :heading="$heading" />',
+            '<x-meilifacets::listing.card :card="[]" :heading="$heading" />',
             ['heading' => 'script src=x']
         );
     }
@@ -109,7 +109,7 @@ final class CardComponentTest extends TestCase
     #[Test]
     public function it_merges_the_classes_the_caller_adds(): void
     {
-        $html = Blade::render('<x-meilifacets::card :card="[]" class="col-span-2" />');
+        $html = Blade::render('<x-meilifacets::listing.card :card="[]" class="col-span-2" />');
 
         $this->assertStringContainsString('class="meilifacetsCard col-span-2"', $html);
     }
@@ -121,7 +121,7 @@ final class CardComponentTest extends TestCase
     private function render(array $card, array $props = []): string
     {
         return Blade::render(
-            '<x-meilifacets::card :card="$card" :heading="$heading" :priority="$priority" />',
+            '<x-meilifacets::listing.card :card="$card" :heading="$heading" :priority="$priority" />',
             ['card' => $card, 'heading' => 'h3', 'priority' => ImagePriority::Lazy, ...$props]
         );
     }

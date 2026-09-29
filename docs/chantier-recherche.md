@@ -260,13 +260,13 @@ crochets confondus (S-18).
 | Brique | Composant, attributs | Crochets | TS | Rôle |
 | --- | --- | --- | --- | --- |
 | Racine | `<x-meilifacets::search>` + `min-chars`, `delay`, `name` (aucun `types`) | `search` (+ `data-meili-contract`) | `SiteSearch` | Publie la description (connexion, types des sections posées et leurs libellés, seuil, délai), demande `site-search.css` et le chargeur. Rend un simple conteneur ; tout le reste est composé dans son slot. Plusieurs racines sur une page : `name` distinct (même règle que `listing`). |
-| Loupe | `<x-meilifacets::search-toggle>` + slot `icon` | `search-toggle` | `SearchPanel` (chargeur) | `<button aria-expanded="false" aria-controls="…">` vers le panneau de sa racine, nommé « Search » / « Rechercher » (`aria-label`). Icône par défaut `images/search.svg` en `<img alt="">` dans un `<span aria-hidden="true">`, remplacée par le slot `icon`, retirée par un slot vide — même mécanique que l'ouvreur « Filtres ». |
-| Panneau | `<x-meilifacets::search-panel>` + slot | `search-panel`, `search-status` | `SearchPanel`, `StatusView`, `PanelRoom` | `hidden` au rendu ; conteneur `role="search"` (pas de `<form action>` : rien ne part vers WordPress) ; porte l'unique région `aria-live="polite"`. Ce qu'il contient, c'est le thème qui le pose. |
-| Champ | `<x-meilifacets::search-input>` | `search-input` | `Typing`, `ComboboxKeys` | `<input type="search" role="combobox" aria-expanded aria-controls aria-autocomplete="list">`, libellé visuellement masqué, traduisible. |
-| Section | `<x-meilifacets::search-section>` + `type` (requis), `limit` (défaut de `SearchSettings` : 4), `heading` | `search-section` (`data-type`), `search-count`, `search-results`, `search-card-template`, `search-see-all` | `SectionView` | En-tête (titre du type, `labels->name` de WordPress, + compte « 3 résultats » : clé existante `:count result|:count results`, CLDR par `CountLabel`), liste `role="group"` dans la listbox, template de la carte que le type déclare, lien « voir tous » (`labels->all_items`, « Tous les produits ») : `<a href>` **rendu par le serveur** vers l'archive du type, jamais réécrit ; absent si le type n'a pas d'archive. Masquée quand son type n'a rien. Un `type` non déclaré ou non indexé lève (`SearchTypeRefused`). Une section par type et par racine. |
-| Vide | `<x-meilifacets::search-empty>` | `search-empty` | `StatusView` | « Aucun élément ne correspond à votre recherche », révélé quand toutes les sections posées sont vides. Libellé traduisible, slot pour le remplacer. |
-| Indisponible | `<x-meilifacets::search-unavailable>` | `search-unavailable` | `StatusView` | « Recherche indisponible » (D-7), révélé en panne ; sections masquées. |
-| Carte de recherche | `<x-meilifacets::search-card>` (template d'une section, **tous types**, distincte de la carte du listing `<x-meilifacets::card>`) | `card`, `url`, `image`, `title`, `summary`, `price` | `CardView` + `summary` | Titre, image, `summary` s'il est présent, prix s'il est présent. Nommée par `SearchableType::card` depuis l'étape 3a (`R-187`), vue écrite à l'étape 5. |
+| Loupe | `<x-meilifacets::search.toggle>` + slot `icon` | `search-toggle` | `SearchPanel` (chargeur) | `<button aria-expanded="false" aria-controls="…">` vers le panneau de sa racine, nommé « Search » / « Rechercher » (`aria-label`). Icône par défaut `images/search.svg` en `<img alt="">` dans un `<span aria-hidden="true">`, remplacée par le slot `icon`, retirée par un slot vide — même mécanique que l'ouvreur « Filtres ». |
+| Panneau | `<x-meilifacets::search.panel>` + slot | `search-panel`, `search-status` | `SearchPanel`, `StatusView`, `PanelRoom` | `hidden` au rendu ; conteneur `role="search"` (pas de `<form action>` : rien ne part vers WordPress) ; porte l'unique région `aria-live="polite"`. Ce qu'il contient, c'est le thème qui le pose. |
+| Champ | `<x-meilifacets::search.input>` | `search-input` | `Typing`, `ComboboxKeys` | `<input type="search" role="combobox" aria-expanded aria-controls aria-autocomplete="list">`, libellé visuellement masqué, traduisible. |
+| Section | `<x-meilifacets::search.section>` + `type` (requis), `limit` (défaut de `SearchSettings` : 4), `heading` | `search-section` (`data-type`), `search-count`, `search-results`, `search-card-template`, `search-see-all` | `SectionView` | En-tête (titre du type, `labels->name` de WordPress, + compte « 3 résultats » : clé existante `:count result|:count results`, CLDR par `CountLabel`), liste `role="group"` dans la listbox, template de la carte que le type déclare, lien « voir tous » (`labels->all_items`, « Tous les produits ») : `<a href>` **rendu par le serveur** vers l'archive du type, jamais réécrit ; absent si le type n'a pas d'archive. Masquée quand son type n'a rien. Un `type` non déclaré ou non indexé lève (`SearchTypeRefused`). Une section par type et par racine. |
+| Vide | `<x-meilifacets::search.empty-state>` | `search-empty` | `StatusView` | « Aucun élément ne correspond à votre recherche », révélé quand toutes les sections posées sont vides. Libellé traduisible, slot pour le remplacer. |
+| Indisponible | `<x-meilifacets::search.unavailable>` | `search-unavailable` | `StatusView` | « Recherche indisponible » (D-7), révélé en panne ; sections masquées. |
+| Carte de recherche | `<x-meilifacets::search.card>` (template d'une section, **tous types**, distincte de la carte du listing `<x-meilifacets::listing.card>`) | `card`, `url`, `image`, `title`, `summary`, `price` | `CardView` + `summary` | Titre, image, `summary` s'il est présent, prix s'il est présent. Nommée par `SearchableType::card` depuis l'étape 3a (`R-187`), vue écrite à l'étape 5. |
 | Surlignage | — | — | `Highlight` | Balises en caractères privés (U+E000/U+E001), découpe en nœuds texte + `<mark>` : jamais d'`innerHTML` sur une chaîne du moteur. Ne lit que `_formatted.card.title` et `_formatted.card.summary`. |
 
 **Réutilisé plutôt que réécrit** (Louis, 2026-09-28) : le panneau s'appuie sur les briques du listing, dont
@@ -287,19 +287,19 @@ chaque vue.
 <header class="relative">
     <x-meilifacets::search>
         …
-        <x-meilifacets::search-toggle>
+        <x-meilifacets::search.toggle>
             <x-slot:icon>@include('parts.header.icons.search')</x-slot:icon>
-        </x-meilifacets::search-toggle>
+        </x-meilifacets::search.toggle>
         …
-        <x-meilifacets::search-panel class="absolute inset-x-0 top-full mx-auto max-w-site px-3 2xl:px-0">
-            <x-meilifacets::search-input />
+        <x-meilifacets::search.panel class="absolute inset-x-0 top-full mx-auto max-w-site px-3 2xl:px-0">
+            <x-meilifacets::search.input />
             @if (WooCommerce::isActive())
-                <x-meilifacets::search-section type="product" :limit="4" />
+                <x-meilifacets::search.section type="product" :limit="4" />
             @endif
-            <x-meilifacets::search-section type="post" :limit="4" />
-            <x-meilifacets::search-empty />
-            <x-meilifacets::search-unavailable />
-        </x-meilifacets::search-panel>
+            <x-meilifacets::search.section type="post" :limit="4" />
+            <x-meilifacets::search.empty-state />
+            <x-meilifacets::search.unavailable />
+        </x-meilifacets::search.panel>
     </x-meilifacets::search>
 </header>
 ```
@@ -330,7 +330,7 @@ réutilise `:count result|:count results` (Louis, 2026-09-28).
 lit `heading` = `labels->name`, `seeAllLabel` = `labels->all_items`, `archive` =
 `get_post_type_archive_link()` (`null` sans archive), `baseFilter` = publié + type (`PublishedPosts`), `searchOn`
 = titre, `labels.*` des taxonomies **du type**, `excerpt`, filtrés par l'ordre de recherche
-(`AttributesToSearchOn::among()`) ; `card` = `meilifacets::search-card`. Un type à qui l'ordre ne laisse aucun
+(`AttributesToSearchOn::among()`) ; `card` = `meilifacets::search.card`. Un type à qui l'ordre ne laisse aucun
 champ lève `NoFieldToSearch` ; un `searchOn` qui sort de l'ordre (posé par un projet) lève
 `FieldsOutsideSearchOrder` à la validation. Aucune chaîne propre au module.
 
@@ -449,16 +449,18 @@ par attribut : `min-chars` et `delay` sur la racine, `limit` sur la section.
   `SummaryCardProjector` (décorateur) ; `IndexedPostTypes` (seule lecture de `indexed_post_types`, `R-187`).
 - `app/Search/` : `PublishedPosts`, `VisibleProducts` (filtres de base partagés par le listing et la recherche, `R-187`).
 - `app/View/` : `SiteSearchDescription` ; `ClientScript` (extrait de `ListingScript` à l'étape 3b, paquet `Enums\ScriptModule`, description paresseuse ; remplace `SiteSearchScript`) ; `ClientStylesheet` + `Enums\Stylesheet` (`Stylesheet` paramétrée, extraite à l'étape 4, `R-189` ; remplace
-  `SiteSearchStylesheet`) ; `Components/` : `Search`, `SearchToggle`, `SearchPanel`, `SearchInput`,
-  `SearchSection`, `SearchEmpty`, `SearchUnavailable`, `SearchCard` (les briques héritent d'un `SearchComponent`
-  qui résout leur racine, comme `ListingComponent`).
+  `SiteSearchStylesheet`) ; `Components/` : la racine `Search`, et ses briques dans `Components/Search/` —
+  `Toggle`, `Panel`, `Input`, `Section`, `EmptyState` (`empty` est un mot réservé de PHP), `Unavailable`, `Card` ;
+  celles qui résolvent leur racine héritent de `SearchComponent`, laissé à côté de `ContractComponent` et de
+  `ListingComponent` (rangement par racine, Louis, 2026-09-29 — `R-194`).
 - `app/Enums/` : `Hook` (+ crochets du § 8), `DocumentField` (+ `Labels`, `Content`, `PostType`, `Status`), `CardField` (+ `Summary`),
   `IndexSetting` (+ `SearchableAttributes`, `TypoTolerance`) ; `ElementId` : `searchPanel`, `searchInput`,
   `searchListbox`, `searchSection`, `searchOption`.
 - `app/Providers/SiteSearchServiceProvider.php` (liaison `scopedIf` du contrat, lecture des défauts).
 
-**Blade** — à plat dans `components/` : `search`, `search-toggle`, `search-panel`, `search-input`,
-`search-section`, `search-empty`, `search-unavailable`, `search-card`.
+**Blade** — la racine `components/search.blade.php`, ses briques dans `components/search/` : `toggle`, `panel`,
+`input`, `section`, `empty-state`, `unavailable`, `card` ; balises `<x-meilifacets::search.toggle>` etc. *Rangées
+par racine le 2026-09-29 (`R-194`) ; elles étaient à plat, préfixées `search-`.*
 
 **TypeScript** — `resources/assets/ts/site-search/` (autorisé) : `search-panel.ts`, `site-search.ts`,
 `typing.ts`, `site-search-query.ts`, `section-view.ts`, `status-view.ts`, `highlight.ts`,
@@ -490,7 +492,9 @@ sous-ensembles et archive : déclaration des types.
 **Dossiers** : `app/SiteSearch/`, `resources/assets/ts/site-search/`. **Fichiers publiés** :
 `dist/site-search.js`, `dist/site-search-client.js`, `css/site-search.css`, `images/search.svg`.
 
-**Composants** : `search-card` (carte de recherche, tous types, remplace `excerpt-card` — Louis, 2026-09-28).
+**Composants** : `search-card` (carte de recherche, tous types, remplace `excerpt-card` — Louis, 2026-09-28), devenue
+`search.card` au rangement par racine (Louis, 2026-09-29, `R-194`) ; dossiers `components/search/`,
+`components/listing/`, `Components/Search/`, `Components/Listing/` autorisés le même jour.
 **Réutilisation** : `ListingScript`, `Stylesheet`, le squelette de `listing-page.ts` et les règles de `Contract`
 sont extraits en place plutôt que doublés (§ 4, § 7) ; aucun fichier ni dossier de plus que ceux listés ici.
 

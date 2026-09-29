@@ -1,6 +1,6 @@
 <fieldset class="meilifacetsFacet meilifacetsSortChoices" {{ $hook('sort-choices') }} {{ $scrollMark() }}>
 @if ($collapsible)
-    <legend class="meilifacetsFacetLabel"><x-meilifacets::toggle :disclosure="$disclosure()"><span class="meilifacetsSortSummary">{{ $summary->lead }}<span class="meilifacetsSortChoice" {{ $hook('sort-chosen') }}>{{ $summary->choice }}</span>{{ $summary->trail }}</span></x-meilifacets::toggle></legend>
+    <legend class="meilifacetsFacetLabel"><x-meilifacets::listing.toggle :disclosure="$disclosure()"><span class="meilifacetsSortSummary">{{ $summary->lead }}<span class="meilifacetsSortChoice" {{ $hook('sort-chosen') }}>{{ $summary->choice }}</span>{{ $summary->trail }}</span></x-meilifacets::listing.toggle></legend>
 @else
     <legend class="meilifacetsFacetLabel">{{ $summary->label }}</legend>
 @endif

@@ -112,7 +112,7 @@ final class ResolvedListing
     }
 
     /**
-     * What `<x-meilifacets::facets>` and `<x-meilifacets::facet>` place: term
+     * What `<x-meilifacets::listing.facets>` and `<x-meilifacets::listing.facet>` place: term
      * facets and the price range alike.
      *
      * @return list<Placeable>
@@ -154,7 +154,7 @@ final class ResolvedListing
     }
 
     /**
-     * What `<x-meilifacets::facets>` shows: everything a template did not place on
+     * What `<x-meilifacets::listing.facets>` shows: everything a template did not place on
      * its own.
      *
      * @return list<Placeable>

@@ -18,6 +18,6 @@ final class ListingStateIsolationTest extends TestCase
     #[Test]
     public function it_reaches_a_listing_no_earlier_class_has_placed(): void
     {
-        $this->assertStringContainsString('data-meili="facet"', Blade::render('<x-meilifacets::facets />'));
+        $this->assertStringContainsString('data-meili="facet"', Blade::render('<x-meilifacets::listing.facets />'));
     }
 }

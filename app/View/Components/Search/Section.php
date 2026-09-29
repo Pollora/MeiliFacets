@@ -2,15 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Modules\MeiliFacets\View\Components;
+namespace Modules\MeiliFacets\View\Components\Search;
 
 use Illuminate\Contracts\View\View;
 use LogicException;
 use Modules\MeiliFacets\SiteSearch\SearchableType;
 use Modules\MeiliFacets\SiteSearch\SearchRegistry;
 use Modules\MeiliFacets\SiteSearch\SearchTypeRefused;
+use Modules\MeiliFacets\View\Components\SearchComponent;
 
-final class SearchSection extends SearchComponent
+final class Section extends SearchComponent
 {
     private const int FEWEST_RESULTS = 1;
 
@@ -32,7 +33,7 @@ final class SearchSection extends SearchComponent
 
     public function render(): View
     {
-        return view('meilifacets::components.search-section', [
+        return view('meilifacets::components.search.section', [
             'headingId' => $this->ids->searchHeading($this->type->postType),
             'listboxId' => $this->ids->searchListbox($this->type->postType),
         ]);

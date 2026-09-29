@@ -22,7 +22,7 @@ const choice = (value: string, label: string, checked = false) => `
 
 const PLAIN = { legend: 'Sort by', panel: '' }
 
-/** Mirrors `toggle.blade.php` holding the sort summary: no badge, the label alone, then the sentence holding the order in force. */
+/** Mirrors `listing/toggle.blade.php` holding the sort summary: no badge, the label alone, then the sentence holding the order in force. */
 const COLLAPSIBLE = {
     legend: `<button type="button" class="meilifacetsFacetToggle" aria-expanded="false" aria-controls="sort-panel" data-meili="toggle">
             <span class="meilifacetsFacetToggleName"><span class="meilifacetsFacetToggleLabel" aria-hidden="true">Sort by</span><span class="meilifacetsSortSummary">Sort by: <span class="meilifacetsSortChoice" data-meili="sort-chosen">Relevance</span></span></span>
@@ -30,7 +30,7 @@ const COLLAPSIBLE = {
     panel: ' hidden data-meili="panel"',
 }
 
-/** Mirrors `sort-radios.blade.php`, in place of the listbox. */
+/** Mirrors `listing/sort-radios.blade.php`, in place of the listbox. */
 const radiosMarkup = (folding = PLAIN) => listingMarkup().replace(/<div class="meilifacetsSort"[\s\S]*?<\/ul>\s*<\/div>/, `
     <fieldset class="meilifacetsFacet meilifacetsSortChoices" data-meili="sort-choices">
         <legend class="meilifacetsFacetLabel">${folding.legend}</legend>

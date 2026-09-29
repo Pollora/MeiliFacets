@@ -8,7 +8,7 @@ use Dom\Element;
 use Dom\HTMLDocument;
 use Illuminate\Support\Facades\Blade;
 use Modules\MeiliFacets\Enums\Hook;
-use Modules\MeiliFacets\View\Components\Drawer;
+use Modules\MeiliFacets\View\Components\Listing\Drawer;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -19,8 +19,8 @@ final class DrawerComponentTest extends TestCase
     use HoldsCatalogueValues;
     use SwitchesTheSiteLocale;
 
-    private const string PLACED = '<x-meilifacets::drawer-opener /><x-meilifacets::drawer class="flex-1"><p id="inside">Facets</p>'
-        .'<x-slot:footer><x-meilifacets::reset /></x-slot:footer></x-meilifacets::drawer>';
+    private const string PLACED = '<x-meilifacets::listing.drawer-opener /><x-meilifacets::listing.drawer class="flex-1"><p id="inside">Facets</p>'
+        .'<x-slot:footer><x-meilifacets::listing.reset /></x-slot:footer></x-meilifacets::listing.drawer>';
 
     protected function setUp(): void
     {
@@ -166,7 +166,7 @@ final class DrawerComponentTest extends TestCase
     #[Test]
     public function it_renders_no_footer_unless_given_one(): void
     {
-        $document = HTMLDocument::createFromString(Blade::render('<x-meilifacets::drawer>Facets</x-meilifacets::drawer>'), LIBXML_NOERROR);
+        $document = HTMLDocument::createFromString(Blade::render('<x-meilifacets::listing.drawer>Facets</x-meilifacets::listing.drawer>'), LIBXML_NOERROR);
 
         $this->assertNotNull($document->querySelector($this->hooked(Hook::DrawerSheet)));
         $this->assertNull($document->querySelector($this->hooked(Hook::DrawerFooter)));
@@ -177,7 +177,7 @@ final class DrawerComponentTest extends TestCase
     public function it_takes_another_threshold_and_another_heading_level(): void
     {
         $document = HTMLDocument::createFromString(
-            Blade::render('<x-meilifacets::drawer media="(width < 64em)" heading="h3">Facets</x-meilifacets::drawer>'),
+            Blade::render('<x-meilifacets::listing.drawer media="(width < 64em)" heading="h3">Facets</x-meilifacets::listing.drawer>'),
             LIBXML_NOERROR
         );
 
@@ -200,7 +200,7 @@ final class DrawerComponentTest extends TestCase
     public function it_leaves_every_computation_to_the_components(): void
     {
         foreach (['drawer', 'drawer-opener'] as $name) {
-            $view = (string) file_get_contents(dirname(__DIR__, 2).'/resources/views/components/'.$name.'.blade.php');
+            $view = (string) file_get_contents(dirname(__DIR__, 2).'/resources/views/components/listing/'.$name.'.blade.php');
 
             $this->assertStringNotContainsString('@php', $view, $name);
             $this->assertStringNotContainsString('$ids->', $view, $name);
@@ -211,7 +211,7 @@ final class DrawerComponentTest extends TestCase
     private function opener(string $slot): Element
     {
         return HTMLDocument::createFromString(
-            Blade::render('<x-meilifacets::drawer-opener>'.$slot.'</x-meilifacets::drawer-opener>'),
+            Blade::render('<x-meilifacets::listing.drawer-opener>'.$slot.'</x-meilifacets::listing.drawer-opener>'),
             LIBXML_NOERROR
         )->querySelector($this->hooked(Hook::DrawerOpen));
     }

@@ -2,12 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Modules\MeiliFacets\View\Components;
+namespace Modules\MeiliFacets\View\Components\Listing;
 
 use Illuminate\Contracts\View\View;
 use Modules\MeiliFacets\Enums\ApplyShape;
 use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\View\Badge;
+use Modules\MeiliFacets\View\Components\ListingComponent;
 
 /**
  * Rendered in `submit`, where it searches, and seen everywhere. With `visible-in-drawer`, rendered in
@@ -50,7 +51,7 @@ final class Apply extends ListingComponent
 
     public function render(): View
     {
-        return view('meilifacets::components.apply', [
+        return view('meilifacets::components.listing.apply', [
             'badge' => new Badge($this->ids->applyCount(), $this->listing->activeFilterCount()),
         ]);
     }

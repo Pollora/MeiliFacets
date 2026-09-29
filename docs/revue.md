@@ -3282,6 +3282,34 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
+### R-194 · 🟡 · ouvert (en attente de commit) · ouvert le 2026-09-29 — composants Blade rangés par racine
+
+Rattaché à `R-180`. Décision de Louis du 2026-09-29, qui révise « Dossiers et crochets du chantier » (`decisions.md`,
+C-8 révisée du 2026-09-24 : Blade à plat dans `components/`). Pur rangement : aucun comportement, aucun rendu ne change.
+Rien n'est commité, réindexé ni écrit en base ou dans le moteur ; `config/meilifacets.php` de l'hôte non touché.
+
+**Conformité.** *Change* : vues et classes des briques, déplacées par `git mv` dans `components/search/`,
+`components/listing/`, `Components/Search/`, `Components/Listing/` (dossiers autorisés par Louis) ; balises en notation à
+point ; `SearchableTypeFactory::CARD` = `meilifacets::search.card` ; `Facets::componentFor()` ; messages de
+`PagePlacement` ; thème Pluralia (`woocommerce/archive-product.blade.php`). *Ferme* : rien d'autre. *Contredit* : la
+ligne « Dossiers et crochets du chantier », révisée avec son coût. *La plateforme offre* : `Blade::componentNamespace()`
+(posé par nwidart) et la résolution de `ComponentTagCompiler::componentClass()` — classe `Namespace\Search\Toggle`
+d'abord (`findClassByComponent()`, `formatClassName()` découpe sur `.`), vue anonyme
+`meilifacets::components.listing.toggle` ensuite ; aucun alias à déclarer.
+
+**Noms.** Racines inchangées (`search`, `listing`, classes `Search`, `Listing`) ; les bases `ContractComponent`,
+`ListingComponent`, `SearchComponent` restent à la racine de `Components/` : partagées ou étendues par une racine, et un
+dossier ne contient ainsi que des balises. `SearchEmpty` devient `Search\EmptyState` (`empty` est réservé, `class Empty`
+ne compile pas), balise et vue `search.empty-state` pour garder le miroir : une balise `search.empty` échoue bruyamment au
+lieu de rendre la vue sans sa classe. `Toggle`, `Card`, `Unavailable` existent sous les deux racines, séparés par leur
+namespace. Crochets `data-meili` et `Contract::VERSION` inchangés.
+
+**Vérifié.** `ComponentFoldersTest` : résolution (classe de dossier, classe au nom réservé, vue anonyme), anciens noms et
+`search.empty` refusés, rendu par les nouveaux noms, surcharge du thème à `components/search/card.blade.php` prise (le
+crochet réel du provider, seul, sur un thème temporaire). HTML de `/`, `/boutique`, `/categorie-produit/visage`,
+`/journal`, `/?s=creme&post_type=product` identique avant/après, jetons Gravity Forms et `?ver=` de WP Rocket neutralisés.
+Recette navigateur : recherche de l'en-tête à 1440 et 393, filtres, tri et tiroir de `/boutique`, console vide.
+
 ### R-193 · 🟡 · ouvert (en attente de commit) · ouvert le 2026-09-29 — les résultats clignotaient en bloc à chaque lettre
 
 Rattaché à `R-180`, étape 7 de [chantier-recherche.md](chantier-recherche.md), sur l'état non commité de `R-191`/`R-192`.
@@ -4207,7 +4235,7 @@ excerpt`, `fix(listing): hide what WooCommerce hides from its search`, `docs(sea
 ### R-180 · 🟠 · ouvert · 2026-09-25 — recherche du site (lot 5)
 
 Parapluie du chantier [chantier-recherche.md](chantier-recherche.md), branche `feat/site-search`. Rattachés :
-`R-27`, `R-159`, `R-160`, `R-181` (étape « pertinence et index »), `R-182` (refonte du pont), `R-184` (ordre de recherche surchargeable), `R-185` (corrections de la revue de `fd595a3`), `R-186` (réglages repoussés à chaque sauvegarde), `R-187` (étape 3a, déclaration des types), `R-188` (étape 3b, racine, réglages, publication partagée), `R-189` (étape 4, extractions partagées), `R-190` (étape 4, client de recherche), `R-191` (étape 5, panneau et sections), `R-192` (étape 7, mouvement et reprise du style), `R-193` (résultats pendant la frappe) ; `R-29` à compléter (clé limitée à `posts`).
+`R-27`, `R-159`, `R-160`, `R-181` (étape « pertinence et index »), `R-182` (refonte du pont), `R-184` (ordre de recherche surchargeable), `R-185` (corrections de la revue de `fd595a3`), `R-186` (réglages repoussés à chaque sauvegarde), `R-187` (étape 3a, déclaration des types), `R-188` (étape 3b, racine, réglages, publication partagée), `R-189` (étape 4, extractions partagées), `R-190` (étape 4, client de recherche), `R-191` (étape 5, panneau et sections), `R-192` (étape 7, mouvement et reprise du style), `R-193` (résultats pendant la frappe), `R-194` (composants rangés par racine) ; `R-29` à compléter (clé limitée à `posts`).
 
 ### R-179 · 🟡 · ouvert (en attente de commit) · ouvert le 2026-09-25 — étape 7 : panneaux desktop, pastilles actives et grille occupée
 

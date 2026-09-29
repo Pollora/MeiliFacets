@@ -50,7 +50,7 @@ final class SearchableTypeTest extends TestCase
             seeAllLabel: 'All posts',
             baseFilter: ['post_type = "post"'],
             searchOn: ['post_title', 'excerpt'],
-            card: 'meilifacets::search-card',
+            card: 'meilifacets::search.card',
             archive: 'https://example.test/news',
         );
     }

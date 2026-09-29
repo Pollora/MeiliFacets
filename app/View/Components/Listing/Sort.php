@@ -2,11 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Modules\MeiliFacets\View\Components;
+namespace Modules\MeiliFacets\View\Components\Listing;
 
 use Illuminate\Contracts\View\View;
 use Modules\MeiliFacets\Enums\SortWidget;
 use Modules\MeiliFacets\Listing\CurrentListing;
+use Modules\MeiliFacets\View\Components\ListingComponent;
 use Modules\MeiliFacets\View\Disclosure;
 use Modules\MeiliFacets\View\SortChoice;
 use Modules\MeiliFacets\View\SortChoices;
@@ -57,8 +58,8 @@ final class Sort extends ListingComponent
     public function render(): View
     {
         return view(match ($this->widget) {
-            SortWidget::Listbox => 'meilifacets::components.sort',
-            SortWidget::Radios => 'meilifacets::components.sort-radios',
+            SortWidget::Listbox => 'meilifacets::components.listing.sort',
+            SortWidget::Radios => 'meilifacets::components.listing.sort-radios',
         });
     }
 

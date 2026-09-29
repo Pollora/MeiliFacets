@@ -4,6 +4,6 @@
                              :collapsible="$collapsible" />
     @endforeach
     @if ($needsApplyButton)
-        <x-meilifacets::apply :name="$name" shape="block" />
+        <x-meilifacets::listing.apply :name="$name" shape="block" />
     @endif
 </div>

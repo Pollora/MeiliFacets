@@ -109,7 +109,7 @@ final class ActiveValuesComponentTest extends TestCase
     {
         $this->assertStringContainsString(
             'class="meilifacetsActiveValues flex"',
-            Blade::render('<x-meilifacets::active-values class="flex" />'),
+            Blade::render('<x-meilifacets::listing.active-values class="flex" />'),
         );
     }
 
@@ -119,7 +119,7 @@ final class ActiveValuesComponentTest extends TestCase
     {
         $hostile = '"><script>alert(1)</script>';
 
-        $html = (string) view('meilifacets::components.active-values', [
+        $html = (string) view('meilifacets::components.listing.active-values', [
             'values' => [new ActiveValue($hostile, 'brand', $hostile, $hostile, ActiveValueKind::Term)],
             'attributes' => new ComponentAttributeBag,
             'hook' => fn (string $name): HtmlString => Hook::from($name)->attribute(),
@@ -165,6 +165,6 @@ final class ActiveValuesComponentTest extends TestCase
 
     private function renderComponent(): string
     {
-        return Blade::render('<x-meilifacets::active-values />');
+        return Blade::render('<x-meilifacets::listing.active-values />');
     }
 }

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Modules\MeiliFacets\View\Components;
+namespace Modules\MeiliFacets\View\Components\Listing;
 
 use BackedEnum;
 use Illuminate\Contracts\View\View;
@@ -13,6 +13,7 @@ use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\Listing\Facet as Declaration;
 use Modules\MeiliFacets\Listing\FacetValue;
 use Modules\MeiliFacets\View\Badge;
+use Modules\MeiliFacets\View\Components\ListingComponent;
 use Modules\MeiliFacets\View\CountLabel;
 use Modules\MeiliFacets\View\Disclosure;
 
@@ -114,6 +115,6 @@ final class Facet extends ListingComponent
 
     public function render(): View
     {
-        return view('meilifacets::components.facet');
+        return view('meilifacets::components.listing.facet');
     }
 }

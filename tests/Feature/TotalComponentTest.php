@@ -80,7 +80,7 @@ final class TotalComponentTest extends TestCase
     {
         $this->assertStringContainsString(
             'class="meilifacetsTotal ml-auto"',
-            Blade::render('<x-meilifacets::total class="ml-auto" />'),
+            Blade::render('<x-meilifacets::listing.total class="ml-auto" />'),
         );
     }
 
@@ -88,7 +88,7 @@ final class TotalComponentTest extends TestCase
     #[Test]
     public function it_escapes_its_label(): void
     {
-        $html = (string) view('meilifacets::components.total', [
+        $html = (string) view('meilifacets::components.listing.total', [
             'label' => '<script>alert(1)</script>',
             'attributes' => new ComponentAttributeBag,
             'hook' => fn (string $name): HtmlString => Hook::from($name)->attribute(),
@@ -100,12 +100,12 @@ final class TotalComponentTest extends TestCase
 
     private function renderComponent(): string
     {
-        return Blade::render('<x-meilifacets::total />');
+        return Blade::render('<x-meilifacets::listing.total />');
     }
 
     private function renderView(int $count): string
     {
-        return (string) view('meilifacets::components.total', [
+        return (string) view('meilifacets::components.listing.total', [
             'label' => $this->app->make(CountLabel::class)->of(__(':count item|:count items'), $count),
             'attributes' => new ComponentAttributeBag,
             'hook' => fn (string $name): HtmlString => Hook::from($name)->attribute(),

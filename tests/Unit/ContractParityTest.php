@@ -13,7 +13,7 @@ use Modules\MeiliFacets\Enums\Hook;
 use Modules\MeiliFacets\Enums\ScriptModule;
 use Modules\MeiliFacets\Listing\ListingState;
 use Modules\MeiliFacets\Listing\StateReader;
-use Modules\MeiliFacets\View\Components\Drawer;
+use Modules\MeiliFacets\View\Components\Listing\Drawer;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -227,7 +227,7 @@ final class ContractParityTest extends TestCase
         preg_match("/{$constant} = '([^']*)'/", $this->read('site-search/section-view.ts'), $found);
 
         $this->assertNotSame('', $found[1] ?? '');
-        $this->assertStringContainsString(($found[1] ?? '').'="', (string) file_get_contents(self::VIEWS.'/search-section.blade.php'));
+        $this->assertStringContainsString(($found[1] ?? '').'="', (string) file_get_contents(self::VIEWS.'/search/section.blade.php'));
     }
 
     /** Escape closes at once: the client marks it, and only the stylesheet cuts the transition. */

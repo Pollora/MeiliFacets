@@ -69,7 +69,7 @@ final class FacetPlacementTest extends TestCase
         $listing->placeSort();
 
         $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessageMatches('/The sort of listing "fake" is rendered twice.*Render <x-meilifacets::sort> once per page\\./');
+        $this->expectExceptionMessageMatches('/The sort of listing "fake" is rendered twice.*Render <x-meilifacets::listing.sort> once per page\\./');
 
         $listing->placeSort();
     }

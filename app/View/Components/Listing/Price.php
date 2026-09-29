@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Modules\MeiliFacets\View\Components;
+namespace Modules\MeiliFacets\View\Components\Listing;
 
 use BackedEnum;
 use Illuminate\Contracts\View\View;
@@ -13,6 +13,7 @@ use Modules\MeiliFacets\Listing\PriceFilter as Declaration;
 use Modules\MeiliFacets\Listing\Range;
 use Modules\MeiliFacets\Support\Money;
 use Modules\MeiliFacets\View\Badge;
+use Modules\MeiliFacets\View\Components\ListingComponent;
 use Modules\MeiliFacets\View\Disclosure;
 use Modules\MeiliFacets\View\Fill;
 use Modules\MeiliFacets\View\RangeHandle;
@@ -144,6 +145,6 @@ final class Price extends ListingComponent
 
     public function render(): View
     {
-        return view('meilifacets::components.price');
+        return view('meilifacets::components.listing.price');
     }
 }

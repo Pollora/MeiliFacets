@@ -23,7 +23,7 @@ final class PagePlacement
         if ($this->isRendered(PlacedControl::Facet, $facet->name)) {
             throw new RuntimeException(
                 "Facet \"{$facet->name}\" is rendered twice on this page: its inputs and ids "
-                .'would be duplicated. Place it on its own before <x-meilifacets::facets>, which shows what is left.'
+                .'would be duplicated. Place it on its own before <x-meilifacets::listing.facets>, which shows what is left.'
             );
         }
 
@@ -43,7 +43,7 @@ final class PagePlacement
         if ($this->isRendered(PlacedControl::Sort, $this->listing)) {
             throw new RuntimeException(
                 "The sort of listing \"{$this->listing}\" is rendered twice on this page: its list and ids "
-                .'would be duplicated. Render <x-meilifacets::sort> once per page.'
+                .'would be duplicated. Render <x-meilifacets::listing.sort> once per page.'
             );
         }
 

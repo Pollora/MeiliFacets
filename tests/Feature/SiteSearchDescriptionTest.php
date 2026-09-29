@@ -72,7 +72,7 @@ final class SiteSearchDescriptionTest extends TestCase
             "All {$heading}",
             ["post_type = \"{$postType}\""],
             ['post_title'],
-            'meilifacets::search-card',
+            'meilifacets::search.card',
             $archive,
         );
     }

@@ -10,7 +10,7 @@ use WP_Post_Type;
 
 final readonly class SearchableTypeFactory
 {
-    public const string CARD = 'meilifacets::search-card';
+    public const string CARD = 'meilifacets::search.card';
 
     public function __construct(private AttributesToSearchOn $searchOn) {}
 
