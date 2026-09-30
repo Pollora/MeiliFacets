@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
-import { SearchTermInput } from '../../resources/assets/ts/site-search/search-term-input.ts'
+import { SearchTermInput } from '../../resources/assets/ts/shared/search-term-input.ts'
 import { find, load } from './dom.ts'
 import { typeInto } from './site-search-fixtures.ts'
 
@@ -14,12 +14,12 @@ const typing = (t: TestContext, value = '') => {
     const input = find<HTMLInputElement>(window.document, 'input')
     const heard: string[] = []
 
-    new SearchTermInput(input, { minChars: 2, delay: 120 }).start({
+    const terms = new SearchTermInput(input, { minChars: 2, delay: 120 }).start({
         search: (term) => heard.push(term),
         clear: () => heard.push('(cleared)'),
     })
 
-    return { heard, type: (term: string) => typeInto(window, input, term) }
+    return { heard, input, terms, type: (term: string) => typeInto(window, input, term) }
 }
 
 describe('SearchTermInput', () => {
@@ -87,5 +87,47 @@ describe('SearchTermInput', () => {
         t.mock.timers.tick(120)
 
         assert.deepEqual(heard, ['creme'])
+    })
+
+    it('takes a term the page was served with as searched, whatever its length', (t) => {
+        t.mock.timers.enable({ apis: ['setTimeout'] })
+
+        const window = load('<input value="a">')
+        const input = find<HTMLInputElement>(window.document, 'input')
+        const heard: string[] = []
+
+        new SearchTermInput(input, { minChars: 2, delay: 120 }).startFromServedTerm({
+            search: (term) => heard.push(term),
+            clear: () => heard.push('(cleared)'),
+        })
+        t.mock.timers.tick(120)
+        assert.deepEqual(heard, [])
+
+        typeInto(window, input, 'ab')
+        t.mock.timers.tick(120)
+        assert.deepEqual(heard, ['ab'])
+    })
+
+    it('shows a term searched elsewhere without searching it, and drops the one pending', (t) => {
+        const { heard, input, terms, type } = typing(t)
+
+        type('ser')
+        terms.show('')
+        t.mock.timers.tick(120)
+
+        assert.equal(input.value, '')
+        assert.deepEqual(heard, [])
+    })
+
+    it('searches again a term typed after the field was rewritten', (t) => {
+        const { heard, terms, type } = typing(t)
+
+        type('ser')
+        t.mock.timers.tick(120)
+        terms.show('')
+        type('ser')
+        t.mock.timers.tick(120)
+
+        assert.deepEqual(heard, ['ser', 'ser'])
     })
 })

@@ -193,7 +193,7 @@ cherchable » s'ajoutent à `R-27` (même cause, même correctif). Sous le parap
 | # | Question | État |
 | --- | --- | --- |
 | S-1 | Forme | **tranché** (Louis) — panneau déroulant pleine largeur sous l'en-tête, non modal, champ en haut, sections dessous |
-| S-2 | « Voir tous » | **tranché** (Louis) — **simple lien vers la racine de l'archive du type**, sans aucune query var. Chaque type déclare son lien ; défaut `get_post_type_archive_link()` (Boutique pour `product`, page des articles `page_for_posts` pour `post`). Le panneau n'écrit rien dans l'URL. Aucune page de résultats, aucun second listing, `posts_pre_query` n'est plus envisagé |
+| S-2 | « Voir tous » | **révisé le 2026-09-30 (Louis, `R-201`) : l'archive porte le terme en `?q=`, voir `decisions.md` « Lien voir tous »** — tranché d'abord (Louis) — **simple lien vers la racine de l'archive du type**, sans aucune query var. Chaque type déclare son lien ; défaut `get_post_type_archive_link()` (Boutique pour `product`, page des articles `page_for_posts` pour `post`). Le panneau n'écrit rien dans l'URL. Aucune page de résultats, aucun second listing, `posts_pre_query` n'est plus envisagé |
 | S-3 | Nom du concept | **proposé** — **`SiteSearch`** pour le code interne (PHP `SiteSearch\`, TS `site-search/`, paquets et feuille `site-search.*`) : `Search\` et `search-client.ts` désignent déjà l'envoi au moteur. Ce qu'un thème écrit — composants et crochets — dit `search` (S-18) |
 | S-4 | Livraison du client | **tranché** (Louis) — un chargeur minimal inscrit sur toutes les pages (`@meilifacets/site-search`, priorité basse, exclu du Delay JS) qui ouvre et ferme le panneau, et importe le client (`dist/site-search-client.js`) à la **première intention** (survol ou focus de la loupe, sinon ouverture) |
 | S-5 | Feuille de style | **tranché** (Louis) — `site-search.css` à part, demandée par le composant du panneau |
@@ -463,10 +463,10 @@ par attribut : `min-chars` et `delay` sur la racine, `limit` sur la section.
 par racine le 2026-09-29 (`R-194`) ; elles étaient à plat, préfixées `search-`.*
 
 **TypeScript** — `resources/assets/ts/site-search/` (autorisé) : `search-panel.ts`, `site-search.ts`,
-`search-term-input.ts`, `site-search-query.ts`, `section-view.ts`, `status-view.ts`, `highlight.ts`,
+`site-search-query.ts`, `section-view.ts`, `status-view.ts`, `highlight.ts`,
 `combobox-keys.ts`, `panel-available-height.ts` ; entrées `site-search-page.ts` et `site-search-client.ts` à la racine ;
 **à extraire** dans `shared/` : `light-dismiss.ts` (de `DisclosureGroup`, S-12) ; **extraits** (`R-189`) :
-`page-roots.ts` (squelette du chargeur), `root-component.ts` (règles de `Contract` par racine) ; **extrait** (`R-190`) : `pending-searches.ts` (recherches en vol, partagé avec `Listing`) ; **réutilisés** : `SearchClient` (étendu au surlignage,
+`page-roots.ts` (squelette du chargeur), `root-component.ts` (règles de `Contract` par racine) ; **extrait** (`R-190`) : `pending-searches.ts` (recherches en vol, partagé avec `Listing`) ; **déplacés** (`R-201`) : `shared/search-term-input.ts`, `shared/debounced-announcer.ts` ; **réutilisés** : `SearchClient` (étendu au surlignage,
 une instance par racine), `ListboxKeys` en partie, `CardView` ; `bundle.ts` construit et vérifie trois paquets.
 
 **CSS** — `resources/assets/css/site-search.css`, mobile first, seuil `48em`, jetons redéclarés sur

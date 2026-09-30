@@ -8,10 +8,10 @@ import { hit, OPENING, CLOSING, openSearch, searchDescribed, searchMarkup, searc
 
 import type { TestContext } from 'node:test'
 
-const sections = (t: TestContext, markup = searchMarkup()) => {
+const sections = (t: TestContext, markup = searchMarkup(), seeAllParameter = 'q') => {
     const errors = t.mock.method(console, 'error', () => undefined)
     const { root } = openSearch(markup)
-    const views = SectionView.allIn(new Contract(root), searchDescribed())
+    const views = SectionView.allIn(new Contract(root), searchDescribed({ seeAllParameter }))
 
     return { root, views, errors: errors.mock.calls.map((call) => String(call.arguments[0])) }
 }
@@ -36,7 +36,7 @@ describe('SectionView', () => {
         const { root, views } = sections(t)
         const [products] = views
 
-        products?.show({ hits: [hit(116, 'Sérum Éclat', { title: `${OPENING}Sér${CLOSING}um Éclat` })], totalHits: 12 })
+        products?.show({ hits: [hit(116, 'Sérum Éclat', { title: `${OPENING}Sér${CLOSING}um Éclat` })], totalHits: 12 }, 'se')
 
         const shown = section(root, 'product')
 
@@ -53,7 +53,7 @@ describe('SectionView', () => {
         const [products] = views
         const card = { title: 'Sérum Éclat', url: 'https://example.test/116', image_url: 'https://example.test/116.jpg', image_alt: 'Un flacon' }
 
-        products?.show({ hits: [{ ID: 116, card }], totalHits: 1 })
+        products?.show({ hits: [{ ID: 116, card }], totalHits: 1 }, 'se')
 
         const shown = section(root, 'product')
 
@@ -66,7 +66,7 @@ describe('SectionView', () => {
         const { root, views } = sections(t)
         const [, posts] = views
 
-        posts?.show({ hits: [{ card: { title: 'Guide', summary: 'How to choose' } }, { card: { title: 'News' } }], totalHits: 2 })
+        posts?.show({ hits: [{ card: { title: 'Guide', summary: 'How to choose' } }, { card: { title: 'News' } }], totalHits: 2 }, 'se')
 
         const summaries = [...section(root, 'post').querySelectorAll<HTMLElement>(Contract.selector('summary'))]
 
@@ -77,8 +77,8 @@ describe('SectionView', () => {
         const { root, views } = sections(t)
         const [products] = views
 
-        products?.show({ hits: [hit(1, 'Sérum')], totalHits: 1 })
-        products?.show({ hits: [], totalHits: 0 })
+        products?.show({ hits: [hit(1, 'Sérum')], totalHits: 1 }, 'se')
+        products?.show({ hits: [], totalHits: 0 }, 'se')
 
         assert.equal(section(root, 'product').hidden, true)
         assert.equal(products?.options.length, 0)
@@ -89,7 +89,7 @@ describe('SectionView', () => {
         const { root, views } = sections(t)
         const [products] = views
 
-        products?.show({ hits: [hit(1, 'Sérum')], totalHits: 1 })
+        products?.show({ hits: [hit(1, 'Sérum')], totalHits: 1 }, 'se')
         products?.hide()
 
         assert.equal(section(root, 'product').hidden, true)
@@ -100,10 +100,10 @@ describe('SectionView', () => {
         const { root, views } = sections(t)
         const [products] = views
 
-        products?.show({ hits: [hit(1, 'Sérum', { title: `${OPENING}S${CLOSING}érum` }), hit(2, 'Savon')], totalHits: 2 })
+        products?.show({ hits: [hit(1, 'Sérum', { title: `${OPENING}S${CLOSING}érum` }), hit(2, 'Savon')], totalHits: 2 }, 'se')
         const [serum, soap] = products?.options ?? []
 
-        products?.show({ hits: [hit(1, 'Sérum', { title: `${OPENING}Sér${CLOSING}um` })], totalHits: 1 })
+        products?.show({ hits: [hit(1, 'Sérum', { title: `${OPENING}Sér${CLOSING}um` })], totalHits: 1 }, 'se')
         const [kept] = products?.options ?? []
 
         assert.ok(kept !== undefined && kept === serum, 'the same node')
@@ -117,11 +117,11 @@ describe('SectionView', () => {
         const [products] = views
         const titles = () => [...section(root, 'product').querySelectorAll(Contract.selector('title'))].map((title) => title.textContent)
 
-        products?.show({ hits: [hit(1, 'One'), hit(2, 'Two'), hit(3, 'Three')], totalHits: 3 })
+        products?.show({ hits: [hit(1, 'One'), hit(2, 'Two'), hit(3, 'Three')], totalHits: 3 }, 'se')
         const [one] = products?.options ?? []
         const moved = t.mock.method(section(root, 'product').querySelector(Contract.selector('search-results')) as Element, 'insertBefore')
 
-        products?.show({ hits: [hit(3, 'Three'), hit(1, 'One'), hit(4, 'Four')], totalHits: 3 })
+        products?.show({ hits: [hit(3, 'Three'), hit(1, 'One'), hit(4, 'Four')], totalHits: 3 }, 'se')
 
         assert.deepEqual(titles(), ['Three', 'One', 'Four'])
         assert.ok(products?.options[1] === one, 'the same node, one rank down')
@@ -132,9 +132,9 @@ describe('SectionView', () => {
         const { views } = sections(t)
         const [products] = views
 
-        products?.show({ hits: [{ card: { title: 'Nameless' } }], totalHits: 1 })
+        products?.show({ hits: [{ card: { title: 'Nameless' } }], totalHits: 1 }, 'se')
         const [first] = products?.options ?? []
-        products?.show({ hits: [{ card: { title: 'Nameless' } }], totalHits: 1 })
+        products?.show({ hits: [{ card: { title: 'Nameless' } }], totalHits: 1 }, 'se')
         const [second] = products?.options ?? []
 
         assert.ok(first !== undefined && second !== undefined && first !== second, 'two nodes')
@@ -145,10 +145,10 @@ describe('SectionView', () => {
         const { views } = sections(t)
         const [products] = views
 
-        products?.show({ hits: [hit(1, 'Sérum')], totalHits: 1 })
+        products?.show({ hits: [hit(1, 'Sérum')], totalHits: 1 }, 'se')
         const [serum] = products?.options ?? []
-        products?.show({ hits: [], totalHits: 0 })
-        products?.show({ hits: [hit(1, 'Sérum')], totalHits: 1 })
+        products?.show({ hits: [], totalHits: 0 }, 'se')
+        products?.show({ hits: [hit(1, 'Sérum')], totalHits: 1 }, 'se')
 
         assert.ok(products?.options[0] === serum, 'the same node')
     })
@@ -157,7 +157,7 @@ describe('SectionView', () => {
         const { root, views } = sections(t)
         const [products] = views
 
-        products?.show({ hits: [hit(1, 'Sérum')], totalHits: 1 })
+        products?.show({ hits: [hit(1, 'Sérum')], totalHits: 1 }, 'se')
         const title = find(section(root, 'product'), Contract.selector('title'))
         const count = find(section(root, 'product'), Contract.selector('search-count'))
         const titleWrites = t.mock.method(title, 'replaceChildren')
@@ -166,10 +166,44 @@ describe('SectionView', () => {
         const view = root.ownerDocument.defaultView as Window & typeof globalThis
 
         new view.MutationObserver(() => countWrites++).observe(count, { childList: true, characterData: true, subtree: true })
-        products?.show({ hits: [hit(1, 'Sérum')], totalHits: 1 })
+        products?.show({ hits: [hit(1, 'Sérum')], totalHits: 1 }, 'se')
         await new Promise((resolve) => setImmediate(resolve))
 
         assert.equal(titleWrites.mock.callCount(), 0)
         assert.equal(countWrites, 0)
+    })
+
+    /** « See all » opens the archive filtered by the term, so it finds what the count counted. */
+    it('leads « see all » to the archive with the term the count is for, encoded', (t) => {
+        const { root, views } = sections(t)
+        const [products] = views
+        const link = find<HTMLAnchorElement>(section(root, 'product'), Contract.selector('search-see-all'))
+
+        products?.show({ hits: [hit(1, 'Crème')], totalHits: 1 }, 'crème & co+')
+
+        assert.equal(link.href, 'https://example.test/product?q=cr%C3%A8me+%26+co%2B')
+    })
+
+    it('writes the term under the name the project gave the parameter', (t) => {
+        const { root, views } = sections(t, searchMarkup(), 'recherche')
+        const [products] = views
+        const link = find<HTMLAnchorElement>(section(root, 'product'), Contract.selector('search-see-all'))
+
+        products?.show({ hits: [hit(1, 'Sérum')], totalHits: 1 }, 'ser')
+
+        assert.equal(link.href, 'https://example.test/product?recherche=ser')
+    })
+
+    it('keeps the query the archive already carries, and leads back to the bare archive once hidden', (t) => {
+        const markup = searchMarkup(searchSection('product').replace('https://example.test/product', '/?post_type=product'))
+        const { root, views } = sections(t, markup)
+        const [products] = views
+        const link = find<HTMLAnchorElement>(section(root, 'product'), Contract.selector('search-see-all'))
+
+        products?.show({ hits: [hit(1, 'Sérum')], totalHits: 1 }, 'ser')
+        assert.equal(link.getAttribute('href'), 'https://example.test/?post_type=product&q=ser')
+
+        products?.hide()
+        assert.equal(link.getAttribute('href'), '/?post_type=product')
     })
 })

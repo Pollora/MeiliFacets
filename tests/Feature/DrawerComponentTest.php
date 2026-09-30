@@ -48,7 +48,7 @@ final class DrawerComponentTest extends TestCase
         $this->assertFalse($drawer->hasAttribute('hidden'));
         $this->assertSame(Drawer::MOBILE, $drawer->getAttribute('data-media'));
         $this->assertSame('meilifacetsDrawer flex-1', $drawer->getAttribute('class'));
-        $this->assertNotNull($drawer->querySelector('#inside'));
+        $this->assertNotNull($drawer->querySelector($this->hooked(Hook::DrawerSheet).' '.$this->hooked(Hook::DrawerBody).' #inside'));
         $this->assertNotNull($drawer->querySelector($this->hooked(Hook::DrawerSheet).' '.$this->hooked(Hook::DrawerFooter).' '.$this->hooked(Hook::Reset)));
     }
 

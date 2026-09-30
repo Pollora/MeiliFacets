@@ -37,8 +37,9 @@ describe('a facet placed outside the group', () => {
         compare((facet) => facet, 'fontSize')
     })
 
+    /** The bottom margin is left out: happy-dom cannot evaluate the `:has(~ …)` that finds the last facet shown (R-202). */
     it('sheds the frame a browser puts around a fieldset', () => {
-        compare((facet) => facet, 'borderTopWidth', 'paddingTop', 'marginBottom')
+        compare((facet) => facet, 'borderTopWidth', 'paddingTop')
     })
 
     it('keeps its label set apart', () => {

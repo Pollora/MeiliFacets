@@ -6,6 +6,7 @@ namespace Modules\MeiliFacets\Tests\Feature;
 
 use Closure;
 use Modules\MeiliFacets\Contracts\Placeable;
+use Modules\MeiliFacets\Contracts\SearchableTypes;
 use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Enums\ProductTaxonomy;
 use Modules\MeiliFacets\Listing\Facet;
@@ -129,6 +130,25 @@ final class ProductArchiveTest extends TestCase
         );
     }
 
+    /**
+     * `/categorie-produit/visage?q=creme` searches the category, not the whole shop. The term lives in
+     * memory: nothing is written to the database, nor to the index.
+     */
+    #[Test]
+    public function it_keeps_its_term_when_the_visitor_searches(): void
+    {
+        $category = new WP_Term((object) ['term_id' => 0, 'taxonomy' => ProductTaxonomy::Category->value, 'slug' => 'visage']);
+
+        $this->assertContains(
+            $this->clauseOn(ProductTaxonomy::Category->value, $category->slug),
+            $this->onArchive(
+                [ProductTaxonomy::Category->value => $category->slug],
+                static fn (ProductListing $listing): array => $listing->searchScope()->filter,
+                $category,
+            )
+        );
+    }
+
     #[Test]
     public function it_narrows_nothing_off_an_archive(): void
     {
@@ -217,19 +237,29 @@ final class ProductArchiveTest extends TestCase
      *
      * @param  array<string, string>  $vars
      * @param  Closure(ProductListing): T  $read
+     * @param  WP_Term|null  $browsed  the term the archive shows, when the database need not hold it
      * @return T
      */
-    private function onArchive(array $vars, Closure $read): mixed
+    private function onArchive(array $vars, Closure $read, ?WP_Term $browsed = null): mixed
     {
         global $wp_query;
 
         $archive = new WP_Query;
         $archive->parse_query($vars);
+
+        if ($browsed instanceof WP_Term) {
+            $archive->queried_object = $browsed;
+        }
+
         $current = $wp_query;
         $wp_query = $archive;
 
         try {
-            return $read(new ProductListing(new WooCommerceFacets(new NameOrder), new WooCommerceSorts));
+            return $read(new ProductListing(
+                new WooCommerceFacets(new NameOrder),
+                new WooCommerceSorts,
+                $this->app->make(SearchableTypes::class),
+            ));
         } finally {
             $wp_query = $current;
         }

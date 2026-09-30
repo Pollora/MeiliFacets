@@ -16,6 +16,8 @@ use Modules\MeiliFacets\Listing\ResolvedListing;
 use Modules\MeiliFacets\Listing\Sort;
 use Modules\MeiliFacets\Listing\SortFilter;
 use Modules\MeiliFacets\Search\EngineLimits;
+use Modules\MeiliFacets\Search\FilterExpression;
+use Modules\MeiliFacets\SiteSearch\SearchSettings;
 use Modules\MeiliFacets\Support\Money;
 use Modules\MeiliFacets\Support\UrlParameters;
 
@@ -29,6 +31,7 @@ final readonly class ListingDescription
         private PageAddress $page,
         private CountLabel $countLabel,
         private ActiveValueList $activeValues,
+        private SearchSettings $searchSettings,
     ) {}
 
     /**
@@ -43,6 +46,9 @@ final readonly class ListingDescription
             'name' => $listing->name(),
             'filter' => $listing->baseFilter(),
             'baseQuery' => $listing->baseQuery(),
+            'searchScope' => $this->searchScope($listing),
+            'minChars' => $this->searchSettings->minChars,
+            'delay' => $this->searchSettings->delay,
             'perPage' => $listing->perPage(),
             'reachableHits' => $this->limits->reachableHits,
             'attributes' => [DocumentField::Card->value],
@@ -79,6 +85,16 @@ final readonly class ListingDescription
             'page' => $state->page,
             'price' => ['min' => $state->price->min, 'max' => $state->price->max],
         ];
+    }
+
+    /**
+     * @return array{filter: string, fields: list<string>|null}
+     */
+    private function searchScope(ResolvedListing $listing): array
+    {
+        $scope = $listing->searchScope();
+
+        return ['filter' => FilterExpression::all($scope->filter), 'fields' => $scope->fields];
     }
 
     /**

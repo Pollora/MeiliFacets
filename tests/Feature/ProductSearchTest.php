@@ -5,17 +5,14 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Tests\Feature;
 
 use Closure;
-use Modules\MeiliFacets\Indexing\WooCommerceProductFields;
+use Modules\MeiliFacets\Contracts\SearchableTypes;
 use Modules\MeiliFacets\Listing\NameOrder;
 use Modules\MeiliFacets\Listing\ProductListing;
+use Modules\MeiliFacets\Listing\SearchScope;
 use Modules\MeiliFacets\Listing\StateReader;
 use Modules\MeiliFacets\Listing\WooCommerceFacets;
 use Modules\MeiliFacets\Listing\WooCommerceSorts;
 use Modules\MeiliFacets\Search\VisibleProducts;
-use Modules\MeiliFacets\SiteSearch\SearchablePostTypes;
-use Modules\MeiliFacets\SiteSearch\SearchableTypeFactory;
-use Modules\MeiliFacets\SiteSearch\WooCommerceSearchableTypes;
-use Modules\MeiliFacets\SiteSearch\WordPressSearchableTypes;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 use WooCommerce;
@@ -70,31 +67,76 @@ final class ProductSearchTest extends TestCase
     {
         $this->assertSame(
             ['post_type = "product"', 'post_status = "publish"', 'NOT facets.product_visibility = "exclude-from-search"'],
-            $this->onSearch(['s' => self::TERM], static fn (ProductListing $listing): array => $listing->baseFilter())
+            $this->scopeOnSearch()->filter
         );
     }
 
+    /** R-185 point 2: the flag follows the term, never the route — the base filter is the catalogue's everywhere. */
     #[Test]
-    public function it_hides_from_the_site_search_what_it_hides_from_its_own(): void
+    public function it_browses_the_catalogue_whatever_the_route(): void
     {
-        $this->pinIndexedPostTypes();
+        $catalogue = ['post_type = "product"', 'post_status = "publish"', 'NOT facets.product_visibility = "exclude-from-catalog"'];
 
-        try {
-            $types = new WooCommerceSearchableTypes(
-                $this->app->build(WordPressSearchableTypes::class),
-                $this->app->make(SearchablePostTypes::class),
-                $this->app->make(SearchableTypeFactory::class),
-                $this->app->make(WooCommerceProductFields::class),
-                static fn (): bool => true,
-            )->all();
-        } finally {
-            $this->unpinIndexedPostTypes();
-        }
+        $this->assertSame($catalogue, $this->onSearch(['s' => self::TERM], static fn (ProductListing $listing): array => $listing->baseFilter()));
+        $this->assertSame($catalogue, $this->onSearch([], static fn (ProductListing $listing): array => $listing->baseFilter()));
+    }
+
+    /** The panel and the page count the same products on the same fields. */
+    #[Test]
+    public function it_searches_what_the_site_search_searches_for_products(): void
+    {
+        $scope = $this->scopeOnSearch();
 
         $this->assertSame(
-            $this->onSearch(['s' => self::TERM], static fn (ProductListing $listing): array => $listing->baseFilter()),
-            $types[VisibleProducts::POST_TYPE]->baseFilter
+            ['post_type = "product"', 'post_status = "publish"', 'NOT facets.product_visibility = "exclude-from-search"'],
+            $scope->filter
         );
+        $this->assertSame(['post_title', 'labels.product_brand', 'labels.product_cat', 'metas._sku'], $scope->fields);
+    }
+
+    /** A shop that leaves products out of the site search still hides from a search what WooCommerce hides. */
+    #[Test]
+    public function it_searches_every_field_when_the_site_search_leaves_products_out(): void
+    {
+        add_filter(self::INDEXED_POST_TYPES_OPTION, static fn (): array => ['post']);
+
+        try {
+            $this->app->forgetScopedInstances();
+            $scope = $this->onSearch(['s' => self::TERM], fn (ProductListing $listing): SearchScope => $listing->searchScope());
+        } finally {
+            $this->unpinIndexedPostTypes();
+            $this->app->forgetScopedInstances();
+        }
+
+        $this->assertSame([...VisibleProducts::inSearch()], $scope->filter);
+        $this->assertNull($scope->fields);
+    }
+
+    private function scopeOnSearch(): SearchScope
+    {
+        return $this->withPinnedTypes(fn (): SearchScope => $this->onSearch(
+            ['s' => self::TERM],
+            static fn (ProductListing $listing): SearchScope => $listing->searchScope(),
+        ));
+    }
+
+    /**
+     * @template T
+     *
+     * @param  Closure(): T  $read
+     * @return T
+     */
+    private function withPinnedTypes(Closure $read): mixed
+    {
+        $this->pinIndexedPostTypes();
+        $this->app->forgetScopedInstances();
+
+        try {
+            return $read();
+        } finally {
+            $this->unpinIndexedPostTypes();
+            $this->app->forgetScopedInstances();
+        }
     }
 
     /**
@@ -124,7 +166,11 @@ final class ProductSearchTest extends TestCase
         $wp_query = $search;
 
         try {
-            return $read(new ProductListing(new WooCommerceFacets(new NameOrder), new WooCommerceSorts));
+            return $read(new ProductListing(
+                new WooCommerceFacets(new NameOrder),
+                new WooCommerceSorts,
+                $this->app->make(SearchableTypes::class),
+            ));
         } finally {
             $wp_query = $current;
         }

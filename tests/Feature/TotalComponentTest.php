@@ -64,15 +64,21 @@ final class TotalComponentTest extends TestCase
         $this->assertStringContainsString('>88 articles<', $this->underLocales('fr', 'fr_FR', fn (): string => $this->renderView(88)));
     }
 
-    /** Announced when it changes, and whole: « 88 », read alone, names nothing. */
+    /**
+     * The counter is rewritten at every answer, its region only once typing rests: announced when it
+     * changes, and whole — « 88 », read alone, names nothing. Empty at first, nothing is said on load.
+     */
     #[Test]
-    public function it_announces_itself_politely_and_whole(): void
+    public function it_announces_itself_politely_and_whole_in_a_region_of_its_own(): void
     {
-        $opening = explode('>', $this->renderView(3))[0];
+        [$counter, $region] = array_slice(explode('<p ', $this->renderView(3)), 1);
 
-        $this->assertStringContainsString('aria-live="polite"', $opening);
-        $this->assertStringContainsString('aria-atomic="true"', $opening);
-        $this->assertStringContainsString(Hook::Total->attribute()->toHtml(), $opening);
+        $this->assertStringContainsString(Hook::Total->attribute()->toHtml(), $counter);
+        $this->assertStringNotContainsString('aria-live', $counter);
+        $this->assertMatchesRegularExpression(
+            '/aria-live="polite" aria-atomic="true" '.preg_quote(Hook::TotalStatus->attribute()->toHtml(), '/').'><\/p>/',
+            $region,
+        );
     }
 
     #[Test]

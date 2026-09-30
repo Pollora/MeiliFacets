@@ -33,6 +33,25 @@ final class SearchableTypeTest extends TestCase
         $this->assertSame('Posts', $type->heading);
     }
 
+    /** A project whose archive renders no listing sends « see all » elsewhere, or nowhere. */
+    #[Test]
+    public function it_leads_see_all_where_the_project_says(): void
+    {
+        $type = $this->type();
+
+        $this->assertSame('https://example.test/journal', $type->withArchive('https://example.test/journal')->archive);
+        $this->assertSame('https://example.test/news', $type->archive);
+    }
+
+    #[Test]
+    public function it_leads_see_all_nowhere_without_an_archive(): void
+    {
+        $type = $this->type();
+
+        $this->assertNull($type->withoutArchive()->archive);
+        $this->assertSame($type->searchOn, $type->withoutArchive()->searchOn);
+    }
+
     #[Test]
     public function it_refuses_a_type_with_nothing_to_search_naming_it(): void
     {

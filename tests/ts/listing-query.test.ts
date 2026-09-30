@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { describe, it } from 'node:test'
 
 import { filterQueriesOf } from '../../resources/assets/ts/filter-queries.ts'
@@ -6,6 +7,7 @@ import { ListingQuery } from '../../resources/assets/ts/listing/listing-query.ts
 import { ListingState } from '../../resources/assets/ts/listing/listing-state.ts'
 import { FacetQuery } from '../../resources/assets/ts/facets/facet-query.ts'
 import { PriceQuery } from '../../resources/assets/ts/price/price-query.ts'
+import { FilterExpression } from '../../resources/assets/ts/shared/filter-expression.ts'
 import { RESULTS } from '../../resources/assets/ts/shared/plan.ts'
 import { described } from './fixtures.ts'
 
@@ -39,8 +41,9 @@ describe('ListingQuery', () => {
         assert.equal(build({}, { baseQuery: 'creme' }).q, 'creme')
     })
 
-    it('lets what the visitor typed win over the page', () => {
-        assert.equal(build({ query: 'lait' }, { baseQuery: 'creme' }).q, 'lait')
+    /** No field of the listing can take a term off a search WordPress routed. */
+    it('ignores a typed term on a search WordPress routed', () => {
+        assert.equal(build({ query: 'lait' }, { baseQuery: 'creme' }).q, 'creme')
     })
 
     it('joins the values of one facet with OR', () => {
@@ -185,4 +188,43 @@ describe('ListingQuery with a sort that filters', () => {
     it('filters nothing for a sort key the prototype carries', () => {
         assert.doesNotMatch(build({ sort: 'constructor' }, promoted).filter ?? '', /undefined/)
     })
+})
+
+interface ScopeCase {
+    case: string
+    query: string
+    baseQuery: string
+    q: string
+    filter: string
+    attributesToSearchOn: string[] | null
+}
+
+interface SharedScopeCases {
+    listing: { baseFilter: string[], searchScope: { filter: string[], fields: string[] } }
+    cases: ScopeCase[]
+}
+
+/** The server reads the same cases (`QueryPlanTest`): render and first gesture search the same products. */
+describe('ListingQuery, scope of a search shared with the server', () => {
+    const shared = JSON.parse(readFileSync(new URL('../search-scope-cases.json', import.meta.url), 'utf8')) as SharedScopeCases
+    const scoped = {
+        facets: [{ taxonomy: 'product_brand', multiple: true, cap: 30, visible: 10, labels: {}, counts: {} }],
+        filter: FilterExpression.all(shared.listing.baseFilter),
+        searchScope: { filter: FilterExpression.all(shared.listing.searchScope.filter), fields: shared.listing.searchScope.fields },
+    }
+
+    for (const expected of shared.cases) {
+        it(expected.case, () => {
+            const queries = plan({ query: expected.query, facets: { product_brand: ['acme'] } }, { ...scoped, baseQuery: expected.baseQuery })
+            const main = queries[RESULTS]
+            const counting = queries['count:product_brand']
+
+            assert.equal(main.q, expected.q)
+            assert.equal(counting?.q, expected.q)
+            assert.equal(main.filter, `${expected.filter} AND facets.product_brand = "acme"`)
+            assert.equal(counting?.filter, expected.filter)
+            assert.deepEqual(main.attributesToSearchOn ?? null, expected.attributesToSearchOn)
+            assert.deepEqual(counting?.attributesToSearchOn ?? null, expected.attributesToSearchOn)
+        })
+    }
 })

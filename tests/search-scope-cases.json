@@ -1,0 +1,59 @@
+{
+    "listing": {
+        "baseFilter": ["post_type = \"product\"", "NOT facets.product_visibility = \"exclude-from-catalog\""],
+        "searchScope": {
+            "filter": ["post_type = \"product\"", "NOT facets.product_visibility = \"exclude-from-search\""],
+            "fields": ["post_title", "metas._sku"]
+        }
+    },
+    "cases": [
+        {
+            "case": "nothing searched browses the catalogue on every field",
+            "query": "",
+            "baseQuery": "",
+            "q": "",
+            "filter": "post_type = \"product\" AND NOT facets.product_visibility = \"exclude-from-catalog\"",
+            "attributesToSearchOn": null
+        },
+        {
+            "case": "a typed term reads what the search reads",
+            "query": "ser",
+            "baseQuery": "",
+            "q": "ser",
+            "filter": "post_type = \"product\" AND NOT facets.product_visibility = \"exclude-from-search\"",
+            "attributesToSearchOn": ["post_title", "metas._sku"]
+        },
+        {
+            "case": "a term WordPress routed reads what the search reads",
+            "query": "",
+            "baseQuery": "creme",
+            "q": "creme",
+            "filter": "post_type = \"product\" AND NOT facets.product_visibility = \"exclude-from-search\"",
+            "attributesToSearchOn": ["post_title", "metas._sku"]
+        },
+        {
+            "case": "a term typed over a routed search is ignored",
+            "query": "lait",
+            "baseQuery": "creme",
+            "q": "creme",
+            "filter": "post_type = \"product\" AND NOT facets.product_visibility = \"exclude-from-search\"",
+            "attributesToSearchOn": ["post_title", "metas._sku"]
+        },
+        {
+            "case": "a term holding no letter and no figure browses the catalogue (R-159)",
+            "query": "?(",
+            "baseQuery": "",
+            "q": "",
+            "filter": "post_type = \"product\" AND NOT facets.product_visibility = \"exclude-from-catalog\"",
+            "attributesToSearchOn": null
+        },
+        {
+            "case": "a lone no-break space browses the catalogue",
+            "query": "\u00a0",
+            "baseQuery": "",
+            "q": "",
+            "filter": "post_type = \"product\" AND NOT facets.product_visibility = \"exclude-from-catalog\"",
+            "attributesToSearchOn": null
+        }
+    ]
+}

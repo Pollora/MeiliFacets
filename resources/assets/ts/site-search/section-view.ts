@@ -2,6 +2,7 @@ import { CardView } from '../results/card-view.ts'
 import { LEAVING } from '../shared/attributes.ts'
 import { CountLabel } from '../shared/count-label.ts'
 import { Highlight } from './highlight.ts'
+import { SeeAllLink } from './see-all-link.ts'
 
 import type { Contract } from '../shared/contract.ts'
 import type { SiteSearchDescription } from '../shared/description.ts'
@@ -21,6 +22,7 @@ export interface SectionCount {
 interface SectionSetup extends SearchedSection {
     countLabel: CountLabel
     countPattern: string
+    seeAllParameter: string
 }
 
 /**
@@ -34,6 +36,7 @@ export class SectionView {
     #setup: SectionSetup
     #cardView: CardView
     #highlight: Highlight
+    #seeAll: SeeAllLink | null
     #total = 0
     /** By document identity, in the order shown; a hit with no identity gets a key nothing else matches. */
     #cards = new Map<unknown, Element>()
@@ -46,11 +49,18 @@ export class SectionView {
         this.#setup = setup
         this.#cardView = CardView.withDecorativeImages(contract)
         this.#highlight = new Highlight(contract)
+        this.#seeAll = SectionView.#seeAllIn(contract, section, setup.seeAllParameter)
+    }
+
+    static #seeAllIn(contract: Contract, section: HTMLElement, parameter: string) {
+        const link = contract.one('search-see-all', section)
+
+        return link instanceof HTMLAnchorElement ? new SeeAllLink(link, parameter) : null
     }
 
     static allIn(contract: Contract, description: SiteSearchDescription) {
         const countLabel = new CountLabel(description.locale)
-        const { countPattern } = description
+        const { countPattern, seeAllParameter } = description
 
         return contract.all('search-section').flatMap((section) => {
             const postType = section.getAttribute(TYPE_ATTRIBUTE) ?? ''
@@ -64,7 +74,7 @@ export class SectionView {
 
             const limit = SectionView.#limitOf(section, description.limit)
 
-            return [new SectionView(contract, section, { type, limit, countLabel, countPattern })]
+            return [new SectionView(contract, section, { type, limit, countLabel, countPattern, seeAllParameter })]
         })
     }
 
@@ -94,7 +104,7 @@ export class SectionView {
         return [...this.#cards.values()].filter((option) => option instanceof HTMLElement)
     }
 
-    show({ hits = [], totalHits = hits.length }: SearchAnswer) {
+    show({ hits = [], totalHits = hits.length }: SearchAnswer, term: string) {
         const results = this.#results()
         const template = this.#contract.one('search-card-template', this.#section)
 
@@ -111,12 +121,14 @@ export class SectionView {
         this.#reconcile(results, template, hits)
         this.#total = totalHits
         this.#writeCount()
+        this.#seeAll?.pointAt(term)
         this.#section.hidden = false
     }
 
     /** The cards stay in place, out of sight: the next answer finds them again. */
     hide() {
         this.#total = 0
+        this.#seeAll?.pointAtArchive()
         this.#section.hidden = true
     }
 

@@ -15,6 +15,9 @@ final readonly class StateReader
     /** A query string is public input: both bounds keep a crafted URL cheap. */
     public const int MAX_QUERY_LENGTH = 200;
 
+    /** A term the engine tokenises into nothing serves the whole index (`R-159`). */
+    private const string WORD = '/[\p{L}\p{N}]/u';
+
     public function __construct(private UrlParameters $parameters) {}
 
     /**
@@ -26,9 +29,33 @@ final readonly class StateReader
             $this->facets($listing, $query),
             $this->sort($listing, $query),
             $this->page($query),
-            mb_substr($this->text($query, QueryParameter::Query), 0, self::MAX_QUERY_LENGTH),
+            $this->term($listing, $query),
             $this->price($listing, $query),
         );
+    }
+
+    /**
+     * @param  array<string, mixed>  $query
+     */
+    private function term(Listing $listing, array $query): string
+    {
+        if (self::isRoutedSearch($listing)) {
+            return '';
+        }
+
+        $term = mb_substr($this->text($query, QueryParameter::Query), 0, self::MAX_QUERY_LENGTH);
+
+        return $this->holdsAWord($term) ? $term : '';
+    }
+
+    public static function isRoutedSearch(Listing $listing): bool
+    {
+        return $listing->baseQuery() !== '';
+    }
+
+    private function holdsAWord(string $term): bool
+    {
+        return preg_match(self::WORD, $term) === 1;
     }
 
     /**

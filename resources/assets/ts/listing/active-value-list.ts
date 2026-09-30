@@ -8,10 +8,11 @@ const PLACEHOLDER = /:([A-Za-z]+)/g
 
 /** Mirrors `Enums\ActiveValueKind`: what a pill takes off, written on it as `data-kind`. */
 export const KIND = 'data-kind'
+export const SEARCH_KIND = 'search'
 export const TERM_KIND = 'term'
 export const PRICE_KIND = 'price'
 
-export type ActiveValueKind = typeof TERM_KIND | typeof PRICE_KIND
+export type ActiveValueKind = typeof SEARCH_KIND | typeof TERM_KIND | typeof PRICE_KIND
 
 export interface ActiveValue {
     label: string
@@ -21,7 +22,7 @@ export interface ActiveValue {
     kind: ActiveValueKind
 }
 
-/** The browser's copy of `View\ActiveValueList`: the ticked values in facet order, then the price range. */
+/** The browser's copy of `View\ActiveValueList`. */
 export class ActiveValueList {
     #description: ListingDescription
     #money: Money
@@ -33,9 +34,17 @@ export class ActiveValueList {
 
     of(state: ListingState): ActiveValue[] {
         return [
+            ...this.#queried(state.query),
             ...this.#description.facets.flatMap((facet) => this.#tickedIn(facet, state)),
             ...this.#priced(state.price),
         ]
+    }
+
+    #queried(query: string) {
+        const label = this.#filled(this.#description.activeValuePatterns.query, { query })
+        const removed = { parameter: this.#description.reserved.query, value: '' }
+
+        return query === '' ? [] : [this.#removable(label, SEARCH_KIND, removed)]
     }
 
     /** A value the page rendered no label for gets no pill, as on the server. */

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
 import { Contract } from '../../resources/assets/ts/shared/contract.ts'
-import { ANNOUNCE_DELAY_MS } from '../../resources/assets/ts/site-search/debounced-announcer.ts'
+import { ANNOUNCE_DELAY_MS } from '../../resources/assets/ts/shared/debounced-announcer.ts'
 import { StatusView } from '../../resources/assets/ts/site-search/status-view.ts'
 import { find } from './dom.ts'
 import { openSearch, searchDescribed } from './site-search-fixtures.ts'

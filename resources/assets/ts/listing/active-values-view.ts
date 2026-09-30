@@ -1,4 +1,4 @@
-import { ActiveValueList, KIND, PRICE_KIND } from './active-value-list.ts'
+import { ActiveValueList, KIND, PRICE_KIND, SEARCH_KIND } from './active-value-list.ts'
 import { Contract } from '../shared/contract.ts'
 import { Entrance } from '../shared/entrance.ts'
 import { FocusFallback } from './focus-fallback.ts'
@@ -9,7 +9,7 @@ import type { ActiveValue } from './active-value-list.ts'
 import type { Listing } from './listing.ts'
 import type { ListingState } from './listing-state.ts'
 
-type ValueRemover = Pick<Listing, 'remove' | 'removePrice'>
+type ValueRemover = Pick<Listing, 'remove' | 'removePrice' | 'removeSearch'>
 
 const ENTRANCE = { from: 'scale(0.95)', duration: '--meili-duration-fade', easing: '--meili-ease' }
 
@@ -73,8 +73,15 @@ export class ActiveValuesView {
     #remove(pill: Element) {
         const taxonomy = this.#taxonomies.get(pill.getAttribute('name') ?? '')
         const value = pill.getAttribute('value') ?? ''
+        const kind = pill.getAttribute(KIND)
 
-        if (pill.getAttribute(KIND) === PRICE_KIND) {
+        if (kind === SEARCH_KIND) {
+            this.#listing.removeSearch()
+
+            return true
+        }
+
+        if (kind === PRICE_KIND) {
             this.#listing.removePrice()
 
             return true

@@ -1219,7 +1219,7 @@ pour une raison — les produits variables — qui ne concerne pas les produits 
 catalogue de recette n'en contient aucun. Sur les produits simples, une facette de tranches de prix
 et une case « en stock » sont livrables aujourd'hui.
 
-### R-44 · 🟠 · à trancher (Q-09) · 2026-09-06 — la recherche texte est à moitié câblée
+### R-44 · 🟠 · **fermé par `R-201`** (en attente de commit, 2026-09-30) · à trancher (Q-09) · 2026-09-06 — la recherche texte est à moitié câblée
 
 `ListingState` porte `query`, `StateReader` la lit et la borne à 200 caractères, `QueryPlan`
 l'envoie au moteur, `ListingQuery` aussi. **Aucun composant ne la saisit ni ne l'affiche.** Une URL
@@ -3282,6 +3282,299 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
+### R-202 · 🟡 · ouvert (en attente de commit) · ouvert le 2026-09-30 — nettoyage des feuilles `meilifacets.css` et `site-search.css`
+
+Rattaché à `R-180`. Nettoyage issu d'un audit : aucun rendu ne change, sauf le bug du tiroir ci-dessous. Rien n'est
+commité ni écrit en base ou dans le moteur.
+
+**Bug corrigé.** Dans le sheet, `:first-of-type`, `:last-of-type` et `[data-meili="facet"] ~` comptaient les facettes
+que le client masque : si la première était masquée, la première affichée gardait son padding haut et un filet au-dessus
+(idem en bas). Les sélecteurs lisent désormais les sections affichées : `:not(<section affichée> ~ *)` pour la
+première, `:not(:has(~ <section affichée>))` pour la dernière, `[data-meili="facet"]:not([hidden]) ~` pour le filet
+(même sélecteur dans le bloc desktop qui l'annule, sinon sa spécificité perd). **`:nth-child(1 of …)` écarté** : Chrome,
+Safari et Firefox le lisent, mais le minifieur de WP Rocket l'écrit `1of` et le navigateur jette la règle — constaté
+en local. happy-dom n'évalue ni `:has(~ …)` ni un sélecteur complexe dans `:not()` : le test lit la feuille, vérifié
+rouge sur l'ancienne ; le comportement a été vérifié dans Chrome (première et dernière facettes masquées : padding 0 et
+pas de filet sur les affichées).
+
+**Fait.** Quatre commentaires retirés du CSS ; ce qu'ils disaient : la marge haute de `price-range` laisse la place
+d'ouvrir la bulle et son padding empêche une poignée en bout de piste de déborder ; les flèches natives des champs de
+prix sont retirées parce que les bornes disent déjà l'intervalle ; le cadre et l'outline d'un champ de prix ne sont
+retirés que dans la boîte qui dessine le focus. Deux blocs `panel` fusionnés ; transition dupliquée de `sort-trigger`
+retirée ; survol de `query-clear` rejoint la liste. Jetons `--meili-radius`, `--meili-line`, `--meili-muted`,
+`--meili-surface` (documentés dans `configuration.md`), `--meili-section-gap` pour le pied de la colonne ;
+`--meili-control-inline` retiré de la recherche (jamais lu). Masquage visuel : une liste par feuille. Garde `[hidden]`
+réduite à `[data-meili][hidden]` (tout nœud qui porte `hidden` dans les vues a un crochet). Survols, mouvement réduit et
+`48em` regroupés ; la section prix est remontée avant le bloc de mouvement réduit pour que son `transition: none` y
+entre sans perdre la cascade. Mouvement réduit : seuls les chevrons et la poignée du prix perdent leur transition, les
+couleurs gardent la leur (pied du sheet compris). Thème : `--meili-surface` au lieu de deux `background`.
+
+**Laissé, avec la raison.** `width: 100%` de `apply[data-shape="pill"]` : il n'est pas redondant, il bat la règle
+desktop `flex: none; width: auto` (même spécificité, écrite avant), qui est donc morte — à trancher, ça change le rendu.
+`font-size` de `drawer-open` : le `font: inherit` de la même règle le remet à `inherit`, il n'est pas redondant.
+Le `prefers-reduced-motion` du sheet reste dans le bloc `scripting` (il doit suivre ses règles) ; `(width >= 48em)
+toggle:active` reste après le survol qu'il doit battre.
+
+**`--meili-muted`.** `opacity: 0.6` devient `color: var(--meili-muted)` : même rendu du texte, styles calculés
+différents (`opacity` 1, couleur à 60 %) ; le `-webkit-tap-highlight-color` hérité par le compteur passe de 14 % à
+8,4 %, sans effet visible (le surlignage se peint sur le libellé).
+
+**Voile du tiroir pendant le glisser** (question de la vérification des variables) : non modifié. Trace Chrome à 393,
+60 images : 58 recalculs de 3 éléments, médiane 0,086 ms, un seul de 63 éléments à l'ouverture. `--meili-scrim-shown`
+est enregistrée `inherits: false` : le sous-arbre n'est pas recalculé. Sortir le voile en élément réel coûterait un
+crochet et la parité PHP/TS pour un gain non mesurable.
+
+**`--meili-edge` du thème à l'encre** : essayé puis retiré. Au-delà de la pagination, du tri et des champs de prix,
+il met la poignée du sheet (`.meilifacetsDrawerHandle::before`) en encre pleine au lieu de 25 %, et les pastilles de
+la barre, qui lisent `currentColor` dans un panneau `CanvasText`, passent de l'encre au noir. Captures dans
+`storage/app/edge/` du projet.
+
+**Vérifié** : styles calculés avant/après sur `/boutique` (barre 1440, tri, prix, pastilles, pagination ; sheet 393
+fermé, ouvert, prix et pastilles) et le panneau de recherche avec résultats (1440, 393) : seules différences, celles de
+`--meili-muted`. Tailles : `meilifacets.css` 44 598 → 43 483 octets (gzip 6 191 → 5 975), `site-search.css`
+14 931 → 15 037 (gzip 3 178 → 3 206 : deux jetons de plus, un imbriquement), thème `site-search.css` 1 640 → 1 539.
+
+### R-201 · 🟡 · ouvert (en attente de commit) · ouvert le 2026-09-30 — facette de recherche du listing (produits)
+
+Rattaché à `R-180`. Ferme `R-44`/`Q-09` (le champ est livré) et `R-185` point 2 (visibilité selon le terme, même
+règle serveur et client). Décisions de Louis du 2026-09-30, écrites dans `decisions.md` (« Lien voir tous »,
+« Facette de recherche du listing », « Ce qu'une recherche lit »). Rien n'est commité, réindexé ni écrit en base ou
+dans le moteur.
+
+**Passe de conformité.** *Change* : brique `listing.search` (formulaire GET, champ, effacement) et pastille du terme ;
+une recherche lit le filtre et les champs du type `product` des types cherchables ; « Tous les produits » mène à
+`/boutique?q=<terme>`. *Ferme* : `R-44`/`Q-09`, `R-185` pt 2, l'écart panneau/page (`lumen` : 2 dans le panneau,
+5 sur la page avant ; 2 et 2 après). *Contredit* : S-2 et la ligne « Surcharge des types » (lien sans query var,
+pas de `with…()` pour l'archive) — révisés par Louis, écrits ; le contrat `Listing` n'est **pas** touché (contrat
+séparé `SearchScopedListing`), `Contract::VERSION` reste 1. *Plateforme* : WooCommerce n'échange le drapeau de
+visibilité que sur `is_search()` (`class-wc-query.php:929`), rien de natif pour `?q=` ; `URLSearchParams` encode le
+lien ; la soumission implicite d'un formulaire à un champ couvre le cas sans JavaScript ; `attributesToSearchOn` du
+moteur ; tout le chemin de `q` existait déjà côté module (`StateReader`, `ListingUrl`, `QueryPlan`, `IndexingPolicy`).
+
+**Livré.**
+- *Portée d'une recherche* : `Contracts\SearchScopedListing` (optionnel) et `Listing\SearchScope` (`filter`,
+  `fields` nullable) ; `QueryPlan::scope()` et `ListingQuery.#scope()` choisissent par la même règle — un terme,
+  tapé ou routé, lit la portée de recherche ; publiée en `searchScope` dans la description (clé additive).
+  `ProductListing` : `baseFilter()` = catalogue partout (la branche `is_search()` disparaît), `searchScope()` = type
+  `product` de `SearchableTypes` (+ terme parcouru), repli `VisibleProducts::inSearch()` sur tous les champs si le
+  type n'est pas cherchable. `unfiltered()` suit la même règle pour le terme routé.
+- *Brique* : `View\Components\Listing\Search` + `listing/search.blade.php` (d'abord `Query`, puis `QueryField`, voir plus bas) ; rien rendu sur une recherche routée ;
+  champs cachés = paramètres que WordPress lit (`PageAddress::fieldsWithout()`) ; `ElementId::listingSearchInput()`.
+- *Crochets* (additifs, parité) : `listing-search`, `listing-search-input`, `listing-search-clear` ; règle `listing-search > listing-search-input`.
+- *Pastille* : `ActiveValueKind::Search` / `SEARCH_KIND` (`data-kind="search"`), motif `activeValuePatterns.query` (`“:query”`), en tête ;
+  `Listing.removeSearch()` (ordre). « Tout effacer » retirait déjà le terme (`cleared()`, `isPristine()`) : testé.
+- *Client* : `listing/listing-search.ts` (`ListingSearch`) ; `Listing.searchNow()` ; `SearchTermInput` et
+  `DebouncedAnnouncer` déplacés dans `shared/` (`git mv`), gagnent `show()` et `writeNow()` ; `TotalView` écrit par
+  un `DebouncedAnnouncer` par compteur, différé pendant la frappe en `immediate` ; `minChars`/`delay` publiés depuis
+  `SearchSettings`. Le champ suit l'état quand un autre geste le change, jamais ce qu'il a écrit lui-même — pas par
+  le focus : Safari le laisse dans le champ au clic d'un bouton (trouvé à la recette, corrigé, testé).
+- *« Voir tous »* : `site-search/see-all-link.ts` (`SeeAllLink`), `SectionView.show(answer, term)`,
+  `seeAllParameter` publié ; `SearchableType::withArchive()`.
+- *CSS* neutre (`meilifacets.css`, sans commentaire) ; jetons `--meili-listing-search-min` et `--meili-listing-search-width`. Pluralia : brique posée en tête
+  du tiroir de `archive-product.blade.php`, bordure `--color-ink` (`components/listing.css`).
+
+**Préalable au futur listing du blog** (hors lot, Louis) : un second `Listing` fait lever `NamedRegistry::sole()`
+pour toute brique sans `name` — `archive-product.blade.php` n'en nomme aucune. À corriger avant de déclarer un listing
+d'articles (racine nommée, briques relayées vers la racine qui les entoure).
+
+**Laissé ouvert** (fermé par la revue ci-dessous). `R-159` côté listing : un `q` sans lettre ni chiffre (`?q=%3F%28`, ou Entrée sur « ?( ») bascule
+en portée de recherche et sert tout le catalogue moins `exclude-from-search`. Sur Pluralia, aucun produit n'est
+`exclude-from-search` ni `exclude-from-catalog` (lu le 2026-09-30) : la visibilité n'a pas pu se mesurer sur données
+réelles, elle est prouvée par les tests.
+
+**Tests.** Unit : cas partagés `search-scope-cases.json` (`QueryPlanTest` et `listing-query.test.ts`), pastille,
+`withArchive()`, jumeau `SEARCH_KIND`. Feature : `ListingSearchComponentTest` (9), `ProductSearchTest` (portée, catalogue quel
+que soit le chemin, repli sans type produit), `ProductArchiveTest` (terme parcouru gardé), `ListingDescriptionTest`
+(portée, réglages de frappe), `SiteSearchDescriptionTest` (paramètre, surcharge), `ActiveValuesComponentTest`.
+Client : `listing-search.test.ts` (15, deux modes), « voir tous » encodé et archive à requête, contrat, annonceur,
+saisie. `noindex` sur `?q=` : `IndexingPolicyTest::it_covers_a_sort_and_a_search` (existant). `composer check` vert
+(Unit 369, client 720/720, 99,18 % lignes, 93,88 % branches) ; suite `Modules` **OK (717 tests, 2049 assertions)** ;
+classes touchées vertes lancées seules.
+
+**Recette Chrome** (`submit` puis `immediate`, 1440 et 393 ; `config/meilifacets.php` restauré, md5
+`cef5aba086ea0d3c5645af4a6008f07e` avant et après) : panneau « ser » → « Tous les produits » → `/boutique?q=ser`,
+champ « ser », pastille « « ser » », 1 article = compte du panneau, aucune case cochée ; « crème » →
+`?q=cr%C3%A8me`. `submit` : frappe inerte, Entrée → `?q=crème`, page 1, 2 articles, comptes réduits ; « Appliquer »
+emporte terme et case ; pastille, bouton d'effacement (focus rendu au champ), « Tout effacer » retirent le terme ;
+Retour/Suivant restaurent le champ. `immediate` : recherche après la pause, sous le seuil le terme part, Entrée
+immédiat, `lumen` 2 = panneau, total écrit une seule fois après la frappe, focus gardé ; facette, prix, pastille,
+« Tout effacer ». 393 : champ dans le tiroir, bouton 48×48, police 16 px, fonctionne dans les deux modes.
+`/categorie-produit/visage` (8 → `?q=creme` 2), `/?s=creme&post_type=product` (2, sans champ, facettes OK), recherche
+de l'en-tête : sans régression. Console : aucune erreur ni alerte.
+
+**Les cinq passes.** *Lisibilité* : une règle en un endroit par langage (`scope()`/`#scope()`), aucun booléen en
+paramètre (`searchNow`/`removeQuery`, `show`/`showAfterTyping`), `QueryField` à deux groupes de paramètres
+(`max-params`) ; un nom par concept (`query` = état, paramètre, crochet). *Commentaires* : aucun en CSS ; deux
+contournements dits (Safari et le focus, `URLSearchParams`) ; un test existant qui comparait des nœuds DOM par
+`deepEqual` réécrit. *Performance* : `SearchableTypes::all()` mémoïsé, lu une fois par sous-requête ; aucune requête
+en plus sans terme ; en `immediate`, une recherche par pause de frappe, comme le panneau. *Sécurité* : le terme ne
+va qu'en `q`, jamais dans un filtre ; échappé par Blade (valeur, pastille), écrit en texte côté client, encodé par
+`URLSearchParams` dans le lien ; champs cachés décodés puis échappés. *Contexte et i18n* : trois chaînes traduites
+(`Search this list`, `Clear the search`, `“:query”`) ; sans WooCommerce, pas de listing produit donc pas de portée ;
+rien de Pluralia dans le module.
+
+**Commit proposé.** Module : `feat(listing): add the search facet and search what the site search counts`. Hôte :
+`feat(shop): place the listing search field in the shop filter bar`.
+
+**Revue de code du 2026-09-30** (non-commité depuis `98115f0` et diff du thème ; corrections validées par Louis). La
+brique `Query` garde son nom (renommage en `QueryField` en attente de Louis).
+
+*Bugs.*
+1. *Total visible une seconde après la frappe* : le compteur (`total`) s'écrit à chaque réponse ; l'annonce passe par une
+   région séparée, masquée et vide au chargement (crochet additif `total-status`, `Hook::TotalStatus`, parité vérifiée par
+   `ContractParityTest`), alimentée seule par `DebouncedAnnouncer` (seedé avec le total servi : le même chiffre n'est pas
+   redit). `TotalView.showAfterTyping()` → `showWhileTyping()`. `QueryField.isTyping()` ne lit plus le focus : vrai après
+   une frappe qui cherche, faux dès qu'un autre geste bouge l'état (`show()` hors `#moving`), qu'Entrée ou l'effacement.
+   Test « once typing rests » réécrit, focus laissé hors du champ.
+2. *`immediate` retirait un terme d'URL sous le seuil* : `SearchTermInput.startFromServedTerm()` prend la valeur servie
+   pour `#term` sans rejouer `#typed()` (le panneau garde `start()`, qui cherche ce qui a été tapé avant le script).
+3. *`R-159` côté listing* : un terme sans `\p{L}\p{N}` compte comme `''` — `StateReader::read()` (UTF-8 invalide compris),
+   constructeur de `ListingState` (donc `searching()`), qui réutilise `SearchTermInput.holdsAWord()`. Cas partagé ajouté.
+   Le `trim()` reste dans `searching()` : dans le constructeur, il aurait cassé la parité `url-writing-cases` (espaces
+   insécables, déjà notées dans `R-159`).
+4. *Recherche routée* : `q` ignoré — `StateReader` (état, pastille), `QueryPlan::searchTerm()` et `ListingQuery.#searchTerm()`
+   préfèrent le terme routé. Cas partagé « a term typed over a routed search is ignored », `q` attendu dans tous les cas.
+5. *Sans JavaScript* : `View\StateFields` rend facettes, tri et bornes du prix appliqués en champs cachés (sans `q` ni page),
+   échappés par Blade ; `Range::formatBound()` écrit les bornes comme le client.
+
+*Lisibilité.* 6. `searchedTerm()` → `typedTerm()`, `$typing` → `$searchSettings`, `ActiveValuePatterns::searched()` →
+`query()`. 7. `QueryPlan::scope($listing, $state)` unique (`unfiltered()` passe un état vide) ; `SearchableType::scope(array
+$extraClauses)`. 8. Ligne de `total-view.ts` coupée (fichier réécrit). 9. Commentaires supprimés aux endroits listés, plus le
+docblock de classe de `QueryField` et la moitié de celui de `withArchive()` ; `PageAddress::fieldsWithout()` réécrit.
+10. Jetons `--meili-field-font-min` (1rem) et `--meili-pill` (999px), sur `[data-listing]` et `[data-meili="search"]`,
+remplacent toutes les occurrences des deux feuilles ; documentés dans `configuration.md`.
+
+*Tests.* 11. Cas Safari rejoué dans les deux modes ; « Voir tous » sous `recherche`. 12. Dans les deux modes, focus gardé
+dans le champ : pastille (page 1), bouton d'effacement (page 1), « Tout effacer », Retour vers un état sans terme puis
+Suivant ; champs cachés, échappement d'une valeur hostile (facette et `post_type`), terme sans mot, recherche routée
+(`QueryFieldComponentTest`, 13). 13. `QueryPlanTest` lit les cas par leur clé ; `ActiveValuesComponentTest` place la pastille du
+terme devant celle du prix (l'ordre face aux cases est dans `ActiveValueListTest`) ; `ProductArchiveTest` passe un
+`WP_Term` en mémoire comme objet interrogé — ni base ni index, plus aucun saut. 14. Chaque nouveau test vérifié rouge en
+retirant sa correction (mutations restaurées) : focus, écriture du compteur, seed, rejeu au démarrage, règle `R-159` (TS
+et PHP), recherche routée (lecteur, plan, client), champs cachés, échappement (`{!! !!}`), région, ordre des pastilles,
+portée de l'archive, paramètre de « voir tous », retour en page 1, suivi de l'état.
+
+*Vérifié.* `composer check` vert (Unit 372, client 731/731, 99,19 % lignes, 93,92 % branches) ; suite `Modules` **OK (724
+tests, 2082 assertions)** ; classes et fichiers touchés verts lancés seuls. Build, `module:publish` (aucune orpheline),
+caches WP Rocket vidés (`.htaccess`/`index.html` gardés), `view:clear`. Thème non touché par la revue. Recette Chrome
+(contexte isolé, `submit` puis `immediate`, 1440 et 393) : `immediate`, total changé 394 ms après la frappe, région vide
+pendant la frappe puis « 2 articles » après la pause, focus hors du champ ; `/boutique?q=a` reste filtré (60 articles,
+pastille) dans les deux modes ; `?q=%3F%28` sert 63 articles, champ vide, sans pastille ; `/?s=creme&post_type=product&q=zzzz`
+sert 2 articles, sans champ ni pastille, `q` retiré de l'adresse au premier geste ; panneau « crème » (2) → « Tous les
+produits » → `/boutique?q=cr%C3%A8me`, 2 articles ; pastille et « Tout effacer » avec le focus dans le champ ; tiroir 393 :
+champ 16 px, bouton 48 px, Entrée/effacement/frappe. Console : aucune erreur ni alerte. `config/meilifacets.php` restauré,
+md5 `cef5aba086ea0d3c5645af4a6008f07e` avant et après.
+
+**Barre desktop et renommage du 2026-09-30** (décisions de Louis, écrites dans `decisions.md`, ligne « Facette de
+recherche du listing »).
+
+*Barre.* Cause mesurée à 1440 : le champ réservait sa largeur entière (`flex: 0 1 var(--meili-query-width)`), une
+rangée qui passe à la ligne découpe sur les bases, les pastilles tombaient donc sur une 2ᵉ ligne ; « Appliquer »
+flottait au milieu (`align-items: center` du sheet). Règles par défaut du module, corrigées dans `meilifacets.css`
+(thème non touché) : jeton `--meili-query-min` (12rem) ; champ `flex: 1 1 var(--meili-query-min)`, `width` et
+`max-width` à `--meili-query-width` ; sheet `flex-wrap: nowrap` et `align-items: flex-end`. Le corps a la largeur de
+son contenu et rétrécit avant que le pied ne passe dessous. Aucun balisage touché, `with-apply` reste `false`, mobile
+inchangé (règles sous `48em` seulement). Une 1ʳᵉ version (`flex: 1 1 0` sur le corps) a été écartée à la recette :
+à 1920, 612 px entre les pastilles et « Appliquer ». Test : `stylesheet.test.ts`, « the drawer as a bar » (2).
+
+Mesures (Chrome, contexte isolé, cadres à la largeur, champ vide / « creme », x · largeur) :
+
+| Largeur | `submit` | `immediate` |
+| --- | --- | --- |
+| 1024 | champ 288 et tri en ligne 1, pastilles en ligne 2 ; « Appliquer » 767 · 115, top 403 = dernière pastille | idem, « Appliquer » masqué |
+| 1280 | une ligne ; champ 251 (260 avec terme), « Appliquer » à 8 px après « Prix » | une ligne, champ 288 |
+| 1440 | une ligne, champ 288, « Appliquer » à 8 px après « Prix » (1060) | une ligne, champ 288 |
+| 1920 | idem 1440, total au bord droit | idem |
+
+Effacement visible (48 × 48) avec terme, dans les deux modes. 393 : champ en tête du tiroir, police 16 px,
+« Appliquer » dans le pied, aucune règle desktop appliquée. `submit` : case → rien, « Appliquer » →
+`?categorie=cheveux&q=creme` ; pastille retirée ; tri → `sort=price_asc`. `immediate` : frappe → `?q=creme` (2
+articles), case, tri `price_desc`, effacement → terme retiré. Console : aucune erreur ni alerte.
+`config/meilifacets.php` restauré, md5 `cef5aba086ea0d3c5645af4a6008f07e` avant et après.
+
+*Renommage.* `View\Components\Listing\Query` → `QueryField`, vue `listing/query-field.blade.php`, balise
+`<x-meilifacets::listing.query-field>`, classes `meilifacetsQueryField*` (le thème ne les cite pas). Crochets
+`query`, `query-input`, `query-clear` inchangés, pas d'alias. `QueryFieldComponentTest` (renommé) ;
+`ComponentFoldersTest` : balise résolue, ancienne balise refusée, vue surchargée par un thème sous son nouveau nom.
+Thème : une ligne dans `archive-product.blade.php`.
+
+*Cinq passes.* Lisibilité : un seul nom (`QueryField`) côté PHP et TS ; `overrideView()` extrait dans
+`ComponentFoldersTest` (doublon retiré). Commentaires : aucun en CSS, aucun supprimé. Performance : rien (CSS).
+Sécurité : rien touché à l'échappement. i18n : aucune chaîne nouvelle.
+
+*Vérifié.* `composer check` vert (Unit 372 dont neutralité et parité, client 733/733, 99,19 % lignes, 93,92 %
+branches, `build:check`) ; suite `Modules` **OK (727 tests, 2085 assertions)**. Build, `module:publish` (aucune
+orpheline), thème construit, caches WP Rocket vidés (`.htaccess`/`index.html` gardés), `view:clear`,
+`dump-autoload`.
+
+**Revue finale du 2026-09-30** (non-commité depuis `98115f0` et diff du thème ; corrections demandées par Louis).
+
+*Bloquant.* `MeilisearchEngine` ne transmettait pas `attributesToSearchOn` : la portée de `QueryPlan` était perdue au
+premier rendu (`/boutique?q=a` : 60 articles servis, 18 au premier geste ; comptes des facettes faux). La traduction
+du plan vers le SDK sort dans `Search\MeilisearchQuery` (`from()`), qui pose `setAttributesToSearchOn()` (SDK installé,
+`SearchQuery.php:425`) sur toute requête qui le porte : résultats, comptes disjonctifs, bornes du prix, liste non
+filtrée d'une recherche routée. `MeilisearchQueryTest` (3) : rouge sans l'option.
+
+*Commentaires.* 20 supprimés ou réécrits (liste de la revue) ; paramètre `lastWritten` → `alreadySaid` ; mentions
+« (Louis, 2026-09-30) » retirées de six tests ; le commentaire gardé de `FilterExpression::number()` passe dans le
+docblock de `overlapping()`.
+
+*Conventions.* Règle « terme présent » : `searchTerm()` (PHP, `QueryPlan`) et `#searchTerm()` (TS, `ListingQuery`) ;
+les pastilles du terme : `queried()`/`#queried()`. Portée : `QueryPlan::scope()`, le nom de la doc. `isRoutedSearch()`
+écrit une fois (`StateReader::isRoutedSearch()`, statique, lu par `QueryPlan` et `ResolvedListing`).
+`SearchableType::withoutArchive()` ; `withArchive()` n'accepte plus `null`. `View\HiddenField` (`final readonly`)
+remplace `array{name, value}` dans `StateFields` et `PageAddress`. `drawer-sheet` sorti du groupe de règles.
+Crochet additif `drawer-body` (`Hook::DrawerBody`, `Contract::VERSION` inchangé) sur le corps du tiroir ; les trois
+règles qui visaient `.meilifacetsDrawerBody` le visent (`R-128`) ; le thème ne cite pas la classe (grep).
+`Range::boundTo()` → `Range::formatBound()` (PHP et TS), `FilterExpression::number()` supprimé. `QueryField.#elementsIn()`
+remplace la double négation. `TotalView` réécrit toujours ses compteurs : ils ne sont plus une région live (le test
+« leaves a counter alone », fondé sur ce motif, est supprimé). Chemins `shared/` dans la doc, `query-field.ts` listé.
+
+*Tests.* `#typing` remis à faux par Entrée et par l'effacement (`query-field.test.ts`, 2) ; `1e-9` et `1e21` (`RangeTest`,
+`range.test.ts`) ; `ProductSearchTest` compare la portée à des valeurs littérales ; cas partagé « a lone no-break space
+browses the catalogue » ; `DrawerComponentTest` : le slot est dans `drawer-body`. Chaque nouveau test vérifié rouge en
+retirant sa correction, puis restauré.
+
+*Vérifié.* `composer check` vert (Unit 378, client 736/736) ; suite `Modules` **OK (733 tests, 2098 assertions)** ;
+17 classes touchées vertes lancées seules. Build, `module:publish` (aucune orpheline), caches vidés
+(`.htaccess`/`index.html` gardés), `view:clear`, `dump-autoload`. Thème non touché. Recette Chrome (contexte isolé) :
+`submit` — `/boutique?q=a` 18 articles servis et 18 en page 2, comptes identiques (marques 3/1/13/0/1/0) ; Aeris →
+3 articles, comptes client = HTML serveur ; pastille, « Tout effacer » (63) ; panneau « crème » (2) → « Tous les
+produits » → `?q=cr%C3%A8me`, 2 ; barre à 1024 (champ 288, « Appliquer » sur la ligne des déclencheurs), 1280 et 1440
+(une ligne, « Appliquer » à 1060) ; 393 : corps du tiroir stylé par le crochet (padding 40/32, défilement), champ
+16 px, Entrée → `?q=lait`. `immediate` — mêmes 18 au premier rendu et en page 2 ; case, pastille du terme,
+Retour/Suivant, frappe « creme » (2, focus gardé), « Tout effacer », panneau « ser » → `?q=ser` (1), tiroir 393 :
+frappe et effacement. Console : aucune erreur ni alerte. `config/meilifacets.php` md5
+`cef5aba086ea0d3c5645af4a6008f07e` avant et après.
+
+*Espacement du champ dans le tiroir mobile* (relevé par Louis). Le corps du tiroir gardait son padding haut de
+40 px (`--meili-drawer-block`) quand il commence par le champ, contre 24 px sous le champ. Le padding haut passe à
+`--meili-section-gap` dans ce cas seul (`[data-meili="drawer-body"]:has(> [data-meili="listing-search"]:first-child)`, bloc
+mobile). Mesuré à 393 : 24 px au-dessus du champ, 24 px jusqu'au titre du tri. Sans champ, 40 px comme la maquette.
+Un premier jet (trait sous le champ, padding inchangé) a été retiré : ce n'était pas la demande. Test :
+`stylesheet.test.ts`, « pulls the body up to the section gap » (rouge sans la règle).
+
+*Renommage autour de « search »* (2026-09-30, décision de Louis écrite dans `decisions.md`, pur renommage, sans
+alias). Brique `Listing\QueryField` → `Listing\Search`, vue `listing/search.blade.php`, balise
+`<x-meilifacets::listing.search>` ; client `QueryField` → `ListingSearch` (`listing/listing-search.ts`) ; crochets
+`query`/`query-input`/`query-clear` → `listing-search`/`listing-search-input`/`listing-search-clear` ; classes
+`meilifacetsListingSearch*` ; jetons `--meili-listing-search-min`/`-width` ; pastille `ActiveValueKind::Search`,
+`SEARCH_KIND`, `data-kind="search"`, `Listing.removeSearch()` ; `ElementId::listingSearchInput()`, d'où l'`id` du
+champ `meilifacets-<listing>-listing-search-input` (aucune référence ailleurs dans la page). Gardés : `state.query`,
+`reserved.query`, `activeValuePatterns.query` (`“:query”`), `QueryParameter::Query`/`q`, `MAX_QUERY_LENGTH` — ils
+nomment le terme de l'état, que la recherche routée porte aussi sans la brique — et les requêtes au moteur
+(`QueryPlan`, `FacetQuery`, `MeilisearchQuery`, `SiteSearchQuery`). `Contract::VERSION` reste 1 : ces crochets n'ont
+jamais été publiés. Tests : `ComponentFoldersTest` résout `listing.search` vers `Listing\Search` **et** `search` vers
+la racine, refuse `listing.query-field`, prend la vue surchargée sous `listing/search` ; `contract.test.ts` : un
+`listing-search` orphelin est nommé par le listing et non par la recherche (`R-189`). Thème : balise de
+`archive-product.blade.php`, crochet de `components/listing.css`. Vérifié : `composer check` vert (Unit 378, client
+743/743) ; suite `Modules` **OK (734 tests, 2099 assertions)** ; build, `module:publish` (orpheline
+`ts/listing/query-field.ts` supprimée), thème construit, caches vidés, `view:clear`, `dump-autoload`. HTML de
+`/boutique?q=creme` : seuls crochets, classes, `id` du champ, `data-kind` et versions d'assets diffèrent ; styles
+calculés du tiroir (215 éléments) identiques à 1440 et à 393 ouvert. Recette `submit` : frappe, Entrée → `?q=creme`
+(2), pastille, effacement, « Tout effacer », panneau « creme » → « Tous les produits » → `?q=creme` (2) ; console
+sans erreur.
+
 ### R-200 · ⚪ · ouvert (en attente de commit) · ouvert le 2026-09-30 — noms internes qui disaient une métaphore plutôt que ce qu'ils font
 
 Issu d'un audit de nommage, liste validée par Louis. Pur renommage : aucun comportement, aucun crochet `data-meili`, `Contract::VERSION`
@@ -4298,7 +4591,7 @@ un retraitement complet de l'index côté moteur, et une sauvegarde faite avant 
 réglages sur des documents anciens. Correctif amont proposé : n'envoyer les réglages que si leur empreinte a
 changé, sur le modèle de l'option `meiliscout/last_indexing_structure`. Patch à proposer à MeiliScout plus tard.
 
-### R-185 · 🟠 · **fermé le 2026-09-28** (point 2 reporté, taxonomies techniques laissées ouvertes) · ouvert le 2026-09-25 — corrections de la revue de `fd595a3`
+### R-185 · 🟠 · **fermé le 2026-09-28** (point 2 fermé par `R-201` le 2026-09-30, taxonomies techniques laissées ouvertes) · ouvert le 2026-09-25 — corrections de la revue de `fd595a3`
 
 Rattaché à `R-181` et `R-184`. `fd595a3` (« feat(search): rank and clean what the index searches ») est commité ;
 ce lot ne l'est pas.
@@ -4559,7 +4852,7 @@ excerpt`, `fix(listing): hide what WooCommerce hides from its search`, `docs(sea
 ### R-180 · 🟠 · ouvert · 2026-09-25 — recherche du site (lot 5)
 
 Parapluie du chantier [chantier-recherche.md](chantier-recherche.md), branche `feat/site-search`. Rattachés :
-`R-27`, `R-159`, `R-160`, `R-181` (étape « pertinence et index »), `R-182` (refonte du pont), `R-184` (ordre de recherche surchargeable), `R-185` (corrections de la revue de `fd595a3`), `R-186` (réglages repoussés à chaque sauvegarde), `R-187` (étape 3a, déclaration des types), `R-188` (étape 3b, racine, réglages, publication partagée), `R-189` (étape 4, extractions partagées), `R-190` (étape 4, client de recherche), `R-191` (étape 5, panneau et sections), `R-192` (étape 7, mouvement et reprise du style), `R-193` (résultats pendant la frappe), `R-194` (composants rangés par racine), `R-195` (étape 8, habillage, verrou mobile, disposition libre), `R-196` (étape 6, accessibilité), `R-197` (ouverture saccadée en desktop), `R-198` (hauteur du panneau quand les résultats diminuent) ; `R-29` à compléter (clé limitée à `posts`).
+`R-27`, `R-159`, `R-160`, `R-181` (étape « pertinence et index »), `R-182` (refonte du pont), `R-184` (ordre de recherche surchargeable), `R-185` (corrections de la revue de `fd595a3`), `R-186` (réglages repoussés à chaque sauvegarde), `R-187` (étape 3a, déclaration des types), `R-188` (étape 3b, racine, réglages, publication partagée), `R-189` (étape 4, extractions partagées), `R-190` (étape 4, client de recherche), `R-191` (étape 5, panneau et sections), `R-192` (étape 7, mouvement et reprise du style), `R-193` (résultats pendant la frappe), `R-194` (composants rangés par racine), `R-195` (étape 8, habillage, verrou mobile, disposition libre), `R-196` (étape 6, accessibilité), `R-197` (ouverture saccadée en desktop), `R-198` (hauteur du panneau quand les résultats diminuent), `R-201` (facette de recherche du listing), `R-202` (nettoyage des feuilles) ; `R-29` à compléter (clé limitée à `posts`).
 
 ### R-179 · 🟡 · ouvert (en attente de commit) · ouvert le 2026-09-25 — étape 7 : panneaux desktop, pastilles actives et grille occupée
 
@@ -5497,6 +5790,9 @@ reconnu » comme zéro résultat, ou l'écrire comme limite. Lot 5, avec la pert
 Même famille, mesuré au second tour de `R-158` : `trim()` en PHP ne coupe pas les blancs Unicode, `.trim()`
 en JavaScript si. `/?s=%C2%A0&post_type=product` publie donc une espace insécable comme terme de page et sert
 les 16 produits, là où le client aurait lu une chaîne vide.
+
+Côté listing (`q`), traité par `R-201` le 2026-09-30 : un terme sans lettre ni chiffre compte comme aucun terme, des deux
+côtés. Restent ouverts le terme routé (`s`) et les blancs Unicode.
 
 ### R-157 · ⚪ · ouvert · 2026-09-23 — un refus du moteur est journalisé comme une absence de réponse
 

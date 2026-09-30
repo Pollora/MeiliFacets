@@ -25,7 +25,16 @@ export const described = (partial: Partial<ListingDescription>) =>
         pageQuery: '',
         sortFilters: {},
         baseQuery: '',
-        activeValuePatterns: { remove: 'Remove the :label filter', between: ':min – :max', from: 'From :min', upTo: 'Up to :max' },
+        minChars: 2,
+        delay: 120,
+        activeValuePatterns: {
+            remove: 'Remove the :label filter',
+            query: '“:query”',
+            between: ':min – :max',
+            from: 'From :min',
+            upTo: 'Up to :max',
+        },
+        searchScope: { filter: partial.filter ?? 'post_type = "product"', fields: null },
         ...partial,
     }) as ListingDescription
 

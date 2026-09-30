@@ -93,6 +93,14 @@ export class Listing extends EventTarget {
         return this.#applyIfImmediate(this.#state.searching(query))
     }
 
+    searchNow(query: string) {
+        return this.#applyNow(this.#state.searching(query))
+    }
+
+    removeSearch() {
+        return this.#applyNow(this.#state.searching(''))
+    }
+
     goToPage(page: number) {
         this.#keepsHistory = true
 

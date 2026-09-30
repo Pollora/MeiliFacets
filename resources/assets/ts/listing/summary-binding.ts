@@ -50,4 +50,9 @@ export class SummaryBinding {
         this.#total.show(totalHits)
         this.#activeValues.show(state)
     }
+
+    showAnsweredToTyping(totalHits: number, state: ListingState) {
+        this.#total.showWhileTyping(totalHits)
+        this.#activeValues.show(state)
+    }
 }

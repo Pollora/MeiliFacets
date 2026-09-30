@@ -7,7 +7,7 @@
             </button>
         </div>
         <div class="meilifacetsDrawerHandle" aria-hidden="true" {{ $hook('drawer-close') }}></div>
-        <div class="meilifacetsDrawerBody">
+        <div class="meilifacetsDrawerBody" {{ $hook('drawer-body') }}>
             {{ $slot }}
         </div>
         @isset($footer)

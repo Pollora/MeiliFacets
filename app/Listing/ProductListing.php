@@ -4,19 +4,21 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Listing;
 
-use Modules\MeiliFacets\Contracts\Listing;
 use Modules\MeiliFacets\Contracts\Placeable;
 use Modules\MeiliFacets\Contracts\ProductFacets;
 use Modules\MeiliFacets\Contracts\ProductSorts;
+use Modules\MeiliFacets\Contracts\SearchableTypes;
+use Modules\MeiliFacets\Contracts\SearchScopedListing;
 use Modules\MeiliFacets\Enums\ApplyMode;
 use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Enums\PriceField;
 use Modules\MeiliFacets\Search\FilterExpression;
 use Modules\MeiliFacets\Search\VisibleProducts;
+use Modules\MeiliFacets\SiteSearch\SearchableType;
 use Modules\MeiliFacets\Support\WooCommerce;
 use WP_Term;
 
-final readonly class ProductListing implements Listing
+final readonly class ProductListing implements SearchScopedListing
 {
     public const string NAME = 'products';
 
@@ -26,6 +28,7 @@ final readonly class ProductListing implements Listing
     public function __construct(
         private ProductFacets $facets,
         private ProductSorts $sorts,
+        private SearchableTypes $searchableTypes,
     ) {
         if (! WooCommerce::isActive()) {
             throw new ListingUnavailable('WooCommerce is not active: there are no products to list.');
@@ -71,17 +74,20 @@ final readonly class ProductListing implements Listing
     public function baseFilter(): array
     {
         return [
-            ...$this->visibleHere(),
+            ...VisibleProducts::inCatalogue(),
             ...$this->browsedClause(),
         ];
     }
 
-    /**
-     * @return list<string>
-     */
-    private function visibleHere(): array
+    public function searchScope(): SearchScope
     {
-        return is_search() ? VisibleProducts::inSearch() : VisibleProducts::inCatalogue();
+        $product = $this->searchableTypes->all()[VisibleProducts::POST_TYPE] ?? null;
+
+        if ($product instanceof SearchableType) {
+            return $product->scope($this->browsedClause());
+        }
+
+        return new SearchScope([...VisibleProducts::inSearch(), ...$this->browsedClause()]);
     }
 
     /**

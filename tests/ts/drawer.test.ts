@@ -49,7 +49,7 @@ const drawerMarkup = ({ close = true, apply = 'submit' }: { close?: boolean, app
                 ${close ? '<button type="button" class="meilifacetsDrawerClose" aria-label="Close the filters" data-meili="drawer-close"><span aria-hidden="true">✕</span></button>' : ''}
             </div>
             ${close ? '<div class="meilifacetsDrawerHandle" aria-hidden="true" data-meili="drawer-close"></div>' : ''}
-            <div class="meilifacetsDrawerBody">
+            <div class="meilifacetsDrawerBody" data-meili="drawer-body">
 ${FACETS}`)
         .replace(FACETS_APPLY, `    </div>
             </div>${drawerFooter(apply)}
@@ -236,7 +236,7 @@ describe('Drawer', () => {
     it('closes on a click on the scrim, and not on a click inside the sheet', () => {
         click(window, opener())
 
-        click(window, find(drawer(), '.meilifacetsDrawerBody'))
+        click(window, find(drawer(), Contract.selector('drawer-body')))
         assert.equal(isModal(), true)
 
         click(window, drawer())
@@ -388,7 +388,7 @@ describe('Drawer', () => {
         })
 
         it('is measured again on every opening, never carried over', () => {
-            Object.defineProperty(find(drawer(), '.meilifacetsDrawerBody'), 'scrollHeight', { value: 321, configurable: true })
+            Object.defineProperty(find(drawer(), Contract.selector('drawer-body')), 'scrollHeight', { value: 321, configurable: true })
             sheet().style.height = '800px'
 
             click(window, opener())
@@ -430,7 +430,7 @@ describe('a sort inside the drawer', () => {
     it('closes the sort list on the first Escape and the drawer on the second', () => {
         const { window, root } = open(drawerMarkup())
         window.matchMedia = (() => Object.assign(new EventTarget(), { matches: true })) as unknown as typeof window.matchMedia
-        find(root, '.meilifacetsDrawerBody').append(find(root, Contract.selector('sort')))
+        find(root, Contract.selector('drawer-body')).append(find(root, Contract.selector('sort')))
         const client = new FakeClient()
         const listing = new Listing(description, connection, { filterQueries: filterQueriesOf(description), client, history: new FakeHistory() })
         new ListingBinding(new Contract(root), listing, description).start()

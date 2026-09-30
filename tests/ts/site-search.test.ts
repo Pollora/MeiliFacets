@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
 import { Contract } from '../../resources/assets/ts/shared/contract.ts'
-import { ANNOUNCE_DELAY_MS } from '../../resources/assets/ts/site-search/debounced-announcer.ts'
+import { ANNOUNCE_DELAY_MS } from '../../resources/assets/ts/shared/debounced-announcer.ts'
 import { SEARCH_SHOWN, SiteSearch } from '../../resources/assets/ts/site-search/site-search.ts'
 import { find, nextTurn, press } from './dom.ts'
 import { FakeEngine, hit, openSearch, rearrangedSearchMarkup, searchDescribed, searchMarkup, settle, typeInto } from './site-search-fixtures.ts'
@@ -44,6 +44,16 @@ const started = (t: TestContext, markup = searchMarkup()) => {
 }
 
 describe('SiteSearch', () => {
+    it('leads « see all » to the archive with the term its answer was searched for', async (t) => {
+        const { engine, typed, element } = started(t)
+
+        typed('ser')
+        engine.last.answer([{ hits: [hit(1, 'Sérum')], totalHits: 4 }, { hits: [], totalHits: 0 }])
+        await settle()
+
+        assert.equal(element(`[data-type="product"] ${Contract.selector('search-see-all')}`).getAttribute('href'), 'https://example.test/product?q=ser')
+    })
+
     it('sends the sections placed in one request, and paints each answer in its section', async (t) => {
         const { engine, typed, titles, saidOnceSettled, hiddenSections } = started(t)
 

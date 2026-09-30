@@ -67,7 +67,7 @@ export class ListingUrl {
 
         for (const [bound, parameter] of bounds) {
             if (bound !== null) {
-                params.set(parameter, Range.boundTo(bound))
+                params.set(parameter, Range.formatBound(bound))
             }
         }
     }

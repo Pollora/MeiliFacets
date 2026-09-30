@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Tests\Feature;
 
+use Modules\MeiliFacets\Enums\QueryParameter;
 use Modules\MeiliFacets\Http\ListingPage;
 use Modules\MeiliFacets\Search\BrowserConnection;
 use Modules\MeiliFacets\SiteSearch\SearchableType;
 use Modules\MeiliFacets\SiteSearch\SearchRoot;
 use Modules\MeiliFacets\SiteSearch\SearchSettings;
+use Modules\MeiliFacets\Support\UrlParameters;
 use Modules\MeiliFacets\View\CountLabel;
 use Modules\MeiliFacets\View\Preconnect;
 use Modules\MeiliFacets\View\SiteSearchDescription;
@@ -43,6 +45,7 @@ final class SiteSearchDescriptionTest extends TestCase
                 'sectionPattern' => __(':heading: :count'),
                 'locale' => $countLabel->languageTag(),
                 'preconnect' => 'https://engine.test:7700',
+                'seeAllParameter' => 'q',
             ],
             $this->description(self::ENGINE)->of($root)
         );
@@ -56,11 +59,22 @@ final class SiteSearchDescriptionTest extends TestCase
         $this->assertSame('', $this->description('')->of($root)['preconnect']);
     }
 
-    private function description(string $engine): SiteSearchDescription
+    /** « See all » writes the term where the listing reads it, renamed or not. */
+    #[Test]
+    public function it_names_the_parameter_the_listing_reads_the_term_from(): void
+    {
+        $root = new SearchRoot('header', new SearchSettings, []);
+        $renamed = new UrlParameters([], [QueryParameter::Query->value => 'recherche']);
+
+        $this->assertSame('recherche', $this->description(self::ENGINE, $renamed)->of($root)['seeAllParameter']);
+    }
+
+    private function description(string $engine, UrlParameters $parameters = new UrlParameters([])): SiteSearchDescription
     {
         return new SiteSearchDescription(
             $this->app->make(CountLabel::class),
             new Preconnect(new BrowserConnection($engine, 'search', 'posts'), new ListingPage),
+            $parameters,
         );
     }
 

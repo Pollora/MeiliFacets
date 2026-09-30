@@ -5,15 +5,22 @@ export class DebouncedAnnouncer {
     #region: HTMLElement | null
     #timer: ReturnType<typeof setTimeout> | undefined
     #pending: string | null = null
-    #lastWritten = ''
+    #lastWritten: string
 
-    constructor(region: HTMLElement | null) {
+    constructor(region: HTMLElement | null, alreadySaid = region?.textContent ?? '') {
         this.#region = region
+        this.#lastWritten = alreadySaid
     }
 
     announce(text: string) {
         this.#pending = text
         this.#restartDelay()
+    }
+
+    writeNow(text: string) {
+        clearTimeout(this.#timer)
+        this.#pending = text
+        this.#write()
     }
 
     postpone() {

@@ -311,8 +311,15 @@ describe('the drawer as a sheet', () => {
         assert.match(source, /--meili-drawer-gutter: 2rem;/)
         assert.match(source, /--meili-drawer-block: 2\.5rem;/)
         assert.match(declared(sheet, '.meilifacetsDrawerHead'), /padding: var\(--meili-section-gap\) var\(--meili-drawer-gutter\);/)
-        assert.match(declared(sheet, '.meilifacetsDrawerBody'), /padding: var\(--meili-drawer-block\) var\(--meili-drawer-gutter\);/)
+        assert.match(declared(sheet, Contract.selector('drawer-body')), /padding: var\(--meili-drawer-block\) var\(--meili-drawer-gutter\);/)
         assert.match(declared(sheet, Contract.selector('drawer-footer')), /padding: var\(--meili-section-step\) var\(--meili-drawer-gutter\)/)
+    })
+
+    /** The field heading the body sits as far from the head as from the section below it. */
+    it('pulls the body up to the section gap when the search field heads it', () => {
+        const headedByField = `${Contract.selector('drawer-body')}:has(> ${Contract.selector('listing-search')}:first-child)`
+
+        assert.match(declared(sheet, headedByField), /padding-top: var\(--meili-section-gap\);/)
     })
 
     /** At rest nothing may move: a transition there plays on the first render and on every crossing of the threshold. */
@@ -347,6 +354,60 @@ describe('the drawer as a sheet', () => {
 
         assert.match(declared(source, apply), /display: none;/)
         assert.match(declared(sheet, `${DRAWER} ${apply}`), /display: inline-flex;/)
+    })
+})
+
+/**
+ * Read as written: happy-dom evaluates neither `:has(~ …)` nor a complex selector inside `:not()`. R-202.
+ * `:nth-child(1 of …)` is out: WP Rocket's minifier writes it `1of`, and the browser drops the rule.
+ */
+describe('the stack of sections in the sheet', () => {
+    const source = readFileSync(new URL('../../resources/assets/css/meilifacets.css', import.meta.url), 'utf8')
+    const SECTION = `:is(${Contract.selector('facet')}, ${Contract.selector('sort-choices')})`
+    const SHOWN = `${SECTION}:not([hidden])`
+    const STACKED = `${Contract.selector('facets')} ${SECTION}:has(${Contract.selector('toggle')})`
+
+    it('opens the stack on the first section shown, not on the first one written', () => {
+        assert.match(declared(source, `${STACKED}:not(${SHOWN} ~ *),\n${Contract.selector('sort-choices')}:has(${Contract.selector('toggle')}):first-child`), /padding-top: 0;/)
+    })
+
+    it('closes the stack on the last section shown', () => {
+        assert.match(declared(source, `${STACKED}:not(:has(~ ${SHOWN}))`), /padding-bottom: 0;/)
+        assert.match(declared(source, `${Contract.selector('facets')} ${Contract.selector('facet')}:not(:has(~ ${Contract.selector('facet')}:not([hidden])))`), /margin-bottom: 1em;/)
+    })
+
+    it('draws a rule above a section only after a facet shown', () => {
+        const ruled = `${Contract.selector('facet')}:not([hidden]) ~ ${SECTION}:has(${Contract.selector('toggle')})`
+
+        assert.match(declared(source, ruled), /border-top: 1px solid var\(--meili-rule\);/)
+        assert.match(declared(source.slice(source.indexOf('@media (width >= 48em)')), `    ${ruled}`), /border-top: 0;/)
+    })
+
+    it('counts no section by its tag, nor writes a selector the minifier breaks', () => {
+        assert.doesNotMatch(source, /-of-type/)
+        assert.doesNotMatch(source, /nth-(last-)?child\([^)]* of /)
+    })
+})
+
+/** Read as written: happy-dom lays nothing out. R-201. */
+describe('the drawer as a bar', () => {
+    const source = readFileSync(new URL('../../resources/assets/css/meilifacets.css', import.meta.url), 'utf8')
+    const bar = source.slice(source.indexOf('@media (width >= 48em)'))
+    const LISTING_SEARCH = `${Contract.selector('drawer-body')} > ${Contract.selector('listing-search')}`
+
+    /** A wrapping row breaks its lines on the bases: a field reserving its full width pushes the pills to a second line. */
+    it('lets the field reserve its minimum and grow to its width', () => {
+        assert.match(source, /--meili-listing-search-min: 12rem;/)
+        assert.match(source, /--meili-listing-search-width: 18rem;/)
+        assert.match(declared(bar, LISTING_SEARCH), /flex: 1 1 var\(--meili-listing-search-min\);/)
+        assert.match(declared(bar, LISTING_SEARCH), /\n\s+width: var\(--meili-listing-search-width\);/)
+        assert.match(declared(bar, LISTING_SEARCH), /max-width: var\(--meili-listing-search-width\);/)
+    })
+
+    /** The body is as wide as its content and shrinks before the foot drops a line: « Apply » follows the pills. */
+    it('keeps the body and the foot on one row, « Apply » on the line of the last pills', () => {
+        assert.match(declared(bar, Contract.selector('drawer-sheet')), /flex-wrap: nowrap;/)
+        assert.match(declared(bar, Contract.selector('drawer-sheet')), /align-items: flex-end;/)
     })
 })
 
@@ -455,6 +516,15 @@ describe('the motion of the panels and the drawer', () => {
     it('fades a section out under reduced motion over the fade length', () => {
         assert.match(declared(reduced, `${PANEL}[hidden]`), /opacity var\(--meili-duration-fade\)/)
         assert.doesNotMatch(declared(reduced, `${PANEL}[hidden]`), /transform var/)
+    })
+
+    /** R-202: a colour that fades does not move; only the chevrons and the price handle stop. */
+    it('stops only what moves under reduced motion, and keeps the colours fading', () => {
+        const block = reduced.slice(0, reduced.indexOf(`${PANEL}[data-instant]`))
+        const stopped = [...block.matchAll(/([^{}]+)\{\s*transition: none;/g)]
+            .flatMap(([, selectors = '']) => selectors.split(',').map((selector) => selector.trim()))
+
+        assert.deepEqual(stopped, [`${Contract.selector('sort-trigger')}::after`, `${Contract.selector('toggle')}::after`, Contract.selector('price-handle')])
     })
 
     it('keeps a short fade on the sort list under reduced motion', () => {

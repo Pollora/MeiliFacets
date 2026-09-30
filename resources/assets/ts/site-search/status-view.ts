@@ -1,6 +1,6 @@
 import { BUSY } from '../shared/attributes.ts'
 import { CountLabel } from '../shared/count-label.ts'
-import { DebouncedAnnouncer } from './debounced-announcer.ts'
+import { DebouncedAnnouncer } from '../shared/debounced-announcer.ts'
 
 import type { Contract } from '../shared/contract.ts'
 import type { SiteSearchDescription } from '../shared/description.ts'

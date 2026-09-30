@@ -144,6 +144,7 @@ final class ContractParityTest extends TestCase
         yield 'value separator' => ['listing/listing-state.ts', "VALUE_SEPARATOR = '([^']*)'", StateReader::VALUE_SEPARATOR];
         yield 'query bound' => ['listing/listing-state.ts', 'MAX_QUERY_LENGTH = (\d+)', (string) StateReader::MAX_QUERY_LENGTH];
         yield 'first page' => ['listing/listing-state.ts', 'FIRST_PAGE = (\d+)', (string) ListingState::FIRST_PAGE];
+        yield 'search pill kind' => ['listing/active-value-list.ts', "SEARCH_KIND = '([^']*)'", ActiveValueKind::Search->value];
         yield 'term pill kind' => ['listing/active-value-list.ts', "TERM_KIND = '([^']*)'", ActiveValueKind::Term->value];
         yield 'price pill kind' => ['listing/active-value-list.ts', "PRICE_KIND = '([^']*)'", ActiveValueKind::Price->value];
     }

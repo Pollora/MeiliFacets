@@ -6,7 +6,7 @@ import { ResultsMotion } from './results-motion.ts'
 import { SectionView } from './section-view.ts'
 import { SiteSearchQuery } from './site-search-query.ts'
 import { StatusView } from './status-view.ts'
-import { SearchTermInput } from './search-term-input.ts'
+import { SearchTermInput } from '../shared/search-term-input.ts'
 
 import type { SiteSearchDescription } from '../shared/description.ts'
 import type { BoundRoot } from '../shared/page-roots.ts'
@@ -68,7 +68,7 @@ export class SiteSearch {
         performance.mark(SEARCH_SENT)
 
         try {
-            this.#show(await this.#client.search(this.#query.plan(term)))
+            this.#show(term, await this.#client.search(this.#query.plan(term)))
             performance.measure(SEARCH_SHOWN, SEARCH_SENT)
         } catch (failure) {
             if (!(failure instanceof SearchSuperseded)) {
@@ -79,9 +79,9 @@ export class SiteSearch {
         }
     }
 
-    #show(answers: Answers) {
+    #show(term: string, answers: Answers) {
         this.#paint(() => {
-            this.#sections.forEach((section) => section.show(answers[section.searched.type.postType] ?? {}))
+            this.#sections.forEach((section) => section.show(answers[section.searched.type.postType] ?? {}, term))
             this.#keys?.setOptions(this.#sections.flatMap((section) => section.options))
             this.#status.answered(this.#sections.map((section) => section.count))
         })

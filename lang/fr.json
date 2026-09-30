@@ -10,6 +10,7 @@
     "Brand": "Marque",
     "Category": "Catégorie",
     "Clear all": "Tout effacer",
+    "Clear the search": "Effacer la recherche",
     "Close the filters": "Fermer les filtres",
     "Filters": "Filtres",
     "From": "De",
@@ -30,6 +31,7 @@
     "Remove the :label filter": "Retirer le filtre :label",
     "Search": "Rechercher",
     "Search is temporarily unavailable. Please try again in a moment.": "La recherche est momentanément indisponible. Merci de réessayer dans quelques instants.",
+    "Search this list": "Rechercher dans cette liste",
     "Search unavailable": "Recherche indisponible",
     "Show less": "Voir moins",
     "Show more": "Voir plus",
@@ -38,5 +40,6 @@
     "There is nothing on this page.": "Il n’y a rien sur cette page.",
     "To": "À",
     "Up to :max": "Jusqu’à :max",
-    "Volume": "Contenance"
+    "Volume": "Contenance",
+    "“:query”": "«\u00a0:query\u00a0»"
 }

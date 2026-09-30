@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
-import { ANNOUNCE_DELAY_MS, DebouncedAnnouncer } from '../../resources/assets/ts/site-search/debounced-announcer.ts'
+import { ANNOUNCE_DELAY_MS, DebouncedAnnouncer } from '../../resources/assets/ts/shared/debounced-announcer.ts'
 import { find, load, nextTurn } from './dom.ts'
 
 import type { TestContext } from 'node:test'
@@ -99,5 +99,31 @@ describe('DebouncedAnnouncer', () => {
         heard.push(region.textContent)
 
         assert.deepEqual(heard, ['', 'Products: 1 result'])
+    })
+
+    it('writes at once for a gesture that is not typing, and drops what was pending', async (t) => {
+        const { announcer, writes } = announcing(t)
+
+        announcer.announce('Products: 1 result')
+        announcer.writeNow('Products: 2 results')
+        t.mock.timers.tick(ANNOUNCE_DELAY_MS)
+        await nextTurn()
+
+        assert.deepEqual(writes, ['Products: 2 results'])
+    })
+
+    /** A counter the server rendered already says its count: saying it again would be heard twice. */
+    it('takes what the region already says as said', async (t) => {
+        t.mock.timers.enable({ apis: ['setTimeout'] })
+
+        const window = load('<p aria-live="polite">4 items</p>')
+        const region = find(window.document, '[aria-live]')
+        const writes: string[] = []
+
+        new window.MutationObserver(() => writes.push(region.textContent)).observe(region, { childList: true, characterData: true, subtree: true })
+        new DebouncedAnnouncer(region).writeNow('4 items')
+        await nextTurn()
+
+        assert.deepEqual(writes, [])
     })
 })

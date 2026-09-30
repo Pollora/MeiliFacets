@@ -10,7 +10,6 @@ use Modules\MeiliFacets\Listing\Facet;
 use Modules\MeiliFacets\Listing\ResolvedListing;
 use Modules\MeiliFacets\Support\Money;
 
-/** The pills of a listing, built from its state: the ticked values in facet order, then the price range. */
 final readonly class ActiveValueList
 {
     public function __construct(private Money $money) {}
@@ -23,7 +22,11 @@ final readonly class ActiveValueList
         $patterns = ActiveValuePatterns::translated();
         $ticked = array_map(fn (Facet $facet): array => $this->tickedIn($listing, $facet, $patterns), $listing->facets());
 
-        return [...array_merge(...$ticked), ...$this->priced($listing, $patterns)];
+        return [
+            ...$this->queried($listing, $patterns),
+            ...array_merge(...$ticked),
+            ...$this->priced($listing, $patterns),
+        ];
     }
 
     /** Written once here and read by the client, which fills the placeholders itself. */
@@ -48,6 +51,28 @@ final readonly class ActiveValueList
             fn (string $slug): ActiveValue => $this->removableTerm($labels[$slug], $parameter, $slug, $patterns),
             array_values($labelled),
         );
+    }
+
+    /**
+     * @return list<ActiveValue>
+     */
+    private function queried(ResolvedListing $listing, ActiveValuePatterns $patterns): array
+    {
+        $term = $listing->typedTerm();
+
+        if ($term === '') {
+            return [];
+        }
+
+        $label = $patterns->query($term);
+
+        return [new ActiveValue(
+            label: $label,
+            parameter: $listing->parameterForReserved(QueryParameter::Query),
+            value: '',
+            action: $patterns->removal($label),
+            kind: ActiveValueKind::Search,
+        )];
     }
 
     /**

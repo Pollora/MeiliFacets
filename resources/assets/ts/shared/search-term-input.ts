@@ -25,17 +25,38 @@ export class SearchTermInput {
 
     /** `length` counts UTF-16 units, in which an emoji is two characters. */
     static isSearchable(term: string, minChars: number) {
-        return [...term].length >= minChars && WORD.test(term)
+        return [...term].length >= minChars && SearchTermInput.holdsAWord(term)
+    }
+
+    static holdsAWord(term: string) {
+        return WORD.test(term)
+    }
+
+    show(term: string) {
+        clearTimeout(this.#timer)
+        this.#term = term
+        this.#input.value = term
     }
 
     start(terms: TermListener) {
-        this.#input.addEventListener('input', () => this.#typed(terms))
+        this.#listen(terms)
 
         if (this.#input.value !== '') {
             this.#typed(terms)
         }
 
         return this
+    }
+
+    startFromServedTerm(terms: TermListener) {
+        this.#term = this.#input.value.trim()
+        this.#listen(terms)
+
+        return this
+    }
+
+    #listen(terms: TermListener) {
+        this.#input.addEventListener('input', () => this.#typed(terms))
     }
 
     #typed(terms: TermListener) {

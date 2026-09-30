@@ -171,6 +171,18 @@ describe('Contract', () => {
         assert.deepEqual(pills(pillTemplate()), ['active-value-template > active-value'])
     })
 
+    it('refuses a search field form that holds no field, and asks no clear button of it', () => {
+        const listingSearch = (...children: Element[]) => {
+            const root = complete()
+            root.append(node('listing-search', children))
+
+            return new Contract(root).breaches()
+        }
+
+        assert.deepEqual(listingSearch(node('listing-search-input')), [])
+        assert.deepEqual(listingSearch(node('listing-search-clear')), ['listing-search > listing-search-input'])
+    })
+
     it('ignores a sort the theme did not render', () => {
         const root = complete()
         root.children[5]?.remove()
@@ -314,5 +326,12 @@ describe('a hook left outside every root', () => {
 
         assert.deepEqual(inDocument(markup, RootComponent.SEARCH), ['search-panel'])
         assert.deepEqual(inDocument(markup, RootComponent.LISTING), ['reset'])
+    })
+
+    it('leaves the listing search to the listing, though its name holds the search prefix', () => {
+        const markup = `${page}<form data-meili="listing-search"><input data-meili="listing-search-input"></form>`
+
+        assert.deepEqual(inDocument(markup, RootComponent.LISTING), ['listing-search'])
+        assert.deepEqual(inDocument(markup, RootComponent.SEARCH), [])
     })
 })

@@ -64,6 +64,11 @@ final readonly class ElementId
         return $this->of('apply', 'count');
     }
 
+    public function listingSearchInput(): string
+    {
+        return $this->of('listing', 'search', 'input');
+    }
+
     public function searchPanel(): string
     {
         return $this->of('search', 'panel');

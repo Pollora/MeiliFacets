@@ -6,11 +6,11 @@ namespace Modules\MeiliFacets\View;
 
 use Modules\MeiliFacets\Listing\Range;
 
-/** The words around a pill, in the site language: `:label`, `:min` and `:max` are filled on the server and in the client. */
 final readonly class ActiveValuePatterns
 {
     private function __construct(
         private string $remove,
+        private string $query,
         private string $between,
         private string $from,
         private string $upTo,
@@ -20,6 +20,7 @@ final readonly class ActiveValuePatterns
     {
         return new self(
             remove: __('Remove the :label filter'),
+            query: __('“:query”'),
             between: __(':min – :max'),
             from: __('From :min'),
             upTo: __('Up to :max'),
@@ -29,6 +30,11 @@ final readonly class ActiveValuePatterns
     public function removal(string $label): string
     {
         return strtr($this->remove, [':label' => $label]);
+    }
+
+    public function query(string $term): string
+    {
+        return strtr($this->query, [':query' => $term]);
     }
 
     public function range(Range $price, string $min, string $max): string
@@ -47,10 +53,16 @@ final readonly class ActiveValuePatterns
     }
 
     /**
-     * @return array{remove: string, between: string, from: string, upTo: string}
+     * @return array{remove: string, query: string, between: string, from: string, upTo: string}
      */
     public function toArray(): array
     {
-        return ['remove' => $this->remove, 'between' => $this->between, 'from' => $this->from, 'upTo' => $this->upTo];
+        return [
+            'remove' => $this->remove,
+            'query' => $this->query,
+            'between' => $this->between,
+            'from' => $this->from,
+            'upTo' => $this->upTo,
+        ];
     }
 }

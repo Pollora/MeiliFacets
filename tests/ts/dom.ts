@@ -20,6 +20,7 @@ const CLASSES = [
     'HTMLElement',
     'HTMLAnchorElement',
     'HTMLButtonElement',
+    'HTMLFormElement',
     'HTMLImageElement',
     'HTMLInputElement',
     'HTMLTemplateElement',
@@ -194,12 +195,31 @@ const pageButton = () => '<button type="button" value="" hidden data-meili="page
  * Mirrors the structure the Blade components render — hooks, classes and initial
  * hidden states. Identifiers are shortened: nothing here reads them.
  */
-export const listingMarkup = ({ scroll = [], collapsible = false, priced = false }: { scroll?: string[], collapsible?: boolean, priced?: boolean } = {}) => {
+interface ListingMarkup {
+    scroll?: string[]
+    collapsible?: boolean
+    priced?: boolean
+    /** the term the search field holds, or no field at all */
+    search?: string | null
+}
+
+/** Mirrors `listing/search.blade.php`: the term is written by the test, never by a visitor. */
+const listingSearchForm = (term: string) => `
+    <form class="meilifacetsListingSearch" role="search" method="get" action="/shop" aria-label="Search this list" data-meili="listing-search">
+        <input id="listing-search-input" class="meilifacetsListingSearchInput" type="search" name="q" value="${term}" aria-label="Search this list"
+               placeholder="Search this list" maxlength="200" autocomplete="off" enterkeyhint="search" data-meili="listing-search-input">
+        <button type="button" class="meilifacetsListingSearchClear" aria-label="Clear the search"${term === '' ? ' hidden' : ''} data-meili="listing-search-clear">
+            <span aria-hidden="true">✕</span>
+        </button>
+    </form>`
+
+export const listingMarkup = ({ scroll = [], collapsible = false, priced = false, search = null }: ListingMarkup = {}) => {
     const mark = (component: string) => (scroll.includes(component) ? 'data-meili-scroll' : '')
     const folding = collapsible ? COLLAPSIBLE : OPEN
 
     return `
 <div data-listing="products" data-meili-contract="${CONTRACT}">
+${search === null ? '' : listingSearchForm(search)}
     <div class="meilifacetsFacets" data-apply="submit" data-meili="facets" ${mark('facets')}>
 ${facetBlock('product_brand', 'brand', 'Brand', `${facetValue('brand', 'acme', 'Acme')}${facetValue('brand', 'globex', 'Globex')}`, folding)}
 ${facetBlock('product_cat', 'category', 'Category', facetValue('categorie', 'coats', 'Coats'), folding)}
@@ -209,7 +229,8 @@ ${priced ? priceBlock(folding) : ''}
 
     <button type="button" class="meilifacetsReset" hidden data-meili="reset" ${mark('reset')}>Clear all</button>
     <span class="meilifacetsActiveFilters" hidden data-meili="active-filters">0 active filters</span>
-    <p class="meilifacetsTotal" aria-live="polite" aria-atomic="true" data-meili="total">0 items</p>
+    <p class="meilifacetsTotal" data-meili="total">0 items</p>
+    <p class="meilifacetsTotalStatus" aria-live="polite" aria-atomic="true" data-meili="total-status"></p>
     <ul class="meilifacetsActiveValues" aria-label="Active filters" hidden data-meili="active-values">
         <template data-meili="active-value-template">
             <li class="meilifacetsActiveValue"><button type="button" data-meili="active-value"><span aria-hidden="true">✕</span></button></li>

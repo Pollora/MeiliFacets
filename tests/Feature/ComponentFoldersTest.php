@@ -13,6 +13,8 @@ use InvalidArgumentException;
 use Modules\MeiliFacets\Enums\Hook;
 use Modules\MeiliFacets\Providers\MeiliFacetsServiceProvider;
 use Modules\MeiliFacets\View\Components\Listing\Facets;
+use Modules\MeiliFacets\View\Components\Listing\Search as ListingSearch;
+use Modules\MeiliFacets\View\Components\Search;
 use Modules\MeiliFacets\View\Components\Search\EmptyState;
 use Modules\MeiliFacets\View\Components\Search\Toggle;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -65,6 +67,8 @@ final class ComponentFoldersTest extends TestCase
         yield 'a search brick' => ['meilifacets::search.toggle', Toggle::class];
         yield 'a listing brick' => ['meilifacets::listing.facets', Facets::class];
         yield 'a brick whose name PHP reserves' => ['meilifacets::search.empty-state', EmptyState::class];
+        yield 'a listing brick named like the search root' => ['meilifacets::listing.search', ListingSearch::class];
+        yield 'the search root beside that listing brick' => ['meilifacets::search', Search::class];
         yield 'a brick with no class' => ['meilifacets::listing.toggle', 'meilifacets::components.listing.toggle'];
     }
 
@@ -83,6 +87,7 @@ final class ComponentFoldersTest extends TestCase
         yield 'a search brick' => ['meilifacets::search-toggle'];
         yield 'a listing brick' => ['meilifacets::facets'];
         yield 'the empty state under the reserved word' => ['meilifacets::search.empty'];
+        yield 'the search field of the listing' => ['meilifacets::listing.query-field'];
     }
 
     #[DataProvider('formerTags')]
@@ -124,6 +129,21 @@ final class ComponentFoldersTest extends TestCase
     #[Test]
     public function it_takes_each_search_view_a_theme_overrides_under_the_folder_of_its_root(string $view, string $override): void
     {
+        $this->overrideView($view, $override);
+
+        $this->assertStringContainsString('themedSearch', Blade::render('<x-meilifacets::search />'));
+    }
+
+    #[Test]
+    public function it_takes_the_search_field_a_theme_overrides_under_its_name(): void
+    {
+        $this->overrideView('listing/search', '<form class="themedListingSearch"></form>');
+
+        $this->assertStringContainsString('themedListingSearch', Blade::render('<x-meilifacets::listing.search />'));
+    }
+
+    private function overrideView(string $view, string $override): void
+    {
         $this->theme = sys_get_temp_dir().'/meilifacets-theme-'.bin2hex(random_bytes(4));
         $path = $this->theme.'/resources/views/modules/meilifacets/components/'.$view.'.blade.php';
         new Filesystem()->ensureDirectoryExists(dirname($path));
@@ -131,8 +151,6 @@ final class ComponentFoldersTest extends TestCase
 
         add_filter('stylesheet_directory', fn (): string => $this->theme);
         ($this->themeOverride())();
-
-        $this->assertStringContainsString('themedSearch', Blade::render('<x-meilifacets::search />'));
     }
 
     private function compiler(): ComponentTagCompiler

@@ -28,6 +28,7 @@ export const searchDescribed = (partial: Partial<SiteSearchDescription> = {}): S
     sectionPattern: ':heading: :count',
     locale: 'en',
     preconnect: 'https://engine.test',
+    seeAllParameter: 'q',
     ...partial,
 })
 

@@ -559,7 +559,7 @@ est décrit par un `SearchableType` : `postType`, `heading`, `seeAllLabel`, `bas
 | --- | --- |
 | `heading` | `get_post_type_object($type)->labels->name` |
 | `seeAllLabel` | `labels->all_items` |
-| `archive` | `get_post_type_archive_link($type)`, `null` sans archive (le lien « voir tous » n'est alors pas rendu) |
+| `archive` | `get_post_type_archive_link($type)`, `null` sans archive (le lien « voir tous » n'est alors pas rendu). Le client y ajoute le terme cherché sous le paramètre `q` du listing (ou son nom surchargé) : « Tous les produits » mène à `/boutique?q=<terme>` |
 | `baseFilter` | publié et du type ; pour `product`, en plus, sans les produits cachés de la recherche (`exclude-from-search`) |
 | `searchOn` | titre, `labels.*` des taxonomies du type, `excerpt` — pour `product` : titre, marque, catégorie, SKU — **filtrés par l'ordre de recherche** |
 | `card` | `meilifacets::search.card` |
@@ -574,8 +574,8 @@ projet qui retire `excerpt` de l'ordre le retire aussi des types. Un type à qui
 `NoFieldToSearch`.
 
 Pour corriger un type sans tout reconstruire, un projet **décore** le défaut et appelle les méthodes `with…()`
-de `SearchableType`, immuables : `withHeading()`, `withSeeAllLabel()`, `withCard()`, `withSearchOn()`. Pour
-renommer la section des articles :
+de `SearchableType`, immuables : `withHeading()`, `withSeeAllLabel()`, `withCard()`, `withSearchOn()`,
+`withArchive()`/`withoutArchive()`. Pour renommer la section des articles :
 
 ```php
 use Modules\MeiliFacets\Contracts\SearchableTypes;
@@ -614,6 +614,13 @@ section qui le demande (`SearchTypeRefused`) : le moteur ne le contient pas.
 le moteur refuserait sinon la requête entière.
 
 Pas de `withBaseFilter()` : un projet qui doit changer le filtre de base construit son type par `SearchableTypeFactory::make()`.
+
+**Lien « voir tous ».** Le serveur rend l'archive nue ; à chaque réponse peinte, le client y écrit le terme de cette
+réponse (`URLSearchParams` : `crème & co` → `?q=cr%C3%A8me+%26+co`, une requête déjà présente dans l'archive, comme
+`?post_type=product` en permaliens simples, est gardée). Section masquée : le lien revient à l'archive nue. Le terme
+n'y est utile que si la page d'arrivée rend un listing avec la facette de recherche — le module ne peut pas le savoir
+(le blog de Pluralia n'en a pas encore : `/journal?q=…` affiche tous les articles). Un projet qui veut mener ailleurs
+passe `withArchive('https://…')`, ou `withoutArchive()` pour ne rendre aucun lien.
 
 Comme pour `SearchableAttributes`, le module lie son défaut par `scopedIf` : le projet lie avec `scoped` ou
 `bind`, jamais `scopedIf`.
@@ -782,7 +789,7 @@ posées (écrit par le client). Les liens des résultats sont hors de l'ordre de
 le client sur le crochet `url` de chaque carte) : Tab va du champ aux liens « voir tous ». La vignette d'une carte de
 **recherche** est décorative (`alt=""`, le lien lit déjà le titre) ; la carte du listing garde son texte alternatif.
 
-La région d'état (`search-status`) n'est écrite qu'**après 1 s sans frappe ni nouvelle réponse** (`ANNOUNCE_DELAY_MS`) et **jamais deux fois de suite avec la même phrase** (`DebouncedAnnouncer`, `site-search/debounced-announcer.ts`). Fermer le panneau annule l'annonce en attente et oublie la dernière phrase : rouvert, il annonce de nouveau la même recherche.
+La région d'état (`search-status`) n'est écrite qu'**après 1 s sans frappe ni nouvelle réponse** (`ANNOUNCE_DELAY_MS`) et **jamais deux fois de suite avec la même phrase** (`DebouncedAnnouncer`, `shared/debounced-announcer.ts`). Fermer le panneau annule l'annonce en attente et oublie la dernière phrase : rouvert, il annonce de nouveau la même recherche.
 
 ### Feuille de style
 
@@ -791,13 +798,15 @@ seulement sur une page qui rend une recherche. Rendue après `wp_head` (un en-t�
 avant la racine. Neutre, mobile first, stylée par crochets ; un thème s'en passe comme de celle du listing
 (`wp_dequeue_style` / `wp_deregister_style('meilifacets-site-search')`).
 
-Le champ suit `--meili-ui`, jamais sous `1rem` au pointeur grossier (iOS agrandit la page au focus d'un champ sous
-16 px).
+Le champ suit `--meili-ui`, jamais sous `--meili-field-font-min` (1rem) au pointeur grossier (iOS agrandit la page au
+focus d'un champ sous 16 px).
 
 **Variables** sur `[data-meili="search"]` : `--meili-ui`, `--meili-small` (0.8125rem, résumé, prix, « voir
 tous »), `--meili-control`, `--meili-control-min` (2.75rem au pointeur grossier : hauteur minimale de la loupe et des liens
-« voir tous », dont le texte ne grandit pas), `--meili-control-inline`,
-`--meili-edge`, `--meili-rule`.
+« voir tous », dont le texte ne grandit pas), `--meili-field-font-min` (1rem, plancher de la
+police du champ au pointeur grossier), `--meili-pill` (999px, rayon des pilules : champ, boutons),
+`--meili-radius` (0.5rem, rayon des lignes de résultat et des vignettes), `--meili-surface` (`Canvas`, fond du
+panneau et de la barre du champ collée en haut), `--meili-edge`, `--meili-rule`.
 Teintes, toutes en `color-mix()` de `currentColor` : `--meili-tint` (6 %, survol et vignette absente),
 `--meili-tint-active` (10 %, option désignée au clavier, plus une barre de 2 px), `--meili-halo` (8 %, halo du
 champ au focus), `--meili-muted` (65 %, résumé, prix, messages), `--meili-label` (70 %, titre de section),
@@ -1169,6 +1178,83 @@ ici.
 borne sous `query_parameters` est permis : on y perd la compatibilité des liens, et la garde
 redevient absolue sur le nom libéré.
 
+## Facette de recherche
+
+`<x-meilifacets::listing.search />` : le champ qui remplit le `q` de l'état. Une facette comme les autres — posée
+par le gabarit, où il veut (barre, tiroir), toujours rendue quand elle est posée ; un thème qui veut la cacher le
+fait en CSS (`[data-meili="listing-search"] { display: none }`), le terme reste alors effaçable par sa pastille et par
+« Tout effacer ».
+
+```blade
+<x-meilifacets::listing.drawer class="md:flex-1">
+    <x-meilifacets::listing.search />
+    <x-meilifacets::listing.sort widget="radios" collapsible />
+    …
+</x-meilifacets::listing.drawer>
+```
+
+| Attribut | Défaut | Rôle |
+| --- | --- | --- |
+| `label` | `__('Search this list')` | nom du repère `role="search"`, du champ et de son `placeholder` ; distinct du « Rechercher » de l'en-tête pour que les deux repères de la page se distinguent |
+| `name` | le listing seul | le listing visé, comme toute brique |
+
+| Crochet | Élément | Exigé |
+| --- | --- | --- |
+| `listing-search` | `<form role="search" method="get">` | — |
+| `listing-search-input` | `<input type="search" name="q">` | oui, sous `listing-search` |
+| `listing-search-clear` | bouton d'effacement, `hidden` tant que le champ est vide | non |
+
+**Sans JavaScript**, le formulaire envoie `q` à la première page du listing. Il garde en champs cachés les paramètres
+lus par WordPress (comme `post_type` en permaliens simples) et l'état appliqué — facettes, tri, bornes du prix, sous
+leurs noms d'URL (`View\StateFields`) —, jamais le terme ni la page : le serveur sert la page filtrée par le terme en
+plus de ce qui l'était déjà. Chaque valeur est échappée par Blade.
+
+**Avec JavaScript**, selon `apply_mode` :
+
+| | `immediate` | `submit` |
+| --- | --- | --- |
+| frappe | cherche après le délai, dès le seuil — les **mêmes** que la recherche du site (`SearchSettings` : 2 caractères, 120 ms, publiés en `minChars`/`delay`) ; sous le seuil, le terme appliqué est retiré | le terme attend dans l'état, comme une case cochée |
+| Entrée | cherche tout de suite | cherche, avec les changements en attente (`D-10`) |
+| « Appliquer » | — | emporte le terme tapé |
+| bouton d'effacement, pastille | retire le terme tout de suite, dans les deux modes | |
+
+La page repasse à 1 ; l'adresse s'écrit par `ListingHistory` (`replaceState`, une frappe ne crée pas d'entrée
+d'historique) ; les comptes des facettes tiennent compte du terme. Le champ suit l'état quand autre chose le change
+(pastille, « Tout effacer », Retour) ; ce qu'il écrit lui-même n'est jamais réécrit sous les doigts. Au chargement,
+le terme de l'adresse est tenu pour déjà cherché, même sous le seuil : `/boutique?q=a` reste filtré. Le total visible
+s'écrit à chaque réponse ; son annonce passe par la région `total-status` voisine, qui ne parle, pendant la frappe en
+`immediate`, qu'une seconde après la dernière réponse (`DebouncedAnnouncer`). « Pendant la frappe » se lit à la
+dernière frappe du champ, jamais au focus (Safari le laisse dans le champ au clic d'un bouton).
+
+**Terme sans lettre ni chiffre** (`R-159`) : `?(`, `--`, un emoji seul comptent comme aucun terme — le moteur les
+réduit à rien et servirait tout l'index. Une seule règle (`\p{L}\p{N}`), lue par `StateReader` côté serveur et par
+`ListingState` côté client (celle de `SearchTermInput`) : `/boutique?q=%3F%28` sert le catalogue, sans pastille.
+
+**Pastille.** Le terme a sa pastille, en tête des valeurs actives : `data-kind="search"`, libellé `“:query”`
+(traduisible, `« :query »` en français), action « Retirer le filtre … ».
+
+**Ce qu'une recherche lit.** Dès qu'un terme est cherché — tapé (`q`) ou routé par WordPress (`s`) —, un listing qui
+implémente `SearchScopedListing` remplace son filtre de base par `searchScope()->filter` et restreint les champs
+cherchés à `searchScope()->fields` (`attributesToSearchOn`). La règle est la même au premier rendu (`QueryPlan`) et
+à chaque requête du navigateur (`ListingQuery`, clé `searchScope` de la description), vérifiée par des cas partagés
+(`tests/search-scope-cases.json`). `ProductListing` y prend le type `product` des types cherchables : sans les
+produits `exclude-from-search` (au lieu de `exclude-from-catalog`, comme `WC_Query` sur une recherche), sur les
+champs du panneau — le compte du panneau est celui de la page. Un listing qui n'implémente pas le contrat cherche
+son filtre de base, sur tous les champs.
+
+**Sur une recherche routée** (`/?s=…&post_type=product`), la brique ne rend rien : le module lit `s` sans l'écrire,
+un champ vidé retomberait sur le terme routé. Un `q` dans l'adresse y est ignoré, des deux côtés (`StateReader`,
+`QueryPlan`, `ListingQuery`) : le terme cherché est celui de WordPress.
+
+**CSS.** Neutre : champ en pilule (`--meili-pill`), bouton d'effacement de `max(--meili-control, --meili-control-min)` de côté (44 px
+au moins au pointeur grossier), effacement natif de WebKit masqué pour qu'un seul bouton existe, 16 px au pointeur
+grossier (`--meili-field-font-min`, pas de zoom iOS). Dans la barre desktop du tiroir, le champ réserve
+`--meili-listing-search-min` (12rem) et grandit jusqu'à `--meili-listing-search-width` (18rem) s'il reste de la place : une rangée
+qui passe à la ligne découpe ses lignes sur les largeurs de base.
+
+`q` est un paramètre d'URL indexé : toute URL qui le porte rempli est déjà `noindex, follow`, sans canonique
+(`IndexingPolicy`).
+
 ## Tiroir mobile et barre de filtres
 
 Des briques, que le thème compose (architecture v2) :
@@ -1188,6 +1274,11 @@ Des briques, que le thème compose (architecture v2) :
 </div>
 ```
 
+**Total.** `<x-meilifacets::listing.total>` rend le compteur visible (crochet `total`, réécrit à chaque réponse) suivi de
+sa région d'annonce, masquée et vide au chargement (crochet `total-status`, `aria-live="polite"`, `aria-atomic="true"`) :
+le compteur ne parle pas lui-même, pour que le chiffre suive la frappe sans couvrir la voix. Un thème qui surcharge la
+vue garde les deux crochets ; sans `total-status`, le compteur s'écrit et rien n'est annoncé.
+
 **Mobile first.** Sans rien d'autre, un repliable (`collapsible`) est une **section d'accordéon en
 ligne, pleine largeur**, séparée de la suivante par un filet ; les sections s'ouvrent
 indépendamment. À partir de `48em`, il devient une pill dont le panneau **flotte** (un seul ouvert,
@@ -1195,10 +1286,12 @@ indépendamment. À partir de `48em`, il devient une pill dont le panneau **flot
 (`position: absolute` du panneau) : aucun seuil n'est écrit en TypeScript.
 
 **Le tiroir** (`<x-meilifacets::listing.drawer>`) est un conteneur ordinaire : en-tête (« Filters », bouton
-« ✕ », poignée), corps (le slot), pied (slot `footer`, rendu seulement s'il est fourni, classe
+« ✕ », poignée), corps (le slot, crochet `drawer-body`), pied (slot `footer`, rendu seulement s'il est fourni, classe
 `meilifacetsDrawerFooter`).
-- À partir de `48em`, c'est une rangée : en-tête et poignée masqués, corps et pied alignés sur une
-  ligne (`--meili-bar-gap`), « Appliquer » en fin de rangée.
+- À partir de `48em`, c'est une rangée : en-tête et poignée masqués, corps et pied côte à côte
+  (`--meili-bar-gap`), toujours sur une ligne : le corps a la largeur de son contenu et rétrécit avant que le
+  pied ne passe dessous. « Appliquer » suit donc les pastilles ; quand elles passent à la ligne, il reste au bord
+  droit, aligné en bas sur la ligne des dernières.
 - Sous `48em`, JavaScript actif, c'est un bottom sheet que l'ouvreur promeut en dialogue modal
   (`role="dialog"`, `aria-modal`, reste de la page `inert`, défilement verrouillé). Échap, « ✕ »,
   la poignée (tap), le voile, « Appliquer » et un glisser vers le bas ferment ; le focus revient à
@@ -1288,10 +1381,18 @@ sur une durée qui suit la hauteur ajoutée (`clamp(150ms, |Δh| / 500 s, 270ms)
 animation.
 
 **Variables** sur `[data-listing]`, surchargeables : `--meili-control` (3rem), `--meili-control-min`
-(plancher tactile), `--meili-control-inline` (1.5rem), `--meili-bar-gap` (0.5rem), `--meili-section-gap` (1.5rem),
+(plancher tactile), `--meili-control-inline` (1.5rem), `--meili-field-font-min` (1rem, plancher de la police du
+champ de recherche au pointeur grossier), `--meili-pill` (999px, rayon des pilules), `--meili-radius` (0.25em,
+rayon des contrôles sans variante, des lignes de valeurs, de la liste de tri, de la bulle et des champs du prix ;
+en `em`, il suit la taille du texte de chaque élément), `--meili-line` (1.5rem, hauteur de ligne d'une section et
+d'une valeur, que les marges négatives des déclencheurs et de la croix du tiroir compensent),
+`--meili-surface` (`Canvas`, fond des surfaces posées sur la page : panneau flottant, liste de tri, sheet, et
+anneau des poignées du prix), `--meili-muted` (`currentColor` à 60 %, compteurs, bornes du prix, symbole
+monétaire et tiret des champs de prix — même rôle que dans la recherche, où il vaut 65 %),
+`--meili-bar-gap` (0.5rem), `--meili-section-gap` (1.5rem, aussi le pied de la colonne de facettes),
 `--meili-section-step` (1rem), `--meili-row-gap` (0.5rem), `--meili-drawer-gutter` (2rem),
 `--meili-drawer-block` (2.5rem), `--meili-panel-min` (18rem), `--meili-panel-max` (28rem),
-`--meili-panel-price` (20rem), `--meili-ease-drawer`, `--meili-duration-drawer-in` (350ms), `--meili-duration-drawer-out`
+`--meili-panel-price` (20rem), `--meili-listing-search-min` (12rem), `--meili-listing-search-width` (18rem), `--meili-ease-drawer`, `--meili-duration-drawer-in` (350ms), `--meili-duration-drawer-out`
 (250ms), `--meili-duration-fade` (150ms), `--meili-duration-hover` (150ms, toutes les transitions de
 survol : fonds, bordures, couleurs, poignée du prix), `--meili-scrim`, `--meili-layer-drawer` (100).
 

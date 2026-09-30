@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\View;
 
+use Modules\MeiliFacets\Enums\QueryParameter;
 use Modules\MeiliFacets\SiteSearch\SearchableType;
 use Modules\MeiliFacets\SiteSearch\SearchRoot;
+use Modules\MeiliFacets\Support\UrlParameters;
 
 /** The shape is the PHP/JavaScript contract of a search root, as `ListingDescription` is for a listing. */
 final readonly class SiteSearchDescription
@@ -13,6 +15,7 @@ final readonly class SiteSearchDescription
     public function __construct(
         private CountLabel $countLabel,
         private Preconnect $preconnect,
+        private UrlParameters $parameters,
     ) {}
 
     /**
@@ -26,6 +29,7 @@ final readonly class SiteSearchDescription
      *     sectionPattern: string,
      *     locale: string,
      *     preconnect: string,
+     *     seeAllParameter: string,
      * }
      */
     public function of(SearchRoot $root): array
@@ -40,6 +44,7 @@ final readonly class SiteSearchDescription
             'sectionPattern' => __(':heading: :count'),
             'locale' => $this->countLabel->languageTag(),
             'preconnect' => $this->preconnect->origin(),
+            'seeAllParameter' => $this->parameters->reserved(QueryParameter::Query),
         ];
     }
 

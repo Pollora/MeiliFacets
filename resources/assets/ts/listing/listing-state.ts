@@ -1,4 +1,5 @@
 import { Range } from '../shared/range.ts'
+import { SearchTermInput } from '../shared/search-term-input.ts'
 
 import type { FacetDescription, StateDescription } from '../shared/description.ts'
 
@@ -24,11 +25,17 @@ export class ListingState {
                 .map(([taxonomy, values]) => [taxonomy, Object.freeze(ListingState.#tidy(values))] as const)
                 .filter(([, values]) => values.length > 0)
         ))
-        // Cut by code point, like `mb_substr()`: slicing UTF-16 units would cut a surrogate pair in half.
-        this.#query = [...query].slice(0, MAX_QUERY_LENGTH).join('')
+        this.#query = ListingState.#searchable(query)
         this.#sort = sort
         this.#page = Math.max(Math.trunc(page) || FIRST_PAGE, FIRST_PAGE)
         this.#price = new Range(ListingState.#bound(price.min), ListingState.#bound(price.max))
+    }
+
+    /** Cut by code point, like `mb_substr()`: slicing UTF-16 units would cut a surrogate pair in half. */
+    static #searchable(query: string) {
+        const term = [...query].slice(0, MAX_QUERY_LENGTH).join('')
+
+        return SearchTermInput.holdsAWord(term) ? term : ''
     }
 
     static #bound(value: number | null | undefined) {

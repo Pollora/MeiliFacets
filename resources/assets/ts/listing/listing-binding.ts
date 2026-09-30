@@ -13,6 +13,7 @@ import { SortQuery } from '../sort/sort-query.ts'
 import { SortRadios } from '../sort/sort-radios.ts'
 import { DisclosureGroup } from '../collapsible/disclosure-group.ts'
 import { ListingDrawers } from '../drawer/listing-drawers.ts'
+import { ListingSearch } from './listing-search.ts'
 import { ResetFocus } from './reset-focus.ts'
 import { SummaryBinding } from './summary-binding.ts'
 
@@ -37,6 +38,7 @@ export class ListingBinding {
     #sortQuery: SortQuery
     #drawers: ListingDrawers
     #resetFocus: ResetFocus
+    #listingSearches: ListingSearch[] = []
 
     constructor(contract: Contract, listing: Listing, description: ListingDescription) {
         this.#contract = contract
@@ -56,6 +58,9 @@ export class ListingBinding {
     }
 
     start() {
+        const { minChars, delay } = this.#description
+
+        this.#listingSearches = ListingSearch.allIn(this.#contract, { listing: this.#listing, settings: { minChars, delay } })
         this.#contract.root.addEventListener('change', (event) => this.#ticked(event))
         this.#contract.root.addEventListener('click', (event) => this.#clicked(event))
         this.#listing.addEventListener('change', (event) => this.#moved((event as CustomEvent<ChangeDetail>).detail))
@@ -187,6 +192,7 @@ export class ListingBinding {
     }
 
     #moved({ state }: ChangeDetail) {
+        this.#listingSearches.forEach((field) => field.show(state))
         this.#facets.showSelection(state)
         this.#sort.show(state)
         this.#sortRadios.show(state)
@@ -203,8 +209,16 @@ export class ListingBinding {
 
         this.#sort.showMatches(matches, state)
         this.#sortRadios.showMatches(matches, state)
-        this.#summary.showAnswered(results.totalHits ?? 0, state)
+        this.#showTotal(results.totalHits ?? 0, state)
         this.#drawers.repaintBehindDrawer(() => this.#repaintGrid(results, state))
+    }
+
+    #showTotal(totalHits: number, state: ListingState) {
+        if (this.#listingSearches.some((field) => field.isTyping())) {
+            this.#summary.showAnsweredToTyping(totalHits, state)
+        } else {
+            this.#summary.showAnswered(totalHits, state)
+        }
     }
 
     #repaintGrid(results: SearchAnswer, state: ListingState) {

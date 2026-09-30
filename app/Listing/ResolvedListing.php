@@ -324,6 +324,21 @@ final class ResolvedListing
         return $this->listing->baseQuery();
     }
 
+    public function searchScope(): SearchScope
+    {
+        return SearchScope::searching($this->listing);
+    }
+
+    public function isRoutedSearch(): bool
+    {
+        return StateReader::isRoutedSearch($this->listing);
+    }
+
+    public function typedTerm(): string
+    {
+        return $this->state->query;
+    }
+
     public function applyMode(): ApplyMode
     {
         return $this->listing->applyMode();

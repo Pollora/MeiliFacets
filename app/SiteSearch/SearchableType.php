@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\SiteSearch;
 
+use Modules\MeiliFacets\Listing\SearchScope;
+
 final readonly class SearchableType
 {
     /**
@@ -41,12 +43,30 @@ final readonly class SearchableType
         return $this->with(['card' => $card]);
     }
 
+    public function withArchive(string $archive): self
+    {
+        return $this->with(['archive' => $archive]);
+    }
+
+    public function withoutArchive(): self
+    {
+        return $this->with(['archive' => null]);
+    }
+
     /**
      * @param  list<string>  $searchOn
      */
     public function withSearchOn(array $searchOn): self
     {
         return $this->with(['searchOn' => $searchOn]);
+    }
+
+    /**
+     * @param  list<string>  $extraClauses
+     */
+    public function scope(array $extraClauses): SearchScope
+    {
+        return new SearchScope([...$this->baseFilter, ...$extraClauses], $this->searchOn);
     }
 
     /**

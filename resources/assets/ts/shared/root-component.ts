@@ -23,6 +23,7 @@ const LISTING_RULES: Rule[] = [
     { host: 'sort-choices', hooks: ['sort-choice'] },
     { host: 'sort-choices', hooks: ['panel'], whenHolding: 'toggle' },
     { host: 'price-range', hooks: ['price-track', 'price-handle'] },
+    { host: 'listing-search', hooks: ['listing-search-input'] },
     { host: 'active-values', hooks: ['active-value-template'] },
     { host: 'active-value-template', hooks: ['active-value'] },
     { host: 'drawer', hooks: ['drawer-title', 'drawer-close'] },

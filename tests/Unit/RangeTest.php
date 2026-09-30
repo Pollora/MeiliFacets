@@ -65,4 +65,10 @@ final class RangeTest extends TestCase
             new Range(12.5, 26.0)->ratio(null),
         ]);
     }
+
+    #[Test]
+    public function it_formats_a_bound_without_an_exponent(): void
+    {
+        $this->assertSame(['0', '1000000000000000000000'], [Range::formatBound(1e-9), Range::formatBound(1e21)]);
+    }
 }

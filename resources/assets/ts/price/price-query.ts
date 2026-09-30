@@ -37,8 +37,8 @@ export class PriceQuery implements FilterQuery {
         const { min, max } = state.price
 
         return FilterExpression.all([
-            max === null ? '' : `${this.#fields.min} <= ${Range.boundTo(max)}`,
-            min === null ? '' : `${this.#fields.max} >= ${Range.boundTo(min)}`,
+            max === null ? '' : `${this.#fields.min} <= ${Range.formatBound(max)}`,
+            min === null ? '' : `${this.#fields.max} >= ${Range.formatBound(min)}`,
         ])
     }
 

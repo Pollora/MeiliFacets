@@ -135,6 +135,21 @@ describe('ActiveValuesView', () => {
         assert.equal((root.querySelector('input[value="acme"]') as HTMLInputElement).checked, false)
     })
 
+    it('draws the searched text first, and takes it off from its pill at once', async () => {
+        const listing = await applying(start().search('ser').toggle('product_brand', 'acme'))
+        assert.deepEqual(labels(), ['“ser”✕', 'Acme✕'])
+        assert.equal(pill(0).getAttribute('data-kind'), 'search')
+        assert.equal(pill(0).getAttribute('aria-label'), 'Remove the “ser” filter')
+
+        click(window, pill(0))
+        await answered()
+
+        assert.equal(listing.state.query, '')
+        assert.deepEqual(listing.state.selected('product_brand'), ['acme'])
+        assert.equal(history.replaced.at(-1), '/shop?brand=acme')
+        assert.deepEqual(labels(), ['Acme✕'])
+    })
+
     it('removes the whole range from its pill', async () => {
         const listing = await applying(start().priceBetween(10, 50).toggle('product_brand', 'acme'))
 

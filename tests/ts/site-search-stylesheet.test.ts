@@ -65,7 +65,8 @@ describe('the site search stylesheet', () => {
         const coarse = source.slice(source.indexOf('@media (pointer: coarse)'))
 
         assert.match(source, /\[data-meili="search-input"\] \{[^}]*font-size: var\(--meili-ui\);/)
-        assert.match(coarse.slice(0, coarse.indexOf('\n}')), /\[data-meili="search-input"\] \{\s*font-size: max\(1rem, var\(--meili-ui\)\);/)
+        assert.match(source, /--meili-field-font-min: 1rem;/)
+        assert.match(coarse.slice(0, coarse.indexOf('\n}')), /\[data-meili="search-input"\] \{\s*font-size: max\(var\(--meili-field-font-min\), var\(--meili-ui\)\);/)
     })
 
     /** A fixed header spans the viewport: without the gutter it widens by the scrollbar the lock removes. */
