@@ -610,7 +610,7 @@ construit comme les autres) ; en retirer un, `unset()`. Un type déclaré mais *
 section qui le demande (`SearchTypeRefused`) : le moteur ne le contient pas.
 
 ⚠️ `withSearchOn()` prend la liste telle quelle ; un champ hors de l'ordre de recherche fait lever
-`FieldsOutsideSearchOrder` à la validation du type (`AcceptedSearchTypes`), qui nomme le type et les champs —
+`UnsearchableFields` à la validation du type (`AcceptedSearchTypes`), qui nomme le type et les champs —
 le moteur refuserait sinon la requête entière.
 
 Pas de `withBaseFilter()` : un projet qui doit changer le filtre de base construit son type par `SearchableTypeFactory::make()`.
@@ -758,7 +758,7 @@ Le panneau est en `position: absolute`, `top: 100%`, pleine largeur (`left: 0; r
 **premier ancêtre positionné**, que le thème choisit — la barre d'en-tête, typiquement. La racine et les briques ne
 sont jamais positionnées. Sous `48em`, il occupe toute la hauteur restante sous cet ancêtre ; au-delà, il est
 borné par elle. Cette hauteur est mesurée par le client à l'ouverture et au redimensionnement, écrite en
-`--meili-search-room` sur le panneau, retirée une fois la sortie jouée (au clavier, aussitôt) : le panneau garde sa
+`--meili-search-available-height` sur le panneau, retirée une fois la sortie jouée (au clavier, aussitôt) : le panneau garde sa
 hauteur pendant son fondu. Il défile en interne (`overscroll-behavior:
 contain`) ; sous `48em`, le défilement de la page est verrouillé tant qu'il est ouvert, et la place de la barre de
 défilement retirée est gardée (`scrollbar-gutter: stable`) : un en-tête `fixed` ne s'élargit pas. À partir de `48em`, un voile
@@ -962,7 +962,7 @@ lui-même, qui le signale (`_doing_it_wrong`) et charge en `auto`.
 | `immediate` | pas de bouton, une recherche par case cochée | un catalogue modeste, où la réponse immédiate vaut le coût |
 
 Le mode voyage **dans la description JSON** que le serveur publie (`'apply' => …`), lue par
-`Listing.searchesAtOnce`. L'attribut `data-apply` du bloc de facettes est rendu pour le thème, qui
+`Listing.appliesImmediately`. L'attribut `data-apply` du bloc de facettes est rendu pour le thème, qui
 peut s'en servir pour styler ; **le client ne le lit pas**.
 
 ⚠️ En mode `submit`, cocher une case ne cherche rien mais pose l'état : trier, paginer ou remettre
@@ -1006,7 +1006,7 @@ Toute facette écarte par défaut le **terme de repli** de sa taxonomie — « N
 « Uncategorized » —, lu depuis `default_term_<taxonomie>` ou `default_<taxonomie>` selon la
 convention en usage. Il dit qu'un contenu n'a été rangé nulle part, ce qui n'est pas une manière de
 parcourir un catalogue. Une facette dont le repli est un terme réel, choisi par un éditeur, déclare
-`defaultTerm: DefaultTerm::Shown`. Écarter la valeur ne retire pas le contenu du listing. Le mode de sélection n'est pas cosmétique : seule une
+`defaultTerm: DefaultTermVisibility::Shown`. Écarter la valeur ne retire pas le contenu du listing. Le mode de sélection n'est pas cosmétique : seule une
 facette multi-sélection reçoit une recherche disjonctive, et seulement une fois qu'elle
 contraint réellement les résultats.
 
@@ -1263,7 +1263,7 @@ Le déclencheur nomme le tri en force : « Trier par : Pertinence », une seule 
 (fr `Trier par\u00a0: :choice`, espace insécable ; surchargeable par le catalogue du thème). La
 phrase est découpée autour de la valeur, où que la langue la place (en tête, au milieu, en fin) :
 le texte qui l'entoure et la valeur (`.meilifacetsSortChoice`, crochet `sort-chosen`) sont deux
-nœuds distincts de `.meilifacetsSortSummary`. *Depuis le 2026-09-25 (`R-178`) : la clé `: :choice`
+nœuds distincts de `.meilifacetsSortCaption`. *Depuis le 2026-09-25 (`R-178`) : la clé `: :choice`
 n'existe plus.* Le libellé seul (`.meilifacetsFacetToggleLabel`, clé `Sort by`) ne sert qu'à la
 section du tiroir, où la phrase est hors de vue mais reste le nom accessible ; il porte
 `aria-hidden` pour n'être jamais lu deux fois, et laisse place à la phrase dans la pill à partir de

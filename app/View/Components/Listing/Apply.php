@@ -44,7 +44,7 @@ final class Apply extends ListingComponent
         };
     }
 
-    public function onlyInSheet(): bool
+    public function onlyInDrawer(): bool
     {
         return ! $this->listing->applyMode()->needsButton();
     }

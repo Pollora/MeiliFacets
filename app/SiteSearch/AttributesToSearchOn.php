@@ -9,7 +9,7 @@ use Modules\MeiliFacets\Contracts\SearchableAttributes;
 /** The engine refuses a whole query that names one field outside `searchableAttributes`. */
 final readonly class AttributesToSearchOn
 {
-    public function __construct(private SearchableAttributes $order) {}
+    public function __construct(private SearchableAttributes $searchable) {}
 
     /**
      * @param  list<string>  $wanted
@@ -17,7 +17,7 @@ final readonly class AttributesToSearchOn
      */
     public function among(array $wanted): array
     {
-        return array_values(array_intersect($this->order->all(), $wanted));
+        return array_values(array_intersect($this->searchable->all(), $wanted));
     }
 
     /**
@@ -26,6 +26,6 @@ final readonly class AttributesToSearchOn
      */
     public function outside(array $fields): array
     {
-        return array_values(array_diff($fields, $this->order->all()));
+        return array_values(array_diff($fields, $this->searchable->all()));
     }
 }

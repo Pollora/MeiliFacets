@@ -44,7 +44,7 @@ export class FacetsView implements SelectionHolder {
         return this.#taxonomies.get(input.name)
     }
 
-    heldIn(block: Element, state: ListingState): number | undefined {
+    selectedIn(block: Element, state: ListingState): number | undefined {
         const taxonomy = this.#taxonomyIn(block)
 
         return taxonomy === undefined ? undefined : state.selected(taxonomy).length

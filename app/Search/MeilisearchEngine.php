@@ -34,13 +34,13 @@ final readonly class MeilisearchEngine implements SearchEngine
      */
     private function send(array $queries): array
     {
-        $client = $this->client ?? throw SearchFailed::unconfigured();
+        $client = $this->client ?? throw EngineUnavailable::unconfigured();
         $searches = array_map($this->toSearchQuery(...), $queries);
 
         try {
             return $client->multiSearch($searches)['results'] ?? [];
         } catch (Throwable $failure) {
-            throw SearchFailed::unreachable($failure);
+            throw EngineUnavailable::unreachable($failure);
         }
     }
 

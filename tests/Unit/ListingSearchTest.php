@@ -177,7 +177,7 @@ final class ListingSearchTest extends TestCase
     }
 
     #[Test]
-    public function it_counts_apart_the_facet_the_counter_measures_apart(): void
+    public function it_counts_separately_the_facet_the_counter_measures_separately(): void
     {
         $engine = new FakeSearchEngine;
 
@@ -217,7 +217,7 @@ final class ListingSearchTest extends TestCase
     }
 
     #[Test]
-    public function it_never_asks_the_main_search_for_bounds_it_measures_apart(): void
+    public function it_never_asks_the_main_search_for_bounds_it_measures_separately(): void
     {
         $engine = new FakeSearchEngine;
         $listing = FakeListing::withPriceAndBrand();

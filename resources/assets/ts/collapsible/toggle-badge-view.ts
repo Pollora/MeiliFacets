@@ -5,7 +5,7 @@ import type { ListingState } from '../listing/listing-state.ts'
 
 /** A control that knows what one filter block holds; `undefined` for a block that is not its own. */
 export interface SelectionHolder {
-    heldIn(block: Element, state: ListingState): number | undefined
+    selectedIn(block: Element, state: ListingState): number | undefined
 }
 
 /**
@@ -38,6 +38,6 @@ export class ToggleBadgeView {
             return undefined
         }
 
-        return this.#holders.map((holder) => holder.heldIn(block, state)).find((count) => count !== undefined)
+        return this.#holders.map((holder) => holder.selectedIn(block, state)).find((count) => count !== undefined)
     }
 }

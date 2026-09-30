@@ -1,24 +1,24 @@
 /** A term the engine tokenises into nothing serves the whole index (`R-159`). */
 const WORD = /[\p{L}\p{N}]/u
 
-export interface TypingSettings {
+export interface SearchTermSettings {
     minChars: number
     delay: number
 }
 
-export interface TypedTerms {
+export interface TermListener {
     search(term: string): void
     clear(): void
 }
 
 /** Turns keystrokes into terms worth a search: long enough, holding a word, and typed at rest. */
-export class Typing {
+export class SearchTermInput {
     #input: HTMLInputElement
-    #settings: TypingSettings
+    #settings: SearchTermSettings
     #timer: ReturnType<typeof setTimeout> | undefined
     #term = ''
 
-    constructor(input: HTMLInputElement, settings: TypingSettings) {
+    constructor(input: HTMLInputElement, settings: SearchTermSettings) {
         this.#input = input
         this.#settings = settings
     }
@@ -28,7 +28,7 @@ export class Typing {
         return [...term].length >= minChars && WORD.test(term)
     }
 
-    start(terms: TypedTerms) {
+    start(terms: TermListener) {
         this.#input.addEventListener('input', () => this.#typed(terms))
 
         if (this.#input.value !== '') {
@@ -38,7 +38,7 @@ export class Typing {
         return this
     }
 
-    #typed(terms: TypedTerms) {
+    #typed(terms: TermListener) {
         const term = this.#input.value.trim()
 
         if (term === this.#term) {
@@ -48,7 +48,7 @@ export class Typing {
         clearTimeout(this.#timer)
         this.#term = term
 
-        if (Typing.isSearchable(term, this.#settings.minChars)) {
+        if (SearchTermInput.isSearchable(term, this.#settings.minChars)) {
             this.#timer = setTimeout(() => terms.search(term), this.#settings.delay)
         } else {
             terms.clear()

@@ -1,26 +1,26 @@
 import { Contract } from '../shared/contract.ts'
-import { FocusLanding } from './focus-landing.ts'
+import { FocusFallback } from './focus-fallback.ts'
 
 /** A reset hides itself once pressed: the focus it held lands on the next thing to do, never on `body`. */
 export class ResetFocus {
     #contract: Contract
-    #landing: FocusLanding
+    #focusFallback: FocusFallback
 
     constructor(contract: Contract) {
         this.#contract = contract
-        this.#landing = new FocusLanding(contract.root)
+        this.#focusFallback = new FocusFallback(contract.root)
     }
 
     landFrom(reset: Element) {
-        if (reset.matches('[hidden]') && this.#landing.isLost(reset)) {
+        if (reset.matches('[hidden]') && this.#focusFallback.isLost(reset)) {
             this.#land(reset)
         }
     }
 
     #land(reset: Element) {
-        const landing = this.#applyBeside(reset) ?? this.#sheetTitleOver(reset) ?? this.#landing.root()
+        const target = this.#applyBeside(reset) ?? this.#sheetTitleOver(reset) ?? this.#focusFallback.target()
 
-        landing?.focus({ preventScroll: true })
+        target?.focus({ preventScroll: true })
     }
 
     /** « Apply » from the same drawer, or from the listing when the reset sits in none. */

@@ -9,9 +9,9 @@ use Modules\MeiliFacets\Enums\SortWidget;
 use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\View\Components\ListingComponent;
 use Modules\MeiliFacets\View\Disclosure;
+use Modules\MeiliFacets\View\SortCaption;
 use Modules\MeiliFacets\View\SortChoice;
 use Modules\MeiliFacets\View\SortChoices;
-use Modules\MeiliFacets\View\SortSummary;
 
 final class Sort extends ListingComponent
 {
@@ -23,7 +23,7 @@ final class Sort extends ListingComponent
 
     public SortChoice $selected;
 
-    public SortSummary $summary;
+    public SortCaption $caption;
 
     public SortWidget $widget;
 
@@ -46,7 +46,7 @@ final class Sort extends ListingComponent
             $this->listing->sortMatches(),
         );
         $this->selected = $this->currentChoice();
-        $this->summary = $this->summaryOf($this->selected->label);
+        $this->caption = $this->captionOf($this->selected->label);
     }
 
     /** A single order leaves nothing to choose. */
@@ -65,7 +65,7 @@ final class Sort extends ListingComponent
 
     public function disclosure(): Disclosure
     {
-        return Disclosure::withSilentLabel($this->summary->label, $this->ids->sortPanel());
+        return Disclosure::withSilentLabel($this->caption->label, $this->ids->sortPanel());
     }
 
     public function panelId(): string
@@ -78,12 +78,12 @@ final class Sort extends ListingComponent
         return $this->ids->sortChoiceName();
     }
 
-    private function summaryOf(string $choice): SortSummary
+    private function captionOf(string $choice): SortCaption
     {
         $sentence = __('Sort by: :choice');
         [$lead, $trail] = explode(self::CHOICE_PLACEHOLDER, $sentence, 2) + [1 => ''];
 
-        return new SortSummary(__('Sort by'), $lead, $choice, $trail);
+        return new SortCaption(__('Sort by'), $lead, $choice, $trail);
     }
 
     private function currentChoice(): SortChoice

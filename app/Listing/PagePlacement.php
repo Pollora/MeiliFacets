@@ -14,7 +14,7 @@ final class PagePlacement
     private array $rendered = [];
 
     /** @var array<string, true> facet names a template placed on their own */
-    private array $apart = [];
+    private array $placedOnTheirOwn = [];
 
     public function __construct(private readonly string $listing) {}
 
@@ -31,9 +31,9 @@ final class PagePlacement
     }
 
     /** Designated by name, so the group leaves it alone. */
-    public function placeApart(Placeable $facet): void
+    public function placeOnItsOwn(Placeable $facet): void
     {
-        $this->apart[$facet->name] = true;
+        $this->placedOnTheirOwn[$facet->name] = true;
 
         $this->place($facet);
     }
@@ -58,7 +58,7 @@ final class PagePlacement
     {
         return array_values(array_filter(
             $filters,
-            fn (Placeable $filter): bool => ! isset($this->apart[$filter->name])
+            fn (Placeable $filter): bool => ! isset($this->placedOnTheirOwn[$filter->name])
         ));
     }
 

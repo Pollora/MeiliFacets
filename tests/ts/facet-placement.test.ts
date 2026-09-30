@@ -8,7 +8,7 @@ import type { StyleProperty, TestWindow } from './dom.ts'
 describe('a facet placed outside the group', () => {
     let window: TestWindow
     let grouped: Element | undefined
-    let apart: Element | undefined
+    let onItsOwn: Element | undefined
 
     beforeEach(() => {
         ({ window } = open(listingMarkup(), { styled: true }))
@@ -16,7 +16,7 @@ describe('a facet placed outside the group', () => {
         const facets = [...window.document.querySelectorAll('[data-meili="facet"]')]
 
         grouped = facets.find((facet) => facet.closest('[data-meili="facets"]') !== null)
-        apart = facets.find((facet) => facet.closest('[data-meili="facets"]') === null)
+        onItsOwn = facets.find((facet) => facet.closest('[data-meili="facets"]') === null)
     })
 
     const compare = (pick: (facet: Element) => Element | null, ...properties: StyleProperty[]) => {
@@ -30,7 +30,7 @@ describe('a facet placed outside the group', () => {
             return Object.fromEntries(properties.map((property) => [property, styles[property]]))
         }
 
-        assert.deepEqual(of(apart), of(grouped))
+        assert.deepEqual(of(onItsOwn), of(grouped))
     }
 
     it('reads at the scale of the listing, not of the page', () => {

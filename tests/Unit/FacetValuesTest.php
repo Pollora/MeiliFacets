@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Tests\Unit;
 
-use Modules\MeiliFacets\Enums\DefaultTerm;
+use Modules\MeiliFacets\Enums\DefaultTermVisibility;
 use Modules\MeiliFacets\Enums\DisplayOrder;
 use Modules\MeiliFacets\Listing\ChildTermsFacet;
 use Modules\MeiliFacets\Listing\Facet;
@@ -252,7 +252,7 @@ final class FacetValuesTest extends TestCase
     public function it_keeps_the_fallback_a_facet_asks_to_show(): void
     {
         $values = $this->withFallback()->of(
-            new Facet('product_cat', 'Category', defaultTerm: DefaultTerm::Shown),
+            new Facet('product_cat', 'Category', defaultTerm: DefaultTermVisibility::Shown),
             ['a' => 4, 'non-classe' => 1],
             new ListingState
         );

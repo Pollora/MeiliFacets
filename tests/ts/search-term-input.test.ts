@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
-import { Typing } from '../../resources/assets/ts/site-search/typing.ts'
+import { SearchTermInput } from '../../resources/assets/ts/site-search/search-term-input.ts'
 import { find, load } from './dom.ts'
 import { typeInto } from './site-search-fixtures.ts'
 
@@ -14,7 +14,7 @@ const typing = (t: TestContext, value = '') => {
     const input = find<HTMLInputElement>(window.document, 'input')
     const heard: string[] = []
 
-    new Typing(input, { minChars: 2, delay: 120 }).start({
+    new SearchTermInput(input, { minChars: 2, delay: 120 }).start({
         search: (term) => heard.push(term),
         clear: () => heard.push('(cleared)'),
     })
@@ -22,7 +22,7 @@ const typing = (t: TestContext, value = '') => {
     return { heard, type: (term: string) => typeInto(window, input, term) }
 }
 
-describe('Typing', () => {
+describe('SearchTermInput', () => {
     it('searches once the visitor has paused for the delay, and not before', (t) => {
         const { heard, type } = typing(t)
 
@@ -55,7 +55,7 @@ describe('Typing', () => {
         t.mock.timers.tick(120)
 
         assert.deepEqual(heard, ['(cleared)', '(cleared)'])
-        assert.equal(Typing.isSearchable('é1', 2), true)
+        assert.equal(SearchTermInput.isSearchable('é1', 2), true)
     })
 
     it('never searches a term holding no letter and no figure (R-159)', (t) => {
@@ -67,7 +67,7 @@ describe('Typing', () => {
         }
 
         assert.deepEqual(heard, ['(cleared)', '(cleared)', '(cleared)', '(cleared)'])
-        assert.equal(Typing.isSearchable('  ', 2), false)
+        assert.equal(SearchTermInput.isSearchable('  ', 2), false)
     })
 
     it('does not search again for a term that only gained spaces', (t) => {

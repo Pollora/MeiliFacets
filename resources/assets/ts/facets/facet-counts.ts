@@ -17,8 +17,8 @@ export class FacetCounts {
     }
 
     of(facet: FacetDescription): Record<string, number> {
-        const apart = this.#answers[FacetQuery.keyFor(facet.taxonomy)]
-        const response = apart ?? this.#answers[RESULTS] ?? {}
+        const measuredSeparately = this.#answers[FacetQuery.keyFor(facet.taxonomy)]
+        const response = measuredSeparately ?? this.#answers[RESULTS] ?? {}
 
         return response.facetDistribution?.[facetField(facet)] ?? {}
     }

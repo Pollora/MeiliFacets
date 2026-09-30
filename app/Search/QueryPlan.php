@@ -39,16 +39,16 @@ final readonly class QueryPlan
     }
 
     /**
-     * @param  list<string>  $apartKeys  the keys of the searches that measure a filter on their own
+     * @param  list<string>  $separatelyMeasuredKeys  the keys of the searches that measure a filter on their own
      * @return array<string, mixed>
      */
-    public static function results(Listing $listing, ListingState $state, array $apartKeys): array
+    public static function results(Listing $listing, ListingState $state, array $separatelyMeasuredKeys): array
     {
         $filters = self::filterQueries($listing);
         $query = [
             'q' => self::searched($listing, $state),
             'filter' => self::filter($listing, $state, $filters),
-            'facets' => self::fieldsOnMain($filters, $apartKeys),
+            'facets' => self::fieldsOnMain($filters, $separatelyMeasuredKeys),
             // `hitsPerPage`/`page` answer with `totalHits` and `totalPages`;
             // `limit`/`offset` only give an estimate, capped at maxTotalHits.
             'hitsPerPage' => $listing->perPage(),
@@ -64,7 +64,7 @@ final readonly class QueryPlan
     /**
      * @return array<string, mixed>
      */
-    public static function apart(Listing $listing, ListingState $state, FilterQuery $lifted): array
+    public static function measureWithout(Listing $listing, ListingState $state, FilterQuery $lifted): array
     {
         $others = array_filter(
             self::filterQueries($listing),
@@ -112,12 +112,12 @@ final readonly class QueryPlan
 
     /**
      * @param  list<FilterQuery>  $filters
-     * @param  list<string>  $apartKeys
+     * @param  list<string>  $separatelyMeasuredKeys
      * @return list<string>
      */
-    private static function fieldsOnMain(array $filters, array $apartKeys): array
+    private static function fieldsOnMain(array $filters, array $separatelyMeasuredKeys): array
     {
-        $onMain = array_filter($filters, static fn (FilterQuery $filter): bool => ! in_array($filter->key(), $apartKeys, true));
+        $onMain = array_filter($filters, static fn (FilterQuery $filter): bool => ! in_array($filter->key(), $separatelyMeasuredKeys, true));
 
         return array_merge(...array_map(static fn (FilterQuery $filter): array => $filter->fields(), array_values($onMain)));
     }

@@ -170,7 +170,7 @@ const priceHandle = (bound: string, at: number, now: number) => `
                                     data-bound="${bound}" data-meili="price-handle"><span data-meili="price-tip"></span></button>`
 
 const priceBlock = (folding: Folding) => `
-        <fieldset class="meilifacetsFacet" data-taxonomy="price" data-meili="facet">
+        <fieldset class="meilifacetsFacet" data-filter="price" data-meili="facet">
             <legend class="meilifacetsFacetLabel">${folding.legend('price', 'Price')}</legend>
             <div class="meilifacetsFacetPanel" id="panel-price"${folding.panel}>
                 <div class="meilifacetsFacetPanelInner">

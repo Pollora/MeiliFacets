@@ -3282,6 +3282,49 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
+### R-200 · ⚪ · ouvert (en attente de commit) · ouvert le 2026-09-30 — noms internes qui disaient une métaphore plutôt que ce qu'ils font
+
+Issu d'un audit de nommage, liste validée par Louis. Pur renommage : aucun comportement, aucun crochet `data-meili`, `Contract::VERSION`
+inchangé (`1`). Aucun alias, fichiers déplacés par `git mv`. Rien n'est commité, réindexé ni écrit en base ou dans le moteur.
+
+**Client (TypeScript).** `Departure` → `ExitFade` (`exit-fade.ts`), ses types `Place`/`Origin`/`Frames` → `ExitFadeStart`/
+`ExitFadeOrigin`/`ExitFadeLayout` ; `PanelRoom` → `PanelAvailableHeight` (`panel-available-height.ts`), jeton
+`--meili-search-room` → `--meili-search-available-height` ; `SearchesUnderWay.leave()/end()` → `PendingSearches.start()/finish()`
+(`pending-searches.ts`), `BusySpan` → `BusyListener` ; `HistorySeam`/`SearchSeam`/`WithdrawSeam` → `ListingHistory`/`Searcher`/
+`ValueRemover` ; `isMeasuredApart` → `isMeasuredSeparately` ; `NewPills` → `NewActiveValues` (`new-active-values.ts`), `#pill` →
+`#activeValue` ; `Listing.withdraw()/withdrawPrice()` → `remove()/removePrice()` ; `heldIn`/`showHeld` → `selectedIn`/`showSelected` ;
+`searchesAtOnce`/`#byMode`/`#atOnce`/`#moveTo`/`#announce` → `appliesImmediately`/`#applyIfImmediate`/`#applyNow`/`#setState`/`#dispatch` ;
+`EntranceTiming` → `AnimationTiming` ; `PanelMotion.pop()/drop()` → `showFloating()/hideInstantly()` ; `HeldPaint` → `DeferredRepaint`
+(`deferred-repaint.ts`), `ListingDrawers.paintPage` → `repaintBehindDrawer` ; `Drawn`/`isDrawn` → `StylableElement`/`isStylable`
+(`stylable-element.ts`) ; `FocusLanding.root()` → `FocusFallback.target()` (`focus-fallback.ts`) ; `Typing`/`TypingSettings`/`TypedTerms`
+→ `SearchTermInput`/`SearchTermSettings`/`TermListener` (`search-term-input.ts`) ; `ComboboxMove.action` `follow`/`hold`/`release` →
+`openLink`/`ignore`/`deactivate`, `offer()` → `setOptions()`.
+
+**Serveur (PHP).** `QueryPlan::apart()` → `measureWithout()`, `$apartKeys` → `$separatelyMeasuredKeys`, `isMeasuredApart()` →
+`isMeasuredSeparately()` ; `PagePlacement::placeApart()` → `placeOnItsOwn()` ; `Http\Unavailable::announce()` →
+`ServiceUnavailable::sendHeaders()` ; `DefaultTerm` → `DefaultTermVisibility` ; `FacetValueOrder` → `EngineFacetSort` ;
+`FieldsOutsideSearchOrder`/`ensureWithinOrder`/`$order` → `UnsearchableFields`/`ensureSearchable`/`$searchable` ; `SortSummary` →
+`SortCaption` (propriété `$caption`, classe `meilifacetsSortCaption` : libellé du bouton replié comme légende des boutons radio) ; `Apply::onlyInSheet()` → `onlyInDrawer()` ;
+`SearchRegistry::open()` → `add()` ; `Search\SearchResults`/`SearchFailed` → `Search\ListingResults`/`EngineUnavailable`, laissés à
+côté de ce qui les produit (`ListingSearch`, `MeilisearchEngine`) ; vue du prix : `data-taxonomy` → `data-filter`, `Price::$facet` →
+`$filter`, alias `Declaration` retiré.
+
+**Tests.** `CounterSeamBindingTest`/`ProductSeamBindingTest` → `…DefaultBindingTest` ; `ProbeSearchCard` → `ProjectSearchCard` ;
+`PriceRangeTest` découpé en `RangeTest` (5), `PriceFilterTest` (8, `PriceBound` compris) et `FilterExpressionTest` (+3, `overlapping()`).
+Les noms de test qui citaient un ancien nom suivent (`…_placed_on_its_own`, `…_measured_separately`).
+
+**Écarts à la proposition.** `countWithout`/`isCountedSeparately`/`separateCountKeys` refusés : la recherche à part lit aussi les bornes
+du prix, qui ne sont pas un compte (`countQueries` et `boundsQueries` dans `ListingSearch`) ; « measure » est déjà le mot du PHPDoc de
+`QueryPlan`. `Price::__construct(… $facet)` garde son nom : c'est l'attribut Blade `facet="…"`, commun avec `listing.facet`.
+`data-filter` n'est lu par aucun code du client ni couvert par le contrat : aucun crochet ni parité à ajouter.
+
+**Vérifié.** `composer check` vert (Unit 359, client 691/691) ; suite `Modules` **OK (691 tests)**. HTML de `/`, `/boutique`,
+`/categorie-produit/visage`, `/?s=creme&post_type=product` comparé avant/après, jetons Gravity Forms et `ver=` neutralisés : seuls
+`data-filter` et `meilifacetsSortCaption` diffèrent — plus, sur `/categorie-produit/visage`, la valeur « Soins visage », due au produit
+116 modifié en base à 08:44 par un tiers entre les deux captures. Thème et `pluralia-fulfillments` : aucune référence (grep). Recette
+Chrome : `/boutique` facette, prix, tri, pastilles (focus rendu au listing), pagination, tiroir mobile ; recherche du header ouverture,
+frappe, ↓/Entrée, Échap ; console vide.
+
 ### R-199 · 🟡 · ouvert (en attente de commit) · ouvert le 2026-09-29 — revue de code avant commit (`R-195` à `R-198`)
 
 Rattaché à `R-180`. Revue du non-commité depuis `378f1cb`, corrections validées par Louis. Rien n'est commité, réindexé

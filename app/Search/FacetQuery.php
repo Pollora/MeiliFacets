@@ -37,7 +37,7 @@ final readonly class FacetQuery implements FilterQuery
      * A facet only needs a search of its own once it constrains the results;
      * until then the main response counts it correctly.
      */
-    public function isMeasuredApart(ListingState $state): bool
+    public function isMeasuredSeparately(ListingState $state): bool
     {
         return $this->facet->needsDisjunctiveCount() && $state->selected($this->facet->taxonomy) !== [];
     }

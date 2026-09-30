@@ -6,7 +6,7 @@ namespace Modules\MeiliFacets\SiteSearch;
 
 use LogicException;
 
-final class FieldsOutsideSearchOrder extends LogicException
+final class UnsearchableFields extends LogicException
 {
     /**
      * @param  list<string>  $fields

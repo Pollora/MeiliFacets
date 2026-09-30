@@ -18,22 +18,22 @@ final readonly class AcceptedSearchTypes
     /**
      * @return array<string, SearchableType> keyed by post type, in the order they were declared
      *
-     * @throws FieldsOutsideSearchOrder
+     * @throws UnsearchableFields
      */
     public function all(): array
     {
         $accepted = array_intersect_key($this->declared->all(), array_flip($this->indexed->all()));
-        array_walk($accepted, $this->ensureWithinOrder(...));
+        array_walk($accepted, $this->ensureSearchable(...));
 
         return $accepted;
     }
 
-    private function ensureWithinOrder(SearchableType $type): void
+    private function ensureSearchable(SearchableType $type): void
     {
         $outside = $this->searchOn->outside($type->searchOn);
 
         if ($outside !== []) {
-            throw FieldsOutsideSearchOrder::for($type->postType, $outside);
+            throw UnsearchableFields::for($type->postType, $outside);
         }
     }
 }

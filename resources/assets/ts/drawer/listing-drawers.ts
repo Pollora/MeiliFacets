@@ -1,5 +1,5 @@
 import { Drawer } from './drawer.ts'
-import { HeldPaint } from './held-paint.ts'
+import { DeferredRepaint } from './deferred-repaint.ts'
 
 import type { DisclosureGroup } from '../collapsible/disclosure-group.ts'
 import type { Contract } from '../shared/contract.ts'
@@ -7,15 +7,15 @@ import type { Contract } from '../shared/contract.ts'
 /** The drawers over a listing, and the repaints of the page they hold back while one covers it. */
 export class ListingDrawers {
     #drawers: Drawer[]
-    #held: HeldPaint
+    #deferredRepaint: DeferredRepaint
 
     constructor(contract: Contract, disclosures: DisclosureGroup) {
-        this.#held = new HeldPaint(contract.window, () => this.#coverThePage())
+        this.#deferredRepaint = new DeferredRepaint(contract.window, () => this.#coverThePage())
         this.#drawers = contract.all('drawer')
             .filter((drawer): drawer is HTMLElement => drawer instanceof HTMLElement)
             .map((drawer) => new Drawer(contract, drawer, {
                 hidden: (left) => disclosures.collapseWithin(left),
-                uncovered: () => this.#held.release(),
+                uncovered: () => this.#deferredRepaint.release(),
             }))
     }
 
@@ -25,8 +25,8 @@ export class ListingDrawers {
         return this
     }
 
-    paintPage(paint: () => void) {
-        this.#held.paint(paint)
+    repaintBehindDrawer(paint: () => void) {
+        this.#deferredRepaint.paint(paint)
     }
 
     #coverThePage() {

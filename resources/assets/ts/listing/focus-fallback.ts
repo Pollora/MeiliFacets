@@ -1,7 +1,7 @@
-const LANDING = -1
+const NOT_IN_TAB_ORDER = -1
 
 /** Where a focus lands once the control holding it is gone: somewhere the visitor can go on from, never `body`. */
-export class FocusLanding {
+export class FocusFallback {
     #root: Element
 
     constructor(root: Element) {
@@ -16,13 +16,13 @@ export class FocusLanding {
     }
 
     /** The listing itself, made focusable when the theme did not. */
-    root() {
+    target() {
         if (!(this.#root instanceof HTMLElement)) {
             return null
         }
 
         if (!this.#root.hasAttribute('tabindex')) {
-            this.#root.tabIndex = LANDING
+            this.#root.tabIndex = NOT_IN_TAB_ORDER
         }
 
         return this.#root

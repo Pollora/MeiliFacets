@@ -14,7 +14,7 @@ use Modules\MeiliFacets\Contracts\SearchableTypes;
 use Modules\MeiliFacets\SiteSearch\AcceptedSearchTypes;
 use Modules\MeiliFacets\SiteSearch\SearchSettings;
 use Modules\MeiliFacets\SiteSearch\WooCommerceSearchableTypes;
-use Modules\MeiliFacets\Tests\Unit\Doubles\ProbeSearchCard;
+use Modules\MeiliFacets\Tests\Unit\Doubles\ProjectSearchCard;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -304,7 +304,7 @@ final class SearchCompositionTest extends TestCase
     #[Test]
     public function it_renders_the_card_a_project_hands_one_type(): void
     {
-        Blade::component(ProbeSearchCard::class, ProbeSearchCard::ALIAS);
+        Blade::component(ProjectSearchCard::class, ProjectSearchCard::ALIAS);
         // `<x-dynamic-component>` keeps the aliases known at its first use in the process.
         (static fn (): null => self::$compiler = null)->bindTo(null, DynamicComponent::class)();
         $this->app->scoped(SearchableTypes::class, fn (): SearchableTypes => new readonly class($this->app->make(WooCommerceSearchableTypes::class)) implements SearchableTypes
@@ -314,7 +314,7 @@ final class SearchCompositionTest extends TestCase
             public function all(): array
             {
                 $types = $this->default->all();
-                $types['post'] = $types['post']->withCard(ProbeSearchCard::ALIAS);
+                $types['post'] = $types['post']->withCard(ProjectSearchCard::ALIAS);
 
                 return $types;
             }

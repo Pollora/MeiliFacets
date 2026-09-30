@@ -1,10 +1,10 @@
-const ROOM = '--meili-search-room'
+const AVAILABLE_HEIGHT = '--meili-search-available-height'
 
 /**
  * The height left under the panel's top edge, written where the stylesheet
  * reads it while the panel is open, and taken back once it closes.
  */
-export class PanelRoom {
+export class PanelAvailableHeight {
     #panel: HTMLElement
 
     constructor(panel: HTMLElement) {
@@ -13,13 +13,13 @@ export class PanelRoom {
 
     measure() {
         const viewport = this.#panel.ownerDocument.defaultView?.innerHeight ?? 0
-        const room = Math.max(0, viewport - this.#top())
+        const availableHeight = Math.max(0, viewport - this.#top())
 
-        this.#panel.style.setProperty(ROOM, `${room}px`)
+        this.#panel.style.setProperty(AVAILABLE_HEIGHT, `${availableHeight}px`)
     }
 
     release() {
-        this.#panel.style.removeProperty(ROOM)
+        this.#panel.style.removeProperty(AVAILABLE_HEIGHT)
     }
 
     /** From its anchor rather than its own box: the panel is measured while it still slides in, its box offset by its transform. */

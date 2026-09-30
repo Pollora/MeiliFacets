@@ -68,7 +68,7 @@ final class QueryPlanTest extends TestCase
         $state = new ListingState(['product_brand' => ['acme']], 'on_sale', price: new Range(min: 20.0));
         $filters = QueryPlan::filterQueries($listing);
 
-        foreach ([QueryPlan::results($listing, $state, []), QueryPlan::apart($listing, $state, $filters[0]), QueryPlan::apart($listing, $state, $filters[1])] as $query) {
+        foreach ([QueryPlan::results($listing, $state, []), QueryPlan::measureWithout($listing, $state, $filters[0]), QueryPlan::measureWithout($listing, $state, $filters[1])] as $query) {
             $this->assertStringContainsString('price.onsale = "true"', $query['filter']);
         }
 
@@ -146,7 +146,7 @@ final class QueryPlanTest extends TestCase
      * other values keep a count and stay reachable.
      */
     #[Test]
-    public function it_leaves_off_the_main_search_the_fields_it_is_told_are_measured_apart(): void
+    public function it_leaves_off_the_main_search_the_fields_it_is_told_are_measured_separately(): void
     {
         $state = new ListingState(['product_brand' => ['acme']]);
 
@@ -179,7 +179,7 @@ final class QueryPlanTest extends TestCase
         $listing = FakeListing::withPriceAndBrand();
         $state = new ListingState(['product_brand' => ['acme']], price: new Range(55.0, 120.0));
 
-        $bounds = QueryPlan::apart($listing, $state, $this->priceOf($listing));
+        $bounds = QueryPlan::measureWithout($listing, $state, $this->priceOf($listing));
 
         $this->assertStringNotContainsString('price.', $bounds['filter']);
         $this->assertStringContainsString('post_type = "product"', $bounds['filter']);
@@ -189,13 +189,13 @@ final class QueryPlanTest extends TestCase
     }
 
     #[Test]
-    public function it_keeps_the_held_range_on_the_search_that_counts_a_facet_apart(): void
+    public function it_keeps_the_held_range_on_the_search_that_counts_a_facet_separately(): void
     {
         $listing = FakeListing::withPriceAndBrand();
         $state = new ListingState(['product_brand' => ['acme']], price: new Range(max: 120.0));
         $brand = QueryPlan::filterQueries($listing)[0];
 
-        $counting = QueryPlan::apart($listing, $state, $brand);
+        $counting = QueryPlan::measureWithout($listing, $state, $brand);
 
         $this->assertStringContainsString('price.min <= 120', $counting['filter']);
         $this->assertStringNotContainsString('facets.product_brand', $counting['filter']);

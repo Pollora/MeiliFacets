@@ -1,7 +1,7 @@
-import { isDrawn } from './drawn.ts'
+import { isStylable } from './stylable-element.ts'
 
 import type { Contract } from '../shared/contract.ts'
-import type { Drawn } from './drawn.ts'
+import type { StylableElement } from './stylable-element.ts'
 
 const ACTIVE_HANDLE = 'data-active'
 
@@ -15,14 +15,14 @@ const GESTURE_ENDINGS = ['pointerup', 'pointercancel', 'lostpointercapture'] as 
 type PointerGesture = 'pointermove' | typeof GESTURE_ENDINGS[number]
 
 export class SliderDrag {
-    #track: Drawn | null
-    #grabbed: Drawn | null = null
+    #track: StylableElement | null
+    #grabbed: StylableElement | null = null
     #captured: number | null = null
 
     constructor(contract: Contract) {
         const track = contract.one('price-track')
 
-        this.#track = isDrawn(track) ? track : null
+        this.#track = isStylable(track) ? track : null
     }
 
     get grabbed() {
@@ -48,7 +48,7 @@ export class SliderDrag {
         })
     }
 
-    grab(handle: Drawn, event: PointerEvent) {
+    grab(handle: StylableElement, event: PointerEvent) {
         if (event.button !== MAIN_BUTTON) {
             return
         }
@@ -59,7 +59,7 @@ export class SliderDrag {
     }
 
     /** `:active` stays on the handle that was pressed, while a crossing hands the drag to the other. */
-    handOver(handle: Drawn | null) {
+    handOver(handle: StylableElement | null) {
         this.#mark(handle)
     }
 
@@ -87,7 +87,7 @@ export class SliderDrag {
         this.#track?.addEventListener(gesture, listener)
     }
 
-    #mark(handle: Drawn | null) {
+    #mark(handle: StylableElement | null) {
         this.#grabbed?.removeAttribute(ACTIVE_HANDLE)
         this.#grabbed = handle
         handle?.setAttribute(ACTIVE_HANDLE, '')

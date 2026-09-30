@@ -17,7 +17,7 @@ const stats = (min: number, max: number) => ({
 const span = (range: Range) => ({ min: range.min, max: range.max })
 
 describe('price bounds read off the answers', () => {
-    it('reads the search that measured them apart before the main one', () => {
+    it('reads the search that measured them separately before the main one', () => {
         const answers = { [RESULTS]: stats(0, 199), [PriceQuery.KEY]: stats(9, 47) }
 
         assert.deepEqual(span(query.boundsFrom(answers)), { min: 9, max: 47 })

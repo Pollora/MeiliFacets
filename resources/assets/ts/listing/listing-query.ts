@@ -26,8 +26,8 @@ export class ListingQuery {
         const queries: Plan = { [RESULTS]: this.#results(state) }
 
         for (const filterQuery of this.#filterQueries) {
-            if (filterQuery.isMeasuredApart(state)) {
-                queries[filterQuery.key] = this.#apart(filterQuery, state)
+            if (filterQuery.isMeasuredSeparately(state)) {
+                queries[filterQuery.key] = this.#measureWithout(filterQuery, state)
             }
         }
 
@@ -41,7 +41,7 @@ export class ListingQuery {
         return {
             q: this.#text(state),
             filter: this.#filterExpression(state, null),
-            facets: this.#filterQueries.filter((query) => !query.isMeasuredApart(state)).flatMap((query) => query.fields),
+            facets: this.#filterQueries.filter((query) => !query.isMeasuredSeparately(state)).flatMap((query) => query.fields),
             hitsPerPage: perPage,
             page: state.page,
             ...(attributes ? { attributesToRetrieve: attributes } : {}),
@@ -53,7 +53,7 @@ export class ListingQuery {
         return state.query !== '' ? state.query : this.#listing.baseQuery
     }
 
-    #apart(lifted: FilterQuery, state: ListingState): FacetedQuery {
+    #measureWithout(lifted: FilterQuery, state: ListingState): FacetedQuery {
         return {
             q: this.#text(state),
             filter: this.#filterExpression(state, lifted),

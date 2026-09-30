@@ -7,7 +7,7 @@ namespace Modules\MeiliFacets\Tests\Unit\Doubles;
 use Illuminate\View\Component;
 
 /** A card a project hands one type through `withCard()`. */
-final class ProbeSearchCard extends Component
+final class ProjectSearchCard extends Component
 {
     public const string ALIAS = 'probe-search-card';
 

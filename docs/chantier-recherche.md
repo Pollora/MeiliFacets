@@ -178,7 +178,7 @@ cherchable » s'ajoutent à `R-27` (même cause, même correctif). Sous le parap
 
 | # | Question | État |
 | --- | --- | --- |
-| D-1 | Où vit le code | **tranché** — dans **MeiliFacets** (client, clé de recherche seule, annulation, description publiée, `shared/entrance.ts`, `shared/css-timing.ts`, `shared/input-source.ts`, cartes `card`, jetons de mouvement, `FocusLanding`) ; MeiliScout reste « indexation seule » |
+| D-1 | Où vit le code | **tranché** — dans **MeiliFacets** (client, clé de recherche seule, annulation, description publiée, `shared/entrance.ts`, `shared/css-timing.ts`, `shared/input-source.ts`, cartes `card`, jetons de mouvement, `FocusFallback`) ; MeiliScout reste « indexation seule » |
 | D-2 | Seuil de saisie | **proposé** — 2 caractères, comptés après `trim()` en points de code, **et** au moins une lettre ou un chiffre (`\p{L}`/`\p{N}`, `R-159`) |
 | D-3 | Types | **tranché** (reformulé par Louis) — recherche **multi-types** : chaque type (produits, articles…) est **déclaré** par le projet et rendu dans **sa propre section**, avec en-tête et compte (« Produits · N produits correspondent ») et son lien « Voir tous les produits » / « Voir tous les articles ». Contrat + défaut `scopedIf`, sur le modèle de `ProductFacets` |
 | D-4 | Paramètre d'URL du terme | **tranché** (Louis) — **rien ne change** : un paramètre du module ne peut pas porter le nom d'une query var publique (`s` ferait router WordPress vers la recherche et détournerait la page) ; le module lit le `s` routé sans l'écrire, ce que le visiteur tape dans un listing voyage sous `q`. Ni `q` ni la liste des paramètres réservés ne sont touchés ; `Q-09` reste hors chantier |
@@ -241,7 +241,7 @@ cherchable » s'ajoutent à `R-27` (même cause, même correctif). Sous le parap
 - **Positionné par le thème, empilé par un jeton.** Le thème place la racine (donc la loupe et le panneau)
   dans son en-tête ; le panneau, en `position: absolute` sous l'en-tête (ancre et conteneur `max-w-site`
   posés par le thème), est superposé au contenu par `z-index: var(--meili-layer-search)`, borné en hauteur
-  par la place restante (mesurée à l'ouverture, écrite en `--meili-search-room`), défilement interne.
+  par la place restante (mesurée à l'ouverture, écrite en `--meili-search-available-height`), défilement interne.
 - **Le moteur en direct, sans repli** : clé de recherche seule, `SearchClient` réutilisé, une recherche en
   vol au plus, aucune route, aucun proxy ; en panne, un message et rien d'autre (D-7).
 - **Le panneau n'écrit rien dans l'URL** : ni terme ni état ; ses seuls liens sont les cartes et les
@@ -261,8 +261,8 @@ crochets confondus (S-18).
 | --- | --- | --- | --- | --- |
 | Racine | `<x-meilifacets::search>` + `min-chars`, `delay`, `name` (aucun `types`) | `search` (+ `data-meili-contract`) | `SiteSearch` | Publie la description (connexion, types des sections posées et leurs libellés, seuil, délai), demande `site-search.css` et le chargeur. Rend un simple conteneur ; tout le reste est composé dans son slot. Plusieurs racines sur une page : `name` distinct (même règle que `listing`). |
 | Loupe | `<x-meilifacets::search.toggle>` + slot `icon` | `search-toggle` | `SearchPanel` (chargeur) | `<button aria-expanded="false" aria-controls="…">` vers le panneau de sa racine, nommé « Search » / « Rechercher » (`aria-label`). Icône par défaut `images/search.svg` en `<img alt="">` dans un `<span aria-hidden="true">`, remplacée par le slot `icon`, retirée par un slot vide — même mécanique que l'ouvreur « Filtres ». |
-| Panneau | `<x-meilifacets::search.panel>` + slot | `search-panel`, `search-status` | `SearchPanel`, `StatusView`, `PanelRoom` | `hidden` au rendu ; conteneur `role="search"` (pas de `<form action>` : rien ne part vers WordPress) ; porte l'unique région `aria-live="polite"`. Ce qu'il contient, c'est le thème qui le pose. |
-| Champ | `<x-meilifacets::search.input>` | `search-input` | `Typing`, `ComboboxKeys` | `<input type="search" role="combobox" aria-expanded aria-controls aria-autocomplete="list">`, libellé visuellement masqué, traduisible. |
+| Panneau | `<x-meilifacets::search.panel>` + slot | `search-panel`, `search-status` | `SearchPanel`, `StatusView`, `PanelAvailableHeight` | `hidden` au rendu ; conteneur `role="search"` (pas de `<form action>` : rien ne part vers WordPress) ; porte l'unique région `aria-live="polite"`. Ce qu'il contient, c'est le thème qui le pose. |
+| Champ | `<x-meilifacets::search.input>` | `search-input` | `SearchTermInput`, `ComboboxKeys` | `<input type="search" role="combobox" aria-expanded aria-controls aria-autocomplete="list">`, libellé visuellement masqué, traduisible. |
 | Section | `<x-meilifacets::search.section>` + `type` (requis), `limit` (défaut de `SearchSettings` : 4), `heading` | `search-section` (`data-type`), `search-count`, `search-results`, `search-card-template`, `search-see-all` | `SectionView` | En-tête (titre du type, `labels->name` de WordPress, + compte « 3 résultats » : clé existante `:count result|:count results`, CLDR par `CountLabel`), liste `role="group"` dans la listbox, template de la carte que le type déclare, lien « voir tous » (`labels->all_items`, « Tous les produits ») : `<a href>` **rendu par le serveur** vers l'archive du type, jamais réécrit ; absent si le type n'a pas d'archive. Masquée quand son type n'a rien. Un `type` non déclaré ou non indexé lève (`SearchTypeRefused`). Une section par type et par racine. |
 | Vide | `<x-meilifacets::search.empty-state>` | `search-empty` | `StatusView` | « Aucun élément ne correspond à votre recherche », révélé quand toutes les sections posées sont vides. Libellé traduisible, slot pour le remplacer. |
 | Indisponible | `<x-meilifacets::search.unavailable>` | `search-unavailable` | `StatusView` | « Recherche indisponible » (D-7), révélé en panne ; sections masquées. |
@@ -332,7 +332,7 @@ lit `heading` = `labels->name`, `seeAllLabel` = `labels->all_items`, `archive` =
 = titre, `labels.*` des taxonomies **du type**, `excerpt`, filtrés par l'ordre de recherche
 (`AttributesToSearchOn::among()`) ; `card` = `meilifacets::search.card`. Un type à qui l'ordre ne laisse aucun
 champ lève `NoFieldToSearch` ; un `searchOn` qui sort de l'ordre (posé par un projet) lève
-`FieldsOutsideSearchOrder` à la validation. Aucune chaîne propre au module.
+`UnsearchableFields` à la validation. Aucune chaîne propre au module.
 
 Défaut du module : `WordPressSearchableTypes` — les types **indexés**, **publics** et **non
 `exclude_from_search`** (`SearchablePostTypes`), dans l'ordre de `indexed_post_types`, `product` excepté, mémoïsés
@@ -382,7 +382,7 @@ par attribut : `min-chars` et `delay` sur la racine, `limit` sur la section.
   (`script_module_data_@meilifacets/site-search`, indexée par `name` : connexion, types autorisés, seuil,
   délai, libellés), vérifie le contrat, lit les sections **posées** (`data-type`, limite) et ne cherche que
   celles-là, puis :
-  - `Typing` : seuil (D-2) et temporisation (~120 ms) lus dans la description (`SearchSettings` ou attributs), garde `R-159` ;
+  - `SearchTermInput` : seuil (D-2) et temporisation (~120 ms) lus dans la description (`SearchSettings` ou attributs), garde `R-159` ;
   - `SiteSearchQuery` : une sous-requête par section — `q`, `filter` du type, `page: 1`, `hitsPerPage: limit`,
     `attributesToSearchOn`, `attributesToRetrieve: ["ID","card"]`, `attributesToHighlight: ["card"]`,
     balises privées ; `SearchQuery` étendu de façon additive ;
@@ -441,7 +441,7 @@ par attribut : `min-chars` et `delay` sur la racine, `limit` sur la section.
 - `app/Contracts/SearchableTypes.php` ; `app/Contracts/SearchableAttributes.php` (livré, `R-184`) ; `IndexAttributes` gagne `exactlyMatched()`.
 - `app/SiteSearch/` (autorisé) : `SearchableType`, `SearchableTypeFactory`, `WordPressSearchableTypes`,
   `WooCommerceSearchableTypes`, `SearchablePostTypes`, `AttributesToSearchOn`, `AcceptedSearchTypes`, `NoFieldToSearch`,
-  `FieldsOutsideSearchOrder` (livrés, `R-187`),
+  `UnsearchableFields` (livrés, `R-187`),
   `SearchSettings` (seuil, temporisation, limite par défaut), `SearchTypeRefused` (section d'un type non déclaré
   ou non indexé), `SearchRegistry` (les racines d'une page
   par `name`, et la garde « une section par type et par racine »), `SearchRoot` (une racine rendue : nom, réglages effectifs, types acceptés) ; `app/Support/NamedRegistry` (base de `ListingRegistry` et `SearchRegistry`, `R-188`).
@@ -463,14 +463,14 @@ par attribut : `min-chars` et `delay` sur la racine, `limit` sur la section.
 par racine le 2026-09-29 (`R-194`) ; elles étaient à plat, préfixées `search-`.*
 
 **TypeScript** — `resources/assets/ts/site-search/` (autorisé) : `search-panel.ts`, `site-search.ts`,
-`typing.ts`, `site-search-query.ts`, `section-view.ts`, `status-view.ts`, `highlight.ts`,
-`combobox-keys.ts`, `panel-room.ts` ; entrées `site-search-page.ts` et `site-search-client.ts` à la racine ;
+`search-term-input.ts`, `site-search-query.ts`, `section-view.ts`, `status-view.ts`, `highlight.ts`,
+`combobox-keys.ts`, `panel-available-height.ts` ; entrées `site-search-page.ts` et `site-search-client.ts` à la racine ;
 **à extraire** dans `shared/` : `light-dismiss.ts` (de `DisclosureGroup`, S-12) ; **extraits** (`R-189`) :
-`page-roots.ts` (squelette du chargeur), `root-component.ts` (règles de `Contract` par racine) ; **extrait** (`R-190`) : `searches-under-way.ts` (recherches en vol, partagé avec `Listing`) ; **réutilisés** : `SearchClient` (étendu au surlignage,
+`page-roots.ts` (squelette du chargeur), `root-component.ts` (règles de `Contract` par racine) ; **extrait** (`R-190`) : `pending-searches.ts` (recherches en vol, partagé avec `Listing`) ; **réutilisés** : `SearchClient` (étendu au surlignage,
 une instance par racine), `ListboxKeys` en partie, `CardView` ; `bundle.ts` construit et vérifie trois paquets.
 
 **CSS** — `resources/assets/css/site-search.css`, mobile first, seuil `48em`, jetons redéclarés sur
-`[data-meili="search"]` : `--meili-layer-search`, `--meili-search-room`, durées et courbes du module.
+`[data-meili="search"]` : `--meili-layer-search`, `--meili-search-available-height`, durées et courbes du module.
 
 ### 8. Autorisé (Louis, 2026-09-25)
 
@@ -619,7 +619,7 @@ déploiement, en local comme en préprod.
 Décisions : D-3, D-5, D-6, S-2, S-3, S-7, S-8, S-17, S-19, S-21.
 
 - [x] contrat `SearchableTypes`, `SearchableType` (+ `with…()`), fabrique `SearchableTypeFactory` (libellés, archive, filtre et champs dérivés de WordPress), défauts WordPress / WooCommerce en `scopedIf` (`R-187`, refondu le 2026-09-28)
-- [x] types retenus = indexés, publics, non `exclude_from_search` (`SearchablePostTypes`) ; produits en tête sous WooCommerce, jamais dérivés par le défaut WordPress ; `searchOn` vide lève (`NoFieldToSearch`), hors de l'ordre lève (`FieldsOutsideSearchOrder`) ; surcharge documentée (`configuration.md`) et testée
+- [x] types retenus = indexés, publics, non `exclude_from_search` (`SearchablePostTypes`) ; produits en tête sous WooCommerce, jamais dérivés par le défaut WordPress ; `searchOn` vide lève (`NoFieldToSearch`), hors de l'ordre lève (`UnsearchableFields`) ; surcharge documentée (`configuration.md`) et testée
 - [x] racine `<x-meilifacets::search>` et registre des racines par `name` (`SearchRegistry`, base `NamedRegistry` partagée avec `ListingRegistry`, doublon refusé) ; `SearchSettings` et attributs `min-chars`, `delay` ; `limit` reste un attribut de section (étape 5), défaut dans `SearchSettings` (`R-188`)
 - [x] une section d'un type non déclaré ou non indexé lève (`SearchTypeRefused`) — validation livrée (`R-187`), portée par `SearchRoot::type()` à l'étape 5 (`R-191`, `AcceptedSearchTypes::get()` retiré)
 - [x] adresse d'archive par type (`get_post_type_archive_link()`, `null` sans archive), lue par la fabrique (`R-187`)
@@ -634,7 +634,7 @@ acceptables ; sans WooCommerce, les articles seuls fonctionnent ; archives `/bou
 Décisions : D-2, D-7, S-4, S-8.
 
 - [x] extractions d'abord : squelette du chargeur (`shared/page-roots.ts`, `PageRoots`), règles de `Contract` par racine (`shared/root-component.ts`, `RootComponent`), `Stylesheet` paramétrée (`Enums\Stylesheet` + `View\ClientStylesheet`) ; listing inchangé, prouvé par ses tests et dans le navigateur (`R-189`) — `ListingScript` partagé **fait à l'étape 3b** (`ClientScript`, `R-188`) ; `ListboxKeys` laissé à la partie suivante (`R-189`)
-- [x] `SearchQuery` étendu (additif, surlignage) ; `SearchClient` réutilisé, une instance par racine ; `SiteSearchQuery`, `Typing`, `Highlight`, `SectionView`, `StatusView` ; `ComboboxKeys` avancé de l'étape 5 (`R-190`)
+- [x] `SearchQuery` étendu (additif, surlignage) ; `SearchClient` réutilisé, une instance par racine ; `SiteSearchQuery`, `SearchTermInput`, `Highlight`, `SectionView`, `StatusView` ; `ComboboxKeys` avancé de l'étape 5 (`R-190`)
 - [x] chargeur + client en deux paquets, `bundle.ts` et `build:check` étendus, exclusion du Delay JS (chargeur seul inscrit ; client importé sous l'empreinte de son contenu) (`R-190`)
 - [x] latence frappe → affichage mesurée : 28 recherches en local, médiane 9,3 ms, **p95 21,9 ms** (objectif proposé : 100 ms) (`R-190`)
 - [ ] commits, après relecture de Louis
@@ -690,7 +690,7 @@ console ; suite des filtres verte.
 - [x] mouvement réduit : fondus seuls (`R-192`)
 - [x] résultats pendant la frappe : réconciliation par `ID`, entrée 120 ms + 4 px, sortie 120 ms hors flux, FLIP additif
   150 ms, compte en fondu + 2 px, vide ↔ résultats 150 ms sans flou, barre lente après 150 ms, rien au clavier ni
-  pendant l'entrée du panneau (`ResultsMotion`, `Departure`, `R-193`)
+  pendant l'entrée du panneau (`ResultsMotion`, `ExitFade`, `R-193`)
 - [x] reprises de `R-192` : voile sur la courbe du panneau, ligne active sans arête, soulignement du texte seul,
   vignette à taille fixe ; premiers résultats à ×4 : layout 1,4–2 ms, rien à réduire (`R-193`)
 - [ ] commits, après relecture de Louis

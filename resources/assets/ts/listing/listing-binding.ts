@@ -164,7 +164,7 @@ export class ListingBinding {
     }
 
     #applied() {
-        if (!this.#listing.searchesAtOnce) {
+        if (!this.#listing.appliesImmediately) {
             void this.#listing.apply()
         }
     }
@@ -191,7 +191,7 @@ export class ListingBinding {
         this.#sort.show(state)
         this.#sortRadios.show(state)
         this.#price.show(state)
-        this.#summary.showHeld(state)
+        this.#summary.showSelected(state)
     }
 
     #repaint({ answers, state }: ResultsDetail) {
@@ -204,7 +204,7 @@ export class ListingBinding {
         this.#sort.showMatches(matches, state)
         this.#sortRadios.showMatches(matches, state)
         this.#summary.showAnswered(results.totalHits ?? 0, state)
-        this.#drawers.paintPage(() => this.#repaintGrid(results, state))
+        this.#drawers.repaintBehindDrawer(() => this.#repaintGrid(results, state))
     }
 
     #repaintGrid(results: SearchAnswer, state: ListingState) {

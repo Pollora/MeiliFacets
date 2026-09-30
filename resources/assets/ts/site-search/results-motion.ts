@@ -2,12 +2,12 @@ import { LEAVING } from '../shared/attributes.ts'
 import { CssTiming } from '../shared/css-timing.ts'
 import { Entrance } from '../shared/entrance.ts'
 import { SUBPIXEL } from '../shared/subpixel.ts'
-import { Departure } from './departure.ts'
+import { ExitFade } from './exit-fade.ts'
 import { HEIGHT_UNREAD, PanelHeight } from './panel-height.ts'
 
 import type { Contract } from '../shared/contract.ts'
-import type { EntranceTiming } from '../shared/entrance.ts'
-import type { Place } from './departure.ts'
+import type { AnimationTiming } from '../shared/entrance.ts'
+import type { ExitFadeStart } from './exit-fade.ts'
 import type { HeightBefore } from './panel-height.ts'
 
 const MESSAGES = ['search-empty', 'search-unavailable'] as const
@@ -24,12 +24,12 @@ const NO_OFFSET = 'none'
 
 /** Slides on the module's ease-out, fades alone on `ease`. */
 interface Timings {
-    slide: EntranceTiming
-    move: EntranceTiming
-    appear: EntranceTiming
-    leave: EntranceTiming
-    crossfade: EntranceTiming
-    resize: EntranceTiming
+    slide: AnimationTiming
+    move: AnimationTiming
+    appear: AnimationTiming
+    leave: AnimationTiming
+    crossfade: AnimationTiming
+    resize: AnimationTiming
 }
 
 interface Offset {
@@ -38,13 +38,13 @@ interface Offset {
 }
 
 interface Before {
-    places: Map<Element, Place>
+    starts: Map<Element, ExitFadeStart>
     counts: Map<Element, string>
     shownMessages: Element[]
     height: HeightBefore
 }
 
-const NOTHING_BEFORE: Before = { places: new Map(), counts: new Map(), shownMessages: [], height: HEIGHT_UNREAD }
+const NOTHING_BEFORE: Before = { starts: new Map(), counts: new Map(), shownMessages: [], height: HEIGHT_UNREAD }
 const STAYED: Offset = { x: 0, y: 0 }
 
 /**
@@ -90,7 +90,7 @@ export class ResultsMotion {
         const timings = (this.#timings ??= this.#readTimings())
 
         this.#before = {
-            places: new Map(this.#shown().map((node) => [node, this.#placeOf(node)])),
+            starts: new Map(this.#shown().map((node) => [node, this.#startOf(node)])),
             counts: new Map(this.#sections().map((section) => [section, this.#countOf(section)?.textContent ?? ''])),
             shownMessages: this.#messages().filter((message) => !this.#isHidden(message)),
             height: this.#height.before(),
@@ -102,10 +102,10 @@ export class ResultsMotion {
     #play(timings: Timings) {
         const shown = this.#shown()
         const crossfading = this.#messagesChanged()
-        const { frames, resize } = this.#readAfter(shown)
-        const departure = new Departure(frames, crossfading ? timings.crossfade : timings.leave, this.#exitOffset())
+        const { layout, resize } = this.#readAfter(shown)
+        const exitFade = new ExitFade(layout, crossfading ? timings.crossfade : timings.leave, this.#exitOffset())
 
-        this.#leave(shown, departure)
+        this.#leave(shown, exitFade)
         this.#glideAll(timings.move)
 
         if (!this.#before.height.panelEnteringOrLeaving) {
@@ -119,37 +119,37 @@ export class ResultsMotion {
     #readAfter(shown: Element[]) {
         const resize = this.#height.after(this.#before.height)
 
-        this.#after = new Map(shown.filter((node) => this.#before.places.has(node)).map((node) => [node, node.getBoundingClientRect()]))
+        this.#after = new Map(shown.filter((node) => this.#before.starts.has(node)).map((node) => [node, node.getBoundingClientRect()]))
 
-        return { frames: Departure.read(this.#panel, this.#listsLeft(shown), resize.overhang()), resize }
+        return { layout: ExitFade.read(this.#panel, this.#listsLeft(shown), resize.overhang()), resize }
     }
 
     #exitOffset() {
         return this.#timing.prefersReducedMotion() ? NO_OFFSET : EXIT_OFFSET
     }
 
-    #leave(shown: Element[], departure: Departure) {
-        this.#before.places.forEach((place, node) => {
+    #leave(shown: Element[], exitFade: ExitFade) {
+        this.#before.starts.forEach((start, node) => {
             if (shown.includes(node)) {
                 return
             }
 
-            if (place.parent !== null) {
-                departure.row(node, place)
+            if (start.parent !== null) {
+                exitFade.row(node, start)
             } else if (this.#isHidden(node)) {
-                departure.copy(node, place, this.#panel)
+                exitFade.copy(node, start, this.#panel)
             }
         })
     }
 
-    #glideAll(timing: EntranceTiming) {
+    #glideAll(timing: AnimationTiming) {
         if (!this.#timing.prefersReducedMotion()) {
             this.#after.forEach((rect, node) => this.#glide(node, this.#offset(node, rect), timing))
         }
     }
 
     /** Additive, so a glide caught mid-way carries on from where the eye sees the card rather than jumping. */
-    #glide(node: Element, { x, y }: Offset, { duration, easing }: EntranceTiming) {
+    #glide(node: Element, { x, y }: Offset, { duration, easing }: AnimationTiming) {
         if ((Math.abs(x) >= SUBPIXEL || Math.abs(y) >= SUBPIXEL) && node instanceof HTMLElement) {
             node.animate([{ transform: `translate(${x}px, ${y}px)` }, { transform: 'none' }], { duration, easing, composite: 'add' })
         }
@@ -165,28 +165,28 @@ export class ResultsMotion {
     }
 
     #shift(node: Element, to: DOMRect | undefined): Offset {
-        const from = this.#before.places.get(node)?.rect
+        const from = this.#before.starts.get(node)?.rect
 
         return from === undefined || to === undefined ? STAYED : { x: from.left - to.left, y: from.top - to.top }
     }
 
     /** One entrance per container: the cards of a section coming in arrive with it. */
-    #enter(node: Element, block: EntranceTiming, row: EntranceTiming) {
+    #enter(node: Element, block: AnimationTiming, row: AnimationTiming) {
         const section = this.#sectionOf(node)
 
-        if (this.#before.places.has(node) || !(node instanceof HTMLElement)) {
+        if (this.#before.starts.has(node) || !(node instanceof HTMLElement)) {
             return
         }
 
         if (section === null) {
             this.#fade.play(node, block)
-        } else if (this.#before.places.has(section)) {
+        } else if (this.#before.starts.has(section)) {
             this.#row.play(node, row)
         }
     }
 
     /** Only in a section that stays: one coming in brings its count with it. */
-    #recount(section: Element, before: string, timing: EntranceTiming) {
+    #recount(section: Element, before: string, timing: AnimationTiming) {
         const count = this.#countOf(section)
 
         if (this.#after.has(section) && count instanceof HTMLElement && before !== count.textContent) {
@@ -195,7 +195,7 @@ export class ResultsMotion {
     }
 
     #listsLeft(shown: Element[]) {
-        return [...this.#before.places].flatMap(([node, { parent }]) => (parent === null || shown.includes(node) ? [] : [parent]))
+        return [...this.#before.starts].flatMap(([node, { parent }]) => (parent === null || shown.includes(node) ? [] : [parent]))
     }
 
     #messagesChanged() {
@@ -210,7 +210,7 @@ export class ResultsMotion {
         return [...sections, ...rows.filter((row) => !row.hasAttribute(LEAVING)), ...this.#messages().filter((message) => !this.#isHidden(message))]
     }
 
-    #placeOf(node: Element): Place {
+    #startOf(node: Element): ExitFadeStart {
         const parent = this.#sectionOf(node) === null ? null : node.parentElement
 
         return { rect: node.getBoundingClientRect(), opacity: this.#opacityOf(node), parent }

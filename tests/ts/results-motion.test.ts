@@ -293,7 +293,7 @@ describe('ResultsMotion', () => {
         assert.equal(leaving().length, 3)
     })
 
-    it('leaves the height of a panel given the full room alone', async (t) => {
+    it('leaves the height of a panel given the full available height alone', async (t) => {
         const { played, answer } = moving(t)
 
         await answer(cards(1, 2, 3, 4))

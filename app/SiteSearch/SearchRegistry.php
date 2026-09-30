@@ -17,7 +17,7 @@ final class SearchRegistry extends NamedRegistry
     /** @var array<string, array<string, true>> post types by root name */
     private array $sections = [];
 
-    public function open(SearchRoot $root): void
+    public function add(SearchRoot $root): void
     {
         if (array_key_exists($root->name, $this->entries)) {
             throw new LogicException(

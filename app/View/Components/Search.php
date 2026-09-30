@@ -32,7 +32,7 @@ final class Search extends ContractComponent
         ?int $delay = null,
     ) {
         $this->root = new SearchRoot($name, $this->settings($defaults, $minChars, $delay), $types->all());
-        $roots->open($this->root);
+        $roots->add($this->root);
 
         $stylesheet->require(Stylesheet::SiteSearch);
         $script->require(ScriptModule::SiteSearch, $name, fn (): array => $description->of($this->root));

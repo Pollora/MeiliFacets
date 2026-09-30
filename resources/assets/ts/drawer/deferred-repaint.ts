@@ -2,10 +2,10 @@
  * A repaint of the page behind the sheet: out of sight, it would only cost the sheet its frames.
  * Held while the page is covered, the latest one only, and run the frame after the page shows again.
  */
-export class HeldPaint {
+export class DeferredRepaint {
     #window: Window
     #covered: () => boolean
-    #held: (() => void) | null = null
+    #pending: (() => void) | null = null
 
     constructor(window: Window, covered: () => boolean) {
         this.#window = window
@@ -14,28 +14,28 @@ export class HeldPaint {
 
     paint(paint: () => void) {
         if (this.#covered()) {
-            this.#held = paint
+            this.#pending = paint
 
             return
         }
 
-        this.#held = null
+        this.#pending = null
         paint()
     }
 
     /** After the next frame: the gesture that uncovered the page is painted first. */
     release() {
-        if (this.#held !== null) {
+        if (this.#pending !== null) {
             this.#window.requestAnimationFrame(() => this.#window.setTimeout(() => this.#flush(), 0))
         }
     }
 
     #flush() {
-        const held = this.#held
+        const pending = this.#pending
 
-        if (held !== null && !this.#covered()) {
-            this.#held = null
-            held()
+        if (pending !== null && !this.#covered()) {
+            this.#pending = null
+            pending()
         }
     }
 }

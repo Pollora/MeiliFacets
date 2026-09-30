@@ -11,7 +11,6 @@ use Modules\MeiliFacets\Indexing\IndexedPostTypes;
 use Modules\MeiliFacets\Indexing\WooCommerceProductFields;
 use Modules\MeiliFacets\SiteSearch\AcceptedSearchTypes;
 use Modules\MeiliFacets\SiteSearch\AttributesToSearchOn;
-use Modules\MeiliFacets\SiteSearch\FieldsOutsideSearchOrder;
 use Modules\MeiliFacets\SiteSearch\NoFieldToSearch;
 use Modules\MeiliFacets\SiteSearch\SearchablePostTypes;
 use Modules\MeiliFacets\SiteSearch\SearchableType;
@@ -19,6 +18,7 @@ use Modules\MeiliFacets\SiteSearch\SearchableTypeFactory;
 use Modules\MeiliFacets\SiteSearch\SearchRoot;
 use Modules\MeiliFacets\SiteSearch\SearchSettings;
 use Modules\MeiliFacets\SiteSearch\SearchTypeRefused;
+use Modules\MeiliFacets\SiteSearch\UnsearchableFields;
 use Modules\MeiliFacets\SiteSearch\WooCommerceSearchableTypes;
 use Modules\MeiliFacets\SiteSearch\WordPressSearchableTypes;
 use Modules\MeiliFacets\Tests\Unit\Doubles\RetitledSearchableTypes;
@@ -246,7 +246,7 @@ final class SearchableTypesTest extends TestCase
             }
         };
 
-        $this->expectException(FieldsOutsideSearchOrder::class);
+        $this->expectException(UnsearchableFields::class);
         $this->expectExceptionMessage('Post type "post" is searched on fields the index does not search: url.');
 
         $this->accepted($outside)->all();

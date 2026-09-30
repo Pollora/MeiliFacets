@@ -24,7 +24,7 @@ const combobox = (count: number) => {
 
     const keys = new ComboboxKeys(new Contract(root), input).start()
 
-    keys.offer(options)
+    keys.setOptions(options)
 
     const pressed = (key: string) => {
         const event = new window.KeyboardEvent('keydown', { key, bubbles: true, cancelable: true })
@@ -47,7 +47,7 @@ describe('ComboboxKeys', () => {
         assert.deepEqual(options.map((option) => option.id), ['search-input-option-0', 'search-input-option-1'])
         assert.equal(input.getAttribute('aria-expanded'), 'true')
 
-        keys.offer([])
+        keys.setOptions([])
         assert.equal(input.getAttribute('aria-expanded'), 'false')
     })
 
@@ -108,7 +108,7 @@ describe('ComboboxKeys', () => {
     it('leaves the arrows to the field while it offers nothing', () => {
         const { keys, pressed } = combobox(3)
 
-        keys.offer([])
+        keys.setOptions([])
 
         assert.equal(pressed('ArrowDown'), false)
         assert.equal(pressed('Enter'), true)
@@ -118,7 +118,7 @@ describe('ComboboxKeys', () => {
         const { keys, options, pressed, active, input } = combobox(3)
 
         pressed('ArrowDown')
-        keys.offer(options.slice(1))
+        keys.setOptions(options.slice(1))
 
         assert.equal(active(), -1)
         assert.equal(input.hasAttribute('aria-activedescendant'), false)
@@ -141,7 +141,7 @@ describe('ComboboxKeys', () => {
 
         pressed('ArrowDown')
         pressed('ArrowDown')
-        keys.offer([third, second, first].filter((option) => option !== undefined))
+        keys.setOptions([third, second, first].filter((option) => option !== undefined))
 
         assert.equal(input.getAttribute('aria-activedescendant'), second?.id)
         assert.equal(second?.hasAttribute('data-active'), true)
@@ -155,7 +155,7 @@ describe('ComboboxKeys', () => {
         const [first, second] = options
 
         pressed('ArrowDown')
-        keys.offer([second].filter((option) => option !== undefined))
+        keys.setOptions([second].filter((option) => option !== undefined))
 
         assert.equal(input.hasAttribute('aria-activedescendant'), false)
         assert.equal(first?.hasAttribute('data-active'), false)
@@ -167,7 +167,7 @@ describe('ComboboxKeys', () => {
         const { window, keys, options } = combobox(2)
         const fresh = window.document.createElement('li')
 
-        keys.offer([fresh, ...options.slice(1)] as HTMLElement[])
+        keys.setOptions([fresh, ...options.slice(1)] as HTMLElement[])
 
         assert.equal(new Set([fresh.id, ...options.map((option) => option.id)]).size, 3)
     })

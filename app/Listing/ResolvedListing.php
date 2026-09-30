@@ -8,19 +8,19 @@ use Modules\MeiliFacets\Contracts\Listing;
 use Modules\MeiliFacets\Contracts\Placeable;
 use Modules\MeiliFacets\Enums\ApplyMode;
 use Modules\MeiliFacets\Enums\QueryParameter;
-use Modules\MeiliFacets\Http\Unavailable;
+use Modules\MeiliFacets\Http\ServiceUnavailable;
 use Modules\MeiliFacets\Search\EngineLimits;
+use Modules\MeiliFacets\Search\EngineUnavailable;
 use Modules\MeiliFacets\Search\FacetTruncated;
 use Modules\MeiliFacets\Search\FilterExpression;
+use Modules\MeiliFacets\Search\ListingResults;
 use Modules\MeiliFacets\Search\ListingSearch;
-use Modules\MeiliFacets\Search\SearchFailed;
-use Modules\MeiliFacets\Search\SearchResults;
 use Modules\MeiliFacets\Support\UrlParameters;
 use RuntimeException;
 
 final class ResolvedListing
 {
-    private ?SearchResults $results = null;
+    private ?ListingResults $results = null;
 
     /** @var list<array<string, mixed>>|null */
     private ?array $cards = null;
@@ -49,13 +49,13 @@ final class ResolvedListing
         private readonly ListingSearch $search,
         private readonly FacetValues $facetValues,
         private readonly UrlParameters $parameters,
-        private readonly Unavailable $unavailable,
+        private readonly ServiceUnavailable $serviceUnavailable,
         private readonly EngineLimits $limits,
     ) {
         $this->placement = new PagePlacement($listing->name());
     }
 
-    public function results(): SearchResults
+    public function results(): ListingResults
     {
         return $this->results ??= $this->attempt();
     }
@@ -67,16 +67,16 @@ final class ResolvedListing
         return $this->failed;
     }
 
-    private function attempt(): SearchResults
+    private function attempt(): ListingResults
     {
         try {
             return $this->search->run($this->listing, $this->state);
-        } catch (SearchFailed $failure) {
+        } catch (EngineUnavailable $failure) {
             $this->failed = true;
-            $this->unavailable->announce();
+            $this->serviceUnavailable->sendHeaders();
             report($failure);
 
-            return new SearchResults([], 0, []);
+            return new ListingResults([], 0, []);
         }
     }
 
@@ -183,7 +183,7 @@ final class ResolvedListing
         }
 
         $named = $this->ofKind($this->facetNamed($facet), $kind);
-        $this->placement->placeApart($named);
+        $this->placement->placeOnItsOwn($named);
 
         return $named;
     }

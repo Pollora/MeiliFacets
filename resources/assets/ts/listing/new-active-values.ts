@@ -1,7 +1,7 @@
 import { KIND } from './active-value-list.ts'
 
 /** Which pills a redraw brought in, against those shown before it: a pill redrawn in place is not new. */
-export class NewPills {
+export class NewActiveValues {
     #shown: Set<string>
 
     constructor(shown: Element[]) {

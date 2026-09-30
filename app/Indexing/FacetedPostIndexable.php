@@ -7,8 +7,8 @@ namespace Modules\MeiliFacets\Indexing;
 use Modules\MeiliFacets\Contracts\IndexAttributes;
 use Modules\MeiliFacets\Contracts\SearchableAttributes;
 use Modules\MeiliFacets\Enums\DocumentField;
+use Modules\MeiliFacets\Enums\EngineFacetSort;
 use Modules\MeiliFacets\Enums\FacetingSetting;
-use Modules\MeiliFacets\Enums\FacetValueOrder;
 use Modules\MeiliFacets\Enums\IndexSetting;
 use Modules\MeiliFacets\Enums\PaginationSetting;
 use Modules\MeiliFacets\Enums\TypoToleranceSetting;
@@ -121,7 +121,7 @@ final class FacetedPostIndexable extends PostIndexable
         return [
             ...$faceting,
             FacetingSetting::SortValuesBy->value => [
-                self::ALL_FACETS => FacetValueOrder::ByCount->value,
+                self::ALL_FACETS => EngineFacetSort::ByCount->value,
             ],
             FacetingSetting::MaxValuesPerFacet->value => $this->limits->maxFacetValues,
         ];

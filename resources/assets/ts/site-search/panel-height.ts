@@ -2,7 +2,7 @@ import { PanelTransitions } from '../shared/panel-transitions.ts'
 import { SUBPIXEL } from '../shared/subpixel.ts'
 
 import type { CssTiming } from '../shared/css-timing.ts'
-import type { EntranceTiming } from '../shared/entrance.ts'
+import type { AnimationTiming } from '../shared/entrance.ts'
 
 const RESIZE_ID = 'meilifacets-panel-resize'
 
@@ -73,7 +73,7 @@ export class PanelResize {
     }
 
     /** The content is clipped while the edge moves: a scrollbar would flash while the panel grows to fit it. */
-    play(timing: EntranceTiming) {
+    play(timing: AnimationTiming) {
         const clipped = { overflowY: 'hidden' }
 
         if (this.#eases()) {

@@ -72,7 +72,7 @@ const REASONS: Partial<Record<string, () => Error>> = {
     TimeoutError: () => new SearchError('The engine did not answer in time.'),
 }
 
-export type SearchSeam = Pick<SearchClient, 'search'>
+export type Searcher = Pick<SearchClient, 'search'>
 
 export class SearchClient {
     #endpoint: string

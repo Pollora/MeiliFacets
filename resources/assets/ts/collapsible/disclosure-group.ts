@@ -45,7 +45,7 @@ export class DisclosureGroup {
             const panel = this.#panelOf(toggle)
 
             if (panel !== null) {
-                this.#motion.drop(panel)
+                this.#motion.hideInstantly(panel)
             }
         })
 
@@ -107,7 +107,7 @@ export class DisclosureGroup {
         toggle.setAttribute(EXPANDED, 'true')
 
         if (this.#floats(toggle)) {
-            this.#motion.pop(panel)
+            this.#motion.showFloating(panel)
             this.#align(panel)
 
             return
@@ -144,7 +144,7 @@ export class DisclosureGroup {
         const panel = this.#panelOf(toggle)
 
         if (panel !== null && !panel.hidden) {
-            this.#instantly(panel, () => this.#motion.drop(panel))
+            this.#instantly(panel, () => this.#motion.hideInstantly(panel))
             this.#closed()
         }
     }

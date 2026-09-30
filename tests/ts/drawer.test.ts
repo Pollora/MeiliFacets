@@ -499,7 +499,7 @@ const boundUnderDrawer = (apply: ApplyMode, { styled = false } = {}) => {
 /** One task later: every answer already settled has been handled. */
 const settled = (window: TestWindow) => new Promise((resolve) => window.setTimeout(resolve, 0))
 
-/** The frame then the task `HeldPaint` waits for, asked once the close has settled: they run after its own. */
+/** The frame then the task `DeferredRepaint` waits for, asked once the close has settled: they run after its own. */
 const painted = async (window: TestWindow) => {
     await settled(window)
     await new Promise((resolve) => window.requestAnimationFrame(() => window.setTimeout(resolve, 0)))

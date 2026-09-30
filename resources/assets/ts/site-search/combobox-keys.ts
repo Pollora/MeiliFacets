@@ -6,7 +6,7 @@ const NONE = -1
 const OPTION_ID_PREFIX = 'meilifacets-search'
 
 export interface ComboboxMove {
-    action: 'activate' | 'follow' | 'hold' | 'release'
+    action: 'activate' | 'openLink' | 'ignore' | 'deactivate'
     index: number
 }
 
@@ -33,11 +33,11 @@ export class ComboboxKeys {
     }
 
     static moveFor(key: string, { active, last }: ComboboxPosition): ComboboxMove | null {
-        const editing: ComboboxMove = { action: 'release', index: NONE }
+        const editing: ComboboxMove = { action: 'deactivate', index: NONE }
         const moves: Partial<Record<string, ComboboxMove>> = {
             ArrowDown: { action: 'activate', index: Math.min(active + 1, last) },
             ArrowUp: { action: 'activate', index: active === NONE ? last : Math.max(active - 1, 0) },
-            Enter: active === NONE ? { action: 'hold', index: NONE } : { action: 'follow', index: active },
+            Enter: active === NONE ? { action: 'ignore', index: NONE } : { action: 'openLink', index: active },
             Home: editing,
             End: editing,
             ArrowLeft: editing,
@@ -60,7 +60,7 @@ export class ComboboxKeys {
     }
 
     /** The option the arrows reached stays reached while it is still offered, wherever it now stands. */
-    offer(options: HTMLElement[]) {
+    setOptions(options: HTMLElement[]) {
         const reached = this.#options[this.#active]
         const stillOffered = reached !== undefined && options.includes(reached)
 
@@ -86,7 +86,7 @@ export class ComboboxKeys {
             return
         }
 
-        if (move.action !== 'release') {
+        if (move.action !== 'deactivate') {
             event.preventDefault()
         }
 
@@ -96,9 +96,9 @@ export class ComboboxKeys {
     #perform({ action, index }: ComboboxMove) {
         const actions = {
             activate: () => this.#activate(index),
-            follow: () => this.#follow(index),
-            hold: () => undefined,
-            release: () => this.#activate(NONE),
+            openLink: () => this.#openLink(index),
+            ignore: () => undefined,
+            deactivate: () => this.#activate(NONE),
         }
 
         actions[action]()
@@ -120,7 +120,7 @@ export class ComboboxKeys {
         option.scrollIntoView?.({ block: 'nearest' })
     }
 
-    #follow(index: number) {
+    #openLink(index: number) {
         const option = this.#options[index]
 
         if (option === undefined) {

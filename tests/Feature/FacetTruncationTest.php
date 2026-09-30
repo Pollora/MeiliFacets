@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Tests\Feature;
 
 use Illuminate\Support\Facades\Exceptions;
-use Modules\MeiliFacets\Http\Unavailable;
+use Modules\MeiliFacets\Http\ServiceUnavailable;
 use Modules\MeiliFacets\Listing\Facet;
 use Modules\MeiliFacets\Listing\FacetValues;
 use Modules\MeiliFacets\Listing\ListingState;
@@ -70,7 +70,7 @@ final class FacetTruncationTest extends TestCase
             ),
             new FacetValues(new FakeTermLabels, new FakeTermScope, new FakeDefaultTerms),
             new UrlParameters([]),
-            new Unavailable,
+            new ServiceUnavailable,
             $limits,
         );
     }

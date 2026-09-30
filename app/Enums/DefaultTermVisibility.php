@@ -9,7 +9,7 @@ namespace Modules\MeiliFacets\Enums;
  * « Non classé ». It says a content was filed nowhere, which is a fact about the
  * catalogue rather than a way to browse it.
  */
-enum DefaultTerm
+enum DefaultTermVisibility
 {
     case Hidden;
 

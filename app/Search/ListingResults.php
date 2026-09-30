@@ -6,7 +6,7 @@ namespace Modules\MeiliFacets\Search;
 
 use Modules\MeiliFacets\Enums\DocumentField;
 
-final readonly class SearchResults
+final readonly class ListingResults
 {
     /**
      * @param  list<array<string, mixed>>  $hits

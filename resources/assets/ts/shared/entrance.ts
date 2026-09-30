@@ -8,7 +8,7 @@ export interface EntranceStyle {
     easing: string
 }
 
-export interface EntranceTiming {
+export interface AnimationTiming {
     duration: number
     easing: string
 }
@@ -28,7 +28,7 @@ export class Entrance {
     }
 
     /** Read ahead by a caller that writes several nodes at once: a read between two writes would force a style pass. */
-    timingOf(element: Element): EntranceTiming {
+    timingOf(element: Element): AnimationTiming {
         return {
             duration: this.#timing.duration(element, this.#style.duration) ?? 0,
             easing: this.#timing.easing(element, this.#style.easing),
@@ -36,11 +36,11 @@ export class Entrance {
     }
 
     /** A timing given in part, such as a section's duration measured by its height, is completed from the stylesheet. */
-    play(element: HTMLElement, timing: Partial<EntranceTiming> = {}) {
+    play(element: HTMLElement, timing: Partial<AnimationTiming> = {}) {
         return element.animate(this.#keyframes(), this.#complete(element, timing))
     }
 
-    #complete(element: Element, { duration, easing }: Partial<EntranceTiming>): EntranceTiming {
+    #complete(element: Element, { duration, easing }: Partial<AnimationTiming>): AnimationTiming {
         if (duration !== undefined && easing !== undefined) {
             return { duration, easing }
         }

@@ -139,7 +139,7 @@ final class FacetComponentTest extends TestCase
 
     /** An empty container is markup the page carries for nothing. */
     #[Test]
-    public function it_renders_no_container_when_every_facet_was_placed_apart(): void
+    public function it_renders_no_container_when_every_facet_was_placed_on_its_own(): void
     {
         config(['meilifacets.apply_mode' => 'immediate']);
 
@@ -346,7 +346,7 @@ final class FacetComponentTest extends TestCase
 
     /** The description feeds the client, which counts and filters on facets the page never showed. */
     #[Test]
-    public function it_still_publishes_a_facet_a_template_placed_apart(): void
+    public function it_still_publishes_a_facet_a_template_placed_on_its_own(): void
     {
         $listing = $this->listing();
         $description = $this->app->make(ListingDescription::class);
@@ -403,13 +403,13 @@ final class FacetComponentTest extends TestCase
     private function placingEveryFacet(): string
     {
         return implode('', array_map(
-            fn (Placeable $filter): string => Blade::render($this->placingApart($filter)),
+            fn (Placeable $filter): string => Blade::render($this->placingOnItsOwn($filter)),
             $this->listing()->filters()
         ));
     }
 
     /** Each kind takes the component of its own kind, as `Facets` dispatches them. */
-    private function placingApart(Placeable $filter): string
+    private function placingOnItsOwn(Placeable $filter): string
     {
         $component = $filter instanceof PriceFilter ? 'price' : 'facet';
 

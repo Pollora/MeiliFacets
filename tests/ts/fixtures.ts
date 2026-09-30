@@ -2,8 +2,8 @@ import { ListingState } from '../../resources/assets/ts/listing/listing-state.ts
 
 import type { StateChanges } from '../../resources/assets/ts/listing/listing-state.ts'
 import type { Connection, ListingDescription, StateDescription } from '../../resources/assets/ts/shared/description.ts'
-import type { HistorySeam } from '../../resources/assets/ts/listing/listing.ts'
-import type { Answers, SearchQuery, SearchSeam } from '../../resources/assets/ts/shared/search-client.ts'
+import type { ListingHistory } from '../../resources/assets/ts/listing/listing.ts'
+import type { Answers, SearchQuery, Searcher } from '../../resources/assets/ts/shared/search-client.ts'
 
 /** A listing of products, ten to a page, applied on submit: each test writes only what it is about. */
 export const described = (partial: Partial<ListingDescription>) =>
@@ -33,7 +33,7 @@ export const connection: Connection = { url: 'https://engine.test', key: 'search
 
 export const served = (changes: StateChanges = {}) => new ListingState(changes).toDescription()
 
-export class FakeHistory implements HistorySeam {
+export class FakeHistory implements ListingHistory {
     pushed: string[] = []
     replaced: string[] = []
     recorded: Partial<Record<string, StateDescription>> = {}
@@ -62,7 +62,7 @@ export class FakeHistory implements HistorySeam {
     }
 }
 
-export class FakeClient implements SearchSeam {
+export class FakeClient implements Searcher {
     plans: Record<string, SearchQuery>[] = []
     answer: Answers = { results: { hits: [], totalHits: 0 } }
     failure: Error | null = null

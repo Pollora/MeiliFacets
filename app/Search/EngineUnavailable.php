@@ -7,7 +7,7 @@ namespace Modules\MeiliFacets\Search;
 use RuntimeException;
 use Throwable;
 
-final class SearchFailed extends RuntimeException
+final class EngineUnavailable extends RuntimeException
 {
     public static function unreachable(Throwable $previous): self
     {

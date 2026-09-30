@@ -25,7 +25,7 @@ export class PriceQuery implements FilterQuery {
         return [this.#fields.min, this.#fields.max]
     }
 
-    isMeasuredApart(state: ListingState) {
+    isMeasuredSeparately(state: ListingState) {
         return !state.price.isEmpty()
     }
 

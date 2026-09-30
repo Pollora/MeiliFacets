@@ -2,7 +2,7 @@ import { EXPANDED, INSTANT, OPEN } from '../shared/attributes.ts'
 import { InputSource } from '../shared/input-source.ts'
 import { LightDismiss } from '../shared/light-dismiss.ts'
 import { PanelTransitions } from '../shared/panel-transitions.ts'
-import { PanelRoom } from './panel-room.ts'
+import { PanelAvailableHeight } from './panel-available-height.ts'
 
 import type { Contract } from '../shared/contract.ts'
 
@@ -18,7 +18,7 @@ export class SearchPanel {
     #toggle: HTMLElement | null
     #panel: HTMLElement | null
     #input: HTMLElement | null
-    #room: PanelRoom | null
+    #availableHeight: PanelAvailableHeight | null
     #transitions: PanelTransitions | null
     #intent: () => void
     #intended = false
@@ -28,7 +28,7 @@ export class SearchPanel {
         this.#toggle = this.#element('search-toggle')
         this.#panel = this.#element('search-panel')
         this.#input = this.#element('search-input')
-        this.#room = this.#panel === null ? null : new PanelRoom(this.#panel)
+        this.#availableHeight = this.#panel === null ? null : new PanelAvailableHeight(this.#panel)
         this.#transitions = this.#panel === null ? null : new PanelTransitions(this.#panel)
         this.#intent = intent
     }
@@ -98,7 +98,7 @@ export class SearchPanel {
         this.#panel.hidden = false
         this.#toggle?.setAttribute(EXPANDED, 'true')
         this.#contract.root.setAttribute(OPEN, '')
-        this.#room?.measure()
+        this.#availableHeight?.measure()
         this.#input?.focus()
         this.#call()
     }
@@ -110,25 +110,25 @@ export class SearchPanel {
 
         this.#toggle?.setAttribute(EXPANDED, 'false')
         this.#contract.root.removeAttribute(OPEN)
-        this.#releaseRoomOnceGone()
+        this.#releaseAvailableHeightOnceGone()
     }
 
     /** `finished` rejects when a reopening cancels the exit. */
-    #releaseRoomOnceGone() {
+    #releaseAvailableHeightOnceGone() {
         const exitAnimations = this.#transitions?.enteringOrLeaving() ?? []
 
-        void Promise.allSettled(exitAnimations.map((animation) => animation.finished)).then(() => this.#releaseRoomIfClosed())
+        void Promise.allSettled(exitAnimations.map((animation) => animation.finished)).then(() => this.#releaseAvailableHeightIfClosed())
     }
 
-    #releaseRoomIfClosed() {
+    #releaseAvailableHeightIfClosed() {
         if (!this.#isOpen()) {
-            this.#room?.release()
+            this.#availableHeight?.release()
         }
     }
 
     #remeasure() {
         if (this.#isOpen()) {
-            this.#room?.measure()
+            this.#availableHeight?.measure()
         }
     }
 

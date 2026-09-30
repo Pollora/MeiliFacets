@@ -55,12 +55,12 @@ final class PagePlacementTest extends TestCase
     }
 
     #[Test]
-    public function it_leaves_out_of_the_remaining_facets_only_what_was_placed_apart(): void
+    public function it_leaves_out_of_the_remaining_facets_only_what_was_placed_on_its_own(): void
     {
         $placement = new PagePlacement('products');
         $filters = [$this->facet('brand'), $this->facet('size'), $this->facet('colour')];
 
-        $placement->placeApart($filters[0]);
+        $placement->placeOnItsOwn($filters[0]);
         $placement->place($filters[2]);
 
         $this->assertSame(['size', 'colour'], $this->namesOf($placement->remaining($filters)));

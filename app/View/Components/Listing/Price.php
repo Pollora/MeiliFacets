@@ -9,7 +9,7 @@ use Illuminate\Contracts\View\View;
 use Modules\MeiliFacets\Enums\PriceBound;
 use Modules\MeiliFacets\Enums\PricePart;
 use Modules\MeiliFacets\Listing\CurrentListing;
-use Modules\MeiliFacets\Listing\PriceFilter as Declaration;
+use Modules\MeiliFacets\Listing\PriceFilter;
 use Modules\MeiliFacets\Listing\Range;
 use Modules\MeiliFacets\Support\Money;
 use Modules\MeiliFacets\View\Badge;
@@ -20,7 +20,7 @@ use Modules\MeiliFacets\View\RangeHandle;
 
 final class Price extends ListingComponent
 {
-    public Declaration $facet;
+    public PriceFilter $filter;
 
     /** @var list<RangeHandle>|null */
     private ?array $handles = null;
@@ -30,14 +30,14 @@ final class Price extends ListingComponent
     public function __construct(
         CurrentListing $listings,
         public readonly Money $money,
-        Declaration|BackedEnum|string $facet,
+        PriceFilter|BackedEnum|string $facet,
         string $name = '',
         bool $scroll = false,
         public bool $collapsible = false,
     ) {
         parent::__construct($listings, $name, $scroll);
 
-        $this->facet = $this->listing->placeFacet($this->designated($facet), Declaration::class);
+        $this->filter = $this->listing->placeFacet($this->designated($facet), PriceFilter::class);
     }
 
     private function asked(): Range
@@ -47,31 +47,31 @@ final class Price extends ListingComponent
 
     public function bounds(): Range
     {
-        return $this->bounds ??= $this->facet->boundsFrom($this->listing->facetStats());
+        return $this->bounds ??= $this->filter->boundsFrom($this->listing->facetStats());
     }
 
     public function panelId(): string
     {
-        return $this->ids->facetPanel($this->facet->name);
+        return $this->ids->facetPanel($this->filter->name);
     }
 
     public function disclosure(): Disclosure
     {
         return new Disclosure(
-            label: $this->facet->label,
+            label: $this->filter->label,
             panelId: $this->panelId(),
-            badge: new Badge($this->ids->facetSelectedCount($this->facet->name), $this->listing->priceFilterCount()),
+            badge: new Badge($this->ids->facetSelectedCount($this->filter->name), $this->listing->priceFilterCount()),
         );
     }
 
     public function showsSlider(): bool
     {
-        return $this->facet->shows(PricePart::Slider);
+        return $this->filter->shows(PricePart::Slider);
     }
 
     public function showsFields(): bool
     {
-        return $this->facet->shows(PricePart::Fields);
+        return $this->filter->shows(PricePart::Fields);
     }
 
     private function shown(PriceBound $bound, ?float $effective): ?float

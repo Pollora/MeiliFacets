@@ -1,12 +1,12 @@
 import { SearchClient, SearchSuperseded } from '../shared/search-client.ts'
-import { SearchesUnderWay } from '../shared/searches-under-way.ts'
+import { PendingSearches } from '../shared/pending-searches.ts'
 import { ComboboxKeys } from './combobox-keys.ts'
 import { PanelClosing } from './panel-closing.ts'
 import { ResultsMotion } from './results-motion.ts'
 import { SectionView } from './section-view.ts'
 import { SiteSearchQuery } from './site-search-query.ts'
 import { StatusView } from './status-view.ts'
-import { Typing } from './typing.ts'
+import { SearchTermInput } from './search-term-input.ts'
 
 import type { SiteSearchDescription } from '../shared/description.ts'
 import type { BoundRoot } from '../shared/page-roots.ts'
@@ -25,7 +25,7 @@ export class SiteSearch {
     #status: StatusView
     #input: HTMLInputElement | null
     #keys: ComboboxKeys | null
-    #searchesUnderWay: SearchesUnderWay
+    #pendingSearches: PendingSearches
     #motion: ResultsMotion | null
     #closing: PanelClosing
 
@@ -38,7 +38,7 @@ export class SiteSearch {
         this.#sections = SectionView.allIn(contract, description)
         this.#query = new SiteSearchQuery(this.#sections.map((section) => section.searched))
         this.#status = new StatusView(contract, description)
-        this.#searchesUnderWay = new SearchesUnderWay(this.#status)
+        this.#pendingSearches = new PendingSearches(this.#status)
         this.#input = input instanceof HTMLInputElement ? input : null
         this.#keys = this.#input === null ? null : new ComboboxKeys(contract, this.#input)
         this.#motion = panel instanceof HTMLElement ? new ResultsMotion(contract, panel) : null
@@ -55,7 +55,7 @@ export class SiteSearch {
         this.#keys.start().control(this.#sections.flatMap((section) => section.listbox ?? []))
         this.#input.addEventListener('input', () => this.#status.typing())
         this.#closing.observe(() => this.#status.closed())
-        new Typing(this.#input, this.#description).start({
+        new SearchTermInput(this.#input, this.#description).start({
             search: (term) => void this.#search(term),
             clear: () => this.#clear(),
         })
@@ -64,7 +64,7 @@ export class SiteSearch {
     }
 
     async #search(term: string) {
-        this.#searchesUnderWay.leave()
+        this.#pendingSearches.start()
         performance.mark(SEARCH_SENT)
 
         try {
@@ -75,14 +75,14 @@ export class SiteSearch {
                 this.#fail(failure)
             }
         } finally {
-            this.#searchesUnderWay.end()
+            this.#pendingSearches.finish()
         }
     }
 
     #show(answers: Answers) {
         this.#paint(() => {
             this.#sections.forEach((section) => section.show(answers[section.searched.type.postType] ?? {}))
-            this.#keys?.offer(this.#sections.flatMap((section) => section.options))
+            this.#keys?.setOptions(this.#sections.flatMap((section) => section.options))
             this.#status.answered(this.#sections.map((section) => section.count))
         })
     }
@@ -113,6 +113,6 @@ export class SiteSearch {
 
     #hideSections() {
         this.#sections.forEach((section) => section.hide())
-        this.#keys?.offer([])
+        this.#keys?.setOptions([])
     }
 }

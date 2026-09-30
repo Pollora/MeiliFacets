@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Enums;
 
-enum FacetValueOrder: string
+enum EngineFacetSort: string
 {
     case ByCount = 'count';
     case Alphabetical = 'alpha';

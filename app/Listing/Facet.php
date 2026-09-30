@@ -10,7 +10,7 @@ use Modules\MeiliFacets\Contracts\Placeable;
 use Modules\MeiliFacets\Contracts\TermScope;
 use Modules\MeiliFacets\Contracts\ValueOrder;
 use Modules\MeiliFacets\Contracts\ValuePresentation;
-use Modules\MeiliFacets\Enums\DefaultTerm;
+use Modules\MeiliFacets\Enums\DefaultTermVisibility;
 use Modules\MeiliFacets\Enums\DisplayOrder;
 use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Enums\Presentation;
@@ -34,7 +34,7 @@ readonly class Facet implements Placeable
         public DisplayOrder|ValueOrder $order = DisplayOrder::Count,
         public int $visible = self::DEFAULT_VISIBLE,
         public int $cap = self::DEFAULT_CAP,
-        public DefaultTerm $defaultTerm = DefaultTerm::Hidden,
+        public DefaultTermVisibility $defaultTerm = DefaultTermVisibility::Hidden,
         string|BackedEnum $name = '',
         ValuePresentation $presentation = Presentation::Control,
     ) {

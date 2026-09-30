@@ -12,7 +12,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /** On a container of its own: the application's own bindings must not decide the outcome. */
-final class ProductSeamBindingTest extends TestCase
+final class ProductDefaultBindingTest extends TestCase
 {
     #[Test]
     public function it_binds_its_default_when_the_project_says_nothing(): void

@@ -137,27 +137,27 @@ describe('SearchPanel', () => {
         assert.equal(element('search-panel').hidden, true)
     })
 
-    it('writes the room left under its top edge while open, and takes it back once closed', async () => {
+    it('writes the height left under its top edge while open, and takes it back once closed', async () => {
         const { window, element } = panel()
-        const room = () => element('search-panel').style.getPropertyValue('--meili-search-room')
+        const availableHeight = () => element('search-panel').style.getPropertyValue('--meili-search-available-height')
 
         window.happyDOM.setViewport({ width: 393, height: 800 })
         element('search-panel').getBoundingClientRect = () => ({ top: 72 }) as DOMRect
         click(window, element('search-toggle'))
-        assert.equal(room(), '728px')
+        assert.equal(availableHeight(), '728px')
 
         window.happyDOM.setViewport({ width: 393, height: 600 })
         window.dispatchEvent(new window.Event('resize'))
-        assert.equal(room(), '528px')
+        assert.equal(availableHeight(), '528px')
 
         click(window, element('search-toggle'))
         await nextTurn()
-        assert.equal(room(), '')
+        assert.equal(availableHeight(), '')
     })
 
-    it('keeps the room until the exit has played out, and keeps it for good if the panel opens again first', async () => {
+    it('keeps the available height until the exit has played out, and keeps it for good if the panel opens again first', async () => {
         const { window, element } = panel()
-        const room = () => element('search-panel').style.getPropertyValue('--meili-search-room')
+        const availableHeight = () => element('search-panel').style.getPropertyValue('--meili-search-available-height')
         const exits: (() => void)[] = []
 
         element('search-panel').getAnimations = () => {
@@ -171,23 +171,23 @@ describe('SearchPanel', () => {
         click(window, element('search-toggle'))
         click(window, element('search-toggle'))
         await nextTurn()
-        assert.equal(room(), '728px')
+        assert.equal(availableHeight(), '728px')
 
         exits.shift()?.()
         await nextTurn()
-        assert.equal(room(), '')
+        assert.equal(availableHeight(), '')
 
         click(window, element('search-toggle'))
         click(window, element('search-toggle'))
         click(window, element('search-toggle'))
         exits.shift()?.()
         await nextTurn()
-        assert.equal(room(), '728px')
+        assert.equal(availableHeight(), '728px')
     })
 
-    it('keeps the room when a reopening cancels the exit, its `finished` rejected', async () => {
+    it('keeps the available height when a reopening cancels the exit, its `finished` rejected', async () => {
         const { window, element } = panel()
-        const room = () => element('search-panel').style.getPropertyValue('--meili-search-room')
+        const availableHeight = () => element('search-panel').style.getPropertyValue('--meili-search-available-height')
         const cancellations: (() => void)[] = []
 
         element('search-panel').getAnimations = () => {
@@ -204,12 +204,12 @@ describe('SearchPanel', () => {
         cancellations.shift()?.()
         await nextTurn()
 
-        assert.equal(room(), '728px')
+        assert.equal(availableHeight(), '728px')
     })
 
-    it('takes the room back once the exit has played out, whatever the script still plays on the panel', async () => {
+    it('takes the available height back once the exit has played out, whatever the script still plays on the panel', async () => {
         const { window, element } = panel()
-        const room = () => element('search-panel').style.getPropertyValue('--meili-search-room')
+        const availableHeight = () => element('search-panel').style.getPropertyValue('--meili-search-available-height')
         const exits: (() => void)[] = []
         const resize = { finished: new Promise<Animation>(() => undefined), id: 'meilifacets-panel-resize' }
 
@@ -226,7 +226,7 @@ describe('SearchPanel', () => {
         exits.shift()?.()
         await nextTurn()
 
-        assert.equal(room(), '')
+        assert.equal(availableHeight(), '')
     })
 
     it('lifts the cut on transitions even when the change it wraps throws', () => {
@@ -291,10 +291,10 @@ describe('SearchPanel', () => {
         assert.deepEqual(flushes, [{ open: false, cut: true }, { open: false, cut: true }])
     })
 
-    it('measures the room from the anchor, not from a box its entrance still offsets', () => {
+    it('measures the available height from the anchor, not from a box its entrance still offsets', () => {
         const { window, element } = panel()
         const anchor = window.document.body
-        const room = () => element('search-panel').style.getPropertyValue('--meili-search-room')
+        const availableHeight = () => element('search-panel').style.getPropertyValue('--meili-search-available-height')
 
         window.happyDOM.setViewport({ width: 1440, height: 806 })
         anchor.getBoundingClientRect = () => ({ top: 0 }) as DOMRect
@@ -303,7 +303,7 @@ describe('SearchPanel', () => {
         element('search-panel').getBoundingClientRect = () => ({ top: 72 }) as DOMRect
         click(window, element('search-toggle'))
 
-        assert.equal(room(), '726px')
+        assert.equal(availableHeight(), '726px')
     })
 
     it('opens, closes and hands the focus back to a magnifier the theme placed after the panel', () => {

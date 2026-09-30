@@ -120,7 +120,7 @@ describe('ActiveValuesView', () => {
         assert.equal(pill(0).getAttribute('aria-label'), 'Remove the :max $& :label filter')
     })
 
-    it('withdraws the value it names and searches at once, taking the pending filters along', async () => {
+    it('removes the value it names and searches at once, taking the pending filters along', async () => {
         const listing = await applying(start().toggle('product_brand', 'acme'))
         listing.toggle('product_brand', 'globex')
         assert.deepEqual(labels(), ['Acme✕'], 'Globex is pending')
@@ -135,7 +135,7 @@ describe('ActiveValuesView', () => {
         assert.equal((root.querySelector('input[value="acme"]') as HTMLInputElement).checked, false)
     })
 
-    it('withdraws the whole range from its pill', async () => {
+    it('removes the whole range from its pill', async () => {
         const listing = await applying(start().priceBetween(10, 50).toggle('product_brand', 'acme'))
 
         click(window, pill(1))
@@ -174,11 +174,11 @@ describe('ActiveValuesView', () => {
 
     it('keeps the focus on the pill until the answer redraws the list', async () => {
         await applying(start().toggle('product_brand', 'acme').toggle('product_brand', 'globex'))
-        const withdrawn = pill(0)
-        withdrawn.focus()
+        const removed = pill(0)
+        removed.focus()
 
-        click(window, withdrawn)
-        assert.equal(window.document.activeElement === withdrawn, true, 'nothing moved before the answer')
+        click(window, removed)
+        assert.equal(window.document.activeElement === removed, true, 'nothing moved before the answer')
 
         await answered()
         assert.equal(window.document.activeElement === pill(0), true)

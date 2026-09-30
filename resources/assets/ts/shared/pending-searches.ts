@@ -1,30 +1,30 @@
-export interface BusySpan {
+export interface BusyListener {
     searching(): void
     settled(): void
 }
 
 /** Counted, not flagged: an overtaken search ends while the one that overtook it is still out. */
-export class SearchesUnderWay {
-    #span: BusySpan
+export class PendingSearches {
+    #listener: BusyListener
     #count = 0
 
-    constructor(span: BusySpan) {
-        this.#span = span
+    constructor(listener: BusyListener) {
+        this.#listener = listener
     }
 
-    leave() {
+    start() {
         this.#count += 1
 
         if (this.#count === 1) {
-            this.#span.searching()
+            this.#listener.searching()
         }
     }
 
-    end() {
+    finish() {
         this.#count -= 1
 
         if (this.#count === 0) {
-            this.#span.settled()
+            this.#listener.settled()
         }
     }
 }

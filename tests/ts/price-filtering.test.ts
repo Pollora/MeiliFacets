@@ -92,7 +92,7 @@ describe('a price range in the search', () => {
         assert.equal(plan[PriceQuery.KEY], undefined)
     })
 
-    it('measures the bounds apart, with the range lifted, once one is held', () => {
+    it('measures the bounds separately, with the range lifted, once one is held', () => {
         const plan = query.plan(new ListingState({ facets: { product_brand: ['aeris'] }, price: { min: 40 } }))
 
         assert.deepEqual(plan.results.facets, [])
@@ -122,7 +122,7 @@ describe('a price range in the search', () => {
         assert.equal(filter, 'post_type = "product"')
     })
 
-    it('keeps the held range on the search that counts a facet apart', () => {
+    it('keeps the held range on the search that counts a facet separately', () => {
         const counting = query.plan(new ListingState({ facets: { product_brand: ['aeris'] }, price: { max: 70 } }))['count:product_brand']
 
         assert.equal(counting?.filter, 'post_type = "product" AND price.min <= 70')

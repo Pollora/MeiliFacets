@@ -1,23 +1,23 @@
 import { ACTIVE_OPTION, LEAVING } from '../shared/attributes.ts'
 
-import type { EntranceTiming } from '../shared/entrance.ts'
+import type { AnimationTiming } from '../shared/entrance.ts'
 
 /** Where a node stood before an answer was written: its box, its opacity mid-fade, and the list it sat in. */
-export interface Place {
+export interface ExitFadeStart {
     rect: DOMRect
     opacity: number
     parent: Element | null
 }
 
 /** The corner a positioned child is placed from, in the viewport: padding edge, less what is scrolled. */
-export interface Origin {
+export interface ExitFadeOrigin {
     left: number
     top: number
 }
 
 /** Read once the answer is written: where each frame places its ghosts, and where the panel stops showing them. */
-export interface Frames {
-    origins: Map<Element, Origin>
+export interface ExitFadeLayout {
+    origins: Map<Element, ExitFadeOrigin>
     /** A ghost reaching past it would stretch what the panel scrolls, and a scrollbar would flash for the fade. */
     bottom: number
 }
@@ -27,13 +27,13 @@ export interface Frames {
  * nothing around it moves because of it. A card is its own ghost; a section or a message, which the next
  * answer may show again, leaves a copy behind. Each drifts to `exitOffset` as it fades.
  */
-export class Departure {
-    #frames: Frames
-    #timing: EntranceTiming
+export class ExitFade {
+    #layout: ExitFadeLayout
+    #timing: AnimationTiming
     #exitOffset: string
 
-    constructor(frames: Frames, timing: EntranceTiming, exitOffset: string) {
-        this.#frames = frames
+    constructor(layout: ExitFadeLayout, timing: AnimationTiming, exitOffset: string) {
+        this.#layout = layout
         this.#timing = timing
         this.#exitOffset = exitOffset
     }
@@ -42,42 +42,42 @@ export class Departure {
      * A read: called once the answer is written, before anything is written again. `overhang` is what the panel
      * still shows under its new edge while its height eases up to it.
      */
-    static read(panel: Element, lists: Element[], overhang: number): Frames {
+    static read(panel: Element, lists: Element[], overhang: number): ExitFadeLayout {
         const frames = [...new Set([panel, ...lists])].filter((frame) => frame.isConnected)
         const box = panel.getBoundingClientRect()
 
         return {
-            origins: new Map(frames.map((frame) => [frame, frame === panel ? Departure.#originIn(frame, box) : Departure.#originOf(frame)])),
+            origins: new Map(frames.map((frame) => [frame, frame === panel ? ExitFade.#originIn(frame, box) : ExitFade.#originOf(frame)])),
             bottom: box.top + panel.clientTop + panel.clientHeight + overhang,
         }
     }
 
     static #originOf(frame: Element) {
-        return Departure.#originIn(frame, frame.getBoundingClientRect())
+        return ExitFade.#originIn(frame, frame.getBoundingClientRect())
     }
 
-    static #originIn(frame: Element, box: DOMRect): Origin {
+    static #originIn(frame: Element, box: DOMRect): ExitFadeOrigin {
         return { left: box.left + frame.clientLeft - frame.scrollLeft, top: box.top + frame.clientTop - frame.scrollTop }
     }
 
     /** A card still in the document stayed in a section that left: the section's copy carries it out. */
-    row(row: Element, place: Place) {
-        const origin = place.parent === null ? undefined : this.#frames.origins.get(place.parent)
+    row(row: Element, start: ExitFadeStart) {
+        const origin = start.parent === null ? undefined : this.#layout.origins.get(start.parent)
 
-        if (row.isConnected || place.parent === null || origin === undefined || !this.#inSight(place)) {
+        if (row.isConnected || start.parent === null || origin === undefined || !this.#inSight(start)) {
             return
         }
 
         row.removeAttribute(ACTIVE_OPTION)
-        place.parent.append(row)
-        this.#fade(row, place, origin)
+        start.parent.append(row)
+        this.#fade(row, start, origin)
     }
 
-    copy(node: Element, place: Place, container: Element) {
-        const origin = this.#frames.origins.get(container)
+    copy(node: Element, start: ExitFadeStart, container: Element) {
+        const origin = this.#layout.origins.get(container)
         const copy = node.cloneNode(true)
 
-        if (origin === undefined || !(copy instanceof HTMLElement) || !this.#inSight(place)) {
+        if (origin === undefined || !(copy instanceof HTMLElement) || !this.#inSight(start)) {
             return
         }
 
@@ -85,14 +85,14 @@ export class Departure {
         copy.removeAttribute('id')
         copy.querySelectorAll('[id]').forEach((named) => named.removeAttribute('id'))
         node.after(copy)
-        this.#fade(copy, place, origin)
+        this.#fade(copy, start, origin)
     }
 
-    #inSight({ rect }: Place) {
-        return rect.top < this.#frames.bottom
+    #inSight({ rect }: ExitFadeStart) {
+        return rect.top < this.#layout.bottom
     }
 
-    #fade(node: Element, { rect, opacity }: Place, origin: Origin) {
+    #fade(node: Element, { rect, opacity }: ExitFadeStart, origin: ExitFadeOrigin) {
         if (!(node instanceof HTMLElement)) {
             return
         }
@@ -103,7 +103,7 @@ export class Departure {
         node.style.top = `${rect.top - origin.top}px`
         node.style.left = `${rect.left - origin.left}px`
         node.style.width = `${rect.width}px`
-        node.style.maxHeight = `${this.#frames.bottom - rect.top}px`
+        node.style.maxHeight = `${this.#layout.bottom - rect.top}px`
         node.animate([{ opacity, transform: 'none' }, { opacity: 0, transform: this.#exitOffset }], { ...this.#timing, fill: 'forwards' }).onfinish = () => node.remove()
     }
 }

@@ -25,19 +25,19 @@ describe('the site search stylesheet', () => {
         )
     })
 
-    it('scrolls inside the panel, within the room the client measured', () => {
+    it('scrolls inside the panel, within the height the client measured', () => {
         const { element, style } = styled(393)
 
-        element('search-panel').style.setProperty('--meili-search-room', '640px')
+        element('search-panel').style.setProperty('--meili-search-available-height', '640px')
 
         assert.equal(style('search-panel').overflowY, 'auto')
         assert.equal(style('search-panel').height, '640px')
     })
 
-    it('fills the room on a small screen and only caps the panel from 48em', () => {
+    it('fills the available height on a small screen and only caps the panel from 48em', () => {
         const { element, style } = styled(1440)
 
-        element('search-panel').style.setProperty('--meili-search-room', '640px')
+        element('search-panel').style.setProperty('--meili-search-available-height', '640px')
 
         assert.equal(style('search-panel').height, 'auto')
         assert.equal(style('search-panel').maxHeight, '640px')

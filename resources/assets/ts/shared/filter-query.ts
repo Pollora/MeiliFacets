@@ -4,5 +4,5 @@ export interface FilterQuery {
     readonly key: string
     readonly fields: string[]
     clause(state: ListingState): string
-    isMeasuredApart(state: ListingState): boolean
+    isMeasuredSeparately(state: ListingState): boolean
 }
