@@ -1,6 +1,7 @@
 import { SearchClient, SearchSuperseded } from '../shared/search-client.ts'
 import { SearchesUnderWay } from '../shared/searches-under-way.ts'
 import { ComboboxKeys } from './combobox-keys.ts'
+import { PanelClosing } from './panel-closing.ts'
 import { ResultsMotion } from './results-motion.ts'
 import { SectionView } from './section-view.ts'
 import { SiteSearchQuery } from './site-search-query.ts'
@@ -26,6 +27,7 @@ export class SiteSearch {
     #keys: ComboboxKeys | null
     #searchesUnderWay: SearchesUnderWay
     #motion: ResultsMotion | null
+    #closing: PanelClosing
 
     constructor({ contract, description, connection }: BoundRoot<SiteSearchDescription>) {
         const input = contract.one('search-input')
@@ -40,6 +42,7 @@ export class SiteSearch {
         this.#input = input instanceof HTMLInputElement ? input : null
         this.#keys = this.#input === null ? null : new ComboboxKeys(contract, this.#input)
         this.#motion = panel instanceof HTMLElement ? new ResultsMotion(contract, panel) : null
+        this.#closing = new PanelClosing(contract.root)
     }
 
     start() {
@@ -50,6 +53,8 @@ export class SiteSearch {
         }
 
         this.#keys.start().control(this.#sections.flatMap((section) => section.listbox ?? []))
+        this.#input.addEventListener('input', () => this.#status.typing())
+        this.#closing.observe(() => this.#status.closed())
         new Typing(this.#input, this.#description).start({
             search: (term) => void this.#search(term),
             clear: () => this.#clear(),

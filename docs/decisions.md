@@ -103,6 +103,8 @@ Voir aussi : [installation.md](installation.md) · [architecture.md](architectur
 | Racines du contrat et propriété des crochets | une racine dit son composant par son attribut (`data-listing`, `data-search`) : `Contract` le lit sur l'élément (`RootComponent.of()`) et applique ses règles, sans paramètre à passer. Un crochet hors de **toute** racine est orphelin, signalé par le client qui le possède : **`search` et `search-*` appartiennent à la recherche** (nommage S-18), tout autre crochet au listing. *Tranché par Louis le 2026-09-28 (`R-189`).* Contrepartie : un crochet du listing posé **dans** une racine de recherche n'est signalé par personne (il ne se lie pas, sans bruit) ; un futur crochet de recherche qui ne commencerait pas par `search` serait attribué au listing ; le paquet du listing embarque le composant `search` (+1 082 o, +360 o compressés) |
 | Poignée de la feuille de la recherche | `meilifacets-site-search` (cas `Enums\Stylesheet` à ajouter avec `site-search.css`, étape 5) : un nom public, qu'un thème désinscrit. *Tranché par Louis le 2026-09-28 (`R-189`) ; la feuille n'est pas encore créée.* |
 | Annonce de la recherche | la région d'état dit « Produits : 2 résultats et Articles : 1 résultat » : titre du type, compte par la clé existante, sections jointes par `Intl.ListFormat` (conjonction de la locale), une fois la réponse posée. Une seule chaîne neuve, publiée sous `sectionPattern` : `:heading: :count` (fr `:heading : :count`). Écarté : « 4 produits et 2 articles », qui exigerait un motif de compte par type ou de mettre en minuscules un libellé WordPress (faux en allemand). *Tranché par Louis le 2026-09-28 (`R-190`).* Coût : une clé de description et une traduction de plus ; si l'étape 5 laisse une section surcharger `heading`, elle devra le publier |
+| Annonce différée de la recherche | la région d'état n'est écrite qu'après **1 s sans frappe ni nouvelle réponse** (chaque frappe repousse l'écriture en attente), et **jamais deux fois de suite avec la même phrase** (`DebouncedAnnouncer`, `ANNOUNCE_DELAY_MS`). L'annonce reste posée après la réponse ; la fermeture du panneau annule l'annonce en attente et oublie la dernière phrase dite (le client l'apprend de `data-open`, que le chargeur retire), si bien que la même recherche est annoncée à la réouverture (revue du 2026-09-29, `R-199`). Complète « Annonce de la recherche ». *Validé par Louis le 2026-09-29 (audit de l'étape 6, `R-196`) : « crème » tapé lentement écrivait quatre fois la même phrase.* Coût : un lecteur d'écran entend le compte une seconde après la dernière réponse, pas pendant la frappe ; la panne est annoncée avec le même délai |
+| Résultats de recherche hors de l'ordre de tabulation | le client pose `tabindex="-1"` sur le crochet `url` de chaque carte qu'il tamponne : le focus reste dans le champ, Entrée suit l'option désignée ; les liens « voir tous » restent atteignables au Tab. Vignette d'une carte de **recherche** décorative (`CardView.withDecorativeImages()`, `alt=""`) ; la carte du listing garde `image_alt`, sinon le titre. *Validé par Louis le 2026-09-29 (`R-196`).* Coût : une carte surchargée qui ajoute un second lien focalisable le garde dans l'ordre du Tab |
 | Template d'une carte de recherche | crochet **`search-card-template`**, calqué sur `card-template` du listing, sans alias ; remplace `search-template` du § 8 avant toute vue. *Tranché par Louis le 2026-09-28 (`R-190`).* |
 | Clavier du combobox de recherche | ↑ depuis le champ va au dernier résultat, ↓/↑ s'arrêtent aux extrémités ; `Home`/`End`/←/→ rendent le résultat actif et laissent le curseur au texte (motif APG du combobox éditable) ; Entrée sans résultat actif est **consommée** (`preventDefault`) et ne fait rien (S-9), pour qu'un `<form>` posé par un thème n'envoie rien ; `ComboboxKeys` ne partage rien avec `ListboxKeys`. *Tranché par Louis le 2026-09-28 (`R-190`).* |
 | Attributs d'une section de recherche | `data-type` et `data-limit`, lus par le client ; la vue de l'étape 5 les rend, avec un jumeau dans `ContractParityTest`. *Tranché par Louis le 2026-09-28 (`R-190`).* |
@@ -703,6 +705,21 @@ Rien de ce qui suit n'est acquis.
   `<x-meilifacets::search-sections>` (crochet `search-sections`, composant et vue en plus, hors § 8) qui rend la
   listbox unique, `role="group"` par section et `aria-controls` rendu par le serveur ; coût : une brique de plus à
   poser dans toute composition manuelle. À trancher avant l'audit de l'étape 6.
+  **Audit de l'étape 6 (2026-09-29, `R-196`) : Louis retient la listbox unique à groupes, mais la structure demandée
+  est bloquée.** Une listbox APG n'admet que des `option` et des `group` : le titre de section et le lien « voir tous »
+  ne peuvent pas y être. Or une listbox unique autour des sections les y met forcément, sauf pour la première. Pistes,
+  **à trancher par Louis** :
+  1. *`aria-owns`* — `search-sections` rend une listbox vide qui « possède » les `ul role="group"` des sections (DOM et
+     mise en page inchangés). Essayé en direct dans Chrome : arbre conforme (listbox → groupes nommés → options), mais
+     les titres et les liens sont lus **après** tous les résultats, et la prise en charge d'`aria-owns` avec
+     `aria-activedescendant` par VoiceOver (macOS et iOS) est à vérifier avant tout code ;
+  2. *liens « voir tous » sortis de la listbox* — titre gardé dans le groupe en `role="presentation"` (motif APG
+     « listbox grouped »), liens regroupés sous la listbox : **change la mise en page** ;
+  3. *titres et groupes séparés par `subgrid`* — l'en-tête sort de `search-section` : crochets à redéfinir,
+     `ResultsMotion` à reprendre, ordre de lecture différent de l'ordre visuel ;
+  4. *garder une listbox par section* (état actuel) — « 1 sur 1 » par section, `aria-activedescendant` hors de la
+     liste contrôlée d'origine ; `aria-controls` nomme toutes les listes.
+  Écartés : un lien dans la listbox (interdit), `display: contents` (règle du module).
 - **Étape 5 : choix arrêtés** (`R-191`, 2026-09-28 ; une seule réponse sensée, écrits pour mémoire) :
   - *composition par défaut* : une racine au slot vide rend toutes les briques, une section par type accepté ; son
     slot `icon` est passé à la loupe. Avec contenu, rien n'est ajouté ;
@@ -720,6 +737,8 @@ Rien de ce qui suit n'est acquis.
   - *verrou de la page* sous `(scripting: enabled) and (width < 48em)` : amélioration mobile qui n'existe qu'avec
     JavaScript, comme le tiroir ;
   - *champ* à `font-size: max(1rem, var(--meili-ui))` : iOS agrandit la page au focus d'un champ sous 16 px ;
+    **révisé le 2026-09-29** (Louis : « trop gros nativement », `R-195`) : plancher de 16 px sous `(pointer: coarse)` seulement,
+    `var(--meili-ui)` (14 px) au pointeur fin. Coût : un iPad avec clavier et trackpad déclaré `fine` zoomerait au focus ;
   - *loupe* : cible tactile `--meili-control-min` (44 px au pointeur grossier), icône à `1.25em` ;
   - *panneau* : `Canvas`/`CanvasText`, sections côte à côte à partir de `48em` (flex, base `--meili-search-column`),
     carte en rangée vignette + texte ; aucune transition (étape 7).
@@ -732,7 +751,10 @@ Rien de ce qui suit n'est acquis.
   - *voile* : fondu seul, 200 ms en entrée et 150 ms en sortie, sur `--meili-ease` comme le panneau (*amendé le 2026-09-29,
     `R-193`* : sur `ease`, il démarrait visiblement après le panneau) ; toujours présent comme `::after` à partir de
     `48em` mais `display: none` fermé, pour ne pas créer de débordement permanent ; **noir à 20 %** quel que soit
-    `color-scheme` (il éclaircissait la page en sombre) ;
+    `color-scheme` (il éclaircissait la page en sombre) ; *révisé le 2026-09-29 (`R-197`)* : montré par `data-open`, que
+    `SearchPanel` pose sur la racine avec `aria-expanded`, et non plus par `:has([data-meili="search-toggle"]
+    [aria-expanded="true"])` — ce `:has()` coûtait 9,3 ms de sélecteurs sur 11,6 dans le recalcul forcé de l'ouverture.
+    Coût : un attribut de plus écrit à chaque ouverture et fermeture ;
   - *clavier* : ouverture ou fermeture levée par le clavier (`InputSource.isKeyboard`, clic `detail === 0`), Échap et Tab
     qui sort : `SearchPanel` pose `data-instant` **sur la racine** (le voile est son pseudo-élément), change l'état, vide
     le style (`getAnimations()`), retire l'attribut — même mécanisme que `DisclosureGroup` ; le clic sur le voile ou
@@ -766,7 +788,9 @@ Rien de ce qui suit n'est acquis.
     `data-active` retirés) ; identifiant d'option émis une fois par nœud ;
   - *entrée d'un résultat* : `opacity` 0 → 1 et `translateY(4px)` → 0, **120 ms** (`--meili-duration-settle`),
     `--meili-ease`, sans décalage entre lignes ; aucune dans une section qui entre elle-même ;
-  - *sortie* : fondu **80 ms** (`--meili-duration-leave`, nouveau), hors flux immédiatement (`data-leaving` :
+  - *sortie* : fondu **80 ms** (`--meili-duration-leave`, nouveau) — *révisé le 2026-09-29 (`R-198`)* : **120 ms** avec
+    un recul `translateY(-4px)` (opacité et `transform`), identique en mobile et en desktop, fondu seul en mouvement
+    réduit ; à 80 ms la sortie ne se voyait pas en desktop, où rien d'autre ne bouge —, hors flux immédiatement (`data-leaving` :
     `position: absolute` à la place mesurée, `overflow: hidden`, `inert`, `aria-hidden`), borné au bas visible du
     panneau et abandonné au-delà ; une section ou un message part en **copie** sans `id`, la carte part elle-même ;
   - *changement de rang* : FLIP **150 ms** (`--meili-duration-move`, nouveau), `--meili-ease`, `composite: 'add'`,
@@ -776,8 +800,20 @@ Rien de ce qui suit n'est acquis.
     le reste étant porté par les animations en cours) ; un fantôme part de l'opacité courante ;
   - *compte* : fondu + `translateY(2px)`, 120 ms, `--meili-ease` (le compte devient `inline-block`, chiffres tabulaires
     déjà en place) ;
-  - *section qui apparaît ou disparaît* : fondu 120 ms / 80 ms sur `--meili-ease-fade` (**`ease`**, nouveau jeton : un
+  - *section qui apparaît ou disparaît* : fondu 120 ms / 120 ms sur `--meili-ease-fade` (**`ease`**, nouveau jeton : un
     fondu de 80 ms sur la courbe forte était à 3 % dès 40 ms, un saut) ; hauteur sans animation ;
+  - *hauteur du panneau* (*2026-09-29, `R-198`*) : quand elle change d'une réponse à l'autre, WAAPI `height` de la
+    hauteur vue à la hauteur naturelle, **200 ms** `--meili-ease` (`--meili-duration-resize` et `--meili-ease-resize`, qui vaut `--meili-ease` par défaut,
+    déclarés sur la racine de recherche), `overflow-y: hidden` le temps du mouvement. Seul un panneau qui suit son contenu change de hauteur : en
+    desktop (`height: auto`), jamais en mobile (hauteur de la place), sans largeur codée en dur. **Exception assumée à
+    « `transform` et `opacity` seulement »** : le panneau est en `position: absolute` avec `contain: layout paint`,
+    animer sa hauteur ne remet en page que lui (mesuré : aucun coût sur l'image de la réponse à ×4, aucune image perdue
+    pendant l'animation) ; une échelle (`scaleY`) déformerait le texte et une découpe (`clip-path`) laisserait la bordure
+    et le fond à l'ancienne hauteur. Interruption : repart de la hauteur vue. Rien pendant l'entrée ou la sortie du panneau (ses seules transitions d'`opacity` et de `transform`
+    comptent : une transition de thème n'arrête rien), panneau fermé, ni en mouvement réduit (hauteur immédiate) ; au clavier, ce qui joue encore sur le panneau est terminé. Les
+    fantômes restent visibles dans ce que le panneau montre encore sous son nouveau bord. `align-content: flex-start` à
+    partir de `48em` : sinon les lignes flex s'étirent dans la hauteur en trop et les sections descendent. Coût : une
+    lecture de boîte de plus avant et après chaque réponse, une mise en page du panneau par image pendant 200 ms ;
   - *vide ↔ résultats* : fondu enchaîné **150 ms** (`--meili-duration-fade`), **sans flou** : message centré et cartes
     alignées à gauche ne partagent aucun pixel, les deux états ne se superposent pas ;
   - *recherche lente* : `::after` du champ sous `aria-busy`, 2 px (`--meili-search-bar`), balayage linéaire `translateX` +

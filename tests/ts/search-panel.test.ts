@@ -3,11 +3,11 @@ import { describe, it } from 'node:test'
 
 import { Contract } from '../../resources/assets/ts/shared/contract.ts'
 import { SearchPanel } from '../../resources/assets/ts/site-search/search-panel.ts'
-import { click, clickFromKeyboard, find, press } from './dom.ts'
-import { openSearch } from './site-search-fixtures.ts'
+import { click, clickFromKeyboard, find, nextTurn, press } from './dom.ts'
+import { openSearch, rearrangedSearchMarkup, searchMarkup } from './site-search-fixtures.ts'
 
-const panel = () => {
-    const { window, root } = openSearch()
+const panel = (markup = searchMarkup()) => {
+    const { window, root } = openSearch(markup)
     const element = (hook: string) => find(root, Contract.selector(hook))
     const calls: { open: boolean, focused: boolean }[] = []
     const bound = new SearchPanel(new Contract(root), () => calls.push({
@@ -75,6 +75,24 @@ describe('SearchPanel', () => {
         assert.equal(element('search-toggle').getAttribute('aria-expanded'), 'false')
     })
 
+    it('marks the root open while its panel is, wherever the magnifier sits in it', () => {
+        for (const markup of [searchMarkup(), rearrangedSearchMarkup()]) {
+            const { window, root, element } = panel(markup)
+            const states: boolean[] = []
+
+            click(window, element('search-toggle'))
+            states.push(root.hasAttribute('data-open'))
+            click(window, element('search-toggle'))
+            states.push(root.hasAttribute('data-open'))
+            clickFromKeyboard(window, element('search-toggle'))
+            states.push(root.hasAttribute('data-open'))
+            press(window, element('search-input'), 'Escape')
+            states.push(root.hasAttribute('data-open'))
+
+            assert.deepEqual(states, [true, false, true, false])
+        }
+    })
+
     it('says the search is unavailable when the client never arrives', () => {
         const { bound, element } = panel()
 
@@ -119,7 +137,7 @@ describe('SearchPanel', () => {
         assert.equal(element('search-panel').hidden, true)
     })
 
-    it('writes the room left under its top edge while open, and takes it back once closed', () => {
+    it('writes the room left under its top edge while open, and takes it back once closed', async () => {
         const { window, element } = panel()
         const room = () => element('search-panel').style.getPropertyValue('--meili-search-room')
 
@@ -133,7 +151,93 @@ describe('SearchPanel', () => {
         assert.equal(room(), '528px')
 
         click(window, element('search-toggle'))
+        await nextTurn()
         assert.equal(room(), '')
+    })
+
+    it('keeps the room until the exit has played out, and keeps it for good if the panel opens again first', async () => {
+        const { window, element } = panel()
+        const room = () => element('search-panel').style.getPropertyValue('--meili-search-room')
+        const exits: (() => void)[] = []
+
+        element('search-panel').getAnimations = () => {
+            const finished = new Promise<Animation>((resolve) => exits.push(() => resolve({} as Animation)))
+
+            return [{ finished, transitionProperty: 'opacity' } as unknown as Animation]
+        }
+        window.happyDOM.setViewport({ width: 393, height: 800 })
+        element('search-panel').getBoundingClientRect = () => ({ top: 72 }) as DOMRect
+
+        click(window, element('search-toggle'))
+        click(window, element('search-toggle'))
+        await nextTurn()
+        assert.equal(room(), '728px')
+
+        exits.shift()?.()
+        await nextTurn()
+        assert.equal(room(), '')
+
+        click(window, element('search-toggle'))
+        click(window, element('search-toggle'))
+        click(window, element('search-toggle'))
+        exits.shift()?.()
+        await nextTurn()
+        assert.equal(room(), '728px')
+    })
+
+    it('keeps the room when a reopening cancels the exit, its `finished` rejected', async () => {
+        const { window, element } = panel()
+        const room = () => element('search-panel').style.getPropertyValue('--meili-search-room')
+        const cancellations: (() => void)[] = []
+
+        element('search-panel').getAnimations = () => {
+            const finished = new Promise<Animation>((_resolve, reject) => cancellations.push(() => reject(new Error('The exit was cancelled.'))))
+
+            return [{ finished, transitionProperty: 'opacity' } as unknown as Animation]
+        }
+        window.happyDOM.setViewport({ width: 393, height: 800 })
+        element('search-panel').getBoundingClientRect = () => ({ top: 72 }) as DOMRect
+
+        click(window, element('search-toggle'))
+        click(window, element('search-toggle'))
+        click(window, element('search-toggle'))
+        cancellations.shift()?.()
+        await nextTurn()
+
+        assert.equal(room(), '728px')
+    })
+
+    it('takes the room back once the exit has played out, whatever the script still plays on the panel', async () => {
+        const { window, element } = panel()
+        const room = () => element('search-panel').style.getPropertyValue('--meili-search-room')
+        const exits: (() => void)[] = []
+        const resize = { finished: new Promise<Animation>(() => undefined), id: 'meilifacets-panel-resize' }
+
+        element('search-panel').getAnimations = () => {
+            const finished = new Promise<Animation>((resolve) => exits.push(() => resolve({} as Animation)))
+
+            return [resize, { finished, transitionProperty: 'opacity' }] as unknown as Animation[]
+        }
+        window.happyDOM.setViewport({ width: 393, height: 800 })
+        element('search-panel').getBoundingClientRect = () => ({ top: 72 }) as DOMRect
+
+        click(window, element('search-toggle'))
+        click(window, element('search-toggle'))
+        exits.shift()?.()
+        await nextTurn()
+
+        assert.equal(room(), '')
+    })
+
+    it('lifts the cut on transitions even when the change it wraps throws', () => {
+        const { window, root, element } = panel()
+
+        element('search-input').focus = () => {
+            throw new Error('The field refused the focus.')
+        }
+        clickFromKeyboard(window, element('search-toggle'))
+
+        assert.equal(root.hasAttribute('data-instant'), false)
     })
 
     it('opens and closes from the keyboard at once: the change is flushed with the transitions cut', () => {
@@ -145,6 +249,21 @@ describe('SearchPanel', () => {
 
         assert.deepEqual(flushes, [{ open: true, cut: true }, { open: false, cut: true }])
         assert.equal(root.hasAttribute('data-instant'), false)
+    })
+
+    it('ends a resize still playing on the panel when the keyboard opens or closes it, not when the pointer does', () => {
+        const { window, element } = panel()
+        const finished: boolean[] = []
+
+        element('search-panel').getAnimations = () => [{ finished: Promise.resolve(), finish: () => finished.push(true) } as unknown as Animation]
+
+        click(window, element('search-toggle'))
+        click(window, element('search-toggle'))
+        assert.equal(finished.length, 0)
+
+        clickFromKeyboard(window, element('search-toggle'))
+        clickFromKeyboard(window, element('search-toggle'))
+        assert.equal(finished.length, 2)
     })
 
     it('leaves the pointer its motion, in and out', () => {
@@ -185,5 +304,17 @@ describe('SearchPanel', () => {
         click(window, element('search-toggle'))
 
         assert.equal(room(), '726px')
+    })
+
+    it('opens, closes and hands the focus back to a magnifier the theme placed after the panel', () => {
+        const { window, element } = panel(rearrangedSearchMarkup())
+
+        click(window, element('search-toggle'))
+        assert.equal(element('search-panel').hidden, false)
+        assert.equal(window.document.activeElement === element('search-input'), true)
+
+        press(window, element('search-input'), 'Escape')
+        assert.equal(element('search-panel').hidden, true)
+        assert.equal(window.document.activeElement === element('search-toggle'), true)
     })
 })

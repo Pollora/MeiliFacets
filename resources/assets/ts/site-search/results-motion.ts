@@ -1,21 +1,26 @@
 import { LEAVING } from '../shared/attributes.ts'
 import { CssTiming } from '../shared/css-timing.ts'
 import { Entrance } from '../shared/entrance.ts'
+import { SUBPIXEL } from '../shared/subpixel.ts'
 import { Departure } from './departure.ts'
+import { HEIGHT_UNREAD, PanelHeight } from './panel-height.ts'
 
 import type { Contract } from '../shared/contract.ts'
 import type { EntranceTiming } from '../shared/entrance.ts'
 import type { Place } from './departure.ts'
+import type { HeightBefore } from './panel-height.ts'
 
 const MESSAGES = ['search-empty', 'search-unavailable'] as const
 const SETTLE = '--meili-duration-settle'
 const LEAVE = '--meili-duration-leave'
 const MOVE = '--meili-duration-move'
+const RESIZE = '--meili-duration-resize'
 const CROSSFADE = '--meili-duration-fade'
 const EASE = '--meili-ease'
 const FADE_EASE = '--meili-ease-fade'
-/** Under half a pixel, a glide would only blur the text. */
-const STILL = 0.5
+const RESIZE_EASE = '--meili-ease-resize'
+const EXIT_OFFSET = 'translateY(-4px)'
+const NO_OFFSET = 'none'
 
 /** Slides on the module's ease-out, fades alone on `ease`. */
 interface Timings {
@@ -24,6 +29,7 @@ interface Timings {
     appear: EntranceTiming
     leave: EntranceTiming
     crossfade: EntranceTiming
+    resize: EntranceTiming
 }
 
 interface Offset {
@@ -35,19 +41,21 @@ interface Before {
     places: Map<Element, Place>
     counts: Map<Element, string>
     shownMessages: Element[]
-    panelEntering: boolean
+    height: HeightBefore
 }
 
-const NOTHING_BEFORE: Before = { places: new Map(), counts: new Map(), shownMessages: [], panelEntering: false }
+const NOTHING_BEFORE: Before = { places: new Map(), counts: new Map(), shownMessages: [], height: HEIGHT_UNREAD }
 const STAYED: Offset = { x: 0, y: 0 }
 
 /**
  * The results between two answers: a card found again glides to its new rank, a new one fades in, a lost one
  * fades out off the flow, a section or a message fades as a whole. Every box is read before the answer is
- * written and once after it, never between two writes; nothing but `transform` and `opacity` is animated.
+ * written and once after it, never between two writes. Nothing but `transform` and `opacity` is animated, except
+ * the panel's own height.
  */
 export class ResultsMotion {
     #panel: HTMLElement
+    #height: PanelHeight
     #contract: Contract
     #timing: CssTiming
     #row: Entrance
@@ -63,6 +71,7 @@ export class ResultsMotion {
         this.#contract = contract
         this.#panel = panel
         this.#timing = new CssTiming(document)
+        this.#height = new PanelHeight(panel, this.#timing)
         this.#row = new Entrance(document, { from: 'translateY(4px)', duration: SETTLE, easing: EASE })
         this.#count = new Entrance(document, { from: 'translateY(2px)', duration: SETTLE, easing: EASE })
         this.#fade = new Entrance(document, { from: 'none', duration: SETTLE, easing: EASE })
@@ -84,7 +93,7 @@ export class ResultsMotion {
             places: new Map(this.#shown().map((node) => [node, this.#placeOf(node)])),
             counts: new Map(this.#sections().map((section) => [section, this.#countOf(section)?.textContent ?? ''])),
             shownMessages: this.#messages().filter((message) => !this.#isHidden(message)),
-            panelEntering: this.#panel.getAnimations().length > 0,
+            height: this.#height.before(),
         }
 
         return timings
@@ -93,19 +102,30 @@ export class ResultsMotion {
     #play(timings: Timings) {
         const shown = this.#shown()
         const crossfading = this.#messagesChanged()
-
-        this.#after = new Map(shown.filter((node) => this.#before.places.has(node)).map((node) => [node, node.getBoundingClientRect()]))
-
-        const departure = new Departure(Departure.read(this.#panel, this.#listsLeft(shown)), crossfading ? timings.crossfade : timings.leave)
+        const { frames, resize } = this.#readAfter(shown)
+        const departure = new Departure(frames, crossfading ? timings.crossfade : timings.leave, this.#exitOffset())
 
         this.#leave(shown, departure)
         this.#glideAll(timings.move)
 
-        if (!this.#before.panelEntering) {
+        if (!this.#before.height.panelEnteringOrLeaving) {
             shown.forEach((node) => this.#enter(node, crossfading ? timings.crossfade : timings.appear, timings.slide))
         }
 
         this.#before.counts.forEach((text, section) => this.#recount(section, text, timings.slide))
+        resize.play(timings.resize)
+    }
+
+    #readAfter(shown: Element[]) {
+        const resize = this.#height.after(this.#before.height)
+
+        this.#after = new Map(shown.filter((node) => this.#before.places.has(node)).map((node) => [node, node.getBoundingClientRect()]))
+
+        return { frames: Departure.read(this.#panel, this.#listsLeft(shown), resize.overhang()), resize }
+    }
+
+    #exitOffset() {
+        return this.#timing.prefersReducedMotion() ? NO_OFFSET : EXIT_OFFSET
     }
 
     #leave(shown: Element[], departure: Departure) {
@@ -130,7 +150,7 @@ export class ResultsMotion {
 
     /** Additive, so a glide caught mid-way carries on from where the eye sees the card rather than jumping. */
     #glide(node: Element, { x, y }: Offset, { duration, easing }: EntranceTiming) {
-        if ((Math.abs(x) >= STILL || Math.abs(y) >= STILL) && node instanceof HTMLElement) {
+        if ((Math.abs(x) >= SUBPIXEL || Math.abs(y) >= SUBPIXEL) && node instanceof HTMLElement) {
             node.animate([{ transform: `translate(${x}px, ${y}px)` }, { transform: 'none' }], { duration, easing, composite: 'add' })
         }
     }
@@ -216,6 +236,7 @@ export class ResultsMotion {
             appear: timing(SETTLE, FADE_EASE),
             leave: timing(LEAVE, FADE_EASE),
             crossfade: timing(CROSSFADE, FADE_EASE),
+            resize: timing(RESIZE, RESIZE_EASE),
         }
     }
 

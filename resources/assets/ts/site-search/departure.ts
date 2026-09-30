@@ -25,25 +25,30 @@ export interface Frames {
 /**
  * What leaves with one answer, faded out where it stood but out of the flow at once: nothing waits for it,
  * nothing around it moves because of it. A card is its own ghost; a section or a message, which the next
- * answer may show again, leaves a copy behind.
+ * answer may show again, leaves a copy behind. Each drifts to `exitOffset` as it fades.
  */
 export class Departure {
     #frames: Frames
     #timing: EntranceTiming
+    #exitOffset: string
 
-    constructor(frames: Frames, timing: EntranceTiming) {
+    constructor(frames: Frames, timing: EntranceTiming, exitOffset: string) {
         this.#frames = frames
         this.#timing = timing
+        this.#exitOffset = exitOffset
     }
 
-    /** A read: called once the answer is written, before anything is written again. */
-    static read(panel: Element, lists: Element[]): Frames {
+    /**
+     * A read: called once the answer is written, before anything is written again. `overhang` is what the panel
+     * still shows under its new edge while its height eases up to it.
+     */
+    static read(panel: Element, lists: Element[], overhang: number): Frames {
         const frames = [...new Set([panel, ...lists])].filter((frame) => frame.isConnected)
         const box = panel.getBoundingClientRect()
 
         return {
             origins: new Map(frames.map((frame) => [frame, frame === panel ? Departure.#originIn(frame, box) : Departure.#originOf(frame)])),
-            bottom: box.top + panel.clientTop + panel.clientHeight,
+            bottom: box.top + panel.clientTop + panel.clientHeight + overhang,
         }
     }
 
@@ -99,6 +104,6 @@ export class Departure {
         node.style.left = `${rect.left - origin.left}px`
         node.style.width = `${rect.width}px`
         node.style.maxHeight = `${this.#frames.bottom - rect.top}px`
-        node.animate([{ opacity }, { opacity: 0 }], { ...this.#timing, fill: 'forwards' }).onfinish = () => node.remove()
+        node.animate([{ opacity, transform: 'none' }, { opacity: 0, transform: this.#exitOffset }], { ...this.#timing, fill: 'forwards' }).onfinish = () => node.remove()
     }
 }

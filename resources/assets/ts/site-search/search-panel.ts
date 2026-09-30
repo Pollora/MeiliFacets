@@ -1,6 +1,7 @@
-import { EXPANDED, INSTANT } from '../shared/attributes.ts'
+import { EXPANDED, INSTANT, OPEN } from '../shared/attributes.ts'
 import { InputSource } from '../shared/input-source.ts'
 import { LightDismiss } from '../shared/light-dismiss.ts'
+import { PanelTransitions } from '../shared/panel-transitions.ts'
 import { PanelRoom } from './panel-room.ts'
 
 import type { Contract } from '../shared/contract.ts'
@@ -18,6 +19,7 @@ export class SearchPanel {
     #panel: HTMLElement | null
     #input: HTMLElement | null
     #room: PanelRoom | null
+    #transitions: PanelTransitions | null
     #intent: () => void
     #intended = false
 
@@ -27,6 +29,7 @@ export class SearchPanel {
         this.#panel = this.#element('search-panel')
         this.#input = this.#element('search-input')
         this.#room = this.#panel === null ? null : new PanelRoom(this.#panel)
+        this.#transitions = this.#panel === null ? null : new PanelTransitions(this.#panel)
         this.#intent = intent
     }
 
@@ -76,9 +79,15 @@ export class SearchPanel {
         const root = this.#contract.root
 
         root.setAttribute(INSTANT, '')
-        change()
-        root.getAnimations()
-        root.removeAttribute(INSTANT)
+
+        try {
+            change()
+            root.getAnimations()
+        } finally {
+            root.removeAttribute(INSTANT)
+        }
+
+        this.#panel?.getAnimations().forEach((animation) => animation.finish())
     }
 
     #open() {
@@ -88,6 +97,7 @@ export class SearchPanel {
 
         this.#panel.hidden = false
         this.#toggle?.setAttribute(EXPANDED, 'true')
+        this.#contract.root.setAttribute(OPEN, '')
         this.#room?.measure()
         this.#input?.focus()
         this.#call()
@@ -99,7 +109,21 @@ export class SearchPanel {
         }
 
         this.#toggle?.setAttribute(EXPANDED, 'false')
-        this.#room?.release()
+        this.#contract.root.removeAttribute(OPEN)
+        this.#releaseRoomOnceGone()
+    }
+
+    /** `finished` rejects when a reopening cancels the exit. */
+    #releaseRoomOnceGone() {
+        const exitAnimations = this.#transitions?.enteringOrLeaving() ?? []
+
+        void Promise.allSettled(exitAnimations.map((animation) => animation.finished)).then(() => this.#releaseRoomIfClosed())
+    }
+
+    #releaseRoomIfClosed() {
+        if (!this.#isOpen()) {
+            this.#room?.release()
+        }
     }
 
     #remeasure() {

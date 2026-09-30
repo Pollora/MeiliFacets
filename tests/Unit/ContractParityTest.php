@@ -240,6 +240,15 @@ final class ContractParityTest extends TestCase
         $this->assertStringContainsString('['.$found[1].']', (string) file_get_contents(self::STYLESHEET));
     }
 
+    #[Test]
+    public function the_stylesheet_draws_the_scrim_from_the_state_the_client_sets(): void
+    {
+        preg_match("/OPEN = '([^']*)'/", $this->read('shared/attributes.ts'), $found);
+
+        $this->assertNotSame('', $found[1] ?? '');
+        $this->assertStringContainsString('[data-meili="search"]['.$found[1].']::after', (string) file_get_contents(self::SEARCH_STYLESHEET));
+    }
+
     /**
      * @return list<string>
      */

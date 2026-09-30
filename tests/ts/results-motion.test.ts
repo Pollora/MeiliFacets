@@ -14,9 +14,12 @@ const CONNECTION = { url: 'https://engine.test', key: 'search-only', index: 'pos
 const SECTION_HEIGHT = 300
 const HEADING = 40
 const ROW = 60
+const FIELD = 100
+const EASE = 'cubic-bezier(0.23, 1, 0.32, 1)'
 
-/** happy-dom does not inherit the stylesheet's custom properties: the panel is given them as written there. */
-const TOKENS = [...readFileSync(SEARCH_STYLESHEET, 'utf8').matchAll(/(--meili-(?:duration-[a-z-]+|ease(?:-fade)?)): ([^;]+);/g)]
+/** happy-dom neither inherits the stylesheet's custom properties nor substitutes `var()`: the panel is given them resolved. */
+const DECLARED = new Map([...readFileSync(SEARCH_STYLESHEET, 'utf8').matchAll(/(--meili-(?:duration|ease)[a-z-]*): ([^;]+);/g)].map(([, name = '', value = '']) => [name, value]))
+const TOKENS = [...DECLARED].map(([name, value]) => [name, value.replace(/^var\((--[a-z-]+)\)$/, (reference, token: string) => DECLARED.get(token) ?? reference)])
 
 interface Played {
     node: string
@@ -25,11 +28,14 @@ interface Played {
     animation: { onfinish: (() => void) | null }
 }
 
+const clipped = (height: number) => ({ overflowY: 'hidden', height: `${height}px` })
+
 /**
  * happy-dom lays nothing out: sections stack by rank among those shown, cards by rank in their list, and a
- * glide caught mid-way adds what `visual` says to the box, as a running transform would.
+ * glide caught mid-way adds what `visual` says to the box, as a running transform would. A panel that follows its
+ * content is as tall as its field and its cards, unless a resize under way holds it at `resized.height`.
  */
-const moving = (t: TestContext, { reduced = false, shown = 2000 } = {}) => {
+const moving = (t: TestContext, { reduced = false, shown = 2000, followsContent = false } = {}) => {
     t.mock.timers.enable({ apis: ['setTimeout'] })
 
     const engine = new FakeEngine(t)
@@ -38,7 +44,8 @@ const moving = (t: TestContext, { reduced = false, shown = 2000 } = {}) => {
     const input = find<HTMLInputElement>(root, Contract.selector('search-input'))
     const visual = new Map<string, number>()
     const played: Played[] = []
-    let cancelled = 0
+    const cancelled: string[] = []
+    const resized: { height: number | null } = { height: null }
     let term = 's'
 
     const named = (node: Element) => [node.getAttribute('data-meili'), node.getAttribute('data-type'), node.matches(Contract.selector('card')) ? node.querySelector(Contract.selector('title'))?.textContent : null]
@@ -68,16 +75,26 @@ const moving = (t: TestContext, { reduced = false, shown = 2000 } = {}) => {
     }
     window.HTMLElement.prototype.getAnimations = () => []
     window.HTMLElement.prototype.animate = function (this: HTMLElement, keyframes: Keyframe[], options: KeyframeAnimationOptions) {
-        const animation = { onfinish: null, cancel: () => cancelled++ }
+        const node = named(this)
+        const animation = { id: options.id ?? '', onfinish: null, cancel: () => {
+            cancelled.push(node)
+            resized.height = node === 'search-panel' ? null : resized.height
+        } }
 
-        played.push({ node: named(this), keyframes, options, animation })
+        played.push({ node, keyframes, options, animation })
 
         return animation as unknown as Animation
     }
     window.matchMedia = (() => ({ matches: reduced })) as unknown as typeof window.matchMedia
     panel.hidden = false
     Object.defineProperty(panel, 'clientHeight', { value: shown })
-    TOKENS.forEach(([, name = '', value = '']) => panel.style.setProperty(name, value))
+
+    if (followsContent) {
+        const cardsShown = () => root.querySelectorAll(`${Contract.selector('card')}:not([data-leaving])`).length
+
+        panel.getBoundingClientRect = () => ({ top: 0, left: 0, height: resized.height ?? FIELD + cardsShown() * ROW }) as DOMRect
+    }
+    TOKENS.forEach(([name = '', value = '']) => panel.style.setProperty(name, value))
 
     new SiteSearch({ contract: new Contract(root), description: searchDescribed(), connection: CONNECTION }).start()
 
@@ -92,7 +109,7 @@ const moving = (t: TestContext, { reduced = false, shown = 2000 } = {}) => {
 
     const leaving = () => [...root.querySelectorAll<HTMLElement>('[data-leaving]')]
 
-    return { window, root, panel, input, played, visual, answer, leaving, named, cancelled: () => cancelled }
+    return { window, root, panel, input, played, visual, resized, answer, leaving, named, cancelled }
 }
 
 const cards = (...ids: number[]) => ids.map((id) => hit(id, `Card ${id}`))
@@ -106,8 +123,8 @@ describe('ResultsMotion', () => {
         await answer(cards(1, 2, 3))
 
         assert.deepEqual(played.map(({ node, keyframes, options }) => [node, keyframes, options.duration, options.easing]), [
-            ['card:Card 3', [{ opacity: 0, transform: 'translateY(4px)' }, { opacity: 1, transform: 'none' }], 120, 'cubic-bezier(0.23, 1, 0.32, 1)'],
-            ['search-count', [{ opacity: 0, transform: 'translateY(2px)' }, { opacity: 1, transform: 'none' }], 120, 'cubic-bezier(0.23, 1, 0.32, 1)'],
+            ['card:Card 3', [{ opacity: 0, transform: 'translateY(4px)' }, { opacity: 1, transform: 'none' }], 120, EASE],
+            ['search-count', [{ opacity: 0, transform: 'translateY(2px)' }, { opacity: 1, transform: 'none' }], 120, EASE],
         ])
     })
 
@@ -140,10 +157,10 @@ describe('ResultsMotion', () => {
 
         assert.equal(glide?.options.composite, 'add')
         assert.equal(seenAtStart, seenBefore)
-        assert.equal(cancelled(), 0)
+        assert.deepEqual(cancelled, [])
     })
 
-    it('fades a lost card out off the flow, where it stood, and drops it once faded', async (t) => {
+    it('fades a lost card out off the flow, where it stood, drifting up 4 px, and drops it once faded', async (t) => {
         const { root, played, answer, leaving } = moving(t)
 
         await answer(cards(1, 2))
@@ -154,7 +171,9 @@ describe('ResultsMotion', () => {
         const fade = played.find(({ node }) => node === 'card:Card 2')
 
         assert.deepEqual([ghost?.style.top, ghost?.style.maxHeight, ghost?.getAttribute('aria-hidden'), ghost?.inert], [`${HEADING + ROW}px`, `${2000 - HEADING - ROW}px`, 'true', true])
-        assert.deepEqual([fade?.keyframes, fade?.options.duration, fade?.options.easing], [[{ opacity: 1 }, { opacity: 0 }], 80, 'ease'])
+        assert.deepEqual([fade?.keyframes, fade?.options.duration, fade?.options.easing], [
+            [{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateY(-4px)' }], 120, 'ease',
+        ])
         assert.equal(root.querySelectorAll(`${Contract.selector('card')}:not([data-leaving])`).length, 1)
 
         fade?.animation.onfinish?.()
@@ -174,7 +193,7 @@ describe('ResultsMotion', () => {
         assert.equal(copy?.querySelectorAll('[id]').length, 0)
         assert.equal(find(root, '[data-type="product"]:not([data-leaving])').hidden, true)
         assert.deepEqual(played.map(({ node, keyframes }) => [node, keyframes]), [
-            ['search-section:product', [{ opacity: 1 }, { opacity: 0 }]],
+            ['search-section:product', [{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateY(-4px)' }]],
             ['search-section:post', [{ opacity: 0, transform: 'none' }, { opacity: 1, transform: 'none' }]],
         ])
     })
@@ -197,7 +216,7 @@ describe('ResultsMotion', () => {
     it('lets the first results in with the panel when it is still coming in', async (t) => {
         const { panel, played, answer } = moving(t)
 
-        panel.getAnimations = () => [{} as Animation]
+        panel.getAnimations = () => [{ transitionProperty: 'opacity' } as unknown as Animation]
         await answer(cards(1), cards(2))
 
         assert.deepEqual(played, [])
@@ -247,7 +266,115 @@ describe('ResultsMotion', () => {
         played.length = 0
         await answer(cards(1))
 
-        assert.deepEqual(leaving(), [])
+        assert.equal(leaving().length, 0)
         assert.deepEqual(played.map(({ node }) => node), ['search-count'])
+    })
+
+    it('eases the height of a panel that follows its content from the old height to the new, in 200 ms', async (t) => {
+        const { played, answer } = moving(t, { followsContent: true })
+
+        await answer(cards(1, 2, 3, 4))
+        played.length = 0
+        await answer(cards(1))
+
+        const resize = played.find(({ node }) => node === 'search-panel')
+
+        assert.deepEqual([resize?.keyframes, resize?.options.duration, resize?.options.easing], [
+            [clipped(FIELD + 4 * ROW), clipped(FIELD + ROW)], 200, EASE,
+        ])
+    })
+
+    it('keeps in sight the cards the panel still shows while its edge eases up', async (t) => {
+        const { answer, leaving } = moving(t, { followsContent: true, shown: HEADING + ROW })
+
+        await answer(cards(1, 2, 3, 4))
+        await answer(cards(1))
+
+        assert.equal(leaving().length, 3)
+    })
+
+    it('leaves the height of a panel given the full room alone', async (t) => {
+        const { played, answer } = moving(t)
+
+        await answer(cards(1, 2, 3, 4))
+        played.length = 0
+        await answer(cards(1))
+
+        assert.equal(played.some(({ node }) => node === 'search-panel'), false)
+    })
+
+    it('changes the height at once under reduced motion, so nothing past the new edge stays to fade', async (t) => {
+        const { played, answer, leaving } = moving(t, { followsContent: true, reduced: true, shown: HEADING + ROW })
+
+        await answer(cards(1, 2))
+        played.length = 0
+        await answer(cards(1))
+
+        assert.deepEqual(played.map(({ node, keyframes }) => [node, keyframes]), [['search-count', [{ opacity: 0 }, { opacity: 1 }]]])
+        assert.equal(leaving().length, 0)
+    })
+
+    it('fades a card out without drifting under reduced motion', async (t) => {
+        const { played, answer } = moving(t, { reduced: true })
+
+        await answer(cards(1, 2))
+        played.length = 0
+        await answer(cards(1))
+
+        assert.deepEqual(played.find(({ node }) => node === 'card:Card 2')?.keyframes, [{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'none' }])
+    })
+
+    it('animates the results and the height under a transition of the panel that neither brings it in nor takes it out', async (t) => {
+        const { panel, played, answer } = moving(t, { followsContent: true })
+
+        panel.getAnimations = () => [{ transitionProperty: 'background-color' } as unknown as Animation]
+        await answer(cards(1, 2, 3, 4))
+        played.length = 0
+        await answer(cards(1, 5))
+
+        assert.deepEqual(played.map(({ node }) => node), ['card:Card 2', 'card:Card 3', 'card:Card 4', 'card:Card 5', 'search-count', 'search-panel'])
+    })
+
+    it('eases the height on the curve the theme gives it', async (t) => {
+        const { panel, played, answer } = moving(t, { followsContent: true })
+
+        panel.style.setProperty('--meili-ease-resize', 'linear')
+        await answer(cards(1, 2, 3, 4))
+        played.length = 0
+        await answer(cards(1))
+
+        assert.equal(played.find(({ node }) => node === 'search-panel')?.options.easing, 'linear')
+    })
+
+    it('leaves the height to the panel while it comes in', async (t) => {
+        const { panel, played, answer } = moving(t, { followsContent: true })
+
+        panel.getAnimations = () => [{ transitionProperty: 'opacity' } as unknown as Animation]
+        await answer(cards(1, 2, 3, 4))
+        await answer(cards(1))
+
+        assert.equal(played.some(({ node }) => node === 'search-panel'), false)
+    })
+
+    it('starts a resize an answer overtakes from the height the eye sees, and still lets new cards in', async (t) => {
+        const { panel, played, resized, answer, cancelled } = moving(t, { followsContent: true })
+
+        await answer(cards(1, 2, 3, 4))
+        await answer(cards(1))
+
+        const running = played.findLast(({ node }) => node === 'search-panel')?.animation as unknown as Animation
+
+        panel.getAnimations = () => [running]
+        resized.height = FIELD + 2.5 * ROW
+        played.length = 0
+        cancelled.length = 0
+        await answer(cards(1, 2))
+
+        assert.deepEqual(cancelled, ['search-panel'])
+        assert.deepEqual(played.map(({ node, keyframes }) => [node, node === 'search-panel' ? keyframes : null]), [
+            ['card:Card 2', null],
+            ['search-count', null],
+            ['search-panel', [clipped(FIELD + 2.5 * ROW), clipped(FIELD + 2 * ROW)]],
+        ])
     })
 })

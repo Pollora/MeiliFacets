@@ -43,14 +43,37 @@ describe('the site search stylesheet', () => {
         assert.equal(style('search-panel').maxHeight, '640px')
     })
 
+    it('keeps the sections under the field while the panel is taller than they need, as when its height eases up', () => {
+        const { style } = styled(1440)
+
+        assert.equal(style('search-panel').alignContent, 'flex-start')
+    })
+
     /** Read as written: happy-dom does not evaluate `(scripting: enabled)`. */
-    it('locks the page behind an open panel on a small screen only', () => {
+    it('locks the page behind an open panel on a small screen only, read from the mark the root carries', () => {
         const source = readFileSync(SEARCH_STYLESHEET, 'utf8')
-        const lock = /:root:has\(\[data-meili="search-toggle"\]\[aria-expanded="true"\]\) \{\s*overflow: hidden;/
+        const lock = /:root:has\(\[data-meili="search"\]\[data-open\]\) \{\s*overflow: hidden;/
         const small = source.slice(source.indexOf('@media (scripting: enabled) and (width < 48em)'), source.indexOf('@media (width >= 48em)'))
 
         assert.match(small, lock)
         assert.equal(source.match(new RegExp(lock, 'g'))?.length, 1)
+    })
+
+    /** iOS zooms the page into a field under 16px on focus: the floor holds on touch screens only. */
+    it('sizes the field like the panel, and never under 16px on a touch screen', () => {
+        const source = readFileSync(SEARCH_STYLESHEET, 'utf8')
+        const coarse = source.slice(source.indexOf('@media (pointer: coarse)'))
+
+        assert.match(source, /\[data-meili="search-input"\] \{[^}]*font-size: var\(--meili-ui\);/)
+        assert.match(coarse.slice(0, coarse.indexOf('\n}')), /\[data-meili="search-input"\] \{\s*font-size: max\(1rem, var\(--meili-ui\)\);/)
+    })
+
+    /** A fixed header spans the viewport: without the gutter it widens by the scrollbar the lock removes. */
+    it('keeps the room of the scrollbar it removes, so the page underneath keeps its width', () => {
+        const source = readFileSync(SEARCH_STYLESHEET, 'utf8')
+        const small = source.slice(source.indexOf('@media (scripting: enabled) and (width < 48em)'), source.indexOf('@media (width >= 48em)'))
+
+        assert.match(small, /:root:has\(\[data-meili="search"\]\[data-open\]\) \{\s*overflow: hidden;\s*scrollbar-gutter: stable;\s*\}/)
     })
 
     it('holds the field at the top of the panel while the results scroll under it', () => {
@@ -72,10 +95,11 @@ describe('the site search stylesheet', () => {
         const source = readFileSync(SEARCH_STYLESHEET, 'utf8')
         const wide = source.slice(source.indexOf('@media (width >= 48em)'))
         const scrim = /\[data-meili="search"\]::after \{[^}]*position: absolute;[^}]*top: 100%;[^}]*display: none;/
-        const shown = /\[data-meili="search"\]:has\(\[data-meili="search-toggle"\]\[aria-expanded="true"\]\)::after \{[^}]*display: block;/
+        const shown = /\[data-meili="search"\]\[data-open\]::after \{[^}]*display: block;/
 
         assert.match(wide, scrim)
         assert.match(wide, shown)
+        assert.doesNotMatch(wide, /\[data-meili="search"\]:has\(/, 'a :has() over the root costs a style recalculation of its subtree at every opening')
         assert.equal(source.match(new RegExp(scrim, 'g'))?.length, 1)
         assert.doesNotMatch(source, /filter\s*:/)
     })
@@ -158,5 +182,29 @@ describe('the site search stylesheet', () => {
 
         assert.match(source, /\[data-meili="search-results"\] > \[data-meili="card"\]\[data-active\] \{\s*background: var\(--meili-tint-active\);\s*\}/)
         assert.match(source, /\[data-meili="search-count"\] \{\s*display: inline-block;/)
+    })
+
+    it('paints the slow bar in the text colour under forced colours, where a background would vanish', () => {
+        const source = readFileSync(SEARCH_STYLESHEET, 'utf8')
+        const forced = source.slice(source.indexOf('@media (forced-colors: active)'))
+
+        assert.match(forced.slice(0, forced.indexOf('\n}')), /\[data-meili="search-panel"\]\[aria-busy="true"\] > \[data-meili="search-field"\]::after,[^{]*\{\s*background: CanvasText;\s*forced-color-adjust: none;/)
+    })
+
+    it('gives the link to the archive the height of a touch target, its text left as it is', () => {
+        const source = readFileSync(SEARCH_STYLESHEET, 'utf8')
+        const seeAll = source.slice(source.indexOf('[data-meili="search-see-all"] {'))
+
+        assert.match(seeAll.slice(0, seeAll.indexOf('}')), /display: inline-flex;\s*align-items: center;[^}]*min-height: var\(--meili-control-min\);[^}]*font-size: var\(--meili-small\);/)
+        assert.match(source, /@media \(pointer: coarse\) \{\s*\[data-meili="search"\] \{\s*--meili-control-min: 2\.75rem;/)
+    })
+
+    it('lets the panel and the scrim leave on their own curve, the entrance untouched', () => {
+        const source = readFileSync(SEARCH_STYLESHEET, 'utf8')
+
+        assert.match(source, /--meili-ease-exit: ease;/)
+        assert.match(source, /\[data-meili="search-panel"\]\[hidden\] \{[^}]*transition-timing-function: var\(--meili-ease-exit\);/)
+        assert.match(source, /opacity var\(--meili-duration-pop-out\) var\(--meili-ease-exit\),/)
+        assert.match(source, /transition-duration: var\(--meili-duration-pop-in\);\s*transition-timing-function: var\(--meili-ease\);/)
     })
 })

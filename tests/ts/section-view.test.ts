@@ -48,6 +48,20 @@ describe('SectionView', () => {
         assert.equal(products?.options.length, 1)
     })
 
+    it('leaves the Tab order to the field, and the image of a result silent: the link already says the title', (t) => {
+        const { root, views } = sections(t)
+        const [products] = views
+        const card = { title: 'Sérum Éclat', url: 'https://example.test/116', image_url: 'https://example.test/116.jpg', image_alt: 'Un flacon' }
+
+        products?.show({ hits: [{ ID: 116, card }], totalHits: 1 })
+
+        const shown = section(root, 'product')
+
+        assert.equal(find(shown, Contract.selector('url')).getAttribute('tabindex'), '-1')
+        assert.equal(find<HTMLImageElement>(shown, Contract.selector('image')).hidden, false)
+        assert.equal(find<HTMLImageElement>(shown, Contract.selector('image')).alt, '')
+    })
+
     it('shows a summary only when the card carries one', (t) => {
         const { root, views } = sections(t)
         const [, posts] = views

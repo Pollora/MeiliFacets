@@ -85,6 +85,9 @@ export const open = (markup: string, options: { styled?: boolean } = {}) => {
     return { window, root: find(window.document, '[data-listing]') }
 }
 
+/** One turn of the event loop: the callbacks of promises already settled have run. */
+export const nextTurn = () => new Promise((resolve) => setImmediate(resolve))
+
 /** `detail` tells a real click from one the keyboard raised, and the client reads it. */
 export const click = (window: TestWindow, node: Element, detail = 1) => {
     node.dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true, detail }))

@@ -207,7 +207,7 @@ cherchable » s'ajoutent à `R-27` (même cause, même correctif). Sous le parap
 | S-13 | `R-19` | **proposé** — hors chantier : le panneau ne passe pas par PHP (lot 6) |
 | S-14 | `rankingScoreThreshold` | **proposé** — non au premier livrable ; à mesurer à l'étape 2 si des résultats hors sujet remontent |
 | S-15 | `matchingStrategy` | **proposé** — défaut (`last`), revu à l'étape 2 sur les termes de référence |
-| S-16 | Code mort du thème | **proposé** — retirer à l'étape 8 le composant Alpine `productSearch`, la route `/api/products/search` et son service SQL |
+| S-16 | Code mort du thème | **fait** le 2026-09-29 (`R-195`) — composant Alpine `productSearch`, route `/api/products/search` et son service SQL retirés, après vérification qu'aucune vue, aucun JS, aucune route ni aucun test ne les référençait |
 | S-17 | Composition | **tranché** (Louis) — la modularité du chantier filtres reste la règle : racine `<x-meilifacets::search>` (contexte, description, contrat, connexion ; aucun paramètre `types`, S-21) et briques indépendantes composées par le thème (`search-toggle`, `search-panel`, `search-input`, `search-section type limit`, `search-empty`, `search-unavailable`) |
 | S-18 | Nom des crochets | **tranché** (Louis) — crochets en **`search`** / **`search-*`**, alignés sur les composants ; l'autorisation donnée pour les noms `site-search-*` vaut pour ces noms. Aucun crochet `search*` n'existait, aucun ne voyage dans une URL |
 | S-19 | Section d'un type absent | **tranché** (Louis, avec S-21) — une section dont le type n'est pas déclaré ou pas indexé lève une erreur de développement claire, `product` compris sans WooCommerce : le thème garde sa section produits derrière `WooCommerce::isActive()` ; écarté : ignorer en silence, qui masquerait une faute de frappe |
@@ -661,30 +661,58 @@ comptes et leurs liens vers `/boutique` et `/journal` ; « zzzz » affiche « Au
 votre recherche » ; moteur arrêté : « Recherche indisponible », l'URL ne change pas ; aucune erreur
 console ; suite des filtres verte.
 
-### 6 · Accessibilité
+### 6 · Accessibilité — livrée en partie le 2026-09-29 (`R-196`), structure de la listbox en attente de Louis, en attente de commit
 
-- [ ] combobox APG : `aria-activedescendant`, groupes nommés par leur en-tête, options = liens (risque § 9)
-- [ ] une seule région d'état, annonce après la réponse, jamais à chaque frappe
-- [ ] `forced-colors`, cibles tactiles (`--meili-control-min`), nom de la loupe
-- [ ] audit par sous-agent, lecteur d'écran (VoiceOver macOS et iOS)
+- [ ] combobox APG : **une seule listbox, un groupe nommé par section** — bloqué : titre et « voir tous » ne peuvent
+  pas être dans la listbox ; pistes dans `decisions.md` (« Une liste `role="listbox"` par section ») ; rien de codé
+- [x] options = liens hors de l'ordre du Tab (`tabindex="-1"`) ; Tab : champ → « Tous les produits » → « Tous les
+  articles » ; titre lu une fois (vignette décorative dans la carte de recherche seule)
+- [x] une seule région d'état, annonce après la réponse **et** après 1 s sans frappe ni réponse (`DebouncedAnnouncer`), jamais deux fois la même phrase
+- [x] cibles tactiles : « voir tous » à 44 px de haut au pointeur grossier (loupe 44, champ 48, cartes ≥ 72 à 393)
+- [x] `forced-colors` : ligne active et champ au focus contourés ; barre lente rendue visible ; voile quasi invisible
+  (décoratif, le filet du panneau reste)
+- [x] fermeture du panneau : hauteur gardée jusqu'à la fin du fondu (`R-196`)
+- [x] `limit` non entier refusé (`2.5`, `abc`, `0`)
+- [ ] à tester par Louis sous VoiceOver (macOS Safari, iOS Safari) :
+  - ouverture : focus dans le champ, « Rechercher, zone de recherche » annoncé ;
+  - frappe lente : **une** annonce du compte après la pause, rien pendant la frappe ;
+  - ↓/↑ : chaque résultat lu **une** fois (titre, prix ou extrait), sans « image » ; passage d'une section à l'autre ;
+  - rang annoncé (« 1 sur 1 » par section aujourd'hui) ;
+  - Tab : champ → « Tous les produits » → « Tous les articles », aucun résultat ;
+  - Entrée sur un résultat ouvre sa page ; Échap ferme et rend le focus à la loupe ;
+  - panne : « Recherche indisponible » annoncé ;
+  - iOS : rotor « Titres » (Produits, Articles), double-tap sur un résultat, balayage dans la liste.
 
 ### 7 · Animations — livrée le 2026-09-28 (`R-192`), reprise le 2026-09-29 (`R-193`), en attente de commit
 
 - [x] panneau : entrée/sortie par `@starting-style` + `allow-discrete`, instantanée au clavier (comme ANIM-4) ; voile en fondu calé sur lui (`R-192`)
 - [x] aucune animation par frappe ; atténuation différée pendant une recherche (comme ANIM-10) ; fondu court des premières sections seulement (`R-192`)
 - [x] mouvement réduit : fondus seuls (`R-192`)
-- [x] résultats pendant la frappe : réconciliation par `ID`, entrée 120 ms + 4 px, sortie 80 ms hors flux, FLIP additif
+- [x] résultats pendant la frappe : réconciliation par `ID`, entrée 120 ms + 4 px, sortie 120 ms hors flux, FLIP additif
   150 ms, compte en fondu + 2 px, vide ↔ résultats 150 ms sans flou, barre lente après 150 ms, rien au clavier ni
   pendant l'entrée du panneau (`ResultsMotion`, `Departure`, `R-193`)
 - [x] reprises de `R-192` : voile sur la courbe du panneau, ligne active sans arête, soulignement du texte seul,
   vignette à taille fixe ; premiers résultats à ×4 : layout 1,4–2 ms, rien à réduire (`R-193`)
 - [ ] commits, après relecture de Louis
 
-### 8 · Habillage Pluralia — attend les maquettes (D-9)
+### 8 · Habillage Pluralia — livré sans maquette le 2026-09-29 (`R-195`), en attente de commit ; cartes décorées en attente
 
-- [ ] loupe dans la rangée d'en-tête, conteneur `max-w-site`, jetons de `theme-vars.css`, par les crochets
-- [ ] cartes d'article décorées (date, rubrique, temps de lecture) selon la maquette
-- [ ] code mort retiré (S-16)
+- [x] thème, `components/site-search.css` (importé après `listing.css`), crochets et jetons seulement, aucune classe ajoutée :
+  panneau et champ blancs, texte `ink` ; Epilogue 300 pour le panneau, le champ, les titres de résultat, le compte, les
+  extraits et les prix ; en-têtes de section et « Tous les … » en Cal Sans 400 capitales, `--fs-cta`, `--tracking-cta`
+  (usage du thème pour ses petits titres et ses liens d'appel) ; seul le terme surligné reste gras (600) ;
+  `--meili-edge` `ink`, survol `cream`, ligne active `sand`, voile `ink` à 25 % ; contenu aligné sur celui de l'en-tête
+  (`--container-site` moins deux `--gutter-site`, `--gutter-site-lg` dès `64em`) — champ à 40–1385 px à 1440, 16–377 px
+  à 393, comme `.pluralia-header__inner`
+- [x] loupe dans la rangée d'en-tête ; masquée avec le tiroir mobile ouvert (sélecteur `[data-pluralia-search]` périmé
+  remplacé par `[data-meili="search"]`)
+- [x] en-tête qui changeait de largeur sur mobile : build du thème périmé (`brand-orbit`) et gouttière gardée par le verrou
+  du module (`R-195`)
+- [x] code mort retiré (S-16) : composant Alpine `productSearch`, route `/api/products/search`, `ProductSearchController`,
+  `ProductSearchService` et ses deux aides (`ProductPriceFormatter`, `ProductUrlResolver`, utilisées par lui seul),
+  `window.PluraliaSearch` et la clé `search` de `config/woocommerce.php` du thème
+- [ ] cartes d'article décorées (date, rubrique, temps de lecture) : **attendent la maquette** (D-9, S-7)
+- [ ] commits, après relecture de Louis
 
 ---
 
@@ -702,7 +730,10 @@ sauf avis contraire, et sont confirmées à la clôture de l'étape 1.
 
 | Date | Étape | Fait |
 | --- | --- | --- |
+| 2026-09-29 | 6 (accessibilité) | `R-196` : annonce différée (1 s sans frappe ni réponse, jamais la même phrase deux fois), liens des résultats hors du Tab, vignette de recherche décorative, « voir tous » à 44 px au pointeur grossier, barre lente visible en `forced-colors`, hauteur du panneau gardée pendant sa sortie, `limit` non entier refusé ; **listbox unique non faite** (pistes pour Louis, `decisions.md`) ; client 669/669, Unit 358, suite `Modules` 688 ; ni commit ni réindexation |
+| 2026-09-29 | 8 (habillage) | `R-195` : `site-search.css` du thème (Epilogue 300, Cal Sans capitales pour en-têtes et liens, jetons `ink`/`cream`/`sand`, conteneur de l'en-tête) ; en-tête mobile stable (build `brand-orbit` périmé côté thème, `scrollbar-gutter: stable` sur le verrou du module) ; S-16 retiré ; disposition libre et surcharge des huit vues prouvées par des tests, aucun défaut ; client 660/660, Unit 358, suite `Modules` 684 ; cartes décorées en attente de maquette ; ni commit ni réindexation |
 | 2026-09-29 | 7 (frappe) | `R-193` : les résultats ne sont plus reconstruits à chaque lettre (réconciliation par `ID`, option atteinte gardée, identifiants par nœud) ; `ResultsMotion` (FLIP additif, entrées, sorties hors flux, fondu enchaîné vers le vide, compte) et `Departure` ; barre de recherche lente ; `CardView::stamp()` partagé avec le listing ; voile, ligne active, vignette ; vérifié image par image (`typing-x4.gif`) ; par réponse 1–2,3 ms sans bridage, ~4,5 ms à ×4, 0 image perdue ; client 655/655, Unit 358, suite `Modules` 666 ; ni commit ni réindexation |
+| 2026-09-29 | 7 (fluidité desktop) | `R-197` : voile montré par `data-open` sur la racine au lieu d'un `:has()` sur la loupe (9,3 ms de sélecteurs dans le recalcul forcé de l'ouverture) ; première ouverture à 1440 : 8 → 0 image perdue, style forcé 17,4 → 0,9 ms ; `backdrop-filter` et pseudo-élément écartés par la mesure ; client 671/671, Unit 359, suite `Modules` 689 ; ni commit ni réindexation |
 | 2026-09-28 | 7 (animations) | `R-192` : panneau en fondu + `translateY(-8px)` 200 ms / sortie `-4px` 150 ms, voile en fondu (`ease`), rien au clavier (`data-instant` sur la racine), premières sections en fondu 120 ms, atténuation différée, loupe `scale(0.97)`, flèche +2 px ; corrections de style (ombre retirée, halo 8 %, 1,5/2/3rem, vignette alignée, titre 400, voile noir) ; `PanelRoom` mesure depuis l'ancre ; loupe alignée dans l'en-tête ; vérifié image par image dans Chrome ; client 634/634, Unit 358, suite `Modules` 666 ; ni commit ni réindexation |
 | 2026-09-28 | 5 (panneau) | `R-191` : briques Blade et composition par défaut (une section par type accepté, icône du thème en slot), `SearchRoot::type()` et une section par type (`AcceptedSearchTypes::get()` retiré), `LightDismiss` extrait de `DisclosureGroup` (Échap consommée), `PanelRoom`, `aria-controls` du champ, `site-search.css`, loupe de Pluralia remplacée ; recette Playwright 393/1440 conforme (« ser », « zzzz », Échap, clic extérieur, ↓ + Entrée, panne, `/boutique`) ; client 622/622, Unit 358, suite `Modules` 664 ; ni commit ni réindexation |
 | 2026-09-28 | 4 (client) | `R-190` : chargeur `site-search.js` (disclosure, focus avant l'import, `preconnect`, `import()` à la première intention) et client `site-search-client.js` (`Typing` + garde `R-159`, `SiteSearchQuery`, `Highlight`, `SectionView`, `StatusView`, `ComboboxKeys`, `aria-busy`, panne), onze crochets `search-*`/`summary` additifs, `sectionPattern` ; doublons levés (`SearchesUnderWay`, `FilterExpression.all`, attributs partagés, `SearchSeam`) ; multi-search réel accepté, vérifié dans Chromium ; p95 21,9 ms ; client 606/606, Unit 345, suite `Modules` 635 ; ni commit ni réindexation |

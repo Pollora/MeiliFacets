@@ -4,9 +4,15 @@ import type { Card } from '../shared/description.ts'
 /** Writes one projected card into a node the theme rendered. */
 export class CardView {
     #contract: Contract
+    #altText: (card: Card) => string
 
-    constructor(contract: Contract) {
+    constructor(contract: Contract, altText = CardView.#altFromCard) {
         this.#contract = contract
+        this.#altText = altText
+    }
+
+    static withDecorativeImages(contract: Contract) {
+        return new CardView(contract, CardView.#noAltText)
     }
 
     /** A copy of the template's first node, filled; nothing when the template holds no element. */
@@ -33,7 +39,7 @@ export class CardView {
 
     #link(node: Element | null, card: Card) {
         if (node instanceof HTMLAnchorElement) {
-            node.href = this.#textOf(card.url)
+            node.href = CardView.#textOf(card.url)
         }
     }
 
@@ -45,7 +51,7 @@ export class CardView {
         const source = card.image_url
 
         node.hidden = typeof source !== 'string' || source === ''
-        node.alt = this.#textOf(card.image_alt) || this.#textOf(card.title)
+        node.alt = this.#altText(card)
 
         if (!node.hidden) {
             node.src = String(source)
@@ -68,18 +74,26 @@ export class CardView {
 
     #text(node: Element | null, value: unknown) {
         if (node) {
-            node.textContent = this.#textOf(value)
+            node.textContent = CardView.#textOf(value)
         }
     }
 
     #summary(node: Element | null, value: unknown) {
         if (node instanceof HTMLElement) {
-            node.textContent = this.#textOf(value)
+            node.textContent = CardView.#textOf(value)
             node.hidden = node.textContent === ''
         }
     }
 
-    #textOf(value: unknown) {
+    static #altFromCard(card: Card) {
+        return CardView.#textOf(card.image_alt) || CardView.#textOf(card.title)
+    }
+
+    static #noAltText() {
+        return ''
+    }
+
+    static #textOf(value: unknown) {
         return typeof value === 'string' || typeof value === 'number' ? String(value) : ''
     }
 

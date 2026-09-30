@@ -131,7 +131,7 @@ describe('Drawer', () => {
     it('moves the focus onto its title', () => {
         click(window, opener())
 
-        assert.equal(window.document.activeElement, title())
+        assert.equal(window.document.activeElement === title(), true)
     })
 
     it('makes the rest of the page inert, and only the rest', () => {
@@ -140,7 +140,7 @@ describe('Drawer', () => {
         assert.ok(inert().includes('header'))
         assert.ok(inert().includes('footer'))
         assert.ok(inert().includes('drawer-open'))
-        assert.equal(drawer().closest('[inert]'), null)
+        assert.equal(drawer().closest('[inert]') === null, true)
     })
 
     it('stays a plain container above the threshold', () => {
@@ -272,7 +272,7 @@ describe('Drawer', () => {
         assert.equal(drawer().hasAttribute('data-closing'), false)
         assert.equal(sectionOpen(0), false)
         assert.equal(sectionOpen(1), false)
-        assert.equal(window.document.activeElement, opener())
+        assert.equal(window.document.activeElement === opener(), true)
     })
 
     it('folds its sections at once when Escape closes it from inside one, and keeps the focus on its opener', async () => {
@@ -284,7 +284,7 @@ describe('Drawer', () => {
 
         assert.equal(isModal(), false)
         assert.equal(sectionOpen(0), false)
-        assert.equal(window.document.activeElement, opener())
+        assert.equal(window.document.activeElement === opener(), true)
     })
 
     it('keeps its sections when it opens again before its way out has played', async () => {
@@ -342,7 +342,7 @@ describe('Drawer', () => {
         assert.equal(drawer().hasAttribute('role'), false)
         assert.equal(opener().getAttribute('aria-expanded'), 'false')
         assert.deepEqual(inert(), [])
-        assert.equal(window.document.activeElement, box)
+        assert.equal(window.document.activeElement === box, true)
     })
 
     describe('its inline height', () => {
@@ -440,7 +440,7 @@ describe('a sort inside the drawer', () => {
         click(window, find(root, Contract.selector('drawer-open')))
         click(window, trigger)
         assert.equal(trigger.getAttribute('aria-expanded'), 'true')
-        assert.equal(trigger.closest('[inert]'), null)
+        assert.equal(trigger.closest('[inert]') === null, true)
 
         press(window, trigger, 'Escape')
         assert.equal(trigger.getAttribute('aria-expanded'), 'false')

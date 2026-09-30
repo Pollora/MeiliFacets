@@ -108,20 +108,31 @@ final class ComponentFoldersTest extends TestCase
         $this->assertStringContainsString(Hook::Facets->attribute()->toHtml(), Blade::render('<x-meilifacets::listing.facets />'));
     }
 
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function searchViews(): iterable
+    {
+        yield 'the root' => ['search', '<div class="themedSearch" {{ $hook(\'search\') }}>{{ $slot }}</div>'];
+
+        foreach (['toggle', 'panel', 'input', 'section', 'card', 'empty-state', 'unavailable'] as $brick) {
+            yield 'the '.$brick => ['search/'.$brick, '<div class="themedSearch" {{ $attributes }}>{{ $slot ?? \'\' }}</div>'];
+        }
+    }
+
+    #[DataProvider('searchViews')]
     #[Test]
-    public function it_takes_the_search_card_a_theme_overrides_under_the_folder_of_its_root(): void
+    public function it_takes_each_search_view_a_theme_overrides_under_the_folder_of_its_root(string $view, string $override): void
     {
         $this->theme = sys_get_temp_dir().'/meilifacets-theme-'.bin2hex(random_bytes(4));
-        $override = $this->theme.'/resources/views/modules/meilifacets/components/search/card.blade.php';
-        new Filesystem()->ensureDirectoryExists(dirname($override));
-        file_put_contents($override, '<a class="themedSearchCard" href="" {{ $hook(\'card\') }}></a>');
+        $path = $this->theme.'/resources/views/modules/meilifacets/components/'.$view.'.blade.php';
+        new Filesystem()->ensureDirectoryExists(dirname($path));
+        file_put_contents($path, $override);
 
         add_filter('stylesheet_directory', fn (): string => $this->theme);
         ($this->themeOverride())();
 
-        $html = Blade::render('<x-meilifacets::search />');
-
-        $this->assertStringContainsString('themedSearchCard', $html);
+        $this->assertStringContainsString('themedSearch', Blade::render('<x-meilifacets::search />'));
     }
 
     private function compiler(): ComponentTagCompiler

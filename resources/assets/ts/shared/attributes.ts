@@ -10,6 +10,9 @@ export const BUSY = 'aria-busy'
 /** What the theme styles to show where the keyboard is, before anything is chosen. */
 export const ACTIVE_OPTION = 'data-active'
 
+/** A search root whose panel is open: what the stylesheet draws the scrim from. */
+export const OPEN = 'data-open'
+
 /** Cuts the stylesheet's transition for the change it is set around. */
 export const INSTANT = 'data-instant'
 

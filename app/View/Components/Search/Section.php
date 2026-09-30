@@ -22,7 +22,7 @@ final class Section extends SearchComponent
     /**
      * @throws SearchTypeRefused
      */
-    public function __construct(SearchRegistry $roots, string $type, ?int $limit = null, string $name = '')
+    public function __construct(SearchRegistry $roots, string $type, int|float|string|bool|null $limit = null, string $name = '')
     {
         parent::__construct($roots, $name);
 
@@ -39,14 +39,26 @@ final class Section extends SearchComponent
         ]);
     }
 
-    private function limitOf(int $limit): int
+    /** PHP truncates a float passed to an `int` with only a deprecation. */
+    private function limitOf(int|float|string|bool $limit): int
     {
-        if ($limit < self::FEWEST_RESULTS) {
-            throw new LogicException(
-                "The search section for \"{$this->type->postType}\" asks for {$limit} results: it shows at least ".self::FEWEST_RESULTS.'.'
-            );
+        if (is_bool($limit)) {
+            throw $this->refusedLimit(var_export($limit, true));
         }
 
-        return $limit;
+        $wholeLimit = filter_var($limit, FILTER_VALIDATE_INT, ['options' => ['min_range' => self::FEWEST_RESULTS]]);
+
+        if ($wholeLimit === false) {
+            throw $this->refusedLimit((string) $limit);
+        }
+
+        return $wholeLimit;
+    }
+
+    private function refusedLimit(string $limit): LogicException
+    {
+        return new LogicException(
+            "The search section for \"{$this->type->postType}\" asks for {$limit} results: it shows a whole number of them, at least ".self::FEWEST_RESULTS.'.'
+        );
     }
 }

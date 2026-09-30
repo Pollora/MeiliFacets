@@ -10,6 +10,8 @@ import type { SearchedSection } from './site-search-query.ts'
 
 const TYPE_ATTRIBUTE = 'data-type'
 const LIMIT_ATTRIBUTE = 'data-limit'
+const TABINDEX = 'tabindex'
+const OUT_OF_TAB_ORDER = '-1'
 
 export interface SectionCount {
     heading: string
@@ -42,7 +44,7 @@ export class SectionView {
         this.#contract = contract
         this.#section = section
         this.#setup = setup
-        this.#cardView = new CardView(contract)
+        this.#cardView = CardView.withDecorativeImages(contract)
         this.#highlight = new Highlight(contract)
     }
 
@@ -137,11 +139,16 @@ export class SectionView {
         }
 
         return this.#cardView.stamp(template, hit.card ?? {}).map((card) => {
+            this.#takeLinksOutOfTabOrder(card)
             this.#highlight.show(card, hit._formatted?.card)
             this.#drawn.set(card, this.#wordsOf(hit))
 
             return [key, card]
         })
+    }
+
+    #takeLinksOutOfTabOrder(card: Element) {
+        this.#contract.all('url', card).forEach((link) => link.setAttribute(TABINDEX, OUT_OF_TAB_ORDER))
     }
 
     #redraw(card: Element, hit: SearchHit) {

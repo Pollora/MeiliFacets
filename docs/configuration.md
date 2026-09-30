@@ -627,7 +627,7 @@ Seuil de saisie, temporisation et nombre de résultats par section ne sont **pas
 | Réglage | Défaut | Constante | Surcharge ponctuelle |
 | --- | --- | --- | --- |
 | `minChars` — caractères tapés avant la première recherche | 2 | `SearchSettings::DEFAULT_MIN_CHARS` | attribut `min-chars` de `<x-meilifacets::search>` |
-| `delay` — millisecondes de frappe calme avant qu'une recherche parte | 120 | `SearchSettings::DEFAULT_DELAY` | attribut `delay` de `<x-meilifacets::search>` |
+| `delay` — millisecondes sans frappe avant qu'une recherche parte | 120 | `SearchSettings::DEFAULT_DELAY` | attribut `delay` de `<x-meilifacets::search>` |
 | `limit` — résultats par section | 4 | `SearchSettings::DEFAULT_LIMIT` | attribut `limit` de `<x-meilifacets::search.section>` (au moins 1, sinon la section lève) |
 
 Un projet qui veut d'autres défauts **partout** relie l'objet dans le `register()` d'un de ses providers
@@ -707,9 +707,50 @@ sections posées sont cherchées** :
   `SearchTypeRefused`, qui nomme les types acceptés — sans WooCommerce, gardez la section produits derrière
   `WooCommerce::isActive()` ;
 - deux sections du même type dans une racine lèvent ; deux racines peuvent chacune avoir la sienne ;
-- `limit` vaut `SearchSettings::limit` par défaut et doit valoir au moins 1.
+- `limit` vaut `SearchSettings::limit` par défaut et doit être un entier d'au moins 1 : `limit="2"` et `:limit="2"`
+  passent, `0`, `2.5` ou `abc` lèvent (« asks for 2.5 results: it shows a whole number of them, at least 1 »).
 
 Le libellé des messages et de la loupe se change par le catalogue de traduction du thème, ou en surchargeant la vue.
+
+### Disposition libre
+
+Le client ne suppose **aucun ordre ni aucune imbrication** : il retrouve chaque brique par son crochet, dans la racine,
+puis chaque champ de carte dans son option. Un gabarit peut donc réordonner les sections, leur donner chacune sa limite,
+poser le message vide avant elles, le champ après, et la loupe après le panneau :
+
+```blade
+<x-meilifacets::search>
+    <x-meilifacets::search.panel>
+        <x-meilifacets::search.empty-state />
+        <x-meilifacets::search.section type="post" limit="2" />
+        <x-meilifacets::search.section type="product" limit="3" />
+        <x-meilifacets::search.input />
+        <x-meilifacets::search.unavailable />
+    </x-meilifacets::search.panel>
+    <x-meilifacets::search.toggle />
+</x-meilifacets::search>
+```
+
+Les sections sont cherchées dans l'ordre où elles sont posées, ↓/↑ les parcourent dans cet ordre. Prouvé côté serveur
+(`SearchCompositionTest::it_renders_the_bricks_where_a_template_places_them`) et côté client (`site-search.test.ts`,
+« in a composition the theme reordered » ; `search-panel.test.ts`, loupe posée après le panneau), y compris une carte
+surchargée qui met le prix au-dessus du titre, imbrique le titre dans son lien et l'image en dernier.
+
+**Chaque vue est surchargeable** à son chemin dans le thème, `resources/views/modules/meilifacets/components/` :
+`search.blade.php` et `search/{toggle,panel,input,section,card,empty-state,unavailable}.blade.php`
+(`ComponentFoldersTest::it_takes_each_search_view_a_theme_overrides_under_the_folder_of_its_root`). Une vue surchargée
+garde ses crochets, où qu'elle les place :
+
+| Vue | Crochets à garder |
+| --- | --- |
+| `search` | `search` sur la racine, avec `data-search` et `{{ $contract }}` |
+| `search/toggle` | `search-toggle` sur un `<button>` qui garde `aria-expanded` et `aria-controls` |
+| `search/panel` | `search-panel` (avec son `id`), `search-status` dedans |
+| `search/input` | `search-input` sur l'`<input>` (avec son `id`) ; `search-field` facultatif |
+| `search/section` | `search-section` avec `data-type` et `data-limit`, `search-count`, `search-results` (avec son `id`), `search-card-template` dont le premier élément porte `card` ; `search-see-all` facultatif |
+| `search/card` | `url` et `title` ; `image`, `summary`, `price` s'ils sont affichés |
+| `search/empty-state` | `search-empty` |
+| `search/unavailable` | `search-unavailable` |
 
 ### Placer le panneau
 
@@ -717,8 +758,10 @@ Le panneau est en `position: absolute`, `top: 100%`, pleine largeur (`left: 0; r
 **premier ancêtre positionné**, que le thème choisit — la barre d'en-tête, typiquement. La racine et les briques ne
 sont jamais positionnées. Sous `48em`, il occupe toute la hauteur restante sous cet ancêtre ; au-delà, il est
 borné par elle. Cette hauteur est mesurée par le client à l'ouverture et au redimensionnement, écrite en
-`--meili-search-room` sur le panneau, retirée à la fermeture. Il défile en interne (`overscroll-behavior:
-contain`) ; sous `48em`, le défilement de la page est verrouillé tant qu'il est ouvert. À partir de `48em`, un voile
+`--meili-search-room` sur le panneau, retirée une fois la sortie jouée (au clavier, aussitôt) : le panneau garde sa
+hauteur pendant son fondu. Il défile en interne (`overscroll-behavior:
+contain`) ; sous `48em`, le défilement de la page est verrouillé tant qu'il est ouvert, et la place de la barre de
+défilement retirée est gardée (`scrollbar-gutter: stable`) : un en-tête `fixed` ne s'élargit pas. À partir de `48em`, un voile
 (`--meili-scrim`) couvre la page **sous l'ancre**, jamais l'en-tête : pseudo-élément `::after` de la racine, placé
 comme le panneau (`absolute`, `top: 100%`, pleine largeur, `100dvh` de haut), un cran sous lui
 (`--meili-layer-search` − 1). Un clic sur le voile est un clic hors du panneau : il ferme, sans rien activer
@@ -735,7 +778,11 @@ touche est consommée : un champ `type="search"` se viderait sinon) ; un clic ho
 ferme ; le focus qui quitte la loupe et le panneau (Tab) ferme — pas pendant un appui du pointeur, que le clic décide
 (`shared/light-dismiss.ts`, partagé avec les panneaux flottants des filtres). Entrée sans résultat désigné ne
 fait rien ; ↓/↑ désignent un résultat, Entrée le suit. Le champ nomme en `aria-controls` les listes des sections
-posées (écrit par le client).
+posées (écrit par le client). Les liens des résultats sont hors de l'ordre de tabulation (`tabindex="-1"`, posé par
+le client sur le crochet `url` de chaque carte) : Tab va du champ aux liens « voir tous ». La vignette d'une carte de
+**recherche** est décorative (`alt=""`, le lien lit déjà le titre) ; la carte du listing garde son texte alternatif.
+
+La région d'état (`search-status`) n'est écrite qu'**après 1 s sans frappe ni nouvelle réponse** (`ANNOUNCE_DELAY_MS`) et **jamais deux fois de suite avec la même phrase** (`DebouncedAnnouncer`, `site-search/debounced-announcer.ts`). Fermer le panneau annule l'annonce en attente et oublie la dernière phrase : rouvert, il annonce de nouveau la même recherche.
 
 ### Feuille de style
 
@@ -744,8 +791,12 @@ seulement sur une page qui rend une recherche. Rendue après `wp_head` (un en-t�
 avant la racine. Neutre, mobile first, stylée par crochets ; un thème s'en passe comme de celle du listing
 (`wp_dequeue_style` / `wp_deregister_style('meilifacets-site-search')`).
 
+Le champ suit `--meili-ui`, jamais sous `1rem` au pointeur grossier (iOS agrandit la page au focus d'un champ sous
+16 px).
+
 **Variables** sur `[data-meili="search"]` : `--meili-ui`, `--meili-small` (0.8125rem, résumé, prix, « voir
-tous »), `--meili-control`, `--meili-control-min` (2.75rem au pointeur grossier), `--meili-control-inline`,
+tous »), `--meili-control`, `--meili-control-min` (2.75rem au pointeur grossier : hauteur minimale de la loupe et des liens
+« voir tous », dont le texte ne grandit pas), `--meili-control-inline`,
 `--meili-edge`, `--meili-rule`.
 Teintes, toutes en `color-mix()` de `currentColor` : `--meili-tint` (6 %, survol et vignette absente),
 `--meili-tint-active` (10 %, option désignée au clavier, plus une barre de 2 px), `--meili-halo` (8 %, halo du
@@ -759,13 +810,21 @@ sections : 2rem, 3rem à partir de `48em`), `--meili-search-lead` (1.5rem, du ch
 (2rem, message vide ou panne), `--meili-search-glyph` (1.125rem), `--meili-search-glyph-inline` (1rem),
 `--meili-search-row` compense aussi la ligne : la vignette s'aligne sur le filet et le titre de section, le fond
 de survol déborde d'autant.
-Mouvement (étape 7, `R-192`) : `--meili-ease` (`cubic-bezier(0.23, 1, 0.32, 1)`), `--meili-duration-pop-in`
+Mouvement (étape 7, `R-192`) : `--meili-ease` (`cubic-bezier(0.23, 1, 0.32, 1)`, entrées), `--meili-ease-exit`
+(`ease`, sortie du panneau et du voile, `R-196`), `--meili-duration-pop-in`
 (200ms, entrée du panneau et du voile), `--meili-duration-pop-out` (150ms, leur sortie), `--meili-duration-hover`
 (150ms, couleur au survol, flèche de « voir tous »), `--meili-duration-press` (150ms, appui sur la loupe),
-`--meili-duration-settle` (120ms, fondu des premières sections, retour des résultats atténués),
+`--meili-duration-settle` (120ms, fondu des premières sections, entrée d'un résultat, retour des résultats atténués),
+`--meili-duration-leave` (120ms, sortie d'un résultat), `--meili-duration-move` (150ms, glissement d'un résultat vers
+son nouveau rang), `--meili-ease-fade` (`ease`, fondus seuls : sortie d'un résultat, section ou message qui paraît ou
+part), `--meili-duration-resize` (200ms) et `--meili-ease-resize` (`var(--meili-ease)`) pour la hauteur du panneau
+quand elle suit son contenu (desktop, `R-198`),
 `--meili-duration-fade` (150ms) et `--meili-duration-busy-delay` (150ms) avec `--meili-busy-opacity` (0.55) pour
 l'atténuation différée pendant une recherche. Ouvert ou fermé au clavier, le panneau n'anime rien : le client pose
-`data-instant` sur la racine le temps du changement.
+`data-instant` sur la racine le temps du changement. Tant que le panneau est ouvert, la racine porte `data-open` : le
+voile (`[data-meili="search"][data-open]::after`, à partir de `48em`) et le verrou du défilement
+(`:root:has([data-meili="search"][data-open])`, sous `48em`) s'y accrochent, et un thème peut s'en servir de même
+(`R-197`, `R-199`).
 Icônes : `--meili-search-mark` (loupe) et `--meili-search-clear` (croix), masques SVG en data URI — un thème
 les remplace par une autre `url()`. La croix est celle du champ natif (`::-webkit-search-cancel-button`,
 Chromium et Safari), neutralisée ; Firefox n'en dessine pas.
@@ -783,11 +842,8 @@ et **`title`** (exigés par le contrat), `image`, `summary` et `price` s'ils son
 quand la donnée existe, rendus `hidden`). Le titre et l'extrait sont écrits en texte, le surlignage en `<mark>` ;
 le prix est le HTML de WooCommerce.
 
-Crochets du reste des briques, à garder dans une vue surchargée : `search`, `search-toggle`, `search-panel`,
-`search-input`, `search-status`, `search-empty`, `search-unavailable` (exigés sous la racine), `search-field`
-(facultatif : sans lui, pas de loupe ni de champ collant), `search-section`
-avec `data-type` et `data-limit`, `search-count`, `search-results`, `search-card-template` (exigés dans la
-section), `search-see-all` (facultatif).
+Crochets du reste des briques, à garder dans une vue surchargée : voir le tableau de « Disposition libre ». Sans
+`search-field`, pas de loupe dans le champ ni de champ collant.
 
 ## Réglages d'index posés par le module
 

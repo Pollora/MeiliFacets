@@ -77,7 +77,7 @@ describe('PaginationView', () => {
         view.show(pageWindowAt(3, 25))
 
         assert.equal(step('next').hidden, true)
-        assert.equal(root.ownerDocument.activeElement, numbers()[2])
+        assert.equal(root.ownerDocument.activeElement === numbers()[2], true)
     })
 
     /** Focusing a button scrolls it into view, which would undo the move to the top. */
@@ -101,7 +101,7 @@ describe('PaginationView', () => {
 
         view.show(pageWindowAt(2, 25))
 
-        assert.equal(root.ownerDocument.activeElement, step('next'))
+        assert.equal(root.ownerDocument.activeElement === step('next'), true)
     })
 
     /** A theme rendering five buttons must centre on five, not truncate a window of seven. */

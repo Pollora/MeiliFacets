@@ -15,6 +15,7 @@ use Modules\MeiliFacets\SiteSearch\AcceptedSearchTypes;
 use Modules\MeiliFacets\SiteSearch\SearchSettings;
 use Modules\MeiliFacets\SiteSearch\WooCommerceSearchableTypes;
 use Modules\MeiliFacets\Tests\Unit\Doubles\ProbeSearchCard;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -173,6 +174,34 @@ final class SearchCompositionTest extends TestCase
     }
 
     #[Test]
+    public function it_renders_the_bricks_where_a_template_places_them(): void
+    {
+        $this->assertContains('product', $this->acceptedTypes());
+
+        $page = $this->rendered(<<<'BLADE'
+            <x-meilifacets::search>
+                <x-meilifacets::search.panel>
+                    <x-meilifacets::search.empty-state />
+                    <x-meilifacets::search.section type="post" limit="2" />
+                    <x-meilifacets::search.section type="product" limit="3" />
+                    <x-meilifacets::search.input />
+                    <x-meilifacets::search.unavailable />
+                </x-meilifacets::search.panel>
+                <x-meilifacets::search.toggle />
+            </x-meilifacets::search>
+            BLADE);
+        $panel = $this->hooked($page, 'search-panel')[0];
+
+        $this->assertSame(['search-panel', 'search-toggle'], $this->childBricks($page, $this->hooked($page, 'search')[0]));
+        $this->assertSame(
+            ['search-empty', 'search-section:post', 'search-section:product', 'search-field', 'search-unavailable', 'search-status'],
+            $this->childBricks($page, $panel),
+        );
+        $this->assertSame(['2', '3'], [$this->section($page, 'post')->getAttribute('data-limit'), $this->section($page, 'product')->getAttribute('data-limit')]);
+        $this->assertSame($panel->getAttribute('id'), $this->hooked($page, 'search-toggle')[0]->getAttribute('aria-controls'));
+    }
+
+    #[Test]
     public function it_takes_the_limit_of_a_section_from_the_settings_bound(): void
     {
         $binding = $this->app->getBindings()[SearchSettings::class];
@@ -221,13 +250,43 @@ final class SearchCompositionTest extends TestCase
         $this->assertSame(['post', 'post'], $this->sectionTypes($page));
     }
 
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function invalidLimits(): array
+    {
+        return [
+            'no result' => ['limit="0"', 'asks for 0 results: it shows a whole number of them, at least 1.'],
+            'a negative number' => ['limit="-1"', 'asks for -1 results: it shows a whole number of them, at least 1.'],
+            'a bound boolean' => [':limit="true"', 'asks for true results: it shows a whole number of them, at least 1.'],
+            'a fraction' => ['limit="2.5"', 'asks for 2.5 results: it shows a whole number of them, at least 1.'],
+            'a bound fraction' => [':limit="2.5"', 'asks for 2.5 results: it shows a whole number of them, at least 1.'],
+            'a word' => ['limit="abc"', 'asks for abc results: it shows a whole number of them, at least 1.'],
+        ];
+    }
+
     #[Test]
-    public function it_refuses_a_section_asking_for_no_result(): void
+    #[DataProvider('invalidLimits')]
+    public function it_refuses_a_limit_below_one_or_not_whole(string $limit, string $message): void
     {
         $this->expectException(ViewException::class);
-        $this->expectExceptionMessage('asks for 0 results');
+        $this->expectExceptionMessage($message);
 
-        $this->rendered('<x-meilifacets::search><x-meilifacets::search.section type="post" limit="0" /></x-meilifacets::search>');
+        $this->rendered("<x-meilifacets::search><x-meilifacets::search.section type=\"post\" {$limit} /></x-meilifacets::search>");
+    }
+
+    #[Test]
+    public function it_takes_a_whole_limit_written_as_text_or_bound_as_a_number(): void
+    {
+        $page = $this->rendered(<<<'BLADE'
+            <x-meilifacets::search name="text"><x-meilifacets::search.section name="text" type="post" limit="2" /></x-meilifacets::search>
+            <x-meilifacets::search name="number"><x-meilifacets::search.section name="number" type="post" :limit="2" /></x-meilifacets::search>
+            BLADE);
+
+        $this->assertSame(['2', '2'], array_map(
+            static fn (DOMElement $section): string => $section->getAttribute('data-limit'),
+            $this->hooked($page, 'search-section'),
+        ));
     }
 
     #[Test]
@@ -296,6 +355,17 @@ final class SearchCompositionTest extends TestCase
         $found = $xpath->query('.//*[@data-meili="'.$hook.'"]', $context ?? $xpath->document->documentElement);
 
         return array_values(array_filter(iterator_to_array($found ?: []), static fn ($node): bool => $node instanceof DOMElement));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function childBricks(DOMXPath $page, DOMElement $parent): array
+    {
+        return array_map(
+            static fn (DOMElement $brick): string => $brick->getAttribute('data-meili').($brick->hasAttribute('data-type') ? ':'.$brick->getAttribute('data-type') : ''),
+            array_values(array_filter(iterator_to_array($page->query('./*[@data-meili]', $parent) ?: []), static fn ($node): bool => $node instanceof DOMElement)),
+        );
     }
 
     /**

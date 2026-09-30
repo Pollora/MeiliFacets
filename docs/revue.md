@@ -3282,6 +3282,287 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
+### R-199 · 🟡 · ouvert (en attente de commit) · ouvert le 2026-09-29 — revue de code avant commit (`R-195` à `R-198`)
+
+Rattaché à `R-180`. Revue du non-commité depuis `378f1cb`, corrections validées par Louis. Rien n'est commité, réindexé
+ni écrit en base ou dans le moteur. Un agent concurrent avait entre-temps renommé `isMoving()` en `wasMoving()` et
+regroupé le seuil en `STILL` dans `panel-height.ts` : sa lecture unique est gardée, ses noms remplacés par ceux de la revue.
+
+**Constats et suite donnée.**
+1. *Annonce muette après fermeture* : le client observe `data-open` sur la racine (`PanelClosing`, `MutationObserver`),
+   sans rien importer du chargeur ; à la fermeture, `StatusView::closed()` → `DebouncedAnnouncer::forget()` annule la
+   minuterie, oublie la phrase en attente et la dernière écrite, vide la région cachée. Vérifié en ligne : fermé pendant
+   le délai, région vide ; rouvert, « sham » → « Produits : 19 résultats » écrit.
+2. *`data-instant` pouvait rester posé* : `try { change(); flush } finally { removeAttribute }`.
+3. *Hauteur réservée jamais libérée* : `#releaseRoomOnceGone()` n'attend que les transitions `opacity`/`transform`
+   (`PanelTransitions`, `shared/`), par `Promise.allSettled`, puis revérifie `#isOpen()`.
+4. *`:limit="true"` accepté comme 1* : booléen refusé (« asks for true results… »), `-1` aussi.
+5. *Transition de thème prise pour une entrée* : seules les transitions `opacity`/`transform` comptent ;
+   `isEnteringOrLeaving()`, lu une fois par réponse dans l'instantané (`panelEnteringOrLeaving`).
+6. *Ordre d'appel imposé* : `PanelHeight::before()` rend un instantané (`HeightBefore`), `after(before)` un
+   `PanelResize` qui porte `overhang()` et `play()` ; plus d'état entre méthodes publiques (le redimensionnement en cours
+   est retrouvé par son `id` WAAPI).
+7. *Deux sources de l'état ouvert* : verrou mobile sur `:root:has([data-meili="search"][data-open])`. Coût mesuré à 393
+   (2 839 éléments, 400 bascules × 3) : 0,22 ms par recalcul, contre 0,25 ms avec l'ancien sélecteur.
+8. `--meili-ease-resize` (défaut `var(--meili-ease)`), lu par `#readTimings`, documenté avec `--meili-duration-resize`.
+9. Renommages : `EXIT_OFFSET`/`NO_OFFSET`/`#exitOffset`, `SUBPIXEL` (`shared/subpixel.ts`, seule déclaration),
+   `#changesAtOnce`, `ANNOUNCE_DELAY_MS`/`#lastWritten`/`#restartDelay`, `#altText`/`#altFromCard`/`#noAltText`,
+   `exitAnimations`, `invalidLimits`/`it_refuses_a_limit_below_one_or_not_whole`, `nextTurn` (`tests/ts/dom.ts`, seul
+   utilitaire, repris par `settle()`), `saidOnceSettled()`.
+10. Conditions extraites : `#isShownAndAnimated()`, `#heightChanged()`, `#isNew()`, `#takeLinksOutOfTabOrder()`.
+11. Commentaires : 7 supprimés (`PanelHeight` ×5, `#readAfter`, « What the script still plays… »), 2 réécrits.
+12. Docs : sortie des cartes 120 ms (`decisions.md`, `chantier-recherche.md`), jetons de mouvement complétés dans
+    `configuration.md`, espace parasite retiré.
+13. Tests renforcés : `finished` rejeté, `setTimeout` espionné, `failed()` écrit puis `cleared()`, test du mouvement
+    réduit renommé.
+14. Assertions sur des éléments DOM : 2 + 2 dans le diff, et 15 hors du diff trouvées au grep de `tests/ts`
+    (`active-values-view`, `drawer`, `disclosure-group`, `pagination-view`), toutes en `a === b, true`.
+15. Ajoutés : règle `forced-colors` de la barre, `tabindex="-1"` d'un lien imbriqué, délai figé à 1000 ms, ordre réel
+    des enfants de la racine, `followsContent` retiré.
+
+**Vérifié.** `composer check` vert (Unit 359, client 691/691, 99,18 % lignes, 93,96 % branches) ; suite `Modules`
+**OK (691 tests)** ; seules : `SearchCompositionTest` 24, `PublishedAssetsTest` 3, `ComponentFoldersTest` 17 ; chaque
+fichier TS touché vert seul. Nouveaux tests rouges sans leur correction (mutations temporaires). Recette Chrome 1440 et
+393 : ouverture, frappe, 4 → 1 (« sham » → « shampoing » : 465,5 → 237,5 px en 200 ms en desktop, fantômes effacés sur
+place ; 780 px fixes en mobile, fondu avec recul de 4 px), Échap, voile (desktop) ou clic hors du panneau (mobile),
+↓ + Entrée, état vide, panne simulée, fermeture/réouverture annoncée ; console : seule l'erreur provoquée. `/boutique` :
+4 facettes, `?categorie=cheveux` 1 article → 3 en cochant « corps », console vide.
+
+**Cinq passes.** *Lisibilité* : aucun booléen en paramètre, méthodes ≤ 10 lignes, `ResultsMotion` sous le plafond de 200.
+*Commentaires* : ajoutés `forget()` et `PanelClosing` (contexte inter-paquets), aucun en CSS. *Performance* : un
+`getAnimations()` de plus par réponse (redimensionnement retrouvé par `id`), un observateur d'attribut par racine.
+*Sécurité* : rien de dynamique. *Contexte/i18n* : aucune chaîne ; message de `limit` en anglais.
+
+### R-198 · 🟡 · ouvert (en attente de commit) · ouvert le 2026-09-29 — résultats qui diminuent : animés en mobile, pas en desktop
+
+Rattaché à `R-180`, à la suite de `R-193` et `R-197`. Signalé par Louis : quand les résultats passent de 4 à 1, l'animation
+se voit à 393, pas à 1440. Rien n'est commité, réindexé ni écrit en base ou dans le moteur.
+
+**Conformité.** *Change* : `ResultsMotion`, `Departure`, `SearchPanel`, `site-search.css` ; nouveau `PanelHeight`
+(`ts/site-search/`). *Ferme* : ce constat. *Contredit* : « nothing but `transform` and `opacity` is animated » de
+`R-193` — exception assumée pour la hauteur du panneau (`decisions.md`, « Étape 7 : résultats pendant la frappe »).
+*La plateforme offre* : WAAPI (`height` et `overflow-y` discret en keyframes), aucune dépendance ; aucun crochet ajouté,
+`Contract::VERSION` inchangé.
+
+**Cause confirmée par la mesure** (1440, « se » → « ser », 6 cartes → 2, images relevées à chaque `requestAnimationFrame`).
+En mobile, le panneau a la hauteur de la place (`--meili-search-room`) : la section Articles remonte et glisse (FLIP
+150 ms, 569 → 341 px). En desktop, sections côte à côte et panneau en `height: auto` : rien ne change de place, et la
+hauteur **saute** de 465,5 à 243,5 px à la première image. Pire, les fantômes étant bornés au nouveau bas du panneau,
+**2 cartes sortantes sur 4 disparaissaient d'un coup** ; les 2 autres s'effaçaient en 80 ms (opacité 0,46 à 26 ms,
+0 à 84 ms), trop court pour être vu.
+
+**Correction.**
+- `PanelHeight` : hauteur vue lue avant l'écriture (dans la lecture groupée de `#measure()`), l'animation en cours
+  annulée puis la hauteur naturelle lue après (en tête de la lecture groupée de `#after`), puis WAAPI `height` de l'une
+  à l'autre en **200 ms** sur `--meili-ease` (`--meili-duration-resize`, déclaré sur la racine de recherche — le jeton
+  de 270 ms du listing vit sur `[data-listing]`). Détecté par la hauteur calculée : un panneau à la hauteur de la place
+  ne change pas de hauteur, rien ne part en mobile. `overflow-y: hidden` porté par les deux keyframes, pour qu'aucune
+  barre de défilement n'apparaisse pendant que le panneau grandit ; `auto` revient à la fin.
+- Interruption : la hauteur « vue » est la boîte en cours d'animation ; la nouvelle part de là.
+- Rien pendant l'entrée du panneau (sa propre animation ne compte plus comme une entrée), panneau fermé, mouvement
+  réduit (hauteur immédiate) ; au clavier, `SearchPanel::#instantly()` termine ce qui joue encore sur le panneau.
+- Fantômes : le bas visible tient compte de ce que le panneau montre encore sous son nouveau bord (`overhang`), les 4
+  cartes s'effacent donc sur place. Sortie **120 ms** avec recul `translateY(-4px)` (opacité et `transform`), identique
+  en mobile et en desktop ; fondu seul en mouvement réduit.
+- `align-content: flex-start` sur le panneau à partir de `48em` : sans lui, pendant que la hauteur redescend, les lignes
+  flex s'étiraient dans la hauteur en trop et les sections descendaient de 111 px avant de remonter (vu au premier
+  essai : CLS 0,026 par réponse ; c'est le « le contenu saute » de Louis sur « se » puis « r »).
+
+**Mesures, avant → après** (1440, « se » → « ser », ms après l'écriture ; hauteur du panneau · opacité des sortantes) :
+0 : 243,5 · 1 (2 sur 4) → 465,5 · 1 (4) ; 40 : 243,5 · 0,29 → 359,8 · 0,69 ; 80 : 243,5 · ∅ → 280,1 · 0,21 ;
+120 : 243,5 · ∅ → 251 · 0,01 ; 160 : 243,5 → 244,5 ; 200 : 243,5 → 243,5. Recul des sortantes : 0 → −4 px. Sections
+immobiles à 176 px, aucun `layout-shift`. Interruption (durée portée à 600 ms le temps du test) : 465 → 297,9 puis
+remontée vers 465, plus grand pas entre deux images 14 px, aucun retour à l'ancienne valeur. 393 : panneau à 780 px
+constant, aucune animation de hauteur, FLIP d'Articles intact.
+
+**Images perdues** (traces, 6 réponses, écran 120 Hz, `PipelineReporter` du rendu, un `DROPPED` doublé d'une image
+présentée au même vsync non compté). ×1 : **0**, aucun intervalle au-delà de 9,3 ms pendant l'animation. ×4 : 0
+pendant l'animation (tâches par image ≤ 5,5 ms, une à 10,2 ms sans perte) ; **1 image** à l'image de la réponse dans
+3 réponses sur 6 — le rendu de la réponse (style 3–6 ms à ×4), déjà là sans le redimensionnement : même trace avec
+l'animation du panneau neutralisée, 1 à 3 images perdues au même endroit dans 5 réponses sur 6. Traces :
+`storage/app/jank/resize-*.json.gz` (hôte, non versionné).
+
+**Tests.** Client : `results-motion` (+7 : hauteur animée de l'ancienne à la nouvelle en 200 ms, fantômes gardés dans
+ce que le panneau montre encore, panneau à hauteur de la place laissé tel quel, mouvement réduit, sortie sans recul en
+mouvement réduit, rien pendant l'entrée, interruption depuis la hauteur vue qui laisse entrer les nouvelles cartes) et
+deux tests adaptés (sortie 120 ms + recul) ; `search-panel` (+1 : le clavier termine ce qui joue sur le panneau, le
+pointeur non) ; feuille (+1 : `align-content`). `composer check` vert (Unit 359, client 680/680), suite `Modules`
+**OK (689 tests)**.
+
+**Cinq passes.** *Lisibilité* : `PanelHeight` porte la hauteur (lecture avant, lecture après, débordement, animation),
+`ResultsMotion` passe de 180 à 198 lignes utiles (plafond ESLint 200) ; aucun booléen en paramètre. *Commentaires* : docblocs de
+contournement (lecture pendant l'animation, barre de défilement pendant la croissance) ; aucun dans la CSS.
+*Performance* : une lecture de boîte de plus avant et après, dans les lectures groupées existantes ; animer `height`
+relance la mise en page du seul panneau (`position: absolute`, `contain: layout paint`), coût mesuré nul à ×4 sur
+l'image de la réponse. *Sécurité* : rien de dynamique. *Contexte/i18n* : aucune chaîne.
+
+**Revue du diff** (demandée par Louis) : deux points corrigés — `getAnimations()` du panneau lu deux fois par réponse
+(`ResultsMotion` et `PanelHeight`), désormais une seule dans `measureBefore()` ; seuil `STILL` (0,5 px) déclaré en double,
+désormais exporté par `panel-height.ts`. Rien de mort : chaque méthode ajoutée est appelée et couverte (`panel-height.ts`
+100 % lignes et branches). Écarté : `prefersReducedMotion()` lu à plusieurs endroits par réponse (`matchMedia`, sans
+mise en page), comme avant.
+
+**Commit proposé** (module) : `fix(search): ease the panel height when results shrink on desktop`.
+
+### R-197 · 🟡 · ouvert (en attente de commit) · ouvert le 2026-09-29 — ouverture de la recherche saccadée en desktop, fluide en mobile
+
+Rattaché à `R-180`, à la suite de `R-196`. Signalé par Louis : ouverture et fermeture du panneau fluides à 393, pas à 1440.
+Rien n'est commité, réindexé ni écrit en base ou dans le moteur ; `config/meilifacets.php` et le thème non touchés.
+
+**Mesure** (Chrome, traces de performance, 1440 × 900 × 2 et 393 × 852 × 3, écran à 120 Hz ; clic `detail: 1` rejoué
+dans la page — les clics réels de l'outil DevTools tombaient hors de la trace ; images comptées sur le `PipelineReporter`
+du rendu, hors images `FORKED`).
+- *Pistes écartées par la mesure.* Voile sans pseudo-élément (`content: none`) ou en-tête sans `backdrop-filter` :
+  mêmes chiffres qu'avec (3 images `DROPPED` rapportées à chaque ouverture, dont une seule avant la première image
+  présentée). Peinture ≤ 1 ms, raster ≤ 0,3 ms, `Layout` ≤ 0,4 ms par phase à chaud : ce n'est pas le rendu. Le voile a
+  bien sa couche pendant sa transition (`ActiveOpacityAnimation`) ; le `backdrop-filter` ajoute deux passes de rendu par
+  image (57 contre 19) sans image perdue.
+- *Cause.* `PanelRoom.measure()` lit la géométrie dans le gestionnaire du clic, juste après `hidden = false` : le style est
+  recalculé de force. En desktop, `[data-meili="search"]:has([data-meili="search-toggle"][aria-expanded="true"])::after`
+  y pèse **9,27 ms sur 11,6 ms** de sélecteurs (statistiques de sélecteurs, 10 essais, 1 correspondance) ; en mobile,
+  seul `:root:has(…)` joue (0,87 ms). Première ouverture après chargement, 1440 sans limitation : style forcé
+  **17,4 ms + layout 7,9 ms**, **8 images perdues** d'affilée au début du fondu (≈ 65 ms figées) ; ×4 : 19,4 + 10,9 ms,
+  8 images. À chaud ×4 : 3 à 3,9 ms de style forcé à chaque ouverture. En mobile, première ouverture : style 1,15 ms.
+
+**Correction.** `SearchPanel` pose `data-open` (`OPEN`, `shared/attributes.ts`) sur la racine en même temps
+qu'`aria-expanded`, et le retire à la fermeture ; le voile devient `[data-meili="search"][data-open]::after`. Rien d'autre :
+courbes, durées, `transform`/`opacity` seuls, voile en pseudo-élément et `PanelRoom` inchangés. Aucun crochet ajouté ;
+l'attribut est un état, comme `data-instant`, et vaut aussi pour une disposition libre (la loupe peut être n'importe où
+dans la racine).
+
+**Après.** Sélecteurs du recalcul forcé : **11,6 → 0,45 ms** (voile : 9,27 → 0,03 ms). 1440 × 1, première ouverture :
+style forcé 17,4 → **0,94 ms**, layout 7,9 → 0,91 ms, images perdues pendant l'ouverture **8 → 0** ; à chaud, 12 phases :
+1 image perdue en cours d'animation (avant : 1 sur 8). 1440 × 4, première ouverture : 19,4 + 10,9 → **4,5 + 2,4 ms**,
+**8 → 1** image ; ouvertures suivantes et fermetures : 0. 393 × 1 : inchangé (0 image perdue sur 8 phases sauf une à la fin
+d'une fermeture, style forcé ≤ 1,5 ms). Reste, en desktop seulement : la première image arrive un cycle plus tard à
+l'ouverture (8 à 15 ms après le clic, contre 0 à 7 en mobile) — une image d'`opacity: 0`, sans saut visible ; non traité.
+Traces : `storage/app/jank/` (hôte, non versionné).
+
+**Tests.** Client : `search-panel` (+1 : la racine porte `data-open` ouverte, le perd fermée, au pointeur comme au
+clavier et à Échap, dans les deux dispositions — rouge sans la correction), feuille (le voile suit `data-open`, plus
+aucun `:has()` sur la racine dans le bloc `48em`). PHP : `ContractParityTest` (+1 : la feuille dessine le voile depuis
+l'attribut que le client pose). `composer check` vert (Unit 359, client 671/671), suite `Modules` **OK (689 tests)**.
+
+**Cinq passes.** *Lisibilité* : deux lignes dans `#open`/`#close`, une constante nommée comme ses voisines. *Commentaires* :
+une ligne de doc sur la constante ; aucun dans la CSS. *Performance* : un attribut par ouverture et par fermeture ; le
+`:has()` mobile du verrou (0,87 ms, sous `48em` seulement) laissé tel quel. *Sécurité* : rien de dynamique. *Contexte/i18n* :
+aucune chaîne.
+
+### R-196 · 🟡 · ouvert (en attente de commit, et de Louis pour la listbox) · ouvert le 2026-09-29 — étape 6, accessibilité de la recherche
+
+Rattaché à `R-180`, étape 6 de [chantier-recherche.md](chantier-recherche.md) ; corrections validées par Louis sur l'audit
+du 2026-09-29. Rien n'est commité, réindexé ni écrit en base ou dans le moteur ; `config/meilifacets.php` de l'hôte et le
+thème non touchés.
+
+**Conformité.** *Change* : `StatusView` (+ `DebouncedAnnouncer`, nouveau), `SiteSearch`, `SectionView`, `CardView`
+(`withDecorativeImages()`), `SearchPanel`, `Search\Section`, `site-search.css`. *Ferme* : quatre des six points de
+l'audit, la fermeture « d'un coup, mais partiellement », le `limit="2.5"` tronqué. *Contredit* : rien ; complète
+« Annonce de la recherche ». *La plateforme offre* : `tabindex`, `Animation.finished`, `FILTER_VALIDATE_INT`. Aucun
+crochet ajouté ni déplacé, `Contract::VERSION` inchangé.
+
+**Listbox unique : arrêtée, pas codée.** Une listbox n'admet que des options et des groupes ; titre et « voir tous »
+d'une section autre que la première y tomberaient forcément. Prototype en direct dans Chrome (DOM seul) avec
+`aria-owns` : arbre conforme, mais titres et liens lus après tous les résultats. Quatre pistes dans `decisions.md`, à
+trancher par Louis.
+
+**Livré.**
+- Annonce : écrite après 1 s sans frappe ni réponse, jamais deux fois la même phrase. Journal réel (MutationObserver,
+  « crème » à 500 ms par lettre) : cinq frappes, **une** écriture à 3 140 ms ; « creme vi », huit frappes, **une**
+  écriture ; trois pauses de 2 s sur des termes à la même réponse : **zéro** écriture.
+- Liens des résultats `tabindex="-1"` ; Tab : champ, « Tous les produits », « Tous les articles ». Vignette de recherche
+  `alt=""` : l'option se lit « Sérum Éclat Vitamine C 42,00 € » (avant : le titre deux fois).
+- « Voir tous » : `inline-flex`, `min-height: var(--meili-control-min)`. À 393 (pointeur grossier) : 44 px (avant
+  106 × 20), loupe 44, champ 48, cartes 72 et 108 ; texte inchangé (13 px).
+- `forced-colors` (Playwright, `forcedColors: active`) : ligne active `outline` 2 px, champ au focus `outline` 2 px
+  (déjà là) ; **barre lente** peinte en `Canvas` (invisible) → ajoutée à la règle `CanvasText` + `forced-color-adjust:
+  none` ; voile réduit à `Canvas` 25 % (décoratif, filet bas du panneau en `CanvasText`).
+- Fermeture : la cause est `PanelRoom.release()` dans la même image que `hidden`. À 393 le panneau tombait de 780 à
+  471 px dès l'image 0 et laissait voir la page pendant son fondu. La mesure est maintenant relâchée à la fin des
+  animations du panneau (`getAnimations()` → `finished`), sauf s'il s'est rouvert. Au clavier, elle l'est aussitôt.
+  Images à 0/40/80/120/150 ms avant/après : `storage/app/etape6/close-393-*.png` (hôte, non versionné). L'hypothèse
+  `!important` sur `[hidden]` est **écartée par la mesure** : une transition prime sur une déclaration `!important`
+  d'auteur, et `display` reste `flex` jusqu'à 150 ms à 1440 comme à 393. Panneau et voile ont la même opacité à chaque
+  image (1 / 0,20 / 0,03 / 0 / 0), avec `translateY` −4 px.
+- `limit` : `int|float|string`, validé par `FILTER_VALIDATE_INT` (min 1). `0`, `2.5`, `:limit="2.5"` et `abc` lèvent
+  « asks for 2.5 results: it shows a whole number of them, at least 1. » ; `limit="2"` et `:limit="2"` passent. Avant,
+  `2.5` était tronqué à 2 avec une simple dépréciation.
+
+**Tests.** Client : `debounced-announcer` (4), `site-search` (+1 : pause), `status-view` (délai), `section-view` (+1 :
+Tab et vignette), `search-panel` (+1 : mesure gardée jusqu'à la fin de la sortie, gardée si réouverture — rouge avec
+l'ancien code), feuille (+1 : « voir tous »). PHP : `SearchCompositionTest` (+4 cas refusés, +1 cas accepté).
+`composer check` vert (Unit 358, client 669/669, 99,18 % lignes, 93,85 % branches, `build:check`), suite `Modules`
+**OK (688 tests)** ; seules : `SearchCompositionTest` 22, `ComponentFoldersTest` 17, `SearchComponentTest` 7.
+
+**Recette** (Chrome, 1440). Ouverture (focus au champ), « ser », ↓ produit → ↓ article → ↑ produit, Échap (fermé,
+focus à la loupe, terme gardé), clic sur le voile (fermé, rien dessous), « zzzzq » → message vide, panne simulée →
+« Recherche indisponible » puis retour, ↓ + Entrée → fiche produit ; console : seule l'erreur provoquée. `/boutique` :
+4 facettes, 16 → 1 (`?categorie=cheveux`), console vide.
+
+**Cinq passes.** *Lisibilité* : méthodes ≤ 10 lignes, aucun booléen en paramètre ; `#announce` (une ligne qui
+déléguait) retiré. *Commentaires* : ajoutés : `limitOf` (troncature silencieuse de PHP), `#releaseRoomOnceGone` ;
+retirés à la relecture : deux justifications. Aucun dans la CSS. *Performance* : aucune lecture de layout par frappe ;
+un `getAnimations()` par fermeture ; un minuteur par région. *Sécurité* : rien de dynamique ajouté. *Contexte/i18n* :
+aucune chaîne ; message de `limit` en anglais (diagnostic).
+
+**Courbe de sortie (décision de Louis, même jour).** Jeton `--meili-ease-exit` (`ease`), sortie du panneau et du voile
+seulement, 150 ms gardées ; l'entrée reste sur `--meili-ease`. Opacité panneau = voile à 0/40/80/120/150 ms :
+`--meili-ease` 1 / 0,20 / 0,03 / 0 / 0 (translation −3,2 px dès 40 ms) ; `ease` 1 / 0,56 / 0,17 / 0,02 / 0 ;
+`cubic-bezier(0.4, 0, 0.2, 1)` 1 / 0,72 / 0,19 / 0,02 / 0 (retient puis chute de 53 points). `ease` retenu : effacement
+régulier dès la première image. Au clavier : aucune animation. `CalmAnnouncement` renommé `DebouncedAnnouncer`
+(`debounced-announcer.ts`, `DEBOUNCE_DELAY`, `announce()`), sans alias.
+
+**À revoir.** Mouvement réduit vérifié par les tests seulement.
+
+### R-195 · 🟡 · ouvert (en attente de commit) · ouvert le 2026-09-29 — étape 8, habillage Pluralia, verrou mobile et disposition libre
+
+Rattaché à `R-180`, étape 8 de [chantier-recherche.md](chantier-recherche.md) (D-9, S-16). Pas de maquette : habillage
+sobre, par les crochets et les jetons, sur le modèle de `listing.css`. Rien n'est commité, réindexé ni écrit en base ou dans
+le moteur ; `config/meilifacets.php` de l'hôte non touché.
+
+**Neutralité du module — constat.** `grep -rniE 'pluralia|#f9f5eb|#f0eee3|#2d2b23|#7e7060|#c8c8c8|Space Grotesk|Epilogue|PT Sans|Cal Sans'`
+sur `resources/`, `app/`, `dist/` et `tests/` : aucune occurrence ; Pluralia n'est nommé que dans `docs/`.
+`StylesheetNeutralityTest` vert (aucune
+couleur par sa valeur, aucune `font-family`, jamais `display: contents`). Le module n'était pas en cause pour les
+graisses : il pose 400/500/600 sans police ; c'est la police héritée du thème (Space Grotesk sur `body`, Cal Sans sur
+`a` et `button`, sans gras réel — synthétisé) qui faisait paraître tout gras.
+
+**En-tête qui change de largeur sur mobile — deux causes, mesurées.**
+- *Cause réelle, thème* : sur mobile (émulation `393×852`, barres de défilement superposées), la page débordait
+  horizontalement — `scrollWidth` 398 puis 418 px — et l'en-tête `fixed` suit le viewport de mise en page : 398 → 393
+  (verrou posé, relayout) → 410,5 px à la fermeture. Élément fautif : `.pluralia-brand-orbit__ring`, SVG en rotation
+  continue dont la boîte englobante dépasse du bord droit d'une quantité qui dépend de l'angle au moment du relayout.
+  Le correctif existait déjà dans les sources du thème (`5a86d85`, `overflow: clip` sur le badge) mais le build servi
+  datait d'avant la fusion de `develop` qui l'a apporté (`style-CLofTV63.css` sans `clip`, recopié par WP Rocket). Après
+  build : 393 px constant sur trois cycles, `scrollWidth` 393.
+- *Cause secondaire, module* : avec des barres classiques (émulation bureau sous `48em`), le verrou
+  `:root:has(… [aria-expanded="true"]) { overflow: hidden }` retirait la barre : 378 → 393 → 378 px. Corrigé ici par
+  `scrollbar-gutter: stable` dans la même règle : 378 px constant. Sans effet avec des barres superposées (téléphones).
+  Limite connue : une page **trop courte pour défiler**, sous `48em`, avec des barres classiques, gagnerait la gouttière
+  à l'ouverture (rétrécit de sa largeur) — cas jugé marginal, aucune mesure CSS ne sait si la racine défile.
+- À 1440 : 1425 px constant (pas de verrou au-delà de `48em`).
+
+**Disposition libre et surcharge (demande de Louis).** Le client ne suppose ni ordre ni imbrication (tout passe par
+`Contract.one/all(hook, scope)`) — **aucun défaut trouvé, aucun code du module changé pour cela**. Prouvé par :
+`ComponentFoldersTest` (le cas `search/card` devient un fournisseur de données sur les huit vues, gabarits temporaires
+créés et supprimés par le test), `SearchCompositionTest::it_renders_the_bricks_where_a_template_places_them` (message
+vide d'abord, articles avant produits, limites 2 et 3, champ après les sections, loupe après le panneau), côté client
+`rearrangedSearchMarkup()` : ordre et limites des requêtes, carte au prix au-dessus du titre et image en dernier remplie
+sans être réordonnée, ↓ sur la première option affichée, message vide placé en premier ; panneau ouvert, fermé et focus
+rendu à une loupe posée après lui. Doc : `configuration.md`, « Disposition libre » (exemple et crochets à garder par vue).
+
+**Taille du champ (Louis : « trop gros nativement »).** Le module posait `max(1rem, var(--meili-ui))` partout, soit
+16 px même à la souris. Le plancher ne vaut plus que sous `(pointer: coarse)`, où iOS zoome ; au pointeur fin le champ
+suit `--meili-ui` (14 px). Décision révisée dans `decisions.md` (étape 5), avec son coût.
+
+**Habillage (thème, `components/site-search.css`).** Voir [chantier-recherche.md](chantier-recherche.md), étape 8.
+Cartes d'article décorées (date, rubrique, temps de lecture) : **attendent la maquette**, non faites. Code mort S-16
+retiré du thème.
+
+**Vérifié.** `composer check` vert (Unit 358, client 660/660, `build:check`), suite `Modules` 684. Recette Chrome
+1440 et 393 : ouverture, frappe, Échap (focus rendu à la loupe, terme gardé), voile (ferme sans rien activer), ↓ puis
+Entrée (fiche produit), état vide, aucune erreur console ; `/boutique` : filtre appliqué (`submit`, 16 → 1,
+`?categorie=cheveux`) avec la recherche sur la même page.
+
 ### R-194 · 🟡 · ouvert (en attente de commit) · ouvert le 2026-09-29 — composants Blade rangés par racine
 
 Rattaché à `R-180`. Décision de Louis du 2026-09-29, qui révise « Dossiers et crochets du chantier » (`decisions.md`,
@@ -4235,7 +4516,7 @@ excerpt`, `fix(listing): hide what WooCommerce hides from its search`, `docs(sea
 ### R-180 · 🟠 · ouvert · 2026-09-25 — recherche du site (lot 5)
 
 Parapluie du chantier [chantier-recherche.md](chantier-recherche.md), branche `feat/site-search`. Rattachés :
-`R-27`, `R-159`, `R-160`, `R-181` (étape « pertinence et index »), `R-182` (refonte du pont), `R-184` (ordre de recherche surchargeable), `R-185` (corrections de la revue de `fd595a3`), `R-186` (réglages repoussés à chaque sauvegarde), `R-187` (étape 3a, déclaration des types), `R-188` (étape 3b, racine, réglages, publication partagée), `R-189` (étape 4, extractions partagées), `R-190` (étape 4, client de recherche), `R-191` (étape 5, panneau et sections), `R-192` (étape 7, mouvement et reprise du style), `R-193` (résultats pendant la frappe), `R-194` (composants rangés par racine) ; `R-29` à compléter (clé limitée à `posts`).
+`R-27`, `R-159`, `R-160`, `R-181` (étape « pertinence et index »), `R-182` (refonte du pont), `R-184` (ordre de recherche surchargeable), `R-185` (corrections de la revue de `fd595a3`), `R-186` (réglages repoussés à chaque sauvegarde), `R-187` (étape 3a, déclaration des types), `R-188` (étape 3b, racine, réglages, publication partagée), `R-189` (étape 4, extractions partagées), `R-190` (étape 4, client de recherche), `R-191` (étape 5, panneau et sections), `R-192` (étape 7, mouvement et reprise du style), `R-193` (résultats pendant la frappe), `R-194` (composants rangés par racine), `R-195` (étape 8, habillage, verrou mobile, disposition libre), `R-196` (étape 6, accessibilité), `R-197` (ouverture saccadée en desktop), `R-198` (hauteur du panneau quand les résultats diminuent) ; `R-29` à compléter (clé limitée à `posts`).
 
 ### R-179 · 🟡 · ouvert (en attente de commit) · ouvert le 2026-09-25 — étape 7 : panneaux desktop, pastilles actives et grille occupée
 

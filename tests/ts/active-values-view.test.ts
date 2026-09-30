@@ -68,7 +68,7 @@ describe('ActiveValuesView', () => {
 
         assert.deepEqual(labels(), ['Acme✕', 'Globex✕', 'Coats & <b>hats</b>✕'])
         assert.equal(list().hidden, false)
-        assert.equal(pill(2).querySelector('b'), null, 'a label is text, never markup')
+        assert.equal(pill(2).querySelector('b') === null, true, 'a label is text, never markup')
     })
 
     it('draws a value as it is ticked when the listing searches at once', async () => {
@@ -178,10 +178,10 @@ describe('ActiveValuesView', () => {
         withdrawn.focus()
 
         click(window, withdrawn)
-        assert.equal(window.document.activeElement, withdrawn, 'nothing moved before the answer')
+        assert.equal(window.document.activeElement === withdrawn, true, 'nothing moved before the answer')
 
         await answered()
-        assert.equal(window.document.activeElement, pill(0))
+        assert.equal(window.document.activeElement === pill(0), true)
         assert.equal(pill(0).textContent, 'Globex✕')
     })
 
@@ -192,7 +192,7 @@ describe('ActiveValuesView', () => {
         click(window, pill(1))
         await answered()
 
-        assert.equal(window.document.activeElement, pill(0))
+        assert.equal(window.document.activeElement === pill(0), true)
     })
 
     it('keeps it inside the listing when no pill is left, never on the body', async () => {
@@ -202,7 +202,7 @@ describe('ActiveValuesView', () => {
         click(window, pill(0))
         await answered()
 
-        assert.equal(window.document.activeElement, root)
+        assert.equal(window.document.activeElement === root, true)
         assert.equal(root.getAttribute('tabindex'), '-1')
     })
 
@@ -214,7 +214,7 @@ describe('ActiveValuesView', () => {
         elsewhere.focus()
         await answered()
 
-        assert.equal(window.document.activeElement, elsewhere)
+        assert.equal(window.document.activeElement === elsewhere, true)
     })
 
     it('leaves the list alone when an answer does not change its pills', async () => {
@@ -248,7 +248,7 @@ describe('ActiveValuesView', () => {
         await applying(listing.sortBy('price_asc'))
 
         assert.deepEqual(listing.state.selected('product_brand'), ['acme'])
-        assert.equal(window.document.activeElement, window.document.body, 'no focus is taken on a later answer')
+        assert.equal(window.document.activeElement === window.document.body, true, 'no focus is taken on a later answer')
     })
 })
 
