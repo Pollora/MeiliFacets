@@ -86,6 +86,14 @@ résolue. Elle est consommée **une seule fois, à l'indexation** : le document 
 le navigateur ne rappelle jamais WordPress. Sans effet dès que `CardProjector` est rebindé — un
 projet qui projette sa propre carte choisit sa taille dans son projecteur.
 
+**L'image d'une carte est figée à l'indexation.** L'URL, le `srcset`, le `sizes`, le texte alternatif et les dimensions
+sont calculés depuis l'ID de l'image quand le produit est indexé, puis relus tels quels par le premier rendu et par le
+navigateur. Changer l'image d'un produit le réindexe (`_thumbnail_id` est une méta du produit). Modifier l'image
+elle-même ne le réindexe pas : texte alternatif changé dans la médiathèque, vignettes régénérées
+(`wp media regenerate`), taille d'image redéclarée. Le listing garde alors les anciennes valeurs jusqu'à la prochaine
+indexation : relancer `wp meiliscout index` après une régénération des vignettes. Une carte rendue hors du listing,
+par une page, n'est pas concernée : elle relit l'image à chaque affichage.
+
 **`card.eager`** est le nombre de cartes chargées en `loading="eager"` et
 `fetchpriority="high"` en tête de page ; les suivantes passent en `lazy`. La valeur dépend du
 nombre de colonnes que le thème pose au-dessus de la ligne de flottaison : trop basse, l'image du
@@ -141,6 +149,132 @@ Un champ absent doit être **absent**, pas vide : `image()` rend `[]` plutôt qu
 document ne porte jamais une clé qui ne veut rien dire. `price()` aussi, pour un contenu qui n'est pas un
 produit — mais un produit sans prix porte `card.price` vide, ce que rend `get_price_html()`.
 
+## Lier un champ de la carte
+
+La carte du listing est rendue par le serveur puis **réécrite par le client** pour chaque résultat, à partir du
+`<template>` que la même vue rend en entier. **Tous** les champs — `url`, l'image, `title`, `summary` et ceux qu'un
+`CardProjector` ajoute — passent par la même liaison (`R-203`) : un attribut posé sur l'élément, que le client relit
+pour chaque carte. Le prix seul garde son crochet `price`, parce que c'est le seul champ écrit en HTML.
+
+| Attribut | Effet | Exemple |
+| --- | --- | --- |
+| `data-meili-text="champ"` | écrit le champ en **texte** (`textContent`) ; élément retiré s'il est vide | `data-meili-text="title"` |
+| `data-meili-attr="attr:champ …"` | écrit un ou plusieurs attributs, paires séparées par des espaces | `data-meili-attr="href:url data-product_id:id"` |
+| `data-meili-attr="alt:image_alt\|title"` | l'attribut prend le premier champ qui a une valeur | |
+| `data-meili-class="classe:champ …"` | ajoute la classe quand le champ est vrai, la retire sinon | `data-meili-class="is-new:fresh"` (`fresh`, un champ ajouté par votre projet) |
+| `data-meili-if="champ"` | élément retiré quand le champ est vide ou faux | `data-meili-if="featured"` (`featured`, un champ ajouté par votre projet) |
+| `data-meili-if="!champ"` | élément retiré quand le champ est vrai | `data-meili-if="!image_url"` |
+
+**`id` est l'identifiant du document**, pas un champ projeté : le module l'ajoute à la carte qu'il lie, depuis la
+clé primaire `ID` que MeiliScout indexe déjà (`ListingResults::cards()` au serveur, `CardView.fieldsOf()` au client).
+Il écrase un `id` que la carte porterait. Un projecteur n'a donc jamais à le stocker ; une carte rendue hors de
+l'index (une page) l'ajoute elle-même.
+
+**Un élément qui n'a rien à montrer n'est pas dans le DOM.** Une carte rendue avec ses données l'omet ; le client,
+après avoir lié un clone, le retire. Le `<template>` fait exception : il porte tous les éléments, puisque c'est le
+squelette que le client clone (`CardBinding::template()`, rendu par `<x-meilifacets::listing.card-template />`).
+
+**On n'écrit pas ces attributs à la main, ni dans la vue.** La classe du composant prépare chaque élément (un
+`CardFieldElement`) ; la vue ne contient que du Blade standard — la balise, un `@if` et l'élément :
+
+```php
+// dans la classe du composant
+$hooks = new CardHooks($binding);                          // lien, image, titre, extrait, prix
+$this->image = $hooks->image($priority);
+$this->brand = $binding->text(BrandCardField::Brand);
+$this->cartIcon = $binding->onlyWith(BrandCardField::CartUrl)
+    ->with($binding->attributes(['href' => BrandCardField::CartUrl, 'data-product_id' => CardField::Id]));
+```
+
+```blade
+@if ($image->isPresent())
+    <img {{ $image->attributes->class('shopCardImage') }} decoding="async">
+@endif
+@if ($brand->isPresent())
+    <span {{ $brand->attributes->class('shopCardBrand') }}>{{ $brand }}</span>
+@endif
+@if ($cartIcon->isPresent())
+    <a {{ $cartIcon->attributes->class('shopCardCart') }}>{{ __('Add to cart') }}</a>
+@endif
+```
+
+`isPresent()` est faux quand le champ est vide — sauf dans le `<template>`, qui porte tout. `$element->attributes`
+est un `ComponentAttributeBag` : `->class()` y fusionne les classes de la vue, comme `$attributes->class()` dans
+tout composant ; `{{ $element }}` imprime son contenu, déjà échappé (le prix seul en HTML). Pas de composant Blade
+par champ : treize par carte coûtaient une vue rendue chacun (0,34 → 0,15 ms par carte, `R-203`).
+
+| Dans la classe | Rend |
+| --- | --- |
+| `$binding->text($champ)` | le texte et sa liaison ; absent si vide |
+| `$binding->price()` | le prix, en HTML ; absent si vide |
+| `$binding->onlyWith($champ)` / `onlyWithout($champ)` | un élément présent quand le champ est vrai / faux |
+| `$binding->attributes(['href' => $champ, 'alt' => [$a, $b]])` | les attributs remplis et leur liaison |
+| `$binding->classes(['a b' => $champ])` | les classes allumées par le champ et leur liaison |
+| `->with($sac, [...])` / `->containing($texte)` | ajoute des attributs (`merge()` de Laravel : les classes s'additionnent, un tableau est échappé), un texte fixe (échappé) |
+
+Un champ se nomme par un cas d'énumération (`BackedEnum`) ou une chaîne ; un projet qui ajoute des champs déclare
+la sienne (voir « Étendre la carte projetée »).
+
+**Une seule règle pour un champ absent : il vaut vide.** Texte vide, attribut retiré, classe retirée, condition
+fausse. Un nœud ne garde jamais la valeur du modèle ni celle d'une autre carte, et un index construit avant l'ajout
+d'un champ donne une carte dégradée, jamais cassée.
+
+**Une seule règle de formatage**, la même des deux côtés (`CardFieldValue`, `NumberText`, `results/card-field-value.ts`) :
+une chaîne telle quelle ; un nombre fini comme `String()` de JavaScript l'écrit (`1e21` → `1e+21`, `12` → `12`) ;
+rien pour le reste. Vrai : `true`, un nombre non nul, une chaîne non vide (`"0"` compris), une liste ou un objet
+non vides. Une valeur d'attribut est écrite sans ses blancs de bord, comme `ComponentAttributeBag` l'imprime.
+
+**Sécurité.**
+
+- jamais de HTML : le texte passe par `textContent` côté client, `e()` côté serveur. Le prix reste le seul HTML ;
+- **liste blanche** des attributs : `href`, `src`, `srcset`, `sizes`, `alt`, `title`, `width`, `height`, `value`,
+  `datetime`, `aria-*`, `data-*` — sauf `data-meili*`, pour qu'une carte ne réécrive pas le contrat. Donc aucun
+  `on*`, `style`, `srcdoc`, `id`, `class` (passer par `classes()`), ni directive Alpine (`x-*`, `:attr`, `@event`) ;
+- `href`, `src` et **chaque URL** d'un `srcset` n'acceptent qu'une URL `http(s)` ou relative, lue comme le navigateur
+  la lit (tabulations et sauts de ligne retirés, blancs de bord ignorés, schéma sans casse) : `javascript:`, `data:`,
+  `vbscript:`, `mailto:` sont retirés. Un `srcset` est découpé aux blancs **et** aux virgules, plus large que le
+  navigateur : une URL cachée derrière une virgule est lue, jamais manquée. `%6Aavascript:` ou `&#106;avascript:`
+  restent des liens relatifs littéraux (la valeur est du texte, jamais décodée) ;
+- `width` et `height` n'acceptent qu'un entier positif ;
+- une valeur vide retire l'attribut plutôt que d'écrire `href=""` ;
+- le serveur **refuse** une liaison interdite ou un nom de champ hors `[A-Za-z0-9_]` (`BindingRefused`, au rendu) ; le
+  client **ignore** celle qu'une vue écrite à la main contiendrait.
+
+⚠️ **`data-*` reste libre, et c'est un risque que le thème porte.** Certaines bibliothèques exécutent des attributs
+`data-*` : `data-bind` de Knockout, `data-hx-on` de htmx, par exemple. Une carte qui lierait un champ dans un tel
+attribut ferait exécuter la valeur du champ. Le module n'interdit rien de plus : c'est le **thème qui choisit** ce
+qu'il lie, dans la classe de son composant, et l'index n'est écrit que par le projecteur, pas par un visiteur. Ne
+liez un `data-*` qu'à un champ que votre projecteur écrit lui-même, et jamais sous le nom d'un attribut qu'une
+bibliothèque chargée sur la page interprète.
+
+**Alpine et le `<template>`.** Le client écrit toutes les liaisons avant d'insérer la carte : un `x-data` statique qui
+lit un attribut lié sur son élément reçoit la bonne valeur à l'initialisation. Jamais d'identifiant écrit dans
+l'expression elle-même — une directive n'est pas liable. L'expression doit supporter une valeur absente (index pas
+encore reconstruit) :
+
+```blade
+<li x-data="favoriteButton($el.getAttribute('data-product-id'))" data-meili-attr="data-product-id:id">
+```
+
+**Deux libellés traduits, l'un ou l'autre selon un champ** : les deux sont préparés, chacun présent selon la moitié
+de la paire (`onlyWith()` / `onlyWithout()`, puis `containing()`). Aucun texte ne passe par l'index.
+
+### Surcharger la carte du listing
+
+`resources/views/modules/meilifacets/components/listing/card.blade.php` dans le thème. Le composant `listing.card`
+(et `listing.card-template` pour le modèle) lui passe `$binding`, `$priority`, `$heading`, et les éléments préparés
+`$link`, `$image`, `$title`, `$price`. Une carte du thème **partagée** avec d'autres pages — une carte produit rendue
+aussi sur l'accueil — prend `$binding` et `$priority` en paramètres d'un composant du thème qui prépare ses propres
+éléments : c'est ce que fait le thème du projet de test (son composant de carte produit), sans dupliquer son balisage.
+
+```blade
+<x-shop-card :binding="$binding" :priority="$priority" tag="div" />
+```
+
+⚠️ Changer ce que `CardProjector` projette impose de **reconstruire l'index** (`ddev wp meiliscout index`) : d'ici là,
+les documents gardent l'ancienne carte, et les champs nouveaux sont absents — donc vides — au premier rendu comme dans
+le navigateur.
+
 ## Points d'extension
 
 Des bindings du conteneur Laravel, à poser dans le `register()` d'un provider du projet.
@@ -160,8 +294,8 @@ Des bindings du conteneur Laravel, à poser dans le `register()` d'un provider d
 | `SearchableTypes` | `WooCommerceSearchableTypes` — produits en tête sous WooCommerce, puis les types indexés, publics et non `exclude_from_search`, libellés et archive lus dans WordPress | les types que la recherche du site peut interroger | oui, `scoped` (décorer le défaut) |
 
 ```php
-// Pluralia, AppServiceProvider
-$this->app->scoped(ProductFacets::class, CatalogueFacets::class);
+// dans le provider du projet
+$this->app->scoped(ProductFacets::class, ShopFacets::class);
 ```
 
 `CardProjector` est lié par `bindIf` : **il n'est jamais obligatoire**. Un projet neuf obtient
@@ -237,7 +371,7 @@ de toute page de listing, chemin nu compris. Vérifié le 2026-09-22 : `/boutiqu
 MeiliScout ne prévient si elle n'est pas remplie : l'index se contente de vieillir.
 
 Pollora **désactive WP-Cron par défaut**, sur tous les environnements — un projet peut le rallumer par
-`config/wordpress.php`, `'constants' => ['disable_wp_cron' => false]` ; Pluralia ne le fait pas :
+`config/wordpress.php`, `'constants' => ['disable_wp_cron' => false]` ; le projet de test ne le fait pas :
 
 ```php
 // vendor/pollora/framework/src/WordPress/Bootstrap.php:336
@@ -366,7 +500,7 @@ passe `$wp_query->is_main_query()`.
 | Ce qui est désarmé | Ce qui ne l'est pas |
 | --- | --- |
 | « Filtrer par prix » natif (`min_price`, `max_price`) | le filtre par note (`rating_filter`), une `tax_query` sur les termes `rated-N` de `product_visibility` (`class-wc-query.php:937-955`) |
-| la navigation par attribut (`filter_*`), **quand la table de correspondance des attributs est active** (`Filterer.php:70-72` ; active sur Pluralia) | la même navigation sans cette table : WooCommerce passe alors par une `tax_query` de la requête principale (`class-wc-query.php:915-917`), hors de ce filtre |
+| la navigation par attribut (`filter_*`), **quand la table de correspondance des attributs est active** (`Filterer.php:70-72` ; active sur le projet de test) | la même navigation sans cette table : WooCommerce passe alors par une `tax_query` de la requête principale (`class-wc-query.php:915-917`), hors de ce filtre |
 | | le tri, la visibilité, le stock, le terme de l'archive, la recherche |
 | | la requête principale elle-même, qui tourne toujours |
 
@@ -458,7 +592,7 @@ Sans taxes, un produit simple garde le prix saisi : `is_taxable()` exige `wc_tax
 taxes, comme plus haut. Un groupé peut changer par rapport à l'ancien calcul, qui lisait les
 lignes `_price` de tous ses enfants en écartant les prix vides et nuls
 (`class-wc-product-grouped-data-store-cpt.php:76-86`) : il suit désormais ses enfants visibles et garde un
-enfant gratuit à 0. Sur Pluralia, les 76 produits publiés gardent exactement le même prix indexé (mesuré le
+enfant gratuit à 0. Sur le projet de test, les 76 produits publiés gardent exactement le même prix indexé (mesuré le
 2026-09-22).
 
 ## Une seule frontière avec MeiliScout
@@ -619,7 +753,7 @@ Pas de `withBaseFilter()` : un projet qui doit changer le filtre de base constru
 réponse (`URLSearchParams` : `crème & co` → `?q=cr%C3%A8me+%26+co`, une requête déjà présente dans l'archive, comme
 `?post_type=product` en permaliens simples, est gardée). Section masquée : le lien revient à l'archive nue. Le terme
 n'y est utile que si la page d'arrivée rend un listing avec la facette de recherche — le module ne peut pas le savoir
-(le blog de Pluralia n'en a pas encore : `/journal?q=…` affiche tous les articles). Un projet qui veut mener ailleurs
+(le blog du projet de test n'en a pas encore : `/journal?q=…` affiche tous les articles). Un projet qui veut mener ailleurs
 passe `withArchive('https://…')`, ou `withoutArchive()` pour ne rendre aucun lien.
 
 Comme pour `SearchableAttributes`, le module lie son défaut par `scopedIf` : le projet lie avec `scoped` ou
@@ -775,7 +909,7 @@ comme le panneau (`absolute`, `top: 100%`, pleine largeur, `100dvh` de haut), un
 dessous. Aucun JS, aucune mesure de plus : il suit l'ancre déjà choisie par le thème.
 
 ⚠️ Même limite que le tiroir : un ancêtre qui porte `transform`, `filter` ou `contain` change le bloc
-conteneur. Sur Pluralia, `.pluralia-header__bar` (`position: relative`, `backdrop-filter`) sert d'ancre sans une
+conteneur. Sur le projet de test, `.site-header` (`position: relative`, `backdrop-filter`) sert d'ancre sans une
 ligne de CSS de thème.
 
 ### Comportement
@@ -846,10 +980,12 @@ cherchables ») avec le nom d'un composant Blade du projet, enregistré dans un 
 ne connaît que les alias déclarés avant sa première utilisation dans le processus.
 
 La section enveloppe la carte dans `<li role="option" data-meili="card">` : une carte surchargée n'a pas à
-porter l'option. Crochets à garder dans la carte : **`url`** (le lien que suit Entrée, `href` écrit par le client)
-et **`title`** (exigés par le contrat), `image`, `summary` et `price` s'ils sont affichés (révélés par le client
-quand la donnée existe, rendus `hidden`). Le titre et l'extrait sont écrits en texte, le surlignage en `<mark>` ;
-le prix est le HTML de WooCommerce.
+porter l'option. Crochet exigé dans la carte : **`url`**, le lien que suit Entrée. `title` et `summary` sont surlignés s'ils sont
+présents, `image` et `price` stylés par la feuille par défaut s'ils sont affichés. Le composant `search.card` prépare ces éléments
+(`$link`, `$image`, `$title`, `$summary`, `$price`) à partir de `CardHooks(CardBinding::template())` ; un composant
+déclaré par `withCard()` fait de même et les rend en Blade standard (voir « Lier un champ de la carte ») :
+le client retire d'une carte l'image, l'extrait ou le prix qu'elle n'a pas. Le titre et l'extrait sont écrits en
+texte, le surlignage en `<mark>` ; le prix est le HTML de WooCommerce.
 
 Crochets du reste des briques, à garder dans une vue surchargée : voir le tableau de « Disposition libre ». Sans
 `search-field`, pas de loupe dans le champ ni de champ collant.
@@ -997,8 +1133,8 @@ implémente `Listing` doit donc rendre les deux, `baseFilter()` et `baseQuery()`
 tris, en revanche, ne sont plus écrits dans la classe : ils viennent des contrats `ProductFacets` et
 `ProductSorts` ci-dessus, qu'un projet remplace sans toucher au module.
 
-**Une facette dont le chemin épingle déjà la taxonomie n'est plus offerte** : sur `/marque/avril`,
-la facette Marque ne proposerait que « Avril », que la page filtre déjà. Elle sort donc du plan de
+**Une facette dont le chemin épingle déjà la taxonomie n'est plus offerte** : sur `/marque/umbrella`,
+la facette Marque ne proposerait que « Umbrella », que la page filtre déjà. Elle sort donc du plan de
 requête — le moteur ne compte pas sa distribution et ses libellés ne sont pas lus — mais **reste
 plaçable** : un gabarit qui l'appelle par son nom obtient un bloc sans valeur, que la vue masque.
 La facette catégorie fait exception, et c'est ce pour quoi elle est faite : `ChildTermsFacet` la
@@ -1021,8 +1157,8 @@ contraint réellement les résultats.
 
 ### Personnaliser le menu « Trier par »
 
-Aucun filtre WordPress : un projet lie sa propre implémentation de `ProductSorts`, comme Pluralia le
-fait pour `ProductFacets` (`CatalogueFacets`, dans `AppServiceProvider`). Elle peut partir de la liste
+Aucun filtre WordPress : un projet lie sa propre implémentation de `ProductSorts`, comme le projet de test
+le fait pour `ProductFacets` (dans le provider du projet). Elle peut partir de la liste
 du module plutôt que la réécrire — ici, sans « Nouveautés » :
 
 ```php
@@ -1047,7 +1183,7 @@ $this->app->scoped(ProductSorts::class, CatalogueSorts::class);
 ```
 
 Les clés sont les valeurs du paramètre `sort` dans l'URL : `price_asc`, `price_desc`, `newest`,
-`on_sale`. Un tri ajouté est un `Sort`, comme ceux de `WooCommerceSorts`. Vérifié sur Pluralia le
+`on_sale`. Un tri ajouté est un `Sort`, comme ceux de `WooCommerceSorts`. Vérifié sur un projet local le
 2026-09-17 : la liste passe de `price_asc`, `price_desc`, `newest`, `on_sale` à `price_asc`,
 `price_desc`, `on_sale`.
 
@@ -1066,7 +1202,7 @@ Trois composants : `facet` place une facette de termes, `price` le filtre de pri
 reste**. Chaque déclaration se place avec le composant de son espèce.
 
 ```blade
-@use('App\Cms\Products\ShopFacet')
+@use('App\Enums\ShopFacet')
 
 <x-meilifacets::listing>
     <x-meilifacets::listing.facet :facet="ShopFacet::Category" class="lg:col-span-2" scroll />
@@ -1406,7 +1542,7 @@ ddev exec php artisan meilifacets:check-parameters
 ```
 
 Compare chaque paramètre aux query vars publiques de WordPress, filtre `query_vars` compris — 95 noms
-sur Pluralia, dont ceux que WooCommerce déclare pour ses filtres de produits —, aux noms que WooCommerce lit
+sur le projet de test, dont ceux que WooCommerce déclare pour ses filtres de produits —, aux noms que WooCommerce lit
 dans `$_GET` (`min_price`, `max_price`, `rating_filter`, `orderby`, tout `filter_*`) **et** à la liste que
 Varnish efface. La réponse change avec la configuration, mais aussi avec les attributs, les taxonomies
 et les extensions actives : relancer la commande après en avoir ajouté.

@@ -147,7 +147,7 @@ jamais, faute d'être indexée.
   (`wc-product-functions.php:638`, `:647`) : c'est ce `updated_post_meta`, écouté par MeiliScout
   (`SingleIndexingServiceProvider:98`), qui réindexe. **L'indexation suit donc la bascule.**
 
-**Vérifié sur un cas réel passé** : #362 « Huile Régénérante Nuit », promo terminée le 2026-08-25.
+**Vérifié sur un cas réel passé** : #362 « Huile de nuit », promo terminée le 2026-08-25.
 `_price` est revenu à `46.00`, et l'index affiche `46,00 €`. La bascule de fin a bien eu lieu et a
 bien réindexé.
 
@@ -303,18 +303,18 @@ catalogue, dont `metas._price` ne porte que le prix le plus bas — la raison d'
 `price.min`/`price.max` :
 
 ```
- 420 Crème Nuit Régénérante        index 33.6 – 46.4    WooCommerce 33.60 – 46.40
- 430 Eau de Parfum Néroli Solaire  index 55   – 109     WooCommerce 55.00 – 109.00
- 436 Gel Douche Familial           index 12   – 15.2    WooCommerce 12.00 – 15.20
- 416 Sérum Hydratant               index 28   – 62      WooCommerce 28.00 – 62.00
+ 420 Crème de nuit     index 33.6 – 46.4    WooCommerce 33.60 – 46.40
+ 430 Eau de parfum     index 55   – 109     WooCommerce 55.00 – 109.00
+ 436 Gel douche        index 12   – 15.2    WooCommerce 12.00 – 15.20
+ 416 Sérum Hydratant   index 28   – 62      WooCommerce 28.00 – 62.00
 ```
 
 **C'est bien le prix en vigueur qui est indexé**, pas le prix barré. Vingt et un produits portent un
 `_sale_price` ; deux ont une fenêtre datée, l'une courante et l'autre expirée :
 
 ```
- 361 Crème Barrière Céramides   promo 25,50 € du 14/09 au 14/10, courante   index 25.5  onsale true
- 362 Huile Régénérante Nuit     promo 32,00 € du 06/07 au 25/08, expirée    index 46    onsale false
+ 361 Crème barrière  promo 25,50 € du 14/09 au 14/10, courante   index 25.5  onsale true
+ 362 Huile de nuit   promo 32,00 € du 06/07 au 25/08, expirée    index 46    onsale false
 ```
 
 **Et le filtre répond en conséquence**, sur la boutique réelle :
@@ -352,7 +352,7 @@ supplémentaire. Vérifié sur l'index réel avant de trancher :
 
 ```
 tout le catalogue   →  { min: 0, max: 199 }
-facets.product_brand = aeris  →  { min: 9.5, max: 36 }   (10 produits)
+facets.product_brand = globex  →  { min: 9.5, max: 36 }   (10 produits)
 ```
 
 Les bornes suivent donc le filtrage courant. L'ajouter touche `ListingSearch` et la description JSON.
@@ -462,7 +462,7 @@ prix sont stockés HT et affichés TTC, il retire la taxe des bornes saisies ava
 `woocommerce_price_filter_widget_tax_class`). Le module fait pareil, pour qu'un curseur « jusqu'à
 50 € » porte sur le prix que le visiteur voit.
 
-Dormant sur Pluralia — `wc_tax_enabled()` est `false`, prix stockés HT, affichage HT — donc **rien
+Dormant sur le projet de test — `wc_tax_enabled()` est `false`, prix stockés HT, affichage HT — donc **rien
 ne le testera ici**. À couvrir par un test unitaire sur la conversion elle-même plutôt que par le
 rendu, et à écrire dans `configuration.md`.
 

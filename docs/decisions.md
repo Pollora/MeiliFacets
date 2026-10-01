@@ -6,7 +6,7 @@ Voir aussi : [installation.md](installation.md) · [architecture.md](architectur
 
 | Sujet | Décision |
 | --- | --- |
-| Nom | **MeiliFacets**, module Pollora générique, réutilisable hors de Pluralia |
+| Nom | **MeiliFacets**, module Pollora générique, réutilisable hors du projet sur lequel il est testé |
 | Rôle de MeiliScout | indexation seule ; les facettes sont construites dans MeiliFacets |
 | Rendu de la page | WordPress, coût habituel assumé |
 | Listing et facettes | Meilisearch |
@@ -24,10 +24,10 @@ Voir aussi : [installation.md](installation.md) · [architecture.md](architectur
 | Taxonomies filtrables | toutes celles indexées par MeiliScout — ce qui est indexé est filtrable |
 | Unité de résultat | le produit — il n'apparaît **jamais deux fois** dans un listing |
 | Produits variables | quand un filtre ne correspond qu'à certaines variations, on affiche le produit avec les informations de la variation correspondante. *Non livré au 2026-09-22 : la carte porte la fourchette du produit ; lot 4.* |
-| Carte produit | markup rendu par le serveur, mis à jour par liaison d'attributs |
+| Carte produit | markup rendu par le serveur, mis à jour par liaison d'attributs. *Codée le 2026-09-30 (`R-203`)* : **une seule façon de remplir une carte** — `data-meili-text`, `data-meili-attr` (avec repli `a\|b`), `data-meili-class`, `data-meili-if` (`!champ` pour l'inverse) pour tous les champs, `url`, image et titre compris ; le prix seul garde son crochet, seul champ en HTML. Préparés par la classe du composant (`CardBinding`, `CardHooks`, `CardFieldElement`), imprimés en Blade standard par la vue (un `@if` par élément, pas de composant par champ — *amendé le 2026-09-30*, voir « La carte ne se remplit que par liaison »), réécrits par le client ; mêmes règles verrouillées par des cas partagés. **Un champ absent vaut vide**, et **un élément qui n'a rien à montrer n'est pas dans le DOM** (omis au rendu, retiré par le client ; le `<template>` les porte tous). Une seule règle de formatage (`String()` de JavaScript pour un nombre). Attributs sur **liste blanche** (`href`, `src`, `srcset`, `sizes`, `alt`, `title`, `width`, `height`, `value`, `datetime`, `aria-*`, `data-*` hors `data-meili*`), chaque URL en `http(s)` ou relatif, dimensions entières positives ; `data-*` libre, risque porté par le thème (`configuration.md`). Aucun texte dans l'index. *Coût* : `Contract::VERSION` inchangé, le module n'étant pas publié |
 | Repli | `503`, `Retry-After`, `Cache-Control: no-store`. *Le module pose les en-têtes ; Pollora écrase le statut, voir Dettes (`R-40`).* |
-| Clé de recherche | clé fixe fournie par l'infrastructure (submodule Docker AmphiBee) — le module ne la crée pas |
-| Variables d'environnement | conventions existantes des projets AmphiBee : `MEILI_HOST`, `MEILI_KEY`, `MEILI_INDEX_NAME`, `MEILI_MATCHING_STRATEGY`, `MEILI_PUBLIC_URL`, `MEILI_SEARCH_KEY`. *Au 2026-09-22, ni MeiliScout ni le module ne lisent `MEILI_INDEX_NAME` ni `MEILI_MATCHING_STRATEGY` : l'index s'appelle `posts` en dur.* |
+| Clé de recherche | clé fixe fournie par l'infrastructure (submodule Docker de l'équipe) — le module ne la crée pas |
+| Variables d'environnement | conventions existantes des projets de l'équipe : `MEILI_HOST`, `MEILI_KEY`, `MEILI_INDEX_NAME`, `MEILI_MATCHING_STRATEGY`, `MEILI_PUBLIC_URL`, `MEILI_SEARCH_KEY`. *Au 2026-09-22, ni MeiliScout ni le module ne lisent `MEILI_INDEX_NAME` ni `MEILI_MATCHING_STRATEGY` : l'index s'appelle `posts` en dur.* |
 | Version du moteur | local sur `latest`, non épinglé ; la production en 1.10.3 **doit être montée de version** — prérequis de déploiement |
 | Découpage | sept lots, décrits dans [lots.md](lots.md) ; les décisions ouvertes se prennent au début du lot concerné |
 | Dépendance MeiliScout | épinglée sur `dev-feat/meilifacets` (commit `a83fa4b` au lock depuis `R-112`, `1c59a05` à l'origine) — **dette : repasser à `dev-main` après merge de la PR** |
@@ -65,7 +65,7 @@ Voir aussi : [installation.md](installation.md) · [architecture.md](architectur
 | Rendu serveur | applique les filtres de l'URL ; Varnish cache chaque combinaison 180 s |
 | Repli des paramètres d'URL | une taxonomie non mappée prend un préfixe, jamais son nom nu |
 | Défauts des paramètres réservés | `sort`, `q`, `pg` — en anglais, le projet les habille. *Étendu le 2026-09-15 : `min_price`, `max_price`, noms de WooCommerce (`D-h`, `prix.md`).* |
-| Facettes de l'archive produit | marque, contenance et catégorie, toutes en multi-sélection. *Le module n'en livre que deux, catégorie et marque ; contenance et prix sont déclarés par Pluralia (`CatalogueFacets`).* |
+| Facettes de l'archive produit | marque, contenance et catégorie, toutes en multi-sélection. *Le module n'en livre que deux, catégorie et marque ; contenance et prix sont déclarés par le projet de test (sa liaison de `ProductFacets`).* |
 | Markup des facettes | cases à cocher rendues cochées par le serveur, jamais des liens par valeur |
 | Déclenchement de la recherche | `meilifacets.apply_mode` : `submit` par défaut, `immediate` selon le volume ; le choix voyage dans la description JSON, `data-apply` n'est rendu que pour le thème |
 | Forme des valeurs multiples | une seule, `?marque=a,b` — un formulaire GET n'aurait produit que `marque[]=a&marque[]=b`, soit deux URLs et deux entrées Varnish pour un même état |
@@ -76,7 +76,7 @@ Voir aussi : [installation.md](installation.md) · [architecture.md](architectur
 | Surcharge du markup | le module ajoute le thème en tête de sa cascade de vues |
 | Requête principale des archives | conservée : elle porte le routage et le SEO ; `posts_pre_query` reste banni |
 | Taille de page | `apply_filters('loop_shop_per_page', …)`, jamais `wc_get_loop_prop('per_page')` |
-| Carte de l'archive produit | bascule sur `<x-theme::product-card>`, changement d'apparence assumé. *Non tenue au 2026-09-22 : l'archive rend `<x-meilifacets::card>` (mesuré sur `/boutique`) ; `R-45`/`Q-10` à trancher.* |
+| Carte de l'archive produit | bascule sur le composant de carte produit du thème, changement d'apparence assumé. *Tenue depuis le 2026-09-30 (`R-203`, ferme `R-45`/`Q-10`) : le thème surcharge `components/listing/card.blade.php`, qui rend la vue de sa carte produit — la même que sur l'accueil — par un composant de carte du thème de test, wishlist comprise ; la carte projetée est remplacée par celle du thème pour un produit. Non tenue du 2026-09-22 à cette date.* |
 | Disposition des filtres | **composée par le thème** ; le module fournit des briques indépendantes (facette, tri, compteur, pastilles, `apply`, `reset`, tiroir), aucune disposition ni enum `Layout`. *Tranché le 2026-09-24 : la v1 (dispositions `Sidebar`/`Bar` dans le module) est abandonnée — [chantier-filtres-architecture.md](chantier-filtres-architecture.md).* |
 | Présentation des valeurs | déclarée **par facette** dans `ProductFacets` ; ensemble **ouvert** : contrat `ValuePresentation` (`slug()`, `allowsSingleSelection()`), que l'enum `Presentation` du module (`Control`/`Pill`, **sans `Radio`**) implémente et qu'un thème implémente pour ses propres présentations, habillées par `[data-presentation]`. Le type d'input reste dérivé de `SelectionMode` (`R-10`) ; une présentation qui ne l'autorise pas est refusée sur une facette `Single`. L'attribut `presentation` du composant la surcharge ponctuellement (chaîne = cas du module, `:presentation` = objet) : **une même facette doit pouvoir se présenter différemment selon le gabarit** (confirmé par Louis le 2026-09-24). Pas de markup par présentation. *Tranché le 2026-09-24 (C-5, `R-164`) : renverse la lettre de `D-07`, qui voulait que le module ignore les pastilles. Ouvert le même jour par Louis ; coût : un contrat de plus à maintenir. La méthode s'appelle `slug()` et non `name()`, pour ne pas cohabiter avec la propriété native `->name` des enums (`Pill`).* |
 | Activation d'une facette | la déclarer dans `ProductFacets` ; aucune clé de configuration. *Tranché le 2026-09-24 (C-6).* |
@@ -87,8 +87,8 @@ Voir aussi : [installation.md](installation.md) · [architecture.md](architectur
 | Tiroir mobile | conteneur ordinaire promu en dialogue par le JS sur mobile : pas de `<dialog>`, jamais `display: contents`, aucun filtre rendu deux fois (`R-95`) ; `inert` posé sur l'entourage, puis seul ce qui a été posé est restauré. *Tranché le 2026-09-24 (option A, architecture Q-2).* |
 | Repliable | une seule brique : panneau déroulant en rangée (un seul ouvert), accordéon dans le tiroir modal (sections indépendantes) ; **fermé côté serveur**. *Tranché le 2026-09-24 (architecture Q-1, Q-4).* |
 | Seuil mobile | écrit en dur dans le CSS, repris par défaut par l'attribut `media` du tiroir, accord vérifié par un test de parité. *Tranché le 2026-09-24 (architecture Q-3).* |
-| Dossiers et crochets du chantier | `ts/drawer/` et `ts/collapsible/` autorisés ; crochets `Hook` additifs, `Contract::VERSION` inchangé (`R-116`). Composants Blade **rangés par racine**, vues et classes en miroir : les racines `search` et `listing` restent dans `components/` (classes `Search`, `Listing`, avec les bases partagées `ContractComponent`, `ListingComponent`, `SearchComponent`), leurs briques dans `components/search/` · `Components/Search/` et `components/listing/` · `Components/Listing/`, appelées en notation à point (`<x-meilifacets::search.toggle>`, `<x-meilifacets::listing.facets>`), sans alias ni ancien nom. Les préfixes redondants tombent (`SearchToggle` → `Search\Toggle`, `search-toggle.blade.php` → `search/toggle.blade.php`) ; le message vide devient `search.empty-state` / `Search\EmptyState`, `empty` étant un mot réservé de PHP. Les crochets `data-meili` ne changent pas (contrat navigateur, pas nom de vue). *Autorisé le 2026-09-24 (C-8 révisée, architecture § 4-5), Blade alors à plat dans `components/`. Révisé le 2026-09-29 : un seul rangement par racine, préfixes redondants supprimés, décision de Louis (`R-194`). Coût : les balises des briques sont renommées dans tout thème qui les compose (Pluralia : `woocommerce/archive-product.blade.php`), le chemin de surcharge d'une vue change (`modules/meilifacets/components/search/card.blade.php` au lieu de `…/components/search-card.blade.php`), et une surcharge restée à l'ancien chemin est ignorée sans erreur.* |
-| `apply_mode` de Pluralia | reste `submit` **pour évaluer le rendu** (« Appliquer » en fin de rangée desktop) ; `immediate` envisagé après validation visuelle de Louis. *Tranché le 2026-09-24 (architecture Q-5) ; `R-51` et `Q-24` restent ouverts.* |
+| Dossiers et crochets du chantier | `ts/drawer/` et `ts/collapsible/` autorisés ; crochets `Hook` additifs, `Contract::VERSION` inchangé (`R-116`). Composants Blade **rangés par racine**, vues et classes en miroir : les racines `search` et `listing` restent dans `components/` (classes `Search`, `Listing`, avec les bases partagées `ContractComponent`, `ListingComponent`, `SearchComponent`), leurs briques dans `components/search/` · `Components/Search/` et `components/listing/` · `Components/Listing/`, appelées en notation à point (`<x-meilifacets::search.toggle>`, `<x-meilifacets::listing.facets>`), sans alias ni ancien nom. Les préfixes redondants tombent (`SearchToggle` → `Search\Toggle`, `search-toggle.blade.php` → `search/toggle.blade.php`) ; le message vide devient `search.empty-state` / `Search\EmptyState`, `empty` étant un mot réservé de PHP. Les crochets `data-meili` ne changent pas (contrat navigateur, pas nom de vue). *Autorisé le 2026-09-24 (C-8 révisée, architecture § 4-5), Blade alors à plat dans `components/`. Révisé le 2026-09-29 : un seul rangement par racine, préfixes redondants supprimés, décision de Louis (`R-194`). Coût : les balises des briques sont renommées dans tout thème qui les compose (projet de test : `woocommerce/archive-product.blade.php`), le chemin de surcharge d'une vue change (`modules/meilifacets/components/search/card.blade.php` au lieu de `…/components/search-card.blade.php`), et une surcharge restée à l'ancien chemin est ignorée sans erreur.* |
+| `apply_mode` du projet de test | reste `submit` **pour évaluer le rendu** (« Appliquer » en fin de rangée desktop) ; `immediate` envisagé après validation visuelle de Louis. *Tranché le 2026-09-24 (architecture Q-5) ; `R-51` et `Q-24` restent ouverts.* |
 | Style par défaut d'une brique | toute nouvelle brique rejoint la règle de base de ses sœurs dans `meilifacets.css` (`font-size: var(--meili-ui)`, marges neutralisées) : le rendu brut du module est homogène avant que le thème ne l'habille. *Tranché le 2026-09-24 (étape 2a, relevé par Louis sur le compteur).* |
 | Compteur d'une valeur de facette | **dans** le `<label>`, visible, jamais `aria-hidden` : un clic dessus coche la case nativement et son texte reste dans l'arbre. Le nom vient d'`aria-labelledby`, qui pointe le `<span>` du libellé (id `ElementId::facetValueLabel()`) ; le compteur décrit (`aria-describedby`). Chiffres tabulaires. **En pastille, le module masque le compteur visuellement** (maquette « 15 ML »), présent dans l'arbre ; le thème le réaffiche par `[data-presentation="pill"] [data-meili="count"]`. *Tranché le 2026-09-24 par Louis (étape 3b, `R-151`) : écartés, le compteur hors du `<label>` avec un libellé étiré en CSS (couche fragile) et le compteur en `aria-hidden` (retiré du mode lecture et de VoiceOver iOS sans indications). Coût : une vue surchargée qui ne reprend pas `aria-labelledby` garde le compteur dans le nom.* |
 | Pastilles actives | elles montrent l'**état appliqué** (en `submit`, rien tant que la sélection n'est pas validée) ; retirer une pastille est un **ordre** au sens de `D-10` : la recherche part tout de suite et emporte les filtres en attente. Libellés publiés dans la description (+829 o mesurés sur `/boutique`), gardés pour l'instant. *Tranché le 2026-09-24 (étape 2b, `R-47`).* |
@@ -212,7 +212,7 @@ serait une décision d'apparence qu'il s'interdit.
 blanc devient blanc sur noir, mesuré. Une première rédaction de cette décision affirmait le
 contraire ; c'était faux.
 
-Conséquence visible sur Pluralia : la liste est blanche sur une page crème (`rgb(255, 253, 245)`).
+Conséquence visible sur le projet de test : la liste est blanche sur une page crème (`rgb(255, 253, 245)`).
 C'est le cas prévu — le thème habille, le module rend seulement utilisable.
 
 Le `<button>` à la place du `<a href>` fait perdre le curseur en main — la seule affordance qu'un
@@ -274,7 +274,7 @@ natif à la teinte d'appui sous `(pointer: coarse)`, où les cibles passent auss
 
 Une taille est décidée, et c'est la seule : les **commandes** (tri, facettes,
 pagination, remise à zéro, compteur de filtres) prennent `var(--meili-ui)`, `0.875rem` par défaut.
-Hériter du texte de l'hôte donnait sur Pluralia une colonne de facettes en 18px, plus grosse que ce
+Hériter du texte de l'hôte donnait sur le projet de test une colonne de facettes en 18px, plus grosse que ce
 qu'elle filtre. Les résultats en sont exclus : la carte garde la typographie du thème. Un thème
 retaille tout d'une ligne, comme les teintes.
 
@@ -384,9 +384,9 @@ vérifiés sur la même table (`tests/plural-cases.json`). Rien ne change en fra
 d'autres langues le serveur n'écrit plus comme `trans_choice()` (portugais à 0, russe, japonais…), mais
 toujours comme le client. Deux formes seulement, des deux côtés : le russe écrit 2 à 4 comme 5, là où `trans_choice()`
 en offrait trois. *Remplace la « limite assumée » : une valeur absente du premier rendu ne pouvait
-pas revenir, et « Tout effacer » depuis `/boutique?marque=aeris` laissait 4 catégories sur 5 et 7
+pas revenir, et « Tout effacer » depuis `/boutique?marque=globex` laissait 4 catégories sur 5 et 7
 contenances sur 24.* Coût mesuré : une recherche de plus seulement quand le visiteur a filtré ou cherché, +1,4 ms
-côté moteur ; +356 octets compressés sur `/boutique?marque=aeris`. Une page filtrée porte au plus deux fois
+côté moteur ; +356 octets compressés sur `/boutique?marque=globex`. Une page filtrée porte au plus deux fois
 le plafond d'une facette, plus les valeurs que le visiteur tient. En ordre `Count`, les valeurs d'une page
 filtrée suivent le compte du listing non filtré. Une vue de facette surchargée garde ses valeurs sans
 résultat masquées — elles arrivent `folded`, le drapeau qui pose déjà `hidden` —, mais doit masquer son
@@ -428,7 +428,7 @@ compter une plage qui ne filtre rien.
 
 Ce que ça coûte, assumé :
 
-- **le bord bouge avec les autres facettes.** Une poignée poussée au bout sous « Aeris » (bord 47 €) ne
+- **le bord bouge avec les autres facettes.** Une poignée poussée au bout sous « Globex » (bord 47 €) ne
   retient rien : retirer la marque rend la piste entière, pas 0–47 €. C'est aussi le comportement de
   WooCommerce ;
 - **une borne tenue hors des nouvelles bornes** s'affiche ramenée au bord ; le geste suivant la valide
@@ -487,7 +487,7 @@ dérivée de `is_on_sale()`.
   de la sélection courante est en promotion.
 - **Un lot groupé n'est jamais en promotion**, même quand un de ses produits l'est — comme dans les listes
   de WooCommerce ; le produit remisé remonte lui-même. Un produit variable l'est dès qu'une de ses
-  variations visibles l'est (20 produits sur Pluralia le 2026-09-16, contre 21 selon `is_on_sale()`).
+  variations visibles l'est (20 produits sur le projet de test le 2026-09-16, contre 21 selon `is_on_sale()`).
 - **Placée en dernier** dans le menu, après les tris qui ne filtrent pas.
 - **Les comptes et les bornes suivent la grille** (tranché par Louis le 2026-09-17) : sous « Promotions »,
   les compteurs des facettes et les bornes du prix ne comptent que les produits en promotion ; une valeur
@@ -625,7 +625,7 @@ d'URL du client. Les cas partagés portent désormais sur ce que le client écri
 Ce que ça coûte :
 
 - deux valeurs purement numériques changent d'ordre dans l'URL (`10,9` au lieu de `9,10`), et une facette
-  à valeur unique forgée avec deux valeurs garde l'autre. Aucun slug numérique sur Pluralia (mesuré) ;
+  à valeur unique forgée avec deux valeurs garde l'autre. Aucun slug numérique sur le projet de test (mesuré) ;
 - un Retour vers une entrée écrite par un autre script, à une autre adresse, recharge la page ;
 
 La sécurité ne change pas : la lecture d'URL du client ne protégeait rien, le verrou reste côté moteur
@@ -656,14 +656,14 @@ Ce que ça coûte :
   Les noms réservés (`pg`, `sort`…) étant communs, une URL partagée ne portait déjà qu'un état.
 - le chemin dépend de ce que les filtres `get_pagenum_link` et `user_trailingslashit` en font, et hérite
   d'un défaut du cœur : le segment n'est pas ancré, une page `/shop-page` découpée par `<!--nextpage-->`
-  deviendrait `/shop-`. Aucun cas sur Pluralia.
+  deviendrait `/shop-`. Aucun cas sur le projet de test.
 
 ### Le filtrage natif reste désarmé sur toutes les archives produit (2026-09-22)
 
 Tranché par Louis (`R-147`). *Renverse la décision du 2026-09-17 — « chaque listing déclare les pages
 WordPress qu'il sert » —, jamais codée.* WooCommerce ne filtre que la requête principale des archives produit
 (boutique, recherche produit, taxonomies produit) ; un listing posé sur une autre page n'a rien à désarmer. Et
-sur les archives produit, `ProductListing` aurait dû toutes les déclarer, puisque Pluralia y rend le listing
+sur les archives produit, `ProductListing` aurait dû toutes les déclarer, puisque le projet de test y rend le listing
 partout : une méthode de plus dans le contrat `Listing`, pour une portée identique. `NativeFiltering` est donc
 inchangé ; sa documentation dit sa vraie portée, et le retour arrière documenté ne vise qu'une archive.
 
@@ -689,6 +689,35 @@ avant son gabarit, donc avant le `<head>`. Un listing rendu après `wp_head` re�
 Ce que ça coûte : `wp_dequeue_style('meilifacets')` ne couvre plus que le cas `<head>` ; un thème qui rend un
 listing après `wp_head` et veut s'en passer désinscrit la poignée (`wp_deregister_style`), qui couvre les
 deux cas.
+
+### La carte ne se remplit que par liaison (2026-09-30)
+
+Demandé par Louis (`R-203`) : la carte la plus simple et la plus rapide possible. *Amende « Carte produit » : la vue
+n'imprime plus chaque champ par un composant.*
+
+- **Remplissage.** Une carte se remplit par ses quatre attributs de liaison, et par rien d'autre ; le prix seul passe
+  par son crochet, parce qu'il est en HTML. Les crochets que `CardHooks` pose encore servent d'ancres (contrat,
+  surlignage, tabulation), jamais de source.
+- **Rendu.** La vue écrit la balise et un `@if ($element->isPresent())` ; l'élément préparé (`CardFieldElement`)
+  apporte ses attributs (`->attributes`, un `ComponentAttributeBag`) et son contenu. `<x-meilifacets::bound>`
+  rendait une vue par champ : 13 par carte, 808 rendus sur l'accueil. Mesuré sur les 55 cartes de l'accueil
+  (`hrtime`, meilleur de 30) : 0,34 → 0,15 ms par carte, 14,9 → 4,0 vues par carte.
+- **Noms.** Un seul nom par concept : `CardField` reste le nom d'un champ de la carte indexée (l'énumération le
+  portait déjà, et l'indexation l'emploie partout) ; `CardFieldElement` l'élément qui montre un champ (pas
+  `CardFieldView` : une *view* est un fichier Blade chez Laravel), `CardFieldValue` sa valeur lue,
+  `CardFieldAttribute` un attribut écrit depuis un champ. La *liaison* reste le mécanisme (`CardBinding`,
+  `BindingAttribute`, `BindingRefused`). Le composant de carte du thème de test est renommé en conséquence.
+- **Identifiant.** `id` n'est plus projeté : la carte liée reçoit la clé primaire `ID` que MeiliScout indexe déjà
+  (`ListingResults::cards()`, `CardView.fieldsOf()`), qui écrase un `id` de la carte. Coût : `ID` s'ajoute aux
+  attributs demandés au moteur par le listing.
+- **Champs du projet de test**, vocabulaire de WooCommerce : `ajax_add_to_cart` (la fonctionnalité produit
+  `supports('ajax_add_to_cart')` et la classe de boucle, `wc-template-functions.php:1470`) remplace
+  `adds_to_cart` ; `purchasable` disparaît — `cart_url` n'est stocké que pour un produit achetable et en stock, son
+  absence dit « pas achetable ». Un champ faux ou vide n'est pas stocké. Carte moyenne : 898 → 873 octets.
+- **Gardé** : `image_sizes`. Il varie d'une image à l'autre (WordPress le dérive de la largeur de chaque
+  recadrage, `wp_calculate_image_sizes()`) : 4 valeurs sur les 6 cartes qui le portent. Le poser dans la vue
+  obligerait à refaire ce calcul des deux côtés.
+- `Contract::VERSION` inchangé : le module n'est pas publié.
 
 ### Contre-exemple
 
@@ -855,7 +884,7 @@ Rien de ce qui suit n'est acquis.
   `View\ClientStylesheet` (`register()` inscrit chaque feuille publiée, `require(Stylesheet)`), comme
   `ClientScript`. Un seul cas, `Listing` = `meilifacets`, inchangé ; la poignée de la recherche est validée
   (voir « Validées »). Coût : un renommage de classe, sans alias ; aucune référence dans le thème ni dans
-  `pluralia-fulfillments` (`grep`).
+  les plugins du projet (`grep`).
 
 - **Alléger la requête principale des archives.** Le listing ne vient jamais de WordPress, mais
   sa requête principale s'exécute quand même — elle porte le routage, le contexte et le SEO, donc
@@ -999,7 +1028,7 @@ Rien de ce qui suit n'est acquis.
     des rangées réservé aux repliables — levé le 2026-09-25 : tous les survols lisent
     `--meili-duration-hover` (150 ms, `--meili-ease`), verdict Emil « cohesion matters » (coût : les
     rangées de la colonne et la poignée du prix passent de 120 à 150 ms). Rendus à l'ancien dessin : `active-value` (padding `0.85em`,
-    gap `0.5em` — le thème Pluralia repose les 24 px), `sort-trigger` (padding `0.85em`), `reset`
+    gap `0.5em` — le thème de test repose les 24 px), `sort-trigger` (padding `0.85em`), `reset`
     texte (rayon `0.25em`). Seule la hauteur (`--meili-control`) change pour tous.
   - *Un seul « Appliquer »* (Louis, 2026-09-25, `R-178` lot C) : le groupe ne rend plus son propre
     bouton, il rend le composant `<x-meilifacets::apply shape="block" />`. Deux variantes
@@ -1072,9 +1101,9 @@ Rien de ce qui suit n'est acquis.
     Louis). Espacements du tiroir **exacts de la maquette** (Figma `17:754`, corrigé le 2026-09-25 :
     le plafond à 24 px venait d'un malentendu, les « 24 px » de Louis visaient les pills) :
     `--meili-drawer-gutter` 2rem, `--meili-drawer-block` 2.5rem. **Aucune couleur du thème dans le
-    module** : l'encre `#2d2b23` des pastilles cochées et de `filters.svg` est retirée (défaut neutre
+    module** : l'encre du thème de test (`#xxxxxx`) des pastilles cochées et de `filters.svg` est retirée (défaut neutre
     `CanvasText`/`Canvas` ; trait de `filters.svg` en `#000` explicite, comme `trash.svg`, puisque
-    `currentColor` est sans effet dans un `<img>` — Louis, 2026-09-25) ; Pluralia la pose dans son
+    `currentColor` est sans effet dans un `<img>` — Louis, 2026-09-25) ; le projet de test la pose dans son
     thème par les crochets (et garde son icône en ligne, en `currentColor`). « Tout effacer » en mots
     en pastille (rayon 999px, padding des pills — Louis) : **variante** `shape="pill"`, le bouton texte
     par défaut garde son dessin (voir « Variantes plutôt que remplacement »).
@@ -1120,11 +1149,11 @@ Rien de ce qui suit n'est acquis.
   et un `$response->isServerError()` en garde de `shouldApplyPublicCache()`. Tant que ce n'est pas
   corrigé, la vue de repli s'affiche mais la recette « 503 non mis en cache » n'est pas tenue.
 
-- **La suite `Plugin` du projet est cassée** — 43 erreurs, `Plugin\PluraliaFulfillments\Console\
-  ReplayOrderCommand` introuvable, plus un échec sur la structure des permaliens. Antérieur à
+- **La suite `Plugin` du projet est cassée** — 43 erreurs, la commande `ReplayOrderCommand`
+  d'un plugin du projet introuvable, plus un échec sur la structure des permaliens. Antérieur à
   MeiliFacets, vérifié en revenant au `phpunit.xml` d'origine. Sans rapport avec le module,
   mais il rend `vendor/bin/phpunit` sans argument inutilisable comme signal. *Au 2026-09-22, la
-  classe citée existe (`pluralia-fulfillments/app/Console/ReplayOrderCommand.php`) ; l'état de la
+  classe citée existe (dans ce plugin) ; l'état de la
   suite n'a pas été remesuré — la lancer écrit en base.*
 
 ## Historique

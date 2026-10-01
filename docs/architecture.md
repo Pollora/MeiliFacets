@@ -1,7 +1,7 @@
 # MeiliFacets — architecture
 
 Module Pollora de recherche, filtres et suggestions sur Meilisearch, conçu pour être
-réutilisable hors de Pluralia.
+réutilisable hors du projet sur lequel il est testé.
 
 Documents liés : [installation.md](installation.md) · [configuration.md](configuration.md) · [lots.md](lots.md) · [pieges.md](pieges.md) · [prix.md](prix.md) · [decisions.md](decisions.md) · [revue.md](revue.md)
 
@@ -127,7 +127,7 @@ une limite à connaître, pas un obstacle — et elle se restreint plus tard si 
 alors que maintenir une liste dans chaque projet serait un coût permanent.
 
 Cette règle ne couvre que les taxonomies. MeiliScout ne déclare filtrables que les metas cochées
-dans son écran — aucune sur Pluralia ; le module ajoute lui-même `metas._price` et
+dans son écran — aucune sur le projet de test ; le module ajoute lui-même `metas._price` et
 `metas._stock_status` quand WooCommerce est actif. Le prix a sa propre projection, `price` :
 `price.min` et `price.max` portent le prix que la boutique affiche — fourchette des variations et
 des produits groupés comprise, taxes selon le réglage d'affichage, calculées à l'adresse de la
@@ -155,7 +155,7 @@ encore : `apply_mode`, `url_parameters` et `query_parameters` sont lus hors des 
 ## Ce que la boutique déclare
 
 Un module générique ne peut pas connaître les taxonomies d'une boutique. `pa_contenance` est à
-Pluralia ; `pa_couleur` sera à quelqu'un d'autre. Deux contrats portent donc ce qui change d'un
+un projet ; `pa_couleur` sera à quelqu'un d'autre. Deux contrats portent donc ce qui change d'un
 projet à l'autre, sur le modèle de `CardProjector` :
 
 | Contrat | Défaut du module | Ce qu'il porte |
@@ -165,7 +165,7 @@ projet à l'autre, sur le modèle de `CardProjector` :
 
 Les deux sont liés par **`scopedIf`** : un projet qui ne dit rien obtient un listing qui marche,
 un projet qui lie le sien gagne. Séparés exprès — donner la main sur les facettes sans obliger à
-redéclarer les tris. Pluralia y branche `App\Cms\Products\CatalogueFacets`, qui ajoute la
+redéclarer les tris. Le projet de test y branche sa propre liaison de `ProductFacets`, qui ajoute la
 contenance et le filtre de prix aux deux facettes du module.
 
 ⚠️ Les deux liaisons ne sont **pas** gardées sur WooCommerce, contrairement à `IndexAttributes` et
@@ -203,7 +203,7 @@ les fourchettes qu'on venait de lui laisser.
 Le point d'extension n'est pas obligatoire : `CardProjector` est lié par `bindIf` —
 `DefaultCardProjector` (titre, lien, image), enveloppé par `WooCommerceCardProjector`, qui ajoute
 le prix formaté quand WooCommerce est actif. Un projet neuf obtient une carte qui fonctionne sans
-écrire une ligne de PHP ; un projet qui veut la sienne lie `CardProjector`. Pluralia ne le fait
+écrire une ligne de PHP ; un projet qui veut la sienne lie `CardProjector`. Le projet de test ne le fait
 pas : ses cartes indexées sont celles du module.
 
 Le champ n'est ni filtrable ni triable : il ne coûte rien au moteur. Mesure du 2026-09-02 sur une
@@ -391,7 +391,7 @@ Yoast, pas les liens des pages filtrées.
 
 Le nom de chaque paramètre est déclaré en configuration — `meilifacets.url_parameters`, qui
 associe une taxonomie à un nom lisible : `product_brand` devient `marque`, et l'URL affiche
-`?marque=lumen,aeris&contenance=100ml`.
+`?marque=acme,globex&contenance=100ml`.
 
 **Une taxonomie non déclarée prend un préfixe, jamais son nom nu.** Un nom de taxonomie est une
 query var publique de WordPress : `?product_cat=visage` fait déjà filtrer WordPress lui-même
@@ -618,7 +618,7 @@ thème périmée dégrade donc vers le rendu serveur, jamais vers une interactio
 | `empty` | idem | message « aucun résultat », révélé ou masqué |
 | `no-results` `past-the-end` | idem, dans `empty` | les deux raisons, rendues toutes deux : le client révèle celle de `Pagination::isPastTheEnd()`. Facultatifs — une vue qui n'en rend pas garde son message |
 | `card` | idem | un résultat |
-| `url` `image` `title` `price` | `<x-meilifacets::listing.card>` | les valeurs écrites dans une carte |
+| `url` `image` `title` `price` | `<x-meilifacets::listing.card>` | les valeurs écrites dans une carte. Aucun n'est exigé dans une carte de listing : le client remplit la carte par liaison et n'écrit le prix que là où il trouve `price`. Dans la recherche, `site-search.css` les cible aussi (`card`, `url`, `image`, `title`, `summary`, `price`) : une carte surchargée qui les retire garde son comportement mais perd le style par défaut |
 | `facets` | `<x-meilifacets::listing.facets>` | le conteneur qui écoute les changements |
 | `facet-value` | `<x-meilifacets::listing.facet>` | une valeur, rendue même sans résultat, masquée quand son compte tombe à zéro sauf si le visiteur la tient |
 | `input` | idem | la case ou le bouton radio qui porte la valeur |
@@ -650,13 +650,13 @@ thème périmée dégrade donc vers le rendu serveur, jamais vers une interactio
 | `search-status` | panneau | l'unique région vivante, écrite une fois la réponse posée |
 | `search-empty` `search-unavailable` | panneau | les deux messages, révélés à la place des sections ; leur texte est aussi celui de l'annonce |
 | `search-section` | section (étape 5) | une section, son type dans `data-type`, sa limite dans `data-limit` ; masquée quand son type n'a rien |
-| `search-count` `search-results` `search-card-template` | idem | le compte, la liste repeinte et le `<template>` d'une carte (`card`, `url`, `title` exigés) |
+| `search-count` `search-results` `search-card-template` | idem | le compte, la liste repeinte et le `<template>` d'une carte (`url` exigé : c'est le lien que suit Entrée ; `card`, `title`, `summary` lus s'ils sont présents) |
 
 **Ce qui est exigé et ce qui est toléré.** Le refus ne peut porter que sur ce que le thème
 contrôle, jamais sur ce que la donnée décide :
 
-- toujours exigés : `results`, `card-template`, `empty`, et à l'intérieur du template `card`,
-  `url`, `image`, `title`, `price` ;
+- toujours exigés : `results`, `card-template`, `empty`. Rien n'est exigé à l'intérieur du template : une carte sans
+  image ni prix démarre ;
 - exigés dès que leur hôte est rendu : `input` dans une `facet-value`, `more` dans un `facet`
   qui contient une `facet-value`,
   `page`/`previous`/`next` dans une `pagination`,
@@ -680,6 +680,16 @@ qui les oublie casse le client sans qu'aucune infraction ne soit signalée :
 | un élément racine unique dans le `<template>` de carte | seul le premier élément est cloné : le reste de la carte disparaît sans erreur, et un template sans élément ne peint aucune carte |
 | `hidden` sur le bloc `facet` tant que `$hasReadableValues()` est faux, et non plus quand `$values === []` | une page filtrée rend aussi les valeurs sans résultat : la légende reste affichée au-dessus de rien jusqu'à la première recherche |
 | `hidden` sur une option de tri quand `$choice->hidden` | « Promotions » reste proposée jusqu'à la première recherche du client et mène à une grille vide |
+
+**Liaison des champs de la carte.** Tous les champs de la carte, sauf le prix, s'écrivent par quatre
+attributs : `data-meili-text`, `data-meili-attr`, `data-meili-class`, `data-meili-if` (`BindingAttribute`,
+`results/card-binding.ts`, `R-203`). Le serveur les rend par `CardBinding` (éléments préparés en
+`CardFieldElement` par la classe du composant, imprimés en Blade standard par la vue), le client (`CardView`, puis
+`CardBinding`) les réécrit à chaque carte dessinée et retire l'élément qui n'a rien à montrer ; mêmes règles des
+deux côtés, verrouillées par `tests/card-binding-cases.json`. La carte liée porte aussi `id`, l'identifiant du
+document (`ID`), ajouté par `ListingResults::cards()` et `CardView.fieldsOf()`. Les crochets posés par `CardHooks`
+servent d'ancres au contrat, au surlignage et à l'ordre de tabulation, pas au remplissage. Syntaxe et sécurité :
+`configuration.md`, « Lier un champ de la carte ».
 
 Renommer ou retirer un crochet **incrémente `Contract::VERSION`** des deux côtés ; en ajouter un ne
 l'incrémente pas (`R-116`).
@@ -728,7 +738,7 @@ recherche et qu'elle ne soit pas figée par le cache.
 ## Clé de recherche
 
 Le navigateur s'authentifie avec une clé fixe, fournie par l'infrastructure via le submodule
-Docker AmphiBee. Le module la consomme, il ne la crée pas et n'en gère pas le cycle de vie.
+Docker de l'équipe. Le module la consomme, il ne la crée pas et n'en gère pas le cycle de vie.
 
 ## Conventions
 

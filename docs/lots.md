@@ -67,7 +67,7 @@ résultats, sans qu'aucun PHP ne s'exécute. Le retour arrière restaure l'état
 
 Le premier lot visible. L'archive produit change de source de données et de carte : elle rend
 `<x-meilifacets::card>`, la carte du module (mesuré sur `/boutique` le 2026-09-22). *`decisions.md`, « Carte
-de l'archive produit », prévoit encore `<x-theme::product-card>` : écart à trancher (`Q-10`, `R-45`).*
+de l'archive produit », prévoit encore le composant de carte du thème de test : écart à trancher (`Q-10`, `R-45`).*
 
 Livré en trois étapes. Après 3b, l'archive **affiche** le bon contenu pour n'importe quelle URL,
 filtrée ou non — ce qui est ce que le référencement demande.
@@ -103,7 +103,7 @@ d'ici là le double filtrage silencieux.
 - Vue de repli en `503`, avec `Retry-After` et `Cache-Control: no-store`.
 - Branchement de `meilifacets.url_parameters` : le composant transmet au JavaScript le mapping
   taxonomie vers paramètre d'URL, que le client de recherche lit déjà.
-- Intégration sur l'archive produit de `themes/pluralia`.
+- Intégration sur l'archive produit du thème de test.
 
 **Recette —** les produits sont dans le HTML source, un filtre les remplace sans rechargement, et
 moteur arrêté la page répond `503` sans être mise en cache.
@@ -123,7 +123,7 @@ cache, sur un espace de clés infini ; une facette n'avait aucun plafond de vale
 des valeurs n'était pas canonique, donc une même sélection occupait jusqu'à six entrées Varnish.
 
 **Recette de 3b, vérifiée le 2026-09-03 —** `/boutique` rend les 12 produits dans le HTML source,
-avec 19 valeurs de facettes et leurs compteurs ; `?marque=lumen` rend 2 produits, coche la seule
+avec 19 valeurs de facettes et leurs compteurs ; `?marque=acme` rend 2 produits, coche la seule
 case correspondante, et **laisse les autres marques comptées** (3, 3, 2, 2) grâce au disjonctif ;
 aucune requête SQL de produits n'est déclenchée par le listing (mesuré par `posts_request`) ;
 moteur arrêté, la vue de repli s'affiche avec `Retry-After: 120`. **Réserve : le statut reste

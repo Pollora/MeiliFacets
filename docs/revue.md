@@ -68,11 +68,11 @@ que le rendu qu'il contractualise soit juste.
 Quatre réponses données en séance le 2026-09-06, six prises depuis (D-05 à D-10). Elles ferment ou
 réorientent les questions citées.
 
-### D-01 — Module du framework Pollora, en construction ; Pluralia est le banc d'essai
+### D-01 — Module du framework Pollora, en construction ; un projet local est le banc d'essai
 
 *Répond à Q-01, oriente Q-04, Q-07, Q-13, Q-14.*
 
-MeiliFacets est un **module Pollora générique**, écrit pour de futurs projets. Pluralia sert de
+MeiliFacets est un **module Pollora générique**, écrit pour de futurs projets. Le projet de test sert de
 terrain d'essai à la conception, pas de destinataire final. La règle de partage est confirmée et
 précisée :
 
@@ -137,11 +137,10 @@ la garde qu'emploie `pollora/helper-overrider` lui-même (`vendor/pollora/helper
 avec sa signature exacte, `(string $key, array|string $replace = [], ?string $locale = null)`. Une
 version antérieure inventait une signature à deux paramètres : corrigée.
 
-**Aucun précédent dans le projet, vérifié le 2026-09-06.** `Modules/Wishlist` ne pouvait pas
-servir de modèle : il n'a **aucun test** (`tests/Unit` et `tests/Feature` ne contiennent qu'un
-`.gitkeep`), aucun outil, et son `composer.json` est resté le squelette de nwidart —
-`"name": "nwidart/wishlist"`, auteur « Nicolas Widart ». Le plugin `pluralia-fulfillments`, lui,
-fait le choix inverse : ses dix tests vivent dans `tests/Feature/Fulfillments/` **du projet**,
+**Aucun précédent dans le projet, vérifié le 2026-09-06.** L'autre module nwidart du projet ne
+pouvait pas servir de modèle : il n'a **aucun test** (`tests/Unit` et `tests/Feature` ne contiennent qu'un
+`.gitkeep`), aucun outil, et son `composer.json` est resté le squelette généré par nwidart. Un plugin du
+projet, lui, fait le choix inverse : ses tests vivent dans les tests **du projet**,
 étendent `Tests\TestCase`, et tournent donc dans une application bootée où `__()` est le vrai. Il
 n'a aucun outillage propre.
 
@@ -645,7 +644,7 @@ conformité de la documentation : le code qu'il décrit n'existe plus.
 
 Le filtre `wp_robots` est global. `RobotsPolicy::appliesTo()` déclare une URL filtrée dès qu'un
 paramètre porte le préfixe `f_` ou figure dans `url_parameters` — sans jamais vérifier qu'un
-listing est rendu sur la page. Un lien de campagne `?marque=lumen` sur un article, ou n'importe
+listing est rendu sur la page. Un lien de campagne `?marque=acme` sur un article, ou n'importe
 quel `?f_…` sur l'accueil, bascule la page en `noindex`.
 
 C'est la même classe de bug que celui corrigé le 2026-09-04 pour `?q=`, resté ouvert du côté des
@@ -723,8 +722,8 @@ nommant ce qui manque. `listing-page.js` amorce une instance par racine, `Listin
 la racine — donc une carte clonée n'a rien à câbler — et `CardPainter` remplit une carte depuis le
 document.
 
-**Recetté en navigateur**, pas seulement en test : sur `/boutique`, cocher « lumen » ne fait rien
-en mode `submit`, « Appliquer » ramène 16 cartes à 10, l'URL devient `?marque=lumen`, et les
+**Recetté en navigateur**, pas seulement en test : sur `/boutique`, cocher « acme » ne fait rien
+en mode `submit`, « Appliquer » ramène 16 cartes à 10, l'URL devient `?marque=acme`, et les
 compteurs des autres facettes se resserrent — visage passe de 24 à 6. Quatre combinaisons
 successives vérifiées, dont le décochage qui rend l'URL vide.
 
@@ -875,15 +874,15 @@ booléenne la présence d'une valeur dans n'importe quel champ indexé — `_edi
 C'est noté « lot 5, question de pertinence ». Ç'en est aussi une de fuite d'information, et elle
 n'est pas évaluée comme telle.
 
-**Mesuré le 2026-09-25** (chantier recherche) : `pluralia` trouve les 67 documents (domaine dans `url`,
-`guid`, `card.url`, `card.image_url`) ; `spacer` en trouve 4 (balisage des blocs de `post_content`).
+**Mesuré le 2026-09-25** (chantier recherche) : `<domaine>` (le nom de domaine du site) trouve les 67 documents
+(domaine dans `url`, `guid`, `card.url`, `card.image_url`) ; `spacer` en trouve 4 (balisage des blocs de `post_content`).
 
 **Au 2026-09-25** (`R-181`, non commité) : `searchableAttributes` est une liste explicite — `post_title`,
 `labels.*` des taxonomies visibles, `metas._sku`, `excerpt`, `content` ; plus aucune métadonnée technique,
-adresse, `card.*` ni `post_content` brut. Fermeture après réindexation et mesure : `pluralia` ne doit plus rendre tout l'index, une
+adresse, `card.*` ni `post_content` brut. Fermeture après réindexation et mesure : `<domaine>` ne doit plus rendre tout l'index, une
 requête `attributesToSearchOn: ["url"]` ou `["metas._edit_lock"]` doit être refusée par le moteur.
 
-**Mesuré le 2026-09-25 après les deux réindexations de Louis** (lecture seule) : `pluralia` → 0 ;
+**Mesuré le 2026-09-25 après les deux réindexations de Louis** (lecture seule) : `<domaine>` → 0 ;
 `attributesToSearchOn: ["url"]` refusé ; `"spacer"` et `"strong"` en recherche exacte → 0, sans guillemets 3 et
 4 résultats par la seule tolérance aux fautes dans `content` ; `attributesToSearchOn: ["metas._edit_lock"]`
 refusé (`invalid_search_attributes_to_search_on`). **Fermé le 2026-09-25** sur validation de Louis.
@@ -1047,13 +1046,13 @@ projet. Conséquences immédiates :
 
 - rien ne garantit qu'un déploiement embarque la révision attendue ;
 - aucune revue de code du projet ne voit les changements du module ;
-- `docs/meilifacets/`, `config/meilifacets.php` et `themes/pluralia/.../archive-product.blade.php`
+- `docs/meilifacets/`, `config/meilifacets.php` et le `archive-product.blade.php` du thème
   évoluent dans un dépôt, le module dans l'autre, sans commit commun.
 
 **Instruit le 2026-09-08, différé en fin de projet** (`T-42`). Mesuré :
 
 ```
-Modules/Wishlist    → 30 fichiers suivis par le projet
+Modules/<autre>      → 30 fichiers suivis par le projet
 Modules/MeiliFacets →  0
 origin du module    : git@github.com:Pollora/MeiliFacets.git   (47 commits, non poussés)
 ```
@@ -1229,19 +1228,19 @@ correctement, mais rien ne nomme le terme recherché), et `RobotsPolicy` laisse 
 
 Soit on livre le champ, soit on retire `q` du lecteur d'état jusqu'au lot 5.
 
-### R-45 · 🟠 · à trancher (Q-10) · 2026-09-06 — la carte du module remplace celle du thème, wishlist comprise
+### R-45 · 🟠 · **fermé par `R-203`** (en attente de commit et de réindexation, 2026-09-30) · à trancher (Q-10) · 2026-09-06 — la carte du module remplace celle du thème, wishlist comprise
 
 `<x-meilifacets::results>` rend `<x-meilifacets::card>`. Le thème, lui, a
-`<x-theme::product-card>` qui porte le bouton wishlist sur la ligne du titre (module `Wishlist`,
-maquette cliente). Sur l'archive produit, **ce bouton a disparu**.
+une carte produit qui porte le bouton wishlist sur la ligne du titre (un module du projet,
+maquette). Sur l'archive produit, **ce bouton a disparu**.
 
-`lots.md` annonce pourtant l'inverse : « la bascule sur `<x-theme::product-card>` étant assumée ».
+`lots.md` annonce pourtant l'inverse : « la bascule sur [la carte produit du thème] étant assumée ».
 Ce n'est pas ce qui est livré. Trois issues : le listing rend la carte du thème, la wishlist
 devient un crochet du contrat, ou la disparition est assumée et écrite.
 
 **Au 2026-09-22** (passe documentaire, `R-153`) : toujours vrai, mesuré sur `/boutique` — l'archive rend
 `<x-meilifacets::card>`, sans wishlist. **Contredit une décision validée** : `decisions.md` dit
-« bascule sur `<x-theme::product-card>` ». Annoté là-bas comme non tenu ; `Q-10` reste à trancher.
+« bascule sur [la carte produit du thème] ». Annoté là-bas comme non tenu ; `Q-10` reste à trancher.
 
 ### R-46 · 🟠 · **fermé le 2026-09-08** (T-07) · ouvert le 2026-09-06 — les valeurs repliées n'avaient aucun moyen d'être dépliées
 
@@ -1288,10 +1287,10 @@ ordre** (`D-10`) : recherche immédiate dans les deux modes, qui emporte les fil
 par Louis avec le choix « pastilles = état appliqué ». Le focus reste sur la pastille jusqu'au
 redessin qui suit la réponse, puis passe à la suivante, sinon à la précédente, sinon à la racine du
 listing (`tabindex="-1"`), jamais `<body>` ; un focus que le visiteur a déplacé entre-temps n'est pas repris.
-Poids de la description (`D-08`) : +829 octets (`/boutique` 1871 → 2700, `?marque=aeris` 1891 → 2720).
-Observé (Chromium, `https://`) : Aeris cochée → aucune pastille ; « Appliquer » → « Aeris », 10
-articles ; Botanik cochée (en attente) puis retrait d'Aeris au clavier → `?marque=botanik`, pastille
-« Botanik », 12 articles, Aeris décochée, focus sur « Botanik » ; max 30 € → « Jusqu’à 30,00 € »,
+Poids de la description (`D-08`) : +829 octets (`/boutique` 1871 → 2700, `?marque=globex` 1891 → 2720).
+Observé (Chromium, `https://`) : Globex cochée → aucune pastille ; « Appliquer » → « Globex », 10
+articles ; Initech cochée (en attente) puis retrait d'Globex au clavier → `?marque=initech`, pastille
+« Initech », 12 articles, Globex décochée, focus sur « Initech » ; max 30 € → « Jusqu’à 30,00 € »,
 identique au rendu serveur ; aucune erreur console. `composer check` vert (313 tests TS), suite
 `Modules` 436 tests verts.
 
@@ -1319,7 +1318,7 @@ Audit de la branche le même jour : `R-178`, cinq lots (tous faits).
 Étape 7 (animations) le même jour : `R-179` — ANIM-3 et ANIM-9 commités, ANIM-10 et refonte non commités, ANIM-13 en question.
 
 **Au 2026-09-25 (fin de session)** : étapes 0 à 5 et 7 du chantier livrées et commitées, audit `R-178`
-fermé ; étapes 6 (accessibilité) et 8 (habillage Pluralia) **mises en attente par Louis**. `R-48` reste
+fermé ; étapes 6 (accessibilité) et 8 (habillage du thème de test) **mises en attente par Louis**. `R-48` reste
 ouvert jusqu'à leur reprise : le mobile est couvert (tiroir), l'accessibilité et l'habillage restent à
 finir. Suivi : [chantier-filtres.md](chantier-filtres.md).
 
@@ -1333,18 +1332,18 @@ dit à quelle fréquence le cas est atteint sur un vrai catalogue, et un message
 sans aucune facette visible est un mur.
 
 **Au 2026-09-22** (passe documentaire, `R-153`) : en partie. Mesuré : `?q=` sans résultat masque les
-quatre blocs de facette ; `?marque=aeris&categorie=parfum` rend zéro carte, mais les facettes
+quatre blocs de facette ; `?marque=globex&categorie=parfum` rend zéro carte, mais les facettes
 catégorie et marque restent visibles.
 
 **Au 2026-09-25** (étape 4d-1, barre de pills et tiroir) : **plus de cul-de-sac, sans code neuf.** La
 décision validée « une valeur que le visiteur tient reste affichée, même à 0 » (`R-137` #4) couvre le
 cas : serveur (`$value->selected`) et client (`FacetsView::#showFold()`, `! input.checked`) gardent la
 valeur cochée, donc son `<fieldset>` et sa pill. Mesuré dans Playwright, `immediate` et `submit`, 1440
-et 393 px, rendu serveur puis recherche client (Botanik décochée dans le panneau Marque) :
-- `?marque=aeris,botanik&contenance=400ml` (0 article) : pills « Trier par », « Marque 2 »,
+et 393 px, rendu serveur puis recherche client (Initech décochée dans le panneau Marque) :
+- `?marque=globex,initech&contenance=400ml` (0 article) : pills « Trier par », « Marque 2 »,
   « Contenance 1 », valeurs cochées visibles, pastilles actives et « Tout effacer » visibles, ouvreur
-  « Filtres » à 393 px, tiroir : mêmes sections, poubelle du pied visible ; décocher Botanik → 0 article,
-  « Marque 1 », rien ne disparaît ; en `submit`, « Appliquer » du tiroir → `?marque=aeris&contenance=400ml` ;
+  « Filtres » à 393 px, tiroir : mêmes sections, poubelle du pied visible ; décocher Initech → 0 article,
+  « Marque 1 », rien ne disparaît ; en `submit`, « Appliquer » du tiroir → `?marque=globex&contenance=400ml` ;
 - `?min_price=60&max_price=80` : pill « Prix 1 » (bornes disjonctives, hors prix), pastille, reset ;
 - `/?s=zzzzqq&post_type=product` : seules « Trier par » et l'ouvreur restent — rien n'est tenu, donc
   rien à retirer ; on change de recherche.
@@ -1414,8 +1413,8 @@ C'est un cas pour `meilifacets:doctor` (lot 6), pas pour un journal sur chaque r
 ### R-53 · 🟠 · fermé le 2026-09-07 — la ligne entre fonctionnement et apparence n'est pas écrite
 
 **Vérifié** : `resources/assets/css/meilifacets.css` contient quatre lignes — la contre-règle
-`[hidden]`, et rien d'autre. Aucune feuille du thème `pluralia` ne cible une classe
-`meilifacets*` (recherche sur `themes/pluralia/resources/assets/css/`).
+`[hidden]`, et rien d'autre. Aucune feuille du thème de test ne cible une classe
+`meilifacets*` (recherche sur les feuilles CSS du thème).
 
 Conséquence à l'écran, aujourd'hui : la liste déroulante de tri est un `<ul role="listbox">` brut —
 puces visibles, aucun positionnement, aucune superposition. Une fois ouverte par le client, elle
@@ -1469,21 +1468,21 @@ la page (`R-20`) ; le premier rendu est inchangé ; le point sur `R-19` reste vr
 
 ### R-55 · 🟠 · **fermé le 2026-09-06** (T-38) · ouvert le 2026-09-06 — le module ne savait pas se vérifier lui-même
 
-Relevé en cherchant à écrire un hook qui ne dépende pas de Pluralia. **Vérifié le 2026-09-06** :
+Relevé en cherchant à écrire un hook qui ne dépende pas du projet de test. **Vérifié le 2026-09-06** :
 
 | | État |
 | --- | --- |
 | `require-dev` du module | vide — ni `phpunit/phpunit`, ni `laravel/pint` |
 | `phpunit.xml`, `pint.json` du module | aucun des deux ; ceux du projet servent |
 | 16 tests `Unit` | autonomes — `PHPUnit\Framework\TestCase` pur, aucune dépendance projet |
-| 2 tests `Feature` | dépendent de `Tests\TestCase` **de Pluralia**, donc de son `bootstrap/app.php` |
-| nom de suite `Modules` | déclaré dans le `phpunit.xml` de Pluralia, pas dans le module |
+| 2 tests `Feature` | dépendent de `Tests\TestCase` **du projet de test**, donc de son `bootstrap/app.php` |
+| nom de suite `Modules` | déclaré dans le `phpunit.xml` du projet de test, pas dans le module |
 | `npm test` | autonome — Node, aucune dépendance |
 
 Conséquence directe : **aucune commande de vérification du module n'est indépendante du projet
 hôte.** Un module destiné à être installé ailleurs (D-01) ne peut donc pas emporter sa propre
 recette. C'est aussi ce qui rend un hook impossible à écrire proprement aujourd'hui — il coderait
-en dur un chemin et un lanceur (`ddev`) qui appartiennent à Pluralia.
+en dur un chemin et un lanceur (`ddev`) qui appartiennent au projet de test.
 
 Ce n'est pas grave en soi ; c'est simplement une brique qui manque, et qui n'était identifiée
 nulle part.
@@ -1501,7 +1500,7 @@ besoin d'entrée `repositories` ni de script de résolution de chemins.
 Deux effets à connaître :
 
 - **la suite `Feature` reste dépendante d'un hôte** (`CardComponentTest`, `ResultsComponentTest` rendent
-  du Blade et utilisent `Tests\TestCase` de Pluralia). Elle est déclarée à part et lancée depuis le
+  du Blade et utilisent `Tests\TestCase` du projet de test). Elle est déclarée à part et lancée depuis le
   projet. La rendre autonome demanderait un `TestCase` propre au module montant `illuminate/view`
   seul — travail à part, voir I-09 ;
 - **la boucle de retour passe de 2,9 s à 38 ms** pour les tests autonomes : 103 tests hors
@@ -1647,7 +1646,7 @@ Vérifié en HTTP le 2026-09-06 :
 | `/boutique?pg=2` | noindex | **aucune** |
 | `/boutique?categorie=cheveux` | noindex | **aucune** |
 | `/categorie-produit/cheveux` | index | `/categorie-produit/cheveux` |
-| `/categorie-produit/cheveux?marque=lumen` | noindex | **aucune** |
+| `/categorie-produit/cheveux?marque=acme` | noindex | **aucune** |
 
 `RobotsPolicy` a été renommée **`IndexingPolicy`** : avec deux balises à sa charge, l'ancien nom
 était devenu faux.
@@ -1663,14 +1662,14 @@ l'autre.
 
 | URL | Statut | Produits | Premier produit |
 | --- | --- | --- | --- |
-| `/boutique` | 200 | 16 | Sérum Éclat Vitamine C |
-| `/boutique/page/2` | 200 | 16 | **Sérum Éclat Vitamine C** |
-| `/boutique/page/3` | 200 | 16 | **Sérum Éclat Vitamine C** |
-| `/boutique/page/4` | 200 | 16 | **Sérum Éclat Vitamine C** |
-| `/boutique/page/5` | 200 | 16 | **Sérum Éclat Vitamine C** |
+| `/boutique` | 200 | 16 | Sérum visage |
+| `/boutique/page/2` | 200 | 16 | **Sérum visage** |
+| `/boutique/page/3` | 200 | 16 | **Sérum visage** |
+| `/boutique/page/4` | 200 | 16 | **Sérum visage** |
+| `/boutique/page/5` | 200 | 16 | **Sérum visage** |
 | `/boutique/page/6` | 404 | — | — |
-| `/boutique?pg=2` | 200 | 16 | Patchs Yeux Défatigants |
-| `/boutique?pg=5` | 200 | 10 | Crème Nuit Régénérante |
+| `/boutique?pg=2` | 200 | 16 | Patchs yeux |
+| `/boutique?pg=5` | 200 | 10 | Crème de nuit |
 
 **La pagination du module fonctionne** — `?pg=` sert bien des produits différents. C'est la
 pagination native qui ment : `/page/2` à `/page/5` servent quatre fois la première page.
@@ -1762,12 +1761,12 @@ Vérifié en HTTP :
 
 | URL | robots | canonical | rel next/prev | premier produit |
 | --- | --- | --- | --- | --- |
-| `/boutique` | index | `/boutique` | **0** | Sérum Éclat Vitamine C |
-| `/boutique/page/2` | **noindex** | **aucune** | **0** | **Patchs Yeux Défatigants** |
-| `/boutique/page/3` | noindex | aucune | 0 | **Lait Corps Amande Douce** |
-| `/boutique/page/5` | noindex | aucune | 0 | Crème Nuit Régénérante (10 produits) |
+| `/boutique` | index | `/boutique` | **0** | Sérum visage |
+| `/boutique/page/2` | **noindex** | **aucune** | **0** | **Patchs yeux** |
+| `/boutique/page/3` | noindex | aucune | 0 | **Lait corps** |
+| `/boutique/page/5` | noindex | aucune | 0 | Crème de nuit (10 produits) |
 | `/boutique/page/6` | 404 | — | — | — |
-| `/boutique?pg=2` | noindex | aucune | 0 | Patchs Yeux Défatigants — identique à `/page/2` |
+| `/boutique?pg=2` | noindex | aucune | 0 | Patchs yeux — identique à `/page/2` |
 | `/boutique/page/2?pg=4` | noindex | aucune | 0 | **Gloss Repulpant Miel** — `pg` l'emporte |
 | `/categorie-produit/cheveux` | index | soi-même | 0 | inchangée |
 | `/` | index | `/` | 0 | intacte |
@@ -2008,7 +2007,7 @@ Le tri se fait dans `FacetValues`, avant `within()`, plutôt que dans `Facet` : 
 variation du *niveau* montré mais une règle uniforme, et `Facet` reste un objet de valeur sans
 dépendance.
 
-**Le produit reste en boutique** — « Trousse Vide Nomade » est toujours dans la grille, page 4, et
+**Le produit reste en boutique** — « Trousse de voyage » est toujours dans la grille, page 4, et
 sur son URL. La facette cesse d'offrir une entrée qui ne veut rien dire, elle ne cache pas un
 produit.
 
@@ -2017,14 +2016,14 @@ et 136 dans le projet.
 
 #### Reste ouvert — la partie donnée
 
-« Trousse Vide Nomade » (#412) n'a toujours aucune catégorie. Le masquage la rend invisible dans la
+« Trousse de voyage » (#412) n'a toujours aucune catégorie. Le masquage la rend invisible dans la
 facette sans la ranger : elle n'est atteignable que par la boutique entière ou par une recherche.
 C'est une correction de contenu, pas de code.
 
 ### R-65 · 🟠 · ouvert · 2026-09-07 — une adresse de moteur sans schéma désactive tout, en silence
 
-`MEILI_PUBLIC_URL` est l'adresse que le navigateur utilise. Sur Clever Cloud, la forme naturelle
-qu'on copie depuis la console est `3ds-staging-meilisearch.cleverapps.io/` — **sans schéma**.
+`MEILI_PUBLIC_URL` est l'adresse que le navigateur utilise. Chez l'hébergeur du projet de test, la forme
+naturelle qu'on copie depuis la console est `projet.ddev.site/` — **sans schéma**.
 
 **Mesuré le 2026-09-07** : `Illuminate\Support\Uri` lit une telle valeur comme un *chemin*, donc
 `scheme()` et `host()` valent tous deux `null`. `BrowserConnection::origin()` rend une chaîne vide,
@@ -2083,13 +2082,13 @@ Deux enseignements :
 ### R-68 · 🟡 · ouvert · 2026-09-07 — le site servi en `http` casse tout son JavaScript, thème compris
 
 **Mesuré le 2026-09-07.** `home`, `siteurl` et `APP_URL` déclarent tous trois
-`https://pluralia.ddev.site`, donc `asset()` et `wp_enqueue_*` produisent des URLs en `https`. Une
-page ouverte en `http://pluralia.ddev.site` voit alors ses propres scripts comme une autre origine,
+`https://projet.ddev.site`, donc `asset()` et `wp_enqueue_*` produisent des URLs en `https`. Une
+page ouverte en `http://projet.ddev.site` voit alors ses propres scripts comme une autre origine,
 et le navigateur les refuse :
 
 ```
-Access to script at 'https://…/build/theme/pluralia/assets/app-*.js'
-from origin 'http://pluralia.ddev.site' has been blocked by CORS policy
+Access to script at 'https://…/build/theme/<thème>/assets/app-*.js'
+from origin 'http://projet.ddev.site' has been blocked by CORS policy
 ```
 
 **Le bundle du thème est bloqué exactement comme celui du module** : en `http`, le site n'a aucun
@@ -2102,9 +2101,9 @@ restent valables pour le HTML servi ; elles ne disaient rien du JavaScript.
 **Complété le 2026-09-08 — on n'y arrive pas que par habitude : une URL avec slash final y mène.**
 
 ```
-https://pluralia.ddev.site/boutique/    301 -> http://pluralia.ddev.site/boutique
-https://pluralia.ddev.site/panier/      301 -> http://pluralia.ddev.site/panier
-https://pluralia.ddev.site/mon-compte/  301 -> http://pluralia.ddev.site/mon-compte
+https://projet.ddev.site/boutique/    301 -> http://projet.ddev.site/boutique
+https://projet.ddev.site/panier/      301 -> http://projet.ddev.site/panier
+https://projet.ddev.site/mon-compte/  301 -> http://projet.ddev.site/mon-compte
 ```
 
 La redirection canonique perd le schéma alors que `home` et `APP_URL` sont tous deux en `https` —
@@ -2178,7 +2177,7 @@ Le coût se concentre dans `publishAssets()` et `ListingScript`, qui doit conna�
 plutôt que d'appeler `filemtime()` sur l'entrée.
 
 ⚠️ **Une inconnue avant de chiffrer l'urgence** : l'en-tête d'un an vient d'nginx en local. Ce que
-Clever Cloud sert sur `public/` n'a pas été vérifié. Si la production répond `no-cache`, le défaut
+l'hébergement de production sert sur `public/` n'a pas été vérifié. Si la production répond `no-cache`, le défaut
 reste réel mais cesse d'être bloquant.
 
 **Vérifié le 2026-09-08**, le mécanisme est intact : la page n'inscrit toujours qu'une URL versionnée
@@ -2280,7 +2279,7 @@ tri, pas à l'en-tête du site.
 **Le module n'impose aucune animation** : `scrollIntoView` est appelé sans `behavior`, donc le
 `scroll-behavior` calculé décide — c'est-à-dire le thème.
 
-L'animation est donc une décision de thème. Côté Pluralia, `common/motion.css` :
+L'animation est donc une décision de thème. Côté projet de test, `common/motion.css` :
 
 ```css
 @media (prefers-reduced-motion: no-preference) {
@@ -2304,13 +2303,13 @@ pagination : à rouvrir si l'usage le confirme.
 inchangé à 4139 px, focus toujours sur « Suivant », URL en `?pg=3`.
 
 ⚠️ **Le thème doit poser `scroll-margin-top` sur `[data-listing]`** s'il a un en-tête collant, sinon
-le haut du listing atterrit dessous. Le module ne peut pas connaître cette hauteur. Côté Pluralia :
+le haut du listing atterrit dessous. Le module ne peut pas connaître cette hauteur. Côté projet de test :
 trois lignes dans un `components/listing.css` neuf, `scroll-margin-top: 9rem`.
 
 **Deux détours avant d'y arriver, et ils valent la correction :**
 
 1. La hauteur a d'abord été **relevée dans un navigateur puis écrite en dur**
-   (`--pluralia-header-height: 123px`), avec un commentaire demandant de la tenir à jour à la main.
+   (`--site-header-height: 123px`), avec un commentaire demandant de la tenir à jour à la main.
    Mesurée ensuite aux autres largeurs, elle était fausse trois fois sur cinq — **92 px en mobile,
    94 px en tablette, 122-123 px en desktop** : l'en-tête est dimensionné par son contenu. *Une
    valeur mesurée une fois n'est pas une constante ; il suffisait de changer la largeur.*
@@ -2609,7 +2608,7 @@ d'abord.
 **Renversé le 2026-09-08, le jour même.** `Measure`, `MeasureOrder` et `ScaledUnit` sont supprimés.
 
 Deux signaux, l'un après l'autre. D'abord le tableau des unités : il ne portait que `l`, `cl`, `kg`,
-choisis d'après ce que Pluralia avait sous la main. Mesuré sur un jeu élargi —
+choisis d'après ce que le projet de test avait sous la main. Mesuré sur un jeu élargi —
 
 ```
 2dl · 5dl · 4g · 1kg · 500mg · 5ml · 50ml · 1L
@@ -2807,8 +2806,8 @@ l'admin. Rendu serveur de `/boutique` : les dix premiers de l'ordre, `4g · 20g 
 comparé au rendu serveur de la même URL :
 
 ```
-/boutique?marque=aeris — rendu serveur   : 15ml · 30ml · 40ml · 50ml · 75ml · 100ml · 125ml
-/boutique puis « Aeris » coché, client   : identique
+/boutique?marque=globex — rendu serveur   : 15ml · 30ml · 40ml · 50ml · 75ml · 100ml · 125ml
+/boutique puis « Globex » coché, client   : identique
 ```
 
 Sept valeurs et non dix : les dix-sept autres tombent à zéro, et le client les retire — c'est la
@@ -2915,16 +2914,16 @@ L'extension est déclarée en `suggest`, jamais en `require` — l'exiger contre
 lui-même.
 
 ⚠️ **Ce qui reste ouvert** : les deux facettes du module en `Name` (catégorie, marque) sont
-purement textuelles. Savoir si Pluralia les garde en `Name` ou les passe à `Declared` — qui
+purement textuelles. Savoir si le projet de test les garde en `Name` ou les passe à `Declared` — qui
 honorerait en plus un ordre posé dans l'admin — est une autre question, à ouvrir sous son propre
 numéro le jour où elle se pose.
 
-### R-88 · 🟠 · **fermé le 2026-09-08** · ouvert le 2026-09-08 — le module livre les facettes de Pluralia, et un projet ne peut pas déclarer les siennes
+### R-88 · 🟠 · **fermé le 2026-09-08** · ouvert le 2026-09-08 — le module livre les facettes du projet de test, et un projet ne peut pas déclarer les siennes
 
 Relevé par Louis sur `ProductListing.php:27` (`private const string SIZE = 'pa_contenance';`).
 
 **Étendue mesurée — plus étroite qu'il n'y paraît.** Deux littéraux seulement, dans tout le module,
-sont propres à Pluralia : `product_brand` et `pa_contenance`, tous deux dans `ProductListing`.
+sont propres au projet de test : `product_brand` et `pa_contenance`, tous deux dans `ProductListing`.
 `product_cat`, `product_visibility`, `exclude-from-catalog`, `post_type`, `post_status` sont des
 universaux WooCommerce/WordPress, pas des choix de projet.
 
@@ -2961,9 +2960,9 @@ Deux contrats, séparés pour donner la main **partiellement** :
 | `Contracts\ProductFacets` | `WooCommerceFacets` — catégorie et marque |
 | `Contracts\ProductSorts` | `WooCommerceSorts` — prix ↑↓, nouveautés |
 
-Liés en `scopedIf`. `ProductListing` ne fait plus que déléguer, et perd les deux littéraux de
-Pluralia ; `product_cat`, `product_brand` et `product_visibility` passent dans une énumération
-`ProductTaxonomy`. Côté projet, `App\Cms\Products\CatalogueFacets` déclare les trois facettes de
+Liés en `scopedIf`. `ProductListing` ne fait plus que déléguer, et perd les deux littéraux du
+projet de test ; `product_cat`, `product_brand` et `product_visibility` passent dans une énumération
+`ProductTaxonomy`. Côté projet, `ShopFacets` déclare les trois facettes de
 la boutique, `pa_contenance` comprise, et `AppServiceProvider` la lie.
 
 **Ce que ça ferme au passage :**
@@ -2986,13 +2985,13 @@ Pertinence · Prix croissant · Prix décroissant · Nouveautés
 ```
 
 **Trouvé en écrivant les tests, et non documenté jusqu'ici** : la suite du projet partage **une
-seule application** pour tout le run (gotcha 23 du `CLAUDE.md` racine, posé pour le `LogManager`).
+seule application** pour tout le run (consigné dans les notes du projet de test, pour le `LogManager`).
 Corollaire non écrit : **les liaisons du conteneur fuient d'un test à l'autre.**
 
 ⚠️ **Le premier correctif était pire que le défaut**, relevé par une revue contradictoire le jour
 même. Reposer les défauts dans `setUp()` remplaçait durablement le binding du projet pour **tous
 les tests suivants** : un test placé après la classe obtenait `WooCommerceFacets` au lieu de
-`CatalogueFacets`. Prouvé par une sonde, puis corrigé en ne touchant plus au conteneur du tout —
+`ShopFacets`. Prouvé par une sonde, puis corrigé en ne touchant plus au conteneur du tout —
 les objets sont construits à la main (`new ProductListing($facets, $sorts)`), et la précédence de
 `scopedIf` est vérifiée dans `tests/Unit/ProductSeamBindingTest.php` sur un `Container` neuf, hors
 de l'application. La même sonde passe désormais.
@@ -3082,7 +3081,7 @@ new Facet('product_cat', __('Category'), name: ShopFacet::Category)
 ```
 
 `string|BackedEnum`, avec repli sur la taxonomie quand rien n'est déclaré — donc rien à écrire pour
-démarrer. Un projet range ses noms dans une énumération (`App\Cms\Products\ShopFacet`), et **aucun
+démarrer. Un projet range ses noms dans une énumération (`App\Enums\ShopFacet`), et **aucun
 nom de taxonomie n'apparaît dans un gabarit** : la contrainte posée en séance est tenue.
 
 **3 · Deux modes de placement**, comme `sort` et `reset` :
@@ -3127,7 +3126,7 @@ panneau ouvert 259px → à mi-parcours 51px → fermé 0px → rouvert 259px
 
 La collapse en `grid-template-rows: 1fr → 0fr` fonctionne sur le markup livré, sans une ligne de
 JavaScript. Vérifié aussi que le découpage n'a rien cassé : dépliage `10 → 24`, filtrage
-`?marque=aeris` à 10 cartes, et une facette vidée par la recherche masque bien son `<fieldset>`,
+`?marque=globex` à 10 cartes, et une facette vidée par la recherche masque bien son `<fieldset>`,
 légende comprise.
 
 ⚠️ **Ce qui reste à faire côté feuille de style**, et qui n'est pas dans le module :
@@ -3212,7 +3211,7 @@ instance par requête au lieu d'une par résolution (5,48 µs mesurés).
 **Vérifié par le conteneur, pas par un script :**
 
 ```
-liste résolue : App\Cms\Products\CatalogueFacets
+liste résolue : App\ShopFacets
   product_cat → NameOrder · product_brand → NameOrder · pa_contenance → DisplayOrder::Declared
 NameOrder du conteneur : collateur présent (fr)
 même instance sur deux résolutions : true · la facette porte bien CE NameOrder : true
@@ -3252,7 +3251,7 @@ dans l'adresse, comme le 2026-09-17 l'a décidé.
 
 **Mesuré après correctif** : `/?s=creme&post_type=product` rend 8 produits au lieu de 16, avec
 `baseQuery='creme'` ; `/?s=creme&q=lait&post_type=product` rend 4 produits, le terme du visiteur
-l'emportant ; `/boutique` et `/marque/avril` inchangées. ⚠️ Les deux moteurs ne coïncident pas :
+l'emportant ; `/boutique` et `/marque/umbrella` inchangées. ⚠️ Les deux moteurs ne coïncident pas :
 WordPress trouve **6** produits pour « creme », le moteur **8** — les deux de plus remontent par le nom
 de leur catégorie (« Laits & crèmes corps »), le module laissant `searchableAttributes` à `["*"]`
 (`R-27`). C'est le réglage de pertinence du lot 5, et l'écart est voulu tant que le module doit
@@ -3281,6 +3280,243 @@ qu'aucune page n'ait à être chargée.
 
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
+
+### R-203 · 🟠 · ouvert (en attente de commit et de réindexation) · ouvert le 2026-09-30 — liaison d'attributs de la carte, et la carte du thème de test sur l'archive
+
+Réalise deux décisions validées que rien ne tenait : « Carte produit | markup rendu par le serveur, mis à jour par
+liaison d'attributs » et « Carte de l'archive produit | bascule sur [la carte produit du thème] ». Ferme `R-45` et
+`Q-10`. Rien n'est commité, réindexé ni écrit en base ou dans le moteur.
+
+**Passe de conformité.** *Change* : le client écrit, en plus des cinq crochets de la carte, les champs que la vue
+lie par quatre attributs ; le serveur rend ces mêmes champs par un assistant qui applique les mêmes règles ; le thème
+décore `CardProjector` et rend sa carte sur l'archive. *Ferme* : `R-45`, `Q-10`, la ligne « Carte de l'archive
+produit » de `decisions.md`. *Contredit* : rien — la liaison était décidée, jamais codée ; ajout additif de crochets,
+`Contract::VERSION` inchangé (`R-116`). *La plateforme offre* : rien de neutre — `<template>` ne lie rien, Alpine
+est une dépendance du thème, pas du module (« classes ES sans dépendance ») ; WooCommerce lie déjà l'ajout au panier
+par délégation sur `.ajax_add_to_cart[data-product_id]`, et Alpine initialise un nœud inséré.
+
+**Conception.**
+
+- *Syntaxe*, sur n'importe quel élément de la carte, champ = clé de `card`, nom `[A-Za-z0-9_]+` :
+  `data-meili-text="brand"` (texte, `textContent`) ; `data-meili-attr="href:cart_url data-product_id:id"` (paires
+  attribut:champ séparées par des espaces) ; `data-meili-class="is-on:flag"` (classe présente si le champ est vrai) ;
+  `data-meili-hidden="flag"` (masqué si le champ est vide ou faux), `data-meili-hidden="!flag"` (masqué s'il est vrai).
+  Le `!` n'existe que pour le masquage : c'est ce qui permet deux libellés traduits par le thème, l'un ou l'autre
+  affiché selon un champ, sans texte dans le module ni dans l'index.
+- *Règle unique pour un champ absent* : **il vaut vide**. Texte vidé, attribut retiré, classe retirée, masquage
+  appliqué comme pour un faux. Un nœud cloné ne garde donc jamais la valeur d'un autre produit ni celle du modèle,
+  et le serveur, qui rend la même vue avec une carte vide pour le `<template>`, produit exactement ce que le client
+  produirait.
+- *Typage* : texte = chaîne telle quelle, nombre fini en décimal, tout le reste vide ; vrai = `true`, nombre non nul,
+  chaîne non vide, liste ou objet non vide. Mêmes règles des deux côtés, verrouillées par des cas partagés.
+- *Interdit* : un attribut hors liste blanche — `href`, `src`, `alt`, `title`, `width`, `height`, `value`,
+  `datetime`, `aria-*`, `data-*` sauf `data-meili*` (une carte ne réécrit pas le contrat). Donc aucun `on*`, `style`,
+  `srcdoc`, `srcset`, `class`, `id`, ni directive Alpine. `href` et `src` n'acceptent qu'une URL `http(s)` ou
+  relative, après retrait des tabulations et sauts de ligne que le navigateur ignore ; une autre est retirée.
+- *Sécurité* : jamais de HTML — le texte passe par `textContent` et `{{ }}`, l'attribut par `setAttribute` et `e()` ;
+  le prix reste le seul HTML, par son crochet existant. Le serveur **refuse** une liaison interdite (exception au
+  rendu, comme un crochet mal orthographié, `R-17`) ; le client l'**ignore**, pour une vue écrite à la main.
+- *Alpine* : un attribut de liaison suffit. `x-data` reste statique et lit l'identifiant sur son propre élément
+  (`$el.dataset`), que le client écrit avant l'insertion.
+
+**Livré.** Module : `BindingAttribute` (enum), `CardBinding`, `BoundValue`, `BoundAttribute`, `BindingRefused`
+(`app/View`), `CardDocument::field()`, `$bind` sur `listing.card` ; client : `results/card-binding.ts`,
+`bound-value.ts`, `bound-attribute.ts`, appelés par `CardView::show()` après les cinq crochets (la carte de recherche
+en profite aussi) ; garde `[data-meili-hidden][hidden]` dans la feuille. Hôte : la méthode de la carte produit du projet qui la prépare pour l'index (lien d'ajout
+bâti sur le permalien pour un simple, `add_to_cart_url()` pour les autres types, qui ne dépendent pas de la requête),
+dimensions de l'image `portrait` dans la carte, une énumération des champs de la carte et une classe qui la met à
+plat (seule traduction entre la carte WooCommerce et les champs liés), un projecteur de carte du projet posé par
+`extend` dans `AppServiceProvider`. Thème : un composant de carte abstrait, une carte de page et une carte de
+l'index sur **une seule vue**, celle de la carte produit du thème, et la surcharge
+`modules/meilifacets/components/listing/card.blade.php` qui la rend.
+
+**Changements de rendu assumés, sur toutes les cartes du site.** Les `aria-label` à nom interpolé (« Ajouter :name
+au panier », « Voir les options de :name ») ne se lient pas sans texte dans l'index : le nom accessible devient le
+libellé visible suivi du nom en `sr-only` (« Ajouter au panier Crème… », conforme à 2.5.3 *Label in Name*) ; clés
+remplacées par « View options ». L'image est un `<img>` simple à la taille `portrait`, **sans `srcset`** : le client
+ne sait pas l'écrire (attribut hors liste blanche). Les deux boutons (ajout et découverte) sont rendus, l'un masqué.
+Le titre est décodé (`PlainText`), comme dans la carte du module.
+
+**Mesuré.** Rendu serveur d'une carte depuis WordPress et depuis sa projection (`wp eval`, rien envoyé) : identiques,
+sauf le lien d'ajout d'un simple, relatif à la page sur l'accueil, absolu dans l'index. Projection du variable 125 :
+prix le plus bas seul (26 €), `adds_to_cart` faux, lien vers la fiche, contenance la plus petite. `/boutique` au
+premier rendu : la carte du thème de test, mêmes polices, tailles, couleurs et proportions que sur l'accueil (styles calculés
+comparés) ; **l'index n'étant pas reconstruit**, marque, contenance et identifiant y sont absents donc vides, seul
+« Découvrir » s'affiche, le sac est masqué. Après un filtre (catégorie « cheveux », carte dessinée par le client) :
+même carte dégradée, non cassée, Alpine initialisé ; un clone du modèle portant `data-product-id` avant insertion
+donne `Number($el.dataset.productId) === 393`. Aucune erreur console. Les images ne se chargent pas en local
+(`uploads` absents, redirigés vers la préprod protégée) : sans rapport, déjà le cas avant.
+
+**Reste** : reconstruire l'index — fait le 2026-09-30, voir la fin de l'entrée.
+
+**Passes.** *Lisibilité* : un paramètre booléen (`hidden(string, bool)`) remplacé par `hiding()`, une expression
+combinée nommée (`isMalformed()`, `isReserved()`), la lecture d'une valeur déplacée après le refus côté client.
+*Commentaires* : rien retiré ; ceux ajoutés disent une règle du navigateur (URL, flottants) ou d'où vient une valeur.
+*Performance* : une requête de sélection par carte côté client ; à l'indexation, prix et image d'un produit sont
+calculés deux fois (carte du module puis celle du thème, qui la remplace) — accepté, hors chemin de page. *Sécurité* :
+liste blanche, URL, échappement et refus serveur couverts par les cas partagés ; `x-data` reste statique, aucune
+directive liable. *Contexte et i18n* : projecteur inerte sans WooCommerce (`function_exists`), libellés traduits par
+le thème, rien de traduit dans l'index.
+
+**Vérifié** : `composer check` vert (Unit 475, client 818) ; suite `Modules` 832 ; tests hôte de la carte et de sa
+projection 8 (la surcharge retirée, deux échouent). `CardComponentTest` lit désormais les vues du
+module (`RendersTheModuleViews`) : la surcharge du thème faisait échouer deux de ses tests.
+
+**Correctifs après les deux revues (2026-09-30).** Remplacent ce qui, plus haut, les contredit (`data-meili-hidden`,
+`$bind->value()`, la carte de l'index du thème, carte sans `srcset`). Rien commité, rien réindexé, rien écrit dans le moteur.
+
+- *Une seule façon de remplir une carte* : `url`, image, titre et extrait passent par la liaison ; `CardView` ne garde
+  que le crochet `price` (seul champ en HTML) ; `#link`, `#image`, `#text`, `#summary`, `#size`, `#textOf`,
+  `withDecorativeImages()`, `showWords()`, `CardImage` (et `BLANK`), `CardDocument` retirés. Repli `alt:image_alt|title`
+  (`FALLBACK_SEPARATOR`) pour garder le texte alternatif d'avant.
+- *Surface Laravel* : la classe du composant prépare chaque élément (`CardBinding::of()`/`template()`, `CardHooks`,
+  `BoundField` dont les attributs sont un `ComponentAttributeBag`) ; la vue ne contient que
+  `<x-meilifacets::bound :field="$brand" class="…" />` (`shouldRender()`). `value()` n'existe plus.
+- *Un élément sans valeur n'est pas dans le DOM* : omis au rendu, retiré par le client après liaison ; le `<template>`
+  (`listing.card-template`) les porte tous. `data-meili-hidden` devient `data-meili-if` ; la garde CSS ajoutée pour lui
+  est retirée (plus aucun `hidden` posé par une liaison ; `meilifacets.css` revient à l'état commité). `ResultsMotion`
+  ne mesure que les lignes, pas leur contenu : non affecté ; une carte gardée par `SectionView` est redessinée depuis le
+  même document.
+- *Une seule règle de formatage* : `BoundValue` + `NumberText` (algorithme de `String()` : `1e21` → `1e+21`),
+  `bound-value.ts` ; valeurs d'attribut sans blancs de bord (comme `ComponentAttributeBag`) ; dimensions entières
+  positives ; `srcset`/`sizes` autorisés, chaque URL contrôlée. Cas partagés ajoutés : URL encodées, casse, blancs,
+  `data-meili*`/`DATA-MEILI*`, `srcset`, dimensions, textes, mêmes noms de champ refusés.
+- *Constantes* : `data-meili` lu depuis `Contract`/`contract.ts`, liste blanche non recopiée dans `BindingRefused`,
+  `LIST_SEPARATOR`/`FALLBACK_SEPARATOR`/`CONDITION_BINDING` dans `ContractParityTest`.
+- *Images* : `ImageFields` (module) calcule URL, dimensions, `srcset` et `sizes` (avec `auto`, comme
+  `wp_get_attachment_image()` pour une image paresseuse), partagé par `DefaultCardProjector` et la carte du thème de test.
+- *Hôte* : le projecteur de carte du projet ne rend que les champs du thème pour un produit, délègue sinon, sans
+  `function_exists` (posé derrière `DeferredCardProjector` dans `AppServiceProvider`) ; l'énumération d'actions de la carte,
+  seule source des libellés ; `add_to_cart.label`, `add_to_cart.ajax`, `image_id`, `cta.url` retirés (l'éditeur lit `cta.label` et
+  `add_to_cart.purchasable`, gardés) ; méthodes de la carte du projet renommées. Thème : le composant de carte abstrait devient
+  concret, la carte de l'index est supprimée, une carte de wishlist et une énumération de placement au lieu d'un
+  booléen de page,
+  `data-product-id` écrit à un seul endroit ; le composant de wishlist n'appelle pas l'API sans identifiant valide.
+- *Tests* : `KeepsTheIndexOut` passe après `setUp()` (priorité `-1`) — sans cela, lancé seul, il appelait
+  `add_filter()` avant le chargement de WordPress.
+
+**Mesuré.** `/boutique` sans surcharge du thème, avant/après : 16 cartes, balises, attributs et textes identiques hors
+attributs de liaison ; le `<template>` perd `href=""`, le GIF `BLANK`, `alt=""` et les `hidden`. Accueil : 55 cartes,
+`src`, `srcset`, `sizes`, `alt`, dimensions, lien, marque, prix identiques à l'accueil d'avant le lot (24 `srcset`
+retrouvés) ; les 62 images produit identiques à `wp_get_attachment_image()`. Chrome : accueil 55 cartes Alpine, zéro
+erreur ; `/boutique` premier rendu 16 cartes ; filtre « cheveux » : une carte dessinée par le client, dégradée (index
+pas reconstruit : ni marque ni identifiant, donc ni panier ni appel wishlist), zéro erreur. Onglet wishlist non
+vérifié en navigateur : il demande une session (redirection vers la connexion) ; couvert par un test.
+
+**Question ouverte.** Une vue de carte écrite pour les seuls crochets n'est plus remplie par le client ;
+`Contract::VERSION` inchangé (annoncé par la racine, il ne dirait rien d'une carte surchargée). À trancher par Louis.
+
+**Reste** : reconstruire l'index — fait le 2026-09-30, voir la fin de l'entrée.
+
+**Carte simplifiée (2026-09-30, second passage).** Demandé par Louis : la carte la plus simple et la plus rapide
+possible. Remplace ce qui, plus haut, le contredit (`BoundField`, `<x-meilifacets::bound>`, `adds_to_cart`,
+`purchasable`, `id` projeté, le composant de carte abstrait du thème). Rien commité, rien réindexé, rien écrit dans le moteur ni en base
+(les produits en rupture des tests sont des fixtures créées et supprimées par le test). Décision datée :
+`decisions.md`, « La carte ne se remplit que par liaison ».
+
+- *Passe de conformité.* Change : vocabulaire, rendu sans composant par champ, champs de la carte du thème de test, rupture
+  de stock. Ferme : rien de neuf, amende ce point. Contredit : la ligne « Carte produit » (« rendus par
+  `<x-meilifacets::bound>` »), amendée sur demande. La plateforme offre : `supports('ajax_add_to_cart')` et sa
+  classe de boucle ; la clé primaire `ID` de MeiliScout (`PostIndexable.php:51`) ; `is_in_stock()` (`onbackorder`
+  compte en stock) ; `wp_calculate_image_sizes()`, qui dérive `sizes` de la largeur de chaque image.
+- *Noms* : `CardFieldElement`, `CardFieldValue`, `CardFieldAttribute` (+ `card-field-value.ts`,
+  `card-field-attribute.ts`), `CardField` gardé pour le nom d'un champ ; la carte de listing côté thème.
+  `components/bound.blade.php` et `View/Components/Bound.php` supprimés.
+- *Rendu* : la vue imprime `<balise {{ $element->attributes->class('…') }}>{{ $element }}</balise>` sous
+  `@if ($element->isPresent())`. Mesuré (`hrtime`, 55 cartes de l'accueil, rendues par `Blade::renderComponent`,
+  meilleur de 30 passes, six séries) : **0,34 → 0,15 ms par carte**,
+  **14,9 → 4,0 vues par carte** (822 → 220). L'ancienne voie a été recréée le temps de la mesure, puis supprimée.
+  Balisage de l'accueil comparé avant/après sur les 55 cartes : identique hors attributs de liaison renommés.
+- *Stock retiré le 2026-09-30* : un état « Indisponible » (`out_of_stock`, un cas `Unavailable` des actions de la carte, aperçu
+  de l'éditeur, `cta.out_of_stock` en REST) et des conditions en liste dans `data-meili-if` (`!a !b`) ont été ajoutés
+  sans validation, puis retirés : aucun type de produit n'avait été vérifié (variable, groupé, externe,
+  `onbackorder`, option « masquer les ruptures »). La rupture de stock sera un point à part, avec le tri en fin de
+  listing. `data-meili-if` reste à une condition.
+- *Identifiant* : `CardField::Id` (`id`) et `DocumentField::Id` (`ID`) ; le listing demande `ID` au moteur
+  (`QueryPlan`, `ListingDescription`) ; `ListingResults::cards()` et `CardView.fieldsOf()` l'ajoutent à la carte
+  liée, par-dessus un `id` qu'elle porterait. Paires `ID_FIELD` et `RETRIEVED` dans `ContractParityTest`.
+- *Carte du thème de test* : `ajax_add_to_cart`, `cart_url` seulement si achetable et en stock (l'icône panier en dépend),
+  « Découvrir » sous `!ajax_add_to_cart` ; un champ faux ou vide n'est pas stocké. la carte à plat du projet
+  (`identified()`) ajoute l'id pour une carte de page. Champ REST de la carte gardé tel quel (l'éditeur lit `add_to_cart.purchasable` et
+  `cta.label`, toujours là). L'énumération des metas produit du projet est inchangée.
+- *Carte indexée*, projection de lecture sur les 62 produits : clés `title`, `url`, `price`, `image_url`, `brand`,
+  `cart_url`, `ajax_add_to_cart` (61), `image_width`, `image_height`, `image_alt` (4), `volume` (12),
+  `image_srcset`/`image_sizes` (6) ; `id`, `purchasable`, `adds_to_cart` retirés. **898 → 873 octets** en moyenne.
+  `image_sizes` gardé : 4 valeurs distinctes sur 6 cartes.
+- *Docs* : `configuration.md` (liaison, `id`, rendu ; l'avertissement sur les vues de carte à
+  crochets seuls retiré, le module n'étant pas publié), `architecture.md`, `decisions.md`. `Contract::VERSION`
+  inchangé : la question ouverte plus haut est tranchée par là.
+
+**Passes (second passage).** *Lisibilité* : côté projet, un paramètre booléen de la carte remplacé par deux
+prédicats nommés ; closures de
+`onlyWith`/`onlyWithout` qui masquaient `$field` remplacées par `isTrue()`/`negated()` ; un test renommé
+avec la méthode qu'il couvre (`it_asks_only_for_the_card_and_its_document_id`). *Commentaires* : aucun ajouté dans le
+module ; un retiré côté hôte (docblock de `cartUrl()`, un choix de conception) ; celui de `Bound` disparu avec la
+classe. *Performance* : 4 vues par carte ; reste, accepté, que la surcharge du thème ignore `$link`/`$image`/`$title`/
+`$price` que `listing.card` prépare (16 cartes sur `/boutique`) ; `is_purchasable()`/`is_in_stock()` appelés jusqu'à
+quatre fois par carte, des accesseurs. *Sécurité* : un nom de condition invalide est refusé par le serveur et ignoré
+par le client ; l'`id` passe par la liste blanche (`data-*`), `e()` et `setAttribute` ; libellé en `{{ }}`.
+*Contexte et i18n* : projecteur toujours derrière `DeferredCardProjector` ; l'identifiant, neutre, ne suppose aucun type de contenu.
+
+**Vérifié (second passage).** `composer check` vert (Unit 561, client 890, dist reconstruit) ; suite `Modules` 923 ;
+tests hôte de la carte 15 ; Pint hôte et module. Chrome : accueil 55 cartes, Alpine sur toutes,
+`data-product-id` sur toutes, ajout au panier Ajax (`wc-ajax=add_to_cart`, produit 121), cœur hors connexion →
+`/mon-compte?redirect_to=…`, zéro erreur console. `/boutique` en `submit` : 16 cartes rendues par le serveur, l'`id`
+venu de `ID` sur les 16 (l'index n'ayant pas de champ `id` pour la plupart) ; « visage » coché puis « Appliquer » :
+8 cartes dessinées par le client, identifiants présents, Alpine initialisé. En
+`immediate` (config modifiée le temps du test, restaurée à l'md5 `cef5aba…`) : « cheveux » coché, carte redessinée
+aussitôt ; réponse modifiée en ajout Ajax : `data-product_id="124"` depuis `ID`, clic → `added_to_cart` 124. Zéro
+erreur console. Le cœur connecté n'est pas vérifié en navigateur (session requise).
+
+**Index reconstruit le 2026-09-30** (`ddev wp meiliscout index --clear`, sur demande de Louis). `/boutique` au premier
+rendu : 30 ajouts Ajax, 3 « Découvrir », `data-product-id` sur chaque carte.
+
+**Troisième passage (2026-09-30, revue du lot).** `CardFieldElement::with()` fusionnait les attributs à la main
+(`[...$a, ...$b]`, dernière valeur gagnante, `class` écrasée) : il passe par `ComponentAttributeBag::merge()`, les
+classes s'additionnent, un tableau est échappé par Laravel, un sac déjà échappé passe avec `escape: false`. Aucun
+appel ne passait deux fois `class` : risque latent, pas de bug observé. `merge()` place les attributs ajoutés en
+tête : l'ordre dans le HTML change, sans effet ; `it_takes_the_heading_level_its_context_needs` lit désormais le DOM
+au lieu d'une chaîne. Test ajouté : `it_adds_classes_together_and_escapes_only_what_is_not_escaped_yet`. Doc :
+`onlyWith`/`onlyWithout` à un seul champ dans `configuration.md`, chiffres de tests remis à jour. `composer check`
+vert (Unit 561, client 890) ; `Modules` 923 ; tests hôte de la carte 15.
+
+Garde d'image : un constat de relecture la disait redondante (`ImageFields::of()` rendrait `[]` pour l'ID 0). Faux :
+`get_post(0)` retombe sur le post global, et sur une page de pièce jointe `ImageFields::of(0)` rendait l'image de la
+page (vérifié). La garde passe dans `ImageFields::of()` (un ID nul ou négatif rend `[]` sans appeler WordPress) et
+quitte `DefaultCardProjector` : un seul garde-fou pour tout appelant, carte d'un projet comprise. Test
+`it_lends_no_image_to_a_card_without_one_while_the_global_post_is_an_attachment`, rouge sans la garde. `composer
+check` vert (Unit 561, client 890) ; `Modules` 924.
+
+`CardBinding` : la règle « absent si vide, sauf dans le modèle » était écrite deux fois (ternaire dans `text()`, garde
+niée dans `price()`) et passait par deux paramètres booléens (`isShown(bool)`, `conditional(string, bool)`). Une seule
+écriture, `leavesOut($contenu)`, `isTemplate()` nomme `card === null`, `onlyWith`/`onlyWithout` décident eux-mêmes et
+appellent `condition()`. Comportement inchangé : cas partagés verts, empreinte des cartes identique.
+
+Petits constats de la revue, vérifiés puis appliqués : cinq commentaires retirés (justifications déjà portées par
+`configuration.md` ou `decisions.md`, paraphrases) ; `isAllowed`, `isSafeUrl`, `isSafeUrlList` privés en PHP comme en
+TS, testés par `named()` et `accepts()` (le cas `''` sort des URL sûres, un test dédié dit qu'une valeur vide n'est
+jamais écrite) ; `NumberText` : `?: '0'` retiré (une mantisse positive commence par un chiffre non nul, `rtrim` ne
+peut pas la vider), condition de boucle nommée `readsBackAs()` ; `architecture.md` dit que `site-search.css` cible les
+crochets de carte.
+
+Refusé : faire d'`ImageFields::of($id, $size)` une instance construite avec la taille. La taille est un argument au
+même titre que l'ID, comme dans `wp_get_attachment_image_src($id, $size)` qu'elle enveloppe, pas un contexte répété ;
+chaque appelant a la sienne, et la carte d'un projet, statique, paierait une construction par carte pour rien.
+
+Refusé : « la carte de recherche écrit `loading`/`alt` dans la vue, celle du listing en PHP ». Même règle des deux
+côtés : une valeur fixe s'écrit dans la vue (surchargeable sans PHP), une valeur calculée se prépare en PHP
+(`ImagePriority` pour `loading`, repli du texte alternatif). En suspens, à la demande de Louis : le repli sur le titre
+de l'`alt` de la carte de listing par défaut fait lire le nom deux fois (image et titre dans le même lien) ; le corriger
+amende la décision « Résultats de recherche hors de l'ordre de tabulation » (`R-196`).
+
+Mis de côté par Louis, à traiter ensemble : `Listing\Card::prepare()`, second constructeur appelé par `CardTemplate`
+(correction minimale : un constructeur `CardBinding|array`, gain de lisibilité seulement) ; le lien, l'image, le titre
+et le prix que la carte prépare alors qu'une vue surchargée les ignore (16 cartes sur une page de listing).
+
+Refusé : « un `<a>` sans `href` quand une carte n'a pas d'`url` ». Le projecteur par défaut pose toujours `url`
+(`get_permalink()`) ; seul un projecteur de projet qui l'omettrait produit ce cas, et le rendu reste juste (lien inerte,
+ni cliquable ni focalisable, image et titre lisibles). « Un élément sans rien à montrer n'est pas dans le DOM » vise les
+champs, pas un conteneur qui garde son contenu.
 
 ### R-202 · 🟡 · ouvert (en attente de commit) · ouvert le 2026-09-30 — nettoyage des feuilles `meilifacets.css` et `site-search.css`
 
@@ -3343,7 +3579,7 @@ dans le moteur.
 
 **Passe de conformité.** *Change* : brique `listing.search` (formulaire GET, champ, effacement) et pastille du terme ;
 une recherche lit le filtre et les champs du type `product` des types cherchables ; « Tous les produits » mène à
-`/boutique?q=<terme>`. *Ferme* : `R-44`/`Q-09`, `R-185` pt 2, l'écart panneau/page (`lumen` : 2 dans le panneau,
+`/boutique?q=<terme>`. *Ferme* : `R-44`/`Q-09`, `R-185` pt 2, l'écart panneau/page (`acme` : 2 dans le panneau,
 5 sur la page avant ; 2 et 2 après). *Contredit* : S-2 et la ligne « Surcharge des types » (lien sans query var,
 pas de `with…()` pour l'archive) — révisés par Louis, écrits ; le contrat `Listing` n'est **pas** touché (contrat
 séparé `SearchScopedListing`), `Contract::VERSION` reste 1. *Plateforme* : WooCommerce n'échange le drapeau de
@@ -3370,15 +3606,15 @@ moteur ; tout le chemin de `q` existait déjà côté module (`StateReader`, `Li
   le focus : Safari le laisse dans le champ au clic d'un bouton (trouvé à la recette, corrigé, testé).
 - *« Voir tous »* : `site-search/see-all-link.ts` (`SeeAllLink`), `SectionView.show(answer, term)`,
   `seeAllParameter` publié ; `SearchableType::withArchive()`.
-- *CSS* neutre (`meilifacets.css`, sans commentaire) ; jetons `--meili-listing-search-min` et `--meili-listing-search-width`. Pluralia : brique posée en tête
-  du tiroir de `archive-product.blade.php`, bordure `--color-ink` (`components/listing.css`).
+- *CSS* neutre (`meilifacets.css`, sans commentaire) ; jetons `--meili-listing-search-min` et `--meili-listing-search-width`. Projet de test : brique posée en
+  tête du tiroir de `archive-product.blade.php`, bordure dans la couleur de texte du thème (feuille du listing du thème).
 
 **Préalable au futur listing du blog** (hors lot, Louis) : un second `Listing` fait lever `NamedRegistry::sole()`
 pour toute brique sans `name` — `archive-product.blade.php` n'en nomme aucune. À corriger avant de déclarer un listing
 d'articles (racine nommée, briques relayées vers la racine qui les entoure).
 
 **Laissé ouvert** (fermé par la revue ci-dessous). `R-159` côté listing : un `q` sans lettre ni chiffre (`?q=%3F%28`, ou Entrée sur « ?( ») bascule
-en portée de recherche et sert tout le catalogue moins `exclude-from-search`. Sur Pluralia, aucun produit n'est
+en portée de recherche et sert tout le catalogue moins `exclude-from-search`. Sur le projet de test, aucun produit n'est
 `exclude-from-search` ni `exclude-from-catalog` (lu le 2026-09-30) : la visibilité n'a pas pu se mesurer sur données
 réelles, elle est prouvée par les tests.
 
@@ -3397,7 +3633,7 @@ champ « ser », pastille « « ser » », 1 article = compte du panneau, aucune
 `?q=cr%C3%A8me`. `submit` : frappe inerte, Entrée → `?q=crème`, page 1, 2 articles, comptes réduits ; « Appliquer »
 emporte terme et case ; pastille, bouton d'effacement (focus rendu au champ), « Tout effacer » retirent le terme ;
 Retour/Suivant restaurent le champ. `immediate` : recherche après la pause, sous le seuil le terme part, Entrée
-immédiat, `lumen` 2 = panneau, total écrit une seule fois après la frappe, focus gardé ; facette, prix, pastille,
+immédiat, `acme` 2 = panneau, total écrit une seule fois après la frappe, focus gardé ; facette, prix, pastille,
 « Tout effacer ». 393 : champ dans le tiroir, bouton 48×48, police 16 px, fonctionne dans les deux modes.
 `/categorie-produit/visage` (8 → `?q=creme` 2), `/?s=creme&post_type=product` (2, sans champ, facettes OK), recherche
 de l'en-tête : sans régression. Console : aucune erreur ni alerte.
@@ -3411,7 +3647,7 @@ en plus sans terme ; en `immediate`, une recherche par pause de frappe, comme le
 va qu'en `q`, jamais dans un filtre ; échappé par Blade (valeur, pastille), écrit en texte côté client, encodé par
 `URLSearchParams` dans le lien ; champs cachés décodés puis échappés. *Contexte et i18n* : trois chaînes traduites
 (`Search this list`, `Clear the search`, `“:query”`) ; sans WooCommerce, pas de listing produit donc pas de portée ;
-rien de Pluralia dans le module.
+rien du projet de test dans le module.
 
 **Commit proposé.** Module : `feat(listing): add the search facet and search what the site search counts`. Hôte :
 `feat(shop): place the listing search field in the shop filter bar`.
@@ -3538,7 +3774,7 @@ retirant sa correction, puis restauré.
 *Vérifié.* `composer check` vert (Unit 378, client 736/736) ; suite `Modules` **OK (733 tests, 2098 assertions)** ;
 17 classes touchées vertes lancées seules. Build, `module:publish` (aucune orpheline), caches vidés
 (`.htaccess`/`index.html` gardés), `view:clear`, `dump-autoload`. Thème non touché. Recette Chrome (contexte isolé) :
-`submit` — `/boutique?q=a` 18 articles servis et 18 en page 2, comptes identiques (marques 3/1/13/0/1/0) ; Aeris →
+`submit` — `/boutique?q=a` 18 articles servis et 18 en page 2, comptes identiques (marques 3/1/13/0/1/0) ; Globex →
 3 articles, comptes client = HTML serveur ; pastille, « Tout effacer » (63) ; panneau « crème » (2) → « Tous les
 produits » → `?q=cr%C3%A8me`, 2 ; barre à 1024 (champ 288, « Appliquer » sur la ligne des déclencheurs), 1280 et 1440
 (une ligne, « Appliquer » à 1060) ; 393 : corps du tiroir stylé par le crochet (padding 40/32, défilement), champ
@@ -3614,7 +3850,7 @@ du prix, qui ne sont pas un compte (`countQueries` et `boundsQueries` dans `List
 **Vérifié.** `composer check` vert (Unit 359, client 691/691) ; suite `Modules` **OK (691 tests)**. HTML de `/`, `/boutique`,
 `/categorie-produit/visage`, `/?s=creme&post_type=product` comparé avant/après, jetons Gravity Forms et `ver=` neutralisés : seuls
 `data-filter` et `meilifacetsSortCaption` diffèrent — plus, sur `/categorie-produit/visage`, la valeur « Soins visage », due au produit
-116 modifié en base à 08:44 par un tiers entre les deux captures. Thème et `pluralia-fulfillments` : aucune référence (grep). Recette
+116 modifié en base à 08:44 par un tiers entre les deux captures. Thème et plugin d'expéditions du projet : aucune référence (grep). Recette
 Chrome : `/boutique` facette, prix, tri, pastilles (focus rendu au listing), pagination, tiroir mobile ; recherche du header ouverture,
 frappe, ↓/Entrée, Échap ; console vide.
 
@@ -3806,7 +4042,7 @@ trancher par Louis.
   « crème » à 500 ms par lettre) : cinq frappes, **une** écriture à 3 140 ms ; « creme vi », huit frappes, **une**
   écriture ; trois pauses de 2 s sur des termes à la même réponse : **zéro** écriture.
 - Liens des résultats `tabindex="-1"` ; Tab : champ, « Tous les produits », « Tous les articles ». Vignette de recherche
-  `alt=""` : l'option se lit « Sérum Éclat Vitamine C 42,00 € » (avant : le titre deux fois).
+  `alt=""` : l'option se lit « Sérum visage 42,00 € » (avant : le titre deux fois).
 - « Voir tous » : `inline-flex`, `min-height: var(--meili-control-min)`. À 393 (pointeur grossier) : 44 px (avant
   106 × 20), loupe 44, champ 48, cartes 72 et 108 ; texte inchangé (13 px).
 - `forced-colors` (Playwright, `forcedColors: active`) : ligne active `outline` 2 px, champ au focus `outline` 2 px
@@ -3849,23 +4085,23 @@ régulier dès la première image. Au clavier : aucune animation. `CalmAnnouncem
 
 **À revoir.** Mouvement réduit vérifié par les tests seulement.
 
-### R-195 · 🟡 · ouvert (en attente de commit) · ouvert le 2026-09-29 — étape 8, habillage Pluralia, verrou mobile et disposition libre
+### R-195 · 🟡 · ouvert (en attente de commit) · ouvert le 2026-09-29 — étape 8, habillage du thème de test, verrou mobile et disposition libre
 
 Rattaché à `R-180`, étape 8 de [chantier-recherche.md](chantier-recherche.md) (D-9, S-16). Pas de maquette : habillage
 sobre, par les crochets et les jetons, sur le modèle de `listing.css`. Rien n'est commité, réindexé ni écrit en base ou dans
 le moteur ; `config/meilifacets.php` de l'hôte non touché.
 
-**Neutralité du module — constat.** `grep -rniE 'pluralia|#f9f5eb|#f0eee3|#2d2b23|#7e7060|#c8c8c8|Space Grotesk|Epilogue|PT Sans|Cal Sans'`
-sur `resources/`, `app/`, `dist/` et `tests/` : aucune occurrence ; Pluralia n'est nommé que dans `docs/`.
+**Neutralité du module — constat.** `grep -rniE '<nom du projet>|<couleurs du thème de test>|<polices du thème de test>'`
+sur `resources/`, `app/`, `dist/` et `tests/` : aucune occurrence ; le nom du projet de test n'est cité que dans `docs/`.
 `StylesheetNeutralityTest` vert (aucune
 couleur par sa valeur, aucune `font-family`, jamais `display: contents`). Le module n'était pas en cause pour les
-graisses : il pose 400/500/600 sans police ; c'est la police héritée du thème (Space Grotesk sur `body`, Cal Sans sur
+graisses : il pose 400/500/600 sans police ; c'est la police héritée du thème (une police sur `body`, une autre sur
 `a` et `button`, sans gras réel — synthétisé) qui faisait paraître tout gras.
 
 **En-tête qui change de largeur sur mobile — deux causes, mesurées.**
 - *Cause réelle, thème* : sur mobile (émulation `393×852`, barres de défilement superposées), la page débordait
   horizontalement — `scrollWidth` 398 puis 418 px — et l'en-tête `fixed` suit le viewport de mise en page : 398 → 393
-  (verrou posé, relayout) → 410,5 px à la fermeture. Élément fautif : `.pluralia-brand-orbit__ring`, SVG en rotation
+  (verrou posé, relayout) → 410,5 px à la fermeture. Élément fautif : l'anneau animé du logo du thème, SVG en rotation
   continue dont la boîte englobante dépasse du bord droit d'une quantité qui dépend de l'angle au moment du relayout.
   Le correctif existait déjà dans les sources du thème (`5a86d85`, `overflow: clip` sur le badge) mais le build servi
   datait d'avant la fusion de `develop` qui l'a apporté (`style-CLofTV63.css` sans `clip`, recopié par WP Rocket). Après
@@ -3908,7 +4144,7 @@ Rien n'est commité, réindexé ni écrit en base ou dans le moteur ; `config/me
 **Conformité.** *Change* : vues et classes des briques, déplacées par `git mv` dans `components/search/`,
 `components/listing/`, `Components/Search/`, `Components/Listing/` (dossiers autorisés par Louis) ; balises en notation à
 point ; `SearchableTypeFactory::CARD` = `meilifacets::search.card` ; `Facets::componentFor()` ; messages de
-`PagePlacement` ; thème Pluralia (`woocommerce/archive-product.blade.php`). *Ferme* : rien d'autre. *Contredit* : la
+`PagePlacement` ; thème de test (`woocommerce/archive-product.blade.php`). *Ferme* : rien d'autre. *Contredit* : la
 ligne « Dossiers et crochets du chantier », révisée avec son coût. *La plateforme offre* : `Blade::componentNamespace()`
 (posé par nwidart) et la résolution de `ComponentTagCompiler::componentClass()` — classe `Namespace\Search\Toggle`
 d'abord (`findClassByComponent()`, `formatClassName()` découpe sur `.`), vue anonyme
@@ -3980,7 +4216,7 @@ Tailles : client 9 333 → 15 775 o (3 765 → 5 979 gzip) ; chargeur 7 526 → 
 fait entrer les règles du listing dans le client (18 617 o) : retiré.
 
 **Recette.** Ouverture (focus dans le champ), « ser » (Produits 1 · Articles 1, annonce une fois), Échap (fermé, terme
-gardé, focus à la loupe), clic sur le voile (fermé), ↓ + Entrée → `/produit/serum-eclat-vitamine-c` (aucune animation à
+gardé, focus à la loupe), clic sur le voile (fermé), ↓ + Entrée → `/produit/serum-visage` (aucune animation à
 la touche, ligne sans arête), « zzzzq » → message vide, moteur bloqué → « Recherche indisponible », retour → sections ;
 « Slow 3G » : barre invisible avant 150 ms, balayage ensuite, retirée à la réponse. `/boutique` : « Catégorie » au
 pointeur (transitions opacity + transform), filtre appliqué (1 carte, `?categorie=cheveux`), Échap et focus rendu,
@@ -4055,7 +4291,7 @@ présentes à l'identique dans une trace au repos (champ focalisé, rien tapé).
 module. `will-change` non posé (rien ne le justifie). Feuille 10 046 → 13 099 o (2 352 → 2 864 o gzip).
 
 **Recette.** Ouverture, « ser » (Produits 1 · Articles 1), Échap, clic sur le voile (rien d'activé dessous : 0 clic sur
-« Slide suivante »), ↓ + Entrée → `/produit/serum-eclat-vitamine-c` (393) ; sombre forcé : voile
+« Slide suivante »), ↓ + Entrée → `/produit/serum-visage` (393) ; sombre forcé : voile
 `color(srgb 0 0 0 / 0.2)` ; `/boutique` : filtre « Catégorie » ouvert au pointeur (180 ms, `opacity` + `transform`),
 Échap instantané et focus rendu, tiroir 393 animé puis fermé, 16 cartes ; aucune erreur ni avertissement console.
 `.htaccess` de `cache/wp-rocket` : absent, non revenu (aucun n'est versionné).
@@ -4108,7 +4344,7 @@ des types (déjà lus, `R-187`), le motif APG disclosure ; rien de natif pour un
 - `site-search.css` : neutre, mobile first, par crochets, sans commentaire, jetons redéclarés sur
   `[data-meili="search"]` ; verrou de page sous `(scripting: enabled) and (width < 48em)`.
 - Thème : `parts/header/row.blade.php` pose `<x-meilifacets::search>` avec l'icône du thème dans `icon` ; la règle
-  morte `.pluralia-header__search-toggle` retirée de `header.css`. Aucun CSS ajouté au thème : `.pluralia-header__bar`
+  morte `.site-header__search-toggle` retirée de `header.css`. Aucun CSS ajouté au thème : `.site-header`
   (déjà `position: relative`) sert d'ancre.
 
 **Corrigé dans le code existant.** `AcceptedSearchTypes::get()` retiré (doublon de la liste que la racine tient déjà ;
@@ -4125,7 +4361,7 @@ focus dans le champ, `aria-expanded="true"`, `--meili-search-room` 820px ; « se
 1 résultat (le moteur n'en trouve pas plus : ≤ 4 tenu), liens `/boutique` et `/journal`, annonce « Produits : 1 résultat
 et Articles : 1 résultat » ; « zzzz » → « Aucun élément ne correspond à votre recherche » ; Échap → fermé, focus sur la
 loupe, terme gardé ; clic extérieur → fermé ; Entrée sans option → URL inchangée ; ↓ + Entrée →
-`/produit/serum-eclat-vitamine-c` ; page non verrouillée. **393 px** : panneau y = 72, 393 × 780 (toute la hauteur
+`/produit/serum-visage` ; page non verrouillée. **393 px** : panneau y = 72, 393 × 780 (toute la hauteur
 restante), `overflow-y: auto`, page verrouillée ouverte, déverrouillée après Échap ; mêmes résultats, mêmes messages,
 Échap, clic extérieur, ↓ + Entrée. **Moteur bloqué** (`page.route` → `abort`) : « Recherche indisponible » affiché et
 annoncé, sections masquées, URL inchangée (erreurs console = la panne provoquée). **`/boutique`** : filtre Catégorie
@@ -4165,11 +4401,11 @@ suite `Modules` **OK (664 tests, 1942 assertions)** ; lancées seules : `SearchC
   commentaire » sur les deux feuilles.
 - Thème : `productSearch` (`js/frontend/product-search.js`, importé par `app.js:11`) n'est plus référencé par aucune
   vue — il ne l'était déjà plus avant cette étape ; la route `/api/products/search` (`routes/api.php:18`) n'est
-  référencée que par `window.PluraliaSearch` (`app/Providers/AssetServiceProvider.php:103-111`), lu par ce seul
+  référencée que par `window.SiteSearch` (`app/Providers/AssetServiceProvider.php:103-111`), lu par ce seul
   composant. Code mort, retrait prévu à l'étape 8 (S-16) : signalé, non supprimé.
-- Hôte : `ddev exec bash -c "cd themes/pluralia && npm run build"` échoue (`@rolldown/binding-linux-arm64-gnu`
+- Hôte : `ddev exec bash -c "cd themes/<thème> && npm run build"` échoue (`@rolldown/binding-linux-arm64-gnu`
   absent : le `node_modules` du thème a été installé sur macOS) ; build fait sur la machine
-  (`cd themes/pluralia && npm run build`). Correctif : aligner `CLAUDE.md` de l'hôte sur la règle du module (outillage
+  (`cd themes/<thème> && npm run build`). Correctif : aligner les consignes de l'hôte sur la règle du module (outillage
   Node sur la machine), ou réinstaller le `node_modules` du thème dans ddev.
 
 **Complément du 2026-09-28 — première passe de style (proposition validée par Louis).** Aucune animation
@@ -4190,7 +4426,7 @@ désignation au clavier reste instantanée), coupée sous `prefers-reduced-motio
 - *Adapté.* **Voile** : premier jet en `position: fixed` sur `::after` de la racine ; retour de Louis, l'en-tête
   passait dessous. Il est désormais placé **comme le panneau** (`absolute`, `top: 100%` de l'ancre, `100dvh`, un
   cran sous le panneau) : il couvre la page sous l'en-tête et rien d'autre, sans JS ni mesure en plus, et échappe du
-  même coup au piège du `backdrop-filter` de `.pluralia-header__bar` (bloc conteneur des `fixed`). Opacité ramenée
+  même coup au piège du `backdrop-filter` de `.site-header` (bloc conteneur des `fixed`). Opacité ramenée
   de 30 à **20 %**. Un clic sur le voile tombe sur la racine : clic extérieur, fermeture, rien d'activé dessous.
   **Champ collant** : `top` négatif de la marge du panneau (Chromium colle au bord de contenu d'un conteneur
   paddé ; sans ce décalage, une bande de 1.5rem laissait voir les options défiler au-dessus du champ).
@@ -4214,8 +4450,8 @@ désignation au clavier reste instantanée), coupée sous `prefers-reduced-motio
 - *Recette* (Chrome DevTools, accueil, caches vidés, `module:publish`) : ouverture → focus dans le champ ; « ser »
   → Produits 1 · Articles 1 ; Échap ferme et rend le focus à la loupe, voile retiré ; clic sur le voile ferme, la
   loupe et les liens de l'en-tête restent au-dessus et cliquables ; ↓ puis Entrée ouvre
-  `/produit/serum-eclat-vitamine-c` ; aucune erreur console ; `/boutique` : 4 filtres, 16 cartes, tiroir, rendu
-  inchangé. Mode sombre émulé : Pluralia ne déclare pas `color-scheme`, le panneau reste clair ; avec
+  `/produit/serum-visage` ; aucune erreur console ; `/boutique` : 4 filtres, 16 cartes, tiroir, rendu
+  inchangé. Mode sombre émulé : le projet de test ne déclare pas `color-scheme`, le panneau reste clair ; avec
   `color-scheme: dark` posé à la main sur la racine, `Canvas`/`CanvasText` basculent (fond #121212, texte blanc,
   voile clair). Playwright MCP n'a délivré aucun événement souris à la page pendant la session (hors module :
   `element.click()` ouvrait) ; recette faite dans Chrome DevTools.
@@ -4228,7 +4464,7 @@ désignation au clavier reste instantanée), coupée sous `prefers-reduced-motio
   d'image. Sécurité : rien de dynamique ajouté. Contexte/i18n : aucune chaîne ajoutée ; flèche décorative muette.
 - *À trancher (goût).* Voile éclaircissant sous un `color-scheme: dark` (il suit `CanvasText`) ; 3rem entre sections
   aussi sur mobile, où il sépare aussi le champ de la première section ; barre de 2 px épousant l'arrondi de la
-  ligne ; titre en 500 qui paraît gras avec la police de Pluralia.
+  ligne ; titre en 500 qui paraît gras avec la police du projet de test.
 
 **Commit proposé.** Module : `feat(search): compose the search panel and its sections` ; hôte :
 `feat(header): open the site search from the header magnifier`.
@@ -4288,7 +4524,7 @@ et dimensions (en chaînes) — non lus. Dans Chromium (Playwright, gabarit inje
 lue par `SiteSearchDescription`) : loupe → panneau ouvert, focus dans le champ, client pas encore chargé ; « creme » →
 « Produits : 2 résultats et Articles : 1 résultat », 3 `<mark>` ; Entrée sans option : rien ; ↓↓ → option 2 ; `Home` →
 option rendue ; « zzzz » → message vide ; « ?( » → aucune recherche ; moteur coupé → « Recherche indisponible », URL
-inchangée ; ↓ + Entrée → `/produit/creme-hydratante-riche`. Aucune erreur console hors la panne provoquée. `/boutique`
+inchangée ; ↓ + Entrée → `/produit/creme-hydratante`. Aucune erreur console hors la panne provoquée. `/boutique`
 inchangé (case → 1 résultat, `?categorie=cheveux`). **Latence** (28 recherches, local) : médiane 9,3 ms, **p95
 21,9 ms**, max 25,5 ms — sous l'objectif proposé de 100 ms.
 
@@ -4439,7 +4675,7 @@ S-19, S-21) ; suit `R-187`. Rien n'est commité, réindexé ni écrit en base ou
 `decisions.md`). `ListingRegistry` réduit à `add()` sur une base extraite `Support\NamedRegistry` (`named()`,
 `sole()`, `names()`), partagée avec `SearchRegistry` ; son `get()` disparaît : le « No listing named » de
 `CurrentListing` passe dans `named()` (message désormais « Declared: a, b. »). `Preconnect` ne recopie plus
-l'expression « configurée ? origine : '' ». Thème et `pluralia-fulfillments` : aucune référence (`grep`).
+l'expression « configurée ? origine : '' ». Thème et plugin d'expéditions du projet : aucune référence (`grep`).
 
 **Vérifié.** Avant toute modification, `/`, `/boutique`, `/journal`, `/?s=creme&post_type=product` et
 `/categorie-produit/visage` capturés ; après (`discovery:clear`, `view:clear`), les trois pages de listing sont
@@ -4533,14 +4769,14 @@ par type) ; il est remplacé ainsi :
 **Corrigé dans le code existant (avant 3a).** `IndexedTaxonomies` perd son constructeur à défaut
 (`= new IndexedPostTypes`), gardé au premier jet pour ne pas toucher les tests : c'était une compatibilité ; les
 quatre tests qui l'instancient passent la dépendance. `DefaultSearchableAttributes::labelFields()` remplacé par
-`DocumentField::paths()` (ci-dessus). Thème et `pluralia-fulfillments` : aucun usage des classes touchées (`grep`).
+`DocumentField::paths()` (ci-dessus). Thème et plugin d'expéditions du projet : aucun usage des classes touchées (`grep`).
 
 **Vérifié à l'exécution** (`wp eval`, lecture seule, après `discovery:clear`) : `indexed_post_types` =
 `post, product` ; **`page` n'est pas indexée** (publique, non `exclude_from_search`) : elle n'entre pas, elle
 entrerait dès que MeiliScout l'indexerait. Types acceptés : `product` → « Produits », « Tous les produits »,
 `/boutique`, `post_title, labels.product_brand, labels.product_cat, metas._sku`, filtre `exclude-from-search` ;
 `post` → « Articles », « Tous les articles », `/journal`, `post_title, labels.category, labels.post_tag,
-labels.post_format, labels.contenu, excerpt`. `/`, `/boutique`, `/journal`, `/?s=creme&post_type=product` : 200.
+labels.post_format, labels.post_kind, excerpt`. `/`, `/boutique`, `/journal`, `/?s=creme&post_type=product` : 200.
 
 **Tests.** Feature `SearchableTypesTest` (17) : défaut WordPress sans `product` même indexé ; `withSearchOn(['url'])`
 d'un décorateur refusé en nommant `post` et `url` ; liaison par défaut ; CPT indexé, public et cherchable déclaré sans
@@ -4672,7 +4908,7 @@ deux lecteurs, facettes et libellés, sans duplication ; `SearchedMeta::Sku` por
 et pour la tolérance. `FacetedPostIndexable` ne fait plus que lire le contrat.
 
 **Contrat public.** `IndexAttributes::searchable()` est **retiré** — une seule notion pour le rang. Ajouté par
-`R-181`, jamais commité : aucun projet ne l'implémente (Pluralia ne lie pas `IndexAttributes`). `exactlyMatched()`
+`R-181`, jamais commité : aucun projet ne l'implémente (le projet de test ne lie pas `IndexAttributes`). `exactlyMatched()`
 reste à `IndexAttributes` (raison dans `decisions.md`). Constructeurs changés : `FacetedPostIndexable` (4
 paramètres) et `MeiliScoutBridge` (5 : il construit l'indexable à la demande, comme avant, pour ne rien résoudre
 de MeiliScout avant son chargement) — deux classes internes, `final`.
@@ -4682,7 +4918,7 @@ puis après : **identique à l'octet près** ; `searchableAttributes` égal à l
 `disableOnAttributes` `["metas._sku"]`, `displayedAttributes` `["ID","card"]`.
 
 **Tests.** `IndexSearchSettingsTest` (7) : ordre par défaut identique à l'actuel (attendu recalculé depuis
-WordPress, sans valeur Pluralia), ordre sans WooCommerce sans aucun champ produit, **ordre lié par un projet
+WordPress, sans valeur du projet de test), ordre sans WooCommerce sans aucun champ produit, **ordre lié par un projet
 poussé tel quel** (instance liée au conteneur, retirée ensuite), aucun champ technique, taxonomies non visibles
 exclues, SKU sans tolérance, liste vide sans plugin. `IndexAttributesTest` et `DeferredIndexAttributesTest`
 allégés, `IndexFacetingTest` et `IndexPaginationTest` suivent le constructeur. `composer check` vert (Unit 321,
@@ -4739,7 +4975,7 @@ visible filtrée mais facettée, document sans termes, `terms` illisible, extrai
 pas de `price` pour une carte sans prix, document identique par l'accroche
 unique sur un produit réel (clés et ordre, facettes, libellés, contenu, carte, prix). `AnonymousIndexingTest` et
 `ShownPriceProjectionTest` passent par `PostDocument::complete()`. Aucun appelant hors du module (thème,
-`pluralia-fulfillments` : `grep`, 0). `composer check` vert (Unit 322, client 541/541, `build:check`) ; suite
+plugin d'expéditions du projet : `grep`, 0). `composer check` vert (Unit 322, client 541/541, `build:check`) ; suite
 `Modules` **OK (577 tests, 1766 assertions)**.
 
 **Les cinq passes.** *Lisibilité* : méthodes de 3 à 10 lignes, un niveau chacune (`complete` n'énumère que des
@@ -4783,15 +5019,15 @@ rien n'est réindexé** : le moteur garde ses réglages et ses documents jusqu'�
 
 **Réglages qui seraient poussés** (lus par `getIndexSettings()`, sans envoi) : `searchableAttributes` =
 `post_title`, `labels.product_brand`, `labels.product_cat`, `metas._sku`, `labels.category`, `labels.post_tag`,
-`labels.post_format`, `labels.contenu`, `labels.pluralia_selection`, `labels.essentiel`, `labels.product_tag`,
+`labels.post_format`, `labels.post_kind`, `labels.product_selection`, `labels.product_highlight`, `labels.product_tag`,
 `excerpt`, `content`. Avant réindexation, dans le moteur : `["*"]`, `disableOnAttributes: []` (lu en GET).
 
 **Projection réelle, sans envoi** (appel direct du pont en `wp eval-file`) : article #176 — `labels`
-`{category: [Visage], contenu: [Article]}`, `content` de 2 353 caractères commençant par
+`{category: [Visage], post_kind: [Article]}`, `content` de 2 353 caractères commençant par
 « Introduction Lorem ipsum… », **aucune occurrence de `spacer`**, `card.excerpt` = l'extrait ; produit #116
-(« Sérum Éclat Vitamine C ») — `labels.product_brand: [Lumen]`, `product_cat: [Visage]`,
-`pluralia_selection: [Grossesse & post-partum, …]` (entité décodée), `content` vide (produit sans description longue), `excerpt` =
-« Coup d’éclat quotidien, texture fluide. », carte sans extrait ;
+(« Sérum visage ») — `labels.product_brand: [Acme]`, `product_cat: [Visage]`,
+`product_selection: [Nouveautés, …]` (entité décodée), `content` vide (produit sans description longue), `excerpt` =
+« Texture fluide, usage quotidien. », carte sans extrait ;
 produit #560 — contenu HTML ramené à 1 026 caractères de texte, carte avec `price` et sans extrait.
 
 **Conséquence de déploiement.** `AbstractSingleIndexer::ensureIndexExists()` repousse les réglages **à chaque
@@ -4828,7 +5064,7 @@ caractères pour les langues qui le déclarent.
 
 **Mesuré après la réindexation de Louis** (2026-09-25, lecture seule, version où l'extrait était encore
 `post_excerpt` brut) : réglages poussés conformes — ordre, `displayedAttributes` = `ID`, `card`, SKU sans
-tolérance ; `pluralia` → 0, `srum` → 0, `sérum` → 2, `serom` → 2, `lumen` → 5 ; `attributesToSearchOn:
+tolérance ; `<domaine>` → 0, `srum` → 0, `sérum` → 2, `serom` → 2, `acme` → 5 ; `attributesToSearchOn:
 ["url"]` refusé par le moteur. `spacer` → 3 (#560, #555, #778) : par tolérance aux fautes sur « space » /
 « spaces » du contenu, plus aucun balisage indexé — comportement normal. Surlignage : `["card.title"]` ne rend
 plus de `_formatted`, `["card"]` et `["*"]` surlignent `card.title` ; l'étape 4 demandera `["card"]`. **Le champ
@@ -4836,7 +5072,7 @@ plus de `_formatted`, `["card"]` et `["*"]` surlignent `card.title` ; l'étape 4
 `R-27` reste à fermer après elle (contrôle `excerpt` présent, `post_excerpt` hors de l'ensemble).
 
 **Mesuré après la seconde réindexation de Louis** (2026-09-25, lecture seule, `excerpt` nettoyé présent) :
-`excerpt` et `content` sans balise ; `pluralia` → 0 ; `"spacer"` et `"strong"` en recherche exacte → 0 ;
+`excerpt` et `content` sans balise ; `<domaine>` → 0 ; `"spacer"` et `"strong"` en recherche exacte → 0 ;
 `spacer` (3) et `strong` (4) sans guillemets ne remontent que par la tolérance aux fautes, dans `content`
 seulement — aucun balisage n'est plus indexé.
 
@@ -5073,7 +5309,7 @@ dépli dans le panneau flottant sans le fermer, focus resté sur le bouton dans 
 **517** verte.
 
 **Mesuré dans Playwright** (`submit` puis `immediate`, `visible` abaissé le temps de la recette dans
-`CatalogueFacets` — Marque 3, Contenance 4 — puis rendu, `cmp` = 0 ; config restaurée, `cmp` = 0 ;
+`ShopFacets` — Marque 3, Contenance 4 — puis rendu, `cmp` = 0 ; config restaurée, `cmp` = 0 ;
 images interceptées ; 0 erreur console hors images), mêmes relevés dans les deux modes :
 - **1440 px** : Marque, panneau 288 px, 3 → 6 valeurs, hauteur 154 → 250, « Voir plus » → « Voir
   moins » ; Contenance (pastilles), 323 → **448 px** (`--meili-panel-max`), 4 → 10 valeurs sur deux
@@ -5170,7 +5406,7 @@ le thème.
   `submit` ; mouvement réduit : largeur instantanée, poubelle en fondu seul.
 - **« Appliquer » sheet-only en `immediate`** : `data-only="sheet"` (`Apply::onlyInSheet()`), masqué
   hors du sheet. 1024/1280/1440 px : `immediate` → `display: none` ; `submit` → visible (115 px), et
-  « Appliquer » referme le panneau flottant ouvert (`?marque=aeris`, 0 panneau ouvert). Test Feature.
+  « Appliquer » referme le panneau flottant ouvert (`?marque=globex`, 0 panneau ouvert). Test Feature.
 - « Tout effacer » en mots : pastille (rayon 999px, padding `--meili-control-inline`).
 - **Finitions** (Louis, 2026-09-25) : `<x-meilifacets::reset icon />` devient `shape="icon"`
   (`ResetShape::Icon`, attribut `icon` retiré, slot `icon` inchangé) ; après « Tout effacer » hors
@@ -5262,7 +5498,7 @@ ordinaire promu en dialogue), architecture Q-1 → Q-4.
 - poignée, glisser pour fermer ;
 - hauteur qui suit le contenu ;
 - sections animées (principes du Family drawer) ;
-- encre `#2d2b23` des pastilles cochées.
+- encre du thème de test (`#xxxxxx`) des pastilles cochées.
 
 **Causes trouvées en route**, par la mesure :
 - une `<legend>` interrompait le filet de séparation et avalait le padding, d'où la légende flottée ;
@@ -5328,7 +5564,7 @@ fondu (la hauteur, elle, glisse).
 
 **Suite du 2026-09-25** (consignes de Louis, commitée dans `d62e8d9`) :
 - **Neutralité** : `--meili-ink` supprimée ; pastille cochée en `CanvasText`/`Canvas`, bordure des
-  pastilles en `currentColor`, trait de `filters.svg` en `currentColor`. Le thème pose `--color-ink`
+  pastilles en `currentColor`, trait de `filters.svg` en `currentColor`. Le thème pose sa couleur de texte
   (pastilles, hors `forced-colors`), la couleur du sheet et une icône « filtres » en `currentColor`
   (slot `icon`). Test `StylesheetNeutralityTest` (aucune couleur écrite par sa valeur, aucune police).
 - **Repos sans transition** (bug « le tiroir descend au chargement ») : transitions de sortie sous
@@ -5366,7 +5602,7 @@ qui perd le focus, image de ~117 ms pendant le morph en `immediate` — traitée
 **Finitions du 2026-09-25** (Louis, commitées dans `40822fd` et `d62e8d9`) :
 - **`aria-disabled`** au lieu de `disabled` pour une valeur gardée en place : la case garde le focus
   et est annoncée ; clic et Espace annulés côté client (`FacetsView::refuses()`), `change` refusé ;
-  une case cochée reste décochable. Mesuré (`immediate`, 393 et 1440 px, Contenance ouverte, « aeris »
+  une case cochée reste décochable. Mesuré (`immediate`, 393 et 1440 px, Contenance ouverte, « globex »
   cochée) : 7 valeurs sur 10 passent `aria-disabled`, restent visibles (opacité 0,4) ; la case qui
   avait le focus le garde ; arbre d'accessibilité `checkbox "400ml" [disabled]` ; Espace puis clic :
   toujours décochée, **0 recherche** ; décocher la marque : 1 recherche. 4 tests TS + 2 de vue.
@@ -5380,7 +5616,7 @@ qui perd le focus, image de ~117 ms pendant le morph en `immediate` — traitée
 - **Grille différée** (`HeldPaint`, `ListingDrawers`) : tiroir ouvert ou sortant, grille et
   pagination attendent ; la dernière réponse est peinte l'image après la sortie. Mesuré en
   `immediate` : grille inchangée tant que le sheet est ouvert, puis celle de la dernière recherche
-  (`?marque=aeris`, 3 articles). Émulation 393 px, CPU ×4, avant (bundle sans report, substitué) /
+  (`?marque=globex`, 3 articles). Émulation 393 px, CPU ×4, avant (bundle sans report, substitué) /
   après, deux passages : **INP** 64–104 ms avant, 88–112 ms après au cocher ; 64–120 / 64–72 ms à la
   fermeture ; en `submit` 64–104 ms. Scripts longs (LoAF) au cocher : `onchange` 40–57 ms dans les deux
   variantes ; la repeinte de la grille n'apparaît plus comme script long dans aucune (images
@@ -5415,12 +5651,12 @@ chaque `SelectionHolder` (`FacetsView`, `PriceControl`) ce que tient le bloc du 
 un bloc qui n'est pas le sien ; `FacetsView::taxonomyIn()` redevient privé. Aucun CSS ajouté : les
 règles de la 4a (`:has([data-meili="toggle"])`, `panel`, `data-align-end`) suffisent.
 
-**HTML sans `collapsible` identique à l'octet**, mesuré contre la vue d'avant sur le prix de Pluralia :
+**HTML sans `collapsible` identique à l'octet**, mesuré contre la vue d'avant sur le prix du projet de test :
 2 929 o sans plage, 2 955 o avec `min_price=15&max_price=30`, md5 identiques. Test durable
 `CollapsiblePriceTest::it_differs_from_the_plain_price_by_the_legend_and_the_closed_panel_only`.
 
 **Navigateur** (Playwright, `/boutique`, bornes 2–50 €, **`apply_mode=immediate`** : le
-`config/meilifacets.php` de Pluralia porte cette valeur, modification non commitée antérieure à ce
+`config/meilifacets.php` du projet de test porte cette valeur, modification non commitée antérieure à ce
 point — le mode `submit` n'est couvert que par les tests TS). 1440 px : quatre pills, « Prix »
 comprise ; fermé, piste et poignées à 0 px ; ouvert, panneau 196 px, piste 187,7–343,2, poignées
 centrées à 187,7 et 343,2 (bornes exactes) ; « Marque » ouverte ferme « Prix » ; poignée max glissée à
@@ -5465,12 +5701,12 @@ filterable`, `/boutique` en vue « indisponible », suite `Modules` rouge (8 éc
 symptôme, passé inaperçu : les cartes indexées n'avaient plus de `card.price`.
 
 **Cause, prouvée.** L'instant de résolution, pas la configuration. Pollora résout les instances des
-`#[Filter]` d'un coup, à l'`apply()` de la découverte — et `PluginRegistrar::register()`, appelé par
-`pluralia-fulfillments.php` **pendant le chargement des plugins**, relance cet `apply()` pour tous les
-hooks découverts (`ModuleDiscoveryOrchestrator::discover()`). `pluralia-fulfillments` se charge avant
+`#[Filter]` d'un coup, à l'`apply()` de la découverte — et `PluginRegistrar::register()`, appelé par le
+plugin d'expéditions du projet **pendant le chargement des plugins**, relance cet `apply()` pour tous les
+hooks découverts (`ModuleDiscoveryOrchestrator::discover()`). Ce plugin se charge avant
 `woocommerce` dans `active_plugins` : `MeiliScoutBridge` est construit à `plugins_loaded=0`, sans
 `wc_get_product`, et fige `EmptyIndexAttributes` et `DefaultCardProjector` pour toute la requête
-(trace `afterResolving` sous WP-CLI). Avec `--skip-plugins=pluralia-fulfillments`, le même pont est
+(trace `afterResolving` sous WP-CLI). Avec `--skip-plugins=<ce plugin>`, le même pont est
 construit au chargement du thème, WooCommerce présent. Le garde `WooCommerce::isActive()` était bien
 dans la closure du binding, mais une closure évaluée à la construction d'un hook reste trop tôt. Options
 MeiliScout vérifiées, hors de cause : `indexed_post_types = [post, product]`, `indexed_meta_keys = []`
@@ -5491,7 +5727,7 @@ price.onsale`. Réindexation `--clear` : 20 documents (15 produits publiés + 5 
 `card.price` revenu. `/boutique` : 15 cartes ; `?min_price=30&max_price=50` : « 4 articles », égal au
 filtre direct. Suite `Modules` deux fois de suite : `OK (472 tests, 1200 assertions)`, réglages intacts
 après chaque passage, aucune tâche Meilisearch créée par la suite. `composer check` vert. Navigateur non
-ouvert : Playwright et Chrome reçoivent `ERR_CONNECTION_RESET` sur `pluralia.ddev.site` depuis cet
+ouvert : Playwright et Chrome reçoivent `ERR_CONNECTION_RESET` sur l'hôte local du projet depuis cet
 environnement, alors que `curl` répond ; la clé de recherche publique filtre et trie sur `price.*` (`:7701`).
 
 **Reste ouvert.** Côté Pollora (upstream) : `PluginRegistrar::register()` réapplique **toutes** les
@@ -5533,12 +5769,12 @@ pas), le tout seulement hors d'un conteneur `[aria-modal="true"]` (`#floats()`, 
 l'étape 5). UX-2 : à l'ouverture, `data-align-end` si le panneau dépasse `clientWidth`, la feuille le
 pend à droite. `collapsible/selected-count-view.ts` : `state.selected(taxonomie)`, attente comprise.
 
-**Vérifié** : HTML de `/boutique?marque=aeris` identique à l'octet sans `collapsible` (218 382 o avant et
+**Vérifié** : HTML de `/boutique?marque=globex` identique à l'octet sans `collapsible` (218 382 o avant et
 après) ; test durable `it_differs_from_the_plain_facet_by_the_trigger_and_the_closed_panel_only`.
 Playwright (1440 px, `submit`) : Tab → déclencheur, Entrée ouvre, Tab → case, Espace coche (badge 1 puis
 2, focus immobile), Échap ferme et rend le focus ; A puis B ferme A ; clic dans le panneau garde, clic sur
-le `h1` ferme ; Tab hors de la dernière case ferme ; « Appliquer » → `?marque=aeris,botanik`, 15 → 6
-articles, badge « 2 », panneau fermé par le clic. Déclencheur 36 px, rayon 999px, 14px Space Grotesk 600,
+le `h1` ferme ; Tab hors de la dernière case ferme ; « Appliquer » → `?marque=globex,initech`, 15 → 6
+articles, badge « 2 », panneau fermé par le clic. Déclencheur 36 px, rayon 999px, 14px dans la police du thème, 600,
 bordure 1px `--meili-edge` ; badge 17,8 px noir sur blanc ; panneau `absolute`, `z-index` 10, fond blanc,
 3,5 px sous le déclencheur, 197 px de large. UX-2 à 900 px : aucun panneau ne déborde naturellement ;
 dernière pastille poussée au bord (droite 865 / 885) → `data-align-end`, panneau 669–865, bord droit sur
@@ -5575,7 +5811,7 @@ rangées. Il rejoint les listes de ses sœurs : `cursor: pointer`, `:focus-visib
 pointeur grossier (44 px). Pas de `forced-colors` : `reset` et `page` n'y figurent pas non plus.
 
 **Vérifié** (Chromium) : bouton de 28 px (44 px au pointeur grossier), x 34,4 (texte à 40, comme les
-cases), haut à 987,4 = bas du `<label>` de la dernière valeur visible ; 14 px, Space Grotesk, 400,
+cases), haut à 987,4 = bas du `<label>` de la dernière valeur visible ; 14 px, police du thème, 400,
 comme `reset` ; fond transparent, bordure 0 ; survol teinté, contour de focus 2 px, dépliage OK.
 Test `stylesheet` : `more` dans la liste des commandes à curseur, taille et police égales à `reset`,
 marge et padding déclarés égaux à ceux d'une rangée, ni bordure ni fond.
@@ -5625,14 +5861,14 @@ inchangé (`R-151`, étape 3b — *fermé depuis : compteur sorti du libellé, m
 
 **Vérifié** : HTML de `/boutique` identique à l'octet avant/après sur les quatre facettes, en
 `Control` (seuls les `?ver=` de WP Rocket changent) ; après déclaration de Contenance en `Pill` dans
-Pluralia, une seule ligne diffère (` data-presentation="pill"`). La comparaison avec une copie figée de la vue d'avant a servi de preuve une
+le projet de test, une seule ligne diffère (` data-presentation="pill"`). La comparaison avec une copie figée de la vue d'avant a servi de preuve une
 fois puis a été retirée en revue (elle aurait cassé à la première évolution légitime de la vue) ;
 reste le test durable `it_marks_pills_with_one_attribute_and_nothing_else` : une facette `Control`
 ne porte aucun `data-presentation`, une pastille n'en diffère que par cet attribut. Contrat renommé
 en revue : `name()` → `slug()`, pour ne pas cohabiter avec `->name` des enums. Playwright : Tab + Espace et clic cochent, focus et état
 coché visibles, « Appliquer » filtre (`?contenance=15ml,400ml`, 74 → 9 articles), marque et
 catégorie inchangées (input `static` 14px), zéro erreur console. Pastille relevée = pastille active :
-14px, Space Grotesk (hérité du thème), 36px, rayon 999px, padding `0 11.9px`, `line-height` 14px ;
+14px, police héritée du thème, 36px, rayon 999px, padding `0 11.9px`, `line-height` 14px ;
 seule différence, la bordure 1px (0 sur la pastille active). `composer check` vert (Unit 294,
 TS 324), suite `Modules` 456 tests verts.
 
@@ -5770,7 +6006,7 @@ Relevé par la passe de conformité de `R-158`, lu dans la source. Sur une reche
 les produits marqués `exclude-from-search` (`class-wc-query.php:929`, appliqué depuis `:424-437`), alors
 que le module écarte toujours `exclude-from-catalog`, quelle que soit la page
 (`ProductListing.php`, `HIDDEN_FROM_CATALOG`). Depuis `R-158`, la recherche produit est servie par le
-moteur : elle rend donc un ensemble qui n'est pas celui de WooCommerce. Sur Pluralia, un produit est
+moteur : elle rend donc un ensemble qui n'est pas celui de WooCommerce. Sur le projet de test, un produit est
 `exclude-from-search` seulement (#400, mesuré au lot prix) : il reste trouvable ici, alors que la
 recherche native le cacherait.
 
@@ -5851,7 +6087,7 @@ l'utilisateur est déjà 0, `pluggable.php:31-37`). Portée : les **droits** seu
 exonéré de TVA reste hors d'atteinte, comme déjà écrit.
 
 **Tests** : `AnonymousIndexingTest` projette un groupé à enfant brouillon deux fois, déconnecté puis connecté
-comme administrateur (créé et supprimé par le test, sur décision de Louis ; vérifié avant : Mailjet inactif,
+comme administrateur (créé et supprimé par le test, sur décision de Louis ; vérifié avant : plugin d'envoi de mails inactif,
 aucun webhook actif), et **compare les deux documents** — c'est la promesse du point, et elle tient quels que
 soient les réglages de taxe, les attentes étant lues chez WooCommerce (`wc_get_price_to_display()`) plutôt
 qu'écrites en dur. Il vérifie aussi que l'administrateur est rendu même quand la projection lève.
@@ -5887,7 +6123,7 @@ d'être corrigée ; ce qui n'a pas pu l'être est écrit comme tel.
 **Ce qui était faux, en gros** : le prix décrit comme un travail à faire alors qu'il est indexé,
 filtrable et triable ; `resolveIndexable()` ignoré, donc « une surcharge de `formatForIndexing()`
 ne serait jamais appelée » ; `MEILI_INDEX_NAME` et `MEILI_MATCHING_STRATEGY` présentées comme lues ;
-Pluralia décrite comme liant son propre `CardProjector` ; la règle de `Contract::VERSION` donnée
+le projet de test décrit comme liant son propre `CardProjector` ; la règle de `Contract::VERSION` donnée
 dans sa version d'avant `R-116` ; le contrat `facet` → `more` sans sa condition ; les paramètres
 réservés, le `noindex` et la canonique sans les bornes de prix ni Yoast ; des valeurs CSS, des noms
 de fichiers `.js` et une classe (`CardPainter`) antérieurs au passage au TypeScript.
@@ -5906,7 +6142,7 @@ colonne « État », que le rendu masquait.
 **À trancher par Louis** — écrits dans les documents comme non tenus, pas corrigés :
 
 - le renversement du défilement (`85b3097`, 2026-09-08) : qui l'a décidé ;
-- la carte de l'archive, `<x-theme::product-card>` décidée, `<x-meilifacets::card>` rendue (`Q-10`, `R-45`) ;
+- la carte de l'archive, carte produit du thème décidée, `<x-meilifacets::card>` rendue (`Q-10`, `R-45`) ;
 - `R-47`, fermé par `D-07` et gardé ouvert par le Journal ;
 - l'appui sur la visibilité native de WooCommerce : `exclude-from-catalog` n'apparaît qu'en passant dans
   une liste d'`architecture.md`, alors que le module lit la taxonomie `product_visibility` que la fiche
@@ -5952,7 +6188,7 @@ une vue surchargeable : à décider avec Louis.
 nativement. Le libellé est enveloppé d'un `<span id>` (`ElementId::facetValueLabel()`, même famille
 que `facetCount()`), et l'input porte `aria-labelledby` vers ce `<span>` en plus de
 `aria-describedby` vers le compteur. `aria-labelledby` l'emporte sur le `<label>` dans le calcul du
-nom : nom = « Botanik », description = « 12 résultats ».
+nom : nom = « Initech », description = « 12 résultats ».
 
 Deux structures écartées en chemin :
 - **A** — compteur sorti du `<label>`, libellé étiré sur la rangée par un `label::after`. Elle
@@ -5984,7 +6220,7 @@ réaffiche par `[data-presentation="pill"] [data-meili="count"]`.
 
 **Contrat** : aucun crochet ajouté, renommé ni retiré — le libellé est trouvé par son id.
 `Contract::VERSION` inchangé (`R-116`). `FacetsView` n'écrit que dans le crochet `count` ; un test
-le garantit. Fixture `tests/ts/dom.ts` alignée (`R-105` ; `R-108` toujours différé). Pluralia ne
+le garantit. Fixture `tests/ts/dom.ts` alignée (`R-105` ; `R-108` toujours différé). Le projet de test ne
 surcharge pas `facet.blade.php` et aucune règle du thème ne vise compteur ni libellé : rien à adapter.
 Une vue surchargée à l'ancienne (`R-72`) garde le compteur dans le nom jusqu'à ce qu'elle reprenne
 `aria-labelledby`.
@@ -5993,10 +6229,10 @@ Une vue surchargée à l'ancienne (`R-72`) garde le compteur dans le nom jusqu'�
 rangée aux mêmes coordonnées que `e6c146a` sur les 14 valeurs `Control` (case x=40, libellé x=61,
 28 px, 37,8 px au pointeur grossier) ; fin du compteur inchangée (352,3 px), son début bouge de
 −2,5 px à +0,3 px sous l'effet des chiffres tabulaires, seul écart voulu. Arbre d'accessibilité :
-`checkbox "Botanik"`, description « 12 résultats », `StaticText "12 résultats"` présent et non ignoré ;
+`checkbox "Initech"`, description « 12 résultats », `StaticText "12 résultats"` présent et non ignoré ;
 `checkbox "15ml"`, description « 5 résultats », nœud du compteur non ignoré malgré le masquage. Clic
 sur le compteur → cochée, sur le libellé → décochée, sur la case → cochée ; pastille cochée au clic.
-Botanik + Appliquer : Cheveux passe de « 14 résultats » à « 2 résultats », nom inchangé. Zéro erreur
+Initech + Appliquer : Cheveux passe de « 14 résultats » à « 2 résultats », nom inchangé. Zéro erreur
 console.
 
 **Tests** : `FacetComponentTest` — `it_names_a_value_with_its_label_alone` (`aria-labelledby` pointe,
@@ -6025,23 +6261,23 @@ source, non mesuré en requête ; `configuration.md` le signale. Correctif amont
 
 ### R-149 · 🟠 · **fermé le 2026-09-23** · ouvert le 2026-09-17 — une archive de marque affiche tout le catalogue
 
-`/marque/aeris` rend 16 cartes sur 5 pages et une plage de 0 à 199 €, comme `/boutique` ; `/boutique?marque=aeris`
+`/marque/globex` rend 16 cartes sur 5 pages et une plage de 0 à 199 €, comme `/boutique` ; `/boutique?marque=globex`
 en rend 10, de 9 à 47 € (mesuré par `curl` le 2026-09-17). `ProductListing::currentAisle()` ne lit que
 `product_cat` : sur une archive de marque, le filtre de base ne porte pas le terme du chemin. Trouvé par la
 passe de conformité des retours de la PR #2.
 
 **Étendue mesurée le 2026-09-23** : le défaut ne touche pas que les marques. Toute archive produit
-qui n'est pas une catégorie servait le catalogue entier — `/marque/avril` 76 produits au lieu de 5,
-`/marque/aeris` au lieu de 10, `/selection/la-selection-coup-de-coeur` au lieu de 14,
-`/les-essentiels/lefficacite-sans-effort` au lieu de 3 ; seule la catégorie était juste. Les
-compteurs de facettes et les bornes du curseur suivaient : 0–199 € sur `/marque/aeris` au lieu de
+qui n'est pas une catégorie servait le catalogue entier — `/marque/umbrella` 76 produits au lieu de 5,
+`/marque/globex` au lieu de 10, `/selection/nouveautes` au lieu de 14,
+`/mise-en-avant/meilleures-ventes` au lieu de 3 ; seule la catégorie était juste. Les
+compteurs de facettes et les bornes du curseur suivaient : 0–199 € sur `/marque/globex` au lieu de
 9–47 €.
 
 **Depuis quand** : le 2026-09-04, jour où l'archive a été confiée au module — `76e60f7` côté module,
 `400eed4` côté thème, qui place le listing dans `archive-product.blade.php`, gabarit de **toutes** les
 archives produit. `currentAisle()` n'a jamais lu que `product_cat`. Avant cette date, la grille venait
 de la requête WordPress, qui filtrait juste. Le périmètre, lui, était déjà écrit : « sur les archives
-produit, `ProductListing` aurait dû toutes les déclarer, puisque Pluralia y rend le listing partout »
+produit, `ProductListing` aurait dû toutes les déclarer, puisque le projet de test y rend le listing partout »
 (`decisions.md`, 2026-09-22).
 
 **Corrigé** : `currentAisle(): ?string` devient `browsedTerm(): ?WP_Term` — `is_tax()` sur n'importe
@@ -6050,21 +6286,21 @@ produit ne porte aucun champ pour une taxonomie qui n'est pas la sienne, et filt
 listing. `baseFilter()` écrit `facets.<taxonomie> = <slug>`.
 
 **Tranché par Louis le 2026-09-23** : une facette dont le chemin épingle la taxonomie n'est plus
-offerte. Mesuré avant décision sur `/marque/avril` : la facette Marque ne proposait plus que « Avril
-(5 résultats) », et `?marque=aeris` y rendait zéro produit. `Facet::narrowsUnder()` répond non quand
+offerte. Mesuré avant décision sur `/marque/umbrella` : la facette Marque ne proposait plus que « Umbrella
+(5 résultats) », et `?marque=globex` y rendait zéro produit. `Facet::narrowsUnder()` répond non quand
 sa taxonomie est celle du chemin, `ChildTermsFacet` répond oui — c'est ce pour quoi il existe (`D-07`
 intact, mesuré : la catégorie propose toujours ses enfants). `ProductListing::facets()` filtre là-dessus,
 `filters()` non : la facette **sort du plan de requête** mais reste plaçable par son nom, sans quoi un
 gabarit qui l'appelle explicitement lèverait « No facet named … ». Le choix porte sur le volume, à la
 demande de Louis : le moteur ne compte plus sa distribution sur la recherche principale **ni** sur la
-requête non filtrée, et ses libellés ne sont plus lus — sur Pluralia l'écart est sous le plancher de
+requête non filtrée, et ses libellés ne sont plus lus — sur le projet de test l'écart est sous le plancher de
 mesure (0–1 ms), il ne l'est pas sur un catalogue de milliers d'entrées. Effet de bord souhaitable :
-`/marque/avril?marque=aeris` rend les 5 produits de la marque au lieu d'une page vide, le paramètre
+`/marque/umbrella?marque=globex` rend les 5 produits de la marque au lieu d'une page vide, le paramètre
 contradictoire n'étant plus lu.
 
 **Recette, mesurée après correctif** : 5, 10, 14, 3 produits sur les quatre archives ci-dessus ; 1 sur
 `/categorie-produit/maquillage/accessoires` et 16 par page sur `/boutique`, tous deux inchangés ; bornes
-9–47 € sur `/marque/aeris` ; facette Marque masquée sur son archive, catégorie intacte sur la sienne.
+9–47 € sur `/marque/globex` ; facette Marque masquée sur son archive, catégorie intacte sur la sienne.
 
 **Tests** : `ProductArchiveTest` (sept cas : catégorie, toute autre taxonomie produit, taxonomie native
 partagée avec les produits, taxonomie hors catalogue, hors archive, facette épinglée retirée du plan mais
@@ -6100,7 +6336,7 @@ externe enregistre `_price = ''` (`class-wc-product-data-store-cpt.php:876`, seu
 change) ; `get_post_meta(…, false)` rend `['']`, qui passe la garde `[] ===` de
 `ProductPriceProjector.php:39`, et `(float) ''` vaut 0. Le produit entre dans toute plage bornée en haut et
 tire le minimum mesuré à 0. Le test existant ne couvre pas ce cas : un produit créé sans prix n'a aucune
-ligne `_price`. Produits variables et groupés non concernés. Aucun produit touché sur Pluralia. Tranché par
+ligne `_price`. Produits variables et groupés non concernés. Aucun produit touché sur le projet de test. Tranché par
 Louis : `D-j` (`prix.md`).
 
 **Corrigé** : `ProductPriceProjector::pricesOf()` écarte les lignes `_price` vides ou `null` avant de lire les
@@ -6122,7 +6358,7 @@ produit présent (produit créé puis supprimé pour la mesure) ; une ligne `nul
 convertie en 0 — écartée, test ajouté. Un produit groupé dont un enfant est gratuit n'a pas un minimum à 0 —
 **laissé tel quel** : `update_prices_from_children()` de WooCommerce retire `'0'` avec
 `array_filter` avant d'écrire la fourchette du groupé, et le module lit les lignes que WooCommerce écrit ; les
-deux produits groupés de Pluralia (#444, #445) n'ont aucun enfant gratuit.
+deux produits groupés du projet de test (#444, #445) n'ont aucun enfant gratuit.
 
 **Cinq passes, second tour** (`module-review`, sur la version corrigée) : les six constats du premier tour
 vérifiés résolus. *Lisibilité* : l'assistant des tests de catalogue recopiait la règle de production sous un
@@ -6172,20 +6408,20 @@ rend `false` sans condition : sur toute archive produit, WooCommerce ne filtre p
 est fausse deux fois : le docblock et `configuration.md` la disent « inerte sur tout autre listing », et
 `filter_*` n'est désarmé que si la table de correspondance des attributs est active
 (`class-wc-query.php:915-917`). L'exemple de retour arrière, `__return_true` global, annule la protection
-partout. Aucun effet sur Pluralia (aucun widget de prix natif).
+partout. Aucun effet sur le projet de test (aucun widget de prix natif).
 
 **Tranché par Louis, deux fois.** Le 2026-09-17 : chaque listing déclarerait ses pages. Le 2026-09-22, jamais
 codée, cette décision est renversée : le composant peut être posé sur n'importe quelle page, WooCommerce ne
 filtre que la requête principale des archives produit, et `ProductListing` aurait dû toutes les déclarer —
 une méthode de plus dans le contrat pour une portée identique (`decisions.md`, « Le filtrage natif reste
-désarmé sur toutes les archives produit »). La passe de conformité avait mesuré que les sept pages de
-Pluralia qui rendent le listing sont toutes des archives produit.
+désarmé sur toutes les archives produit »). La passe de conformité avait mesuré que les sept pages du
+projet de test qui rendent le listing sont toutes des archives produit.
 
 **Corrigé — sans changement de comportement** : `NativeFiltering` rend toujours `false`. Son docblock passe de
 huit lignes, dont une portée fausse (« inert on every other listing »), à une exacte. `configuration.md` dit la vraie portée — archives produit seulement
 (`class-wc-query.php:381-452`), crochet `posts_clauses` jamais retiré (`:588`) et question reposée à chaque
 `WP_Query` suivante sans `suppress_filters` —, corrige deux erreurs de plus (`filter_*` n'est désarmé qu'avec la
-table de correspondance des attributs, active sur Pluralia, `Filterer.php:70-72`, sinon `tax_query` à
+table de correspondance des attributs, active sur le projet de test, `Filterer.php:70-72`, sinon `tax_query` à
 `:915-917` ; `rating_filter` est une `tax_query` sur les termes `rated-N`, pas une `meta_query`) et remplace
 l'exemple `__return_true` par un filtre qui réarme une seule archive, avec l'avertissement : ni
 `price_filter_post_clauses()` ni `filter_by_attribute_post_clauses()` ne regardent le type de contenu.
@@ -6195,7 +6431,7 @@ Tests (`NativeFilteringTest`, réécrit) : le filtre est interrogé comme WooCom
 catégorie et laisse la boutique désarmée ; ignoré sans WooCommerce ou sans catégorie. Mutations : le module
 qui rend `true`, ou qui passe après le projet (priorité 30), fait échouer un test.
 
-**Cinq passes** (`module-review`). *Lisibilité* : l'exemple visait `product_tag`, sans terme sur Pluralia, et le
+**Cinq passes** (`module-review`). *Lisibilité* : l'exemple visait `product_tag`, sans terme sur le projet de test, et le
 test `product_cat` — l'exemple est passé sur `product_cat`, il est désormais l'extrait testé ; au second tour, il
 réarmait encore toutes les catégories alors que la doc promet « cette archive seule » — il vise un terme, et le
 test vérifie qu'une autre catégorie et une marque restent désarmées ; `A && B ? true :
@@ -6222,7 +6458,7 @@ et son docblock promet « the same test the server writes ». Charger `?max_pric
 20 %, tout geste du client à ≤ 50. Les bornes affichées restent HT des deux côtés, alors que le widget
 classique leur ajoute la taxe : une saisie entre le maximum HT et le maximum TTC est prise pour le bord et ne
 filtre rien. `D-e` demandait aussi de l'écrire dans `configuration.md`, jamais fait. Déjà relevé sans numéro
-(`R-137` « Déjà connus », `R-121`). Dormant sur Pluralia (taxes désactivées).
+(`R-137` « Déjà connus », `R-121`). Dormant sur le projet de test (taxes désactivées).
 
 **Tranché par Louis le 2026-09-22 : indexer le prix affiché** (`D-e` réécrit, `prix.md`). Le complément du
 2026-09-17 — publier la règle de taxe et la recopier en JavaScript — est renversé avant d'être codé : dès le
@@ -6262,12 +6498,12 @@ vide ; `get_min_price()` exige WooCommerce 10.1 — écrit ; `ShopTaxLocationTes
 — ignoré quand WooCommerce est chargé ; le test taxé plantait sans WooCommerce — produits suivis dans une liste
 vidée au démontage ; l'absence d'arrondi exclut un produit affiché 40,83 € de `?max_price=40.83` — écrit dans le
 coût de `D-e`. Non vérifié : une extension de multidevise ou de prix par rôle indexerait la valeur de la
-session, comme la carte le fait déjà ; aucune sur Pluralia.
+session, comme la carte le fait déjà ; aucune sur le projet de test.
 
-**Vérifié le 2026-09-22 sur Pluralia** (taxes désactivées) : en mémoire, par `MeiliScoutBridge::addPrice()`,
+**Vérifié le 2026-09-22 sur le projet de test** (taxes désactivées) : en mémoire, par `MeiliScoutBridge::addPrice()`,
 les 76 produits publiés ont le même prix indexé qu'avant (`===`), sans aucune écriture en base ; index
 reconstruit (`ddev wp meiliscout index --clear`) avec le nouveau code : les 76 prix identiques produit par
-produit ; `/boutique` 16 cartes, plage 0–199 €, `?max_price=10` 6 cartes, `?marque=aeris` 10 cartes, 9–47 €.
+produit ; `/boutique` 16 cartes, plage 0–199 €, `?max_price=10` 6 cartes, `?marque=globex` 10 cartes, 9–47 €.
 Un document orphelin, 867, sans prix et sans article derrière, a disparu à la reconstruction : la suite
 `Modules`, relancée, n'en laisse aucun ; origine non établie.
 
@@ -6309,7 +6545,7 @@ commentaire sur `get_min_price()` est supprimé (sa raison est dans `D-e`). Les 
 d'option est une constante ; `underTax()` se sépare en `withOptions()` et `withRates()` ; les assistants
 disent ce qu'ils figent (`enteredWithoutTaxShownWithTax()`). L'oracle du catalogue lit la carte par
 `Dom\HTMLDocument` et compare chaque borne **à égalité** aux montants facturés : l'expression régulière
-supposait une locale — « 234,00 € » était trouvé dans « 1 234,00 € », le séparateur de milliers de Pluralia
+supposait une locale — « 234,00 € » était trouvé dans « 1 234,00 € », le séparateur de milliers du projet de test
 étant une espace. Re-tué par mutation (`fmod($price, 10)` : « 9,00 € » absent). Relevé hors périmètre :
 `R-154`. `composer check` vert (262 tests autonomes), suite `Modules` : 384 tests, 1302 assertions.
 
@@ -6324,7 +6560,7 @@ un `array_values()` sans effet retiré ; `prix.md` ne dit plus qu'un groupé com
 `D-j` est désormais tenu par `ProductPriceProjector::shownPrice()` pour les simples, externes et enfants de
 groupé — le `pricesOf()` décrit par `R-148` n'existe plus. Vérifié : `composer check` vert (262 tests
 autonomes), suite `Modules` 385 tests / 1303 assertions ; `/boutique`, `?max_price=10` (6 cartes, comme
-avant) et `/marque/aeris` répondent 200. Aucun JavaScript touché. Reste ouvert à côté : `R-154`.
+avant) et `/marque/globex` répondent 200. Aucun JavaScript touché. Reste ouvert à côté : `R-154`.
 
 ### R-145 · 🟡 · ouvert · 2026-09-17 — suites des passes rejouées sur les points fermés du lot
 
@@ -6420,7 +6656,7 @@ WooCommerce appliquée, comparés au rendu serveur puis au recalcul du client :
 | Scénario | Page | Client après un geste | Base |
 | --- | --- | --- | --- |
 | marques, sans filtre | 10 · 5 · 12 · 4 · 10 · 7 · 2 · 10 · 8 | — | identiques |
-| catégories sous `?marque=avril` | 0 · 1 · 1 · 1 · 2 | — | identiques |
+| catégories sous `?marque=umbrella` | 0 · 1 · 1 · 1 · 2 | — | identiques |
 | marques sous `?categorie=visage` | 5 · 2 · 4 · 0 · 6 · 0 · 1 · 4 · 1 | identiques | identiques |
 
 La facette filtrée garde ses comptes complets, les autres se réduisent : la mesure à part fait son office,
@@ -6620,9 +6856,9 @@ ni `FacetComponentTest` ni `PriceComponentTest` ne sont touchés par son commit.
 réduit les `//`), mais le filtre `user_trailingslashit` de Pollora
 (`vendor/pollora/framework/src/Permalink/Infrastructure/Providers/PermalinkServiceProvider.php:54`) passe
 le chemin à `Uri` (`src/Support/Uri.php:28`), dont `parse_url('//boutique')` lit `boutique` comme un hôte : la
-redirection devient `https://pluralia.ddev.siteboutique`, que la garde anti-chaîne annule. Côté module,
-`pagePath` écrit déjà `/boutique` ; correctif à proposer en amont (§2). Ne couvre pas `//?s=…`, que
-`redirect_canonical` ignore. Trouvé par la passe de conformité des reliquats de `R-137`.
+redirection pointe vers un hôte inexistant (`projet.ddev.site` et `boutique` collés), que la garde anti-chaîne
+annule. Côté module, `pagePath` écrit déjà `/boutique` ; correctif à proposer en amont (§2). Ne couvre pas `//?s=…`,
+que `redirect_canonical` ignore. Trouvé par la passe de conformité des reliquats de `R-137`.
 
 ### R-139 · 🟡 · **fermé le 2026-09-17** · ouvert le 2026-09-17 — `check-parameters` ne voit pas les query vars ajoutées par filtre
 
@@ -6638,11 +6874,11 @@ la docblock « `min_price` never reaches `public_query_vars` » de `ReservedPara
 requête n'a été analysée (`did_action('parse_request')`) ; sur une requête, `WP::parse_request()` l'a déjà fait
 et la liste est reprise telle quelle. Jamais avant `init` : `Params` de WooCommerce
 (`src/Internal/ProductFilters/Params.php`) garde en statique, pour tout le processus, les paramètres de filtre
-de ses taxonomies de produits (`categories`, `brands`, `filter_essentiel`…), que `get_taxonomies()` ne
+de ses taxonomies de produits (`categories`, `brands`, `filter_product_highlight`…), que `get_taxonomies()` ne
 connaît qu'après `init`. La liste lue avant `init` n'est pas gardée ; celle d'après est dédoublonnée (117
 entrées filtrées, 95 noms) et gardée pour l'instance. Le motif des bornes de prix est testé avant les query
 vars, pour rester « lu dans `$_GET` par WooCommerce » maintenant qu'elles y figurent. Sur une requête,
-`pageQuery` est inchangé ; sur Pluralia la commande passe toujours (`min_price`, `max_price` acceptées par
+`pageQuery` est inchangé ; sur le projet de test la commande passe toujours (`min_price`, `max_price` acceptées par
 `D-h`). Tests : `Feature\ReservedParametersTest` (liste filtrée, chaque nom une fois, motif des bornes une
 fois `min_price` constaté dans la liste, liste d'une requête analysée non refiltrée, liste relue une fois
 `init` passé), ignoré sans WooCommerce, et `CheckParametersCommandTest` (verte sur la configuration du projet,
@@ -6693,7 +6929,7 @@ les mêmes chaînes avec `__()`, qui lit le catalogue Laravel **dans la locale d
 puis le domaine `default`. Trouvé par la passe « contexte » de `R-137` #5.
 
 **Ce que la conformité a montré** : la divergence tient d'abord à la locale, pas au domaine `default`. Sur
-Pluralia les six chaînes sortent identiques (`APP_LOCALE=fr`, WordPress en `fr_FR`) ; sur un hôte resté en
+le projet de test les six chaînes sortent identiques (`APP_LOCALE=fr`, WordPress en `fr_FR`) ; sur un hôte resté en
 `APP_LOCALE=en`, Blade écrirait « Voir plus » et le client « Show more », « 3 results ».
 
 **Corrigé** : les motifs et libellés passent par `__()` (`ListingDescription`, `Facet::countLabel()`, qui ne
@@ -6713,7 +6949,7 @@ ensuite (`sv_SE` et `de_DE` rangent « äpple » et « zebra » à l'inverse), e
 `ListingDescriptionTest` et `ActiveFiltersComponentTest` règlent Laravel sur `fr` et WordPress sur
 `en_US`, et attendent l'anglais. Six mutations, toutes tuées. Une troisième passe a relevé que le repli
 sans `ext-intl` recevait la locale brute (`de_DE_formal`), inconnue de `MessageSelector` : il reçoit
-désormais `langue_RÉGION`. Ce repli n'est pas testable là où `ext-intl` est chargé. Aucun texte visible ne change sur Pluralia ;
+désormais `langue_RÉGION`. Ce repli n'est pas testable là où `ext-intl` est chargé. Aucun texte visible ne change sur le projet de test ;
 `locale` publié passe de `fr` à `fr-FR`, même règle de pluriel.
 
 **Vérifié le 2026-09-17** par `curl` sur `/boutique` (WordPress en `fr_FR`) : la description publie
@@ -6749,8 +6985,8 @@ comparés). Aucun des écarts ci-dessous n'est couvert par un test.
 
 | # | Écart | Constaté |
 | --- | --- | --- |
-| 1 | Le client ignore `/page/N` : le serveur lit `paged`, le client seulement `pg` | `/boutique/page/2`, cocher une marque : l'URL devient `/boutique/page/2?marque=aeris`, recharger affiche « Il n'y a rien sur cette page » ; Retour ramène la page 1 au lieu de la 2 |
-| 2 | Une valeur de facette absente du premier rendu ne revient jamais (le client ne crée pas de nœud) | `/boutique?marque=aeris` puis « Tout effacer » : 4 catégories sur 5, 7 contenances sur 24, plus de « Voir plus » — contredit par la décision « le client révèle, il n'en crée aucun », qui prévoyait de rouvrir « si le catalogue réel le montre » |
+| 1 | Le client ignore `/page/N` : le serveur lit `paged`, le client seulement `pg` | `/boutique/page/2`, cocher une marque : l'URL devient `/boutique/page/2?marque=globex`, recharger affiche « Il n'y a rien sur cette page » ; Retour ramène la page 1 au lieu de la 2 |
+| 2 | Une valeur de facette absente du premier rendu ne revient jamais (le client ne crée pas de nœud) | `/boutique?marque=globex` puis « Tout effacer » : 4 catégories sur 5, 7 contenances sur 24, plus de « Voir plus » — contredit par la décision « le client révèle, il n'en crée aucun », qui prévoyait de rouvrir « si le catalogue réel le montre » |
 | 3 | « Voir plus » apparaît alors que rien n'est replié : le client compte les valeurs cochées dans la place disponible | `/categorie-produit/visage`, déplier, cocher trois contenances, Appliquer : bouton « Voir moins » qui ne fait qu'inverser son libellé ; aucun bouton côté serveur |
 | 4 | Une valeur cochée tombée à 0 : le client l'affiche « 0 résultats » (règle de pluriel anglaise), le serveur ne la rend pas du tout et le visiteur ne peut plus la décocher | `/boutique?marque=nord-sel`, prix mini 150 |
 | 5 | Le message « aucun résultat » n'est jamais réécrit (le serveur en choisit un parmi deux) | `/boutique?pg=99`, prix mini 1000 : « Il n'y a rien sur cette page » au lieu de « Aucun résultat » |
@@ -6771,7 +7007,7 @@ dans un bloc de prix masqué ; les quatre premières images perdent `eager`/`hig
 champs de carte absents du catalogue ; `q` en UTF-8 invalide ; bornes `1e300` ; flottants écrits par
 Blade ; plafond de facette à 0 ; noms de paramètre contenant un point.
 
-**Déjà connus** : taxes retirées côté serveur seulement (`D-e`, sans effet sur Pluralia, taxes
+**Déjà connus** : taxes retirées côté serveur seulement (`D-e`, sans effet sur le projet de test, taxes
 désactivées — fermé par `R-146`, le prix indexé étant désormais le prix affiché) ; `alt` `'0'`.
 
 **Identiques** (vérifiés en exécutant) : échappement, assemblage et ordre des clauses, recherches à part,
@@ -6783,13 +7019,13 @@ chaque correction a un test, vérifié en échec sans elle :
 
 | # | Correction | Test | Vu dans Chrome |
 | --- | --- | --- | --- |
-| 1 | *Première version :* `ListingUrl` lisait `/page/N` avec un motif `/page/` en dur. *Depuis le 2026-09-17 :* le serveur publie le chemin de la première page (`pagePath`, `Http\PageAddress::path()`, soit `get_pagenum_link(1)`), qui suit le vrai nom du segment de pagination et retire les barres de tête ; le client écrit ce chemin puis ses paramètres, la page en `pg` | `PageAddressTest` (segment renommé, `//boutique/page/2`, `//?s=creme`, permaliens fixés en mémoire), `ListingDescriptionTest`, `listing.test.ts`, `listing-url.test.ts` | `/boutique/page/2` : page 2 marquée ; Suivant puis Retour ramène la page 2 ; cocher une marque donne `/boutique?marque=aeris`, page 1 |
+| 1 | *Première version :* `ListingUrl` lisait `/page/N` avec un motif `/page/` en dur. *Depuis le 2026-09-17 :* le serveur publie le chemin de la première page (`pagePath`, `Http\PageAddress::path()`, soit `get_pagenum_link(1)`), qui suit le vrai nom du segment de pagination et retire les barres de tête ; le client écrit ce chemin puis ses paramètres, la page en `pg` | `PageAddressTest` (segment renommé, `//boutique/page/2`, `//?s=creme`, permaliens fixés en mémoire), `ListingDescriptionTest`, `listing.test.ts`, `listing-url.test.ts` | `/boutique/page/2` : page 2 marquée ; Suivant puis Retour ramène la page 2 ; cocher une marque donne `/boutique?marque=globex`, page 1 |
 | 3 | `FacetsView` ne replie plus une valeur cochée, qui garde sa place avant le pli (*rectifié le 2026-09-17 : la première rédaction disait qu'elle ne comptait plus dans la place, ce que contredit le test « counts a held value among the places before the fold »*) | `facets-view.test.ts` | `/categorie-produit/visage`, trois contenances repliées cochées : 13 valeurs, aucun bouton, comme le serveur ; trois visibles cochées : 10 valeurs et « Voir plus » des deux côtés |
 | 5 | Blade rend les deux messages, chacun sous son crochet (`no-results`, `past-the-end`), l'un masqué ; `ResultsView` révèle celui de `PageWindow.isPastTheEnd`, copie de `Pagination::isPastTheEnd()` ajoutée aux cas partagés `tests/pagination-cases.json`. Le client n'écrit aucun texte : une première version réécrivait le contenu de `empty` et aurait effacé le markup d'une vue surchargée (passe « contexte ») | `ResultsComponentTest`, `listing-binding.test.ts`, `page-window.test.ts`, `PaginationTest` | `/boutique?pg=99` puis prix mini 1000 : « Aucun résultat n'a été trouvé. » ; retour sur `?pg=99` : « Il n'y a rien sur cette page. » |
-| 6 | *Première version, retirée le 2026-09-17 :* tout paramètre que le listing ne possède pas était recopié, `add-to-cart` et `utm_*` compris. *Depuis :* seuls les paramètres que WordPress a lus pour construire la page, publiés par le serveur tels qu'envoyés (`Http\PageAddress`), hors ceux du listing et `paged`. Une version intermédiaire lisait `request()->query()`, déjà rogné et vidé par les middlewares : `/?s=&post_type=product` perdait `s=` et le premier geste servait la boutique (trouvé par les cinq passes). Trois relectures au total : la deuxième a fait tester l'exclusion d'un nom de facette devenu query var publique, que rien ne protégeait, rendu `pageQuery` obligatoire et suivi `arg_separator.input` ; la troisième, sur ces corrections, trois retouches de commentaires et de test. Mutations : 7, toutes tuées | `PageAddressTest`, `ListingDescriptionTest`, `listing-url.test.ts`, `listing.test.ts` | `/boutique?add-to-cart=999999&utm_source=news`, cocher une marque : `/boutique?marque=aeris` ; `/?s=creme&post_type=product&utm_source=news`, trier : `/?sort=price_asc&s=creme&post_type=product` (16 cartes) ; `/?s=&post_type=product&utm_source=news`, trier : `/?sort=price_asc&s=&post_type=product`, toujours une recherche au rechargement ; `/boutique?min_price=10&utm_source=x` publie `pageQuery` vide |
-| 7 | `StateReader` écarte une valeur qui n'est pas de l'UTF-8 (*la moitié client, une valeur remplacée par U+FFFD, a disparu avec `url-text.ts` : le client ne lit plus l'URL*) | `StateReaderTest` | `/boutique?marque=%FF` : 200, 16 cartes ; `?marque=aeris,%FF` filtre sur aeris |
-| 8–10 | *Première version, retirée le 2026-09-17 :* le client lisait l'URL avec une copie en TypeScript des règles de PHP (`url-text.ts`). *Depuis :* le client ne tire plus aucun état d'une URL, il part de l'état publié par le serveur (`state` dans la description) ; valeurs triées par octet côté serveur (`SORT_STRING`) ; `-0` tenu pour `0` | `StateReaderTest` (18 URL tapées à la main, `assertSame`), `ListingDescriptionTest`, `tests/url-writing-cases.json` lu des deux côtés | `/boutique?marque=nord-sel,aeris,aeris&pg=abc&sort=inconnu` : état publié `aeris, nord-sel`, page 1, pas de tri ; cocher `avril` écrit `?marque=aeris,avril,nord-sel` |
-| 11 | Retour et Suivant : l'état est rangé dans l'entrée d'historique, sous le nom du listing, et restauré sans réécrire l'entrée ; une entrée qu'aucun listing n'a écrite reçoit l'état affiché à la même adresse, recharge la page sinon ; pas de recherche vers un état déjà affiché | `browser-history.test.ts` (10 cas, onglet simulé), `listing.test.ts` | `/boutique/page/2`, Suivant, tri, Retour : adresse `/boutique/page/2` gardée, page 2, Pertinence ; lien d'évitement `#main`, Retour, Suivant : ni rechargement ni recherche ; entrée d'un autre script à une autre adresse : rechargement, le serveur relit `?marque=aeris` |
+| 6 | *Première version, retirée le 2026-09-17 :* tout paramètre que le listing ne possède pas était recopié, `add-to-cart` et `utm_*` compris. *Depuis :* seuls les paramètres que WordPress a lus pour construire la page, publiés par le serveur tels qu'envoyés (`Http\PageAddress`), hors ceux du listing et `paged`. Une version intermédiaire lisait `request()->query()`, déjà rogné et vidé par les middlewares : `/?s=&post_type=product` perdait `s=` et le premier geste servait la boutique (trouvé par les cinq passes). Trois relectures au total : la deuxième a fait tester l'exclusion d'un nom de facette devenu query var publique, que rien ne protégeait, rendu `pageQuery` obligatoire et suivi `arg_separator.input` ; la troisième, sur ces corrections, trois retouches de commentaires et de test. Mutations : 7, toutes tuées | `PageAddressTest`, `ListingDescriptionTest`, `listing-url.test.ts`, `listing.test.ts` | `/boutique?add-to-cart=999999&utm_source=news`, cocher une marque : `/boutique?marque=globex` ; `/?s=creme&post_type=product&utm_source=news`, trier : `/?sort=price_asc&s=creme&post_type=product` (16 cartes) ; `/?s=&post_type=product&utm_source=news`, trier : `/?sort=price_asc&s=&post_type=product`, toujours une recherche au rechargement ; `/boutique?min_price=10&utm_source=x` publie `pageQuery` vide |
+| 7 | `StateReader` écarte une valeur qui n'est pas de l'UTF-8 (*la moitié client, une valeur remplacée par U+FFFD, a disparu avec `url-text.ts` : le client ne lit plus l'URL*) | `StateReaderTest` | `/boutique?marque=%FF` : 200, 16 cartes ; `?marque=globex,%FF` filtre sur globex |
+| 8–10 | *Première version, retirée le 2026-09-17 :* le client lisait l'URL avec une copie en TypeScript des règles de PHP (`url-text.ts`). *Depuis :* le client ne tire plus aucun état d'une URL, il part de l'état publié par le serveur (`state` dans la description) ; valeurs triées par octet côté serveur (`SORT_STRING`) ; `-0` tenu pour `0` | `StateReaderTest` (18 URL tapées à la main, `assertSame`), `ListingDescriptionTest`, `tests/url-writing-cases.json` lu des deux côtés | `/boutique?marque=nord-sel,globex,globex&pg=abc&sort=inconnu` : état publié `globex, nord-sel`, page 1, pas de tri ; cocher `umbrella` écrit `?marque=globex,umbrella,nord-sel` |
+| 11 | Retour et Suivant : l'état est rangé dans l'entrée d'historique, sous le nom du listing, et restauré sans réécrire l'entrée ; une entrée qu'aucun listing n'a écrite reçoit l'état affiché à la même adresse, recharge la page sinon ; pas de recherche vers un état déjà affiché | `browser-history.test.ts` (10 cas, onglet simulé), `listing.test.ts` | `/boutique/page/2`, Suivant, tri, Retour : adresse `/boutique/page/2` gardée, page 2, Pertinence ; lien d'évitement `#main`, Retour, Suivant : ni rechargement ni recherche ; entrée d'un autre script à une autre adresse : rechargement, le serveur relit `?marque=globex` |
 
 `composer check` vert (215 tests PHP, 254 tests du client), suite `Modules` verte (294 tests).
 
@@ -6826,11 +7062,11 @@ passage dans Chrome montrait encore des recherches en trop : le document HTML é
 canonique de `//boutique`, cassée par Pollora, reste ouverte sous `R-140` ; un test manquant sur le
 repli (une valeur cochée compte dans la place avant « Voir plus ») est ajouté. Conformité avant le code ;
 cinq passes : un commentaire déplacé, la règle « le numéro de page est au listing » écrite à deux endroits
-→ regroupée dans `PageAddress`, des tests qui ne passaient que grâce à la structure de permaliens de
-Pluralia → structure fixée en mémoire (`RequestsAnAddress`). **Incident** : pour vérifier les permaliens
+→ regroupée dans `PageAddress`, des tests qui ne passaient que grâce à la structure de permaliens du
+projet de test → structure fixée en mémoire (`RequestsAnAddress`). **Incident** : pour vérifier les permaliens
 simples, l'agent de revue a enregistré une structure vide en base (~3 min) ; restaurés : l'option, la
 config WP Rocket, les 24 indexables Yoast (`ddev wp yoast index`). Vérifié dans Chrome : `//boutique`, filtrer
-→ `/boutique?marque=aeris` ; `/boutique/page/2`, Suivant → `/boutique?pg=3`, Retour → `/boutique/page/2`.
+→ `/boutique?marque=globex` ; `/boutique/page/2`, Suivant → `/boutique?pg=3`, Retour → `/boutique/page/2`.
 
 Restent connus, non traités ici : la limite de Safari sur `replaceState` (100 appels en 30 s, non mesurée) ; une requête `q` en UTF-8 invalide est publiée
 convertie par `wp_json_encode`.
@@ -6851,7 +7087,7 @@ listes plafonnées), 111 locales où `Intl.PluralRules` divergeait de `trans_cho
 CLDR), et un `RangeError` sur une locale comme `pt_PT_ao90` ; la troisième, un test qui ne protégeait pas
 les valeurs tenues hors des deux plafonds, un repli sans `ext-intl` qui aurait écrit « 0 résultats », un
 motif ICU relu à chaque appel. Mutations : quinze, toutes tuées. Conformité avant le code (deux passes, la première
-bloquée par le watchdog et relancée). Vu dans Chrome : `/boutique?marque=aeris` rend 5 catégories et 24
+bloquée par le watchdog et relancée). Vu dans Chrome : `/boutique?marque=globex` rend 5 catégories et 24
 contenances (4 et 7 visibles) ; « Voir plus » avant toute recherche ne révèle aucune valeur vide ; « Tout
 effacer » → 5 catégories, 24 contenances dont 10 lisibles et « Voir plus ». `/boutique?marque=nord-sel`,
 prix mini 150 : « Nord Sel » cochée, « 0 résultat » côté client comme dans le rendu serveur, décochable.
@@ -6883,7 +7119,7 @@ masque tous les blocs.
   rectifiée. *Performance* : rien. *Sécurité* : rien. *Contexte* : le client efface le balisage d'un bouton
   « Voir plus » surchargé — `R-143`.
 - **#7** — *Lisibilité* : « readable » a trois sens — `R-145` (4). *Commentaires* : rien. *Performance* : rien.
-  *Sécurité* : rien — par `curl`, `?marque=%FF` rend 200 et `?marque=aeris,%FF` publie l'état `aeris`.
+  *Sécurité* : rien — par `curl`, `?marque=%FF` rend 200 et `?marque=globex,%FF` publie l'état `globex`.
   *Contexte* : rien. La ligne #7 du tableau décrivait encore la moitié client retirée avec `url-text.ts` —
   rectifiée.
 
@@ -6967,7 +7203,7 @@ disperser éparpillerait le contrat que ces deux fichiers tiennent ensemble.
 
 **Mesuré** (après la revue) : ESLint vert ; 227 tests Node, couverture 95,3 % des lignes, 92,3 % des
 branches (94,7 / 91,1 avant le point) ; 195 tests `Unit`, 273 `Modules`. Dans Chrome, sur
-`/boutique?marque=aeris&max_price=44` : grille du serveur (plan PHP) identique à celle de la première
+`/boutique?marque=globex&max_price=44` : grille du serveur (plan PHP) identique à celle de la première
 recherche du client (plan TypeScript) ; plan envoyé = résultats, comptage de la marque sans sa clause,
 bornes sans la clause du prix ; tri au clavier et saisie au vol, poignée au clavier et glissée,
 remise à zéro, pagination, retour, sans erreur.
@@ -6988,14 +7224,14 @@ premier rendu — `R-144`.
 
 Constaté pendant la recette de `R-133`, antérieur à la conversion. Le thème écrit
 `$card['image_alt'] ?: $card['title']` (`parts/posts/post-card.blade.php`), le client
-`card.image_alt ?? card.title` : un `image_alt` indexé vide — le cas de « Crème Hydratante Riche » — donne
+`card.image_alt ?? card.title` : un `image_alt` indexé vide — le cas de « Crème hydratante » — donne
 le titre au premier rendu et un `alt` vide dès la première recherche. L'image perd son nom pour un lecteur
 d'écran.
 
 **Corrigé** (demandé par Louis) : le rendu du module suit `CardImage::from()` — `image_alt ?: titre` — et
 `CardView` fait désormais de même (`image_alt || titre`). Écart résiduel assumé : PHP tient aussi la chaîne
 `'0'` pour vide, pas JavaScript. Test ajouté, qui échoue sur l'ancienne règle. Vérifié dans Chrome sur
-`/boutique?marque=aeris` : « Crème Hydratante Riche » garde son `alt` après deux tris, aucune image de la
+`/boutique?marque=globex` : « Crème hydratante » garde son `alt` après deux tris, aucune image de la
 grille n'a d'`alt` vide.
 
 **Cinq passes (2026-09-17, sur le code à HEAD).** *Lisibilité* : rien. *Commentaires* : le docblock de
@@ -7289,7 +7525,7 @@ complété. *Commentaires* : le contrat `ProductSorts` annonçait « to its expr
 filtre — « to its sort ». *Performance* : `ListingSearch` évaluait `isNarrowed()`, qui construit toutes les
 requêtes de filtre, avant de savoir si le listing a des facettes — conditions inversées ; le reste relève
 de `R-01`. *Sécurité* : rien — `sort` est comparé aux tris déclarés, la valeur échappée une fois, le champ
-vient du code. *Contexte* : rien sur Pluralia ; deux constats refusés ci-dessous.
+vient du code. *Contexte* : rien sur le projet de test ; deux constats refusés ci-dessous.
 
 **Refusé, par écrit** :
 
@@ -7318,7 +7554,7 @@ prix l'a été du filtre (`D-b`). `ProductPriceProjector` indexe `is_on_sale()`,
 renseigné et égal au prix courant (`class-wc-product-data-store-cpt.php`, colonne `onsale`), qu'appliquent
 aussi ses propres listes « en promotion » (`wc_get_product_ids_on_sale()`, Store API `on_sale`).
 
-Mesuré sur Pluralia :
+Mesuré sur le projet de test :
 
 | définition | produits |
 | --- | --- |
@@ -7388,7 +7624,7 @@ validé au relâchement d'une touche qui ne déplace rien. Les tests existants p
 `stroke()` (appui puis relâchement), ajouté à `dom.js` avec `release()`.
 
 **Vérifié le 2026-09-17 dans le navigateur (Playwright), mode `immediate`** : `apply_mode` passé en
-`immediate` dans `config/meilifacets.php` de Pluralia le temps de la mesure, puis remis à `submit`. Dix
+`immediate` dans `config/meilifacets.php` du projet de test le temps de la mesure, puis remis à `submit`. Dix
 `keydown` sur la poignée haute l'amènent de 199 à 189 sans aucune requête `multi-search` ni changement
 d'adresse ; le `keyup` en envoie une seule et écrit `?max_price=189`. Les touches passent par
 `dispatchEvent` : les événements clavier de Playwright n'atteignent toujours pas la poignée.
@@ -7448,9 +7684,9 @@ a une largeur et reste dessinée.
 ne rendent aucune borne quand les extrémités élargies se rejoignent. Le bloc se masque alors par le
 chemin déjà prévu pour « aucun résultat » — `hidden` côté serveur, `#receive()` côté client.
 
-Vérifié dans Chromium sur `/categorie-produit/parfum`, où Avril n'a qu'un produit, à 38,00 € : cocher
-Avril masque le bloc sans recharger ; décocher le réaffiche ; la même URL rendue par le serveur le masque
-aussi ; et depuis ce rendu masqué — bornes vides dans le HTML — décocher Avril rend la piste à 19–199 €,
+Vérifié dans Chromium sur `/categorie-produit/parfum`, où Umbrella n'a qu'un produit, à 38,00 € : cocher
+Umbrella masque le bloc sans recharger ; décocher le réaffiche ; la même URL rendue par le serveur le masque
+aussi ; et depuis ce rendu masqué — bornes vides dans le HTML — décocher Umbrella rend la piste à 19–199 €,
 poignées aux extrémités. Un test PHP et un test JS : 20–20 masqué, 20–20,40 dessiné en 20–21.
 
 **Passes.** Lisibilité : une condition de plus à l'endroit qui décide déjà qu'il n'y a rien à dessiner.
@@ -7483,8 +7719,8 @@ fois. Il sert au filtre **et** à l'URL : le parcours avait montré la même fui
 par le client (`min_price=1e-7`), que le serveur relisait sans erreur mais qui donnait deux écritures à un
 même état. Il vit à côté de `valuesTo()`, qui écrit déjà les valeurs de facettes dans l'URL.
 
-Vérifié dans Chromium sur `?min_price=0.0000001&max_price=60`, puis Aeris coché : filtre envoyé
-`price.max >= 0`, aucune réponse d'erreur du moteur, URL réécrite `?marque=aeris&min_price=0&max_price=60`.
+Vérifié dans Chromium sur `?min_price=0.0000001&max_price=60`, puis Globex coché : filtre envoyé
+`price.max >= 0`, aucune réponse d'erreur du moteur, URL réécrite `?marque=globex&min_price=0&max_price=60`.
 Deux tests JS, filtre et URL.
 
 **Passes.** Lisibilité : une méthode statique, deux appelants. Commentaires : une ligne, l'anomalie du
@@ -7572,7 +7808,7 @@ Nommer la plage (« jusqu'à 25 € ») reste l'affaire de `R-47`. Ici, il s'agi
 WooCommerce la présente en un seul libellé. Depuis `R-122`, une borne posée au bord n'entre plus dans
 l'état : le compteur ne peut donc pas compter une plage qui ne filtre rien.
 
-Vérifié dans Chromium : plage seule → « 1 filtre actif » ; plage et Aeris → « 2 filtres actifs » ; la
+Vérifié dans Chromium : plage seule → « 1 filtre actif » ; plage et Globex → « 2 filtres actifs » ; la
 même URL rendue par le serveur → « 2 filtres actifs ». Un test PHP et un test JS, sur les trois formes :
 deux bornes, une seule, et avec des facettes.
 
@@ -7605,8 +7841,8 @@ elles se lisent désormais sur les `min`/`max` que le serveur pose sur les champ
 quand rien ne les dit.
 
 Vérifié dans Chromium : poignée haute à 198 → `?max_price=198` ; basse à 1 → `?min_price=1&max_price=198` ;
-les deux ramenées au bord → URL vide ; saisie de 199 dans « À » → URL vide ; sous Aeris, poignée haute
-poussée à 47 → `?marque=aeris`. Trois tests JS, dont le mode champs seuls ; un test existant attendait
+les deux ramenées au bord → URL vide ; saisie de 199 dans « À » → URL vide ; sous Globex, poignée haute
+poussée à 47 → `?marque=globex`. Trois tests JS, dont le mode champs seuls ; un test existant attendait
 `[0, 89]` et attend désormais `[null, 89]`, ce qui est exactement le changement.
 
 **Passes.** Lisibilité : `#commitFields()` délègue à `#asked()`, 10 lignes ; `#number()` factorise la
@@ -7618,7 +7854,7 @@ qui refuse ce qui n'est pas un prix. Contexte : aucun.
 
 ### R-121 · 🟠 · **fermé le 2026-09-16** · ouvert le 2026-09-16 — le client ne remesure jamais les bornes de prix
 
-Reproduit dans Chromium : sur `/boutique`, cocher Maison Solaire puis appliquer. La grille se
+Reproduit dans Chromium : sur `/boutique`, cocher Contoso puis appliquer. La grille se
 filtre, mais la piste reste à **0 – 199 €**. Rechargée, la même URL affiche **43,40 – 199 €** : le
 serveur mesure, le client non.
 
@@ -7647,7 +7883,7 @@ La ligne sous la piste n'avait aucun crochet. Deux s'ajoutent, **`price-bounds-m
 laisser entrer dans le contrat aurait figé deux sens pour un nom. `Contract::VERSION` reste à 1 : un
 crochet ajouté n'incrémente pas (`R-116`).
 
-Vérifié dans Chromium sur le code publié : Maison Solaire → piste et champs à **43 – 199 €** sans
+Vérifié dans Chromium sur le code publié : Contoso → piste et champs à **43 – 199 €** sans
 recharger ; plage posée dessous → bornes inchangées ; marque retirée → **0 – 199 €**, plage conservée.
 
 **Les cinq passes** (revue déléguée), et ce qui en a été fait :
@@ -7762,7 +7998,7 @@ La piste couvre alors toujours les prix extrêmes, et une poignée entière ne p
 maximum. Le client lit ses bornes dans les `aria-valuemin`/`aria-valuemax` que le serveur rend, donc
 une correction suffit aux deux. Les poignées gardent leur pas entier ; c'est la piste qui s'élargit.
 
-Vérifié dans Chromium sur `?marque=aeris` (prix de 9,50 à 46,40 €) : piste **9 – 47 €**, poignées
+Vérifié dans Chromium sur `?marque=globex` (prix de 9,50 à 46,40 €) : piste **9 – 47 €**, poignées
 ramenées au bout par `Home` et `End` puis appliquées, les 10 produits restent, dont les deux
 extrêmes. Un test : 9,8 → 9 et 46,4 → 47 ; le test existant passe de 4,5 à 4.
 
@@ -7977,7 +8213,7 @@ Deux défauts trouvés en fermant, et corrigés dans la foulée :
    `SingleIndexingServiceProvider::shouldSkipPostOperation()` (`:395-397`) renvoie `true` dessus,
    en silence.
 
-**Mesure, produit 362 « Huile Régénérante Nuit », promotion programmée qui démarre :**
+**Mesure, produit 362 « Huile de nuit », promotion programmée qui démarre :**
 
 ```
 avant          _price=46.00   index price.min=46
@@ -8470,10 +8706,10 @@ coup, en complétant le registre.
 
 Les tests de placement écrivaient en dur `3`, `category`, `brand`, `volume`, `product_cat`,
 `product_brand` et le nom de listing `products`. Tout cela vient de
-`App\Cms\Products\CatalogueFacets`, que Pluralia binde par-dessus `ProductFacets`
+`ShopFacets`, que le projet de test binde par-dessus `ProductFacets`
 (`AppServiceProvider:30`). Le `WooCommerceFacets` du module, lui, déclare deux facettes et n'en
 nomme aucune : leurs noms sont `product_cat` et `product_brand`. **Ajouter une quatrième facette à
-la boutique cassait la suite du module** — l'inverse de la règle du `CLAUDE.md` : « Pluralia is its
+la boutique cassait la suite du module** — l'inverse de la règle du `CLAUDE.md` : « A local project is its
 test bed, not its owner. »
 
 Correctif en deux temps :
@@ -8482,7 +8718,7 @@ Correctif en deux temps :
   `$this->declaredCount()`, `$listing->name()` — au lieu de les recopier ;
 - les règles de placement elles-mêmes ont quitté la suite `Feature` pour `Unit\FacetPlacementTest`,
   qui monte un `ResolvedListing` sur des facettes **qu'il déclare lui-même** (`FakeListing`), sans
-  conteneur, sans Blade et sans Pluralia. Ce qui reste en `Feature` ne prouve qu'une chose : que le
+  conteneur, sans Blade et sans le projet de test. Ce qui reste en `Feature` ne prouve qu'une chose : que le
   composant demande bien au listing ce que la règle exige.
 
 Un test dépendait aussi d'un réglage du projet sans le dire :
@@ -8521,7 +8757,7 @@ par le module. Elle n'est atteinte que par la suite `Feature`, qui exige déjà 
 
 ### R-103 · 🟢 · **fermé le 2026-09-09** · ouvert le 2026-09-09 — `forgetScopedInstances()` sans `tearDown()`
 
-La suite partage une seule application pour tout le run (gotcha 23 du `CLAUDE.md` projet), donc
+La suite partage une seule application pour tout le run (consigné dans les notes du projet de test), donc
 `FacetComponentTest` laissait derrière lui un `ResolvedListing` portant les facettes qu'il avait
 placées.
 
@@ -8545,7 +8781,7 @@ placent des facettes. Seul, il est vert dans les deux cas. C'est le seul test qu
 
 ### R-107 · 🟡 · **fermé le 2026-09-09** · ouvert le 2026-09-09 — le texte des contrôles n'est pas au centre optique
 
-Relevé par Louis sur capture, cause confirmée par lui puis mesurée : **les métriques d'Epilogue**.
+Relevé par Louis sur capture, cause confirmée par lui puis mesurée : **les métriques de la police du thème**.
 À 14 px, la police déclare `ascent 11 px / descent 3 px` ; les libellés des contrôles (« Pertinence »,
 « Tout effacer ») n'ont aucun jambage, donc la réserve de 3 px reste vide et l'encre remonte.
 
@@ -8573,7 +8809,7 @@ que le décalage ne dépend pas de la feuille mais du **mot** :
 | « Appliquer les filtres » | 3,1 px | **0,01 px** |
 | le même bouton, texte remplacé par « Prix apres » | 3,1 px | 0,59 px |
 
-Un texte sans jambage laisse vides les 3 px qu'Epilogue réserve en bas et remonte d'autant ; le même
+Un texte sans jambage laisse vides les 3 px que la police réserve en bas et remonte d'autant ; le même
 bouton avec un mot qui descend est centré au centième de pixel. C'est le comportement de tout
 centrage de boîte de ligne, sur n'importe quelle police et n'importe quel site — pas un défaut de la
 feuille du module.
@@ -8832,7 +9068,7 @@ qui la citent.
 ### Cadrage
 
 **Q-01 · ~~Ce module est-il un module de projet ou un paquet réutilisable ?~~** — **répondu le
-2026-09-06, voir D-01.** Module Pollora générique, Pluralia en banc d'essai. Le module porte le
+2026-09-06, voir D-01.** Module Pollora générique, le projet de test en banc d'essai. Le module porte le
 fonctionnement, le thème l'apparence, chaque vue reste surchargeable, et le module livre une
 feuille de style **minimale** — ce dernier point ouvre R-53 et Q-28.
 
@@ -8915,6 +9151,7 @@ L'état intermédiaire actuel — le paramètre agit sans que rien ne l'affiche 
 
 **Q-10 · La carte du listing est-elle celle du module ou celle du thème ?**
 La wishlist a disparu de l'archive produit et la doc annonce l'inverse. *Cite : R-45.*
+*Répondue le 2026-09-30 (`R-203`) : celle du thème, comme `decisions.md` le disait ; le module la rend possible par la liaison d'attributs, sans rien connaître d'elle.*
 
 **Q-11 · Le prix reste-t-il du HTML non filtré ?**
 La décision est argumentée et je ne la conteste pas ; il faut soit la confirmer et purger la doc
@@ -9091,7 +9328,7 @@ parallèle : il ne touche pas au rendu.
 | Id | Tâche | Ferme | État |
 | --- | --- | --- | --- |
 | T-01 | Cadrage : rôle du module, dépôt, méthode | R-38 (partiel) | **fait** — D-01, D-02, D-03 |
-| T-02 | Trancher Q-05, Q-06, Q-10 (forme du listing) | R-10, R-11, R-45 | partiel — Q-05 et Q-06 réglées par D-07 ; reste Q-10 |
+| T-02 | Trancher Q-05, Q-06, Q-10 (forme du listing) | R-10, R-11, R-45 | fait — Q-05 et Q-06 réglées par D-07, Q-10 par `R-203` (2026-09-30) |
 | T-03 | Trancher Q-03 et Q-11 (modèle de sécurité) | R-26, R-27, R-28 | à faire — Q-11 tranchée dans `decisions.md`, non marquée (R-26) |
 | T-04 | Fixer le calendrier de montée de version du moteur (Q-12) | R-41 | à faire |
 | T-31 | Fixer la ligne fonctionnement / apparence de la feuille de style (Q-28) | R-53 | **fait** — Q-28 répondue, R-53 fermé |
@@ -9250,7 +9487,7 @@ dans la suite autonome. Voir D-06.
 **I-09 · Un `TestCase` propre au module, pour rendre la suite `Feature` autonome.**
 `CardComponentTest` et `ResultsComponentTest` n'ont besoin que du moteur Blade, pas de WordPress ni de
 l'application complète : `illuminate/view` monté à la main en `require-dev` suffirait. Le module
-vérifierait alors ses vues partout, et non seulement dans Pluralia. Ouvert par T-38.
+vérifierait alors ses vues partout, et non seulement dans le projet de test. Ouvert par T-38.
 
 **I-08 · Mesurer avant d'arbitrer sur le catalogue réel.**
 Trois décisions ouvertes attendent le catalogue de production (compteurs sous variations, mode
@@ -9276,7 +9513,7 @@ continuer à décider sur 76 produits sans variations.
   148 blocs PHPDoc, 57 porteurs de prose dont une trentaine condamnés par une règle déjà écrite ;
   `@return list<string>` répété 12 fois pour trois informations. `CLAUDE.md` du module réécrit
   (45 → 132 lignes), deux sous-agents ajoutés dans `.claude/agents/`. Le hook est **différé** :
-  chercher à l'écrire sans dépendre de Pluralia a fait apparaître R-55 — le module n'a ni
+  chercher à l'écrire sans dépendre du projet de test a fait apparaître R-55 — le module n'a ni
   `require-dev`, ni `phpunit.xml`, ni `pint.json`, et deux de ses tests dépendent du `TestCase` du
   projet. Total : 55 constats, 5 décisions, 30 questions, 38 tâches.
 - **2026-09-06** — T-38 livré, R-55 fermé. Le module a ses propres `require-dev`, `phpunit.xml`,
@@ -9285,7 +9522,7 @@ continuer à décider sur 76 produits sans variations.
   nommément. Boucle de retour : 38 ms pour 103 tests autonomes, contre 2,9 s via le projet. La
   suite du projet reste verte (121 tests). I-09 ouvert. D-06 : le repli `__()` du bootstrap de
   test est assumé et documenté, après vérification qu'aucun précédent n'existe dans le projet —
-  `Modules/Wishlist` n'a aucun test, et `pluralia-fulfillments` fait le choix inverse en logeant
+  l'autre module du projet n'a aucun test, et un plugin du projet fait le choix inverse en logeant
   les siens dans le projet. I-10 ouvert. T-36 posé dans la foulée : hook `Stop` exécutant
   `composer check`, versionné dans le module. Il est bloquant — une vérification rouge empêche de
   rendre la main et son sortie remonte ; à retirer de `.claude/settings.json` si ça gêne.
@@ -9399,7 +9636,7 @@ continuer à décider sur 76 produits sans variations.
   milieu du bloc. Accrochée à la première ligne, portée à `1em`, `accent-color` sur `currentColor`.
   Écart après : 0,85px. Le test a attrapé au passage un défaut de portabilité que le navigateur
   cachait : un `<input>` n'hérite pas de la taille de police, donc `1em` valait 13,3px partout où le
-  thème ne remet pas les polices de formulaire à plat — Pluralia le fait, d'où l'illusion.
+  thème ne remet pas les polices de formulaire à plat — le projet de test le fait, d'où l'illusion.
   Le compteur passe en `white-space: nowrap` : sur un libellé long, « 14 résultats » se coupait.
   **Alignement de la barre** — le tri était posé au-dessus de la colonne de facettes (69,5 → 367)
   alors qu'il commande la grille (399 → 1355), et le texte de son déclencheur, décalé de 12px par
@@ -9451,7 +9688,7 @@ continuer à décider sur 76 produits sans variations.
   ligne d'un libellé qui se replie. Mesuré : centres optiques du compteur et du libellé à **0,09px**,
   case à **0,00px** de la bande de capitales.
   Enfin, une taille est désormais décidée — `--meili-ui`, `0.875rem`, sur les commandes seules :
-  hériter des 18px de Pluralia donnait des facettes plus grosses que ce qu'elles filtrent. Mesuré
+  hériter des 18px du projet de test donnait des facettes plus grosses que ce qu'elles filtrent. Mesuré
   après : déclencheur et libellés à 14px, compteurs à 12.6px, titre de carte inchangé à 32px.
 - **2026-09-07** — Passe de conformité de la documentation, en sous-agent, sur les neuf documents :
   chaque affirmation nommant un symbole, une constante, un nombre ou un chemin vérifiée contre les

@@ -44,7 +44,7 @@ Container bindings, set in a project service provider's `register()`.
 | `Listing` | the product listing, when WooCommerce is active | what a listing declares — discovered, never registered |
 
 ```php
-$this->app->scoped(ProductFacets::class, CatalogueFacets::class);
+$this->app->scoped(ProductFacets::class, ShopFacets::class);
 ```
 
 | Filter | Passed | Purpose |
@@ -127,6 +127,107 @@ Components go anywhere in the template and share a single search.
 
 Any other content gets a listing by implementing `Listing`; the class is discovered on its own.
 
+### Declaring facets
+
+Without a binding, a shop is browsed by category and brand. A project that wants other facets
+implements `ProductFacets` and lists them in the order the page shows them:
+
+```php
+use Modules\MeiliFacets\Contracts\ProductFacets;
+use Modules\MeiliFacets\Enums\DisplayOrder;
+use Modules\MeiliFacets\Enums\Presentation;
+use Modules\MeiliFacets\Enums\ProductTaxonomy;
+use Modules\MeiliFacets\Listing\ChildTermsFacet;
+use Modules\MeiliFacets\Listing\Facet;
+use Modules\MeiliFacets\Listing\NameOrder;
+use Modules\MeiliFacets\Listing\PriceFilter;
+
+final class ShopFacets implements ProductFacets
+{
+    public function __construct(private readonly NameOrder $names) {}
+
+    public function all(): array
+    {
+        return [
+            new ChildTermsFacet(ProductTaxonomy::Category->value, __('Category'), order: $this->names),
+            new Facet(ProductTaxonomy::Brand->value, __('Brand'), order: $this->names),
+            new Facet('pa_color', __('Color'), order: DisplayOrder::Declared, presentation: Presentation::Pill),
+            new PriceFilter(__('Price')),
+        ];
+    }
+}
+```
+
+```php
+// in a project service provider's register()
+$this->app->scoped(ProductFacets::class, ShopFacets::class);
+```
+
+A `Facet` takes a taxonomy and a label; the named arguments are optional — `selection`
+(`SelectionMode::Multiple` or `Single`), `order` (`DisplayOrder::Count`, `Declared`, or a
+`ValueOrder` such as `NameOrder`), `visible`, `cap`, `defaultTerm`, `name` and `presentation`.
+`ChildTermsFacet` offers only the terms directly under the one the path carries, which keeps a deep
+hierarchy readable. Declaring a `PriceFilter` also enables the "On sale" sort. The module binds its
+default with `scopedIf`, so the project's `scoped` wins.
+[docs/configuration.md](docs/configuration.md) covers naming a facet, placing it on its own in a
+template, and presentations of your own.
+
+### Overriding behaviour
+
+Every other contract in the table above is replaced the same way, and most are best **decorated**:
+take the module's default in the constructor and change what it returns, so later additions still
+reach the project. A sort menu without "New arrivals":
+
+```php
+use Illuminate\Support\Arr;
+use Modules\MeiliFacets\Contracts\ProductSorts;
+use Modules\MeiliFacets\Listing\WooCommerceSorts;
+
+final class ShopSorts implements ProductSorts
+{
+    public function __construct(private readonly WooCommerceSorts $defaults) {}
+
+    public function all(): array
+    {
+        return Arr::except($this->defaults->all(), ['newest']);
+    }
+}
+```
+
+A card carrying one more field stacks on the existing projector with `extend()` — a `bind()` would
+drop the WooCommerce price:
+
+```php
+use Modules\MeiliFacets\Contracts\CardProjector;
+use WP_Post;
+
+final readonly class SubtitleCardProjector implements CardProjector
+{
+    public function __construct(private CardProjector $card) {}
+
+    public function project(WP_Post $post): array
+    {
+        return [
+            ...$this->card->project($post),
+            'subtitle' => (string) get_post_meta($post->ID, 'subtitle', true),
+        ];
+    }
+}
+```
+
+```php
+$this->app->scoped(ProductSorts::class, ShopSorts::class);
+$this->app->extend(
+    CardProjector::class,
+    fn (CardProjector $card): CardProjector => new SubtitleCardProjector($card)
+);
+```
+
+A new card field is only in the documents after a reindex. Searchable fields and their rank
+(`SearchableAttributes`) and the content types the site search queries (`SearchableTypes`) are
+decorated the same way; [docs/configuration.md](docs/configuration.md) has an example of each, and
+how to bind a projected field in a card view.
+
 ### Overriding the markup
 
 The module looks for its views in the active theme first. A file in
@@ -138,11 +239,63 @@ is missing, or the contract version on the listing root no longer matches the cl
 does not start — the page stays as the server rendered it, and the console names what is missing.
 The hooks are listed in [docs/architecture.md](docs/architecture.md).
 
+### Theming
+
+The stylesheets are neutral: colours derive from `currentColor` and the system colours `Canvas` and
+`CanvasText`, and no font is set. Appearance is adjusted with CSS custom properties. Their
+defaults are declared on the component roots — `[data-listing]` for the listing,
+`[data-meili="search"]` for the site search — so a value set on `:root` never reaches them: set it
+on those roots. A stylesheet requested after `wp_head` is printed in the body, just before its
+component and after the theme's, so give the override a selector more specific than the module's:
+
+```css
+body [data-listing],
+body [data-meili="search"] {
+    --meili-radius: 4px;
+    --meili-surface: #ffffff;
+    --meili-control: 2.75rem;
+    --meili-duration-hover: 100ms;
+}
+```
+
+| Variable | Root | Sets |
+| --- | --- | --- |
+| `--meili-edge` | both | border colour of fields and controls |
+| `--meili-rule` | both | separator lines |
+| `--meili-tint` | both | hover background |
+| `--meili-muted` | both | secondary text: counts, prices, summaries |
+| `--meili-scrim` | both | veil behind the drawer or the search panel |
+| `--meili-surface` | both | background of what sits over the page: panels, drawer, sort list |
+| `--meili-line` | listing | line height of a section heading and of a value |
+| `--meili-radius` | both | corner radius of controls, value rows and thumbnails |
+| `--meili-pill` | both | corner radius of pill-shaped controls |
+| `--meili-ui` | both | text size of the components |
+| `--meili-control` | both | height of controls and fields |
+| `--meili-control-inline` | listing | inline padding of the bar's controls |
+| `--meili-ease` | both | easing of entrances |
+| `--meili-ease-drawer` | listing | easing of the mobile drawer |
+| `--meili-ease-exit` | search | easing of the panel and veil leaving |
+| `--meili-duration-hover` | both | hover transitions |
+| `--meili-duration-fade` | both | fades |
+| `--meili-duration-drawer-in`, `--meili-duration-drawer-out` | listing | drawer opening and closing |
+| `--meili-duration-pop-in`, `--meili-duration-pop-out` | search | panel opening and closing |
+| `--meili-layer-drawer` | listing | `z-index` of the drawer |
+| `--meili-layer-search` | search | `z-index` of the search panel; its veil sits one below |
+
+Spacing, panel widths and the search icons have their own variables; the full list, with each
+default, is in [docs/configuration.md](docs/configuration.md). A theme that wants none of this
+dequeues the stylesheets (`meilifacets`, `meilifacets-site-search`) and styles the `data-meili`
+hooks itself. Markup is overridden by view, as described above, under
+`<theme>/resources/views/modules/meilifacets/components/`.
+
 ### Before going to production
 
 - `php artisan meilifacets:check-parameters` checks the URL parameter names against WordPress
   query vars, the names WooCommerce reads, and what the proxy strips.
 - The production engine must be upgraded past 1.10.3.
+- Reindex after regenerating thumbnails or editing an image in the media library: a card's image
+  URL, `srcset`, alt text and dimensions are stored at indexing time, and editing the image alone
+  does not reindex the products that use it.
 - WP-Cron has to run, or the index drifts from the catalogue without a sign
   ([docs/configuration.md](docs/configuration.md)).
 

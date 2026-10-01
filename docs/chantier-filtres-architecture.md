@@ -52,11 +52,11 @@ Changements depuis la v1 :
 - Tant que le tiroir couvre la page, la grille derrière n'est pas repeinte : `DeferredRepaint` garde la dernière réponse et la peint la frame suivant la fermeture (`R-173`). Les compteurs du tiroir, eux, suivent tout de suite.
 - Sans JS, tout reste visible en ligne.
 
-## 3. Composition par le thème Pluralia
+## 3. Composition par le thème du projet de test
 
 ```blade
-{{-- themes/pluralia/resources/views/woocommerce/archive-product.blade.php, tel qu'il est --}}
-<x-meilifacets::listing class="mx-auto max-w-site pt-6">
+{{-- woocommerce/archive-product.blade.php du thème de test, tel qu'il est --}}
+<x-meilifacets::listing class="mx-auto max-w-7xl pt-6">
     @if (is_tax('product_cat'))
         <x-meilifacets::listing.facet :facet="ShopFacet::Category" />
     @endif
@@ -86,7 +86,7 @@ Changements depuis la v1 :
 </x-meilifacets::listing>
 ```
 
-La présentation `Pill` n'est pas passée en attribut : Pluralia la déclare sur la facette « Volume » dans `App\Cms\Products\CatalogueFacets`.
+La présentation `Pill` n'est pas passée en attribut : le projet de test la déclare sur la facette « Volume » dans sa liaison de `ProductFacets`.
 
 - **Desktop.** L'ouvreur est masqué. Le `drawer` est un simple `<div>` flex : pill « Trier », pills des facettes, puis le pied. Le thème masque le `reset` du pied quand le tiroir n'est pas modal. « 88 articles » est à droite. Dessous : pastilles et « Annuler ».
 - **Mobile.** La première ligne contient « Filtre (n) » et le compteur : le tiroir fermé est masqué, puis ouvert en position fixe hors du flux. Dessous : pastilles et « Annuler ».
@@ -170,11 +170,11 @@ Ces lignes reprennent les règles réelles de `RULES` (`shared/contract.ts`) ; l
 - **Q-2** Sur quel périmètre poser `inert` ? ★ Sur les frères de chaque ancêtre du tiroir jusqu'à `<body>` : en-tête, pied de page, barre d'administration. Seul ce qui a été posé est restauré.
 - **Q-3** Seuil mobile : une variable CSS ne peut pas servir dans une media query. ★ La valeur est écrite en dur dans le CSS, et l'attribut `media` du tiroir la reprend par défaut ; un test de parité vérifie l'accord. Un thème qui veut un autre seuil redéclare le bloc CSS **et** passe `media`.
 - **Q-4** Panneaux fermés côté serveur : sans JS, les sections repliables sont fermées. Rien ne filtre de toute façon sans JS (pas de `<form>`), comme pour `sort-list` et « Voir plus ». ★ Fermés côté serveur. L'alternative, ouvrir côté serveur puis fermer en JS, fait flasher les panneaux.
-- **Q-5** Où placer « Appliquer » en desktop avec `apply_mode=submit`, la configuration de Pluralia ? La maquette n'en montre pas. ★ À la fin de la rangée (le pied reste dans le flux).
+- **Q-5** Où placer « Appliquer » en desktop avec `apply_mode=submit`, la configuration du projet de test ? La maquette n'en montre pas. ★ À la fin de la rangée (le pied reste dans le flux).
 - **Q-6** Le nom de la disposition `Bar` et la décision C-8 deviennent sans objet ; `decisions.md` et `chantier-filtres.md` sont à reprendre.
 
 **Risques**
-- **Sans couche supérieure** (option A) : `position: fixed` casse sous un ancêtre qui a `transform`, `filter`, `contain` ou `container-type`, et le `z-index` reste enfermé dans le contexte d'empilement du parent. À vérifier sur le gabarit Pluralia.
+- **Sans couche supérieure** (option A) : `position: fixed` casse sous un ancêtre qui a `transform`, `filter`, `contain` ou `container-type`, et le `z-index` reste enfermé dans le contexte d'empilement du parent. À vérifier sur le gabarit du projet de test.
 - **Si le client ne démarre pas** (infraction au contrat), l'ouvreur mobile ne fait rien, puisque `scripting: enabled` suffit à masquer le tiroir.
 - **Panneau déroulant rogné** si la rangée a un `overflow` : le thème doit la faire passer à la ligne (`flex-wrap`) plutôt que défiler.
 - **Nom du groupe** : la `<legend>` contient le bouton et son badge, donc le nom du fieldset devient « Marque, 2 sélectionnées ». À écouter à l'étape 6.

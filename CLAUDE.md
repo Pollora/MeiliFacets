@@ -1,6 +1,6 @@
 # MeiliFacets — working rules
 
-A generic Pollora module. Pluralia is its test bed, not its owner: the module carries behaviour,
+A generic Pollora module. A local project is its test bed, not its owner: the module carries behaviour,
 the theme carries appearance, and every view stays overridable.
 
 **The register is `docs/revue.md`.** Every decision (`D-xx`), finding (`R-xx`),

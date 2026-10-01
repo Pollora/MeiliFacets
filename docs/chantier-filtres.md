@@ -12,7 +12,7 @@ piocher une idée, une fois la décision correspondante prise ici.
 
 **État au 2026-09-25 — chantier en pause, branche prête pour `main`.** Étapes 0 à 5 et 7 livrées et
 commitées ; audit de branche `R-178` (lots A à F) fermé. **Étapes 6 (accessibilité) et 8 (habillage
-Pluralia) mises en attente par Louis le 2026-09-25**, à reprendre plus tard ; leurs points restent
+du thème de test) mises en attente par Louis le 2026-09-25**, à reprendre plus tard ; leurs points restent
 listés ci-dessous. Le chantier suivant (recherche du site) est cadré dans
 [chantier-recherche.md](chantier-recherche.md).
 
@@ -31,12 +31,12 @@ S'y ajoutent des briques communes aux deux dispositions : compteur de résultats
 filtres actifs, lien « Annuler ». Et un choix de **présentation des valeurs** (cases, radios,
 pastilles type « 15 ML ») et d'**activation** propre à chaque facette.
 
-Le module rend un markup brut et accessible ; le thème Pluralia en porte l'apparence (`D-01`).
+Le module rend un markup brut et accessible ; le thème du projet de test en porte l'apparence (`D-01`).
 Aucune logique dans les vues : les classes de composant préparent, le Blade affiche.
 
 ## Sources de design
 
-Fichier Figma `URXURsgp0hWOmDeDVA37qs`, lu **exclusivement par le MCP Figma** —
+La maquette, lue **exclusivement par le MCP Figma** —
 `get_design_context` puis `get_variable_defs` pour toutes les valeurs ; `get_screenshot` ne sert que
 de référence d’ensemble, jamais à relever un détail. Une valeur absente se demande.
 
@@ -84,7 +84,7 @@ besoin**, pas avant.
 
 ### 0 · Préparation — ✅ fermée le 2026-09-24
 
-- [x] Travail non validé mis de côté (stash dans le module et dans Pluralia)
+- [x] Travail non validé mis de côté (stash dans le module et dans le projet de test)
 - [x] Branche `feat/filter-bar` créée depuis `main`
 - [x] Maquettes lues par le MCP Figma (trois nœuds ci-dessus)
 - [x] Passe de conformité : contradictions listées en C-1 → C-8
@@ -99,7 +99,7 @@ Aucun code. Proposition v2 rendue le 2026-09-24 : [chantier-filtres-architecture
 - [x] clés de config : aucune recommandée (disposition et présentation en attributs / déclaration)
 - [x] enums `Presentation` (sans cas `Radio`, `R-10`) et `SortWidget` ; plus d'enum `Layout` (v2)
 - [x] C-1 à C-8 tranchés par Louis (2026-09-24)
-- [x] Q-5 tranchée 2026-09-24 : Pluralia **reste en `apply_mode=submit` pour évaluer le rendu** (bouton « Appliquer » en fin de rangée desktop) ; bascule en `immediate` envisagée après validation visuelle de Louis
+- [x] Q-5 tranchée 2026-09-24 : le projet de test **reste en `apply_mode=submit` pour évaluer le rendu** (bouton « Appliquer » en fin de rangée desktop) ; bascule en `immediate` envisagée après validation visuelle de Louis
 - [x] Q-1 → Q-4 et Q-6 validées 2026-09-24 selon les ★ de l'architecture v2 (sections multiples dans le tiroir, `inert` sur l'entourage, seuil mobile en dur + attribut `media`, repliables fermés côté serveur, `Bar` retiré)
 - [x] autorisés 2026-09-24 : dossiers `ts/drawer/` et `ts/collapsible/`, crochets `Hook` du § 5 de l'architecture
 - [x] recommandations UI/animations toutes retenues (2026-09-24), réparties en UX-1 → UX-4 et ANIM-1 → ANIM-13
@@ -116,7 +116,7 @@ Utiles aux deux dispositions, livrées d'abord dans `Sidebar`.
       valeurs rendues, repliées comprises (`R-57`) — C-7, `R-47` fermé le 2026-09-24
 - [x] lien « Annuler » : le `Reset` existant (C-2), posé par le thème à côté des pastilles —
       `<x-meilifacets::reset shape="pill" />` après `<x-meilifacets::active-values />` dans
-      `archive-product.blade.php` (Pluralia `2f7a473`)
+      `archive-product.blade.php` (projet de test, `2f7a473`)
 - [x] 2c · doublons légitimes peints partout (`reset`, `active-filters`), crochet `active-count`, garde du
       tri — `R-162` fermé le 2026-09-24 ; deux listings du même nom détachés dans `R-166` (hors chantier)
 
@@ -126,7 +126,7 @@ met le compteur à jour ; retirer une pastille décoche la valeur ; « Annuler �
 ### 3 · Présentations et activation par facette — ✅ fermée le 2026-09-24
 
 - [x] C-5 et C-6 tranchés
-- [x] 3a · présentation par facette (`R-164`, fermé le 2026-09-24) : contrat ouvert `ValuePresentation`, enum `Control`/`Pill`, garde `R-10` à la déclaration, `data-presentation` sauf `Control`, style pastille du module ; Contenance en `Pill` dans Pluralia (`CatalogueFacets`, Pluralia `b2c84db`)
+- [x] 3a · présentation par facette (`R-164`, fermé le 2026-09-24) : contrat ouvert `ValuePresentation`, enum `Control`/`Pill`, garde `R-10` à la déclaration, `data-presentation` sauf `Control`, style pastille du module ; Contenance en `Pill` dans le projet de test (sa liaison de `ProductFacets`, `b2c84db`)
 - [x] 3b · compteur de valeur hors du nom accessible (`R-151`, fermé le 2026-09-24) : compteur gardé dans le `<label>`, nom par `aria-labelledby` vers le `<span>` du libellé, description par `aria-describedby` ; chiffres tabulaires ; compteur masqué visuellement en pastille (validé par Louis) ; crochets inchangés, `Contract::VERSION` intact. Bouton « Voir plus » habillé en chemin (`R-168`)
 - [x] cible de 2.75rem au pointeur grossier pour la pastille (44 px mesurés en 3a et 3b) ; les rangées de cases restent à 37,8 px au pointeur grossier, comme avant le chantier — au-dessus du minimum AA (24 px, WCAG 2.5.8), sous la cible AAA de la décision « Hauteur des contrôles », qui ne vise que les boutons : à revoir à l'étape 6
 - [x] colonne actuelle rendue à l'identique quand rien n'est configuré (3a : HTML identique ; 3b : seuls `aria-labelledby` et l'id du libellé s'ajoutent, positions à 0,1 px)
@@ -148,7 +148,7 @@ met le compteur à jour ; retirer une pastille décoche la valeur ; « Annuler �
 
 Commitée par fonctionnalité : `7b971d8` (tri en radios, 4b), `40822fd` (panneaux animés, valeurs
 gardées en place, badge), `860d58c` (`apply` autonome, formes de `reset`, `ResetFocus`), `d62e8d9`
-(tiroir, geste, hauteur, feuille, docs). Composition du thème : Pluralia `2f7a473`. Chaque case
+(tiroir, geste, hauteur, feuille, docs). Composition du thème : projet de test, `2f7a473`. Chaque case
 ci-dessous relue dans le code le 2026-09-25. Les choix du lot restent listés « en attente de
 validation » dans `decisions.md` (bloc « Tiroir, barre de filtres et repliables »).
 
@@ -171,7 +171,7 @@ Audit séparé, par sous-agent : motif APG de chaque widget, piège et retour du
 - [ ] A11Y-1 · deux `<x-meilifacets::total>` sur une page font deux régions `aria-live`, donc deux annonces (`R-163`)
 - [ ] rangées de cases à 37,8 px au pointeur grossier (relevé à l'étape 3) : au-dessus du minimum AA
       (24 px, WCAG 2.5.8), sous la cible de 44 px des pastilles — à trancher
-- [ ] contraste du Vert `#A7C5B7` de la maquette (≈ 1,8:1, sous les 3:1 de WCAG 1.4.11
+- [ ] contraste du vert d'accent de la maquette (≈ 1,8:1, sous les 3:1 de WCAG 1.4.11
       pour un composant d'interface) : à arbitrer avant l'étape 8
 
 ### 7 · Animations — ✅ fermée le 2026-09-25 (`b02e098`, `d325a58`, `299aa77`) ; ANIM-13 en attente du graphiste
@@ -196,26 +196,26 @@ Relu contre le code le 2026-09-25 (`meilifacets.css` = la feuille du module, num
 - [x] ANIM-10 · grille (`R-179`, 2026-09-25, non commité) : `aria-busy="true"` sur `results` du départ d'une recherche à la dernière réponse (`Listing` annonce `searching`/`settled` par un compteur, `results/busy-grid.ts` écrit l'attribut) — retiré aussi sur refus et après une recherche dépassée ; atténuation par la feuille seule : `--meili-busy-opacity` (0.55) après `--meili-duration-busy-delay` (150 ms), retour `--meili-duration-settle` (120 ms) sans délai ; rien derrière un tiroir ouvert ou sortant. Mesuré (latence CDP 500 ms, 1440 px, deux modes) : opacité 1 à 120 ms, 0,55 à 300 ms, retour à 1 en ~130 ms ; réponse rapide : 4–7 images `aria-busy`, opacité jamais < 1 ; 393 px tiroir ouvert (600–800 ms) : opacité 1 ; 2 régions `aria-live` avant et après
 - [x] ANIM-11 · `prefers-reduced-motion` : plus de `translate`/`scale`, fondus conservés — panneaux (l. 974–979, 150 ms, 120 ms flottants l. 1029–1034), liste du tri (l. 985–1000), appuis et chevrons sans transition (l. 1002–1027), tiroir en fondu 150 ms (l. 1229–1250), poubelle en fondu (l. 1257–1273), WAAPI en opacité seule (`PanelMotion::#entry()`, `Entrance::#keyframes()` depuis `R-179`), « Appliquer » sans largeur animée (l. 1253–1255), poignée du prix sans transition (l. 1495–1501 ; son `scale(1.12)` au focus reste, instantané)
 - [x] ANIM-12 · glisser pour fermer (`drawer-gesture.ts` : vitesse sur 100 ms, `FLICK_SPEED` 0,11 px/ms, seuil d'un quart, étirement vers le haut, voile lié par `--meili-scrim-shown`) ; **au doigt** depuis `R-176`, validé en tactile CDP le 2026-09-25
-- [ ] ANIM-13 · **question pour Louis, à transmettre au graphiste** (2026-09-25) : le composant Figma « Animation filtrage » (`17:592`, fichier `URXURsgp0hWOmDeDVA37qs`) ne porte **aucune donnée de mouvement** — `get_motion_context` (récursif) rend `{"nodes":[]}` ; `get_metadata` n'y montre que la pill « Trier » avec badge « 2 » et chevron, plus un cadre masqué de 287 × 136 (`Frame 634032`, vraisemblablement le panneau ouvert). Question : *« Que doit montrer ce composant ? (a) l'ouverture du panneau sous la pill — déjà livrée : fondu + descente de 4 px + `scale(0.97)` en 180 ms, sortie 120 ms ; (b) l'apparition du badge « 2 » quand un filtre est coché — livrée : fondu + `scale(0.9)` en 150 ms ; (c) autre chose (le chevron, la grille qui se met à jour, un prototype Smart Animate) ? Si c'est (c), merci d'indiquer les états de départ et d'arrivée, la durée et la courbe, ou de poser des variantes reliées par un prototype pour que le MCP les lise. »* Rien n'est codé tant que la réponse n'est pas là
+- [ ] ANIM-13 · **question pour Louis, à transmettre au graphiste** (2026-09-25) : le composant Figma « Animation filtrage » (`17:592`, dans la maquette) ne porte **aucune donnée de mouvement** — `get_motion_context` (récursif) rend `{"nodes":[]}` ; `get_metadata` n'y montre que la pill « Trier » avec badge « 2 » et chevron, plus un cadre masqué de 287 × 136 (`Frame 634032`, vraisemblablement le panneau ouvert). Question : *« Que doit montrer ce composant ? (a) l'ouverture du panneau sous la pill — déjà livrée : fondu + descente de 4 px + `scale(0.97)` en 180 ms, sortie 120 ms ; (b) l'apparition du badge « 2 » quand un filtre est coché — livrée : fondu + `scale(0.9)` en 150 ms ; (c) autre chose (le chevron, la grille qui se met à jour, un prototype Smart Animate) ? Si c'est (c), merci d'indiquer les états de départ et d'arrivée, la durée et la courbe, ou de poser des variantes reliées par un prototype pour que le MCP les lise. »* Rien n'est codé tant que la réponse n'est pas là
 
-### 8 · Habillage Pluralia — ⏸ en attente (décision de Louis, 2026-09-25)
+### 8 · Habillage du thème de test — ⏸ en attente (décision de Louis, 2026-09-25)
 
-Dans le thème, par les crochets `data-meili` et non par les classes (`R-128`), avec les tokens de
-`theme-vars.css`. Validation par sous-agents, desktop et mobile : l'ensemble comparé à
+Dans le thème, par les crochets `data-meili` et non par les classes (`R-128`), avec les jetons de
+couleur et de typographie du thème. Validation par sous-agents, desktop et mobile : l'ensemble comparé à
 `get_screenshot`, **chaque détail** comparé aux valeurs de `get_design_context` (styles calculés
 relevés dans Playwright).
 
 Déjà décidé :
 
-- [x] bordure encre des pills desktop, dans le thème : `[data-meili="toggle"]` en `--color-ink` à partir
-      de `48em` (`components/listing.css`, Pluralia `2f7a473`) ; pastilles de valeur et ouvreur idem
+- [x] bordure encre des pills desktop, dans le thème : `[data-meili="toggle"]` dans la couleur de texte du thème à partir
+      de `48em` (feuille du listing du thème de test, `2f7a473`) ; pastilles de valeur et ouvreur idem
 - [x] cases à cocher et radios laissées **natives** pour l'instant (aucun habillage dans le thème)
 
 À trancher :
 
 - [ ] compteur de valeur « (5) » de la maquette : l'afficher ou non (masqué visuellement en pastille
       depuis 3b, `R-151`)
-- [ ] token du Vert `#A7C5B7` : nom et usage dans `theme-vars.css`, après l'arbitrage de contraste de
+- [ ] jeton du vert d'accent : nom et usage dans les variables du thème, après l'arbitrage de contraste de
       l'étape 6
 
 ---
@@ -231,16 +231,16 @@ Déjà décidé :
 | 2026-09-24 | 2b | Pastilles livrées (`R-47`, `T-08`) : état appliqué seulement (Louis), retrait = ordre (`D-10`, validé) ; description +829 o ; `<x-meilifacets::active-values />` posé sous le compteur dans le thème, non commité |
 | 2026-09-24 | 2c | `R-162` : `reset`/`active-filters` par `contract.all()`, crochet `active-count` (sélection en attente comprise, masqué à zéro, aucune vue avant 5a/5b), garde du tri (`placeSort()`) ; doublons temporaires posés puis retirés du thème ; deux listings du même nom proposés en entrée à part |
 | 2026-09-24 | 2c→3 | Refactor `R-167` : registre de placement sorti de `ResolvedListing` dans `PagePlacement`, tri et facettes dans un seul registre indexé par `PlacedControl`, message du tri corrigé ; aucun changement de comportement |
-| 2026-09-24 | 3a | `R-164` : `ValuePresentation` (ensemble ouvert, Louis), `Presentation` `Control`/`Pill`, garde `R-10` dans `Facet::presentedAs()`, HTML `Control` identique à l'octet (test sur la vue d'avant), CSS pastille ; Contenance en `Pill` dans `CatalogueFacets`, non commité |
+| 2026-09-24 | 3a | `R-164` : `ValuePresentation` (ensemble ouvert, Louis), `Presentation` `Control`/`Pill`, garde `R-10` dans `Facet::presentedAs()`, HTML `Control` identique à l'octet (test sur la vue d'avant), CSS pastille ; Contenance en `Pill` dans la liaison `ProductFacets` du projet de test, non commité |
 | 2026-09-24 | 3 | 3a présentation par facette (`R-164`, contrat ouvert `ValuePresentation`, surcharge par gabarit confirmée) ; 3b compteur hors du nom (`R-151`, option C `aria-labelledby`), vue `facet` sans calcul, bouton « Voir plus » habillé (`R-168`), `R-169` ouvert — étape fermée ; titres des étapes 4 et 5 remis au vocabulaire de l'architecture v2 |
 | 2026-09-24 | 4a | `R-170` : `collapsible` sur `facet`/`facets` (prix exclu), déclencheur dans la `<legend>`, badge décrit (`aria-describedby`, `aria-hidden`, vidé à zéro), panneau fermé serveur, `DisclosureGroup` + `SelectedCountView`, UX-1/UX-2 ; HTML sans `collapsible` identique à l'octet ; `collapsible` posé sur `<x-meilifacets::facets>` dans le thème, non commité ; `R-171` ouvert (réglages d'index sans le prix, suite `Modules` rouge avant comme après) |
 | 2026-09-24 | 4a (à côté) | `R-171` fermé : réglages d'index sans le prix, cause = pont MeiliScout construit avant WooCommerce ; `DeferredIndexAttributes`/`DeferredCardProjector`, trait `KeepsTheIndexOut` ; suite `Modules` 472 verte (`1166fd6`) |
-| 2026-09-24 | 4c | `R-172` : `collapsible` sur `price`, exclusion de `Facets::collapses()` retirée ; aucune mesure en cache (poignées en `--at`, `ratioAt()` relu à chaque mouvement), donc aucun code de mesure changé ; badge par `SelectionHolder` (`FacetsView`, `PriceControl`) ; HTML sans `collapsible` identique à l'octet ; vérifié en `immediate` (config de Pluralia non commitée), `submit` couvert par les tests TS |
+| 2026-09-24 | 4c | `R-172` : `collapsible` sur `price`, exclusion de `Facets::collapses()` retirée ; aucune mesure en cache (poignées en `--at`, `ratioAt()` relu à chaque mouvement), donc aucun code de mesure changé ; badge par `SelectionHolder` (`FacetsView`, `PriceControl`) ; HTML sans `collapsible` identique à l'octet ; vérifié en `immediate` (config du projet de test non commitée), `submit` couvert par les tests TS |
 | 2026-09-25 | 5a, 4b, 5b | `R-173` tiroir (ouvreur, dialog, `inert`, verrou, poignée, glisser, hauteur suivie, sections animées), refonte mobile first des repliables, `R-174` tri en radios, `R-175` pied « Tout effacer / Appliquer » ; `--meili-control` 3rem ; thème recomposé en rangée pleine largeur, non commité ; `ActiveValuesComponentTest` lit le catalogue ; suite `Modules` 508 verte |
-| 2026-09-25 | 5a, 5b (suite) | `R-173` : espacements Figma exacts (40 / 24 × 32 / 32 / 16 × 32), encre Pluralia sortie du module, repos du tiroir sans transition (`data-closing`), sections refermées après la sortie, valeurs à 0 gardées en place panneau ouvert, badge 0 → 1, appuis, panneaux desktop élargis (`--meili-panel-*`) ; `R-175` : morph poubelle ↔ « Appliquer », « Appliquer » sheet-only en `immediate` ; « Tout effacer » texte en pastille (Louis) ; suite `Modules` 511 verte, non commité |
+| 2026-09-25 | 5a, 5b (suite) | `R-173` : espacements Figma exacts (40 / 24 × 32 / 32 / 16 × 32), encre du thème de test sortie du module, repos du tiroir sans transition (`data-closing`), sections refermées après la sortie, valeurs à 0 gardées en place panneau ouvert, badge 0 → 1, appuis, panneaux desktop élargis (`--meili-panel-*`) ; `R-175` : morph poubelle ↔ « Appliquer », « Appliquer » sheet-only en `immediate` ; « Tout effacer » texte en pastille (Louis) ; suite `Modules` 511 verte, non commité |
 | 2026-09-25 | 5a, 5b (finitions) | `visible-in-drawer`, focus après la poubelle, `aria-disabled`, grille différée derrière le sheet (INP 64–112 ms, ×4), hauteur en ligne retirée hors sheet ouvert, `filters.svg` `#000`, `reset shape="pill"` ; audit colonne contre `25a5aa3` : 0 écart calculé hors hauteur ; `composer check` vert, suite `Modules` 512 verte, non commité |
 | 2026-09-25 | 5a (revue animations) | `R-176` : glisser au doigt (exclusions par sélecteur au lieu de `hasPointerCapture`), tiroir `inert` pendant la sortie, ✕ sans `scale` au focus, panneaux 180/120 ms et instantanés au clavier et de pill à pill (ANIM-3, ANIM-4), mouvement réduit (sortie de section 150 ms, fondu du tri 160 ms) ; client 484 verts, suite `Modules` 512 verte, non commité |
-| 2026-09-25 | 4b, 5 | Commits par fonctionnalité : `7b971d8` (tri en radios), `40822fd` (panneaux animés, valeurs gardées en place), `860d58c` (`apply` autonome, formes de `reset`), `d62e8d9` (tiroir) ; thème Pluralia `b2c84db` (Contenance en pastilles) et `2f7a473` (rangée et tiroir) |
+| 2026-09-25 | 4b, 5 | Commits par fonctionnalité : `7b971d8` (tri en radios), `40822fd` (panneaux animés, valeurs gardées en place), `860d58c` (`apply` autonome, formes de `reset`), `d62e8d9` (tiroir) ; thème du projet de test `b2c84db` (Contenance en pastilles) et `2f7a473` (rangée et tiroir) |
 | 2026-09-25 | 5, 7 | Plan relu contre le code : étape 5 fermée, `R-173` → `R-176` fermés ; ANIM-4, 5, 7, 8, 11, 12 prouvés ligne à ligne, écarts précis écrits pour ANIM-1, 2, 3, 6 ; 4d découpée (4d-1 zéro résultat, 4d-2 « Voir plus » en panneau) ; étapes 6 et 8 complétées |
 | 2026-09-25 | 4d | 4d-1 (`R-49` fermé) : aucun cul-de-sac mesuré à 0 résultat (1440/393, deux modes), tests Feature + TS ajoutés, plage de prix sous bornes vides laissée à Louis (`R-127`) ; 4d-2 (`R-177`) : repli rendu à la fermeture du panneau, focus gardé, sheet qui suit ; client 495, Unit 301, suite `Modules` 517 verts, non commité |
 | 2026-09-25 | 7 | `R-179` : ANIM-3 (`b02e098`), ANIM-9 (`d325a58`), ANIM-10 et refonte en briques réutilisables (`shared/entrance.ts`, `results/busy-grid.ts`, `shared/input-source.ts`, `listing/new-pills.ts`) commités en un seul `299aa77` avec l'accord de Louis ; ANIM-13 posé en question ; client 533, Unit 310, suite `Modules` 535 verts ; recette 1440/393 deux modes, `config/meilifacets.php` restauré (`cmp` = 0) |

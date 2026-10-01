@@ -18,7 +18,7 @@ tels quels ; ils ne sont pas les `D-xx` du registre).
 
 ---
 
-## Cahier des charges (Pluralia)
+## Cahier des charges (projet de test)
 
 > La recherche recherche les produits et les articles.
 >
@@ -28,16 +28,16 @@ tels quels ; ils ne sont pas les `D-xx` du registre).
 > Au clic de la barre de recherche, l'utilisateur peut saisir la donnée de son choix. Après avoir saisi
 > plusieurs caractères, la recherche s'active pour proposer des résultats pertinents.
 >
-> AmphiBee affichera (s'il le peut) les 4 produits les plus pertinents avec le contenu saisi ainsi que
+> [Le prestataire] affichera (s'il le peut) les 4 produits les plus pertinents avec le contenu saisi ainsi que
 > 4 articles de journal les plus pertinents avec le contenu saisi.
 >
 > Si le moteur juge qu'il y a moins de 4 résultats pertinents alors il en affiche moins. Il est possible
-> de n'afficher aucun résultat. Dans ce cas, AmphiBee affichera un message informatif « Aucun élément ne
+> de n'afficher aucun résultat. Dans ce cas, [le prestataire] affichera un message informatif « Aucun élément ne
 > correspond à votre recherche ».
 >
 > Pour les produits et les articles, le moteur de recherche va comptabiliser le nombre de résultat
 > associé à la saisie. Le bouton « voir tous les produits » affichera une page de liste présentant les
-> résultats. L'intégration de la page sera similaire à la page de liste « Catégorie ». AmphiBee retirera
+> résultats. L'intégration de la page sera similaire à la page de liste « Catégorie ». [Le prestataire] retirera
 > la section hero, les filtres et les blocs de contenus pour n'afficher que les produits résultats et la
 > pagination éventuelle.
 
@@ -82,18 +82,18 @@ seule, clé d'administration du `.env` hôte — jamais recopiée).
 | --- | --- | --- |
 | Client navigateur | `SearchClient.search(Record<string, SearchQuery>)` poste toujours sur `/multi-search` (pas de fédération), rend les réponses sous les clés de l'appelant ; **un seul `AbortController`**, annulé à chaque appel, plus `AbortSignal.timeout(5000)` ; `SearchQuery` ne connaît que `q`, `filter`, `facets`, `hitsPerPage`, `page`, `attributesToRetrieve`, `sort`. **Aucune temporisation** nulle part dans le client | `ts/shared/search-client.ts:5-13,58-61,71-114` |
 | Publication de la connexion | `ListingScript::require()` inscrit le module `@meilifacets/listing` (priorité basse, exclu du Delay JS de WP Rocket) et publie `connection {url,key,index}` par `script_module_data_@meilifacets/listing` — **seulement quand un `<x-meilifacets::listing>` est rendu** | `app/View/ListingScript.php:35-93`, `app/View/Components/Listing.php:23-24` |
-| Clé du navigateur | `browser.url` / `browser.key` (config du projet, depuis `MEILI_PUBLIC_URL` / `MEILI_SEARCH_KEY`) ; la clé `pluralia-search` a pour actions `search` et pour index **`posts` seul**, sans expiration : l'index `taxonomies` lui est fermé | `SearchServiceProvider.php:40-47`, `GET /keys` |
+| Clé du navigateur | `browser.url` / `browser.key` (config du projet, depuis `MEILI_PUBLIC_URL` / `MEILI_SEARCH_KEY`) ; la clé `site-search` a pour actions `search` et pour index **`posts` seul**, sans expiration : l'index `taxonomies` lui est fermé | `SearchServiceProvider.php:40-47`, `GET /keys` |
 | Carte | `card.blade.php` (crochets `url`, `image`, `title`, `price`), `<template data-meili="card-template">` cloné par `ResultsView`, rempli par `CardView` (`price` en `innerHTML`) ; le contrat exige `price` dans le template | `results.blade.php:18-22`, `results/card-view.ts:70-79`, `shared/contract.ts:16-30` |
 | Projection `card` | posée sur **tous** les types indexés (`MeiliScoutBridge::addCard`) : `title`, `url`, `image_url/alt/width/height`, et `price` pour un produit seulement ; **ni extrait, ni date, ni rubrique** | `Indexing/MeiliScoutBridge.php:57-63`, `Enums/CardField.php` |
-| Contrats déclarés | `ProductFacets`/`ProductSorts` liés en `scopedIf` (`ListingServiceProvider.php:37-38`), `CardProjector` en `bindIf` ; Pluralia lie `CatalogueFacets` en `scoped` | `AppServiceProvider.php:30` (hôte) |
+| Contrats déclarés | `ProductFacets`/`ProductSorts` liés en `scopedIf` (`ListingServiceProvider.php:37-38`), `CardProjector` en `bindIf` ; le projet de test lie sa liaison de `ProductFacets` en `scoped` | `AppServiceProvider.php:30` (hôte) |
 | Registre des listings | `ListingRegistry::sole()` **lève dès qu'il existe deux listings** : un `<x-meilifacets::listing>` sans `name` casse alors | `app/Discovery/ListingRegistry.php:29-40` |
 | Crochets hors listing | `Contract.orphans()` signale **tout** `[data-meili]` hors d'une racine `[data-listing]` | `ts/shared/contract.ts:62-69` |
 | Fermeture des panneaux flottants | Échap (focus rendu au déclencheur), clic hors du chemin (`composedPath`), focus sorti hors appui (`InputSource`) : ~30 lignes **mêlées** à l'exclusivité du groupe et au flottement lu dans la feuille, sur un `Contract` de listing | `ts/collapsible/disclosure-group.ts` |
-| En-tête du thème | une loupe nue, sans formulaire ni gestionnaire (`.pluralia-header__search-toggle`) ; un composant Alpine `productSearch` + route `/api/products/search` (SQL) **jamais utilisés** | `parts/header/row.blade.php:73-75`, `js/frontend/product-search.js`, `routes/api.php:18` (thème) |
+| En-tête du thème | une loupe nue, sans formulaire ni gestionnaire (`.site-header__search-toggle`) ; un composant Alpine `productSearch` + route `/api/products/search` (SQL) **jamais utilisés** | `parts/header/row.blade.php:73-75`, `js/frontend/product-search.js`, `routes/api.php:18` (thème) |
 | Gabarits de recherche | pas de `Route::wp('search')` : `/?s=` rend `search.blade.php` (titre, extrait, sans carte) ; `/?s=&post_type=product` rend `woocommerce/archive-product.blade.php`, **sans branche `is_search()`** (le `<h1>` reste celui de la boutique) | `routes/web.php:21-47`, thème |
-| Cartes d'article du thème | `parts/posts/post-card.blade.php` (image `banner`, catégorie, `contenu`, titre, extrait, temps de lecture) nourrie par `App\Cms\Posts\PostCard` | thème |
+| Cartes d'article du thème | `parts/posts/post-card.blade.php` (image `banner`, catégorie, `post_kind`, titre, extrait, temps de lecture) nourrie par une classe de carte d'article du projet | thème |
 | `exclude-from-search` | géré nulle part ; aucun produit ne porte ce terme en local (compte 0) | `ProductListing.php:77-88`, `tests/Feature/ProductSearchTest.php:60-65` |
-| `indexed_taxonomies` | remplie : `category`, `contenu`, `product_brand`, `product_type`, `product_cat`, `mb-views-category` ; index `taxonomies` : **127 termes** | options WordPress, `GET /indexes/taxonomies` |
+| `indexed_taxonomies` | remplie : `category`, `post_kind`, `product_brand`, `product_type`, `product_cat`, `mb-views-category` ; index `taxonomies` : **127 termes** | options WordPress, `GET /indexes/taxonomies` |
 
 ### Ce que contient l'index `posts` (lu le 2026-09-25)
 
@@ -102,23 +102,23 @@ seule, clé d'administration du `.env` hôte — jamais recopiée).
   `typoTolerance` par défaut (une faute dès 5 lettres, deux dès 9), `stopWords`/`synonyms` vides,
   `prefixSearch "indexingTime"`, `facetSearch true`, `maxTotalHits 1000`.
 - **Document article** : toutes les colonnes de `wp_posts` (`post_title`, `post_excerpt`, `post_content`
-  en balisage de blocs brut, `post_date`, `post_name`…), `url`, `terms[]` (`category`, `contenu`),
-  `metas` (dont `_thumbnail_id`, `_yoast_*`, `_edit_lock`), `facets` (`category`, `contenu`), et `card` =
+  en balisage de blocs brut, `post_date`, `post_name`…), `url`, `terms[]` (`category`, `post_kind`),
+  `metas` (dont `_thumbnail_id`, `_yoast_*`, `_edit_lock`), `facets` (`category`, `post_kind`), et `card` =
   `title`, `url`, `image_url` (taille `medium`, 300 px), `image_alt` (vide), `image_width`, `image_height`.
   **Pas d'extrait, de date ni de rubrique dans `card`** : une carte d'article « titre, extrait, image »
   demande donc de projeter l'extrait (S-7). L'article par défaut de WordPress, « Bonjour tout le
   monde ! », est publié et indexé (sans image) : il sortira dans les résultats tant qu'il existe.
 - **Document produit** : `card` avec `price` (HTML de WooCommerce) ; `metas._sku` sur 49 produits sur 62,
   `post_excerpt` sur 12, `post_content` sur 50 ; noms de marque, de catégorie, de tag et des taxonomies
-  Pluralia **tous mêlés dans `terms.name`** — aucun champ ne sépare la marque de la catégorie.
+  du projet **tous mêlés dans `terms.name`** — aucun champ ne sépare la marque de la catégorie.
 - **Mesures qui décident de la pertinence** (multi-search produits / articles, `limit 0`) :
 
   | Terme | Produits | Articles | Lecture |
   | --- | --- | --- | --- |
-  | `pluralia` (et `_pluralia`) | 62 | 5 | **tout l'index** : le domaine est dans `url`, `guid`, `card.url` et `card.image_url` |
+  | `<domaine>` (le nom de domaine du site, et `_<domaine>`) | 62 | 5 | **tout l'index** : le domaine est dans `url`, `guid`, `card.url` et `card.image_url` |
   | `spacer` | 3 | 1 | le **balisage des blocs** de `post_content` est cherchable |
   | `paragraph` | 0 | 4 | idem |
-  | `lumen` (marque) | 5 | 0 | attendu |
+  | `acme` (marque) | 5 | 0 | attendu |
   | `srum` | 0 | — | 4 lettres : aucune faute tolérée par défaut |
   | `serom` | 1 | — | 5 lettres : une faute tolérée |
 
@@ -198,7 +198,7 @@ cherchable » s'ajoutent à `R-27` (même cause, même correctif). Sous le parap
 | S-4 | Livraison du client | **tranché** (Louis) — un chargeur minimal inscrit sur toutes les pages (`@meilifacets/site-search`, priorité basse, exclu du Delay JS) qui ouvre et ferme le panneau, et importe le client (`dist/site-search-client.js`) à la **première intention** (survol ou focus de la loupe, sinon ouverture) |
 | S-5 | Feuille de style | **tranché** (Louis) — `site-search.css` à part, demandée par le composant du panneau |
 | S-6 | Champs projetés pour la pertinence | **tranché** (Louis) — `labels.<taxonomie>` (noms des termes, ancêtres compris, sur le modèle de `facets`) et `content` (contenu en texte brut ; d'abord nommé `text`, renommé le 2026-09-25) ; `excerpt` (extrait nettoyé, ajouté le 2026-09-25) ; `post_content` et `post_excerpt` bruts restent dans le document mais ne sont plus cherchables. Réindexation au moment voulu, avec l'accord de Louis |
-| S-7 | Extrait de la carte d'article | **tranché** (Louis, `card.summary`, renommé depuis `card.excerpt` le 2026-09-25) — projeté par le module (texte brut ; extrait de l'auteur entier, sinon début du contenu borné) ; date, rubrique et temps de lecture = décoration Pluralia (`extend` de `CardProjector`), selon la maquette |
+| S-7 | Extrait de la carte d'article | **tranché** (Louis, `card.summary`, renommé depuis `card.excerpt` le 2026-09-25) — projeté par le module (texte brut ; extrait de l'auteur entier, sinon début du contenu borné) ; date, rubrique et temps de lecture = décoration du projet de test (`extend` de `CardProjector`), selon la maquette |
 | S-8 | Compte d'une section | **proposé** — `page: 1, hitsPerPage: 4` : le moteur rend `totalHits` exact (jusqu'à `maxTotalHits`) au lieu d'une estimation |
 | S-9 | Entrée sans option active | **tranché** (Louis) — **ne fait rien** tant qu'aucune option n'est désignée (motif APG « liste sans sélection automatique ») ; les comptes ont déjà été annoncés, les flèches mènent aux résultats |
 | S-10 | Mobile | **tranché** (Louis) — sous 48em, le panneau occupe la largeur et la hauteur restantes sous l'en-tête, défile en interne (`overscroll-behavior: contain`), et **le défilement de la page est verrouillé** tant qu'il est ouvert (`:root:has([data-meili="search-toggle"][aria-expanded="true"])`, comme le tiroir) ; au-delà de 48em, pas de verrou |
@@ -239,7 +239,7 @@ cherchable » s'ajoutent à `R-27` (même cause, même correctif). Sous le parap
   dans le champ ; Échap ferme et rend le focus à la loupe ; un clic hors du panneau et de la loupe ferme ; Tab
   qui sort du panneau ferme (S-12, `InputSource` pour ne pas fermer sur un appui).
 - **Positionné par le thème, empilé par un jeton.** Le thème place la racine (donc la loupe et le panneau)
-  dans son en-tête ; le panneau, en `position: absolute` sous l'en-tête (ancre et conteneur `max-w-site`
+  dans son en-tête ; le panneau, en `position: absolute` sous l'en-tête (ancre et conteneur de largeur du site
   posés par le thème), est superposé au contenu par `z-index: var(--meili-layer-search)`, borné en hauteur
   par la place restante (mesurée à l'ouverture, écrite en `--meili-search-available-height`), défilement interne.
 - **Le moteur en direct, sans repli** : clé de recherche seule, `SearchClient` réutilisé, une recherche en
@@ -277,13 +277,13 @@ une classe partagée, paramétrée par module et source de données, à la place
 
 **Répartition module / thème.** Le module rend chaque brique et son comportement, habillés neutres
 (`site-search.css` : ni couleur, ni police de marque). Le thème **compose** : il pose la racine dans son
-en-tête, la loupe à la place de `.pluralia-header__search-toggle`, le panneau sous l'en-tête dans son
-conteneur `max-w-site`, et choisit **quelles sections, dans quel ordre, avec quelle limite**. Il fournit
-l'icône (slot), pose l'ancre, habille par les crochets `data-meili` avec `theme-vars.css`, et peut surcharger
+en-tête, la loupe à la place de `.site-header__search-toggle`, le panneau sous l'en-tête dans son
+conteneur de largeur du site, et choisit **quelles sections, dans quel ordre, avec quelle limite**. Il fournit
+l'icône (slot), pose l'ancre, habille par les crochets `data-meili` avec ses propres variables, et peut surcharger
 chaque vue.
 
 ```blade
-{{-- themes/pluralia/resources/views/parts/header.blade.php, proposé --}}
+{{-- parts/header.blade.php du thème de test, proposé --}}
 <header class="relative">
     <x-meilifacets::search>
         …
@@ -291,7 +291,7 @@ chaque vue.
             <x-slot:icon>@include('parts.header.icons.search')</x-slot:icon>
         </x-meilifacets::search.toggle>
         …
-        <x-meilifacets::search.panel class="absolute inset-x-0 top-full mx-auto max-w-site px-3 2xl:px-0">
+        <x-meilifacets::search.panel class="absolute inset-x-0 top-full mx-auto max-w-7xl px-3 2xl:px-0">
             <x-meilifacets::search.input />
             @if (WooCommerce::isActive())
                 <x-meilifacets::search.section type="product" :limit="4" />
@@ -398,20 +398,20 @@ par attribut : `min-chars` et `delay` sur la racine, `limit` sur la section.
 
 ### 5. Liens « voir tous »
 
-- Un `<a href>` par section vers la racine de l'archive du type (`/boutique`, `/journal` sur Pluralia,
+- Un `<a href>` par section vers la racine de l'archive du type (`/boutique`, `/journal` sur le projet de test,
   mesuré), rendu par le serveur, jamais réécrit : aucune query var, aucun terme.
 - Rien à changer dans `ProductListing`, `ListingPage`, les gabarits d'archive ou `search.blade.php` du thème.
 
 ### 6. Pertinence
 
 - **`searchableAttributes` est un réglage d'index** (un seul pour `posts`) : il fixe l'**ensemble** des
-  champs cherchables et leur **ordre d'importance**. **Livré (`R-181`, non commité)**, lu sur Pluralia :
+  champs cherchables et leur **ordre d'importance**. **Livré (`R-181`, non commité)**, lu sur le projet de test :
   `post_title`, `labels.product_brand`, `labels.product_cat`, `metas._sku`, `labels.category`,
-  `labels.post_tag`, `labels.post_format`, `labels.contenu`, `labels.pluralia_selection`, `labels.essentiel`,
+  `labels.post_tag`, `labels.post_format`, `labels.post_kind`, `labels.product_selection`, `labels.product_highlight`,
   `labels.product_tag`, `excerpt`, `content`. `excerpt` et `content` sont projetés par le module et nettoyés de
   la même façon ; l'extrait se classe au-dessus du corps (choix de Louis, 2026-09-25). Hors de l'ensemble, donc **inciblables même par une requête forgée avec la clé publique** :
   `url`, `guid`, `card.*`, `post_excerpt` et `post_content` bruts,
-  `post_name`, `terms.*`, toutes les autres `metas` — ferme `R-27`, les deux mesures `pluralia`/`spacer`, et
+  `post_name`, `terms.*`, toutes les autres `metas` — ferme `R-27`, les deux mesures `<domaine>`/`spacer`, et
   la question « `card.title` » (proposé : `card` n'est jamais cherché).
 - **Déclaré par un contrat surchargeable en entier** (Louis, 2026-09-25, `R-184`) : `SearchableAttributes::all()`
   rend la liste complète et ordonnée ; défaut `DefaultSearchableAttributes` lié en `scopedIf` : titre, sous
@@ -421,8 +421,8 @@ par attribut : `min-chars` et `delay` sur la racine, `limit` sur la section.
   Procédure et exemple : `configuration.md`, « Ordre de recherche ».
 - **Chaque requête restreint, jamais ne réordonne** : `attributesToSearchOn` (≥ 1.3). Proposé :
   - panneau, produits : `post_title`, `labels.product_brand`, `labels.product_cat`, `metas._sku` ;
-  - panneau, autres types : `post_title`, `labels.*` des taxonomies du type, `excerpt` — sur Pluralia, articles :
-    `post_title`, `labels.category`, `labels.post_tag`, `labels.post_format`, `labels.contenu`, `excerpt`
+  - panneau, autres types : `post_title`, `labels.*` des taxonomies du type, `excerpt` — sur le projet de test, articles :
+    `post_title`, `labels.category`, `labels.post_tag`, `labels.post_format`, `labels.post_kind`, `excerpt`
     (lu le 2026-09-28 ; toujours un sous-ensemble de `searchableAttributes`, par construction) ;
   - listing produit (recherche routée) : tout l'ensemble (paramètre omis).
   Déclarés dans `SearchableType::searchOn`. Deux ordres différents exigeraient deux index : hors cahier des charges.
@@ -569,10 +569,10 @@ Registre : `R-27`, `R-159`, `R-160`, décision en attente « `card.title` ». D�
      = `["metas._sku"]`, `displayedAttributes` = `["ID","card"]` ;
    - un document article : `labels.category`, `excerpt` et `content` sans `wp:` ni `spacer`, `card.excerpt` ; un produit :
      `labels.product_brand`, pas de `card.excerpt` ;
-   - multi-search produits / articles (`limit 0`, filtres `post_type` et `post_status`) — attendu : `pluralia`
+   - multi-search produits / articles (`limit 0`, filtres `post_type` et `post_status`) — attendu : `<domaine>`
      ne rend plus tout l'index (seuls les documents dont le titre, les libellés ou le texte le citent) ; `spacer` et `paragraph` → 0 ;
      `srum` → 0 (4 lettres, aucune faute tolérée par défaut, D-8) ; `serum`, `sérum` et `serom` → les sérums ;
-     `lumen` → les 5 produits Lumen ; un SKU exact → son produit, le même SKU à un caractère près → rien ;
+     `acme` → les 5 produits Acme ; un SKU exact → son produit, le même SKU à un caractère près → rien ;
    - `attributesToSearchOn: ["url"]` puis `["metas._edit_lock"]` avec la clé publique : **refus** du moteur
      (`invalid_search_attributes_to_search_on`) ;
    - `attributesToHighlight: ["card"]` sur `serum` : `_formatted.card.title` porte encore les balises alors que
@@ -583,7 +583,7 @@ Registre : `R-27`, `R-159`, `R-160`, décision en attente « `card.title` ». D�
 **Mesuré après la réindexation de Louis (2026-09-25, lecture seule)** — version où l'extrait était encore
 `post_excerpt` brut :
 - réglages poussés conformes : ordre, `displayedAttributes` = `ID`, `card`, SKU sans tolérance ;
-- `pluralia` → 0, `srum` → 0, `sérum` → 2, `serom` → 2, `lumen` → 5, `attributesToSearchOn: ["url"]` refusé ;
+- `<domaine>` → 0, `srum` → 0, `sérum` → 2, `serom` → 2, `acme` → 5, `attributesToSearchOn: ["url"]` refusé ;
 - `spacer` → 3 (#560, #555, #778), par tolérance aux fautes sur « space » / « spaces » du contenu : aucun
   balisage n'est plus indexé, comportement normal ;
 - surlignage : `attributesToHighlight: ["card.title"]` ne rend plus de `_formatted`, `["card"]` et `["*"]`
@@ -591,7 +591,7 @@ Registre : `R-27`, `R-159`, `R-160`, décision en attente « `card.title` ». D�
   (et `_formatted.card.summary`).
 
 **Mesuré après la seconde réindexation de Louis** (2026-09-25, lecture seule, `excerpt` nettoyé présent) :
-`excerpt` et `content` sans balise ; `pluralia` → 0 ; `"spacer"` et `"strong"` en recherche exacte → 0 ;
+`excerpt` et `content` sans balise ; `<domaine>` → 0 ; `"spacer"` et `"strong"` en recherche exacte → 0 ;
 `spacer` (3) et `strong` (4) sans guillemets ne remontent que par la tolérance aux fautes, dans `content`
 seulement — aucun balisage n'est plus indexé.
 
@@ -604,13 +604,13 @@ seulement — aucun balisage n'est plus indexé.
   `card.excerpt`), l'extrait de l'auteur entier s'il en a un ;
 - multi-search produits : `100ml` et `50ml` trouvent les produits de cette contenance (autant que la facette
   `pa_contenance` en compte) ; `featured`, `simple`, `exclude-from-search` → 0 ;
-- non-régression : `pluralia` 0, `sérum` 2, `lumen` 5, `srum` 0, `attributesToSearchOn: ["url"]` refusé.
+- non-régression : `<domaine>` 0, `sérum` 2, `acme` 5, `srum` 0, `attributesToSearchOn: ["url"]` refusé.
 
 ⚠️ Dès que ce code tourne, **toute sauvegarde** d'un article ou d'un produit repousse les nouveaux réglages
 (`ensureIndexExists()`) avant que les documents aient `labels`, `excerpt` et `content` : réindexer aussitôt après le
 déploiement, en local comme en préprod.
 
-**Recette —** `pluralia` et `spacer` ne rendent plus tout l'index ; une recherche forgée sur
+**Recette —** `<domaine>` et `spacer` ne rendent plus tout l'index ; une recherche forgée sur
 `metas._edit_lock` ou `url` est refusée par le moteur ; tests Unit (réglages écrits, ordre) et Feature
 (filtre de recherche produit).
 
@@ -652,7 +652,7 @@ Décisions : S-1, S-5, S-9, S-10, S-11, S-12, D-7.
 - [x] disclosure : focus dans le champ, Échap rend le focus à la loupe, clic extérieur, Tab qui sort (`shared/light-dismiss.ts`, filtres inchangés, `R-191`)
 - [x] place mesurée sous l'en-tête, défilement interne, verrou du défilement de la page sous 48em (S-10) ; Entrée sans option active inerte (S-9)
 - [x] liens « voir tous » vers l'archive ; message vide ; message de panne (D-7) ; `Contract.orphans()` connaît la racine `search` (`R-189`)
-- [x] loupe du thème Pluralia remplacée par `<x-meilifacets::search>` (icône du thème en slot, aucun CSS de thème)
+- [x] loupe du thème de test remplacée par `<x-meilifacets::search>` (icône du thème en slot, aucun CSS de thème)
 - [ ] une listbox par section ou une brique `search-sections` : question pour Louis (`decisions.md`)
 - [ ] commits, après relecture de Louis
 
@@ -695,22 +695,23 @@ console ; suite des filtres verte.
   vignette à taille fixe ; premiers résultats à ×4 : layout 1,4–2 ms, rien à réduire (`R-193`)
 - [ ] commits, après relecture de Louis
 
-### 8 · Habillage Pluralia — livré sans maquette le 2026-09-29 (`R-195`), en attente de commit ; cartes décorées en attente
+### 8 · Habillage du thème de test — livré sans maquette le 2026-09-29 (`R-195`), en attente de commit ; cartes décorées en attente
 
 - [x] thème, `components/site-search.css` (importé après `listing.css`), crochets et jetons seulement, aucune classe ajoutée :
-  panneau et champ blancs, texte `ink` ; Epilogue 300 pour le panneau, le champ, les titres de résultat, le compte, les
-  extraits et les prix ; en-têtes de section et « Tous les … » en Cal Sans 400 capitales, `--fs-cta`, `--tracking-cta`
-  (usage du thème pour ses petits titres et ses liens d'appel) ; seul le terme surligné reste gras (600) ;
-  `--meili-edge` `ink`, survol `cream`, ligne active `sand`, voile `ink` à 25 % ; contenu aligné sur celui de l'en-tête
-  (`--container-site` moins deux `--gutter-site`, `--gutter-site-lg` dès `64em`) — champ à 40–1385 px à 1440, 16–377 px
-  à 393, comme `.pluralia-header__inner`
-- [x] loupe dans la rangée d'en-tête ; masquée avec le tiroir mobile ouvert (sélecteur `[data-pluralia-search]` périmé
+  panneau et champ blancs, texte dans la couleur de texte du thème ; police de texte du thème (graisse 300) pour le
+  panneau, le champ, les titres de résultat, le compte, les extraits et les prix ; en-têtes de section et « Tous les … »
+  dans la police de titre du thème (400, capitales), avec la taille et l'interlettrage que le thème réserve à ses petits
+  titres et à ses liens d'appel ; seul le terme surligné reste gras (600) ;
+  `--meili-edge`, survol, ligne active et voile (à 25 %) pris dans les couleurs du thème de test ; contenu aligné sur
+  celui de l'en-tête (largeur de conteneur du thème moins ses deux gouttières, élargies dès `64em`) — champ à 40–1385 px à 1440, 16–377 px
+  à 393, comme `.site-header__inner`
+- [x] loupe dans la rangée d'en-tête ; masquée avec le tiroir mobile ouvert (sélecteur `[data-site-search]` périmé
   remplacé par `[data-meili="search"]`)
-- [x] en-tête qui changeait de largeur sur mobile : build du thème périmé (`brand-orbit`) et gouttière gardée par le verrou
+- [x] en-tête qui changeait de largeur sur mobile : build du thème périmé (animation du logo) et gouttière gardée par le verrou
   du module (`R-195`)
 - [x] code mort retiré (S-16) : composant Alpine `productSearch`, route `/api/products/search`, `ProductSearchController`,
   `ProductSearchService` et ses deux aides (`ProductPriceFormatter`, `ProductUrlResolver`, utilisées par lui seul),
-  `window.PluraliaSearch` et la clé `search` de `config/woocommerce.php` du thème
+  `window.SiteSearch` et la clé `search` de `config/woocommerce.php` du thème
 - [ ] cartes d'article décorées (date, rubrique, temps de lecture) : **attendent la maquette** (D-9, S-7)
 - [ ] commits, après relecture de Louis
 
@@ -731,11 +732,11 @@ sauf avis contraire, et sont confirmées à la clôture de l'étape 1.
 | Date | Étape | Fait |
 | --- | --- | --- |
 | 2026-09-29 | 6 (accessibilité) | `R-196` : annonce différée (1 s sans frappe ni réponse, jamais la même phrase deux fois), liens des résultats hors du Tab, vignette de recherche décorative, « voir tous » à 44 px au pointeur grossier, barre lente visible en `forced-colors`, hauteur du panneau gardée pendant sa sortie, `limit` non entier refusé ; **listbox unique non faite** (pistes pour Louis, `decisions.md`) ; client 669/669, Unit 358, suite `Modules` 688 ; ni commit ni réindexation |
-| 2026-09-29 | 8 (habillage) | `R-195` : `site-search.css` du thème (Epilogue 300, Cal Sans capitales pour en-têtes et liens, jetons `ink`/`cream`/`sand`, conteneur de l'en-tête) ; en-tête mobile stable (build `brand-orbit` périmé côté thème, `scrollbar-gutter: stable` sur le verrou du module) ; S-16 retiré ; disposition libre et surcharge des huit vues prouvées par des tests, aucun défaut ; client 660/660, Unit 358, suite `Modules` 684 ; cartes décorées en attente de maquette ; ni commit ni réindexation |
+| 2026-09-29 | 8 (habillage) | `R-195` : `site-search.css` du thème (police de texte du thème en 300, police de titre en capitales pour en-têtes et liens, couleurs du thème, conteneur de l'en-tête) ; en-tête mobile stable (build de l'animation du logo périmé côté thème, `scrollbar-gutter: stable` sur le verrou du module) ; S-16 retiré ; disposition libre et surcharge des huit vues prouvées par des tests, aucun défaut ; client 660/660, Unit 358, suite `Modules` 684 ; cartes décorées en attente de maquette ; ni commit ni réindexation |
 | 2026-09-29 | 7 (frappe) | `R-193` : les résultats ne sont plus reconstruits à chaque lettre (réconciliation par `ID`, option atteinte gardée, identifiants par nœud) ; `ResultsMotion` (FLIP additif, entrées, sorties hors flux, fondu enchaîné vers le vide, compte) et `Departure` ; barre de recherche lente ; `CardView::stamp()` partagé avec le listing ; voile, ligne active, vignette ; vérifié image par image (`typing-x4.gif`) ; par réponse 1–2,3 ms sans bridage, ~4,5 ms à ×4, 0 image perdue ; client 655/655, Unit 358, suite `Modules` 666 ; ni commit ni réindexation |
 | 2026-09-29 | 7 (fluidité desktop) | `R-197` : voile montré par `data-open` sur la racine au lieu d'un `:has()` sur la loupe (9,3 ms de sélecteurs dans le recalcul forcé de l'ouverture) ; première ouverture à 1440 : 8 → 0 image perdue, style forcé 17,4 → 0,9 ms ; `backdrop-filter` et pseudo-élément écartés par la mesure ; client 671/671, Unit 359, suite `Modules` 689 ; ni commit ni réindexation |
 | 2026-09-28 | 7 (animations) | `R-192` : panneau en fondu + `translateY(-8px)` 200 ms / sortie `-4px` 150 ms, voile en fondu (`ease`), rien au clavier (`data-instant` sur la racine), premières sections en fondu 120 ms, atténuation différée, loupe `scale(0.97)`, flèche +2 px ; corrections de style (ombre retirée, halo 8 %, 1,5/2/3rem, vignette alignée, titre 400, voile noir) ; `PanelRoom` mesure depuis l'ancre ; loupe alignée dans l'en-tête ; vérifié image par image dans Chrome ; client 634/634, Unit 358, suite `Modules` 666 ; ni commit ni réindexation |
-| 2026-09-28 | 5 (panneau) | `R-191` : briques Blade et composition par défaut (une section par type accepté, icône du thème en slot), `SearchRoot::type()` et une section par type (`AcceptedSearchTypes::get()` retiré), `LightDismiss` extrait de `DisclosureGroup` (Échap consommée), `PanelRoom`, `aria-controls` du champ, `site-search.css`, loupe de Pluralia remplacée ; recette Playwright 393/1440 conforme (« ser », « zzzz », Échap, clic extérieur, ↓ + Entrée, panne, `/boutique`) ; client 622/622, Unit 358, suite `Modules` 664 ; ni commit ni réindexation |
+| 2026-09-28 | 5 (panneau) | `R-191` : briques Blade et composition par défaut (une section par type accepté, icône du thème en slot), `SearchRoot::type()` et une section par type (`AcceptedSearchTypes::get()` retiré), `LightDismiss` extrait de `DisclosureGroup` (Échap consommée), `PanelRoom`, `aria-controls` du champ, `site-search.css`, loupe du thème de test remplacée ; recette Playwright 393/1440 conforme (« ser », « zzzz », Échap, clic extérieur, ↓ + Entrée, panne, `/boutique`) ; client 622/622, Unit 358, suite `Modules` 664 ; ni commit ni réindexation |
 | 2026-09-28 | 4 (client) | `R-190` : chargeur `site-search.js` (disclosure, focus avant l'import, `preconnect`, `import()` à la première intention) et client `site-search-client.js` (`Typing` + garde `R-159`, `SiteSearchQuery`, `Highlight`, `SectionView`, `StatusView`, `ComboboxKeys`, `aria-busy`, panne), onze crochets `search-*`/`summary` additifs, `sectionPattern` ; doublons levés (`SearchesUnderWay`, `FilterExpression.all`, attributs partagés, `SearchSeam`) ; multi-search réel accepté, vérifié dans Chromium ; p95 21,9 ms ; client 606/606, Unit 345, suite `Modules` 635 ; ni commit ni réindexation |
 | 2026-09-28 | 4 (extractions) | `R-189` : `PageRoots` (squelette du chargeur), `RootComponent` (règles et orphelins par racine, dette `R-188` sur `Contract.orphans()` levée), `Enums\Stylesheet` + `ClientStylesheet` (dette `R-188` sur `Stylesheet` levée) ; `ListboxKeys` laissé à la partie suivante ; client 553/553 (541 inchangés), Unit 340, suite `Modules` 628, `build:check` vert ; `/boutique` vérifié en `immediate` et `submit` (filtre, tri, tiroir 393 px, aucune erreur console), `config/meilifacets.php` restauré à l'identique ; ni commit ni réindexation |
 | 2026-09-28 | 3b | Seconde moitié de l'étape 3 (`R-188`) : `SearchSettings` (2, 120 ms, 4), racine `<x-meilifacets::search>` (`name`, `min-chars`, `delay`), `SearchRegistry` sur une base `NamedRegistry` extraite de `ListingRegistry`, `SiteSearchDescription`, `ListingScript` → `ClientScript` partagé (paquet `ScriptModule`, description paresseuse), `Preconnect::origin()` ; pages de listing identiques à l'octet avant/après ; `composer check` et suite `Modules` (624) verts ; ni commit ni réindexation. Trois propositions en attente dans `decisions.md` |
@@ -748,10 +749,10 @@ sauf avis contraire, et sont confirmées à la clôture de l'étape 1.
 | 2026-09-25 | 1 | Louis tranche S-21 et S-19 : types = contrat `SearchableTypes` (défaut `scopedIf`), recherche = sections posées (aucun `types` sur la racine), réglages scalaires = `SearchSettings` + attributs, aucune clé de config |
 | 2026-09-25 | 1 | Louis tranche D-4 (`q` inchangé), D-7 (message seul, aucun repli), S-2 (lien vers l'archive du type, sans query var : plus de page de résultats ni de second listing), S-4 → S-7 et le § 8 ; plan réduit à huit étapes ; restent S-9 et S-10 |
 | 2026-09-25 | 1 | Louis tranche S-9 (Entrée inerte), S-10 (verrou mobile), S-18 (crochets `search-*`) ; relecture de cohérence du document |
-| 2026-09-28 | 2 | Lot de revue (`R-185`) réindexé en local : `100ml` 3, `50ml` 1, `30ml` 1, `pluralia` 0, `featured` et `exclude-from-search` 0, `labels.product_type` refusé par le moteur, `card.summary` présent ; point 2 reporté à la facette de recherche du listing ; taxonomies techniques figées, laissé ouvert |
-| 2026-09-25 | 2 | `R-27` fermé sur validation de Louis (`pluralia` 0, `url` et `metas._edit_lock` refusés par le moteur, aucun balisage indexé) ; étape commitée |
+| 2026-09-28 | 2 | Lot de revue (`R-185`) réindexé en local : `100ml` 3, `50ml` 1, `30ml` 1, `<domaine>` 0, `featured` et `exclude-from-search` 0, `labels.product_type` refusé par le moteur, `card.summary` présent ; point 2 reporté à la facette de recherche du listing ; taxonomies techniques figées, laissé ouvert |
+| 2026-09-25 | 2 | `R-27` fermé sur validation de Louis (`<domaine>` 0, `url` et `metas._edit_lock` refusés par le moteur, aucun balisage indexé) ; étape commitée |
 | 2026-09-25 | 2 | Corrections de la revue de `fd595a3` (`R-185`) : libellés de toutes les taxonomies hors techniques (`pa_*` compris), défaut de l'ordre décorable, extrait de l'auteur entier (`card.summary`), test figé, pont à deux dépendances ; point 2 (`q`) arrêté et rapporté ; `R-186` noté ; suite `Modules` 582 verte ; réindexation à faire |
-| 2026-09-25 | 2 | Seconde réindexation par Louis, mesures conformes (`excerpt`/`content` sans balise, `pluralia` 0, `"spacer"`/`"strong"` exacts 0) ; ordre de recherche surchargeable en entier par le contrat `SearchableAttributes` (`R-184`), réglages identiques à l'octet et égaux à ceux du moteur ; suite `Modules` 575 verte |
+| 2026-09-25 | 2 | Seconde réindexation par Louis, mesures conformes (`excerpt`/`content` sans balise, `<domaine>` 0, `"spacer"`/`"strong"` exacts 0) ; ordre de recherche surchargeable en entier par le contrat `SearchableAttributes` (`R-184`), réglages identiques à l'octet et égaux à ceux du moteur ; suite `Modules` 575 verte |
 | 2026-09-25 | 2 | Refonte du pont (`R-182`) : un seul filtre `meiliscout/post/document`, champs construits par `PostDocument`, une expansion des termes par document ; documents #176, #116, #560 identiques à l'octet avant/après ; suite `Modules` 577 verte |
 | 2026-09-25 | 2 | Réindexation par Louis et mesures (conformes ; `spacer` = tolérance aux fautes ; surlignage par `["card"]`) ; puis `excerpt` projeté et nettoyé à la place de `post_excerpt` (suite `Modules` 574 verte), seconde réindexation à faire |
 | 2026-09-25 | 2 | Pertinence et index livrés dans l'arbre (`R-181`) : `labels`, `content`, `card.excerpt`, `searchableAttributes` explicites (titre → libellés → SKU → extrait → `content`), SKU exact, `R-160` ; `text` renommé `content` sur décision de Louis ; `composer check` et suite `Modules` (572) verts ; ni commit ni réindexation |

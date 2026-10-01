@@ -93,7 +93,7 @@ un tri numérique fonctionneront nativement. `_stock_status` est la chaîne `ins
 plus bas. C'est ce qui a imposé `price.min`/`price.max` (`prix.md`, D-b).
 
 **Des metas parasites sont indexées** : `_edit_lock`, `_edit_last`, `_yoast_wpseo_content_score`,
-`_pluralia_test_fixture`. Elles gonflent le document et confirment que n'importe quelle meta
+`_projet_test_fixture`. Elles gonflent le document et confirment que n'importe quelle meta
 déclenche une réindexation.
 
 **`displayedAttributes` vaut `["*"]`, et c'est ce qui transite qui coûte.** Mesuré le
@@ -113,8 +113,8 @@ publique ne **lit** plus `post_content` ni les metas. Elle peut encore les **cib
 **Un nom de taxonomie est une query var publique.** Vérifié sur ce projet :
 `/boutique?product_cat=visage` faisait passer la grille de 12 à 8 produits le 2026-09-02, quand elle était
 encore rendue par WordPress, qui filtre sa propre requête. La grille vient désormais de Meilisearch, donc la
-collision ne se voit plus à l'écran : elle reste réelle, le nom restant une query var publique. `product_brand`, `product_cat`, `product_tag`, `contenu`,
-`essentiel` et `pluralia_selection` sont tous des query vars publiques, avec `page`, `paged`, `p`,
+collision ne se voit plus à l'écran : elle reste réelle, le nom restant une query var publique. `product_brand`, `product_cat`, `product_tag`, `post_kind`,
+`product_highlight` et `product_selection` sont tous des query vars publiques, avec `page`, `paged`, `p`,
 `order` et `orderby`. Un paramètre de filtre portant l'un de ces noms produit un double filtrage
 silencieux, WordPress d'un côté et Meilisearch de l'autre. Vérifier un nom avec
 `meilifacets:check-parameters`, jamais en testant une URL — `?page=2` répond `200` aujourd'hui sans que
@@ -125,15 +125,15 @@ filtre `query_vars` n'y est jamais appliqué, la propriété y tient 74 noms au 
 **L'archive produit affiche 16 produits, pas `posts_per_page`.** WooCommerce dérive
 `loop_shop_per_page` de 4 colonnes × 4 lignes ; l'option WordPress vaut 10 et ne sert pas ici.
 
-**WooCommerce avale les exceptions levées dans ses hooks de transition** (`CLAUDE.md`, gotcha
-23) : une erreur d'indexation temps réel peut disparaître sans trace ailleurs que dans
+**WooCommerce avale les exceptions levées dans ses hooks de transition** (consigné dans les
+notes du projet de test) : une erreur d'indexation temps réel peut disparaître sans trace ailleurs que dans
 `wc-logs/`. Journaliser au point de détection, ne pas compter sur une exception qui remonte.
 
 **WP Rocket ne met pas en cache une URL portant une query string non déclarée** : elle est
 régénérée par PHP à chaque appel. Déclarer ces paramètres comme cachables produirait une entrée
 de cache par combinaison de filtres.
 
-**Mais en production, c'est Varnish qui décide** — `clevercloud/_varnish.vcl`, versionné.
+**Mais en production, c'est Varnish qui décide** — la configuration VCL versionnée du projet de test.
 Constats de lecture, le 2026-09-02 :
 
 - il **ne normalise pas** les query strings de filtres : une URL filtrée est sa propre entrée de
@@ -167,13 +167,13 @@ dépendance est le filtre lui-même :
 WordPress.
 
 **Une route REST déclarée par attribut est intestable via `wp eval` + `rest_do_request`**
-(`CLAUDE.md`, gotcha 25) : `WpGlobals::wrap()` capture `$GLOBALS['current_user']` au moment de
+(consigné dans les notes du projet de test) : `WpGlobals::wrap()` capture `$GLOBALS['current_user']` au moment de
 l'enregistrement de la route.
 
-**Le module Wishlist expose son API par `#[WpRestRoute(namespace: 'app/v1')]`**, donc par
+**Un module du projet de test expose son API par `#[WpRestRoute(namespace: 'app/v1')]`**, donc par
 `/wp-json/` : chaque appel démarre WooCommerce en entier. Son `routes/api.php` déclare par
 ailleurs un préfixe `wp-json/app/v1` auquel le `RouteServiceProvider` ajoute `api`, produisant
-`/api/wp-json/app/v1/wishlist` — une seconde route qui fait double emploi.
+`/api/wp-json/app/v1/<ressource>` — une seconde route qui fait double emploi.
 
 **Un réglage déclaré par un module ne peut pas être surchargé par le projet.**
 `ModuleServiceProvider::registerConfig()` de nwidart fusionne par
@@ -367,8 +367,9 @@ la page de documentation exacte. Les écraser détruit l'information la plus uti
 
 ## Rendu des cartes
 
-**`hidden` n'a aucune spécificité, le module la défend lui-même.** Les images absentes, les prix
-absents et les valeurs de facettes repliées sont masqués par cet attribut : une seule règle
+**`hidden` n'a aucune spécificité, le module la défend lui-même.** Les valeurs de facettes repliées, les
+messages et les panneaux sont masqués par cet attribut (une image ou un prix absents ne sont plus dans le DOM,
+`R-203`) : une seule règle
 `.meilifacetsCardImage { display: block }` dans une feuille du thème les ferait tous réapparaître.
 
 La contre-règle vit dans la feuille du module,
@@ -384,7 +385,7 @@ une vue surchargée par le thème (`decisions.md`, « Défense de `hidden` ») :
 Elle est plus spécifique (0,2,0) qu'une règle de classe (0,1,0), donc elle gagne même face à un
 `!important` du thème — vérifié en navigateur : un nœud masqué reste à `display: none` après
 injection de `.meilifacetsCardPrice { display: block !important }`. Et son sélecteur ne touche pas
-les `[hidden]` du thème, qui a les siens (`.pluralia-panel[hidden]`, `.pluralia-drawer[hidden]`).
+les `[hidden]` du thème, qui a les siens (`.site-panel[hidden]`, `.site-drawer[hidden]`).
 
 ⚠️ **`Modules/` est hors du docroot** : la feuille n'est servie qu'une fois publiée dans
 `public/modules/meilifacets/` (voir [installation.md](installation.md)). `ClientStylesheet` ne l'inscrit
@@ -392,11 +393,10 @@ que si le fichier existe, donc une publication oubliée ne produit pas de 404 �
 nœuds `hidden` visibles à l'écran, ce qui se voit tout de suite. Le module n'écrit jamais dans
 `public/` à l'exécution.
 
-**Une image sans URL garde son nœud, avec un GIF transparent en `src`.** Un `<img>` sans `src`
-est invalide, et plusieurs navigateurs demandent alors l'URL de la page courante. Le data-URI de
-`CardImage::BLANK` tient en 78 caractères (un GIF de 42 octets) et ne coûte aucune requête. Cinq produits
-n'ont pas de miniature (#364, #380, #401, #412, #436), et le `<template>` de carte porte ce `src` sur chaque
-page : le chemin est exercé.
+**Une image sans URL n'est plus dans le DOM** (`R-203`) : la carte rendue l'omet, le client la retire d'un
+clone. Le `<template>` garde un `<img>` sans `src` : inerte dans un `<template>`, il ne demande rien. Le GIF
+transparent de `CardImage::BLANK`, qui évitait à un `<img src="">` visible de demander la page courante, n'a plus
+d'usage et a été retiré.
 
 > Corrigé le 2026-09-04. Ce passage justifiait ces règles par `ResolvedListing::slots()`, qui
 > rendait une page pleine d'emplacements vides pour qu'Alpine n'ait jamais à créer un nœud. Ce
@@ -416,7 +416,7 @@ ce que WooCommerce a formaté à l'indexation ressort tel quel dans la page. Le 
 un prix depuis une autre source injecterait ce qu'il veut. C'est R-26, ouvert.
 
 **Les classes CSS du module sont en camelCase** (`meilifacetsCardImage`), pas en BEM kebab-case
-comme celles du thème `pluralia` (`pluralia-product-card`). Choix assumé du projet, appliqué à
+comme celles du thème du projet de test (`site-product-card`). Choix assumé du projet, appliqué à
 tous les composants du module : ne pas réintroduire de tiret en ajoutant une vue.
 
 ## Un filtre de MeiliScout ne peut pas être posé avant son plugin
