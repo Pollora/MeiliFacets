@@ -3,7 +3,7 @@
 This page lists, for each release, what a project has to change when it updates MeiliFacets. The full list of
 changes is in the [changelog](../CHANGELOG.md).
 
-No version has been released yet, so there is nothing to upgrade from.
+0.1.0 is the first release, a beta: there is nothing to upgrade from yet.
 
 ## Before any upgrade
 

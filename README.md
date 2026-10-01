@@ -147,8 +147,8 @@ The `Feature` tests render Blade views and need a host application. Run them fro
 is installed, with a PHPUnit suite that includes `Modules/MeiliFacets/tests/Feature`.
 
 Commits follow [Conventional Commits](https://www.conventionalcommits.org/). Before opening a pull request,
-`composer check` and the `Feature` tests should both pass. No release has been tagged yet: changes awaiting the first
-one are under « Unreleased » in the [changelog](CHANGELOG.md).
+`composer check` and the `Feature` tests should both pass. The current release is 0.1.0, a beta: see the
+[changelog](CHANGELOG.md).
 
 ## License
 

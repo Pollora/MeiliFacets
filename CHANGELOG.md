@@ -9,6 +9,11 @@ What to change in a project when moving from one version to the next is in
 
 ## [Unreleased]
 
+## [0.1.0](https://github.com/Pollora/MeiliFacets/releases/tag/0.1.0) - 2026-10-01
+
+First release, a **beta**: the PHP API and the markup contract may still change before 1.0, and the known issues
+below are open.
+
 ### Added
 
 - Faceted product listing served by Meilisearch: the server renders the first page with the filters in the URL
