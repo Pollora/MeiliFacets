@@ -168,7 +168,7 @@ describe('ListingQuery with a sort that filters', () => {
     }
 
     it('filters every search by it, as the server does', () => {
-        const queries = plan({ facets: { product_brand: ['aeris'] }, sort: 'on_sale', price: { min: 20 } }, promoted)
+        const queries = plan({ facets: { product_brand: ['globex'] }, sort: 'on_sale', price: { min: 20 } }, promoted)
 
         for (const key of [RESULTS, FacetQuery.keyFor('product_brand'), PriceQuery.KEY]) {
             assert.match(queries[key]?.filter ?? '', / AND price\.onsale = "true"/)

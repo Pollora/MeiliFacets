@@ -41,11 +41,11 @@ final class CardComponentTest extends TestCase
     #[Test]
     public function it_hands_an_override_the_binding_over_its_card(): void
     {
-        $binding = new Card(['brand' => '<b>Avril</b>', 'id' => 12])->binding;
+        $binding = new Card(['brand' => '<b>Acme</b>', 'id' => 12])->binding;
         $brand = $binding->text('brand');
 
         $this->assertSame('data-meili-text="brand"', (string) $brand->attributes);
-        $this->assertSame('&lt;b&gt;Avril&lt;/b&gt;', $brand->toHtml());
+        $this->assertSame('&lt;b&gt;Acme&lt;/b&gt;', $brand->toHtml());
         $this->assertSame(
             'data-product_id="12" data-meili-attr="data-product_id:id"',
             (string) $binding->attributes(['data-product_id' => 'id'])

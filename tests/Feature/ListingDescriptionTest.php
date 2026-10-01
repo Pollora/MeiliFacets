@@ -104,7 +104,7 @@ final class ListingDescriptionTest extends TestCase
     #[Test]
     public function it_hands_over_the_path_of_the_first_page(): void
     {
-        $this->requesting('/boutique/page/2?marque=aeris');
+        $this->requesting('/boutique/page/2?marque=globex');
 
         $this->assertSame('/boutique', $this->describedWith([])['pagePath']);
     }

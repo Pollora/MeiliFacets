@@ -210,7 +210,7 @@ final class FacetComponentTest extends TestCase
         $this->assertStringNotContainsString('résultat', $html);
     }
 
-    /** R-151: named by the `<label>` that wraps it, a box reads « Aeris 16 results ». */
+    /** R-151: named by the `<label>` that wraps it, a box reads « Globex 16 results ». */
     #[Test]
     public function it_names_a_value_with_its_label_alone(): void
     {

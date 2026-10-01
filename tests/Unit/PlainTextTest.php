@@ -19,7 +19,7 @@ final class PlainTextTest extends TestCase
     #[Test]
     public function it_decodes_the_numeric_entity_wptexturize_emits(): void
     {
-        $this->assertSame('Éclat & Vitamine', PlainText::from('Éclat &#038; Vitamine'));
+        $this->assertSame('Soin & Douceur', PlainText::from('Soin &#038; Douceur'));
     }
 
     #[Test]

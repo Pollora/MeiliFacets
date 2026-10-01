@@ -36,13 +36,13 @@ describe('SectionView', () => {
         const { root, views } = sections(t)
         const [products] = views
 
-        products?.show({ hits: [hit(116, 'Sérum Éclat', { title: `${OPENING}Sér${CLOSING}um Éclat` })], totalHits: 12 }, 'se')
+        products?.show({ hits: [hit(116, 'Sérum visage', { title: `${OPENING}Sér${CLOSING}um visage` })], totalHits: 12 }, 'se')
 
         const shown = section(root, 'product')
 
         assert.equal(shown.hidden, false)
         assert.equal(find(shown, Contract.selector('search-count')).textContent, '12 results')
-        assert.equal(find(shown, Contract.selector('title')).innerHTML, '<mark>Sér</mark>um Éclat')
+        assert.equal(find(shown, Contract.selector('title')).innerHTML, '<mark>Sér</mark>um visage')
         assert.equal(find<HTMLAnchorElement>(shown, Contract.selector('url')).href, 'https://example.test/116')
         assert.deepEqual(products?.count, { heading: 'Products', total: 12 })
         assert.equal(products?.options.length, 1)
@@ -51,7 +51,7 @@ describe('SectionView', () => {
     it('leaves the Tab order to the field, and the image of a result silent: the link already says the title', (t) => {
         const { root, views } = sections(t)
         const [products] = views
-        const card = { title: 'Sérum Éclat', url: 'https://example.test/116', image_url: 'https://example.test/116.jpg', image_alt: 'Un flacon' }
+        const card = { title: 'Sérum visage', url: 'https://example.test/116', image_url: 'https://example.test/116.jpg', image_alt: 'Un flacon' }
 
         products?.show({ hits: [{ ID: 116, card }], totalHits: 1 }, 'se')
 

@@ -14,7 +14,7 @@ final class PostTextTest extends TestCase
 {
     private const string BLOCKS = '<!-- wp:heading --><h2 class="wp-block-heading">Routine</h2><!-- /wp:heading -->'
         .'<!-- wp:spacer {"height":"20px"} --><div style="height:20px" aria-hidden="true" class="wp-block-spacer"></div>'
-        .'<!-- /wp:spacer --><!-- wp:paragraph --><p>Laits &amp; crèmes, l&#8217;essentiel.</p><!-- /wp:paragraph -->';
+        .'<!-- /wp:spacer --><!-- wp:paragraph --><p>Soins &amp; crèmes, l&#8217;indispensable.</p><!-- /wp:paragraph -->';
 
     private const int WORDS = 55;
 
@@ -23,7 +23,7 @@ final class PostTextTest extends TestCase
     {
         $content = new PostText()->content($this->aPost(self::BLOCKS, 'Un geste simple'));
 
-        $this->assertSame('Routine Laits & crèmes, l’essentiel.', $content);
+        $this->assertSame('Routine Soins & crèmes, l’indispensable.', $content);
     }
 
     #[Test]
@@ -61,7 +61,7 @@ final class PostTextTest extends TestCase
     #[Test]
     public function it_summarises_with_the_opening_of_the_content_without_an_excerpt(): void
     {
-        $this->assertSame('Routine Laits & crèmes, l’essentiel.', new PostText()->summary($this->aPost(self::BLOCKS), self::WORDS));
+        $this->assertSame('Routine Soins & crèmes, l’indispensable.', new PostText()->summary($this->aPost(self::BLOCKS), self::WORDS));
     }
 
     /** WordPress trims only the excerpt it generates: the one an author wrote is shown whole. */
@@ -76,7 +76,7 @@ final class PostTextTest extends TestCase
     #[Test]
     public function it_bounds_the_opening_of_the_content_to_the_words_it_is_given(): void
     {
-        $this->assertSame('Routine Laits &…', new PostText()->summary($this->aPost(self::BLOCKS), 3));
+        $this->assertSame('Routine Soins &…', new PostText()->summary($this->aPost(self::BLOCKS), 3));
     }
 
     /** `wp_trim_words()` strips tags: counted after decoding, `&lt;b&gt;` would vanish. */

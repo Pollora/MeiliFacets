@@ -16,7 +16,7 @@
         "refused": ["0", "-1", "4.5", "1e+21", "550px", " 550", "abc"]
     },
     "texts": [
-        { "value": "Avril", "text": "Avril" },
+        { "value": "Acme", "text": "Acme" },
         { "value": 12, "text": "12" },
         { "value": 4.5, "text": "4.5" },
         { "value": 0.30000000000000004, "text": "0.30000000000000004" },
@@ -28,7 +28,7 @@
         { "value": true, "text": "" },
         { "value": null, "text": "" },
         { "value": [12], "text": "" },
-        { "value": { "fr": "Avril" }, "text": "" }
+        { "value": { "fr": "Acme" }, "text": "" }
     ],
     "fields": {
         "refused": ["brand name", "", "bränd", "brand-name", "brand.name", "!brand", "brand|title", "brand:title", "<b>"]
@@ -38,15 +38,15 @@
             "case": "a text field is written as text",
             "binding": { "text": "brand" },
             "template": "<span data-meili-text=\"brand\"></span>",
-            "card": { "brand": "Avril" },
-            "expected": { "text": "Avril", "elements": 0, "attributes": {}, "classes": [], "present": true }
+            "card": { "brand": "Acme" },
+            "expected": { "text": "Acme", "elements": 0, "attributes": {}, "classes": [], "present": true }
         },
         {
             "case": "markup in a text field stays text",
             "binding": { "text": "brand" },
             "template": "<span data-meili-text=\"brand\"></span>",
-            "card": { "brand": "<script>alert(1)</script><b>Avril</b>" },
-            "expected": { "text": "<script>alert(1)</script><b>Avril</b>", "elements": 0, "attributes": {}, "classes": [], "present": true }
+            "card": { "brand": "<script>alert(1)</script><b>Acme</b>" },
+            "expected": { "text": "<script>alert(1)</script><b>Acme</b>", "elements": 0, "attributes": {}, "classes": [], "present": true }
         },
         {
             "case": "a whole number is written in decimal",
@@ -66,7 +66,7 @@
             "case": "neither text nor a number leaves the element out",
             "binding": { "text": "brand" },
             "template": "<span data-meili-text=\"brand\"></span>",
-            "card": { "brand": { "fr": "Avril" } },
+            "card": { "brand": { "fr": "Acme" } },
             "expected": { "text": "", "elements": 0, "attributes": {}, "classes": [], "present": false }
         },
         {
@@ -220,8 +220,8 @@
             "case": "an attribute is written without the spaces around it",
             "binding": { "attributes": { "title": "brand", "href": "url" } },
             "template": "<a data-meili-attr=\"title:brand href:url\"></a>",
-            "card": { "brand": " \tAvril\n ", "url": "  /creme  " },
-            "expected": { "text": "", "elements": 0, "attributes": { "title": "Avril", "href": "/creme" }, "classes": [], "present": true }
+            "card": { "brand": " \tAcme\n ", "url": "  /creme  " },
+            "expected": { "text": "", "elements": 0, "attributes": { "title": "Acme", "href": "/creme" }, "classes": [], "present": true }
         },
         {
             "case": "an encoded scheme stays a literal relative link",

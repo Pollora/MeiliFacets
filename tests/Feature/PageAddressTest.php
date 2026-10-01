@@ -24,7 +24,7 @@ final class PageAddressTest extends TestCase
     #[Test]
     public function it_writes_the_first_page_under_whatever_name_wordpress_paginates(): void
     {
-        $this->requesting('/boutique/seite/2?marque=aeris', 'seite');
+        $this->requesting('/boutique/seite/2?marque=globex', 'seite');
 
         $this->assertSame('/boutique', $this->page()->path());
     }

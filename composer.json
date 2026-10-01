@@ -27,18 +27,26 @@
         "php": "^8.4",
         "amphibee/meiliscout": "dev-feat/meilifacets",
         "composer/installers": "^2.0",
-        "illuminate/console": "^12.0 || ^13.0",
-        "illuminate/contracts": "^12.0 || ^13.0",
-        "illuminate/support": "^12.0 || ^13.0",
-        "illuminate/view": "^12.0 || ^13.0",
+        "illuminate/console": "^13.0",
+        "illuminate/contracts": "^13.0",
+        "illuminate/support": "^13.0",
+        "illuminate/view": "^13.0",
         "league/uri": "^7.5"
+    },
+    "conflict": {
+        "pollora/framework": "<13.4 || >=14.0"
     },
     "extra": {
         "laravel": {
             "providers": [],
             "aliases": {}
         },
-        "installer-name": "MeiliFacets"
+        "installer-name": "MeiliFacets",
+        "installer-paths": {
+            "vendor/{$vendor}/{$name}/": [
+                "type:wordpress-plugin"
+            ]
+        }
     },
     "autoload": {
         "psr-4": {

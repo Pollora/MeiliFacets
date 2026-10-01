@@ -22,9 +22,9 @@ const highlighted = (formatted: Record<string, unknown> | undefined) => {
 
 describe('Highlight', () => {
     it('wraps what the engine tagged in <mark>, the rest as text', () => {
-        const { title } = highlighted({ title: `${OPENING}Sér${CLOSING}um Éclat ${OPENING}Sér${CLOSING}` })
+        const { title } = highlighted({ title: `${OPENING}Sér${CLOSING}um visage ${OPENING}Sér${CLOSING}` })
 
-        assert.equal(title.innerHTML, '<mark>Sér</mark>um Éclat <mark>Sér</mark>')
+        assert.equal(title.innerHTML, '<mark>Sér</mark>um visage <mark>Sér</mark>')
     })
 
     it('never parses markup the engine returned', () => {

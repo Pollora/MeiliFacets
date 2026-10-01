@@ -93,12 +93,12 @@ describe('a price range in the search', () => {
     })
 
     it('measures the bounds separately, with the range lifted, once one is held', () => {
-        const plan = query.plan(new ListingState({ facets: { product_brand: ['aeris'] }, price: { min: 40 } }))
+        const plan = query.plan(new ListingState({ facets: { product_brand: ['globex'] }, price: { min: 40 } }))
 
         assert.deepEqual(plan.results.facets, [])
         assert.deepEqual(plan[PriceQuery.KEY], {
             q: '',
-            filter: 'post_type = "product" AND facets.product_brand = "aeris"',
+            filter: 'post_type = "product" AND facets.product_brand = "globex"',
             facets: ['price.min', 'price.max'],
             hitsPerPage: 0,
             page: 1,
@@ -123,7 +123,7 @@ describe('a price range in the search', () => {
     })
 
     it('keeps the held range on the search that counts a facet separately', () => {
-        const counting = query.plan(new ListingState({ facets: { product_brand: ['aeris'] }, price: { max: 70 } }))['count:product_brand']
+        const counting = query.plan(new ListingState({ facets: { product_brand: ['globex'] }, price: { max: 70 } }))['count:product_brand']
 
         assert.equal(counting?.filter, 'post_type = "product" AND price.min <= 70')
     })

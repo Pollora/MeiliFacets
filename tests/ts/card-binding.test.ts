@@ -88,14 +88,14 @@ describe('CardBinding', () => {
         const host = element('<a data-meili-attr="data-product_id:id"><span data-meili-text="brand"></span></a>')
         const link = find(host, 'a')
 
-        new CardBinding({ id: 12, brand: 'Avril' }).apply(link)
+        new CardBinding({ id: 12, brand: 'Acme' }).apply(link)
 
         assert.equal(link.getAttribute('data-product_id'), '12')
-        assert.equal(find(link, 'span').textContent, 'Avril')
+        assert.equal(find(link, 'span').textContent, 'Acme')
     })
 
     it('removes a node already written when the next card lacks the field', () => {
-        assert.equal(bound('<span data-meili-text="brand" data-meili-attr="title:brand">Avril</span>', {}) === null, true)
+        assert.equal(bound('<span data-meili-text="brand" data-meili-attr="title:brand">Acme</span>', {}) === null, true)
     })
 
     it('removes the elements a card has nothing to show in, and keeps the others', () => {

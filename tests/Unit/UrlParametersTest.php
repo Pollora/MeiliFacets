@@ -31,7 +31,7 @@ final class UrlParametersTest extends TestCase
     {
         $parameters = new UrlParameters(['product_brand' => 'marque']);
 
-        foreach (['product_cat', 'product_tag', 'contenu', 'essentiel'] as $reserved) {
+        foreach (['product_cat', 'product_tag', 'collection', 'highlight'] as $reserved) {
             $this->assertNotSame($reserved, $parameters->for($reserved));
         }
     }

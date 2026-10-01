@@ -14,12 +14,12 @@ final class LabelProjectionTest extends TestCase
     public function it_groups_the_names_a_visitor_reads_by_taxonomy(): void
     {
         $labels = LabelProjection::fromTerms([
-            ['name' => 'Lumen', 'slug' => 'lumen', 'taxonomy' => 'product_brand'],
+            ['name' => 'Initech', 'slug' => 'initech', 'taxonomy' => 'product_brand'],
             ['name' => 'Visage', 'slug' => 'visage', 'taxonomy' => 'product_cat'],
             ['name' => 'Soins', 'slug' => 'soins', 'taxonomy' => 'product_cat'],
         ]);
 
-        $this->assertSame(['product_brand' => ['Lumen'], 'product_cat' => ['Visage', 'Soins']], $labels);
+        $this->assertSame(['product_brand' => ['Initech'], 'product_cat' => ['Visage', 'Soins']], $labels);
     }
 
     #[Test]

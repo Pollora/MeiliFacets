@@ -11,6 +11,8 @@ use Tests\TestCase;
 
 final class ImageFieldsTest extends TestCase
 {
+    use KeepsTheIndexOut;
+
     private const string FILE = 'meilifacets-test/jar.jpg';
 
     private const string MEDIUM_FILE = 'jar-medium.jpg';
