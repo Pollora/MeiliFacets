@@ -49,7 +49,7 @@ until then, add them by hand. Keep the WordPress rules already under `installer-
 ```json
 "extra": {
     "installer-paths": {
-        "Modules/{$name}/": ["type:laravel-library"],
+        "Modules/{$name}/": ["vendor:pollora"],
         "public/content/plugins/{$name}/": ["type:wordpress-plugin"]
     },
     "merge-plugin": {
@@ -60,7 +60,8 @@ until then, add them by hand. Keep the WordPress rules already under `installer-
 ```
 
 - **`installer-paths`** places the package in `Modules/MeiliFacets/`. The module declares `type: laravel-library`
-  and `installer-name: MeiliFacets`, and requires `composer/installers`, which reads them. Without this rule
+  and `installer-name: MeiliFacets`, and requires `composer/installers`, which reads them. The rule is limited to the
+  `pollora` vendor, so other Laravel packages that declare `laravel-library` keep their usual place. Without it
   `composer/installers` falls back to its own default for that type, `libraries/MeiliFacets/`, and Pollora never
   finds it.
 - **`merge-plugin`** merges the module's `composer.json` into the project's, so its autoloading and dependencies
