@@ -11,7 +11,10 @@ use Modules\MeiliFacets\Support\UniqueList;
 final class IndexedTaxonomies
 {
     /** @var list<string>|null */
-    private ?array $taxonomies = null;
+    private ?array $resolvedFor = null;
+
+    /** @var list<string> */
+    private array $taxonomies = [];
 
     public function __construct(private readonly IndexedPostTypes $postTypes) {}
 
@@ -20,8 +23,15 @@ final class IndexedTaxonomies
      */
     public function all(): array
     {
+        $postTypes = $this->postTypes->all();
+
         // Reached on every save through ensureIndexExists().
-        return $this->taxonomies ??= $this->resolve();
+        if ($postTypes !== $this->resolvedFor) {
+            $this->taxonomies = $this->resolve($postTypes);
+            $this->resolvedFor = $postTypes;
+        }
+
+        return $this->taxonomies;
     }
 
     /**
@@ -35,11 +45,12 @@ final class IndexedTaxonomies
     }
 
     /**
+     * @param  list<string>  $postTypes
      * @return list<string>
      */
-    private function resolve(): array
+    private function resolve(array $postTypes): array
     {
-        $taxonomiesPerPostType = array_map(get_object_taxonomies(...), $this->postTypes->all());
+        $taxonomiesPerPostType = array_map(get_object_taxonomies(...), $postTypes);
 
         return UniqueList::merge(...$taxonomiesPerPostType);
     }

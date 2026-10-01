@@ -22,9 +22,14 @@ final readonly class MeilisearchEngine implements SearchEngine
             return [];
         }
 
+        $asked = count($queries);
         $responses = $this->send(array_values($queries));
 
-        return array_combine(array_keys($queries), array_slice($responses, 0, count($queries)));
+        if (count($responses) < $asked) {
+            throw EngineUnavailable::incomplete($asked, count($responses));
+        }
+
+        return array_combine(array_keys($queries), array_slice($responses, 0, $asked));
     }
 
     /**

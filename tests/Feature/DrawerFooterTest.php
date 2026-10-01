@@ -15,6 +15,7 @@ final class DrawerFooterTest extends TestCase
 {
     use FindsHooks;
     use HoldsCatalogueValues;
+    use SwitchesApplyMode;
 
     private mixed $applyMode;
 
@@ -29,7 +30,7 @@ final class DrawerFooterTest extends TestCase
     /** The suite shares one application: a mode or an address left here would reach a later class. */
     protected function tearDown(): void
     {
-        config(['meilifacets.apply_mode' => $this->applyMode]);
+        $this->useApplyMode($this->applyMode);
         request()->query->replace([]);
         $this->app->forgetScopedInstances();
 
@@ -39,7 +40,7 @@ final class DrawerFooterTest extends TestCase
     #[Test]
     public function it_renders_apply_with_the_count_it_would_apply_when_the_listing_waits_for_it(): void
     {
-        config(['meilifacets.apply_mode' => 'submit']);
+        $this->useApplyMode('submit');
         $this->holdTwoValues();
 
         $apply = $this->rendered('<x-meilifacets::listing.apply />')->querySelector($this->hooked(Hook::Apply));
@@ -57,7 +58,7 @@ final class DrawerFooterTest extends TestCase
     #[Test]
     public function it_renders_apply_in_immediate_only_when_visible_in_drawer(): void
     {
-        config(['meilifacets.apply_mode' => 'immediate']);
+        $this->useApplyMode('immediate');
 
         $this->assertNull($this->rendered('<x-meilifacets::listing.apply />')->querySelector($this->hooked(Hook::Apply)));
         $this->assertNotNull($this->rendered('<x-meilifacets::listing.apply visible-in-drawer />')->querySelector($this->hooked(Hook::Apply)));
@@ -67,10 +68,10 @@ final class DrawerFooterTest extends TestCase
     #[Test]
     public function it_marks_apply_for_the_sheet_only_when_the_listing_searches_at_once(): void
     {
-        config(['meilifacets.apply_mode' => 'immediate']);
+        $this->useApplyMode('immediate');
         $immediate = $this->rendered('<x-meilifacets::listing.apply visible-in-drawer />')->querySelector($this->hooked(Hook::Apply));
         $this->app->forgetScopedInstances();
-        config(['meilifacets.apply_mode' => 'submit']);
+        $this->useApplyMode('submit');
         $submit = $this->rendered('<x-meilifacets::listing.apply visible-in-drawer />')->querySelector($this->hooked(Hook::Apply));
 
         $this->assertSame('sheet', $immediate->getAttribute('data-only'));
@@ -80,7 +81,7 @@ final class DrawerFooterTest extends TestCase
     #[Test]
     public function it_hides_and_empties_the_count_while_nothing_is_held(): void
     {
-        config(['meilifacets.apply_mode' => 'submit']);
+        $this->useApplyMode('submit');
 
         $count = $this->rendered('<x-meilifacets::listing.apply />')->querySelector($this->hooked(Hook::ActiveCount));
 
@@ -91,7 +92,7 @@ final class DrawerFooterTest extends TestCase
     #[Test]
     public function the_group_hands_its_button_over_when_asked(): void
     {
-        config(['meilifacets.apply_mode' => 'submit']);
+        $this->useApplyMode('submit');
 
         $this->assertStringNotContainsString(Hook::Apply->attribute()->toHtml(), Blade::render('<x-meilifacets::listing.facets :with-apply="false" />'));
     }
@@ -99,7 +100,7 @@ final class DrawerFooterTest extends TestCase
     #[Test]
     public function the_group_renders_its_button_unless_asked(): void
     {
-        config(['meilifacets.apply_mode' => 'submit']);
+        $this->useApplyMode('submit');
         $explicit = Blade::render('<x-meilifacets::listing.facets :with-apply="true" />');
         $this->app->forgetScopedInstances();
 
@@ -111,7 +112,7 @@ final class DrawerFooterTest extends TestCase
     #[Test]
     public function the_group_renders_the_apply_component_as_a_block(): void
     {
-        config(['meilifacets.apply_mode' => 'submit']);
+        $this->useApplyMode('submit');
         $this->holdTwoValues();
 
         $group = $this->rendered('<x-meilifacets::listing.facets />')->querySelector($this->hooked(Hook::Facets));

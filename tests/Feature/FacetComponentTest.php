@@ -34,6 +34,7 @@ use Tests\TestCase;
 final class FacetComponentTest extends TestCase
 {
     use FindsHooks;
+    use SwitchesApplyMode;
     use SwitchesTheSiteLocale;
 
     private const string NOTHING_MATCHES = 'qqxxzzww-aucun-produit-ne-correspond';
@@ -141,7 +142,7 @@ final class FacetComponentTest extends TestCase
     #[Test]
     public function it_renders_no_container_when_every_facet_was_placed_on_its_own(): void
     {
-        config(['meilifacets.apply_mode' => 'immediate']);
+        $this->useApplyMode('immediate');
 
         $rendered = $this->placingEveryFacet().Blade::render('<x-meilifacets::listing.facets />');
 
@@ -177,7 +178,7 @@ final class FacetComponentTest extends TestCase
     #[Test]
     public function it_compiles_no_view_when_it_renders_nothing(): void
     {
-        config(['meilifacets.apply_mode' => 'immediate']);
+        $this->useApplyMode('immediate');
         $empty = config('view.compiled').'/'.hash('xxh128', '').'.blade.php';
         @unlink($empty);
 
@@ -191,7 +192,7 @@ final class FacetComponentTest extends TestCase
     #[Test]
     public function it_keeps_the_container_that_carries_the_apply_button(): void
     {
-        config(['meilifacets.apply_mode' => 'submit']);
+        $this->useApplyMode('submit');
 
         $rendered = $this->placingEveryFacet().Blade::render('<x-meilifacets::listing.facets />');
 

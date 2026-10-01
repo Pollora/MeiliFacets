@@ -19,7 +19,6 @@ use Modules\MeiliFacets\Listing\WordPressDefaultTerms;
 use Modules\MeiliFacets\Listing\WordPressTermLabels;
 use Modules\MeiliFacets\Listing\WordPressTermScope;
 use Modules\MeiliFacets\Support\SiteCollator;
-use Modules\MeiliFacets\Support\UrlParameters;
 
 /** What a listing is made of: its terms, the order it reads them in, and the registry that holds it. */
 final class ListingServiceProvider extends ServiceProvider
@@ -39,6 +38,5 @@ final class ListingServiceProvider extends ServiceProvider
 
         $this->app->singleton(ListingRegistry::class);
         $this->app->scoped(CurrentListing::class);
-        $this->app->bind(UrlParameters::class, UrlParameters::fromConfig(...));
     }
 }

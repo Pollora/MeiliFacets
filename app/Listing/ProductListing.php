@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Listing;
 
+use Illuminate\Container\Attributes\Config;
 use Modules\MeiliFacets\Contracts\Placeable;
 use Modules\MeiliFacets\Contracts\ProductFacets;
 use Modules\MeiliFacets\Contracts\ProductSorts;
@@ -24,12 +25,17 @@ final readonly class ProductListing implements SearchScopedListing
 
     private const string SEARCH_QUERY_VAR = 's';
 
+    private ApplyMode $applyMode;
+
     /** Discovery builds every listing it finds: the dependency has to refuse itself. */
     public function __construct(
         private ProductFacets $facets,
         private ProductSorts $sorts,
         private SearchableTypes $searchableTypes,
+        #[Config('meilifacets.apply_mode', ApplyMode::DEFAULT->value)] string $applyMode = ApplyMode::DEFAULT->value,
     ) {
+        $this->applyMode = ApplyMode::tryFrom($applyMode) ?? ApplyMode::DEFAULT;
+
         if (! WooCommerce::isActive()) {
             throw new ListingUnavailable('WooCommerce is not active: there are no products to list.');
         }
@@ -116,7 +122,7 @@ final readonly class ProductListing implements SearchScopedListing
 
     public function applyMode(): ApplyMode
     {
-        return ApplyMode::fromConfig();
+        return $this->applyMode;
     }
 
     /** Not `is_tax()`: it answers false on the built-in taxonomies, which a shop may well file products under. */
