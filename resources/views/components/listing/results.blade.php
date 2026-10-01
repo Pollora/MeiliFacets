@@ -17,7 +17,7 @@
 
     <template {{ $hook('card-template') }}>
         <li class="meilifacetsResultsItem" {{ $hook('card') }}>
-            <x-meilifacets::listing.card :card="[]" />
+            <x-meilifacets::listing.card-template />
         </li>
     </template>
 

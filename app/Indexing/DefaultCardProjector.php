@@ -13,10 +13,6 @@ final readonly class DefaultCardProjector implements CardProjector
 {
     public const string DEFAULT_IMAGE_SIZE = 'medium';
 
-    private const int NO_IMAGE = 0;
-
-    private const string ALT_META = '_wp_attachment_image_alt';
-
     public function __construct(private string $imageSize) {}
 
     /**
@@ -32,32 +28,10 @@ final readonly class DefaultCardProjector implements CardProjector
     }
 
     /**
-     * Intrinsic dimensions ship with the URL: the card reserves its space before
-     * any stylesheet loads, and the layout never shifts once the image arrives.
-     *
      * @return array<string, string|int>
      */
     private function image(WP_Post $post): array
     {
-        $imageId = (int) get_post_thumbnail_id($post);
-
-        if ($imageId === self::NO_IMAGE) {
-            return [];
-        }
-
-        $image = wp_get_attachment_image_src($imageId, $this->imageSize);
-
-        if (! is_array($image)) {
-            return [];
-        }
-
-        [$url, $width, $height] = $image;
-
-        return [
-            CardField::ImageUrl->value => (string) $url,
-            CardField::ImageAlt->value => PlainText::from((string) get_post_meta($imageId, self::ALT_META, true)),
-            CardField::ImageWidth->value => (int) $width,
-            CardField::ImageHeight->value => (int) $height,
-        ];
+        return ImageFields::of((int) get_post_thumbnail_id($post), $this->imageSize);
     }
 }

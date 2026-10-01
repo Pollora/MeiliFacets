@@ -5,26 +5,28 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\View\Components\Listing;
 
 use Illuminate\Contracts\View\View;
-use Illuminate\Support\HtmlString;
-use Modules\MeiliFacets\Enums\CardField;
 use Modules\MeiliFacets\Enums\HeadingLevel;
 use Modules\MeiliFacets\Enums\ImagePriority;
-use Modules\MeiliFacets\View\CardDocument;
-use Modules\MeiliFacets\View\CardImage;
+use Modules\MeiliFacets\View\CardBinding;
+use Modules\MeiliFacets\View\CardFieldElement;
+use Modules\MeiliFacets\View\CardHooks;
 use Modules\MeiliFacets\View\Components\ContractComponent;
 
-final class Card extends ContractComponent
+class Card extends ContractComponent
 {
-    public HeadingLevel $heading;
+    public CardBinding $binding;
 
-    public string $title;
+    public ImagePriority $priority;
 
-    public string $url;
+    public string $heading;
 
-    public CardImage $image;
+    public CardFieldElement $link;
 
-    /** WooCommerce formats the price at indexing time, markup included. */
-    public HtmlString $price;
+    public CardFieldElement $image;
+
+    public CardFieldElement $title;
+
+    public CardFieldElement $price;
 
     /**
      * @param  array<string, mixed>  $card
@@ -34,18 +36,25 @@ final class Card extends ContractComponent
         HeadingLevel|string $heading = HeadingLevel::H3,
         ImagePriority $priority = ImagePriority::Lazy,
     ) {
-        $document = new CardDocument($card);
-
-        // Blade hands attributes over as strings; from() rejects anything else.
-        $this->heading = HeadingLevel::fromAttribute($heading);
-        $this->title = $document->text(CardField::Title);
-        $this->url = $document->text(CardField::Url);
-        $this->price = new HtmlString($document->text(CardField::Price));
-        $this->image = CardImage::from($document, $this->title, $priority);
+        $this->prepare(CardBinding::of($card), $heading, $priority);
     }
 
     public function render(): View
     {
         return view('meilifacets::components.listing.card');
+    }
+
+    protected function prepare(CardBinding $binding, HeadingLevel|string $heading, ImagePriority $priority): void
+    {
+        $hooks = new CardHooks($binding);
+
+        $this->binding = $binding;
+        $this->priority = $priority;
+        // Blade hands attributes over as strings; from() rejects anything else.
+        $this->heading = HeadingLevel::fromAttribute($heading)->value;
+        $this->link = $hooks->link();
+        $this->image = $hooks->image($priority);
+        $this->title = $hooks->title();
+        $this->price = $hooks->price();
     }
 }

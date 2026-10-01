@@ -47,7 +47,7 @@ export class SectionView {
         this.#contract = contract
         this.#section = section
         this.#setup = setup
-        this.#cardView = CardView.withDecorativeImages(contract)
+        this.#cardView = new CardView(contract)
         this.#highlight = new Highlight(contract)
         this.#seeAll = SectionView.#seeAllIn(contract, section, setup.seeAllParameter)
     }
@@ -150,7 +150,7 @@ export class SectionView {
             return [[key, kept]]
         }
 
-        return this.#cardView.stamp(template, hit.card ?? {}).map((card) => {
+        return this.#cardView.stamp(template, CardView.fieldsOf(hit)).map((card) => {
             this.#takeLinksOutOfTabOrder(card)
             this.#highlight.show(card, hit._formatted?.card)
             this.#drawn.set(card, this.#wordsOf(hit))
@@ -167,7 +167,7 @@ export class SectionView {
         const words = this.#wordsOf(hit)
 
         if (this.#drawn.get(card) !== words) {
-            this.#cardView.showWords(card, hit.card ?? {})
+            this.#cardView.show(card, CardView.fieldsOf(hit))
             this.#highlight.show(card, hit._formatted?.card)
             this.#drawn.set(card, words)
         }

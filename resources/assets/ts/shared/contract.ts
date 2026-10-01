@@ -2,7 +2,7 @@ import { RootComponent } from './root-component.ts'
 
 import type { Rule } from './root-component.ts'
 
-const ATTRIBUTE = 'data-meili'
+export const ATTRIBUTE = 'data-meili'
 const VERSION_ATTRIBUTE = 'data-meili-contract'
 const SCROLL_ATTRIBUTE = 'data-meili-scroll'
 const VERSION = 1

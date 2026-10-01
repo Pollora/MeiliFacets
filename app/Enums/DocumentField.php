@@ -6,6 +6,7 @@ namespace Modules\MeiliFacets\Enums;
 
 enum DocumentField: string
 {
+    case Id = 'ID';
     case PostType = 'post_type';
     case Status = 'post_status';
     case Title = 'post_title';

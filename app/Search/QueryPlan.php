@@ -56,7 +56,7 @@ final readonly class QueryPlan
             // `limit`/`offset` only give an estimate, capped at maxTotalHits.
             'hitsPerPage' => $listing->perPage(),
             'page' => $state->page,
-            'attributesToRetrieve' => [DocumentField::Card->value],
+            'attributesToRetrieve' => [DocumentField::Id->value, DocumentField::Card->value],
             ...self::searchedFields($scope),
         ];
 

@@ -14,7 +14,10 @@ trait KeepsTheIndexOut
 {
     private const string SKIP_INDEXING = 'meiliscout/skip_indexing';
 
-    #[Before]
+    /** A hook of equal priority runs before `setUp()`, which is what loads WordPress. */
+    private const int AFTER_SET_UP = -1;
+
+    #[Before(self::AFTER_SET_UP)]
     protected function keepTheIndexOut(): void
     {
         add_filter(self::SKIP_INDEXING, '__return_true');

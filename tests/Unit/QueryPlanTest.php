@@ -111,11 +111,11 @@ final class QueryPlanTest extends TestCase
     }
 
     #[Test]
-    public function it_asks_only_for_the_card(): void
+    public function it_asks_only_for_the_card_and_its_document_id(): void
     {
         $query = QueryPlan::results($this->listing, new ListingState, []);
 
-        $this->assertSame(['card'], $query['attributesToRetrieve']);
+        $this->assertSame(['ID', 'card'], $query['attributesToRetrieve']);
     }
 
     /**

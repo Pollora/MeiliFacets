@@ -1,11 +1,13 @@
 <article {{ $attributes->class('meilifacetsCard') }}>
-    <a class="meilifacetsCardLink" href="{{ $url }}" {{ $hook('url') }}>
-        <img class="meilifacetsCardImage" src="{{ $image->src }}" alt="{{ $image->alt }}"
-             @if ($image->hasDimensions) width="{{ $image->width }}" height="{{ $image->height }}" @endif
-             loading="{{ $image->priority->loading() }}"
-             fetchpriority="{{ $image->priority->fetchPriority() }}"
-             decoding="async" @unless ($image->isPresent) hidden @endunless {{ $hook('image') }}>
-        <{{ $heading->value }} class="meilifacetsCardTitle" {{ $hook('title') }}>{{ $title }}</{{ $heading->value }}>
+    <a {{ $link->attributes->class('meilifacetsCardLink') }}>
+        @if ($image->isPresent())
+            <img {{ $image->attributes->class('meilifacetsCardImage') }} decoding="async">
+        @endif
+        @if ($title->isPresent())
+            <{{ $heading }} {{ $title->attributes->class('meilifacetsCardTitle') }}>{{ $title }}</{{ $heading }}>
+        @endif
     </a>
-    <p class="meilifacetsCardPrice" @if ($price->isEmpty()) hidden @endif {{ $hook('price') }}>{{ $price }}</p>
+    @if ($price->isPresent())
+        <p {{ $price->attributes->class('meilifacetsCardPrice') }}>{{ $price }}</p>
+    @endif
 </article>

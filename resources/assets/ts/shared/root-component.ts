@@ -14,7 +14,6 @@ export interface Rule {
  */
 const LISTING_RULES: Rule[] = [
     { host: null, hooks: ['results', 'card-template', 'empty'] },
-    { host: 'card-template', hooks: ['card', 'url', 'image', 'title', 'price'] },
     { host: 'facet-value', hooks: ['input'] },
     { host: 'facet', hooks: ['more'], whenHolding: 'facet-value' },
     { host: 'facet', hooks: ['panel'], whenHolding: 'toggle' },
@@ -32,7 +31,7 @@ const LISTING_RULES: Rule[] = [
 const SEARCH_RULES: Rule[] = [
     { host: null, hooks: ['search-panel', 'search-input', 'search-status', 'search-empty', 'search-unavailable'] },
     { host: 'search-section', hooks: ['search-results', 'search-card-template', 'search-count'] },
-    { host: 'search-card-template', hooks: ['card', 'url', 'title'] },
+    { host: 'search-card-template', hooks: ['url'] },
 ]
 
 /** A root component a client binds to, named by its attribute, and the rules its markup must meet. */

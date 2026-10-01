@@ -70,7 +70,7 @@ describe('SectionView', () => {
 
         const summaries = [...section(root, 'post').querySelectorAll<HTMLElement>(Contract.selector('summary'))]
 
-        assert.deepEqual(summaries.map((summary) => [summary.textContent, summary.hidden]), [['How to choose', false], ['', true]])
+        assert.deepEqual(summaries.map((summary) => summary.textContent), ['How to choose'])
     })
 
     it('hides a section whose type found nothing, and offers no option from it', (t) => {

@@ -257,9 +257,10 @@ ${priced ? priceBlock(folding) : ''}
     </p>
     <template data-meili="card-template">
         <li data-meili="card">
-            <a href="" data-meili="url">
-                <img alt="" data-meili="image">
-                <span data-meili="title"></span>
+            <a data-meili-attr="href:url" data-meili="url">
+                <img data-meili-attr="src:image_url alt:image_alt|title width:image_width height:image_height"
+                     data-meili-if="image_url" data-meili="image">
+                <span data-meili-text="title" data-meili="title"></span>
             </a>
             <span data-meili="price"></span>
         </li>

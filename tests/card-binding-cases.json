@@ -1,0 +1,255 @@
+{
+    "attributes": {
+        "allowed": ["href", "src", "alt", "title", "width", "height", "value", "datetime", "aria-label", "aria-describedby", "data-product_id", "data-product-id", "srcset", "sizes"],
+        "refused": ["onclick", "onmouseover", "on", "style", "srcdoc", "class", "id", "rel", "target", "formaction", "x-data", "x-bind:href", ":href", "@click", "xlink:href", "Href", "data-meili", "data-meili-text", "data-meili-attr", "data-meili-hidden", "data-meili-if", "data-meili-class", "data-meilifacets", "DATA-MEILI", "DATA-MEILI-TEXT", "Data-Meili-Attr"]
+    },
+    "urls": {
+        "safe": ["https://example.test/creme", "HTTP://example.test/creme", "/produit/creme/?add-to-cart=12", "?add-to-cart=12", "produit/creme", "//cdn.example.test/creme.jpg", "#top", "%6Aavascript:alert(1)", "&#106;avascript:alert(1)", "javascript :alert(1)"],
+        "unsafe": ["javascript:alert(1)", "JaVaScRiPt:alert(1)", " javascript:alert(1)", "java\tscript:alert(1)", "java\nscript:alert(1)", "\u0001javascript:alert(1)", "data:text/html,<script>alert(1)</script>", "vbscript:msgbox(1)", "mailto:contact@example.test", "JAVASCRIPT:alert(1)", "  javascript:alert(1)  ", "java\rscript:alert(1)", "javascript:%61lert(1)", "\u0000javascript:alert(1)"]
+    },
+    "urlLists": {
+        "safe": ["/creme-300x366.jpg 300w, /creme-550x670.jpg 550w", "https://example.test/a.jpg 1x,https://example.test/b.jpg 2x", "/creme.jpg"],
+        "unsafe": ["/a.jpg 1x, javascript:alert(1) 2x", "/a.jpg 1x,javascript:alert(1) 2x", "data:image/svg+xml,<svg onload=alert(1)> 1x", " JAVASCRIPT:alert(1) 1x", "/a.jpg 1x,\tjava\tscript:alert(1) 2x"]
+    },
+    "dimensions": {
+        "accepted": ["550", "1"],
+        "refused": ["0", "-1", "4.5", "1e+21", "550px", " 550", "abc"]
+    },
+    "texts": [
+        { "value": "Avril", "text": "Avril" },
+        { "value": 12, "text": "12" },
+        { "value": 4.5, "text": "4.5" },
+        { "value": 0.30000000000000004, "text": "0.30000000000000004" },
+        { "value": 1e21, "text": "1e+21" },
+        { "value": 1e20, "text": "100000000000000000000" },
+        { "value": 1e-7, "text": "1e-7" },
+        { "value": 0.000001, "text": "0.000001" },
+        { "value": 9007199254740993, "text": "9007199254740992" },
+        { "value": true, "text": "" },
+        { "value": null, "text": "" },
+        { "value": [12], "text": "" },
+        { "value": { "fr": "Avril" }, "text": "" }
+    ],
+    "fields": {
+        "refused": ["brand name", "", "bränd", "brand-name", "brand.name", "!brand", "brand|title", "brand:title", "<b>"]
+    },
+    "elements": [
+        {
+            "case": "a text field is written as text",
+            "binding": { "text": "brand" },
+            "template": "<span data-meili-text=\"brand\"></span>",
+            "card": { "brand": "Avril" },
+            "expected": { "text": "Avril", "elements": 0, "attributes": {}, "classes": [], "present": true }
+        },
+        {
+            "case": "markup in a text field stays text",
+            "binding": { "text": "brand" },
+            "template": "<span data-meili-text=\"brand\"></span>",
+            "card": { "brand": "<script>alert(1)</script><b>Avril</b>" },
+            "expected": { "text": "<script>alert(1)</script><b>Avril</b>", "elements": 0, "attributes": {}, "classes": [], "present": true }
+        },
+        {
+            "case": "a whole number is written in decimal",
+            "binding": { "text": "id" },
+            "template": "<span data-meili-text=\"id\"></span>",
+            "card": { "id": 12 },
+            "expected": { "text": "12", "elements": 0, "attributes": {}, "classes": [], "present": true }
+        },
+        {
+            "case": "a fraction is written the way JavaScript prints it",
+            "binding": { "text": "rating" },
+            "template": "<span data-meili-text=\"rating\"></span>",
+            "card": { "rating": 4.5 },
+            "expected": { "text": "4.5", "elements": 0, "attributes": {}, "classes": [], "present": true }
+        },
+        {
+            "case": "neither text nor a number leaves the element out",
+            "binding": { "text": "brand" },
+            "template": "<span data-meili-text=\"brand\"></span>",
+            "card": { "brand": { "fr": "Avril" } },
+            "expected": { "text": "", "elements": 0, "attributes": {}, "classes": [], "present": false }
+        },
+        {
+            "case": "an absent text field leaves its element out",
+            "binding": { "text": "brand" },
+            "template": "<span data-meili-text=\"brand\"></span>",
+            "card": {},
+            "expected": { "text": "", "elements": 0, "attributes": {}, "classes": [], "present": false }
+        },
+        {
+            "case": "attributes take their fields",
+            "binding": { "attributes": { "href": "cart_url", "data-product_id": "id" } },
+            "template": "<a data-meili-attr=\"href:cart_url data-product_id:id\"></a>",
+            "card": { "cart_url": "/produit/creme/?add-to-cart=12", "id": 12 },
+            "expected": { "text": "", "elements": 0, "attributes": { "href": "/produit/creme/?add-to-cart=12", "data-product_id": "12" }, "classes": [], "present": true }
+        },
+        {
+            "case": "a script URL is not written",
+            "binding": { "attributes": { "href": "cart_url" } },
+            "template": "<a data-meili-attr=\"href:cart_url\"></a>",
+            "card": { "cart_url": "javascript:alert(1)" },
+            "expected": { "text": "", "elements": 0, "attributes": { "href": null }, "classes": [], "present": true }
+        },
+        {
+            "case": "a quote cannot close the attribute it is written into",
+            "binding": { "attributes": { "title": "brand" } },
+            "template": "<a data-meili-attr=\"title:brand\"></a>",
+            "card": { "brand": "\" onmouseover=\"alert(1)" },
+            "expected": { "text": "", "elements": 0, "attributes": { "title": "\" onmouseover=\"alert(1)", "onmouseover": null }, "classes": [], "present": true }
+        },
+        {
+            "case": "an empty or absent field removes its attribute",
+            "binding": { "attributes": { "href": "cart_url", "aria-label": "label" } },
+            "template": "<a data-meili-attr=\"href:cart_url aria-label:label\"></a>",
+            "card": { "cart_url": "" },
+            "expected": { "text": "", "elements": 0, "attributes": { "href": null, "aria-label": null }, "classes": [], "present": true }
+        },
+        {
+            "case": "a true field switches its classes on",
+            "binding": { "classes": { "always": "card", "toggles": { "add_to_cart_button ajax_add_to_cart": "ajax_add_to_cart" } } },
+            "template": "<a class=\"card\" data-meili-class=\"add_to_cart_button:ajax_add_to_cart ajax_add_to_cart:ajax_add_to_cart\"></a>",
+            "card": { "ajax_add_to_cart": true },
+            "expected": { "text": "", "elements": 0, "attributes": {}, "classes": ["add_to_cart_button", "ajax_add_to_cart", "card"], "present": true }
+        },
+        {
+            "case": "a false field leaves its classes off",
+            "binding": { "classes": { "always": "card", "toggles": { "is-new": "fresh", "md:flex": "fresh" } } },
+            "template": "<a class=\"card\" data-meili-class=\"is-new:fresh md:flex:fresh\"></a>",
+            "card": { "fresh": 0 },
+            "expected": { "text": "", "elements": 0, "attributes": {}, "classes": ["card"], "present": true }
+        },
+        {
+            "case": "a class takes the field after the last separator",
+            "binding": { "classes": { "always": "", "toggles": { "md:flex": "fresh" } } },
+            "template": "<a class=\"\" data-meili-class=\"md:flex:fresh\"></a>",
+            "card": { "fresh": "yes" },
+            "expected": { "text": "", "elements": 0, "attributes": {}, "classes": ["md:flex"], "present": true }
+        },
+        {
+            "case": "left out with a false field",
+            "binding": { "onlyWith": "featured" },
+            "template": "<a data-meili-if=\"featured\"></a>",
+            "card": { "featured": false },
+            "expected": { "text": "", "elements": 0, "attributes": {}, "classes": [], "present": false }
+        },
+        {
+            "case": "present with a true field",
+            "binding": { "onlyWith": "featured" },
+            "template": "<a data-meili-if=\"featured\"></a>",
+            "card": { "featured": true },
+            "expected": { "text": "", "elements": 0, "attributes": {}, "classes": [], "present": true }
+        },
+        {
+            "case": "an absent field leaves the element out like a false one",
+            "binding": { "onlyWith": "featured" },
+            "template": "<a data-meili-if=\"featured\"></a>",
+            "card": {},
+            "expected": { "text": "", "elements": 0, "attributes": {}, "classes": [], "present": false }
+        },
+        {
+            "case": "a string that reads zero is still text, so true",
+            "binding": { "onlyWith": "volume" },
+            "template": "<a data-meili-if=\"volume\"></a>",
+            "card": { "volume": "0" },
+            "expected": { "text": "", "elements": 0, "attributes": {}, "classes": [], "present": true }
+        },
+        {
+            "case": "an empty list is false",
+            "binding": { "onlyWith": "variations" },
+            "template": "<a data-meili-if=\"variations\"></a>",
+            "card": { "variations": [] },
+            "expected": { "text": "", "elements": 0, "attributes": {}, "classes": [], "present": false }
+        },
+        {
+            "case": "the negated half is left out with a true field",
+            "binding": { "onlyWithout": "ajax_add_to_cart" },
+            "template": "<a data-meili-if=\"!ajax_add_to_cart\"></a>",
+            "card": { "ajax_add_to_cart": true },
+            "expected": { "text": "", "elements": 0, "attributes": {}, "classes": [], "present": false }
+        },
+        {
+            "case": "the negated half is present without the field",
+            "binding": { "onlyWithout": "ajax_add_to_cart" },
+            "template": "<a data-meili-if=\"!ajax_add_to_cart\"></a>",
+            "card": {},
+            "expected": { "text": "", "elements": 0, "attributes": {}, "classes": [], "present": true }
+        },
+        {
+            "case": "an attribute takes its first field that holds a value",
+            "binding": { "attributes": { "alt": ["image_alt", "title"] } },
+            "template": "<a data-meili-attr=\"alt:image_alt|title\"></a>",
+            "card": { "image_alt": "", "title": "Crème" },
+            "expected": { "text": "", "elements": 0, "attributes": { "alt": "Crème" }, "classes": [], "present": true }
+        },
+        {
+            "case": "the first field wins when it holds a value",
+            "binding": { "attributes": { "alt": ["image_alt", "title"] } },
+            "template": "<a data-meili-attr=\"alt:image_alt|title\"></a>",
+            "card": { "image_alt": "Un pot ouvert", "title": "Crème" },
+            "expected": { "text": "", "elements": 0, "attributes": { "alt": "Un pot ouvert" }, "classes": [], "present": true }
+        },
+        {
+            "case": "a list of web URLs is written as a srcset",
+            "binding": { "attributes": { "srcset": "image_srcset" } },
+            "template": "<a data-meili-attr=\"srcset:image_srcset\"></a>",
+            "card": { "image_srcset": "/creme-300x366.jpg 300w, /creme-550x670.jpg 550w" },
+            "expected": { "text": "", "elements": 0, "attributes": { "srcset": "/creme-300x366.jpg 300w, /creme-550x670.jpg 550w" }, "classes": [], "present": true }
+        },
+        {
+            "case": "a srcset holding a script URL is not written",
+            "binding": { "attributes": { "srcset": "image_srcset" } },
+            "template": "<a data-meili-attr=\"srcset:image_srcset\"></a>",
+            "card": { "image_srcset": "/creme.jpg 1x, javascript:alert(1) 2x" },
+            "expected": { "text": "", "elements": 0, "attributes": { "srcset": null }, "classes": [], "present": true }
+        },
+        {
+            "case": "a whole positive dimension is written",
+            "binding": { "attributes": { "width": "image_width", "height": "image_height" } },
+            "template": "<a data-meili-attr=\"width:image_width height:image_height\"></a>",
+            "card": { "image_width": 550, "image_height": "670" },
+            "expected": { "text": "", "elements": 0, "attributes": { "width": "550", "height": "670" }, "classes": [], "present": true }
+        },
+        {
+            "case": "a dimension the browser could not use is not written",
+            "binding": { "attributes": { "width": "image_width", "height": "image_height" } },
+            "template": "<a data-meili-attr=\"width:image_width height:image_height\"></a>",
+            "card": { "image_width": 4.5, "image_height": 0 },
+            "expected": { "text": "", "elements": 0, "attributes": { "width": null, "height": null }, "classes": [], "present": true }
+        },
+        {
+            "case": "an attribute is written without the spaces around it",
+            "binding": { "attributes": { "title": "brand", "href": "url" } },
+            "template": "<a data-meili-attr=\"title:brand href:url\"></a>",
+            "card": { "brand": " \tAvril\n ", "url": "  /creme  " },
+            "expected": { "text": "", "elements": 0, "attributes": { "title": "Avril", "href": "/creme" }, "classes": [], "present": true }
+        },
+        {
+            "case": "an encoded scheme stays a literal relative link",
+            "binding": { "attributes": { "href": "url" } },
+            "template": "<a data-meili-attr=\"href:url\"></a>",
+            "card": { "url": "&#106;avascript:alert(1)" },
+            "expected": { "text": "", "elements": 0, "attributes": { "href": "&#106;avascript:alert(1)" }, "classes": [], "present": true }
+        },
+        {
+            "case": "a large number is written the way JavaScript prints it",
+            "binding": { "text": "rating" },
+            "template": "<span data-meili-text=\"rating\"></span>",
+            "card": { "rating": 1e21 },
+            "expected": { "text": "1e+21", "elements": 0, "attributes": {}, "classes": [], "present": true }
+        },
+        {
+            "case": "a text element is present with its field",
+            "binding": { "text": "summary" },
+            "template": "<span data-meili-text=\"summary\"></span>",
+            "card": { "summary": "Un geste simple." },
+            "expected": { "text": "Un geste simple.", "elements": 0, "attributes": {}, "classes": [], "present": true }
+        },
+        {
+            "case": "a text element is left out without its field",
+            "binding": { "text": "summary" },
+            "template": "<span data-meili-text=\"summary\"></span>",
+            "card": {},
+            "expected": { "text": "", "elements": 0, "attributes": {}, "classes": [], "present": false }
+        }
+    ]
+}

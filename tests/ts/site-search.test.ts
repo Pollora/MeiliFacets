@@ -254,7 +254,7 @@ describe('SiteSearch', () => {
             assert.equal(find<HTMLImageElement>(card, Contract.selector('image')).src, 'https://example.test/7.webp')
             assert.equal(find<HTMLAnchorElement>(card, Contract.selector('url')).href, 'https://example.test/7')
             assert.equal(find(card, Contract.selector('url')).getAttribute('tabindex'), '-1')
-            assert.deepEqual([...card.children].map((child) => child.getAttribute('data-meili') ?? child.tagName), ['price', 'DIV', 'summary', 'image'])
+            assert.deepEqual([...card.children].map((child) => child.getAttribute('data-meili') ?? child.tagName), ['price', 'DIV', 'image'])
         })
 
         it('follows the order shown from the keyboard, and shows the message placed first', async (t) => {

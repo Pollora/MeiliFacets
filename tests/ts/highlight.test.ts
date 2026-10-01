@@ -46,7 +46,7 @@ describe('Highlight', () => {
             price: `<span>${OPENING}12${CLOSING} €</span>`,
         })
 
-        assert.equal(find(card, Contract.selector('url')).getAttribute('href'), '')
+        assert.equal(find(card, Contract.selector('url')).hasAttribute('href'), false)
         assert.equal(find(card, Contract.selector('price')).innerHTML, '')
     })
 

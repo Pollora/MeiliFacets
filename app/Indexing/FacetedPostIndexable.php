@@ -26,7 +26,7 @@ final class FacetedPostIndexable extends PostIndexable
      * The only fields the module reads back from a hit. Anything else a project
      * needs is declared, not inherited.
      */
-    private const array READ_BY_THE_MODULE = ['ID', 'card'];
+    private const array READ_BY_THE_MODULE = [DocumentField::Id->value, DocumentField::Card->value];
 
     public function __construct(
         private readonly IndexAttributes $attributes,

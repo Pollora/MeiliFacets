@@ -72,11 +72,11 @@ describe('Contract', () => {
         assert.deepEqual(new Contract(root).breaches(), ['empty'])
     })
 
-    it('looks inside the card template, not around it', () => {
+    it('requires no hook inside a listing card, the price being written only where it is', () => {
         const root = complete()
-        replaceChild(root, 2, template('card', 'url', 'image', 'title'))
+        replaceChild(root, 2, template())
 
-        assert.deepEqual(new Contract(root).breaches(), ['card-template > price'])
+        assert.deepEqual(new Contract(root).breaches(), [])
     })
 
     it('requires an input only where a facet value is rendered', () => {
@@ -277,17 +277,16 @@ describe('a search root', () => {
         assert.deepEqual(new Contract(searchRoot(bricks())).breaches(), [])
     })
 
-    it('requires of each section its results, its template and its count, and of the template a linked, titled card', () => {
+    it('requires of each section its results, its template and its count, and of the template only the link the keyboard opens', () => {
         const sections = [
-            node('search-section', [node('search-results'), node('search-count'), searchTemplate('card', 'url', 'title')]),
-            node('search-section', [searchTemplate('card')]),
+            node('search-section', [node('search-results'), node('search-count'), searchTemplate('url')]),
+            node('search-section', [searchTemplate('card', 'title')]),
         ]
 
         assert.deepEqual(new Contract(searchRoot([...bricks(), ...sections])).breaches(), [
             'search-section > search-results',
             'search-section > search-count',
             'search-card-template > url',
-            'search-card-template > title',
         ])
     })
 

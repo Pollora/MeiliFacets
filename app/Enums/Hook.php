@@ -94,4 +94,12 @@ enum Hook: string
     {
         return new HtmlString(Contract::Attribute->value.'="'.$this->value.'"');
     }
+
+    /**
+     * @return array<string, string>
+     */
+    public function asAttributes(): array
+    {
+        return [Contract::Attribute->value => $this->value];
+    }
 }

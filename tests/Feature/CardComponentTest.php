@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Tests\Feature;
 
+use Dom\Element;
+use Dom\HTMLDocument;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\View\ViewException;
 use Modules\MeiliFacets\Enums\CardField;
 use Modules\MeiliFacets\Enums\ImagePriority;
-use Modules\MeiliFacets\View\CardImage;
+use Modules\MeiliFacets\View\Components\Listing\Card;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -18,6 +20,38 @@ use Tests\TestCase;
  */
 final class CardComponentTest extends TestCase
 {
+    private const string SRCSET = 'https://example.test/photo-300x300.jpg 300w, https://example.test/photo.jpg 600w';
+
+    use RendersTheModuleViews;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->renderTheModuleViews();
+    }
+
+    protected function tearDown(): void
+    {
+        $this->restoreTheThemeViews();
+
+        parent::tearDown();
+    }
+
+    #[Test]
+    public function it_hands_an_override_the_binding_over_its_card(): void
+    {
+        $binding = new Card(['brand' => '<b>Avril</b>', 'id' => 12])->binding;
+        $brand = $binding->text('brand');
+
+        $this->assertSame('data-meili-text="brand"', (string) $brand->attributes);
+        $this->assertSame('&lt;b&gt;Avril&lt;/b&gt;', $brand->toHtml());
+        $this->assertSame(
+            'data-product_id="12" data-meili-attr="data-product_id:id"',
+            (string) $binding->attributes(['data-product_id' => 'id'])
+        );
+    }
+
     /** The price is what WooCommerce formatted: it is rendered as it stands. */
     #[Test]
     public function it_renders_the_price_markup_as_it_stands(): void
@@ -51,35 +85,58 @@ final class CardComponentTest extends TestCase
     }
 
     #[Test]
-    public function it_never_renders_an_image_without_a_src(): void
+    public function it_leaves_out_an_image_the_card_does_not_have(): void
     {
-        $html = $this->render([]);
+        $this->assertNull($this->document($this->render([]))->querySelector('img'));
+    }
 
-        $this->assertStringContainsString('src="'.CardImage::BLANK.'"', $html);
-        $this->assertStringNotContainsString('src=""', $html);
+    #[Test]
+    public function it_offers_the_browser_the_sizes_the_index_holds(): void
+    {
+        $image = $this->image([
+            CardField::ImageUrl->value => 'https://example.test/photo-300x300.jpg',
+            CardField::ImageSrcset->value => self::SRCSET,
+            CardField::ImageSizes->value => '(max-width: 300px) 100vw, 300px',
+        ]);
+
+        $this->assertSame(self::SRCSET, $image->getAttribute('srcset'));
+        $this->assertSame('(max-width: 300px) 100vw, 300px', $image->getAttribute('sizes'));
+    }
+
+    #[Test]
+    public function it_names_an_image_after_the_title_when_its_alt_text_is_empty(): void
+    {
+        $image = $this->image([
+            CardField::Title->value => 'Serum',
+            CardField::ImageUrl->value => 'https://example.test/photo.jpg',
+            CardField::ImageAlt->value => '',
+        ]);
+
+        $this->assertSame('Serum', $image->getAttribute('alt'));
     }
 
     #[Test]
     public function it_renders_the_loading_hints_of_the_priority_it_is_given(): void
     {
-        $eager = $this->render([], ['priority' => ImagePriority::Eager]);
+        $card = [CardField::ImageUrl->value => 'https://example.test/photo.jpg'];
+        $eager = $this->render($card, ['priority' => ImagePriority::Eager]);
 
         $this->assertStringContainsString('loading="eager"', $eager);
         $this->assertStringContainsString('fetchpriority="high"', $eager);
-        $this->assertStringContainsString('loading="lazy"', $this->render([]));
+        $this->assertStringContainsString('loading="lazy"', $this->render($card));
     }
 
     /** A card the client clones lands in a page already painted: eager buys nothing. */
     #[Test]
     public function it_defers_the_image_of_a_card_nobody_placed(): void
     {
-        $this->assertStringContainsString('loading="lazy"', Blade::render('<x-meilifacets::listing.card :card="[]" />'));
+        $this->assertStringContainsString('loading="lazy"', Blade::render('<x-meilifacets::listing.card-template />'));
     }
 
     #[Test]
-    public function it_marks_every_value_the_client_repaints(): void
+    public function its_template_holds_every_hook_the_client_fills(): void
     {
-        $html = $this->render([]);
+        $html = Blade::render('<x-meilifacets::listing.card-template />');
 
         foreach (['url', 'image', 'title', 'price'] as $hook) {
             $this->assertStringContainsString('data-meili="'.$hook.'"', $html);
@@ -87,11 +144,21 @@ final class CardComponentTest extends TestCase
     }
 
     #[Test]
+    public function it_leaves_out_what_a_card_has_nothing_to_show_in(): void
+    {
+        $card = $this->document($this->render([CardField::Url->value => 'https://example.test/serum']));
+
+        foreach (['image', 'title', 'price'] as $hook) {
+            $this->assertNull($card->querySelector('[data-meili="'.$hook.'"]'), $hook);
+        }
+    }
+
+    #[Test]
     public function it_takes_the_heading_level_its_context_needs(): void
     {
-        $html = $this->render([CardField::Title->value => 'Serum'], ['heading' => 'h4']);
+        $card = $this->document($this->render([CardField::Title->value => 'Serum'], ['heading' => 'h4']));
 
-        $this->assertStringContainsString('<h4 class="meilifacetsCardTitle" data-meili="title">Serum</h4>', $html);
+        $this->assertSame('Serum', $card->querySelector('h4.meilifacetsCardTitle[data-meili="title"]')?->textContent);
     }
 
     #[Test]
@@ -112,6 +179,27 @@ final class CardComponentTest extends TestCase
         $html = Blade::render('<x-meilifacets::listing.card :card="[]" class="col-span-2" />');
 
         $this->assertStringContainsString('class="meilifacetsCard col-span-2"', $html);
+    }
+
+    /**
+     * @param  array<string, mixed>  $card
+     */
+    private function image(array $card): Element
+    {
+        $image = $this->document($this->render($card))->querySelector('img');
+
+        $this->assertInstanceOf(Element::class, $image);
+
+        return $image;
+    }
+
+    private function document(string $html): Element
+    {
+        $body = HTMLDocument::createFromString('<!doctype html><body>'.$html, LIBXML_NOERROR)->body;
+
+        $this->assertInstanceOf(Element::class, $body);
+
+        return $body;
     }
 
     /**

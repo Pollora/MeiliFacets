@@ -1,18 +1,22 @@
+import { CardFieldValue } from './card-field-value.ts'
+import { CardBinding } from './card-binding.ts'
+
 import type { Contract } from '../shared/contract.ts'
 import type { Card } from '../shared/description.ts'
+import type { SearchHit } from '../shared/search-client.ts'
+
+const ID_FIELD = 'id'
 
 /** Writes one projected card into a node the theme rendered. */
 export class CardView {
     #contract: Contract
-    #altText: (card: Card) => string
 
-    constructor(contract: Contract, altText = CardView.#altFromCard) {
+    constructor(contract: Contract) {
         this.#contract = contract
-        this.#altText = altText
     }
 
-    static withDecorativeImages(contract: Contract) {
-        return new CardView(contract, CardView.#noAltText)
+    static fieldsOf(hit: SearchHit): Card {
+        return hit.ID === undefined ? { ...hit.card } : { ...hit.card, [ID_FIELD]: hit.ID }
     }
 
     /** A copy of the template's first node, filled; nothing when the template holds no element. */
@@ -23,78 +27,10 @@ export class CardView {
     }
 
     show(node: Element, card: Card) {
-        this.#link(this.#contract.one('url', node), card)
-        this.#image(this.#contract.one('image', node), card)
-        this.showWords(node, card)
+        new CardBinding(card).apply(node)
         this.#markup(this.#contract.one('price', node), card.price)
 
         return node
-    }
-
-    /** The words alone: what changes on a card already drawn when another term finds it again. */
-    showWords(node: Element, card: Card) {
-        this.#text(this.#contract.one('title', node), card.title)
-        this.#summary(this.#contract.one('summary', node), card.summary)
-    }
-
-    #link(node: Element | null, card: Card) {
-        if (node instanceof HTMLAnchorElement) {
-            node.href = CardView.#textOf(card.url)
-        }
-    }
-
-    #image(node: Element | null, card: Card) {
-        if (!(node instanceof HTMLImageElement)) {
-            return
-        }
-
-        const source = card.image_url
-
-        node.hidden = typeof source !== 'string' || source === ''
-        node.alt = this.#altText(card)
-
-        if (!node.hidden) {
-            node.src = String(source)
-            this.#size(node, 'width', card.image_width)
-            this.#size(node, 'height', card.image_height)
-        }
-    }
-
-    /**
-     * A dimension the index cannot have meant is dropped rather than guessed:
-     * lying to the browser causes the very shift it is meant to prevent.
-     */
-    #size(node: HTMLImageElement, attribute: 'width' | 'height', value: unknown) {
-        if (Number.isInteger(value) && Number(value) > 0) {
-            node.setAttribute(attribute, String(value))
-        } else {
-            node.removeAttribute(attribute)
-        }
-    }
-
-    #text(node: Element | null, value: unknown) {
-        if (node) {
-            node.textContent = CardView.#textOf(value)
-        }
-    }
-
-    #summary(node: Element | null, value: unknown) {
-        if (node instanceof HTMLElement) {
-            node.textContent = CardView.#textOf(value)
-            node.hidden = node.textContent === ''
-        }
-    }
-
-    static #altFromCard(card: Card) {
-        return CardView.#textOf(card.image_alt) || CardView.#textOf(card.title)
-    }
-
-    static #noAltText() {
-        return ''
-    }
-
-    static #textOf(value: unknown) {
-        return typeof value === 'string' || typeof value === 'number' ? String(value) : ''
     }
 
     /**
@@ -102,13 +38,12 @@ export class CardView {
      * already: writing it as text would show the tags.
      */
     #markup(node: Element | null, value: unknown) {
-        if (!(node instanceof HTMLElement)) {
-            return
+        const markup = new CardFieldValue(value).text
+
+        if (markup === '') {
+            node?.remove()
+        } else if (node !== null) {
+            node.innerHTML = markup
         }
-
-        const markup = typeof value === 'string' ? value : ''
-
-        node.hidden = markup === ''
-        node.innerHTML = markup
     }
 }

@@ -39,9 +39,9 @@ export const searchSection = (postType: string, limit: number | null = null) => 
             <ul id="results-${postType}" role="listbox" aria-labelledby="heading-${postType}" data-meili="search-results"></ul>
             <template data-meili="search-card-template">
                 <li role="option" data-meili="card">
-                    <a href="" data-meili="url">
-                        <img alt="" hidden data-meili="image"><span data-meili="title"></span>
-                        <span hidden data-meili="summary"></span><span hidden data-meili="price"></span>
+                    <a data-meili-attr="href:url" data-meili="url">
+                        <img alt="" data-meili-attr="src:image_url" data-meili-if="image_url" data-meili="image"><span data-meili-text="title" data-meili="title"></span>
+                        <span data-meili-text="summary" data-meili="summary"></span><span data-meili="price"></span>
                     </a>
                 </li>
             </template>
@@ -145,10 +145,10 @@ const rearrangedSection = (postType: string, limit: number) => `
             </footer>
             <template data-meili="search-card-template">
                 <li role="option" data-meili="card">
-                    <span hidden data-meili="price"></span>
-                    <div><a href="" data-meili="url"><strong data-meili="title"></strong></a></div>
-                    <span hidden data-meili="summary"></span>
-                    <img alt="" hidden data-meili="image">
+                    <span data-meili="price"></span>
+                    <div><a data-meili-attr="href:url" data-meili="url"><strong data-meili-text="title" data-meili="title"></strong></a></div>
+                    <span data-meili-text="summary" data-meili="summary"></span>
+                    <img alt="" data-meili-attr="src:image_url" data-meili-if="image_url" data-meili="image">
                 </li>
             </template>
         </section>`

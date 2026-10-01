@@ -5,6 +5,7 @@ import { PageWindow } from '../pagination/page-window.ts'
 import { PaginationView } from '../pagination/pagination-view.ts'
 import { PriceControl } from '../price/price-control.ts'
 import { BusyGrid } from '../results/busy-grid.ts'
+import { CardView } from '../results/card-view.ts'
 import { ResultsView } from '../results/results-view.ts'
 import { InputSource } from '../shared/input-source.ts'
 import { RESULTS } from '../shared/plan.ts'
@@ -224,7 +225,7 @@ export class ListingBinding {
     #repaintGrid(results: SearchAnswer, state: ListingState) {
         const pageWindow = this.#pageWindowOf(state, results.totalHits ?? 0)
 
-        this.#results.show((results.hits ?? []).map((hit) => hit.card ?? {}), pageWindow)
+        this.#results.show((results.hits ?? []).map((hit) => CardView.fieldsOf(hit)), pageWindow)
         this.#pagination.show(pageWindow)
     }
 

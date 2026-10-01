@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Search;
 
+use Modules\MeiliFacets\Enums\CardField;
 use Modules\MeiliFacets\Enums\DocumentField;
 
 final readonly class ListingResults
@@ -29,10 +30,7 @@ final readonly class ListingResults
      */
     public function cards(): array
     {
-        $cards = array_map(
-            static fn (array $hit): mixed => $hit[DocumentField::Card->value] ?? null,
-            $this->hits
-        );
+        $cards = array_map($this->card(...), $this->hits);
 
         return array_values(array_filter($cards, is_array(...)));
     }
@@ -51,5 +49,22 @@ final readonly class ListingResults
     public function unfilteredDistribution(string $taxonomy): ?array
     {
         return $this->unfilteredDistributions[$taxonomy] ?? null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $hit
+     * @return array<string, mixed>|null
+     */
+    private function card(array $hit): ?array
+    {
+        $card = $hit[DocumentField::Card->value] ?? null;
+
+        if (! is_array($card)) {
+            return null;
+        }
+
+        $id = $hit[DocumentField::Id->value] ?? null;
+
+        return $id === null ? $card : [...$card, CardField::Id->value => $id];
     }
 }

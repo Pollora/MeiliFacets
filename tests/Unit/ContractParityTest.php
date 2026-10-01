@@ -7,6 +7,8 @@ namespace Modules\MeiliFacets\Tests\Unit;
 use FilesystemIterator;
 use Generator;
 use Modules\MeiliFacets\Enums\ActiveValueKind;
+use Modules\MeiliFacets\Enums\BindingAttribute;
+use Modules\MeiliFacets\Enums\CardField;
 use Modules\MeiliFacets\Enums\Contract;
 use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Enums\Hook;
@@ -138,6 +140,8 @@ final class ContractParityTest extends TestCase
         yield 'markup attribute' => ['shared/contract.ts', "ATTRIBUTE = '([^']*)'", Contract::Attribute->value];
         yield 'version attribute' => ['shared/contract.ts', "VERSION_ATTRIBUTE = '([^']*)'", Contract::VersionAttribute->value];
         yield 'scroll attribute' => ['shared/contract.ts', "SCROLL_ATTRIBUTE = '([^']*)'", Contract::ScrollAttribute->value];
+        yield 'retrieved id' => ['site-search/site-search-query.ts', "RETRIEVED = \\['([^']*)'", DocumentField::Id->value];
+        yield 'card id field' => ['results/card-view.ts', "ID_FIELD = '([^']*)'", CardField::Id->value];
         yield 'retrieved card' => ['site-search/site-search-query.ts', "RETRIEVED = \\['ID', '([^']*)'\\]", DocumentField::Card->value];
         yield 'search brick prefix' => ['shared/root-component.ts', "SEARCH_PREFIX = '([^']*)'", Hook::Search->value];
         yield 'facet field prefix' => ['shared/description.ts', "FACET_FIELD_PREFIX = '([^']*)'", DocumentField::Facets->value.'.'];
@@ -147,6 +151,14 @@ final class ContractParityTest extends TestCase
         yield 'search pill kind' => ['listing/active-value-list.ts', "SEARCH_KIND = '([^']*)'", ActiveValueKind::Search->value];
         yield 'term pill kind' => ['listing/active-value-list.ts', "TERM_KIND = '([^']*)'", ActiveValueKind::Term->value];
         yield 'price pill kind' => ['listing/active-value-list.ts', "PRICE_KIND = '([^']*)'", ActiveValueKind::Price->value];
+        yield 'text binding' => ['results/card-binding.ts', "TEXT_BINDING = '([^']*)'", BindingAttribute::Text->value];
+        yield 'attribute binding' => ['results/card-binding.ts', "ATTRIBUTE_BINDING = '([^']*)'", BindingAttribute::Attribute->value];
+        yield 'class binding' => ['results/card-binding.ts', "CLASS_BINDING = '([^']*)'", BindingAttribute::ClassName->value];
+        yield 'condition binding' => ['results/card-binding.ts', "CONDITION_BINDING = '([^']*)'", BindingAttribute::Condition->value];
+        yield 'binding pair separator' => ['results/card-binding.ts', "PAIR_SEPARATOR = '([^']*)'", BindingAttribute::PAIR_SEPARATOR];
+        yield 'binding negation' => ['results/card-binding.ts', "NEGATION = '([^']*)'", BindingAttribute::NEGATION];
+        yield 'binding list separator' => ['results/card-binding.ts', "LIST_SEPARATOR = '([^']*)'", BindingAttribute::LIST_SEPARATOR];
+        yield 'binding fallback separator' => ['results/card-binding.ts', "FALLBACK_SEPARATOR = '([^']*)'", BindingAttribute::FALLBACK_SEPARATOR];
     }
 
     #[DataProvider('twins')]

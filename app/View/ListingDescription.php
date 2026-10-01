@@ -51,7 +51,7 @@ final readonly class ListingDescription
             'delay' => $this->searchSettings->delay,
             'perPage' => $listing->perPage(),
             'reachableHits' => $this->limits->reachableHits,
-            'attributes' => [DocumentField::Card->value],
+            'attributes' => [DocumentField::Id->value, DocumentField::Card->value],
             'apply' => $listing->applyMode()->value,
             'facets' => $this->facets($listing),
             'params' => $params,
