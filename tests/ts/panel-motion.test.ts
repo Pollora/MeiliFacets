@@ -95,7 +95,7 @@ describe('PanelMotion', () => {
         panel.hidden = false
         panel.getAnimations = () => [{ finish: () => finished++ } as unknown as Animation]
 
-        new PanelMotion(window.document).drop(panel)
+        new PanelMotion(window.document).hideInstantly(panel)
 
         assert.equal(panel.hidden, true)
         assert.equal(finished, 1)
@@ -104,7 +104,7 @@ describe('PanelMotion', () => {
 
     /** ANIM-3: the stylesheet plays a floating panel in, so that a second click turns it back instead of cutting it. */
     it('pops a floating panel in without scripting its motion', () => {
-        new PanelMotion(window.document).pop(panel)
+        new PanelMotion(window.document).showFloating(panel)
 
         assert.deepEqual(played, [])
         assert.equal(panel.hidden, false)

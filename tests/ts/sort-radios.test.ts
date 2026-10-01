@@ -22,15 +22,15 @@ const choice = (value: string, label: string, checked = false) => `
 
 const PLAIN = { legend: 'Sort by', panel: '' }
 
-/** Mirrors `toggle.blade.php` holding the sort summary: no badge, the label alone, then the sentence holding the order in force. */
+/** Mirrors `listing/toggle.blade.php` holding the sort caption: no badge, the label alone, then the sentence holding the order in force. */
 const COLLAPSIBLE = {
     legend: `<button type="button" class="meilifacetsFacetToggle" aria-expanded="false" aria-controls="sort-panel" data-meili="toggle">
-            <span class="meilifacetsFacetToggleName"><span class="meilifacetsFacetToggleLabel" aria-hidden="true">Sort by</span><span class="meilifacetsSortSummary">Sort by: <span class="meilifacetsSortChoice" data-meili="sort-chosen">Relevance</span></span></span>
+            <span class="meilifacetsFacetToggleName"><span class="meilifacetsFacetToggleLabel" aria-hidden="true">Sort by</span><span class="meilifacetsSortCaption">Sort by: <span class="meilifacetsSortChoice" data-meili="sort-chosen">Relevance</span></span></span>
         </button>`,
     panel: ' hidden data-meili="panel"',
 }
 
-/** Mirrors `sort-radios.blade.php`, in place of the listbox. */
+/** Mirrors `listing/sort-radios.blade.php`, in place of the listbox. */
 const radiosMarkup = (folding = PLAIN) => listingMarkup().replace(/<div class="meilifacetsSort"[\s\S]*?<\/ul>\s*<\/div>/, `
     <fieldset class="meilifacetsFacet meilifacetsSortChoices" data-meili="sort-choices">
         <legend class="meilifacetsFacetLabel">${folding.legend}</legend>
@@ -163,23 +163,23 @@ describe('SortRadios', () => {
             const styleOf = (selector: string) => window.getComputedStyle(find(root, selector))
 
             return {
-                summary: styleOf('.meilifacetsSortSummary'),
+                caption: styleOf('.meilifacetsSortCaption'),
                 label: styleOf('.meilifacetsFacetToggleLabel'),
             }
         }
 
         it('keeps the sentence out of sight in the section, but in its name', () => {
-            const { summary, label } = styledAt(390)
+            const { caption, label } = styledAt(390)
 
-            assert.equal(summary.clipPath, 'inset(50%)')
-            assert.notEqual(summary.display, 'none')
+            assert.equal(caption.clipPath, 'inset(50%)')
+            assert.notEqual(caption.display, 'none')
             assert.notEqual(label.display, 'none')
         })
 
         it('shows the sentence in the pill, and the label no longer alone', () => {
-            const { summary, label } = styledAt(1440)
+            const { caption, label } = styledAt(1440)
 
-            assert.equal(summary.clipPath, 'none')
+            assert.equal(caption.clipPath, 'none')
             assert.equal(label.display, 'none')
         })
     })

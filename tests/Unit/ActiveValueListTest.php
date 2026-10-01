@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Tests\Unit;
 
 use Modules\MeiliFacets\Enums\ActiveValueKind;
-use Modules\MeiliFacets\Http\Unavailable;
+use Modules\MeiliFacets\Http\ServiceUnavailable;
 use Modules\MeiliFacets\Listing\Facet;
 use Modules\MeiliFacets\Listing\FacetValues;
 use Modules\MeiliFacets\Listing\ListingState;
@@ -114,7 +114,29 @@ final class ActiveValueListTest extends TestCase
     #[Test]
     public function it_lists_nothing_while_nothing_is_held(): void
     {
-        $this->assertSame([], $this->valuesFor(new ListingState(sort: 'price_asc', query: 'coat')));
+        $this->assertSame([], $this->valuesFor(new ListingState(sort: 'price_asc')));
+    }
+
+    /** The searched text is a filter like the others: it comes first, and its pill takes `q` off. */
+    #[Test]
+    public function it_lists_the_searched_text_before_the_ticked_values(): void
+    {
+        $values = $this->valuesFor(new ListingState(['product_brand' => ['acme']], query: 'coat'));
+
+        $this->assertSame([['“coat”', 'q', ''], ['Acme', 'brand', 'acme']], $this->shapesOf($values));
+        $this->assertSame([ActiveValueKind::Search, ActiveValueKind::Term], array_map(
+            static fn (ActiveValue $value): ActiveValueKind => $value->kind,
+            $values,
+        ));
+        $this->assertSame('Remove the “coat” filter', $values[0]->action);
+    }
+
+    #[Test]
+    public function it_fills_the_searched_text_in_once(): void
+    {
+        $values = $this->valuesFor(new ListingState(query: ':label :query'));
+
+        $this->assertSame('“:label :query”', $values[0]->label);
     }
 
     /**
@@ -151,7 +173,7 @@ final class ActiveValueListTest extends TestCase
             ]), new DisjunctiveFacetCounter),
             new FacetValues(new FakeTermLabels($labels), new FakeTermScope, new FakeDefaultTerms),
             new UrlParameters(['product_brand' => 'brand', 'pa_size' => 'size']),
-            new Unavailable,
+            new ServiceUnavailable,
             new EngineLimits(1000),
         );
     }

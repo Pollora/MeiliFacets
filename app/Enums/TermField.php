@@ -12,4 +12,14 @@ enum TermField: string
     case Taxonomy = 'taxonomy';
     case TermTaxonomyId = 'term_taxonomy_id';
     case Parent = 'parent';
+
+    /**
+     * @param  array<string, mixed>  $term
+     */
+    public function textIn(array $term): ?string
+    {
+        $value = $term[$this->value] ?? null;
+
+        return is_string($value) && $value !== '' ? $value : null;
+    }
 }

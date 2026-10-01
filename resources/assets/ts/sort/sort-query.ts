@@ -22,7 +22,7 @@ export class SortQuery implements FilterQuery {
         return [...new Set(Object.values(this.#filters).map((filter) => filter.field))]
     }
 
-    isMeasuredApart() {
+    isMeasuredSeparately() {
         return false
     }
 

@@ -27,7 +27,7 @@ export class FacetQuery implements FilterQuery {
         return [facetField(this.#facet)]
     }
 
-    isMeasuredApart(state: ListingState) {
+    isMeasuredSeparately(state: ListingState) {
         return this.#facet.multiple && state.selected(this.#facet.taxonomy).length > 0
     }
 

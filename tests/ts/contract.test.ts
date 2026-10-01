@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
 import { Contract } from '../../resources/assets/ts/shared/contract.ts'
+import { RootComponent } from '../../resources/assets/ts/shared/root-component.ts'
 import { CONTRACT, load } from './dom.ts'
 
 const window = load('')
@@ -28,6 +29,7 @@ const template = (...hooks: string[]) => {
 }
 
 const versioned = (root: Element, version: number) => {
+    root.setAttribute('data-listing', 'products')
     root.setAttribute('data-meili-contract', String(version))
 
     return root
@@ -70,11 +72,11 @@ describe('Contract', () => {
         assert.deepEqual(new Contract(root).breaches(), ['empty'])
     })
 
-    it('looks inside the card template, not around it', () => {
+    it('requires no hook inside a listing card, the price being written only where it is', () => {
         const root = complete()
-        replaceChild(root, 2, template('card', 'url', 'image', 'title'))
+        replaceChild(root, 2, template())
 
-        assert.deepEqual(new Contract(root).breaches(), ['card-template > price'])
+        assert.deepEqual(new Contract(root).breaches(), [])
     })
 
     it('requires an input only where a facet value is rendered', () => {
@@ -169,6 +171,18 @@ describe('Contract', () => {
         assert.deepEqual(pills(pillTemplate()), ['active-value-template > active-value'])
     })
 
+    it('refuses a search field form that holds no field, and asks no clear button of it', () => {
+        const listingSearch = (...children: Element[]) => {
+            const root = complete()
+            root.append(node('listing-search', children))
+
+            return new Contract(root).breaches()
+        }
+
+        assert.deepEqual(listingSearch(node('listing-search-input')), [])
+        assert.deepEqual(listingSearch(node('listing-search-clear')), ['listing-search > listing-search-input'])
+    })
+
     it('ignores a sort the theme did not render', () => {
         const root = complete()
         root.children[5]?.remove()
@@ -194,12 +208,7 @@ describe('Contract', () => {
 })
 
 describe('a hook left outside every listing', () => {
-    const inDocument = (markup: string) => {
-        const window = load(markup)
-        const roots = [...window.document.querySelectorAll('[data-listing]')]
-
-        return Contract.orphans(window.document, roots)
-    }
+    const inDocument = (markup: string) => Contract.orphans(load(markup).document, RootComponent.LISTING)
 
     it('is named once, and not through the hooks it contains', () => {
         assert.deepEqual(
@@ -240,5 +249,88 @@ describe('a hook left outside every listing', () => {
                 </div>`),
             []
         )
+    })
+})
+
+describe('a search root', () => {
+    const searchRoot = (children: Element[]) => {
+        const root = node('search', children)
+        root.setAttribute('data-search', 'header')
+        root.setAttribute('data-meili-contract', String(CONTRACT))
+
+        return root
+    }
+
+    const searchTemplate = (...hooks: string[]) => {
+        const element = window.document.createElement('template')
+
+        element.setAttribute('data-meili', 'search-card-template')
+        element.content.append(...hooks.map((hook) => node(hook)))
+
+        return element
+    }
+
+    const bricks = () => ['search-panel', 'search-input', 'search-status', 'search-empty', 'search-unavailable'].map((hook) => node(hook))
+
+    it('requires the panel, the field, the live region and both messages, the magnifier being optional', () => {
+        assert.deepEqual(new Contract(searchRoot([])).breaches(), ['search-panel', 'search-input', 'search-status', 'search-empty', 'search-unavailable'])
+        assert.deepEqual(new Contract(searchRoot(bricks())).breaches(), [])
+    })
+
+    it('requires of each section its results, its template and its count, and of the template only the link the keyboard opens', () => {
+        const sections = [
+            node('search-section', [node('search-results'), node('search-count'), searchTemplate('url')]),
+            node('search-section', [searchTemplate('card', 'title')]),
+        ]
+
+        assert.deepEqual(new Contract(searchRoot([...bricks(), ...sections])).breaches(), [
+            'search-section > search-results',
+            'search-section > search-count',
+            'search-card-template > url',
+        ])
+    })
+
+    it('is told from a listing by its attribute, and a bare element is neither', () => {
+        const root = node()
+        root.setAttribute('data-search', 'header')
+
+        assert.equal(RootComponent.of(root), RootComponent.SEARCH)
+        assert.equal(RootComponent.of(complete()), RootComponent.LISTING)
+        assert.equal(RootComponent.of(node()), null)
+    })
+
+    it('refuses to check an element that is no root at all', () => {
+        const root = node()
+        root.setAttribute('data-meili-contract', String(CONTRACT))
+
+        assert.deepEqual(new Contract(root).breaches(), ['no root: expected one of [data-listing], [data-search]'])
+    })
+})
+
+describe('a hook left outside every root', () => {
+    const inDocument = (markup: string, owner: RootComponent) => Contract.orphans(load(markup).document, owner)
+    const page = `
+        <div data-meili="search" data-search="header" data-meili-contract="${CONTRACT}">
+            <template data-meili="card-template"><a data-meili="card"></a></template>
+        </div>
+        <div data-listing="products" data-meili-contract="${CONTRACT}"></div>`
+
+    it('leaves a search root beside a listing unnamed, and the hooks it holds', () => {
+        assert.deepEqual(inDocument(page, RootComponent.LISTING), [])
+        assert.deepEqual(inDocument(page, RootComponent.SEARCH), [])
+    })
+
+    it('is named by the client that owns it, and by no other', () => {
+        const markup = `${page}<div data-meili="search-panel"></div><button data-meili="reset"></button>`
+
+        assert.deepEqual(inDocument(markup, RootComponent.SEARCH), ['search-panel'])
+        assert.deepEqual(inDocument(markup, RootComponent.LISTING), ['reset'])
+    })
+
+    it('leaves the listing search to the listing, though its name holds the search prefix', () => {
+        const markup = `${page}<form data-meili="listing-search"><input data-meili="listing-search-input"></form>`
+
+        assert.deepEqual(inDocument(markup, RootComponent.LISTING), ['listing-search'])
+        assert.deepEqual(inDocument(markup, RootComponent.SEARCH), [])
     })
 })

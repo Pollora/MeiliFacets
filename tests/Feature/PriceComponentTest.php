@@ -144,7 +144,7 @@ final class PriceComponentTest extends TestCase
     {
         $this->expectExceptionMessageMatches('/place it with the component of its own kind/');
 
-        Blade::render('<x-meilifacets::price facet="'.$this->aFacetName().'" />');
+        Blade::render('<x-meilifacets::listing.price facet="'.$this->aFacetName().'" />');
     }
 
     /**
@@ -161,7 +161,7 @@ final class PriceComponentTest extends TestCase
         $this->app->forgetScopedInstances();
 
         $markup = Blade::render(
-            '<x-meilifacets::price :facet="$filter" />',
+            '<x-meilifacets::listing.price :facet="$filter" />',
             ['filter' => new PriceFilter('Price', $parts, 'price-under-test')]
         );
 

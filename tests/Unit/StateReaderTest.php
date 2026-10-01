@@ -107,6 +107,25 @@ final class StateReaderTest extends TestCase
         $this->assertSame(200, mb_strlen($this->reader->read($this->listing, ['q' => str_repeat('a', 5000)])->query));
     }
 
+    /** R-159: the engine tokenises such a term into nothing and serves the whole index. */
+    #[Test]
+    public function it_reads_no_term_from_one_holding_no_letter_and_no_figure(): void
+    {
+        $this->assertSame('', $this->reader->read($this->listing, ['q' => '?('])->query);
+        $this->assertSame('', $this->reader->read($this->listing, ['q' => "\xff"])->query);
+        $this->assertSame('é', $this->reader->read($this->listing, ['q' => ' é '])->query);
+        $this->assertSame('4', $this->reader->read($this->listing, ['q' => '4'])->query);
+    }
+
+    /** No field of the listing can take a term off a search WordPress routed. */
+    #[Test]
+    public function it_ignores_the_term_of_the_url_on_a_search_wordpress_routed(): void
+    {
+        $routed = new FakeListing(baseQuery: 'creme');
+
+        $this->assertSame('', $this->reader->read($routed, ['q' => 'zzzz'])->query);
+    }
+
     #[Test]
     public function it_keeps_a_single_value_for_a_single_selection_facet(): void
     {

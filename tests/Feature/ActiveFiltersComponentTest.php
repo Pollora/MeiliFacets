@@ -51,7 +51,7 @@ final class ActiveFiltersComponentTest extends TestCase
     #[Test]
     public function it_resolves_as_a_component_and_speaks_the_language_wordpress_translates_in(): void
     {
-        $html = $this->underLocales('fr', 'en_US', fn (): string => Blade::render('<x-meilifacets::active-filters />'));
+        $html = $this->underLocales('fr', 'en_US', fn (): string => Blade::render('<x-meilifacets::listing.active-filters />'));
 
         $this->assertStringContainsString('0 active filters', $html);
     }
@@ -68,7 +68,7 @@ final class ActiveFiltersComponentTest extends TestCase
 
     private function render(int $count): string
     {
-        return (string) view('meilifacets::components.active-filters', [
+        return (string) view('meilifacets::components.listing.active-filters', [
             'count' => $count,
             'label' => $this->app->make(CountLabel::class)->of(__(':count active filter|:count active filters'), $count),
             'hook' => fn (string $name): HtmlString => new HtmlString('data-meili="'.$name.'"'),

@@ -86,9 +86,7 @@ final class TermAncestry
      */
     private function taxonomyOf(array $term): string
     {
-        $taxonomy = $term[TermField::Taxonomy->value] ?? null;
-
-        return is_string($taxonomy) ? $taxonomy : self::NO_TAXONOMY;
+        return TermField::Taxonomy->textIn($term) ?? self::NO_TAXONOMY;
     }
 
     /**

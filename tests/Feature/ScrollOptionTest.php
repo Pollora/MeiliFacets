@@ -31,7 +31,7 @@ final class ScrollOptionTest extends TestCase
 
     private function render(bool $scroll): string
     {
-        return (string) view('meilifacets::components.reset', [
+        return (string) view('meilifacets::components.listing.reset', [
             'hasNothingToClear' => fn (): bool => false,
             'shape' => ResetShape::Text,
             'hook' => fn (string $name): HtmlString => Hook::from($name)->attribute(),

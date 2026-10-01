@@ -8,7 +8,7 @@ use Modules\MeiliFacets\Enums\CardField;
 use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Enums\PriceField;
 use Modules\MeiliFacets\Indexing\AnonymousVisitor;
-use Modules\MeiliFacets\Indexing\MeiliScoutBridge;
+use Modules\MeiliFacets\Indexing\PostDocument;
 use PHPUnit\Framework\Attributes\Test;
 use RuntimeException;
 use Tests\TestCase;
@@ -104,12 +104,11 @@ final class AnonymousIndexingTest extends TestCase
      */
     private function documentOf(WC_Product $product): array
     {
-        $bridge = $this->app->make(MeiliScoutBridge::class);
         $post = get_post($product->get_id());
 
         $this->assertInstanceOf(WP_Post::class, $post);
 
-        return [...$bridge->addPrice([], $post), ...$bridge->addCard([], $post)];
+        return $this->app->make(PostDocument::class)->complete([], $post);
     }
 
     /** The shop's own answer, so the expectations hold whatever it does with taxes. */

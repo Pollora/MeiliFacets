@@ -11,7 +11,7 @@ use Modules\MeiliFacets\Tests\Unit\Doubles\FakeFacetCounter;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-/** What `Unit\CounterSeamBindingTest` proves of the container, this proves of the provider itself. */
+/** What `Unit\CounterDefaultBindingTest` proves of the container, this proves of the provider itself. */
 final class CounterBindingTest extends TestCase
 {
     #[Test]

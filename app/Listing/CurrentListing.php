@@ -7,11 +7,10 @@ namespace Modules\MeiliFacets\Listing;
 use Modules\MeiliFacets\Discovery\ListingRegistry;
 use Modules\MeiliFacets\Enums\QueryParameter;
 use Modules\MeiliFacets\Http\PageAddress;
-use Modules\MeiliFacets\Http\Unavailable;
+use Modules\MeiliFacets\Http\ServiceUnavailable;
 use Modules\MeiliFacets\Search\EngineLimits;
 use Modules\MeiliFacets\Search\ListingSearch;
 use Modules\MeiliFacets\Support\UrlParameters;
-use RuntimeException;
 
 /** One per name for the whole request: components placed anywhere share a single search. */
 final class CurrentListing
@@ -25,7 +24,7 @@ final class CurrentListing
         private readonly StateReader $reader,
         private readonly FacetValues $values,
         private readonly UrlParameters $parameters,
-        private readonly Unavailable $unavailable,
+        private readonly ServiceUnavailable $serviceUnavailable,
         private readonly EngineLimits $limits,
     ) {}
 
@@ -42,10 +41,7 @@ final class CurrentListing
 
     private function resolve(string $name): ResolvedListing
     {
-        $listing = $this->registry->get($name) ?? throw new RuntimeException(
-            "No listing named \"{$name}\". Declared listings: ".implode(', ', $this->registry->names()).'.'
-        );
-
+        $listing = $this->registry->named($name);
         $query = $this->requestQuery();
 
         return new ResolvedListing(
@@ -54,7 +50,7 @@ final class CurrentListing
             $this->search,
             $this->values,
             $this->parameters,
-            $this->unavailable,
+            $this->serviceUnavailable,
             $this->limits,
         );
     }

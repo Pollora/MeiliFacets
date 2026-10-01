@@ -20,7 +20,7 @@ const FACETS_APPLY = '        <button type="button" class="meilifacetsApply" dat
 
 type ApplyMode = 'submit' | 'immediate'
 
-/** Mirrors `reset-icon.blade.php` and `apply.blade.php` in the foot, as the theme slots them. */
+/** Mirrors `listing/reset-icon.blade.php` and `listing/apply.blade.php` in the foot, as the theme slots them. */
 const drawerFooter = (apply: ApplyMode) => `
             <div class="meilifacetsDrawerFooter" data-meili="drawer-footer">
                 <button type="button" class="meilifacetsReset" aria-label="Clear all" data-shape="icon" hidden data-meili="reset">
@@ -32,7 +32,7 @@ const drawerFooter = (apply: ApplyMode) => `
                 </button>
             </div>`
 
-/** Mirrors `drawer-opener.blade.php` and `drawer.blade.php` around the facets of the listing fixture. */
+/** Mirrors `listing/drawer-opener.blade.php` and `listing/drawer.blade.php` around the facets of the listing fixture. */
 const drawerMarkup = ({ close = true, apply = 'submit' }: { close?: boolean, apply?: ApplyMode } = {}) => `
 <header id="header"><a href="/">Home</a></header>
 <main id="main">${listingMarkup({ collapsible: true })
@@ -49,7 +49,7 @@ const drawerMarkup = ({ close = true, apply = 'submit' }: { close?: boolean, app
                 ${close ? '<button type="button" class="meilifacetsDrawerClose" aria-label="Close the filters" data-meili="drawer-close"><span aria-hidden="true">✕</span></button>' : ''}
             </div>
             ${close ? '<div class="meilifacetsDrawerHandle" aria-hidden="true" data-meili="drawer-close"></div>' : ''}
-            <div class="meilifacetsDrawerBody">
+            <div class="meilifacetsDrawerBody" data-meili="drawer-body">
 ${FACETS}`)
         .replace(FACETS_APPLY, `    </div>
             </div>${drawerFooter(apply)}
@@ -131,7 +131,7 @@ describe('Drawer', () => {
     it('moves the focus onto its title', () => {
         click(window, opener())
 
-        assert.equal(window.document.activeElement, title())
+        assert.equal(window.document.activeElement === title(), true)
     })
 
     it('makes the rest of the page inert, and only the rest', () => {
@@ -140,7 +140,7 @@ describe('Drawer', () => {
         assert.ok(inert().includes('header'))
         assert.ok(inert().includes('footer'))
         assert.ok(inert().includes('drawer-open'))
-        assert.equal(drawer().closest('[inert]'), null)
+        assert.equal(drawer().closest('[inert]') === null, true)
     })
 
     it('stays a plain container above the threshold', () => {
@@ -236,7 +236,7 @@ describe('Drawer', () => {
     it('closes on a click on the scrim, and not on a click inside the sheet', () => {
         click(window, opener())
 
-        click(window, find(drawer(), '.meilifacetsDrawerBody'))
+        click(window, find(drawer(), Contract.selector('drawer-body')))
         assert.equal(isModal(), true)
 
         click(window, drawer())
@@ -272,7 +272,7 @@ describe('Drawer', () => {
         assert.equal(drawer().hasAttribute('data-closing'), false)
         assert.equal(sectionOpen(0), false)
         assert.equal(sectionOpen(1), false)
-        assert.equal(window.document.activeElement, opener())
+        assert.equal(window.document.activeElement === opener(), true)
     })
 
     it('folds its sections at once when Escape closes it from inside one, and keeps the focus on its opener', async () => {
@@ -284,7 +284,7 @@ describe('Drawer', () => {
 
         assert.equal(isModal(), false)
         assert.equal(sectionOpen(0), false)
-        assert.equal(window.document.activeElement, opener())
+        assert.equal(window.document.activeElement === opener(), true)
     })
 
     it('keeps its sections when it opens again before its way out has played', async () => {
@@ -342,7 +342,7 @@ describe('Drawer', () => {
         assert.equal(drawer().hasAttribute('role'), false)
         assert.equal(opener().getAttribute('aria-expanded'), 'false')
         assert.deepEqual(inert(), [])
-        assert.equal(window.document.activeElement, box)
+        assert.equal(window.document.activeElement === box, true)
     })
 
     describe('its inline height', () => {
@@ -388,7 +388,7 @@ describe('Drawer', () => {
         })
 
         it('is measured again on every opening, never carried over', () => {
-            Object.defineProperty(find(drawer(), '.meilifacetsDrawerBody'), 'scrollHeight', { value: 321, configurable: true })
+            Object.defineProperty(find(drawer(), Contract.selector('drawer-body')), 'scrollHeight', { value: 321, configurable: true })
             sheet().style.height = '800px'
 
             click(window, opener())
@@ -430,7 +430,7 @@ describe('a sort inside the drawer', () => {
     it('closes the sort list on the first Escape and the drawer on the second', () => {
         const { window, root } = open(drawerMarkup())
         window.matchMedia = (() => Object.assign(new EventTarget(), { matches: true })) as unknown as typeof window.matchMedia
-        find(root, '.meilifacetsDrawerBody').append(find(root, Contract.selector('sort')))
+        find(root, Contract.selector('drawer-body')).append(find(root, Contract.selector('sort')))
         const client = new FakeClient()
         const listing = new Listing(description, connection, { filterQueries: filterQueriesOf(description), client, history: new FakeHistory() })
         new ListingBinding(new Contract(root), listing, description).start()
@@ -440,7 +440,7 @@ describe('a sort inside the drawer', () => {
         click(window, find(root, Contract.selector('drawer-open')))
         click(window, trigger)
         assert.equal(trigger.getAttribute('aria-expanded'), 'true')
-        assert.equal(trigger.closest('[inert]'), null)
+        assert.equal(trigger.closest('[inert]') === null, true)
 
         press(window, trigger, 'Escape')
         assert.equal(trigger.getAttribute('aria-expanded'), 'false')
@@ -499,7 +499,7 @@ const boundUnderDrawer = (apply: ApplyMode, { styled = false } = {}) => {
 /** One task later: every answer already settled has been handled. */
 const settled = (window: TestWindow) => new Promise((resolve) => window.setTimeout(resolve, 0))
 
-/** The frame then the task `HeldPaint` waits for, asked once the close has settled: they run after its own. */
+/** The frame then the task `DeferredRepaint` waits for, asked once the close has settled: they run after its own. */
 const painted = async (window: TestWindow) => {
     await settled(window)
     await new Promise((resolve) => window.requestAnimationFrame(() => window.setTimeout(resolve, 0)))

@@ -10,7 +10,7 @@ import type { ListingState } from './listing-state.ts'
 import type { Listing } from './listing.ts'
 import type { SelectionHolder } from '../collapsible/toggle-badge-view.ts'
 
-/** What the summary reads from the rest of the binding: the listing a pill withdraws from, and what each block holds. */
+/** What the summary reads from the rest of the binding: the listing a pill removes its value from, and what each block holds. */
 interface SummarySources {
     listing: Listing
     holders: readonly SelectionHolder[]
@@ -39,7 +39,7 @@ export class SummaryBinding {
     }
 
     /** What the visitor holds, pending changes included: painted as the state moves. */
-    showHeld(state: ListingState) {
+    showSelected(state: ListingState) {
         this.#summary.show(state)
         this.#activeCount.show(state)
         this.#toggleBadges.show(state)
@@ -48,6 +48,11 @@ export class SummaryBinding {
     /** What the engine answered: painted once the search is back. */
     showAnswered(totalHits: number, state: ListingState) {
         this.#total.show(totalHits)
+        this.#activeValues.show(state)
+    }
+
+    showAnsweredToTyping(totalHits: number, state: ListingState) {
+        this.#total.showWhileTyping(totalHits)
         this.#activeValues.show(state)
     }
 }

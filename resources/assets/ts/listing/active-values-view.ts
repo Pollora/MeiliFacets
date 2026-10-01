@@ -1,34 +1,34 @@
-import { ActiveValueList, KIND, PRICE_KIND } from './active-value-list.ts'
+import { ActiveValueList, KIND, PRICE_KIND, SEARCH_KIND } from './active-value-list.ts'
 import { Contract } from '../shared/contract.ts'
 import { Entrance } from '../shared/entrance.ts'
-import { FocusLanding } from './focus-landing.ts'
-import { NewPills } from './new-pills.ts'
+import { FocusFallback } from './focus-fallback.ts'
+import { NewActiveValues } from './new-active-values.ts'
 
 import type { ListingDescription } from '../shared/description.ts'
 import type { ActiveValue } from './active-value-list.ts'
 import type { Listing } from './listing.ts'
 import type { ListingState } from './listing-state.ts'
 
-type WithdrawSeam = Pick<Listing, 'withdraw' | 'withdrawPrice'>
+type ValueRemover = Pick<Listing, 'remove' | 'removePrice' | 'removeSearch'>
 
 const ENTRANCE = { from: 'scale(0.95)', duration: '--meili-duration-fade', easing: '--meili-ease' }
 
 /** The pills of every list the theme placed: one per filter held, each taking its own filter off. */
 export class ActiveValuesView {
     #contract: Contract
-    #listing: WithdrawSeam
+    #listing: ValueRemover
     #list: ActiveValueList
-    #landing: FocusLanding
+    #focusFallback: FocusFallback
     #entrance: Entrance
     #taxonomies: Map<string, string>
     #drawn: string | null = null
     #refocusing: { host: Element, rank: number } | null = null
 
-    constructor(contract: Contract, description: ListingDescription, listing: WithdrawSeam) {
+    constructor(contract: Contract, description: ListingDescription, listing: ValueRemover) {
         this.#contract = contract
         this.#listing = listing
         this.#list = new ActiveValueList(description)
-        this.#landing = new FocusLanding(contract.root)
+        this.#focusFallback = new FocusFallback(contract.root)
         this.#entrance = new Entrance(contract.root.ownerDocument, ENTRANCE)
         this.#taxonomies = new Map(Object.entries(description.params).map(([taxonomy, name]) => [name, taxonomy]))
     }
@@ -64,24 +64,31 @@ export class ActiveValuesView {
 
         const rank = this.#contract.all('active-value', host).indexOf(pill)
 
-        // The answer comes later: a pill that withdrew nothing must not steal a focus then.
-        if (this.#withdraw(pill)) {
+        // The answer comes later: a pill that removed nothing must not steal a focus then.
+        if (this.#remove(pill)) {
             this.#refocusing = { host, rank }
         }
     }
 
-    #withdraw(pill: Element) {
+    #remove(pill: Element) {
         const taxonomy = this.#taxonomies.get(pill.getAttribute('name') ?? '')
         const value = pill.getAttribute('value') ?? ''
+        const kind = pill.getAttribute(KIND)
 
-        if (pill.getAttribute(KIND) === PRICE_KIND) {
-            this.#listing.withdrawPrice()
+        if (kind === SEARCH_KIND) {
+            this.#listing.removeSearch()
+
+            return true
+        }
+
+        if (kind === PRICE_KIND) {
+            this.#listing.removePrice()
 
             return true
         }
 
         if (taxonomy !== undefined) {
-            this.#listing.withdraw(taxonomy, value)
+            this.#listing.remove(taxonomy, value)
 
             return true
         }
@@ -97,12 +104,12 @@ export class ActiveValuesView {
         const asked = this.#refocusing
         this.#refocusing = null
 
-        if (asked === null || !this.#landing.isLost(asked.host)) {
+        if (asked === null || !this.#focusFallback.isLost(asked.host)) {
             return
         }
 
         const pills = this.#contract.all('active-value', asked.host)
-        const target = pills[asked.rank] ?? pills[asked.rank - 1] ?? this.#landing.root()
+        const target = pills[asked.rank] ?? pills[asked.rank - 1] ?? this.#focusFallback.target()
 
         if (target instanceof HTMLElement) {
             target.focus({ preventScroll: true })
@@ -117,15 +124,15 @@ export class ActiveValuesView {
         }
 
         const shown = this.#contract.all('active-value', host)
-        const newPills = new NewPills(shown)
+        const newActiveValues = new NewActiveValues(shown)
 
         shown.forEach((pill) => this.#itemOf(pill, host).remove())
-        template.before(...values.flatMap((value) => this.#pill(template, value)))
+        template.before(...values.flatMap((value) => this.#activeValue(template, value)))
         host.hidden = values.length === 0
-        newPills.among(this.#contract.all('active-value', host)).forEach((pill) => this.#entrance.play(pill))
+        newActiveValues.among(this.#contract.all('active-value', host)).forEach((pill) => this.#entrance.play(pill))
     }
 
-    #pill(template: HTMLTemplateElement, value: ActiveValue) {
+    #activeValue(template: HTMLTemplateElement, value: ActiveValue) {
         const item = template.content.firstElementChild?.cloneNode(true)
         const pill = item instanceof Element && !item.matches(Contract.selector('active-value'))
             ? this.#contract.one('active-value', item)

@@ -1,9 +1,9 @@
-import { isDrawn } from './drawn.ts'
+import { isStylable } from './stylable-element.ts'
 import { PRICE_BOUNDS } from './price-bound.ts'
 
 import type { Contract } from '../shared/contract.ts'
 import type { Range } from '../shared/range.ts'
-import type { Drawn } from './drawn.ts'
+import type { StylableElement } from './stylable-element.ts'
 import type { Money } from './money.ts'
 import type { PriceBound } from './price-bound.ts'
 
@@ -16,9 +16,9 @@ const BOUND = 'data-bound'
 export class PriceSlider {
     #contract: Contract
     #money: Money
-    #handles: Record<PriceBound, Drawn | null> = { min: null, max: null }
+    #handles: Record<PriceBound, StylableElement | null> = { min: null, max: null }
     #boundLabels: Record<PriceBound, Element | null> = { min: null, max: null }
-    #fill: Drawn | null
+    #fill: StylableElement | null
     #readout: Element | null
 
     constructor(contract: Contract, money: Money) {
@@ -26,7 +26,7 @@ export class PriceSlider {
 
         this.#contract = contract
         this.#money = money
-        this.#fill = isDrawn(fill) ? fill : null
+        this.#fill = isStylable(fill) ? fill : null
         this.#readout = contract.one('price-readout')
         this.#findHandles()
         PRICE_BOUNDS.forEach((bound) => {
@@ -85,7 +85,7 @@ export class PriceSlider {
         for (const handle of this.#contract.all('price-handle')) {
             const bound = PRICE_BOUNDS.find((candidate) => candidate === handle.getAttribute(BOUND))
 
-            if (bound !== undefined && isDrawn(handle)) {
+            if (bound !== undefined && isStylable(handle)) {
                 this.#handles[bound] = handle
             }
         }

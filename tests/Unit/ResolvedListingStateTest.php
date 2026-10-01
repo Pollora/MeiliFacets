@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Tests\Unit;
 
-use Modules\MeiliFacets\Http\Unavailable;
+use Modules\MeiliFacets\Http\ServiceUnavailable;
 use Modules\MeiliFacets\Listing\Facet;
 use Modules\MeiliFacets\Listing\FacetValues;
 use Modules\MeiliFacets\Listing\ListingState;
@@ -63,7 +63,7 @@ final class ResolvedListingStateTest extends TestCase
             new ListingSearch(new FakeSearchEngine, new DisjunctiveFacetCounter),
             new FacetValues(new FakeTermLabels, new FakeTermScope, new FakeDefaultTerms),
             new UrlParameters([]),
-            new Unavailable,
+            new ServiceUnavailable,
             new EngineLimits(1000),
         );
     }

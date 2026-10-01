@@ -12,6 +12,14 @@ describe('ListingState', () => {
         assert.equal([...query].at(-1), '😀')
     })
 
+    /** R-159: the engine tokenises such a term into nothing and serves the whole index. */
+    it('holds no term for one with no letter and no figure, served or searched', () => {
+        assert.equal(new ListingState({ query: '?(' }).query, '')
+        assert.equal(new ListingState().searching(' -- ').query, '')
+        assert.equal(new ListingState().searching(' é ').query, 'é')
+        assert.equal(new ListingState().searching('4').query, '4')
+    })
+
     /** A slug may be the string "0" — a size, a year. Dropping it is dropping a facet value. */
     it('keeps a value that reads as false', () => {
         assert.deepEqual(new ListingState({ facets: { size: ['0', 'a'] } }).selected('size'), ['0', 'a'])

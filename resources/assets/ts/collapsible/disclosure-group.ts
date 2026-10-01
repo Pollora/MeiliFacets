@@ -1,6 +1,7 @@
-import { EXPANDED, INSTANT } from '../shared/attributes.ts'
+import { CONTROLS, EXPANDED, INSTANT } from '../shared/attributes.ts'
 import { Contract } from '../shared/contract.ts'
 import { InputSource } from '../shared/input-source.ts'
+import { LightDismiss } from '../shared/light-dismiss.ts'
 import { PanelMotion } from './panel-motion.ts'
 
 const ALIGNED_TO_END = 'data-align-end'
@@ -10,7 +11,7 @@ export class DisclosureGroup {
     #contract: Contract
     #document: Document
     #motion: PanelMotion
-    #input: InputSource
+    #dismissal: LightDismiss
     #closed: () => void
 
     /** `closed` runs once a panel is out of sight. */
@@ -18,18 +19,18 @@ export class DisclosureGroup {
         this.#contract = contract
         this.#document = contract.root.ownerDocument
         this.#motion = new PanelMotion(this.#document)
-        this.#input = new InputSource(this.#document)
+        this.#dismissal = new LightDismiss(contract.root, {
+            open: () => this.#openFloating(),
+            panelOf: (toggle) => this.#panelOf(toggle),
+            closeInstantly: (toggle) => this.#closeInstantly(toggle),
+            close: (toggle) => this.#close(toggle),
+        })
         this.#closed = closed
     }
 
     start() {
-        const root = this.#contract.root
-
-        root.addEventListener('click', (event) => this.#clicked(event))
-        root.addEventListener('keydown', (event) => this.#pressed(event as KeyboardEvent))
-        root.addEventListener('focusout', (event) => this.#left(event as FocusEvent))
-        this.#input.start()
-        this.#document.addEventListener('click', (event) => this.#clickedAnywhere(event))
+        this.#contract.root.addEventListener('click', (event) => this.#clicked(event))
+        this.#dismissal.start()
 
         return this
     }
@@ -44,7 +45,7 @@ export class DisclosureGroup {
             const panel = this.#panelOf(toggle)
 
             if (panel !== null) {
-                this.#motion.drop(panel)
+                this.#motion.hideInstantly(panel)
             }
         })
 
@@ -96,44 +97,6 @@ export class DisclosureGroup {
         return InputSource.isKeyboard(click) && this.#floats(toggle)
     }
 
-    #pressed(event: KeyboardEvent) {
-        if (event.key !== 'Escape' || event.defaultPrevented) {
-            return
-        }
-
-        const toggle = this.#openFloating().find((open) => this.#holds(open, event.target))
-
-        if (toggle !== undefined) {
-            this.#closeInstantly(toggle)
-            toggle.focus()
-        }
-    }
-
-    /**
-     * No `relatedTarget` is the window losing focus, or a node leaving the page: neither is the visitor moving on.
-     * A press moves the focus before its click: the click decides, with its own motion.
-     */
-    #left(event: FocusEvent) {
-        const next = event.relatedTarget
-
-        if (next instanceof Node && !this.#input.isPointerDown()) {
-            this.#openFloating().filter((open) => !this.#holds(open, next)).forEach((open) => this.#closeInstantly(open))
-        }
-    }
-
-    /** The path, not `contains()`: the click may have replaced the node it landed on. */
-    #clickedAnywhere(event: Event) {
-        const path = event.composedPath()
-
-        this.#openFloating().filter((open) => !this.#isOnPath(open, path)).forEach((open) => this.#close(open))
-    }
-
-    #isOnPath(toggle: HTMLElement, path: EventTarget[]) {
-        const panel = this.#panelOf(toggle)
-
-        return path.includes(toggle) || (panel !== null && path.includes(panel))
-    }
-
     #open(toggle: HTMLElement) {
         const panel = this.#panelOf(toggle)
 
@@ -144,7 +107,7 @@ export class DisclosureGroup {
         toggle.setAttribute(EXPANDED, 'true')
 
         if (this.#floats(toggle)) {
-            this.#motion.pop(panel)
+            this.#motion.showFloating(panel)
             this.#align(panel)
 
             return
@@ -181,7 +144,7 @@ export class DisclosureGroup {
         const panel = this.#panelOf(toggle)
 
         if (panel !== null && !panel.hidden) {
-            this.#instantly(panel, () => this.#motion.drop(panel))
+            this.#instantly(panel, () => this.#motion.hideInstantly(panel))
             this.#closed()
         }
     }
@@ -222,12 +185,8 @@ export class DisclosureGroup {
         return toggle.getAttribute(EXPANDED) === 'true'
     }
 
-    #holds(toggle: HTMLElement, node: EventTarget | null) {
-        return node instanceof Node && (toggle.contains(node) || (this.#panelOf(toggle)?.contains(node) ?? false))
-    }
-
     #panelOf(toggle: Element) {
-        const panel = this.#document.getElementById(toggle.getAttribute('aria-controls') ?? '')
+        const panel = this.#document.getElementById(toggle.getAttribute(CONTROLS) ?? '')
 
         return panel instanceof HTMLElement ? panel : null
     }

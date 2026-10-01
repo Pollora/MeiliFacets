@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Support;
 
+use Illuminate\Container\Attributes\Config;
 use Modules\MeiliFacets\Enums\QueryParameter;
 
 final readonly class UrlParameters
@@ -14,15 +15,10 @@ final readonly class UrlParameters
      * @param  array<string, string>  $taxonomies
      * @param  array<string, string>  $overrides
      */
-    public function __construct(private array $taxonomies, private array $overrides = []) {}
-
-    public static function fromConfig(): self
-    {
-        return new self(
-            config('meilifacets.url_parameters', []),
-            config('meilifacets.query_parameters', []),
-        );
-    }
+    public function __construct(
+        #[Config('meilifacets.url_parameters', [])] private array $taxonomies = [],
+        #[Config('meilifacets.query_parameters', [])] private array $overrides = [],
+    ) {}
 
     public function for(string $taxonomy): string
     {

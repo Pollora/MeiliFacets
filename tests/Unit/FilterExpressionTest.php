@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Tests\Unit;
 
 use Modules\MeiliFacets\Listing\Facet;
+use Modules\MeiliFacets\Listing\Range;
 use Modules\MeiliFacets\Search\FilterExpression;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -93,5 +94,41 @@ final class FilterExpressionTest extends TestCase
             'post_type = "product" AND x = "y"',
             FilterExpression::all(['post_type = "product"', '', 'x = "y"'])
         );
+    }
+
+    /**
+     * Two intervals overlap unless one ends before the other starts. Writing it as
+     * `min >= asked AND max <= asked` would keep only products that fit inside the
+     * range, losing every one that merely reaches into it.
+     */
+    #[Test]
+    public function it_asks_the_engine_for_an_overlap(): void
+    {
+        $this->assertSame(
+            'price.min <= 70 AND price.max >= 40',
+            FilterExpression::overlapping(new Range(40.0, 70.0))
+        );
+    }
+
+    #[Test]
+    public function it_leaves_an_open_end_unconstrained(): void
+    {
+        $this->assertSame('price.max >= 40', FilterExpression::overlapping(new Range(min: 40.0)));
+        $this->assertSame('price.min <= 70', FilterExpression::overlapping(new Range(max: 70.0)));
+        $this->assertSame('', FilterExpression::overlapping(new Range));
+    }
+
+    /**
+     * Fixed notation to four decimals: `(string) 1.0E-9` is not a filter, and no
+     * currency carries more than three. A bound is written as asked, not rounded
+     * to the money format, so a hand-typed `99.999` still means what it says.
+     */
+    #[Test]
+    public function it_writes_a_bound_the_engine_can_read(): void
+    {
+        $this->assertSame('price.min <= 99.999', FilterExpression::overlapping(new Range(max: 99.999)));
+        $this->assertSame('price.min <= 0', FilterExpression::overlapping(new Range(max: 0.0)));
+        $this->assertSame('price.min <= 12.5', FilterExpression::overlapping(new Range(max: 12.50)));
+        $this->assertSame('price.min <= 1000000', FilterExpression::overlapping(new Range(max: 1e6)));
     }
 }

@@ -11,7 +11,7 @@ export class Range {
         this.max = max
     }
 
-    static boundTo(bound: number) {
+    static formatBound(bound: number) {
         return BOUND.format(bound)
     }
 

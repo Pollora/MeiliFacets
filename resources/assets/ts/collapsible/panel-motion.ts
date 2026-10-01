@@ -24,11 +24,11 @@ export class PanelMotion {
 
     show(panel: HTMLElement) {
         panel.hidden = false
-        this.#entrance.play(panel, this.#durationFor(panel.offsetHeight))
+        this.#entrance.play(panel, { duration: this.#durationFor(panel.offsetHeight) })
     }
 
     /** A transition, not an animation: a second click turns it back from where it stands. */
-    pop(panel: HTMLElement) {
+    showFloating(panel: HTMLElement) {
         panel.hidden = false
     }
 
@@ -45,7 +45,7 @@ export class PanelMotion {
     }
 
     /** Out of sight already: the panel goes without its exit. */
-    drop(panel: HTMLElement) {
+    hideInstantly(panel: HTMLElement) {
         panel.hidden = true
         panel.getAnimations().forEach((animation) => animation.finish())
     }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Http;
 
 use Modules\MeiliFacets\Support\ReservedParameters;
+use Modules\MeiliFacets\View\HiddenField;
 
 /** The address of the page a listing sits on: its path and the query parameters WordPress reads, less the page number and the listing's own. */
 final readonly class PageAddress
@@ -29,6 +30,23 @@ final readonly class PageAddress
         $read = array_diff($this->reserved->wordPress(), [...$names, self::PAGED_QUERY_VAR]);
 
         return implode('&', array_filter($this->pairs(), fn (string $pair): bool => in_array($this->nameOf($pair), $read, true)));
+    }
+
+    /**
+     * @return list<HiddenField>
+     */
+    public function fieldsWithout(array $names): array
+    {
+        $kept = array_filter(explode('&', $this->queryWithout($names)), strlen(...));
+
+        return array_values(array_map($this->field(...), $kept));
+    }
+
+    private function field(string $pair): HiddenField
+    {
+        [$name, $value] = [...explode('=', $pair, 2), ''];
+
+        return new HiddenField(urldecode($name), urldecode($value));
     }
 
     /**

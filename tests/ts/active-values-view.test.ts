@@ -68,7 +68,7 @@ describe('ActiveValuesView', () => {
 
         assert.deepEqual(labels(), ['Acme✕', 'Globex✕', 'Coats & <b>hats</b>✕'])
         assert.equal(list().hidden, false)
-        assert.equal(pill(2).querySelector('b'), null, 'a label is text, never markup')
+        assert.equal(pill(2).querySelector('b') === null, true, 'a label is text, never markup')
     })
 
     it('draws a value as it is ticked when the listing searches at once', async () => {
@@ -120,7 +120,7 @@ describe('ActiveValuesView', () => {
         assert.equal(pill(0).getAttribute('aria-label'), 'Remove the :max $& :label filter')
     })
 
-    it('withdraws the value it names and searches at once, taking the pending filters along', async () => {
+    it('removes the value it names and searches at once, taking the pending filters along', async () => {
         const listing = await applying(start().toggle('product_brand', 'acme'))
         listing.toggle('product_brand', 'globex')
         assert.deepEqual(labels(), ['Acme✕'], 'Globex is pending')
@@ -135,7 +135,22 @@ describe('ActiveValuesView', () => {
         assert.equal((root.querySelector('input[value="acme"]') as HTMLInputElement).checked, false)
     })
 
-    it('withdraws the whole range from its pill', async () => {
+    it('draws the searched text first, and takes it off from its pill at once', async () => {
+        const listing = await applying(start().search('ser').toggle('product_brand', 'acme'))
+        assert.deepEqual(labels(), ['“ser”✕', 'Acme✕'])
+        assert.equal(pill(0).getAttribute('data-kind'), 'search')
+        assert.equal(pill(0).getAttribute('aria-label'), 'Remove the “ser” filter')
+
+        click(window, pill(0))
+        await answered()
+
+        assert.equal(listing.state.query, '')
+        assert.deepEqual(listing.state.selected('product_brand'), ['acme'])
+        assert.equal(history.replaced.at(-1), '/shop?brand=acme')
+        assert.deepEqual(labels(), ['Acme✕'])
+    })
+
+    it('removes the whole range from its pill', async () => {
         const listing = await applying(start().priceBetween(10, 50).toggle('product_brand', 'acme'))
 
         click(window, pill(1))
@@ -174,14 +189,14 @@ describe('ActiveValuesView', () => {
 
     it('keeps the focus on the pill until the answer redraws the list', async () => {
         await applying(start().toggle('product_brand', 'acme').toggle('product_brand', 'globex'))
-        const withdrawn = pill(0)
-        withdrawn.focus()
+        const removed = pill(0)
+        removed.focus()
 
-        click(window, withdrawn)
-        assert.equal(window.document.activeElement, withdrawn, 'nothing moved before the answer')
+        click(window, removed)
+        assert.equal(window.document.activeElement === removed, true, 'nothing moved before the answer')
 
         await answered()
-        assert.equal(window.document.activeElement, pill(0))
+        assert.equal(window.document.activeElement === pill(0), true)
         assert.equal(pill(0).textContent, 'Globex✕')
     })
 
@@ -192,7 +207,7 @@ describe('ActiveValuesView', () => {
         click(window, pill(1))
         await answered()
 
-        assert.equal(window.document.activeElement, pill(0))
+        assert.equal(window.document.activeElement === pill(0), true)
     })
 
     it('keeps it inside the listing when no pill is left, never on the body', async () => {
@@ -202,7 +217,7 @@ describe('ActiveValuesView', () => {
         click(window, pill(0))
         await answered()
 
-        assert.equal(window.document.activeElement, root)
+        assert.equal(window.document.activeElement === root, true)
         assert.equal(root.getAttribute('tabindex'), '-1')
     })
 
@@ -214,7 +229,7 @@ describe('ActiveValuesView', () => {
         elsewhere.focus()
         await answered()
 
-        assert.equal(window.document.activeElement, elsewhere)
+        assert.equal(window.document.activeElement === elsewhere, true)
     })
 
     it('leaves the list alone when an answer does not change its pills', async () => {
@@ -248,7 +263,7 @@ describe('ActiveValuesView', () => {
         await applying(listing.sortBy('price_asc'))
 
         assert.deepEqual(listing.state.selected('product_brand'), ['acme'])
-        assert.equal(window.document.activeElement, window.document.body, 'no focus is taken on a later answer')
+        assert.equal(window.document.activeElement === window.document.body, true, 'no focus is taken on a later answer')
     })
 })
 

@@ -15,6 +15,7 @@ final class DrawerFooterTest extends TestCase
 {
     use FindsHooks;
     use HoldsCatalogueValues;
+    use SwitchesApplyMode;
 
     private mixed $applyMode;
 
@@ -29,7 +30,7 @@ final class DrawerFooterTest extends TestCase
     /** The suite shares one application: a mode or an address left here would reach a later class. */
     protected function tearDown(): void
     {
-        config(['meilifacets.apply_mode' => $this->applyMode]);
+        $this->useApplyMode($this->applyMode);
         request()->query->replace([]);
         $this->app->forgetScopedInstances();
 
@@ -39,10 +40,10 @@ final class DrawerFooterTest extends TestCase
     #[Test]
     public function it_renders_apply_with_the_count_it_would_apply_when_the_listing_waits_for_it(): void
     {
-        config(['meilifacets.apply_mode' => 'submit']);
+        $this->useApplyMode('submit');
         $this->holdTwoValues();
 
-        $apply = $this->rendered('<x-meilifacets::apply />')->querySelector($this->hooked(Hook::Apply));
+        $apply = $this->rendered('<x-meilifacets::listing.apply />')->querySelector($this->hooked(Hook::Apply));
         $count = $apply->querySelector($this->hooked(Hook::ActiveCount));
 
         $this->assertSame('button', $apply->getAttribute('type'));
@@ -57,21 +58,21 @@ final class DrawerFooterTest extends TestCase
     #[Test]
     public function it_renders_apply_in_immediate_only_when_visible_in_drawer(): void
     {
-        config(['meilifacets.apply_mode' => 'immediate']);
+        $this->useApplyMode('immediate');
 
-        $this->assertNull($this->rendered('<x-meilifacets::apply />')->querySelector($this->hooked(Hook::Apply)));
-        $this->assertNotNull($this->rendered('<x-meilifacets::apply visible-in-drawer />')->querySelector($this->hooked(Hook::Apply)));
+        $this->assertNull($this->rendered('<x-meilifacets::listing.apply />')->querySelector($this->hooked(Hook::Apply)));
+        $this->assertNotNull($this->rendered('<x-meilifacets::listing.apply visible-in-drawer />')->querySelector($this->hooked(Hook::Apply)));
     }
 
     /** In `immediate` every box searches already: the button only marks the way out of the sheet, and the sheet alone shows it. */
     #[Test]
     public function it_marks_apply_for_the_sheet_only_when_the_listing_searches_at_once(): void
     {
-        config(['meilifacets.apply_mode' => 'immediate']);
-        $immediate = $this->rendered('<x-meilifacets::apply visible-in-drawer />')->querySelector($this->hooked(Hook::Apply));
+        $this->useApplyMode('immediate');
+        $immediate = $this->rendered('<x-meilifacets::listing.apply visible-in-drawer />')->querySelector($this->hooked(Hook::Apply));
         $this->app->forgetScopedInstances();
-        config(['meilifacets.apply_mode' => 'submit']);
-        $submit = $this->rendered('<x-meilifacets::apply visible-in-drawer />')->querySelector($this->hooked(Hook::Apply));
+        $this->useApplyMode('submit');
+        $submit = $this->rendered('<x-meilifacets::listing.apply visible-in-drawer />')->querySelector($this->hooked(Hook::Apply));
 
         $this->assertSame('sheet', $immediate->getAttribute('data-only'));
         $this->assertFalse($submit->hasAttribute('data-only'));
@@ -80,9 +81,9 @@ final class DrawerFooterTest extends TestCase
     #[Test]
     public function it_hides_and_empties_the_count_while_nothing_is_held(): void
     {
-        config(['meilifacets.apply_mode' => 'submit']);
+        $this->useApplyMode('submit');
 
-        $count = $this->rendered('<x-meilifacets::apply />')->querySelector($this->hooked(Hook::ActiveCount));
+        $count = $this->rendered('<x-meilifacets::listing.apply />')->querySelector($this->hooked(Hook::ActiveCount));
 
         $this->assertTrue($count->hasAttribute('hidden'));
         $this->assertSame('', $count->textContent);
@@ -91,19 +92,19 @@ final class DrawerFooterTest extends TestCase
     #[Test]
     public function the_group_hands_its_button_over_when_asked(): void
     {
-        config(['meilifacets.apply_mode' => 'submit']);
+        $this->useApplyMode('submit');
 
-        $this->assertStringNotContainsString(Hook::Apply->attribute()->toHtml(), Blade::render('<x-meilifacets::facets :with-apply="false" />'));
+        $this->assertStringNotContainsString(Hook::Apply->attribute()->toHtml(), Blade::render('<x-meilifacets::listing.facets :with-apply="false" />'));
     }
 
     #[Test]
     public function the_group_renders_its_button_unless_asked(): void
     {
-        config(['meilifacets.apply_mode' => 'submit']);
-        $explicit = Blade::render('<x-meilifacets::facets :with-apply="true" />');
+        $this->useApplyMode('submit');
+        $explicit = Blade::render('<x-meilifacets::listing.facets :with-apply="true" />');
         $this->app->forgetScopedInstances();
 
-        $this->assertSame($explicit, Blade::render('<x-meilifacets::facets />'));
+        $this->assertSame($explicit, Blade::render('<x-meilifacets::listing.facets />'));
         $this->assertStringContainsString(Hook::Apply->attribute()->toHtml(), $explicit);
     }
 
@@ -111,10 +112,10 @@ final class DrawerFooterTest extends TestCase
     #[Test]
     public function the_group_renders_the_apply_component_as_a_block(): void
     {
-        config(['meilifacets.apply_mode' => 'submit']);
+        $this->useApplyMode('submit');
         $this->holdTwoValues();
 
-        $group = $this->rendered('<x-meilifacets::facets />')->querySelector($this->hooked(Hook::Facets));
+        $group = $this->rendered('<x-meilifacets::listing.facets />')->querySelector($this->hooked(Hook::Facets));
         $applies = $group->querySelectorAll($this->hooked(Hook::Apply));
         $apply = $applies[0];
 
@@ -131,7 +132,7 @@ final class DrawerFooterTest extends TestCase
     {
         $this->holdTwoValues();
 
-        $reset = $this->rendered('<x-meilifacets::reset shape="icon" />')->querySelector($this->hooked(Hook::Reset));
+        $reset = $this->rendered('<x-meilifacets::listing.reset shape="icon" />')->querySelector($this->hooked(Hook::Reset));
         $image = $reset->querySelector('img');
 
         $this->assertSame(__('Clear all'), $reset->getAttribute('aria-label'));
@@ -147,10 +148,10 @@ final class DrawerFooterTest extends TestCase
     #[Test]
     public function it_takes_the_icon_a_theme_gives_and_none_when_the_slot_is_empty(): void
     {
-        $given = $this->rendered('<x-meilifacets::reset shape="icon"><x-slot:icon><svg id="bin"></svg></x-slot:icon></x-meilifacets::reset>')
+        $given = $this->rendered('<x-meilifacets::listing.reset shape="icon"><x-slot:icon><svg id="bin"></svg></x-slot:icon></x-meilifacets::listing.reset>')
             ->querySelector($this->hooked(Hook::Reset));
         $this->app->forgetScopedInstances();
-        $emptied = $this->rendered('<x-meilifacets::reset shape="icon"><x-slot:icon></x-slot:icon></x-meilifacets::reset>')
+        $emptied = $this->rendered('<x-meilifacets::listing.reset shape="icon"><x-slot:icon></x-slot:icon></x-meilifacets::listing.reset>')
             ->querySelector($this->hooked(Hook::Reset));
 
         $this->assertNotNull($given->querySelector('svg#bin'));
@@ -164,7 +165,7 @@ final class DrawerFooterTest extends TestCase
     #[Test]
     public function it_renders_the_text_reset_unchanged_without_a_shape(): void
     {
-        $reset = $this->rendered('<x-meilifacets::reset />')->querySelector($this->hooked(Hook::Reset));
+        $reset = $this->rendered('<x-meilifacets::listing.reset />')->querySelector($this->hooked(Hook::Reset));
 
         $this->assertSame(__('Clear all'), trim($reset->textContent));
         $this->assertFalse($reset->hasAttribute('aria-label'));
@@ -175,8 +176,8 @@ final class DrawerFooterTest extends TestCase
     #[Test]
     public function it_marks_the_pill_reset_and_only_it(): void
     {
-        $pill = $this->rendered('<x-meilifacets::reset shape="pill" />')->querySelector($this->hooked(Hook::Reset));
-        $text = $this->rendered('<x-meilifacets::reset shape="text" />')->querySelector($this->hooked(Hook::Reset));
+        $pill = $this->rendered('<x-meilifacets::listing.reset shape="pill" />')->querySelector($this->hooked(Hook::Reset));
+        $text = $this->rendered('<x-meilifacets::listing.reset shape="text" />')->querySelector($this->hooked(Hook::Reset));
 
         $this->assertSame('pill', $pill->getAttribute('data-shape'));
         $this->assertSame(__('Clear all'), trim($pill->textContent));

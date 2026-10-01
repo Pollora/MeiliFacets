@@ -29,7 +29,7 @@ final readonly class PriceQuery implements FilterQuery
     }
 
     /** Lifting the price costs a search, so it is only asked when a range is held. */
-    public function isMeasuredApart(ListingState $state): bool
+    public function isMeasuredSeparately(ListingState $state): bool
     {
         return ! $state->price->isEmpty();
     }

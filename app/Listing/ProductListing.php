@@ -4,35 +4,38 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Listing;
 
-use Modules\MeiliFacets\Contracts\Listing;
+use Illuminate\Container\Attributes\Config;
 use Modules\MeiliFacets\Contracts\Placeable;
 use Modules\MeiliFacets\Contracts\ProductFacets;
 use Modules\MeiliFacets\Contracts\ProductSorts;
+use Modules\MeiliFacets\Contracts\SearchableTypes;
+use Modules\MeiliFacets\Contracts\SearchScopedListing;
 use Modules\MeiliFacets\Enums\ApplyMode;
 use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Enums\PriceField;
-use Modules\MeiliFacets\Enums\ProductTaxonomy;
 use Modules\MeiliFacets\Search\FilterExpression;
+use Modules\MeiliFacets\Search\VisibleProducts;
+use Modules\MeiliFacets\SiteSearch\SearchableType;
 use Modules\MeiliFacets\Support\WooCommerce;
 use WP_Term;
 
-final readonly class ProductListing implements Listing
+final readonly class ProductListing implements SearchScopedListing
 {
     public const string NAME = 'products';
 
-    private const string POST_TYPE = 'product';
-
-    private const string PUBLISHED = 'publish';
-
-    private const string HIDDEN_FROM_CATALOG = 'exclude-from-catalog';
-
     private const string SEARCH_QUERY_VAR = 's';
+
+    private ApplyMode $applyMode;
 
     /** Discovery builds every listing it finds: the dependency has to refuse itself. */
     public function __construct(
         private ProductFacets $facets,
         private ProductSorts $sorts,
+        private SearchableTypes $searchableTypes,
+        #[Config('meilifacets.apply_mode', ApplyMode::DEFAULT->value)] string $applyMode = ApplyMode::DEFAULT->value,
     ) {
+        $this->applyMode = ApplyMode::tryFrom($applyMode) ?? ApplyMode::DEFAULT;
+
         if (! WooCommerce::isActive()) {
             throw new ListingUnavailable('WooCommerce is not active: there are no products to list.');
         }
@@ -77,14 +80,20 @@ final readonly class ProductListing implements Listing
     public function baseFilter(): array
     {
         return [
-            FilterExpression::equals('post_type', self::POST_TYPE),
-            FilterExpression::equals('post_status', self::PUBLISHED),
-            FilterExpression::without(
-                DocumentField::Facets->path(ProductTaxonomy::Visibility->value),
-                self::HIDDEN_FROM_CATALOG
-            ),
+            ...VisibleProducts::inCatalogue(),
             ...$this->browsedClause(),
         ];
+    }
+
+    public function searchScope(): SearchScope
+    {
+        $product = $this->searchableTypes->all()[VisibleProducts::POST_TYPE] ?? null;
+
+        if ($product instanceof SearchableType) {
+            return $product->scope($this->browsedClause());
+        }
+
+        return new SearchScope([...VisibleProducts::inSearch(), ...$this->browsedClause()]);
     }
 
     /**
@@ -113,7 +122,7 @@ final readonly class ProductListing implements Listing
 
     public function applyMode(): ApplyMode
     {
-        return ApplyMode::fromConfig();
+        return $this->applyMode;
     }
 
     /** Not `is_tax()`: it answers false on the built-in taxonomies, which a shop may well file products under. */
@@ -122,7 +131,7 @@ final readonly class ProductListing implements Listing
         $term = get_queried_object();
 
         // A product carries no field for a taxonomy that is not its own: filtering on it would empty the listing.
-        if (! $term instanceof WP_Term || ! is_object_in_taxonomy(self::POST_TYPE, $term->taxonomy)) {
+        if (! $term instanceof WP_Term || ! is_object_in_taxonomy(VisibleProducts::POST_TYPE, $term->taxonomy)) {
             return null;
         }
 

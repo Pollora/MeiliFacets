@@ -5,6 +5,7 @@ import { filterQueriesOf } from '../../resources/assets/ts/filter-queries.ts'
 import { ListingBinding } from '../../resources/assets/ts/listing/listing-binding.ts'
 import { Listing } from '../../resources/assets/ts/listing/listing.ts'
 import { TotalView } from '../../resources/assets/ts/listing/total-view.ts'
+import { ANNOUNCE_DELAY_MS } from '../../resources/assets/ts/shared/debounced-announcer.ts'
 import { Contract } from '../../resources/assets/ts/shared/contract.ts'
 import { listingMarkup, open } from './dom.ts'
 import { connection, described, FakeClient, FakeHistory } from './fixtures.ts'
@@ -21,11 +22,13 @@ describe('TotalView', () => {
     beforeEach(() => {
         root = open(listingMarkup()).root
         // A drawer and the page may both show the count: every copy has to follow.
-        root.insertAdjacentHTML('beforeend', '<p aria-live="polite" data-meili="total">0 items</p>')
+        root.insertAdjacentHTML('beforeend', '<p data-meili="total">0 items</p>')
+        root.insertAdjacentHTML('beforeend', '<p aria-live="polite" data-meili="total-status"></p>')
         contract = new Contract(root)
     })
 
     const counters = () => contract.all('total').map((counter) => counter.textContent)
+    const regions = () => contract.all('total-status').map((region) => region.textContent)
 
     it('writes the total on every counter the theme placed', () => {
         new TotalView(contract, description).show(88)
@@ -46,15 +49,27 @@ describe('TotalView', () => {
         assert.deepEqual(counters(), ['0 article', '0 article'])
     })
 
-    /** A rewritten live region is read out again: a page change must not repeat an unchanged count. */
-    it('leaves a counter alone when its count has not changed', () => {
+    it('says the total in every live region beside the counters, never the count the page was served with', () => {
         const view = new TotalView(contract, description)
-        view.show(12)
-        const written = contract.all('total').map((counter) => counter.firstChild)
 
-        view.show(12)
+        view.show(0)
+        assert.deepEqual(regions(), ['', ''])
 
-        assert.deepEqual(contract.all('total').map((counter) => counter.firstChild), written)
+        view.show(88)
+        assert.deepEqual(regions(), ['88 items', '88 items'])
+    })
+
+    it('writes the count of an answer to typing at once, and says it once typing rests', (t) => {
+        t.mock.timers.enable({ apis: ['setTimeout'] })
+        const view = new TotalView(contract, description)
+
+        view.showWhileTyping(3)
+        view.showWhileTyping(2)
+        assert.deepEqual(counters(), ['2 items', '2 items'])
+        assert.deepEqual(regions(), ['', ''])
+
+        t.mock.timers.tick(ANNOUNCE_DELAY_MS)
+        assert.deepEqual(regions(), ['2 items', '2 items'])
     })
 
     it('follows each search the listing answers', async () => {

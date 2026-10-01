@@ -20,6 +20,7 @@ enum Hook: string
     case Image = 'image';
     case Title = 'title';
     case Price = 'price';
+    case Summary = 'summary';
 
     case Facets = 'facets';
     case Facet = 'facet';
@@ -56,10 +57,14 @@ enum Hook: string
     case PriceBoundsMax = 'price-bounds-max';
     case PriceMin = 'price-min';
     case PriceMax = 'price-max';
+    case ListingSearch = 'listing-search';
+    case ListingSearchInput = 'listing-search-input';
+    case ListingSearchClear = 'listing-search-clear';
     case Reset = 'reset';
     case ActiveFilters = 'active-filters';
     case ActiveCount = 'active-count';
     case Total = 'total';
+    case TotalStatus = 'total-status';
     case ActiveValues = 'active-values';
     case ActiveValue = 'active-value';
     case ActiveValueTemplate = 'active-value-template';
@@ -68,10 +73,33 @@ enum Hook: string
     case DrawerClose = 'drawer-close';
     case DrawerOpen = 'drawer-open';
     case DrawerSheet = 'drawer-sheet';
+    case DrawerBody = 'drawer-body';
     case DrawerFooter = 'drawer-footer';
+
+    case Search = 'search';
+    case SearchToggle = 'search-toggle';
+    case SearchPanel = 'search-panel';
+    case SearchField = 'search-field';
+    case SearchInput = 'search-input';
+    case SearchStatus = 'search-status';
+    case SearchEmpty = 'search-empty';
+    case SearchUnavailable = 'search-unavailable';
+    case SearchSection = 'search-section';
+    case SearchCount = 'search-count';
+    case SearchResults = 'search-results';
+    case SearchCardTemplate = 'search-card-template';
+    case SearchSeeAll = 'search-see-all';
 
     public function attribute(): HtmlString
     {
         return new HtmlString(Contract::Attribute->value.'="'.$this->value.'"');
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function asAttributes(): array
+    {
+        return [Contract::Attribute->value => $this->value];
     }
 }

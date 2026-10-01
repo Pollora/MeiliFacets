@@ -5,13 +5,15 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Indexing;
 
 use Modules\MeiliFacets\Contracts\IndexAttributes;
+use Modules\MeiliFacets\Contracts\SearchableAttributes;
 use Modules\MeiliFacets\Enums\DocumentField;
+use Modules\MeiliFacets\Enums\EngineFacetSort;
 use Modules\MeiliFacets\Enums\FacetingSetting;
-use Modules\MeiliFacets\Enums\FacetValueOrder;
 use Modules\MeiliFacets\Enums\IndexSetting;
 use Modules\MeiliFacets\Enums\PaginationSetting;
+use Modules\MeiliFacets\Enums\TypoToleranceSetting;
 use Modules\MeiliFacets\Search\EngineLimits;
-use Pollora\MeiliScout\Config\Settings;
+use Modules\MeiliFacets\Support\UniqueList;
 use Pollora\MeiliScout\Indexables\PostIndexable;
 
 final class FacetedPostIndexable extends PostIndexable
@@ -24,13 +26,12 @@ final class FacetedPostIndexable extends PostIndexable
      * The only fields the module reads back from a hit. Anything else a project
      * needs is declared, not inherited.
      */
-    private const array READ_BY_THE_MODULE = ['ID', 'card'];
-
-    /** @var list<string>|null */
-    private ?array $taxonomies = null;
+    private const array READ_BY_THE_MODULE = [DocumentField::Id->value, DocumentField::Card->value];
 
     public function __construct(
         private readonly IndexAttributes $attributes,
+        private readonly SearchableAttributes $searchable,
+        private readonly IndexedTaxonomies $taxonomies,
         private readonly EngineLimits $limits,
     ) {}
 
@@ -65,6 +66,24 @@ final class FacetedPostIndexable extends PostIndexable
             PaginationSetting::MaxTotalHits->value => $this->limits->reachableHits,
         ];
 
+        return $this->withSearchSettings($settings);
+    }
+
+    /**
+     * A field left out cannot be searched at all, even by a query written with the public key.
+     *
+     * @param  array<string, mixed>  $settings
+     * @return array<string, mixed>
+     */
+    private function withSearchSettings(array $settings): array
+    {
+        $settings[IndexSetting::SearchableAttributes->value] = $this->searchable->all();
+
+        $settings[IndexSetting::TypoTolerance->value] = [
+            ...$settings[IndexSetting::TypoTolerance->value] ?? [],
+            TypoToleranceSetting::DisableOnAttributes->value => $this->attributes->exactlyMatched(),
+        ];
+
         return $settings;
     }
 
@@ -77,7 +96,7 @@ final class FacetedPostIndexable extends PostIndexable
 
         return in_array(self::EVERY_FIELD, $declared, true)
             ? [self::EVERY_FIELD]
-            : $this->mergeUnique(self::READ_BY_THE_MODULE, $declared);
+            : UniqueList::merge(self::READ_BY_THE_MODULE, $declared);
     }
 
     /**
@@ -87,7 +106,7 @@ final class FacetedPostIndexable extends PostIndexable
      */
     private function mergeInto(array $settings, IndexSetting $setting, array ...$lists): array
     {
-        $settings[$setting->value] = $this->mergeUnique($settings[$setting->value] ?? [], ...$lists);
+        $settings[$setting->value] = UniqueList::merge($settings[$setting->value] ?? [], ...$lists);
 
         return $settings;
     }
@@ -102,7 +121,7 @@ final class FacetedPostIndexable extends PostIndexable
         return [
             ...$faceting,
             FacetingSetting::SortValuesBy->value => [
-                self::ALL_FACETS => FacetValueOrder::ByCount->value,
+                self::ALL_FACETS => EngineFacetSort::ByCount->value,
             ],
             FacetingSetting::MaxValuesPerFacet->value => $this->limits->maxFacetValues,
         ];
@@ -115,36 +134,7 @@ final class FacetedPostIndexable extends PostIndexable
     {
         return array_map(
             DocumentField::Facets->path(...),
-            $this->indexedTaxonomies()
+            $this->taxonomies->all()
         );
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function indexedTaxonomies(): array
-    {
-        // Reached on every save through ensureIndexExists().
-        return $this->taxonomies ??= $this->resolveIndexedTaxonomies();
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function resolveIndexedTaxonomies(): array
-    {
-        $postTypes = array_values(Settings::get('indexed_post_types', []));
-        $taxonomiesPerPostType = array_map(get_object_taxonomies(...), $postTypes);
-
-        return $this->mergeUnique(...$taxonomiesPerPostType);
-    }
-
-    /**
-     * @param  list<string>  ...$lists
-     * @return list<string>
-     */
-    private function mergeUnique(array ...$lists): array
-    {
-        return array_values(array_unique(array_merge(...$lists)));
     }
 }

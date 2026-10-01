@@ -2,88 +2,19 @@ import { filterQueriesOf } from './filter-queries.ts'
 import { BrowserHistory } from './listing/browser-history.ts'
 import { Listing } from './listing/listing.ts'
 import { ListingBinding } from './listing/listing-binding.ts'
-import { Contract } from './shared/contract.ts'
+import { PageRoots } from './shared/page-roots.ts'
+import { RootComponent } from './shared/root-component.ts'
 
-import type { Connection, ListingDescription } from './shared/description.ts'
+import type { ListingDescription } from './shared/description.ts'
+import type { BoundRoot, RootBinder, ScriptModule } from './shared/page-roots.ts'
 
-const MODULE = '@meilifacets/listing'
-const LISTING_ATTRIBUTE = 'data-listing'
+const MODULE: ScriptModule = { id: '@meilifacets/listing', roots: 'listings' }
 
-interface PublishedData {
-    connection: Connection
-    listings: Partial<Record<string, ListingDescription>>
-}
-
-/**
- * Reads what the server left for us and starts one listing per root. A root
- * whose markup no longer matches the contract is left alone: the page it was
- * served with is complete, and half a client is worse than none.
- */
-class ListingPage {
-    #document: Document
+/** Starts one listing per root, all sharing the browser's history. */
+class ListingPage implements RootBinder<ListingDescription> {
     #history = new BrowserHistory()
 
-    constructor(document: Document) {
-        this.#document = document
-    }
-
-    start() {
-        const roots = [...this.#document.querySelectorAll(`[${LISTING_ATTRIBUTE}]`)]
-        const published = this.#published(roots)
-
-        if (published === null) {
-            return
-        }
-
-        this.#reportOrphans(roots)
-        roots.forEach((root) => this.#bind(root, published))
-    }
-
-    #published(roots: Element[]) {
-        const data = this.#document.getElementById(`wp-script-module-data-${MODULE}`)?.textContent
-
-        if (data) {
-            return JSON.parse(data) as PublishedData
-        }
-
-        // The module id is written on both sides of the boundary: a mismatch
-        // would otherwise leave a listing served and inert, saying nothing.
-        if (roots.length > 0) {
-            console.error(`[meilifacets] no data was published under ${MODULE}.`)
-        }
-
-        return null
-    }
-
-    #reportOrphans(roots: Element[]) {
-        const orphans = Contract.orphans(this.#document, roots)
-
-        if (orphans.length > 0) {
-            const move = `Move inside <x-meilifacets::listing> : ${orphans.join(', ')}.`
-
-            console.error(`[meilifacets] the client binds inside [${LISTING_ATTRIBUTE}] only. ${move}`)
-        }
-    }
-
-    #bind(root: Element, { connection, listings }: PublishedData) {
-        const name = root.getAttribute(LISTING_ATTRIBUTE) ?? ''
-        const description = listings[name]
-        const contract = new Contract(root)
-
-        if (!description) {
-            console.error(`[meilifacets] the page describes no listing named "${name}".`)
-
-            return
-        }
-
-        const breaches = contract.breaches()
-
-        if (breaches.length > 0) {
-            console.error(`[meilifacets] the markup does not meet the contract: ${breaches.join(', ')}`)
-
-            return
-        }
-
+    bind({ contract, description, connection }: BoundRoot<ListingDescription>) {
         const listing = new Listing(description, connection, {
             filterQueries: filterQueriesOf(description),
             history: this.#history,
@@ -93,4 +24,4 @@ class ListingPage {
     }
 }
 
-new ListingPage(document).start()
+new PageRoots<ListingDescription>(document, RootComponent.LISTING, MODULE).start(new ListingPage())

@@ -14,7 +14,7 @@ final class PagePlacement
     private array $rendered = [];
 
     /** @var array<string, true> facet names a template placed on their own */
-    private array $apart = [];
+    private array $placedOnTheirOwn = [];
 
     public function __construct(private readonly string $listing) {}
 
@@ -23,7 +23,7 @@ final class PagePlacement
         if ($this->isRendered(PlacedControl::Facet, $facet->name)) {
             throw new RuntimeException(
                 "Facet \"{$facet->name}\" is rendered twice on this page: its inputs and ids "
-                .'would be duplicated. Place it on its own before <x-meilifacets::facets>, which shows what is left.'
+                .'would be duplicated. Place it on its own before <x-meilifacets::listing.facets>, which shows what is left.'
             );
         }
 
@@ -31,9 +31,9 @@ final class PagePlacement
     }
 
     /** Designated by name, so the group leaves it alone. */
-    public function placeApart(Placeable $facet): void
+    public function placeOnItsOwn(Placeable $facet): void
     {
-        $this->apart[$facet->name] = true;
+        $this->placedOnTheirOwn[$facet->name] = true;
 
         $this->place($facet);
     }
@@ -43,7 +43,7 @@ final class PagePlacement
         if ($this->isRendered(PlacedControl::Sort, $this->listing)) {
             throw new RuntimeException(
                 "The sort of listing \"{$this->listing}\" is rendered twice on this page: its list and ids "
-                .'would be duplicated. Render <x-meilifacets::sort> once per page.'
+                .'would be duplicated. Render <x-meilifacets::listing.sort> once per page.'
             );
         }
 
@@ -58,7 +58,7 @@ final class PagePlacement
     {
         return array_values(array_filter(
             $filters,
-            fn (Placeable $filter): bool => ! isset($this->apart[$filter->name])
+            fn (Placeable $filter): bool => ! isset($this->placedOnTheirOwn[$filter->name])
         ));
     }
 

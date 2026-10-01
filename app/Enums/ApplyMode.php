@@ -12,10 +12,7 @@ enum ApplyMode: string
     /** One search per ticked box: no submit button, more queries. */
     case Immediate = 'immediate';
 
-    public static function fromConfig(): self
-    {
-        return self::tryFrom((string) config('meilifacets.apply_mode', '')) ?? self::OnSubmit;
-    }
+    public const self DEFAULT = self::OnSubmit;
 
     public function needsButton(): bool
     {

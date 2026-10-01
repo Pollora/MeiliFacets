@@ -9,11 +9,8 @@ use Modules\MeiliFacets\Enums\QueryParameter;
 /** Names a listing parameter must never take. */
 final class ReservedParameters
 {
-    /**
-     * Varnish drops the whole query string when the first parameter is one of
-     * these (clevercloud/_varnish.vcl).
-     */
-    private const array STRIPPED_BY_VARNISH = [
+    /** Common caching proxy configurations drop the whole query string when it starts with one of these. */
+    private const array STRIPPED_BY_PROXIES = [
         'utm_campaign', 'utm_medium', 'utm_source', 'utm_term',
         'adParams', 'client', 'cx', 'eid', 'fbid', 'feed',
         'ref', 'refid', 'refsrc', 'ver', 'view',
@@ -53,7 +50,7 @@ final class ReservedParameters
      */
     public function proxy(): array
     {
-        return self::STRIPPED_BY_VARNISH;
+        return self::STRIPPED_BY_PROXIES;
     }
 
     /**
@@ -65,7 +62,7 @@ final class ReservedParameters
     }
 
     /**
-     * Collisions taken on purpose (`D-h`), and only while the bound answers to the name.
+     * Collisions taken on purpose, and only while the bound answers to the name.
      *
      * @return list<string>
      */
@@ -93,7 +90,7 @@ final class ReservedParameters
         }
 
         if (in_array($parameter, $this->proxy(), true)) {
-            return 'stripped by Varnish when it comes first: the whole query string would be dropped';
+            return 'stripped by common caching proxies when it comes first: the whole query string would be dropped';
         }
 
         return null;

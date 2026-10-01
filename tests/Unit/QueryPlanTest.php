@@ -4,17 +4,25 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Tests\Unit;
 
+use LogicException;
+use Modules\MeiliFacets\Enums\QueryParameter;
+use Modules\MeiliFacets\Listing\Facet;
 use Modules\MeiliFacets\Listing\ListingState;
 use Modules\MeiliFacets\Listing\PriceFilter;
 use Modules\MeiliFacets\Listing\Range;
+use Modules\MeiliFacets\Listing\SearchScope;
 use Modules\MeiliFacets\Listing\Sort;
 use Modules\MeiliFacets\Listing\SortFilter;
+use Modules\MeiliFacets\Listing\StateReader;
 use Modules\MeiliFacets\Search\DisjunctiveFacetCounter;
 use Modules\MeiliFacets\Search\FacetQuery;
 use Modules\MeiliFacets\Search\FilterQuery;
 use Modules\MeiliFacets\Search\PriceQuery;
 use Modules\MeiliFacets\Search\QueryPlan;
+use Modules\MeiliFacets\Support\UrlParameters;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeListing;
+use Modules\MeiliFacets\Tests\Unit\Doubles\FakeSearchScopedListing;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -29,14 +37,15 @@ final class QueryPlanTest extends TestCase
         $this->listing = FakeListing::withBrandAndCategory();
     }
 
+    /** No field of the listing can take a term off a search WordPress routed: a typed one is ignored. */
     #[Test]
-    public function it_searches_what_the_page_asks_unless_the_visitor_asked_otherwise(): void
+    public function it_searches_what_the_page_asks_whatever_the_state_holds(): void
     {
         $listing = new FakeListing(baseQuery: 'creme');
 
         $this->assertSame('creme', QueryPlan::results($listing, new ListingState, [])['q']);
         $this->assertSame('creme', QueryPlan::unfiltered($listing)['q']);
-        $this->assertSame('lait', QueryPlan::results($listing, new ListingState(query: 'lait'), [])['q']);
+        $this->assertSame('creme', QueryPlan::results($listing, new ListingState(query: 'lait'), [])['q']);
     }
 
     #[Test]
@@ -68,7 +77,7 @@ final class QueryPlanTest extends TestCase
         $state = new ListingState(['product_brand' => ['acme']], 'on_sale', price: new Range(min: 20.0));
         $filters = QueryPlan::filterQueries($listing);
 
-        foreach ([QueryPlan::results($listing, $state, []), QueryPlan::apart($listing, $state, $filters[0]), QueryPlan::apart($listing, $state, $filters[1])] as $query) {
+        foreach ([QueryPlan::results($listing, $state, []), QueryPlan::measureWithout($listing, $state, $filters[0]), QueryPlan::measureWithout($listing, $state, $filters[1])] as $query) {
             $this->assertStringContainsString('price.onsale = "true"', $query['filter']);
         }
 
@@ -102,11 +111,11 @@ final class QueryPlanTest extends TestCase
     }
 
     #[Test]
-    public function it_asks_only_for_the_card(): void
+    public function it_asks_only_for_the_card_and_its_document_id(): void
     {
         $query = QueryPlan::results($this->listing, new ListingState, []);
 
-        $this->assertSame(['card'], $query['attributesToRetrieve']);
+        $this->assertSame(['ID', 'card'], $query['attributesToRetrieve']);
     }
 
     /**
@@ -146,7 +155,7 @@ final class QueryPlanTest extends TestCase
      * other values keep a count and stay reachable.
      */
     #[Test]
-    public function it_leaves_off_the_main_search_the_fields_it_is_told_are_measured_apart(): void
+    public function it_leaves_off_the_main_search_the_fields_it_is_told_are_measured_separately(): void
     {
         $state = new ListingState(['product_brand' => ['acme']]);
 
@@ -179,7 +188,7 @@ final class QueryPlanTest extends TestCase
         $listing = FakeListing::withPriceAndBrand();
         $state = new ListingState(['product_brand' => ['acme']], price: new Range(55.0, 120.0));
 
-        $bounds = QueryPlan::apart($listing, $state, $this->priceOf($listing));
+        $bounds = QueryPlan::measureWithout($listing, $state, $this->priceOf($listing));
 
         $this->assertStringNotContainsString('price.', $bounds['filter']);
         $this->assertStringContainsString('post_type = "product"', $bounds['filter']);
@@ -189,13 +198,13 @@ final class QueryPlanTest extends TestCase
     }
 
     #[Test]
-    public function it_keeps_the_held_range_on_the_search_that_counts_a_facet_apart(): void
+    public function it_keeps_the_held_range_on_the_search_that_counts_a_facet_separately(): void
     {
         $listing = FakeListing::withPriceAndBrand();
         $state = new ListingState(['product_brand' => ['acme']], price: new Range(max: 120.0));
         $brand = QueryPlan::filterQueries($listing)[0];
 
-        $counting = QueryPlan::apart($listing, $state, $brand);
+        $counting = QueryPlan::measureWithout($listing, $state, $brand);
 
         $this->assertStringContainsString('price.min <= 120', $counting['filter']);
         $this->assertStringNotContainsString('facets.product_brand', $counting['filter']);
@@ -220,6 +229,95 @@ final class QueryPlanTest extends TestCase
 
         $this->assertSame([], (new DisjunctiveFacetCounter)->queries($this->listing, $state));
         $this->assertContains('facets.product_cat', QueryPlan::results($this->listing, $state, [])['facets']);
+    }
+
+    /**
+     * The client reads the same cases (`listing-query.test.ts`): a first render and the first gesture
+     * after it must search the same products on the same fields.
+     *
+     * @param  array{query: string, baseQuery: string, q: string, filter: string, attributesToSearchOn: list<string>|null}  $case
+     */
+    #[DataProvider('searchScopeCases')]
+    #[Test]
+    public function it_picks_the_search_scope_by_the_rule_the_client_follows(array $case): void
+    {
+        $listing = $this->scopedListing($case['baseQuery']);
+        $parameters = new UrlParameters([]);
+        $state = new StateReader($parameters)->read($listing, [$parameters->reserved(QueryParameter::Query) => $case['query']]);
+        $results = QueryPlan::results($listing, $state, []);
+        $counting = QueryPlan::measureWithout($listing, $state, new FacetQuery(new Facet('product_brand', 'Brand')));
+
+        foreach ([$results, $counting] as $query) {
+            $this->assertSame($case['q'], $query['q']);
+            $this->assertSame($case['filter'], $query['filter']);
+            $this->assertSame($case['attributesToSearchOn'], $query['attributesToSearchOn'] ?? null);
+        }
+    }
+
+    /** The values a facet offers come from the products the routed search can find, never from the catalogue. */
+    #[Test]
+    public function it_counts_the_unfiltered_listing_of_a_routed_search_in_the_search_scope(): void
+    {
+        $routed = QueryPlan::unfiltered($this->scopedListing('creme'));
+        $browsed = QueryPlan::unfiltered($this->scopedListing(''));
+
+        $routedCase = $this->sharedScopeCase('a term WordPress routed reads what the search reads');
+        $browsedCase = $this->sharedScopeCase('nothing searched browses the catalogue on every field');
+
+        $this->assertSame($routedCase['filter'], $routed['filter']);
+        $this->assertSame($routedCase['attributesToSearchOn'], $routed['attributesToSearchOn']);
+        $this->assertSame($browsedCase['filter'], $browsed['filter']);
+        $this->assertArrayNotHasKey('attributesToSearchOn', $browsed);
+    }
+
+    /** A listing that declares no scope of its own searches its base filter, on every field. */
+    #[Test]
+    public function it_searches_the_base_filter_of_a_listing_without_a_scope(): void
+    {
+        $query = QueryPlan::results($this->listing, new ListingState(query: 'coat'), []);
+
+        $this->assertSame('post_type = "product"', $query['filter']);
+        $this->assertArrayNotHasKey('attributesToSearchOn', $query);
+    }
+
+    /**
+     * @return iterable<string, array{array{query: string, baseQuery: string, q: string, filter: string, attributesToSearchOn: list<string>|null}}>
+     */
+    public static function searchScopeCases(): iterable
+    {
+        foreach (self::sharedScopeCases()['cases'] as $case) {
+            yield $case['case'] => [$case];
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function sharedScopeCase(string $name): array
+    {
+        $cases = array_column(self::sharedScopeCases()['cases'], null, 'case');
+
+        if (! isset($cases[$name])) {
+            throw new LogicException("No shared scope case is named \"{$name}\".");
+        }
+
+        return $cases[$name];
+    }
+
+    /**
+     * @return array{listing: array{baseFilter: list<string>, searchScope: array{filter: list<string>, fields: list<string>}}, cases: list<array<string, mixed>>}
+     */
+    private static function sharedScopeCases(): array
+    {
+        return json_decode((string) file_get_contents(__DIR__.'/../search-scope-cases.json'), true, flags: JSON_THROW_ON_ERROR);
+    }
+
+    private function scopedListing(string $baseQuery): FakeSearchScopedListing
+    {
+        $shared = self::sharedScopeCases()['listing'];
+        $listing = new FakeListing([new Facet('product_brand', 'Brand')], $shared['baseFilter'], baseQuery: $baseQuery);
+
+        return new FakeSearchScopedListing($listing, new SearchScope($shared['searchScope']['filter'], $shared['searchScope']['fields']));
     }
 
     private function priceOf(FakeListing $listing): PriceQuery

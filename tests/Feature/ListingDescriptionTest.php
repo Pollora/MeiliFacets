@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Tests\Feature;
 
+use Modules\MeiliFacets\Contracts\SearchableTypes;
 use Modules\MeiliFacets\Enums\QueryParameter;
 use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\Listing\ResolvedListing;
+use Modules\MeiliFacets\Search\FilterExpression;
+use Modules\MeiliFacets\Search\VisibleProducts;
+use Modules\MeiliFacets\SiteSearch\SearchSettings;
 use Modules\MeiliFacets\Support\UrlParameters;
 use Modules\MeiliFacets\View\ListingDescription;
 use PHPUnit\Framework\Attributes\Test;
@@ -69,10 +73,38 @@ final class ListingDescriptionTest extends TestCase
         $this->assertSame('', $this->describedWith([])['baseQuery']);
     }
 
+    /** The panel counts what the page finds: the same products, on the same fields. */
+    #[Test]
+    public function it_hands_the_client_the_scope_the_site_search_reads_for_products(): void
+    {
+        $product = $this->app->make(SearchableTypes::class)->all()[VisibleProducts::POST_TYPE];
+        $scope = $this->describedWith([])['searchScope'];
+
+        $this->assertSame(FilterExpression::all($product->baseFilter), $scope['filter']);
+        $this->assertSame($product->searchOn, $scope['fields']);
+        $this->assertStringContainsString('exclude-from-search', $scope['filter']);
+        $this->assertStringNotContainsString('exclude-from-search', $this->describedWith([])['filter']);
+    }
+
+    /** One threshold and one delay for every field that searches while typed. */
+    #[Test]
+    public function it_hands_the_client_the_typing_settings_of_the_site_search(): void
+    {
+        $this->app->instance(SearchSettings::class, new SearchSettings(3, 250));
+
+        try {
+            $description = $this->describedWith([]);
+        } finally {
+            $this->app->forgetInstance(SearchSettings::class);
+        }
+
+        $this->assertSame([3, 250], [$description['minChars'], $description['delay']]);
+    }
+
     #[Test]
     public function it_hands_over_the_path_of_the_first_page(): void
     {
-        $this->requesting('/boutique/page/2?marque=aeris');
+        $this->requesting('/boutique/page/2?marque=globex');
 
         $this->assertSame('/boutique', $this->describedWith([])['pagePath']);
     }

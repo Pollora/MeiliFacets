@@ -52,7 +52,7 @@ final readonly class WordPressTermHierarchy implements TermHierarchy
      */
     private function describe(WP_Term $term): array
     {
-        // `terms.name` is searchable: an ancestor without it would be filterable but not findable.
+        // `labels` reads the name: an ancestor without it would be filterable but not findable.
         return [
             TermField::TermId->value => (int) $term->term_id,
             TermField::Name->value => $term->name,

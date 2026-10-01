@@ -24,8 +24,8 @@ final readonly class DisjunctiveFacetCounter implements FacetCounter
         foreach ($listing->facets() as $facet) {
             $query = new FacetQuery($facet);
 
-            if ($query->isMeasuredApart($state)) {
-                $queries[$facet->taxonomy] = QueryPlan::apart($listing, $state, $query);
+            if ($query->isMeasuredSeparately($state)) {
+                $queries[$facet->taxonomy] = QueryPlan::measureWithout($listing, $state, $query);
             }
         }
 

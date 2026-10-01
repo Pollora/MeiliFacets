@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Tests\Unit;
 
 use Modules\MeiliFacets\Contracts\Placeable;
-use Modules\MeiliFacets\Http\Unavailable;
+use Modules\MeiliFacets\Http\ServiceUnavailable;
 use Modules\MeiliFacets\Listing\Facet;
 use Modules\MeiliFacets\Listing\FacetValues;
 use Modules\MeiliFacets\Listing\ListingState;
@@ -36,7 +36,7 @@ final class FacetPlacementTest extends TestCase
     }
 
     #[Test]
-    public function it_drops_from_the_group_what_a_template_placed_apart(): void
+    public function it_drops_from_the_group_what_a_template_placed_on_its_own(): void
     {
         $listing = $this->listing();
 
@@ -69,7 +69,7 @@ final class FacetPlacementTest extends TestCase
         $listing->placeSort();
 
         $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessageMatches('/The sort of listing "fake" is rendered twice.*Render <x-meilifacets::sort> once per page\\./');
+        $this->expectExceptionMessageMatches('/The sort of listing "fake" is rendered twice.*Render <x-meilifacets::listing.sort> once per page\\./');
 
         $listing->placeSort();
     }
@@ -144,7 +144,7 @@ final class FacetPlacementTest extends TestCase
             new ListingSearch(new FakeSearchEngine, new DisjunctiveFacetCounter),
             new FacetValues(new FakeTermLabels, new FakeTermScope, new FakeDefaultTerms),
             new UrlParameters([]),
-            new Unavailable,
+            new ServiceUnavailable,
             new EngineLimits(1000),
         );
     }

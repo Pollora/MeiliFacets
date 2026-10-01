@@ -1,0 +1,45 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Modules\MeiliFacets\Indexing;
+
+use Modules\MeiliFacets\Contracts\CardProjector;
+use Modules\MeiliFacets\Enums\CardField;
+use WP_Post;
+
+final readonly class SummaryCardProjector implements CardProjector
+{
+    private const int WORDPRESS_EXCERPT_LENGTH = 55;
+
+    private const string EXCERPT_LENGTH_FILTER = 'excerpt_length';
+
+    public function __construct(private CardProjector $card, private PostText $postText) {}
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function project(WP_Post $post): array
+    {
+        return [
+            ...$this->card->project($post),
+            ...$this->summary($post),
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function summary(WP_Post $post): array
+    {
+        $summary = $this->postText->summary($post, $this->length());
+
+        return $summary === '' ? [] : [CardField::Summary->value => $summary];
+    }
+
+    /** Read on every card: the theme adds its filter after the module is wired. */
+    private function length(): int
+    {
+        return (int) apply_filters(self::EXCERPT_LENGTH_FILTER, self::WORDPRESS_EXCERPT_LENGTH);
+    }
+}

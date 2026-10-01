@@ -8,7 +8,7 @@ use Closure;
 use Modules\MeiliFacets\Enums\CardField;
 use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Enums\PriceField;
-use Modules\MeiliFacets\Indexing\MeiliScoutBridge;
+use Modules\MeiliFacets\Indexing\PostDocument;
 use Modules\MeiliFacets\Indexing\ProductPriceProjector;
 use Modules\MeiliFacets\Indexing\ShopTaxLocation;
 use PHPUnit\Framework\Attributes\Test;
@@ -157,17 +157,16 @@ final class ShownPriceProjectionTest extends TestCase
     public function it_taxes_price_and_card_at_the_shop_address_whoever_is_in_session(): void
     {
         $product = $this->simple('50');
-        $bridge = $this->app->make(MeiliScoutBridge::class);
+        $postDocument = $this->app->make(PostDocument::class);
         $customer = WC()->customer;
         WC()->customer = new WC_Customer;
         WC()->customer->set_shipping_country(self::ELSEWHERE);
         WC()->customer->set_billing_country(self::ELSEWHERE);
 
         try {
-            $document = $this->enteredWithoutTaxShownWithTax(fn (): array => [
-                ...$bridge->addPrice([], $this->postOf($product)),
-                ...$bridge->addCard([], $this->postOf($product)),
-            ]);
+            $document = $this->enteredWithoutTaxShownWithTax(
+                fn (): array => $postDocument->complete([], $this->postOf($product))
+            );
         } finally {
             WC()->customer = $customer;
         }

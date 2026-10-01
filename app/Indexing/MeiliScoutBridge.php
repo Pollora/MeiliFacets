@@ -4,28 +4,16 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Indexing;
 
-use Closure;
-use Modules\MeiliFacets\Contracts\CardProjector;
-use Modules\MeiliFacets\Contracts\IndexAttributes;
-use Modules\MeiliFacets\Enums\DocumentField;
-use Modules\MeiliFacets\Search\EngineLimits;
 use Pollora\Attributes\Filter;
 use Pollora\MeiliScout\Contracts\Indexable;
 use Pollora\MeiliScout\Indexables\PostIndexable;
 use WP_Post;
 
-final class MeiliScoutBridge
+final readonly class MeiliScoutBridge
 {
-    private ?FacetedPostIndexable $facetedPosts = null;
-
     public function __construct(
-        private readonly TermAncestry $ancestry,
-        private readonly CardProjector $cards,
-        private readonly ProductPriceProjector $prices,
-        private readonly IndexAttributes $attributes,
-        private readonly EngineLimits $limits,
-        private readonly ShopTaxLocation $shopTaxLocation,
-        private readonly AnonymousVisitor $anonymousVisitor,
+        private PostDocument $postDocument,
+        private FacetedPostIndexable $facetedPosts,
     ) {}
 
     /**
@@ -35,58 +23,9 @@ final class MeiliScoutBridge
      * @return array<string, mixed>
      */
     #[Filter('meiliscout/post/document')]
-    public function addFacets(array $document): array
+    public function addModuleFields(array $document, WP_Post $post): array
     {
-        $terms = $document[DocumentField::Terms->value] ?? [];
-
-        if (! is_array($terms)) {
-            return $document;
-        }
-
-        $document[DocumentField::Facets->value] = FacetProjection::fromTerms(
-            $this->ancestry->expand($terms)
-        );
-
-        return $document;
-    }
-
-    /**
-     * @param  array<string, mixed>  $document
-     * @return array<string, mixed>
-     */
-    #[Filter('meiliscout/post/document')]
-    public function addCard(array $document, WP_Post $post): array
-    {
-        $document[DocumentField::Card->value] = $this->asShopVisitor(fn (): array => $this->cards->project($post));
-
-        return $document;
-    }
-
-    /**
-     * @param  array<string, mixed>  $document
-     * @return array<string, mixed>
-     */
-    #[Filter('meiliscout/post/document')]
-    public function addPrice(array $document, WP_Post $post): array
-    {
-        $price = $this->asShopVisitor(fn (): array => $this->prices->project($post));
-
-        if ($price !== []) {
-            $document[DocumentField::Price->value] = $price;
-        }
-
-        return $document;
-    }
-
-    /**
-     * @template T
-     *
-     * @param  Closure(): T  $read
-     * @return T
-     */
-    private function asShopVisitor(Closure $read): mixed
-    {
-        return $this->shopTaxLocation->during(fn (): mixed => $this->anonymousVisitor->during($read));
+        return $this->postDocument->complete($document, $post);
     }
 
     /**
@@ -100,16 +39,10 @@ final class MeiliScoutBridge
     {
         return array_map(
             fn (Indexable $indexable): Indexable => $this->needsFacetAttributes($indexable)
-                ? $this->facetedPosts()
+                ? $this->facetedPosts
                 : $indexable,
             $indexables
         );
-    }
-
-    // `meiliscout/indexables` runs on every indexed item, not once per request.
-    private function facetedPosts(): FacetedPostIndexable
-    {
-        return $this->facetedPosts ??= new FacetedPostIndexable($this->attributes, $this->limits);
     }
 
     private function needsFacetAttributes(Indexable $indexable): bool

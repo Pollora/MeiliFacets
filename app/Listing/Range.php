@@ -11,6 +11,12 @@ final readonly class Range
         public ?float $max = null,
     ) {}
 
+    /** `(string) 1.0E-9` is neither a filter nor a URL value. */
+    public static function formatBound(float $bound): string
+    {
+        return rtrim(rtrim(sprintf('%.4F', $bound), '0'), '.');
+    }
+
     public function isEmpty(): bool
     {
         return $this->min === null && $this->max === null;

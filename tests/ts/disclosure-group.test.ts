@@ -95,7 +95,7 @@ describe('DisclosureGroup', () => {
         press(window, box, 'Escape')
 
         assert.equal(isOpen(0), false)
-        assert.equal(window.document.activeElement, toggle(0))
+        assert.equal(window.document.activeElement === toggle(0), true)
     })
 
     it('closes on Escape only', () => {

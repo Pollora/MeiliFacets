@@ -90,6 +90,18 @@ final class ListingSearchTest extends TestCase
     }
 
     #[Test]
+    public function it_hands_each_card_the_id_of_its_document(): void
+    {
+        $engine = new FakeSearchEngine([self::RESULTS => [
+            'hits' => [['ID' => 393, 'card' => ['title' => 'Coat', 'id' => 7]]],
+        ]]);
+
+        $results = $this->searchWith($engine)->run(FakeListing::withBrandAndCategory(), new ListingState);
+
+        $this->assertSame([['title' => 'Coat', 'id' => 393]], $results->cards());
+    }
+
+    #[Test]
     public function it_reads_a_constrained_facet_from_its_own_response(): void
     {
         $state = new ListingState(['product_brand' => ['acme']]);
@@ -177,7 +189,7 @@ final class ListingSearchTest extends TestCase
     }
 
     #[Test]
-    public function it_counts_apart_the_facet_the_counter_measures_apart(): void
+    public function it_counts_separately_the_facet_the_counter_measures_separately(): void
     {
         $engine = new FakeSearchEngine;
 
@@ -217,7 +229,7 @@ final class ListingSearchTest extends TestCase
     }
 
     #[Test]
-    public function it_never_asks_the_main_search_for_bounds_it_measures_apart(): void
+    public function it_never_asks_the_main_search_for_bounds_it_measures_separately(): void
     {
         $engine = new FakeSearchEngine;
         $listing = FakeListing::withPriceAndBrand();

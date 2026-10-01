@@ -21,12 +21,12 @@ final readonly class ListingSearch
         private FacetCounter $counter,
     ) {}
 
-    public function run(Listing $listing, ListingState $state): SearchResults
+    public function run(Listing $listing, ListingState $state): ListingResults
     {
         $responses = $this->engine->multiSearch($this->searches($listing, $state));
         $main = $responses[self::RESULTS] ?? [];
 
-        return new SearchResults(
+        return new ListingResults(
             array_values($main['hits'] ?? []),
             (int) ($main['totalHits'] ?? 0),
             $this->distributions($listing, $responses),
@@ -41,14 +41,14 @@ final readonly class ListingSearch
      */
     private function searches(Listing $listing, ListingState $state): array
     {
-        $measuredApart = [
+        $measuredSeparately = [
             ...$this->countQueries($listing, $state),
             ...$this->boundsQueries($listing, $state),
         ];
 
         return [
-            self::RESULTS => QueryPlan::results($listing, $state, array_keys($measuredApart)),
-            ...$measuredApart,
+            self::RESULTS => QueryPlan::results($listing, $state, array_keys($measuredSeparately)),
+            ...$measuredSeparately,
             ...$this->unfilteredQueries($listing, $state),
         ];
     }
@@ -83,7 +83,7 @@ final readonly class ListingSearch
 
         $query = new PriceQuery($price);
 
-        return $query->isMeasuredApart($state) ? [$query->key() => QueryPlan::apart($listing, $state, $query)] : [];
+        return $query->isMeasuredSeparately($state) ? [$query->key() => QueryPlan::measureWithout($listing, $state, $query)] : [];
     }
 
     /**

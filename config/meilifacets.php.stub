@@ -10,7 +10,7 @@ return [
     ],
 
     // `submit` waits for a validation, `immediate` searches on every ticked box.
-    'apply_mode' => 'immediate',
+    'apply_mode' => 'submit',
 
     /*
      * A taxonomy left out falls back to its own name prefixed with `f_`, never

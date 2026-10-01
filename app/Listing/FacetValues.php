@@ -8,7 +8,7 @@ use Modules\MeiliFacets\Contracts\DefaultTerms;
 use Modules\MeiliFacets\Contracts\TermLabels;
 use Modules\MeiliFacets\Contracts\TermScope;
 use Modules\MeiliFacets\Contracts\ValueOrder;
-use Modules\MeiliFacets\Enums\DefaultTerm;
+use Modules\MeiliFacets\Enums\DefaultTermVisibility;
 use Modules\MeiliFacets\Enums\DisplayOrder;
 
 final readonly class FacetValues
@@ -98,7 +98,7 @@ final readonly class FacetValues
      */
     private function browsable(Facet $facet, array $distribution): array
     {
-        if ($facet->defaultTerm === DefaultTerm::Shown) {
+        if ($facet->defaultTerm === DefaultTermVisibility::Shown) {
             return $distribution;
         }
 

@@ -1,40 +1,20 @@
-const ATTRIBUTE = 'data-meili'
+import { RootComponent } from './root-component.ts'
+
+import type { Rule } from './root-component.ts'
+
+export const ATTRIBUTE = 'data-meili'
 const VERSION_ATTRIBUTE = 'data-meili-contract'
 const SCROLL_ATTRIBUTE = 'data-meili-scroll'
 const VERSION = 1
 
-interface Rule {
-    host: string | null
-    hooks: string[]
-    whenHolding?: string
-}
-
-/**
- * A rule holds inside a host that is present. An absent host is markup the
- * theme chose not to render, or data that produced none — not a breach.
- */
-const RULES: Rule[] = [
-    { host: null, hooks: ['results', 'card-template', 'empty'] },
-    { host: 'card-template', hooks: ['card', 'url', 'image', 'title', 'price'] },
-    { host: 'facet-value', hooks: ['input'] },
-    { host: 'facet', hooks: ['more'], whenHolding: 'facet-value' },
-    { host: 'facet', hooks: ['panel'], whenHolding: 'toggle' },
-    { host: 'pagination', hooks: ['page', 'previous', 'next'] },
-    { host: 'sort', hooks: ['sort-trigger', 'sort-list', 'sort-option'] },
-    { host: 'sort-choices', hooks: ['sort-choice'] },
-    { host: 'sort-choices', hooks: ['panel'], whenHolding: 'toggle' },
-    { host: 'price-range', hooks: ['price-track', 'price-handle'] },
-    { host: 'active-values', hooks: ['active-value-template'] },
-    { host: 'active-value-template', hooks: ['active-value'] },
-    { host: 'drawer', hooks: ['drawer-title', 'drawer-close'] },
-]
-
 /** Mirrors the Hook enum: the two lists diverging in silence is what VERSION guards against. */
 export class Contract {
     #root: Element
+    #component: RootComponent | null
 
     constructor(root: Element) {
         this.#root = root
+        this.#component = RootComponent.of(root)
     }
 
     get root() {
@@ -45,7 +25,7 @@ export class Contract {
         const view = this.#root.ownerDocument.defaultView
 
         if (view === null) {
-            throw new Error('[meilifacets] the listing is not in a window.')
+            throw new Error('[meilifacets] the contract root is not in a window.')
         }
 
         return view
@@ -56,16 +36,18 @@ export class Contract {
     }
 
     /**
-     * `ListingBinding` attaches per root, so a hook outside every root renders,
-     * styles and ticks while doing nothing at all.
+     * A client binds per root, so a hook outside every root renders, styles and
+     * ticks while doing nothing at all. Each client names only the hooks it owns.
      */
-    static orphans(document: Document, roots: Element[]): string[] {
+    static orphans(document: Document, owner: RootComponent): string[] {
+        const roots = [...document.querySelectorAll(RootComponent.anySelector)]
         const loose = [...document.querySelectorAll(`[${ATTRIBUTE}]`)]
             .filter((node) => roots.every((root) => !root.contains(node)))
 
         return [...new Set(loose
             .filter((node) => !loose.some((other) => other !== node && other.contains(node)))
-            .flatMap((node) => node.getAttribute(ATTRIBUTE) ?? []))]
+            .flatMap((node) => node.getAttribute(ATTRIBUTE) ?? [])
+            .filter((hook) => RootComponent.ownerOf(hook) === owner))]
     }
 
     /** Opt-in, per component: a control the theme did not mark leaves the page where it is. */
@@ -81,7 +63,11 @@ export class Contract {
             return [`contract ${version ?? 'absent'}, expected ${VERSION}`]
         }
 
-        return RULES.flatMap((rule) => this.#breachesOf(rule))
+        if (this.#component === null) {
+            return [`no root: expected one of ${RootComponent.anySelector}`]
+        }
+
+        return this.#component.rules.flatMap((rule) => this.#breachesOf(rule))
     }
 
     one(hook: string, within: Element = this.#root) {

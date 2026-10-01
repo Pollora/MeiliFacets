@@ -19,4 +19,9 @@ describe('Range', () => {
         assert.equal(new Range(10, null).clamp(4), 10)
         assert.equal(new Range(null, 50).clamp(4), 4)
     })
+
+    it('formats a bound without an exponent, as the server does', () => {
+        assert.equal(Range.formatBound(1e-9), '0')
+        assert.equal(Range.formatBound(1e21), '1000000000000000000000')
+    })
 })

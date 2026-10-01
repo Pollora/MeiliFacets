@@ -29,7 +29,7 @@ describe('SummaryBinding', () => {
     const text = (hook: string) => contract.one(hook)?.textContent
 
     it('paints what the visitor holds as the state moves, and leaves the total to the answer', () => {
-        summary.showHeld(new ListingState({ facets: { product_brand: ['acme', 'globex'] } }))
+        summary.showSelected(new ListingState({ facets: { product_brand: ['acme', 'globex'] } }))
 
         assert.equal(text('active-filters'), '2 active filters')
         assert.equal(text('active-count'), '2')

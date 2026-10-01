@@ -1,7 +1,7 @@
+import { BUSY } from '../shared/attributes.ts'
+
 import type { Listing } from '../listing/listing.ts'
 import type { Contract } from '../shared/contract.ts'
-
-const BUSY = 'aria-busy'
 
 /**
  * `aria-busy` on the grid from the moment a search leaves until none is out, answered, refused or overtaken.

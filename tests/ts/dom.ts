@@ -6,6 +6,8 @@ import { Contract } from '../../resources/assets/ts/shared/contract.ts'
 
 const STYLESHEET = new URL('../../resources/assets/css/meilifacets.css', import.meta.url)
 
+export const SEARCH_STYLESHEET = new URL('../../resources/assets/css/site-search.css', import.meta.url)
+
 /** Read from the client, so an increment never sends anyone editing fixtures. */
 export const CONTRACT = Number(/const VERSION = (\d+)/.exec(
     readFileSync(new URL('../../resources/assets/ts/shared/contract.ts', import.meta.url), 'utf8')
@@ -18,6 +20,7 @@ const CLASSES = [
     'HTMLElement',
     'HTMLAnchorElement',
     'HTMLButtonElement',
+    'HTMLFormElement',
     'HTMLImageElement',
     'HTMLInputElement',
     'HTMLTemplateElement',
@@ -61,11 +64,11 @@ export type StyleProperty = {
     [Key in keyof CSSStyleDeclaration]: CSSStyleDeclaration[Key] extends string ? Key : never
 }[keyof CSSStyleDeclaration] & string
 
-export const load = (markup: string, { styled = false } = {}) => {
+export const load = (markup: string, { styled = false, stylesheet = STYLESHEET }: { styled?: boolean, stylesheet?: URL } = {}) => {
     const window = new HappyWindow({ url: 'https://example.test/shop' }) as unknown as TestWindow
 
     if (styled) {
-        window.document.head.innerHTML = `<style>${readFileSync(STYLESHEET, 'utf8')}</style>`
+        window.document.head.innerHTML = `<style>${readFileSync(stylesheet, 'utf8')}</style>`
     }
 
     for (const name of CLASSES) {
@@ -82,6 +85,9 @@ export const open = (markup: string, options: { styled?: boolean } = {}) => {
 
     return { window, root: find(window.document, '[data-listing]') }
 }
+
+/** One turn of the event loop: the callbacks of promises already settled have run. */
+export const nextTurn = () => new Promise((resolve) => setImmediate(resolve))
 
 /** `detail` tells a real click from one the keyboard raised, and the client reads it. */
 export const click = (window: TestWindow, node: Element, detail = 1) => {
@@ -165,7 +171,7 @@ const priceHandle = (bound: string, at: number, now: number) => `
                                     data-bound="${bound}" data-meili="price-handle"><span data-meili="price-tip"></span></button>`
 
 const priceBlock = (folding: Folding) => `
-        <fieldset class="meilifacetsFacet" data-taxonomy="price" data-meili="facet">
+        <fieldset class="meilifacetsFacet" data-filter="price" data-meili="facet">
             <legend class="meilifacetsFacetLabel">${folding.legend('price', 'Price')}</legend>
             <div class="meilifacetsFacetPanel" id="panel-price"${folding.panel}>
                 <div class="meilifacetsFacetPanelInner">
@@ -189,12 +195,31 @@ const pageButton = () => '<button type="button" value="" hidden data-meili="page
  * Mirrors the structure the Blade components render — hooks, classes and initial
  * hidden states. Identifiers are shortened: nothing here reads them.
  */
-export const listingMarkup = ({ scroll = [], collapsible = false, priced = false }: { scroll?: string[], collapsible?: boolean, priced?: boolean } = {}) => {
+interface ListingMarkup {
+    scroll?: string[]
+    collapsible?: boolean
+    priced?: boolean
+    /** the term the search field holds, or no field at all */
+    search?: string | null
+}
+
+/** Mirrors `listing/search.blade.php`: the term is written by the test, never by a visitor. */
+const listingSearchForm = (term: string) => `
+    <form class="meilifacetsListingSearch" role="search" method="get" action="/shop" aria-label="Search this list" data-meili="listing-search">
+        <input id="listing-search-input" class="meilifacetsListingSearchInput" type="search" name="q" value="${term}" aria-label="Search this list"
+               placeholder="Search this list" maxlength="200" autocomplete="off" enterkeyhint="search" data-meili="listing-search-input">
+        <button type="button" class="meilifacetsListingSearchClear" aria-label="Clear the search"${term === '' ? ' hidden' : ''} data-meili="listing-search-clear">
+            <span aria-hidden="true">✕</span>
+        </button>
+    </form>`
+
+export const listingMarkup = ({ scroll = [], collapsible = false, priced = false, search = null }: ListingMarkup = {}) => {
     const mark = (component: string) => (scroll.includes(component) ? 'data-meili-scroll' : '')
     const folding = collapsible ? COLLAPSIBLE : OPEN
 
     return `
 <div data-listing="products" data-meili-contract="${CONTRACT}">
+${search === null ? '' : listingSearchForm(search)}
     <div class="meilifacetsFacets" data-apply="submit" data-meili="facets" ${mark('facets')}>
 ${facetBlock('product_brand', 'brand', 'Brand', `${facetValue('brand', 'acme', 'Acme')}${facetValue('brand', 'globex', 'Globex')}`, folding)}
 ${facetBlock('product_cat', 'category', 'Category', facetValue('categorie', 'coats', 'Coats'), folding)}
@@ -204,7 +229,8 @@ ${priced ? priceBlock(folding) : ''}
 
     <button type="button" class="meilifacetsReset" hidden data-meili="reset" ${mark('reset')}>Clear all</button>
     <span class="meilifacetsActiveFilters" hidden data-meili="active-filters">0 active filters</span>
-    <p class="meilifacetsTotal" aria-live="polite" aria-atomic="true" data-meili="total">0 items</p>
+    <p class="meilifacetsTotal" data-meili="total">0 items</p>
+    <p class="meilifacetsTotalStatus" aria-live="polite" aria-atomic="true" data-meili="total-status"></p>
     <ul class="meilifacetsActiveValues" aria-label="Active filters" hidden data-meili="active-values">
         <template data-meili="active-value-template">
             <li class="meilifacetsActiveValue"><button type="button" data-meili="active-value"><span aria-hidden="true">✕</span></button></li>
@@ -231,9 +257,10 @@ ${priced ? priceBlock(folding) : ''}
     </p>
     <template data-meili="card-template">
         <li data-meili="card">
-            <a href="" data-meili="url">
-                <img alt="" data-meili="image">
-                <span data-meili="title"></span>
+            <a data-meili-attr="href:url" data-meili="url">
+                <img data-meili-attr="src:image_url alt:image_alt|title width:image_width height:image_height"
+                     data-meili-if="image_url" data-meili="image">
+                <span data-meili-text="title" data-meili="title"></span>
             </a>
             <span data-meili="price"></span>
         </li>

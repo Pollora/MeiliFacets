@@ -28,6 +28,7 @@ final class MeiliFacetsServiceProvider extends ModuleServiceProvider
         SearchServiceProvider::class,
         ListingServiceProvider::class,
         RenderingServiceProvider::class,
+        SiteSearchServiceProvider::class,
     ];
 
     private const string THEME_VIEWS = '/resources/views/modules/meilifacets';

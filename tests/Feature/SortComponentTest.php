@@ -69,7 +69,7 @@ final class SortComponentTest extends TestCase
     {
         $this->expectExceptionMessageMatches('/The sort of listing "[^"]+" is rendered twice/');
 
-        Blade::render('<x-meilifacets::sort /><x-meilifacets::sort />');
+        Blade::render('<x-meilifacets::listing.sort /><x-meilifacets::listing.sort />');
     }
 
     private function promotions(int $onSale): Element
@@ -79,7 +79,7 @@ final class SortComponentTest extends TestCase
         ]));
         $this->app->forgetScopedInstances();
 
-        $markup = Blade::render('<x-meilifacets::sort />');
+        $markup = Blade::render('<x-meilifacets::listing.sort />');
         $option = HTMLDocument::createFromString('<div>'.$markup.'</div>', LIBXML_NOERROR)
             ->querySelector('[data-value="'.self::PROMOTIONS.'"]');
 

@@ -140,7 +140,7 @@ final class CollapsibleFacetTest extends TestCase
     #[Test]
     public function the_group_collapses_every_filter_it_renders(): void
     {
-        $document = HTMLDocument::createFromString(Blade::render('<x-meilifacets::facets collapsible />'), LIBXML_NOERROR);
+        $document = HTMLDocument::createFromString(Blade::render('<x-meilifacets::listing.facets collapsible />'), LIBXML_NOERROR);
 
         foreach ($document->querySelectorAll($this->hooked(Hook::Facet)) as $block) {
             $this->assertInstanceOf(Element::class, $block->querySelector($this->hooked(Hook::Toggle)));
@@ -155,7 +155,7 @@ final class CollapsibleFacetTest extends TestCase
     {
         $this->assertStringNotContainsString(
             Contract::Attribute->value.'="'.Hook::Toggle->value.'"',
-            Blade::render('<x-meilifacets::facets />')
+            Blade::render('<x-meilifacets::listing.facets />')
         );
     }
 
@@ -163,7 +163,7 @@ final class CollapsibleFacetTest extends TestCase
     #[Test]
     public function it_leaves_every_computation_of_the_trigger_to_the_component(): void
     {
-        $view = file_get_contents(dirname(__DIR__, 2).'/resources/views/components/toggle.blade.php');
+        $view = file_get_contents(dirname(__DIR__, 2).'/resources/views/components/listing/toggle.blade.php');
 
         $this->assertStringNotContainsString('@php', $view);
         $this->assertStringNotContainsString('$ids->', $view);
@@ -208,6 +208,6 @@ final class CollapsibleFacetTest extends TestCase
 
     private function placing(string $attributes = ''): string
     {
-        return '<x-meilifacets::facet facet="'.$this->firstFacet()->name.'" '.$attributes.' />';
+        return '<x-meilifacets::listing.facet facet="'.$this->firstFacet()->name.'" '.$attributes.' />';
     }
 }

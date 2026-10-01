@@ -19,6 +19,14 @@ final readonly class ConfiguredIndexAttributes implements IndexAttributes
     /**
      * @return list<string>
      */
+    public function exactlyMatched(): array
+    {
+        return $this->attributes->exactlyMatched();
+    }
+
+    /**
+     * @return list<string>
+     */
     public function filterable(): array
     {
         return $this->attributes->filterable();

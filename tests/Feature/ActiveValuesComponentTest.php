@@ -80,6 +80,25 @@ final class ActiveValuesComponentTest extends TestCase
         return '/aria-label="'.$pattern.'/u';
     }
 
+    /**
+     * The searched text is a filter like the others, named first. Placed against the
+     * price, which needs no catalogue: `ActiveValueListTest` places it against a ticked value.
+     */
+    #[Test]
+    public function it_draws_the_searched_text_first(): void
+    {
+        $query = $this->parameters()->reserved(QueryParameter::Query);
+        $this->ask([$query => 'se"r', $this->parameters()->reserved(QueryParameter::MinPrice) => '10']);
+
+        $html = $this->underLocales('en', 'en_US', $this->renderComponent(...));
+
+        $this->assertMatchesRegularExpression(
+            '/<button type="button" name="'.$query.'" value="" data-kind="search" aria-label="'.preg_quote(e('Remove the “se"r” filter'), '/').'"[^>]*>'.preg_quote(e('“se"r”'), '/').'<span/',
+            $html,
+        );
+        $this->assertLessThan(strpos($html, 'data-kind="price"'), strpos($html, 'data-kind="search"'));
+    }
+
     #[Test]
     public function it_ignores_a_value_the_page_has_no_words_for(): void
     {
@@ -109,7 +128,7 @@ final class ActiveValuesComponentTest extends TestCase
     {
         $this->assertStringContainsString(
             'class="meilifacetsActiveValues flex"',
-            Blade::render('<x-meilifacets::active-values class="flex" />'),
+            Blade::render('<x-meilifacets::listing.active-values class="flex" />'),
         );
     }
 
@@ -119,7 +138,7 @@ final class ActiveValuesComponentTest extends TestCase
     {
         $hostile = '"><script>alert(1)</script>';
 
-        $html = (string) view('meilifacets::components.active-values', [
+        $html = (string) view('meilifacets::components.listing.active-values', [
             'values' => [new ActiveValue($hostile, 'brand', $hostile, $hostile, ActiveValueKind::Term)],
             'attributes' => new ComponentAttributeBag,
             'hook' => fn (string $name): HtmlString => Hook::from($name)->attribute(),
@@ -165,6 +184,6 @@ final class ActiveValuesComponentTest extends TestCase
 
     private function renderComponent(): string
     {
-        return Blade::render('<x-meilifacets::active-values />');
+        return Blade::render('<x-meilifacets::listing.active-values />');
     }
 }

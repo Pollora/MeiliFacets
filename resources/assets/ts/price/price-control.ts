@@ -12,7 +12,7 @@ import type { Contract } from '../shared/contract.ts'
 import type { ListingDescription } from '../shared/description.ts'
 import type { Answers } from '../shared/search-client.ts'
 import type { SelectionHolder } from '../collapsible/toggle-badge-view.ts'
-import type { Drawn } from './drawn.ts'
+import type { StylableElement } from './stylable-element.ts'
 import type { PriceBound } from './price-bound.ts'
 
 type Commit = (min: number | null, max: number | null) => void
@@ -56,7 +56,7 @@ export class PriceControl implements SelectionHolder {
         this.#draw(shown)
     }
 
-    heldIn(block: Element, state: ListingState): number | undefined {
+    selectedIn(block: Element, state: ListingState): number | undefined {
         return block === this.#inputs.block ? state.priceFilterCount() : undefined
     }
 
@@ -95,7 +95,7 @@ export class PriceControl implements SelectionHolder {
         return value === null ? null : this.#bounds.clamp(value)
     }
 
-    #listenTo(handle: Drawn | null) {
+    #listenTo(handle: StylableElement | null) {
         handle?.addEventListener('pointerdown', (event) => this.#drag.grab(handle, event))
         handle?.addEventListener('keydown', (event) => this.#stepped(handle, event))
         handle?.addEventListener('keyup', (event) => this.#steppedOff(handle, event))
@@ -162,7 +162,7 @@ export class PriceControl implements SelectionHolder {
         this.#commitInputs()
     }
 
-    #stepped(handle: Drawn, event: KeyboardEvent) {
+    #stepped(handle: StylableElement, event: KeyboardEvent) {
         const to = SliderKeys.targetOf(event, this.#slider.nowOf(handle), this.#bounds)
 
         if (to === undefined) {
@@ -174,13 +174,13 @@ export class PriceControl implements SelectionHolder {
     }
 
     /** A held key repeats its `keydown`: the range commits once, when the key is let go. */
-    #steppedOff(handle: Drawn, event: KeyboardEvent) {
+    #steppedOff(handle: StylableElement, event: KeyboardEvent) {
         if (SliderKeys.targetOf(event, this.#slider.nowOf(handle), this.#bounds) !== undefined) {
             this.#commitInputs()
         }
     }
 
-    #moveTo(handle: Drawn, to: number) {
+    #moveTo(handle: StylableElement, to: number) {
         const grabbed = this.#slider.boundOf(handle)
         const opposite = this.#slider.handle(grabbed === 'min' ? 'max' : 'min')
         const value = Math.round(this.#bounds.clamp(to))

@@ -1,4 +1,4 @@
-import { EXPANDED } from '../shared/attributes.ts'
+import { ACTIVE_DESCENDANT, ACTIVE_OPTION, EXPANDED } from '../shared/attributes.ts'
 import { Contract } from '../shared/contract.ts'
 import { ListboxKeys } from './listbox-keys.ts'
 import { ShownOptions } from './shown-options.ts'
@@ -8,10 +8,6 @@ import type { ListingState } from '../listing/listing-state.ts'
 import type { ListboxMove } from './listbox-keys.ts'
 
 const SELECTED = 'aria-selected'
-const ACTIVE = 'aria-activedescendant'
-
-/** What the theme styles to show where the keyboard is, before anything is chosen. */
-const ACTIVE_OPTION = 'data-active'
 
 const DEFAULT_VALUE = ''
 
@@ -117,7 +113,7 @@ export class SortCombobox {
         if (this.#list && this.#trigger) {
             this.#list.hidden = true
             this.#trigger.setAttribute(EXPANDED, 'false')
-            this.#trigger.removeAttribute(ACTIVE)
+            this.#trigger.removeAttribute(ACTIVE_DESCENDANT)
             this.#options.forEach((option) => option.removeAttribute(ACTIVE_OPTION))
         }
     }
@@ -131,7 +127,7 @@ export class SortCombobox {
             return
         }
 
-        this.#trigger?.setAttribute(ACTIVE, option.id)
+        this.#trigger?.setAttribute(ACTIVE_DESCENDANT, option.id)
         this.#options.forEach((node, rank) => node.toggleAttribute(ACTIVE_OPTION, rank === this.#active))
         option.scrollIntoView?.({ block: 'nearest' })
     }

@@ -106,7 +106,7 @@ final class CollapsiblePriceTest extends TestCase
     #[Test]
     public function it_leaves_every_computation_of_the_trigger_to_the_component(): void
     {
-        $view = file_get_contents(dirname(__DIR__, 2).'/resources/views/components/price.blade.php');
+        $view = file_get_contents(dirname(__DIR__, 2).'/resources/views/components/listing/price.blade.php');
 
         $this->assertStringNotContainsString('@php', $view);
         $this->assertStringNotContainsString('$ids->', $view);
@@ -153,7 +153,7 @@ final class CollapsiblePriceTest extends TestCase
         $this->app->forgetScopedInstances();
 
         $markup = Blade::render(
-            '<x-meilifacets::price :facet="$filter" '.$attributes.' />',
+            '<x-meilifacets::listing.price :facet="$filter" '.$attributes.' />',
             ['filter' => new PriceFilter(self::LABEL, [PricePart::Slider, PricePart::Fields], 'price-under-test')]
         );
 

@@ -52,28 +52,20 @@ final readonly class FilterExpression
      * Two intervals overlap unless one ends before the other starts — the test
      * WooCommerce writes in SQL, which is what makes a product sold from 28 to 62
      * answer a search for 40 to 70.
+     *
+     * A bound is a number, never a quoted string: Meilisearch compares them differently.
      */
     public static function overlapping(Range $range): string
     {
         return self::all(array_values(array_filter([
-            $range->max === null ? '' : PriceField::Min->path().' <= '.self::number($range->max),
-            $range->min === null ? '' : PriceField::Max->path().' >= '.self::number($range->min),
+            $range->max === null ? '' : PriceField::Min->path().' <= '.Range::formatBound($range->max),
+            $range->min === null ? '' : PriceField::Max->path().' >= '.Range::formatBound($range->min),
         ])));
     }
 
     public static function equals(string $field, string $value): string
     {
         return $field.' = '.self::quote($value);
-    }
-
-    /**
-     * A bound is a number, never a quoted string: Meilisearch compares them
-     * differently. Fixed notation to four decimals, because `(string) 1.0E-9` is
-     * not a filter and no currency carries more than three.
-     */
-    private static function number(float $bound): string
-    {
-        return rtrim(rtrim(sprintf('%.4F', $bound), '0'), '.');
     }
 
     private static function quote(string $value): string

@@ -8,7 +8,7 @@
     "scripts": {
         "lint": "eslint bundle.ts resources/assets/ts tests/ts",
         "typecheck": "node node_modules/@typescript/native/bin/tsc --noEmit -p tsconfig.json && node node_modules/@typescript/native/bin/tsc --noEmit -p tests/ts/tsconfig.json",
-        "test": "node --test --experimental-test-coverage --test-coverage-include=\"resources/assets/ts/**\" --test-coverage-lines=94 --test-coverage-branches=90 --test-coverage-functions=90 \"tests/ts/*.test.ts\"",
+        "test": "node --test --test-timeout=10000 --experimental-test-coverage --test-coverage-include=\"resources/assets/ts/**\" --test-coverage-lines=94 --test-coverage-branches=90 --test-coverage-functions=90 \"tests/ts/*.test.ts\"",
         "build": "node bundle.ts",
         "build:check": "node bundle.ts --check"
     },

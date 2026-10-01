@@ -6,9 +6,11 @@ namespace Modules\MeiliFacets\Enums;
 
 enum IndexSetting: string
 {
+    case SearchableAttributes = 'searchableAttributes';
     case FilterableAttributes = 'filterableAttributes';
     case SortableAttributes = 'sortableAttributes';
     case DisplayedAttributes = 'displayedAttributes';
     case Faceting = 'faceting';
     case Pagination = 'pagination';
+    case TypoTolerance = 'typoTolerance';
 }
