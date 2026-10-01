@@ -24,3 +24,5 @@ What to change in a project when moving from one version to the next is in
 
 - A facet declared with `SelectionMode::Single` hides its other values once one is picked: the visitor removes the
   current value before choosing another ([#4](https://github.com/Pollora/MeiliFacets/issues/4)).
+- A failed search in the browser shows no message, and the URL and controls keep the filter that was not applied
+  ([#5](https://github.com/Pollora/MeiliFacets/issues/5)).
