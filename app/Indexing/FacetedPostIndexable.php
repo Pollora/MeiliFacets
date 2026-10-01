@@ -70,7 +70,7 @@ final class FacetedPostIndexable extends PostIndexable
     }
 
     /**
-     * A field left out cannot be searched at all, even by a query written with the public key (R-27).
+     * A field left out cannot be searched at all, even by a query written with the public key.
      *
      * @param  array<string, mixed>  $settings
      * @return array<string, mixed>

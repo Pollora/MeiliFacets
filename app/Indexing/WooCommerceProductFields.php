@@ -13,7 +13,7 @@ use Modules\MeiliFacets\Enums\SearchedMeta;
 final readonly class WooCommerceProductFields
 {
     /**
-     * @param  Closure(): bool  $pluginIsActive  asked on every read, not when the index is wired (R-171)
+     * @param  Closure(): bool  $pluginIsActive  asked on every read, not when the index is wired
      */
     public function __construct(private Closure $pluginIsActive) {}
 

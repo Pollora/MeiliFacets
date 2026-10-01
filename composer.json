@@ -1,6 +1,7 @@
 {
     "name": "pollora/meilifacets",
     "description": "Faceted search, filtering and suggestions powered by Meilisearch for Pollora projects.",
+    "type": "laravel-library",
     "license": "GPL-2.0-or-later",
     "keywords": [
         "pollora",
@@ -25,6 +26,7 @@
     "require": {
         "php": "^8.4",
         "amphibee/meiliscout": "dev-feat/meilifacets",
+        "composer/installers": "^2.0",
         "illuminate/console": "^12.0 || ^13.0",
         "illuminate/contracts": "^12.0 || ^13.0",
         "illuminate/support": "^12.0 || ^13.0",
@@ -35,7 +37,8 @@
         "laravel": {
             "providers": [],
             "aliases": {}
-        }
+        },
+        "installer-name": "MeiliFacets"
     },
     "autoload": {
         "psr-4": {
@@ -55,7 +58,7 @@
         "rector/rector": "^2.6"
     },
     "suggest": {
-        "ext-intl": "Orders facet values as the site language does; without it, DisplayOrder::Name falls back to a byte comparison that misplaces accented labels."
+        "ext-intl": "Orders facet values as the site language does; without it, NameOrder falls back to a byte comparison that misplaces accented labels."
     },
     "scripts": {
         "lint": "pint --test",
@@ -94,6 +97,7 @@
     "config": {
         "sort-packages": true,
         "allow-plugins": {
+            "composer/installers": true,
             "php-http/discovery": true
         }
     }

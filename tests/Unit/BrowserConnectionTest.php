@@ -47,7 +47,7 @@ final class BrowserConnectionTest extends TestCase
     #[Test]
     public function it_refuses_an_address_without_a_scheme(): void
     {
-        $connection = new BrowserConnection('engine.cleverapps.io/', 'key', 'posts');
+        $connection = new BrowserConnection('engine.example.test/', 'key', 'posts');
 
         $this->assertSame('', $connection->origin());
         $this->assertFalse($connection->isConfigured());

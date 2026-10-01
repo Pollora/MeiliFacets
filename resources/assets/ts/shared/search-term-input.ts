@@ -1,4 +1,4 @@
-/** A term the engine tokenises into nothing serves the whole index (`R-159`). */
+/** A term the engine tokenises into nothing serves the whole index. */
 const WORD = /[\p{L}\p{N}]/u
 
 export interface SearchTermSettings {

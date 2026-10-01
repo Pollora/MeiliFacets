@@ -37,7 +37,7 @@ final readonly class SummaryCardProjector implements CardProjector
         return $summary === '' ? [] : [CardField::Summary->value => $summary];
     }
 
-    /** Read on every card: the theme adds its filter after the module is wired (R-171). */
+    /** Read on every card: the theme adds its filter after the module is wired. */
     private function length(): int
     {
         return (int) apply_filters(self::EXCERPT_LENGTH_FILTER, self::WORDPRESS_EXCERPT_LENGTH);

@@ -15,7 +15,7 @@ final readonly class StateReader
     /** A query string is public input: both bounds keep a crafted URL cheap. */
     public const int MAX_QUERY_LENGTH = 200;
 
-    /** A term the engine tokenises into nothing serves the whole index (`R-159`). */
+    /** A term the engine tokenises into nothing serves the whole index. */
     private const string WORD = '/[\p{L}\p{N}]/u';
 
     public function __construct(private UrlParameters $parameters) {}

@@ -12,7 +12,7 @@ use Modules\MeiliFacets\Support\NamedRegistry;
  */
 final class ListingRegistry extends NamedRegistry
 {
-    /** Idempotent: Pollora re-applies every discovery when a plugin registers itself (`R-171`). */
+    /** Idempotent: Pollora re-applies every discovery when a plugin registers itself. */
     public function add(Listing $listing): void
     {
         $this->entries[$listing->name()] = $listing;

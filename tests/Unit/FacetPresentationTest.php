@@ -25,7 +25,7 @@ final class FacetPresentationTest extends TestCase
     #[Test]
     public function it_takes_the_presentation_a_project_declares(): void
     {
-        $facet = new Facet('pa_contenance', 'Volume', presentation: Presentation::Pill);
+        $facet = new Facet('pa_size', 'Size', presentation: Presentation::Pill);
 
         $this->assertSame(Presentation::Pill, $facet->presentation);
     }
@@ -43,15 +43,15 @@ final class FacetPresentationTest extends TestCase
     public function it_refuses_pills_when_it_holds_one_value_at_a_time(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Facet "volume" holds one value at a time');
+        $this->expectExceptionMessage('Facet "size" holds one value at a time');
 
-        new Facet('pa_contenance', 'Volume', SelectionMode::Single, name: 'volume', presentation: Presentation::Pill);
+        new Facet('pa_size', 'Size', SelectionMode::Single, name: 'size', presentation: Presentation::Pill);
     }
 
     #[Test]
     public function it_keeps_controls_when_it_holds_one_value_at_a_time(): void
     {
-        $facet = new Facet('pa_contenance', 'Volume', SelectionMode::Single);
+        $facet = new Facet('pa_size', 'Size', SelectionMode::Single);
 
         $this->assertSame(Presentation::Control, $facet->presentedAs(Presentation::Control));
     }
@@ -62,7 +62,7 @@ final class FacetPresentationTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
 
-        new Facet('pa_contenance', 'Volume', SelectionMode::Single)->presentedAs(Presentation::Pill);
+        new Facet('pa_size', 'Size', SelectionMode::Single)->presentedAs(Presentation::Pill);
     }
 
     #[Test]

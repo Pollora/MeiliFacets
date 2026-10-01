@@ -15,7 +15,7 @@ final class WooCommerceSearchableTypes implements SearchableTypes
     private ?SearchableType $products = null;
 
     /**
-     * @param  Closure(): bool  $pluginIsActive  asked on every read, not when the search is wired (R-171)
+     * @param  Closure(): bool  $pluginIsActive  asked on every read, not when the search is wired
      */
     public function __construct(
         private readonly WordPressSearchableTypes $wordPress,

@@ -7,7 +7,7 @@ namespace Modules\MeiliFacets\Search;
 use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Enums\ProductTaxonomy;
 
-/** WooCommerce swaps the flag on a search rather than adding one (`WC_Query::get_tax_query()`, R-160). */
+/** WooCommerce swaps the flag on a search rather than adding one (`WC_Query::get_tax_query()`). */
 final readonly class VisibleProducts
 {
     public const string POST_TYPE = 'product';
