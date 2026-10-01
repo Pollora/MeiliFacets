@@ -27,9 +27,9 @@ not are listed in [Errors and console messages](reference/errors.md#silent-failu
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
-| The package is installed in `vendor/pollora/meilifacets`, and `module:list` does not show it | the project's `composer.json` has no `installer-paths` rule for `type:laravel-library` | add `"Modules/{$name}/": ["type:laravel-library"]` under `extra.installer-paths`, then `composer remove` and `composer require` the package again. See [Installation](installation.md#prepare-composerjson) |
+| The package is installed in `libraries/MeiliFacets/`, and `module:list` does not show it | the project's `composer.json` has no `installer-paths` rule for `type:laravel-library` | add `"Modules/{$name}/": ["type:laravel-library"]` under `extra.installer-paths`, then `composer remove` and `composer require` the package again. See [Installation](installation.md#prepare-composerjson) |
 | WordPress core (`public/cms`) disappears after a `composer install` | the merge plugin merges the module's `require-dev` | set `"merge-dev": false` under `extra.merge-plugin`, then `composer install` again |
-| `composer require` fails with « does not match your minimum-stability » on `amphibee/meiliscout` | MeiliScout is required at a development branch by the module only | require it in the project too: `composer require pollora/meilifacets amphibee/meiliscout:dev-feat/meilifacets -W` |
+| `composer require` fails with « does not match your minimum-stability » on `amphibee/meiliscout` | MeiliScout is required at a development branch by the module only | require it in the project too: `composer require pollora/meilifacets:^0.1 amphibee/meiliscout:dev-feat/meilifacets -W` |
 | `php artisan module:list` does not show MeiliFacets, or shows it disabled | `modules_statuses.json` is missing or does not enable it | write `{"MeiliFacets": true}` in `modules_statuses.json` at the project root |
 | `php artisan list` shows no `meilifacets:` command | the module is not loaded | same as the two rows above; then `composer dump-autoload` |
 | `Unable to locate a class or view for component [meilifacets::listing]` | the module is not loaded | same |

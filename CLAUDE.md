@@ -82,10 +82,12 @@ private (`#` in JS, `private` in PHP) so the public surface stays the one you me
 No literal string or number that carries meaning — an enum for a closed set, config for an open
 one. A hook name, a document field, a query parameter and an index setting are all closed sets.
 
-Overridable settings are read with their default in the **provider**, never declared in
-`config/config.php` and never read from a domain object: nwidart merges with
-`array_replace_recursive($project, $module)` (`ModuleServiceProvider.php:172`), so a key the module
-declares there **wins over the project's, recursively, and cannot be overridden**.
+Overridable settings carry their default where they are read, never in `config/config.php`: nwidart
+merges with `array_replace_recursive($project, $module)` (`ModuleServiceProvider.php:172`), so a key
+the module declares there **wins over the project's, recursively, and cannot be overridden**. A class
+receives a setting through the container, with `#[Config('meilifacets.key', default)]` on its
+constructor; a provider reads one with `config('meilifacets.key', default)`. Never `config()` from
+inside a domain object, and never a binding or a `fromConfig()` factory written only to read one.
 
 ### Comments
 

@@ -30,6 +30,7 @@ declare(strict_types=1);
 
 namespace App\Listing;
 
+use Illuminate\Container\Attributes\Config;
 use Modules\MeiliFacets\Contracts\Listing;
 use Modules\MeiliFacets\Enums\ApplyMode;
 use Modules\MeiliFacets\Listing\Facet;
@@ -41,6 +42,10 @@ final class EventListing implements Listing
     public const string NAME = 'events';
 
     private const string POST_TYPE = 'event';
+
+    public function __construct(
+        #[Config('meilifacets.apply_mode', ApplyMode::DEFAULT->value)] private string $applyMode = ApplyMode::DEFAULT->value,
+    ) {}
 
     public function name(): string
     {
@@ -82,7 +87,7 @@ final class EventListing implements Listing
 
     public function applyMode(): ApplyMode
     {
-        return ApplyMode::fromConfig();
+        return ApplyMode::tryFrom($this->applyMode) ?? ApplyMode::DEFAULT;
     }
 }
 ```
@@ -120,7 +125,7 @@ The `event` post type must be indexed by MeiliScout, and the index rebuilt, befo
 | `baseFilter()` | `list<string>` | Meilisearch filter clauses every query of this listing carries, joined with `AND` |
 | `baseQuery()` | `string` | the text the page itself searches for. Empty, unless the page is a WordPress search results page your listing serves |
 | `perPage()` | `int` | the number of results per page |
-| `applyMode()` | `ApplyMode` | `ApplyMode::Immediate` or `ApplyMode::OnSubmit`; `ApplyMode::fromConfig()` reads `apply_mode` from `config/meilifacets.php` |
+| `applyMode()` | `ApplyMode` | `ApplyMode::Immediate` or `ApplyMode::OnSubmit`. To follow `apply_mode` from `config/meilifacets.php`, inject it with `#[Config]` as in the example above |
 
 Rules that keep the methods consistent:
 
@@ -318,7 +323,7 @@ otherwise.
 
 | Behaviour | Product listing | Your listing |
 | --- | --- | --- |
-| `apply_mode` from the configuration | read | read only if `applyMode()` returns `ApplyMode::fromConfig()` |
+| `apply_mode` from the configuration | read | read only if your listing injects it, as in the [example](#minimal-example) |
 | page size | WooCommerce's `loop_shop_per_page` | what `perPage()` returns |
 | facets withdrawn on a term archive | automatic | yours to write in `facets()` ([above](#filtering-on-the-archives-term)) |
 | price filter and “On sale” sort | available | not available: the module indexes prices for WooCommerce products only |

@@ -78,7 +78,7 @@ or a container binding. See [Quick start](docs/quick-start.md).
 | | |
 | --- | --- |
 | PHP | 8.4 or later |
-| Framework | Pollora on Laravel 12 or 13. Laravel modules (`nwidart/laravel-modules`) ship with Pollora |
+| Framework | Pollora 13.4 or later, on Laravel 13. Laravel modules (`nwidart/laravel-modules`) ship with Pollora |
 | Indexing | MeiliScout (`amphibee/meiliscout`), a WordPress plugin, currently its `dev-feat/meilifacets` branch |
 | Engine | a Meilisearch server |
 | Products | WooCommerce, for the product listing and its prices. The site search works without it |

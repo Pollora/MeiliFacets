@@ -19,7 +19,7 @@ You want to…
 The whole sequence, once `composer.json` is prepared:
 
 ```bash
-composer require pollora/meilifacets amphibee/meiliscout:dev-feat/meilifacets -W
+composer require pollora/meilifacets:^0.1 amphibee/meiliscout:dev-feat/meilifacets -W
 echo '{"MeiliFacets": true}' > modules_statuses.json   # or add the key to the existing file
 wp plugin activate meiliscout
 php artisan vendor:publish --tag=meilifacets-config
@@ -35,7 +35,7 @@ php artisan meilifacets:check-assets
 | Requirement | Version | Notes |
 | --- | --- | --- |
 | PHP | 8.4 or later | |
-| Pollora | on Laravel 12 or 13 | Laravel modules (`nwidart/laravel-modules`) ship with Pollora: nothing to install |
+| Pollora | 13.4 or later, on Laravel 13 | Laravel modules (`nwidart/laravel-modules`) ship with Pollora: nothing to install |
 | MeiliScout | `amphibee/meiliscout`, branch `dev-feat/meilifacets` | a WordPress plugin; it builds and pushes the documents |
 | Meilisearch | a server reachable from PHP and from the browser | see [Engine version](production.md#engine-version) |
 | WooCommerce | for the product listing | 9.8 for grouped product prices, 9.9 to switch off WooCommerce's own filtering of the shop query. The site search runs without WooCommerce |
@@ -60,8 +60,9 @@ until then, add them by hand. Keep the WordPress rules already under `installer-
 ```
 
 - **`installer-paths`** places the package in `Modules/MeiliFacets/`. The module declares `type: laravel-library`
-  and `installer-name: MeiliFacets`, and requires `composer/installers`, which reads them. Without this rule the
-  package lands in `vendor/` and Pollora never finds it.
+  and `installer-name: MeiliFacets`, and requires `composer/installers`, which reads them. Without this rule
+  `composer/installers` falls back to its own default for that type, `libraries/MeiliFacets/`, and Pollora never
+  finds it.
 - **`merge-plugin`** merges the module's `composer.json` into the project's, so its autoloading and dependencies
   reach the project.
 - **`merge-dev: false` is required.** Without it, the merge plugin also merges the module's `require-dev`, and a
@@ -70,7 +71,7 @@ until then, add them by hand. Keep the WordPress rules already under `installer-
 ## Install the module
 
 ```bash
-composer require pollora/meilifacets amphibee/meiliscout:dev-feat/meilifacets -W
+composer require pollora/meilifacets:^0.1 amphibee/meiliscout:dev-feat/meilifacets -W
 ```
 
 MeiliScout has no tagged release yet. While the module depends on a development branch, the project has to require

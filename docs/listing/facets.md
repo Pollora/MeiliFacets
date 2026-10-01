@@ -288,6 +288,11 @@ The count beside each value is the number of results that value would give:
 
 A value with no result is hidden, unless it is selected.
 
+> **Known limitation in 0.1.** A `Single` facet holding a value is counted on the main query, which its own selection
+> already filters: every other value falls to 0 and is hidden, and a radio cannot be unchecked. To switch value, the
+> visitor removes the current one first, through its pill or « Clear all ».
+> [Issue #4](https://github.com/Pollora/MeiliFacets/issues/4) tracks the fix. The default facets use multiple selection.
+
 ## Value order
 
 The engine always decides **which** values come back, by count, so that the cap keeps the most represented ones. The
@@ -450,6 +455,7 @@ When the fallback term is a real one an editor chose, declare
 - **A taxonomy MeiliScout does not index has no field**: its facet renders hidden. Check the indexed post types, then
   reindex.
 - **Single facets before the group**, each facet once per page.
+- **A `Single` facet hides its other values once one is picked** in 0.1: see [One value or several](#one-value-or-several).
 - **`NameOrder` from the container**, not `new NameOrder()`.
 - **Changing `engine.max_facet_values` needs a reindex** to reach the index.
 - **The client counts like the module's default.** After the first gesture, the browser rebuilds the queries itself,

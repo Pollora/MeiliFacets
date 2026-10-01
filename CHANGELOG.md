@@ -19,3 +19,8 @@ What to change in a project when moving from one version to the next is in
 - Product cards filled by attribute binding (`data-meili-text`, `data-meili-attr`, `data-meili-class`,
   `data-meili-if`), so a theme keeps its own card markup.
 - Extension points behind container bindings: facets, sorts, card projection, searchable attributes and types.
+
+### Known issues
+
+- A facet declared with `SelectionMode::Single` hides its other values once one is picked: the visitor removes the
+  current value before choosing another ([#4](https://github.com/Pollora/MeiliFacets/issues/4)).
