@@ -622,13 +622,23 @@ produits là où le module en annonce 16, sans une ligne de log.
 
 À rendre bruyant, ou à traiter comme une carte vide plutôt que comme une absence.
 
-### R-14 · 🟡 · ouvert · 2026-09-06 — `multiSearch()` peut lever un `ValueError` non converti
+### R-14 · 🟡 · **fermé le 2026-10-01** · ouvert le 2026-09-06 — `multiSearch()` peut lever un `ValueError` non converti
 
 `MeilisearchEngine::multiSearch()` fait
 `array_combine(array_keys($queries), array_slice($responses, 0, count($queries)))`. Si le moteur
 renvoie moins de réponses que de requêtes, `array_combine` lève un `ValueError` — **hors** du `try`
 de `send()`, donc jamais transformé en `SearchFailed`. Résultat : une 500 au lieu de la vue de
 repli, exactement dans le cas où celle-ci sert.
+
+**Au 2026-10-01** (audit) : confirmé. `MeilisearchEngine` recevant une réponse sur deux recherches lève
+`ValueError: array_combine(): Argument #1 ($keys) and argument #2 ($values) must have the same number of elements`.
+Test : Unit `MeilisearchEngineTest::it_counts_a_short_answer_as_an_outage` (client Meilisearch doublé, une réponse pour
+deux requêtes) — **rouge avant** (`ValueError` au lieu d'`EngineUnavailable`), vert après ; `it_hands_each_answer_back_under_its_key`
+tient le cas nominal. Correctif : une réponse plus courte que la demande lève `EngineUnavailable::incomplete($asked,
+$answered)` (« Meilisearch answered 1 of 2 searches sent together. » — pas « did not answer », cf. `R-157`). Les parties
+manquantes comptent donc comme une indisponibilité : `ResolvedListing` la rapporte par `report()` et sert le repli
+documenté (message, `503`, `Retry-After`, `no-store`), chaîne tenue par `ListingOutageTest` (`R-205`). Pas de rendu
+partiel : un compte de facette retombant sur la réponse principale serait faux sans le dire.
 
 ### R-15 · 🟡 · **fermé le 2026-09-07** · ouvert le 2026-09-06 — les identifiants de compteur ne portent pas le nom du listing
 
@@ -1370,6 +1380,16 @@ aujourd'hui rendu et inerte.
 **Au 2026-09-22** (passe documentaire, `R-153`) : `submit` est toujours le défaut du code
 (`ApplyMode::OnSubmit`), mais le bouton n'est plus inerte depuis `R-20`. Le gabarit publié
 (`config/meilifacets.php.stub`) écrit, lui, `'immediate'`. `Q-24` reste ouverte.
+
+**Au 2026-10-01** (audit) : l'écart du gabarit est corrigé, `Q-24` reste ouverte (elle porte sur le réglage du projet,
+pas sur le défaut du module, validé : « `submit` par défaut », `decisions.md`). Le gabarit publié sous le tag
+`meilifacets-config` écrit désormais `'submit'`. Test : Feature `ConfigStubTest` (Feature parce que le gabarit lit
+`env()`, qui demande `phpoption/phpoption`, absent du module seul) compare chaque clé ayant un défaut en code —
+`apply_mode` à `ApplyMode::DEFAULT` (constante ajoutée, lue par `fromConfig()`), `card` à `CardSettings::DEFAULT_EAGER`
+et `DefaultCardProjector::DEFAULT_IMAGE_SIZE`, `engine` à `EngineLimits::DEFAULT_*`, `url_parameters`,
+`query_parameters` et `displayed_attributes` à `[]` ; **rouge avant** (`'submit'` attendu, `'immediate'` lu), vert après.
+Aucun autre écart : `browser.url`/`browser.key` viennent de `env()` sans défaut, lus `(string)` donc `''` comme en code.
+Le `config/meilifacets.php` du projet de test n'est pas touché (md5 `cef5aba086ea0d3c5645af4a6008f07e` avant et après).
 
 ### R-52 · 🟡 · **fermé le 2026-09-07** · ouvert le 2026-09-06 — pas de `preconnect` vers l'origine du moteur
 
@@ -3280,6 +3300,57 @@ qu'aucune page n'ait à être chargée.
 
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
+
+### R-205 · ⚪ · **fermé le 2026-10-01, sans code** · ouvert le 2026-10-01 — une panne du moteur au rendu du listing serait silencieuse
+
+Relevé par l'audit du 2026-10-01 (« la panne du moteur pendant le rendu serveur n'est ni signalée ni journalisée »).
+**Non reproduit.** `ResolvedListing::attempt()` attrape `EngineUnavailable`, marque l'échec, pose `503`,
+`Retry-After` et `no-store` (`ServiceUnavailable::sendHeaders()`) **puis appelle `report($failure)`** — depuis
+`76e60f7`, sans interruption (`git log -L`). Le listing est le seul appelant serveur de `SearchEngine` (le panneau de
+recherche ne passe pas par PHP, `R-19`). Mesuré dans `storage/logs/laravel.log` : 309 lignes « Meilisearch did not
+answer », dont 2 en `local.ERROR`, c'est-à-dire sur de vraies requêtes. Ce qui restait vrai : aucun test ne tenait ce
+`report()`.
+
+**Test.** Feature `ListingOutageTest::it_reports_an_engine_that_fails_the_server_render` (moteur qui lève
+`EngineUnavailable`, `Exceptions::fake()`) : **vert avant tout changement**, gardé comme verrou. La seule panne qui
+échappait au repli est celle de `R-14`, fermée le même jour.
+
+### R-204 · 🟠 · **fermé le 2026-10-01** · ouvert le 2026-10-01 — `IndexedTaxonomies` garde les taxonomies du premier appel
+
+Relevé par l'audit du 2026-10-01. `IndexedTaxonomies::all()` mémoïsait sa liste au premier appel (`??=`), et la
+classe est liée `scoped` : dans un processus qui dure — une indexation par lots en WP-CLI, une requête d'admin qui
+change `meiliscout/indexed_post_types` puis indexe —, les facettes déclarées (`filterableAttributes`), les champs
+cherchés (`DefaultSearchableAttributes`) et les libellés projetés (`PostDocument::labelledOnly()`) restaient ceux des
+types indexés **au premier appel**. `IndexSearchSettingsTest::forgetIndexWiring()` contournait déjà le défaut à la
+main (`forgetInstance()`).
+
+**Test.** Feature `IndexedTaxonomiesTest::it_follows_the_post_types_indexed_since_its_last_answer` : même instance,
+types indexés `page` puis `post` (filtre `pre_option_`) ; **rouge avant** (« Failed asserting that an array contains
+'category' »), vert après.
+
+**Correctif.** La mémoïsation est clée sur la valeur du réglage : `all()` relit `IndexedPostTypes::all()` (une option
+autochargée, déjà en mémoire — `autoload = auto` relevé en base) et ne refait `get_object_taxonomies()` que si la
+liste a changé. Coût par document : une lecture d'option et une comparaison de liste courte, au lieu d'aucune ; les
+appels à `get_object_taxonomies()` restent un par type indexé et par changement. Limite assumée : une taxonomie
+enregistrée **après** le premier appel, à types indexés constants, n'est pas vue — WordPress les enregistre sur
+`init`, avant toute indexation.
+Vérifié : `IndexSearchSettingsTest::forgetIndexWiring()` reste nécessaire, et pour cette raison — retirer son
+`forgetInstance(IndexedTaxonomies::class)` fait échouer `it_searches_the_labels_of_a_taxonomy_without_archives`, qui
+enregistre une taxonomie en cours de suite (essai annulé).
+
+**Les cinq passes (audit du 2026-10-01 : `R-204`, `R-14`, `R-51`, `R-205`, `R-159`).** *Lisibilité* : `all()` à un
+niveau, `resolve()` reçoit la liste au lieu de la relire ; `$asked` nommé une fois dans `multiSearch()` ;
+`ApplyMode::DEFAULT` suit les `DEFAULT_*` voisins ; nombres magiques du test remplacés par `EngineLimits::DEFAULT_*`.
+Relevé, non traité (antérieur) : `MeilisearchEngine` répète l'annotation de forme du contrat. *Commentaires* : aucun
+ajouté dans `app/`, aucun supprimé ; le commentaire existant de `all()` est gardé. *Performance* : une lecture
+d'option autochargée par document, `get_object_taxonomies()` seulement au changement ; une comparaison d'entiers par
+`multiSearch()`. *Sécurité* : rien de nouveau n'atteint un filtre ni une vue ; le message d'`incomplete()` ne porte que
+deux entiers. *Contexte et i18n* : diagnostics en anglais, aucune chaîne visible ajoutée ; le test des taxonomies ne
+dépend que de `post` et `page`, pas de WooCommerce.
+
+**Vérifié** : `composer check` vert ; suite `Modules` verte ; `/boutique` (63), `/boutique?q=creme` (2),
+`/?s=creme&post_type=product` (2), `/categorie-produit/visage` (8), tous en `200` ; `config/meilifacets.php` de l'hôte
+inchangé. Rien n'est commité, réindexé ni écrit dans le moteur.
 
 ### R-203 · 🟠 · ouvert (en attente de commit et de réindexation) · ouvert le 2026-09-30 — liaison d'attributs de la carte, et la carte du thème de test sur l'archive
 
@@ -6015,7 +6086,7 @@ recherche native le cacherait.
 drapeau, il n'en ajoute pas un). Test : `ProductSearchTest`. Aucun produit local ne porte `exclude-from-search` (compte 0
 relevé le 2026-09-25) : pas de mesure sur données réelles sans modifier la base.
 
-### R-159 · 🟡 · ouvert · 2026-09-23 — un terme que le moteur ne tokenise pas sert tout le catalogue
+### R-159 · 🟡 · **fermé le 2026-10-01** (option (a), Louis) · ouvert le 2026-09-23 — un terme que le moteur ne tokenise pas sert tout le catalogue
 
 Mesuré pendant les passes de `R-158` : `/?s=%3F%28&post_type=product` rend **16 produits** — le
 catalogue entier — quand `WP_Query` en trouve **0**. Le moteur ne reconnaît aucun mot dans `?(` et
@@ -6029,6 +6100,26 @@ les 16 produits, là où le client aurait lu une chaîne vide.
 
 Côté listing (`q`), traité par `R-201` le 2026-09-30 : un terme sans lettre ni chiffre compte comme aucun terme, des deux
 côtés. Restent ouverts le terme routé (`s`) et les blancs Unicode.
+
+**Au 2026-10-01** (audit, mesuré, **rien changé : décision à prendre**). `/?s=!&post_type=product` et
+`/?s=%3F%28&post_type=product` servent **63 articles**, le catalogue entier, comme `/boutique` ; `/boutique?q=!` aussi
+(63, voulu : « compte comme aucun terme », `R-201`) ; `/?s=!` sans type rend la recherche WordPress, « Aucun élément ne
+correspond à votre recherche ». Chemin : `ProductListing::baseQuery()` ne passe pas par la règle `\p{L}\p{N}` de
+`StateReader` ; le terme `!` part tel quel en `q`, côté serveur (`QueryPlan::searchTerm()`) comme côté client
+(`ListingQuery.#searchTerm()`, `baseQuery` de la description) — les deux chemins sont d'accord entre eux, et le moteur
+ne reconnaissant aucun mot sert tout l'index sous la portée de recherche. **Appliquer la règle « compte comme `''` » au
+terme routé ne change pas le total** : `baseQuery()` vide fait parcourir le catalogue (63, portée `exclude-from-catalog`
+au lieu de `exclude-from-search`). La seule issue qui ne serve pas tout le catalogue est « zéro résultat », proposée par
+`chantier-recherche.md` (D-2, case « terme sans lettre ni chiffre = zéro résultat ») mais jamais validée, et que ce
+constat laisse lui-même « à trancher ». Choix à faire par Louis : (a) `s` sans mot = aucun terme, catalogue parcouru —
+cohérent avec `q`, contraire à WordPress (0 sur `/?s=!`) ; (b) `s` sans mot = zéro résultat — cohérent avec WordPress
+et le panneau (qui n'envoie rien), demande un état « recherche vide » dans `QueryPlan`, `ListingQuery` et un cas
+partagé dans `search-scope-cases.json`, sans toucher `q`.
+
+
+**Tranché le 2026-10-01 (Louis) : option (a).** Un `s` sans lettre ni chiffre compte comme aucun terme, comme `q` :
+`?s=!&post_type=product` sert le catalogue entier. Aucun code ; écrit dans `docs/listing/README.md`. L'option (b),
+zéro résultat comme WordPress, reste possible si le besoin apparaît.
 
 ### R-157 · ⚪ · ouvert · 2026-09-23 — un refus du moteur est journalisé comme une absence de réponse
 

@@ -3,7 +3,7 @@
 A generic Pollora module. A local project is its test bed, not its owner: the module carries behaviour,
 the theme carries appearance, and every view stays overridable.
 
-**The register is `docs/revue.md`.** Every decision (`D-xx`), finding (`R-xx`),
+**The register is `docs/internal/revue.md`.** Every decision (`D-xx`), finding (`R-xx`),
 question (`Q-xx`) and task (`T-xx`) has a stable number. Cite them; never restate their content
 here.
 
