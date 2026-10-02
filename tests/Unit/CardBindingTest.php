@@ -25,6 +25,7 @@ use PHPUnit\Framework\TestCase;
  *     text?: string,
  *     attributes?: array<string, string|list<string>>,
  *     classes?: array{always: string, toggles: array<string, string>},
+ *     classList?: string,
  *     onlyWith?: string,
  *     onlyWithout?: string
  * }
@@ -279,6 +280,7 @@ final class CardBindingTest extends TestCase
             isset($binding['onlyWith']) => $bind->onlyWith($binding['onlyWith']),
             isset($binding['onlyWithout']) => $bind->onlyWithout($binding['onlyWithout']),
             isset($binding['attributes']) => CardFieldElement::of($bind->attributes($binding['attributes'])),
+            isset($binding['classList']) => CardFieldElement::of($bind->classList($binding['classList'])),
             isset($binding['classes']) => CardFieldElement::of($bind->classes($binding['classes']['toggles'])),
             default => CardFieldElement::absent(),
         };

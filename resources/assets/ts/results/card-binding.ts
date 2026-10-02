@@ -6,14 +6,17 @@ import type { Card } from '../shared/description.ts'
 const TEXT_BINDING = 'data-meili-text'
 const ATTRIBUTE_BINDING = 'data-meili-attr'
 const CLASS_BINDING = 'data-meili-class'
+const CLASS_LIST_BINDING = 'data-meili-class-list'
 const CONDITION_BINDING = 'data-meili-if'
 const PAIR_SEPARATOR = ':'
 const LIST_SEPARATOR = ' '
 const FALLBACK_SEPARATOR = '|'
 const NEGATION = '!'
 const FIELD_PATTERN = /^[A-Za-z0-9_]+$/
+// The server splits with PCRE's `\s`, ASCII only.
+const CLASS_LIST_PATTERN = /[ \t\n\v\f\r]+/
 
-const SELECTOR = [TEXT_BINDING, ATTRIBUTE_BINDING, CLASS_BINDING, CONDITION_BINDING]
+const SELECTOR = [TEXT_BINDING, ATTRIBUTE_BINDING, CLASS_BINDING, CLASS_LIST_BINDING, CONDITION_BINDING]
     .map((attribute) => `[${attribute}]`)
     .join(', ')
 
@@ -37,6 +40,7 @@ export class CardBinding {
             this.#text(element)
             this.#attributes(element)
             this.#classes(element)
+            this.#classList(element)
         }
 
         elements.filter((element) => this.#hasNothingToShow(element)).forEach((element) => element.remove())
@@ -81,6 +85,14 @@ export class CardBinding {
             if (field !== undefined && fallbacks.length === 0) {
                 element.classList.toggle(target, this.#read(field).isTrue)
             }
+        }
+    }
+
+    #classList(element: Element) {
+        const field = element.getAttribute(CLASS_LIST_BINDING)
+
+        if (field !== null && FIELD_PATTERN.test(field)) {
+            element.classList.add(...this.#read(field).text.split(CLASS_LIST_PATTERN).filter((name) => name !== ''))
         }
     }
 

@@ -9,6 +9,7 @@ enum BindingAttribute: string
     case Text = 'data-meili-text';
     case Attribute = 'data-meili-attr';
     case ClassName = 'data-meili-class';
+    case ClassList = 'data-meili-class-list';
     case Condition = 'data-meili-if';
 
     public const string PAIR_SEPARATOR = ':';

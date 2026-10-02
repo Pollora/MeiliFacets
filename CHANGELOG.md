@@ -9,6 +9,11 @@ What to change in a project when moving from one version to the next is in
 
 ## [Unreleased]
 
+### Added
+
+- `data-meili-class-list` and `CardBinding::classList()`: adds the classes a card field holds to the element's own,
+  for classes a platform computes, such as WooCommerce's loop button classes.
+
 ## [0.1.0](https://github.com/Pollora/MeiliFacets/releases/tag/0.1.0) - 2026-10-01
 
 First release, a **beta**: the PHP API and the markup contract may still change before 1.0, and the known issues

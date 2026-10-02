@@ -154,6 +154,7 @@ final class ContractParityTest extends TestCase
         yield 'text binding' => ['results/card-binding.ts', "TEXT_BINDING = '([^']*)'", BindingAttribute::Text->value];
         yield 'attribute binding' => ['results/card-binding.ts', "ATTRIBUTE_BINDING = '([^']*)'", BindingAttribute::Attribute->value];
         yield 'class binding' => ['results/card-binding.ts', "CLASS_BINDING = '([^']*)'", BindingAttribute::ClassName->value];
+        yield 'class list binding' => ['results/card-binding.ts', "CLASS_LIST_BINDING = '([^']*)'", BindingAttribute::ClassList->value];
         yield 'condition binding' => ['results/card-binding.ts', "CONDITION_BINDING = '([^']*)'", BindingAttribute::Condition->value];
         yield 'binding pair separator' => ['results/card-binding.ts', "PAIR_SEPARATOR = '([^']*)'", BindingAttribute::PAIR_SEPARATOR];
         yield 'binding negation' => ['results/card-binding.ts', "NEGATION = '([^']*)'", BindingAttribute::NEGATION];
