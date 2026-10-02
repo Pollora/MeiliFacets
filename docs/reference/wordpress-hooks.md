@@ -45,7 +45,7 @@ WordPress and WooCommerce filters whose value the module uses. A project can hoo
 | `script_module_data_@meilifacets/listing` | filter | 10 | added when a listing root renders | publishes the browser connection and the description of each listing root | [How a listing works](../listing/README.md) |
 | `script_module_data_@meilifacets/site-search` | filter | 10 | added when a search root renders | publishes the browser connection and the description of each search root | [Site search](../search/README.md) |
 | `wp_robots` | filter | 10 | archive and search pages | `noindex, follow` on a filtered, sorted, searched or paginated view | [How a listing works](../listing/README.md) |
-| `wpseo_canonical` | filter | 20 | same views | removes Yoast's canonical | [How a listing works](../listing/README.md) |
+| `wpseo_canonical` | filter | 20 | same views | points Yoast's canonical to the bare path, page number kept | [How a listing works](../listing/README.md) |
 | `wpseo_next_rel_link` | filter | 10 | archive and search pages | removes Yoast's `rel="next"` | [How a listing works](../listing/README.md) |
 | `wpseo_prev_rel_link` | filter | 10 | archive and search pages | removes Yoast's `rel="prev"` | [How a listing works](../listing/README.md) |
 | `woocommerce_enable_post_clause_filtering` | filter | 10 | every request | returns `false`: WooCommerce no longer narrows a product archive's main query from the URL | [Indexed prices](../indexing/prices.md) |

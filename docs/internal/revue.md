@@ -3301,6 +3301,44 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
+### R-208 · 🟠 · ouvert (en attente de commit) · ouvert le 2026-10-02 — décision SEO : une vue secondaire porte une canonique vers son chemin nu
+
+**Demande** : décision SEO du projet Pluralia, transmise par Louis — une URL filtrée doit déclarer
+une canonique vers l'URL non filtrée. Elle **inverse** la sortie retenue par `R-59` (canonique
+supprimée). Deux points tranchés par Louis avant de coder : le `noindex, follow` reste posé ; la
+pagination garde une canonique auto-référente, sans les filtres.
+
+**Mesuré avant** : `/boutique?q=ge` → `noindex, follow`, aucune canonique.
+
+**Correctif** : `IndexingPolicy::canonicalizeSecondaryViews()` remplace
+`dropCanonicalOfSecondaryViews()`, sur le même `wpseo_canonical` à 20. Yoast fournit déjà le chemin
+nu (il retire les paramètres qu'il ne connaît pas et garde `/page/N`) : `canonicalFor()` n'y remet
+que le numéro de page du module, entier strictement supérieur à 1, sous son nom configuré.
+
+**Coût accepté** : la paire `noindex` + canonique vers une autre URL est celle que `R-59` qualifiait
+de contradictoire — Google peut reporter le `noindex` sur la cible. Rien ne le signalera : à surveiller
+dans la Search Console (statut d'indexation de `/boutique` et des archives de catégorie).
+Reste aussi deux formes pour une même page 2, `?pg=2` et `/page/2`, chacune canonique d'elle-même ;
+toutes deux en `noindex`.
+
+**Vérifié** en HTTP le 2026-10-02 :
+
+| URL | robots | canonical |
+| --- | --- | --- |
+| `/boutique` | index | `/boutique` |
+| `/boutique?q=ge` | noindex | `/boutique` |
+| `/boutique?sort=newest` | noindex | `/boutique` |
+| `/boutique?pg=2` | noindex | `/boutique?pg=2` |
+| `/boutique?q=ge&pg=2` | noindex | `/boutique?pg=2` |
+| `/boutique?pg=abc` | noindex | `/boutique` |
+| `/boutique/page/2` | noindex | `/boutique/page/2` |
+| `/boutique/page/2?marque=x` | noindex | `/boutique/page/2` |
+| `/categorie-produit/cheveux?sort=newest` | noindex | `/categorie-produit/cheveux` |
+| `/?q=bonjour` | index | `/` |
+
+Tests : `IndexingPolicyTest` (chemin nu, page conservée, page 1 et valeur illisible écartées, paramètre
+renommé, canonique absente laissée absente).
+
 ### R-207 · 🟢 · ouvert (en attente de commit) · ouvert le 2026-10-02 — une carte rendue par le serveur porte des instructions de liaison que personne ne lit
 
 **Constat** : `CardBinding` écrivait `data-meili-text`, `data-meili-attr`, `data-meili-class`,
