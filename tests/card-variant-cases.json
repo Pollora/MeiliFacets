@@ -215,7 +215,7 @@
             "expected": { "title": "Lotion" }
         },
         {
-            "case": "a variant overrides any field it holds",
+            "case": "a variant overrides any other field it holds",
             "card": {
                 "title": "Lotion",
                 "id": 7,
@@ -242,11 +242,75 @@
             "expected": { "title": "Lotion", "volume": "15ml" }
         },
         {
-            "case": "a variant list stored as an object is read by its values",
+            "case": "a variant list stored as an object indexed from zero is read as a list",
             "card": { "title": "Lotion", "variants": { "0": { "facets": {}, "price": 26, "fields": { "volume": "15ml" } } } },
             "selected": {},
             "price": { "min": null, "max": 30 },
             "expected": { "title": "Lotion", "volume": "15ml" }
+        },
+        {
+            "case": "an indexed object is read in index order, whatever order it was written in",
+            "card": {
+                "title": "Lotion",
+                "variants": {
+                    "1": { "facets": {}, "price": 26, "fields": { "volume": "one" } },
+                    "0": { "facets": {}, "price": 26, "fields": { "volume": "zero" } }
+                }
+            },
+            "selected": {},
+            "price": { "min": null, "max": 30 },
+            "expected": { "title": "Lotion", "volume": "zero", "several_variants": true }
+        },
+        {
+            "case": "a variant list stored as an object not indexed from zero is dropped",
+            "card": {
+                "title": "Lotion",
+                "variants": {
+                    "2": { "facets": {}, "price": 26, "fields": { "volume": "two" } },
+                    "1": { "facets": {}, "price": 26, "fields": { "volume": "one" } }
+                }
+            },
+            "selected": {},
+            "price": { "min": null, "max": 30 },
+            "expected": { "title": "Lotion" }
+        },
+        {
+            "case": "a variant list keyed by a zero-padded index is dropped",
+            "card": { "title": "Lotion", "variants": { "00": { "facets": {}, "price": 26, "fields": { "volume": "15ml" } } } },
+            "selected": {},
+            "price": { "min": null, "max": 30 },
+            "expected": { "title": "Lotion" }
+        },
+        {
+            "case": "a variant list keyed by a negative zero is dropped",
+            "card": { "title": "Lotion", "variants": { "-0": { "facets": {}, "price": 26, "fields": { "volume": "15ml" } } } },
+            "selected": {},
+            "price": { "min": null, "max": 30 },
+            "expected": { "title": "Lotion" }
+        },
+        {
+            "case": "a variant list keyed by name is dropped",
+            "card": { "title": "Lotion", "variants": { "small": { "facets": {}, "price": 26, "fields": { "volume": "15ml" } } } },
+            "selected": {},
+            "price": { "min": null, "max": 30 },
+            "expected": { "title": "Lotion" }
+        },
+        {
+            "case": "a variant cannot override the card id nor bring the variant fields back",
+            "card": {
+                "title": "Lotion",
+                "id": 7,
+                "variants": [
+                    {
+                        "facets": {},
+                        "price": 26,
+                        "fields": { "volume": "15ml", "id": 999, "variants": [1, 2], "several_variants": true }
+                    }
+                ]
+            },
+            "selected": {},
+            "price": { "min": null, "max": 30 },
+            "expected": { "title": "Lotion", "id": 7, "volume": "15ml" }
         },
         {
             "case": "a taxonomy with a numeric name is a taxonomy like another",

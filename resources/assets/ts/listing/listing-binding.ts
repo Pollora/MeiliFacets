@@ -225,9 +225,9 @@ export class ListingBinding {
 
     #repaintGrid(results: SearchAnswer, state: ListingState) {
         const pageWindow = this.#pageWindowOf(state, results.totalHits ?? 0)
-        const variants = new VariantChoice(state.facets, state.price)
+        const choice = new VariantChoice(state.facets, state.price)
 
-        this.#results.show((results.hits ?? []).map((hit) => CardView.fieldsOf(hit, variants)), pageWindow)
+        this.#results.show((results.hits ?? []).map((hit) => CardView.fieldsOf(hit, choice)), pageWindow)
         this.#pagination.show(pageWindow)
     }
 

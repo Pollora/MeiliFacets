@@ -1,12 +1,10 @@
 import { CardFieldValue } from './card-field-value.ts'
 import { CardBinding } from './card-binding.ts'
-import { VariantChoice } from './variant-choice.ts'
+import { ID_FIELD, VariantChoice } from './variant-choice.ts'
 
 import type { Contract } from '../shared/contract.ts'
 import type { Card } from '../shared/description.ts'
 import type { SearchHit } from '../shared/search-client.ts'
-
-const ID_FIELD = 'id'
 
 /** Writes one projected card into a node the theme rendered. */
 export class CardView {
@@ -16,8 +14,8 @@ export class CardView {
         this.#contract = contract
     }
 
-    static fieldsOf(hit: SearchHit, variants = new VariantChoice()): Card {
-        return variants.shown(hit.ID === undefined ? { ...hit.card } : { ...hit.card, [ID_FIELD]: hit.ID })
+    static fieldsOf(hit: SearchHit, choice = new VariantChoice()): Card {
+        return choice.shown(hit.ID === undefined ? { ...hit.card } : { ...hit.card, [ID_FIELD]: hit.ID })
     }
 
     /** A copy of the template's first node, filled; nothing when the template holds no element. */

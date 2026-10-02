@@ -1,7 +1,7 @@
 import { Range } from '../shared/range.ts'
 import { SearchTermInput } from '../shared/search-term-input.ts'
 
-import type { FacetDescription, StateDescription } from '../shared/description.ts'
+import type { FacetDescription, Selection, StateDescription } from '../shared/description.ts'
 
 export const FIRST_PAGE = 1
 
@@ -13,7 +13,7 @@ export type StateChanges = Partial<Omit<StateDescription, 'price'>> & { price?: 
 
 /** What the visitor has asked for, never edited in place: every gesture hands back a new value. */
 export class ListingState {
-    #facets: Readonly<Record<string, readonly string[]>>
+    #facets: Selection
     #query: string
     #sort: string | null
     #page: number

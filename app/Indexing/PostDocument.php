@@ -6,6 +6,7 @@ namespace Modules\MeiliFacets\Indexing;
 
 use Closure;
 use Modules\MeiliFacets\Contracts\CardProjector;
+use Modules\MeiliFacets\Enums\CardField;
 use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Enums\TermField;
 use WP_Post;
@@ -87,10 +88,23 @@ final readonly class PostDocument
      */
     private function shopFields(WP_Post $post): array
     {
-        $card = [DocumentField::Card->value => $this->cards->project($post)];
+        $card = [DocumentField::Card->value => $this->withListedVariants($this->cards->project($post))];
         $price = $this->prices->project($post);
 
         return $price === [] ? $card : [...$card, DocumentField::Price->value => $price];
+    }
+
+    /**
+     * A list with gaps, left by `array_filter()`, would be stored as an object, which the listing ignores.
+     *
+     * @param  array<string, mixed>  $card
+     * @return array<string, mixed>
+     */
+    private function withListedVariants(array $card): array
+    {
+        $variants = $card[CardField::Variants->value] ?? null;
+
+        return is_array($variants) ? array_replace($card, [CardField::Variants->value => array_values($variants)]) : $card;
     }
 
     /**

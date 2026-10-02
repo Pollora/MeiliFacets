@@ -46,11 +46,11 @@ final class VariantChoiceTest extends TestCase
      */
     #[DataProvider('cases')]
     #[Test]
-    public function it_shows_the_card_through_the_chosen_variant(array $case): void
+    public function it_shows_the_card_through_the_matching_variant_or_as_projected(array $case): void
     {
         $price = new Range($this->bound($case['price']['min']), $this->bound($case['price']['max']));
 
-        $this->assertEquals($case['expected'], new VariantChoice($case['selected'], $price)->shown($case['card']));
+        $this->assertSame($case['expected'], new VariantChoice($case['selected'], $price)->shown($case['card']));
     }
 
     #[Test]
@@ -58,7 +58,7 @@ final class VariantChoiceTest extends TestCase
     {
         $variant = new CardVariant(['pa_volume' => ['400ml']], 39.0, ['volume' => '400ml']);
 
-        $this->assertEquals($variant, CardVariant::read($variant->toArray()));
+        $this->assertSame($variant->toArray(), CardVariant::read($variant->toArray())?->toArray());
     }
 
     private function bound(float|int|null $bound): ?float

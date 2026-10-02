@@ -93,9 +93,9 @@ final class ResolvedListing
      */
     private function shownCards(): array
     {
-        $variants = new VariantChoice($this->state->facets, $this->state->price);
+        $choice = new VariantChoice($this->state->facets, $this->state->price);
 
-        return array_map($variants->shown(...), $this->results()->cards());
+        return array_map($choice->shown(...), $this->results()->cards());
     }
 
     public function state(): ListingState

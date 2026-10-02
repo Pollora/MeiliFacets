@@ -1,17 +1,19 @@
 import { CardVariant } from './card-variant.ts'
 import { Range } from '../shared/range.ts'
 
-import type { Card } from '../shared/description.ts'
+import type { Card, Selection } from '../shared/description.ts'
 
+export const ID_FIELD = 'id'
 const VARIANTS_FIELD = 'variants'
 const SEVERAL_FIELD = 'several_variants'
+const FIELDS_SET_BY_THE_MODULE: readonly string[] = [ID_FIELD, VARIANTS_FIELD, SEVERAL_FIELD]
 
 /** The browser's copy of `Listing\VariantChoice`: shows a card through the variant the active filters point to, and as projected when none concerns its variants. */
 export class VariantChoice {
-    #selected: Readonly<Record<string, readonly string[]>>
+    #selected: Selection
     #price: Range
 
-    constructor(selected: Readonly<Record<string, readonly string[]>> = {}, price = new Range()) {
+    constructor(selected: Selection = {}, price = new Range()) {
         this.#selected = selected
         this.#price = price
     }
@@ -25,15 +27,28 @@ export class VariantChoice {
             return rest
         }
 
-        return { ...rest, ...VariantChoice.#cheapest(matching).fields, ...(matching.length > 1 ? { [SEVERAL_FIELD]: true } : {}) }
+        const chosen = VariantChoice.#cheapest(matching)
+
+        return { ...rest, ...VariantChoice.#overrides(chosen), ...(matching.length > 1 ? { [SEVERAL_FIELD]: true } : {}) }
     }
 
     static #read(stored: unknown) {
+        return VariantChoice.#listed(stored).map((variant) => CardVariant.read(variant)).filter((variant) => variant !== null)
+    }
+
+    /** JavaScript lists integer keys in ascending order whatever order the JSON wrote them in. */
+    static #listed(stored: unknown): unknown[] {
         if (typeof stored !== 'object' || stored === null) {
             return []
         }
 
-        return Object.values(stored).map((variant) => CardVariant.read(variant)).filter((variant) => variant !== null)
+        const isIndexed = Object.keys(stored).every((key, index) => key === String(index))
+
+        return isIndexed ? Object.values(stored) : []
+    }
+
+    static #overrides(variant: CardVariant) {
+        return Object.fromEntries(Object.entries(variant.fields).filter(([field]) => !FIELDS_SET_BY_THE_MODULE.includes(field)))
     }
 
     #isConcerned(variants: CardVariant[]) {

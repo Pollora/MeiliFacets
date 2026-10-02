@@ -1,3 +1,4 @@
+import type { Selection } from '../shared/description.ts'
 import type { Range } from '../shared/range.ts'
 
 type Facets = Readonly<Record<string, readonly string[]>>
@@ -45,12 +46,12 @@ export class CardVariant {
         })
     }
 
-    carriesAny(selected: Facets) {
+    carriesAny(selected: Selection) {
         return Object.keys(selected).some((taxonomy) => Object.hasOwn(this.facets, taxonomy))
     }
 
     /** A facet the variant does not carry does not rule it out. */
-    matches(selected: Facets, price: Range) {
+    matches(selected: Selection, price: Range) {
         return Object.entries(selected).every(([taxonomy, slugs]) => this.#meets(taxonomy, slugs))
             && price.contains(this.price)
     }
@@ -71,7 +72,6 @@ export class CardVariant {
             : []))
     }
 
-    /** A JSON array is an object to the server, which reads both by their keys. */
     static #isObject(value: unknown): value is Record<string, unknown> {
         return typeof value === 'object' && value !== null
     }

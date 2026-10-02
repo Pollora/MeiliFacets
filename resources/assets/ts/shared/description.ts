@@ -41,8 +41,11 @@ export interface MoneyFormat {
     thousand: string
 }
 
+/** Taxonomy to selected slugs. */
+export type Selection = Readonly<Record<string, readonly string[]>>
+
 export interface StateDescription {
-    facets: Readonly<Record<string, readonly string[]>>
+    facets: Selection
     query: string
     sort: string | null
     page: number

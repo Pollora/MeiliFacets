@@ -10,6 +10,8 @@ use Modules\MeiliFacets\Enums\VariantField;
  * One way a product is sold — a size, a colour — inside the product's card.
  *
  * @phpstan-type StoredVariant array{facets: array<string, list<string>>, price: float, fields: array<string, mixed>}
+ *
+ * @phpstan-import-type Selection from ListingState
  */
 final readonly class CardVariant
 {
@@ -50,7 +52,7 @@ final readonly class CardVariant
     }
 
     /**
-     * @param  array<string, list<string>>  $selected  taxonomy to selected slugs
+     * @param  Selection  $selected
      */
     public function carriesAny(array $selected): bool
     {
@@ -60,7 +62,7 @@ final readonly class CardVariant
     /**
      * A facet the variant does not carry does not rule it out.
      *
-     * @param  array<string, list<string>>  $selected  taxonomy to selected slugs
+     * @param  Selection  $selected
      */
     public function matches(array $selected, Range $price): bool
     {
