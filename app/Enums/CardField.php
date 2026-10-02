@@ -17,4 +17,6 @@ enum CardField: string
     case ImageHeight = 'image_height';
     case Price = 'price';
     case Summary = 'summary';
+    case Variants = 'variants';
+    case SeveralVariants = 'several_variants';
 }

@@ -84,6 +84,16 @@ Named by `Enums\CardField`. The default projectors write them; a `CardProjector`
 | `price` | `WooCommerceCardProjector` | the product's price HTML, as WooCommerce formats it |
 | `summary` | `SummaryCardProjector`, posts that are not products | the excerpt cut to `excerpt_length` words |
 | `id` | not indexed: added to each card from `ID` on the server and in the browser | the post ID |
+| `variants` | a `CardProjector` of yours | the ways the product is sold, each a `Listing\CardVariant`: see [Card variants](../customising/card.md#card-variants). Never bound: removed from the cards the module shows — the listing, on the server and in the browser, and the search panel — after picking one when a filter concerns them. A card a project renders itself is not concerned |
+| `several_variants` | not indexed: set when several variants match the active filters | `true`, or absent |
+
+A variant is stored as:
+
+| Key | Enum | Content |
+| --- | --- | --- |
+| `facets` | `VariantField::Facets` | taxonomy to the term slugs the variant carries, as the facets hold them |
+| `price` | `VariantField::Price` | its displayed price, a number on the same scale as `price.min` and `price.max` |
+| `fields` | `VariantField::Fields` | the card fields shown instead of the product's when it is chosen |
 
 Image fields are absent when the post has no featured image; `summary` is absent when empty.
 

@@ -69,6 +69,11 @@ The full list of fields and settings is in [Index settings and document fields](
 A field with nothing to show is absent, not empty. The exception is a product with no price, whose `card.price` is
 WooCommerce's (empty) price HTML.
 
+A product sold in several ways — sizes, colours — can also carry `variants`: one entry per way it is sold, with the
+terms the filters can match, its price and the card fields it shows instead of the product's. The module writes
+none: a projector of yours adds them, and the listing shows each card through the variant the filters point to when
+a filter concerns them, as projected otherwise. See [Card variants](../customising/card.md#card-variants).
+
 `summary` is stored decoded: `&` is `&`, not `&amp;`. Render it as text (`{{ }}` in Blade, `textContent` in
 JavaScript), never as HTML.
 

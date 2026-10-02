@@ -11,6 +11,10 @@ What to change in a project when moving from one version to the next is in
 
 ### Added
 
+- Card variants: a card may carry `variants` (`Listing\CardVariant`), and when an active facet or price range concerns
+  them the listing shows the card through the cheapest matching variant (`Listing\VariantChoice`), on the server and in
+  the browser alike. `several_variants` flags a card on which several variants match, for a « from » prefix. With no
+  such filter, or none matching, the card is shown as projected.
 - `data-meili-class-list` and `CardBinding::classList()`: adds the classes a card field holds to the element's own,
   for classes a platform computes, such as WooCommerce's loop button classes.
 

@@ -3301,6 +3301,71 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
+### R-206 · 🟠 · ouvert (en attente de commit) · ouvert le 2026-10-01, revu le 2026-10-02 — la carte d'un produit variable ignore le filtre qui l'a trouvé
+
+Réalise la décision validée « Produits variables », jamais livrée. Constaté sur le projet de test : un produit vendu en
+400 ml à 39 € et en 15 ml à 26 € est bien trouvé par le filtre `400ml`, mais sa carte affiche « 15ml » et « 26 € » —
+la carte était calculée à l'indexation, sans rien savoir des filtres.
+
+**Conception (option A, validée, révisée « au plus près du natif » le 2026-10-01).** Un document par produit ; la carte
+porte ses variantes.
+
+- `CardField::Variants` (`variants`) : liste de `Listing\CardVariant` — termes par taxonomie (`facets`), prix affiché
+  (`price`, même échelle que `price.min`/`price.max`) et `fields`, les champs de carte qui remplacent ceux du produit.
+  Clés nommées par `Enums\VariantField`. Le module n'en projette aucune et ne connaît aucune taxonomie ; un projet
+  WooCommerce projette `get_available_variations()`, qui applique déjà la visibilité, le prix vide et le stock.
+- `Listing\VariantChoice::shown(array $card)` (copie `results/variant-choice.ts`) : les variantes ne s'appliquent que si
+  un filtre actif les concerne — une fourchette de prix, ou une facette dont une variante porte la taxonomie
+  (`CardVariant::carriesAny()`). Une variante correspond si, pour chaque facette active qu'elle porte, un de ses termes
+  est coché, et si son prix est dans la fourchette (`Range::contains()`). Parmi les correspondantes, la moins chère (la
+  première listée à égalité) ; ses champs remplacent ceux de la carte ; `several_variants`
+  (`CardField::SeveralVariants`) vaut `true` si plusieurs correspondent. Aucune : carte projetée. La liste est retirée de
+  toute carte que le module montre (listing, serveur et navigateur ; panneau de recherche).
+- Serveur : `ResolvedListing::cards()`. Navigateur : `CardView.fieldsOf(hit, variants)`, sur l'état auquel répond la
+  recherche (`ListingBinding::#repaintGrid`) ; le panneau de recherche passe sans filtre.
+- Hors listing, une carte est rendue telle que projetée, sans `VariantChoice` ; le projet de test ne calcule plus ses
+  variantes que pour l'index.
+- Liaison : `data-meili-class-list` / `CardBinding::classList()` (jumeau TS, parité testée), pour porter les classes
+  que la plateforme calcule (bouton de boucle WooCommerce) au lieu de booléens qui en recopient la règle.
+
+**Limite assumée.** Deux facettes satisfaites par deux variations différentes (`400ml` + `iris`, produit vendu en
+« 400 ml rose » et « 15 ml iris ») : le produit est listé, aucune variante ne correspond ; la carte reste projetée.
+Écrite dans `decisions.md` et `docs/customising/card.md`.
+
+**Écart à la consigne.** Le préfixe devait avoir `From` pour chaîne source : le module traduit déjà `From` en « De »
+(`PriceBound::Min`) dans le même sac JSON. Clé `Starting at` dans le catalogue du thème de test.
+
+**Données mal formées (2026-10-02).** PHP lisait le document décodé en tableaux, le client en objets : une liste de
+termes stockée en objet (`{"0":"a"}`) passait en PHP et non en TS ; une taxonomie ou un champ à nom numérique était
+écarté en PHP (clé entière après décodage) et gardé en TS. Règle commune, la seule que PHP puisse tenir : un tableau ou
+un objet JSON se lit par ses valeurs (listes) ou ses clés (dictionnaires), sans regarder le type des clés. Fusion des
+champs par `array_replace()` (l'opérateur `...` renumérote les clés entières). Quatre cas ajoutés, chacun rouge d'un
+seul côté avant correction.
+
+**Tests.** `tests/card-variant-cases.json` (21 cas : une, plusieurs, aucune, fourchette, borne seule, sans filtre,
+variante unique, taxonomie non portée, égalité, sans variantes, prix non fini, listes et dictionnaires mal formés,
+noms numériques), joués par `Unit\VariantChoiceTest` et `ts/variant-choice.test.ts` ;
+`ResolvedListingStateTest::it_shows_each_card_through_the_variant_the_state_points_to` ; jumeaux de noms dans
+`ContractParityTest`. Le projet de test couvre sa projection, la carte filtrée, le préfixe et le gabarit.
+
+**Les cinq passes (2026-10-02).** *Lisibilité* : `CardVariants` renommé `VariantChoice` (il choisit, `CardVariant` lit
+et compare) ; `variants_several` renommé `several_variants`. *Commentaires* : retirés ceux qui justifiaient un choix
+(`CardBinding::classList()`, `#classList()` côté TS, seconde moitié de `CardVariant::read()` des deux côtés) ; une
+ligne ajoutée côté TS (un tableau JSON est un objet pour le serveur). *Performance* : un `VariantChoice` par réponse,
+linéaire en variantes ; côté projet, la carte de page ne charge plus les variations (produit variable : 0,90 → 0,39 ms
+par carte construite, mesures entrelacées dans un même processus). *Sécurité* : l'état de l'URL n'est que comparé ;
+les surcharges passent par la même liaison (liste blanche, prix seul en HTML). *Contexte et i18n* : rien de
+WooCommerce dans le module ; libellé traduisible côté thème.
+
+**Vérifié (2026-10-02).** `composer check` vert (PHP 597, client 915) ; suite `Modules` 967 verte ; index du projet de
+test inchangé (64 documents comparés avant/après, valeurs identiques) ; navigateur WebKit iPhone et Chromium,
+`submit` et `immediate` : filtre `400ml` → « 400ml · 39,00 € » au premier rendu et après clic ; `15ml` + `400ml` →
+préfixe et 15 ml ; aucun marqueur hors gabarit ; ajout au panier en ajax.
+
+**Constaté hors périmètre.** La fiche produit du projet de test est rendue par une vue générique : aucun formulaire de
+variations. La pré-sélection est vérifiée sur la fonction native (`wc_dropdown_variation_attribute_options()` lit
+`attribute_pa_contenance` de l'URL).
+
 ### R-205 · ⚪ · **fermé le 2026-10-01, sans code** · ouvert le 2026-10-01 — une panne du moteur au rendu du listing serait silencieuse
 
 Relevé par l'audit du 2026-10-01 (« la panne du moteur pendant le rendu serveur n'est ni signalée ni journalisée »).

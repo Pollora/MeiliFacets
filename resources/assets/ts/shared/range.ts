@@ -27,6 +27,10 @@ export class Range {
         return this.min === other.min && this.max === other.max
     }
 
+    contains(value: number) {
+        return this.clamp(value) === value
+    }
+
     clamp(value: number) {
         const floored = Math.max(value, this.min ?? value)
 
