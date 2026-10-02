@@ -47,7 +47,7 @@ final readonly class CardBinding
             return CardFieldElement::absent();
         }
 
-        return CardFieldElement::of(new ComponentAttributeBag([BindingAttribute::Text->value => $this->fieldName($field)]), e($text));
+        return CardFieldElement::of(new ComponentAttributeBag($this->marker(BindingAttribute::Text, $this->fieldName($field))), e($text));
     }
 
     /** WooCommerce formats the price with markup at indexing time: the one field written as HTML. */
@@ -131,13 +131,13 @@ final readonly class CardBinding
 
         return new ComponentAttributeBag([
             self::CLASS_ATTRIBUTE => e(implode(BindingAttribute::LIST_SEPARATOR, $classes)),
-            BindingAttribute::ClassList->value => e($this->fieldName($field)),
+            ...$this->marker(BindingAttribute::ClassList, $this->fieldName($field)),
         ]);
     }
 
     private function condition(string $condition): CardFieldElement
     {
-        return CardFieldElement::of(new ComponentAttributeBag([BindingAttribute::Condition->value => e($condition)]));
+        return CardFieldElement::of(new ComponentAttributeBag($this->marker(BindingAttribute::Condition, $condition)));
     }
 
     private function isTrue(BackedEnum|string $field): bool
@@ -166,7 +166,15 @@ final readonly class CardBinding
      */
     private function listMarker(BindingAttribute $attribute, array $pairs): array
     {
-        return [$attribute->value => e(implode(BindingAttribute::LIST_SEPARATOR, $pairs))];
+        return $this->marker($attribute, implode(BindingAttribute::LIST_SEPARATOR, $pairs));
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function marker(BindingAttribute $attribute, string $value): array
+    {
+        return $this->isTemplate() ? [$attribute->value => e($value)] : [];
     }
 
     /**

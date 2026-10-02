@@ -223,11 +223,11 @@ For the add-to-cart link above, the template holds:
 <a data-meili-attr="href:cart_url data-product_id:id" data-meili-if="cart_url" class="shopCardCart">Add to cart</a>
 ```
 
-and a server-rendered card holds the values as well as the binding:
+and a server-rendered card holds the values only. The browser never binds a card the server rendered: it draws every
+card it shows from a copy of the template.
 
 ```html
-<a href="/shop/?add-to-cart=12" data-product_id="12" data-meili-attr="href:cart_url data-product_id:id"
-   data-meili-if="cart_url" class="shopCardCart">Add to cart</a>
+<a href="/shop/?add-to-cart=12" data-product_id="12" class="shopCardCart">Add to cart</a>
 ```
 
 ## The binding attributes

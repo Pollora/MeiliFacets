@@ -18,6 +18,12 @@ What to change in a project when moving from one version to the next is in
 - `data-meili-class-list` and `CardBinding::classList()`: adds the classes a card field holds to the element's own,
   for classes a platform computes, such as WooCommerce's loop button classes.
 
+### Changed
+
+- A card rendered by the server no longer carries the binding attributes (`data-meili-text`, `data-meili-attr`,
+  `data-meili-class`, `data-meili-class-list`, `data-meili-if`): only the template does, since the browser draws every
+  card from a copy of it. About 580 bytes less per card on a product card.
+
 ## [0.1.0](https://github.com/Pollora/MeiliFacets/releases/tag/0.1.0) - 2026-10-01
 
 First release, a **beta**: the PHP API and the markup contract may still change before 1.0, and the known issues
