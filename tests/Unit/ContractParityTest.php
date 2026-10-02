@@ -142,7 +142,7 @@ final class ContractParityTest extends TestCase
         yield 'version attribute' => ['shared/contract.ts', "VERSION_ATTRIBUTE = '([^']*)'", Contract::VersionAttribute->value];
         yield 'scroll attribute' => ['shared/contract.ts', "SCROLL_ATTRIBUTE = '([^']*)'", Contract::ScrollAttribute->value];
         yield 'retrieved id' => ['site-search/site-search-query.ts', "RETRIEVED = \\['([^']*)'", DocumentField::Id->value];
-        yield 'card id field' => ['results/card-view.ts', "ID_FIELD = '([^']*)'", CardField::Id->value];
+        yield 'card id field' => ['results/variant-choice.ts', "ID_FIELD = '([^']*)'", CardField::Id->value];
         yield 'card variants field' => ['results/variant-choice.ts', "VARIANTS_FIELD = '([^']*)'", CardField::Variants->value];
         yield 'several variants field' => ['results/variant-choice.ts', "SEVERAL_FIELD = '([^']*)'", CardField::SeveralVariants->value];
         yield 'variant facets' => ['results/card-variant.ts', "FACETS_FIELD = '([^']*)'", VariantField::Facets->value];

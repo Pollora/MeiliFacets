@@ -6,11 +6,21 @@ namespace Modules\MeiliFacets\Listing;
 
 use Modules\MeiliFacets\Enums\CardField;
 
-/** Shows a card through the variant the active filters point to, and as projected when none concerns its variants. */
+/**
+ * Shows a card through the variant the active filters point to, and as projected when none concerns its variants.
+ *
+ * @phpstan-import-type Selection from ListingState
+ */
 final readonly class VariantChoice
 {
+    private const array FIELDS_SET_BY_THE_MODULE = [
+        CardField::Id->value,
+        CardField::Variants->value,
+        CardField::SeveralVariants->value,
+    ];
+
     /**
-     * @param  array<string, list<string>>  $selected  taxonomy to selected slugs
+     * @param  Selection  $selected
      */
     public function __construct(
         private array $selected = [],
@@ -32,7 +42,7 @@ final readonly class VariantChoice
             return $card;
         }
 
-        return array_replace($card, $this->cheapest($matching)->fields, $this->several($matching));
+        return array_replace($card, $this->overrides($this->cheapest($matching)), $this->several($matching));
     }
 
     /**
@@ -40,9 +50,33 @@ final readonly class VariantChoice
      */
     private function read(mixed $stored): array
     {
-        $variants = is_array($stored) ? array_map(CardVariant::read(...), array_values($stored)) : [];
+        $variants = array_map(CardVariant::read(...), $this->listed($stored));
 
         return array_values(array_filter($variants));
+    }
+
+    /**
+     * `json_decode` keeps an object's keys in written order; the browser lists integer keys ascending.
+     *
+     * @return list<mixed>
+     */
+    private function listed(mixed $stored): array
+    {
+        if (! is_array($stored)) {
+            return [];
+        }
+
+        ksort($stored);
+
+        return array_is_list($stored) ? $stored : [];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function overrides(CardVariant $variant): array
+    {
+        return array_diff_key($variant->fields, array_flip(self::FIELDS_SET_BY_THE_MODULE));
     }
 
     /**
