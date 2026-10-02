@@ -1,5 +1,6 @@
 import { CardFieldValue } from './card-field-value.ts'
 import { CardBinding } from './card-binding.ts'
+import { VariantChoice } from './variant-choice.ts'
 
 import type { Contract } from '../shared/contract.ts'
 import type { Card } from '../shared/description.ts'
@@ -15,8 +16,8 @@ export class CardView {
         this.#contract = contract
     }
 
-    static fieldsOf(hit: SearchHit): Card {
-        return hit.ID === undefined ? { ...hit.card } : { ...hit.card, [ID_FIELD]: hit.ID }
+    static fieldsOf(hit: SearchHit, variants = new VariantChoice()): Card {
+        return variants.shown(hit.ID === undefined ? { ...hit.card } : { ...hit.card, [ID_FIELD]: hit.ID })
     }
 
     /** A copy of the template's first node, filled; nothing when the template holds no element. */

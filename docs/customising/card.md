@@ -10,6 +10,7 @@ You want to…
 - [write the binding attributes](#the-binding-attributes);
 - [prepare the elements in PHP](#preparing-the-elements-in-php);
 - [add your own fields to the card](#adding-your-own-fields);
+- [show the variant the filters point to](#card-variants);
 - [know what the markup contract asks of a card](#what-the-contract-asks-of-a-card);
 - [know the rules that apply to every field](#rules);
 - [give the site search its own card](#a-card-for-the-site-search).
@@ -274,7 +275,8 @@ Each element is a `CardFieldElement`, prepared by the component class from a `Ca
 | `$element->containing($text)` | the element holding a fixed text, escaped |
 
 A field is named by an enum case or a string. `CardField` names the module's fields: `Id`, `Title`, `Url`,
-`ImageUrl`, `ImageSrcset`, `ImageSizes`, `ImageAlt`, `ImageWidth`, `ImageHeight`, `Price`, `Summary`.
+`ImageUrl`, `ImageSrcset`, `ImageSizes`, `ImageAlt`, `ImageWidth`, `ImageHeight`, `Price`, `Summary`, and
+`SeveralVariants` (see [Card variants](#card-variants)).
 
 `CardHooks` prepares the module's own elements and adds the `data-meili` hook each one carries:
 
@@ -313,6 +315,76 @@ from `onlyWithout()`, each given its text by `containing(__('…'))`. No transla
 
 The projector runs at indexing time. Anything it writes is stored in the document and read back as is: a value that
 depends on the visitor (a cart, a login, a currency) does not belong in the card.
+
+## Card variants
+
+The product is the unit of a listing: it never appears twice. When it is sold in several ways, its card shows the
+product as projected — WooCommerce's price range, every volume — until a filter concerns its variants; then it shows
+the one the visitor filtered on — the 400 ml bottle and its price when `400ml` is ticked — if the projector stores its
+variants.
+
+**1. Project them.** Each variant is a `Listing\CardVariant`: the terms it carries, keyed by taxonomy, its displayed
+price, and the card fields it shows instead of the product's. Any field can be overridden. Project the variations the
+platform offers — `get_available_variations()` applies WooCommerce's own visibility and stock rules — rather than
+filtering them again:
+
+```php
+use Modules\MeiliFacets\Enums\CardField;
+use Modules\MeiliFacets\Listing\CardVariant;
+use WC_Product_Variable;
+use WC_Product_Variation;
+
+/** @return list<array<string, mixed>> */
+private function variants(WC_Product_Variable $product): array
+{
+    return array_map(static function (WC_Product_Variation $variation): array {
+        $facets = array_map(
+            static fn (string $slug): array => [$slug],
+            array_filter($variation->get_attributes(), static fn (string $slug): bool => $slug !== ''),
+        );
+
+        return new CardVariant($facets, (float) wc_get_price_to_display($variation), [
+            ShopCardField::Volume->value => $variation->get_attribute('pa_volume'),
+            CardField::Price->value => $variation->get_price_html(),
+            CardField::Url->value => $variation->get_permalink(),
+        ])->toArray();
+    }, $product->get_available_variations('objects'));
+}
+```
+
+Store the list under `CardField::Variants`, then reindex. Keep the product's own fields too: they are what the card
+shows whenever no variant is chosen. A variation's `get_permalink()` opens the product page with that variation
+selected: override every link that leads there, the title's and a « choose » button's alike.
+
+**2. Nothing to do in the listing.** The server and the browser apply the same rule to every card before binding it:
+
+- variants are applied only when a filter **concerns** them: a price range, or a facet whose taxonomy one of them
+  carries. Otherwise the card is shown exactly as projected;
+- a variant **matches** when, for every active facet whose taxonomy it carries, one of its terms is selected, and its
+  price lies within the asked range when there is one. A facet it does not carry rules nothing out;
+- among the matching variants, the **cheapest** wins; its fields are merged over the card's. The first listed wins a
+  tie. When none matches, the card is shown as projected;
+- when **several** variants match, the card gets `several_variants` set to `true`;
+- the `variants` list itself never reaches the binding.
+
+**3. Say « from » in the view.** Bind a prefix on the flag, and give its text in Blade:
+
+```php
+$this->from = $binding->onlyWith(CardField::SeveralVariants);
+```
+
+```blade
+@if ($from->isPresent())
+    <span {{ $from->attributes->class('shopCardFrom') }}>{{ __('Starting at') }}</span>
+@endif
+```
+
+**4. A card outside the listing** has no filter: bind it as projected, with nothing to call. Build it without
+variants: only the listing reads them.
+
+**Known limit: crossed filters.** A variant is matched as a whole. With two facets ticked, `400ml` and `rose`, and a
+product sold as « 400 ml, iris » and « 15 ml, rose », the product is listed — each filter matches one of its
+variations — but no single variant matches both. The card is then shown as projected.
 
 ## What the contract asks of a card
 

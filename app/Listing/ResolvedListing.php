@@ -85,7 +85,17 @@ final class ResolvedListing
      */
     public function cards(): array
     {
-        return $this->cards ??= $this->results()->cards();
+        return $this->cards ??= $this->shownCards();
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function shownCards(): array
+    {
+        $variants = new VariantChoice($this->state->facets, $this->state->price);
+
+        return array_map($variants->shown(...), $this->results()->cards());
     }
 
     public function state(): ListingState
