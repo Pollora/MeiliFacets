@@ -115,14 +115,15 @@ One result card, rendered on the server. The same view serves the card template.
 | --- | --- | --- |
 | none | `<article>` | `url` (on the `<a>`), `image`, `title`, `price` |
 
-The view receives `$binding` (a `CardBinding`: `text()`, `price()`, `attributes()`, `classes()`, `onlyWith()`,
-`onlyWithout()`), `$link`, `$image`, `$title`, `$price`, `$heading` and `$priority`. An image, title or price the
-card does not hold is not rendered. See [Overriding views](../customising/views.md).
+The view receives `$binding` (a `CardBinding`: `text()`, `price()`, `attributes()`, `classes()`, `classList()`,
+`onlyWith()`, `onlyWithout()`), `$link`, `$image`, `$title`, `$price`, `$heading` and `$priority`. An image, title or
+price the card does not hold is not rendered. See [Overriding views](../customising/views.md).
 
 ### `<x-meilifacets::listing.card-template>`
 
-The card written with binding attributes (`data-meili-text`, `data-meili-attr`, `data-meili-if`) and no values,
-which the client copies for every hit. `<x-meilifacets::listing.results>` renders it inside its `<template>`. It
+The card written with binding attributes (`data-meili-text`, `data-meili-attr`, `data-meili-class`,
+`data-meili-class-list`, `data-meili-if`) and no values, which the client copies for every hit. A card the server
+renders with its values carries none of them. `<x-meilifacets::listing.results>` renders it inside its `<template>`. It
 renders `listing/card.blade.php`: overriding the card overrides both.
 
 | Attribute | Type | Default | Values |

@@ -144,7 +144,7 @@ On a coarse pointer (`@media (pointer: coarse)`):
 
 ## Motion
 
-Durations and easings are tokens (see [Styles and design tokens](customising/styles.md#motion)). The client times the
+Durations and easings are tokens (see [Styles and design tokens](/docs/customising/styles.md#motion)). The client times the
 animations it plays itself from the same tokens.
 
 **Under `prefers-reduced-motion: reduce`, motion becomes fades.** Nothing slides, scales or travels:
@@ -174,7 +174,7 @@ Both stylesheets have a `@media (forced-colors: active)` block:
 ## What to keep in an override
 
 The client finds elements by their hooks, but assistive technologies need the rest of the markup. When you override
-a view (see [Overriding views](customising/views.md)), keep:
+a view (see [Overriding views](/docs/customising/views.md)), keep:
 
 - every `id`, `for`, `aria-labelledby`, `aria-describedby`, `aria-controls` and `aria-label` the module's view
   writes, and the elements they point at;
@@ -203,8 +203,8 @@ a view (see [Overriding views](customising/views.md)), keep:
 
 ## See also
 
-- [Overriding views](customising/views.md)
-- [Styles and design tokens](customising/styles.md)
-- [Mobile drawer and filter bar](listing/drawer.md)
-- [Site search](search/README.md)
-- [CSS custom properties](reference/css-tokens.md)
+- [Overriding views](/docs/customising/views.md)
+- [Styles and design tokens](/docs/customising/styles.md)
+- [Mobile drawer and filter bar](/docs/listing/drawer.md)
+- [Site search](/docs/search/README.md)
+- [CSS custom properties](/docs/reference/css-tokens.md)

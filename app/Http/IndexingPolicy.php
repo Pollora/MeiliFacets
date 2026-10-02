@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Http;
 
+use Modules\MeiliFacets\Enums\QueryParameter;
+use Modules\MeiliFacets\Listing\ListingState;
 use Modules\MeiliFacets\Support\UrlParameters;
 use Pollora\Attributes\Filter;
 
@@ -34,18 +36,30 @@ final readonly class IndexingPolicy
         return [...$robots, 'noindex' => true, 'follow' => true];
     }
 
-    /**
-     * A canonical does not send a reader elsewhere: it declares two URLs to be
-     * one page. Kept alongside a `noindex`, it says of that one page that it must
-     * not be indexed — and the target is the bare path. Yoast drops it by itself
-     * when its own robots say noindex, but ours are written on `wp_robots`, which
-     * it never reads. Nothing else emits a canonical here: WordPress leaves
-     * archives alone (`rel_canonical()` returns early outside a singular).
-     */
     #[Filter('wpseo_canonical', priority: self::AFTER_YOAST_WOOCOMMERCE)]
-    public function dropCanonicalOfSecondaryViews(string $canonical): string
+    public function canonicalizeSecondaryViews(string $canonical): string
     {
-        return $this->isSecondaryView() ? '' : $canonical;
+        return $this->isSecondaryView() ? $this->canonicalFor($canonical, request()->query()) : $canonical;
+    }
+
+    /**
+     * Yoast builds it from the permalink and its own pagination; it never carries
+     * the listing's parameters: only the module's own page number is missing.
+     *
+     * @param  array<string, mixed>  $query
+     */
+    public function canonicalFor(string $canonical, array $query): string
+    {
+        $parameter = $this->parameters->reserved(QueryParameter::Page);
+        $page = $this->pageBeyondTheFirst($query[$parameter] ?? null);
+
+        if ($canonical === '' || $page === null) {
+            return $canonical;
+        }
+
+        $separator = str_contains($canonical, '?') ? '&' : '?';
+
+        return $canonical.$separator.http_build_query([$parameter => $page]);
     }
 
     /**
@@ -95,6 +109,17 @@ final readonly class IndexingPolicy
     {
         return str_starts_with($parameter, UrlParameters::UNMAPPED_PREFIX)
             || in_array($parameter, $declared, true);
+    }
+
+    private function pageBeyondTheFirst(mixed $value): ?int
+    {
+        if (! is_string($value) || ! ctype_digit($value)) {
+            return null;
+        }
+
+        $page = (int) $value;
+
+        return $page > ListingState::FIRST_PAGE ? $page : null;
     }
 
     private function isFilled(mixed $value): bool

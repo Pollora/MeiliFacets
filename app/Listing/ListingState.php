@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Listing;
 
+/**
+ * @phpstan-type Selection array<string, list<string>>
+ */
 final readonly class ListingState
 {
     public const int FIRST_PAGE = 1;
 
     /**
-     * @param  array<string, list<string>>  $facets  taxonomy to selected slugs
+     * @param  Selection  $facets  taxonomy to selected slugs
      */
     public function __construct(
         public array $facets = [],

@@ -84,6 +84,16 @@ Named by `Enums\CardField`. The default projectors write them; a `CardProjector`
 | `price` | `WooCommerceCardProjector` | the product's price HTML, as WooCommerce formats it |
 | `summary` | `SummaryCardProjector`, posts that are not products | the excerpt cut to `excerpt_length` words |
 | `id` | not indexed: added to each card from `ID` on the server and in the browser | the post ID |
+| `variants` | a `CardProjector` of yours | the ways the product is sold, each a `Listing\CardVariant`: see [Card variants](../customising/card.md#card-variants). A variant's `fields` cannot set `id`, `variants` or `several_variants`: the module drops them. The module writes the list as a JSON list when it indexes the document, even when the projector's array has gaps. Never bound: removed from the cards the module shows — the listing, on the server and in the browser, and the search panel — after picking one when a filter concerns them. A card a project renders itself is not concerned |
+| `several_variants` | not indexed: set when several variants match the active filters | `true`, or absent |
+
+A variant is stored as:
+
+| Key | Enum | Content |
+| --- | --- | --- |
+| `facets` | `VariantField::Facets` | taxonomy to the term slugs the variant carries, as the facets hold them |
+| `price` | `VariantField::Price` | its displayed price, a number on the same scale as `price.min` and `price.max` |
+| `fields` | `VariantField::Fields` | the card fields shown instead of the product's when it is chosen |
 
 Image fields are absent when the post has no featured image; `summary` is absent when empty.
 
@@ -106,6 +116,12 @@ product without a price has no `price` field. See [Indexed prices](../indexing/p
 - A field added to `filterableAttributes` or `sortableAttributes` is usable only once the settings are written.
   Until then the engine refuses the query, and the listing shows its unavailable message.
 - `displayedAttributes` decides what the public search key can read. `*` exposes every field of every document.
+- `card.variants` travels with every hit. Each variant weighs about what its `fields` hold — a few links, a price and a
+  displayed value come to a few hundred bytes — and the search panel receives it twice, in `card` and in its highlighted
+  copy `_formatted.card`, before dropping it. The panel cannot leave it out: Meilisearch (checked on 1.53) has no way to
+  exclude a sub-field from `attributesToRetrieve` or `attributesToHighlight`, naming `card.title` returns nothing while
+  `displayedAttributes` holds `card`, and highlighting a sub-field alone returns no `_formatted`. Keep `fields` to what
+  a card shows.
 - Reindex after changing taxes, `card.image_size`, `excerpt_length` or a projector: the documents keep what they
   were built with.
 

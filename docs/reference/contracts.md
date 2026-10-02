@@ -120,6 +120,8 @@ All under `Modules\MeiliFacets\`.
 | `Listing\Sort` | class | a sort: label, Meilisearch sort expressions, optional filter; `Sort::filtering()` | [Sorting](../listing/results-sort-pagination.md) |
 | `Listing\SortFilter` | class | the filter a sort carries; `SortFilter::whereTrue()` | [Sorting](../listing/results-sort-pagination.md) |
 | `Listing\NameOrder` | class | orders values by name in the site language | [Facets](../listing/facets.md) |
+| `Listing\CardVariant` | class | one way a product is sold, inside its card: facets, price, fields; `toArray()`, `read()` | [Card variants](../customising/card.md#card-variants) |
+| `Listing\VariantChoice` | class | `shown(array $card)`: the card through the variant the filters point to, as projected when none concerns its variants | [Card variants](../customising/card.md#card-variants) |
 | `Listing\ListingUnavailable` | exception | thrown by a listing's constructor to opt out quietly | [Listing other content](../listing/custom-listing.md) |
 | `SiteSearch\SearchableType` | class | a searchable type; `withHeading()`, `withSeeAllLabel()`, `withCard()`, `withArchive()`, `withoutArchive()`, `withSearchOn()` | [Searchable types](../search/types.md) |
 | `SiteSearch\SearchableTypeFactory` | class | `forPostType()`, `make()` | [Searchable types](../search/types.md) |
@@ -133,6 +135,7 @@ All under `Modules\MeiliFacets\`.
 | `Enums\ImagePriority` | enum | `Eager`, `Lazy` | [Blade components](components.md) |
 | `Enums\SortWidget`, `Enums\ApplyShape`, `Enums\ResetShape` | enums | component variants | [Blade components](components.md) |
 | `Enums\CardField` | enum | card field names | [Index settings](index-settings.md#card-fields) |
+| `Enums\VariantField` | enum | the keys of a stored variant | [Index settings](index-settings.md#card-fields) |
 | `Enums\DocumentField`, `Enums\PriceField`, `Enums\ProductMeta`, `Enums\SearchedMeta` | enums | document field names and paths | [Index settings](index-settings.md) |
 | `Enums\ProductTaxonomy` | enum | WooCommerce taxonomies; `technical()` lists those never searched | [Search relevance](../indexing/relevance.md) |
 | `Enums\Hook` | enum | the `data-meili` hooks; `->attribute()` | [`data-meili` hooks](hooks.md) |

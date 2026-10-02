@@ -47,7 +47,7 @@ final readonly class CardBinding
             return CardFieldElement::absent();
         }
 
-        return CardFieldElement::of(new ComponentAttributeBag([BindingAttribute::Text->value => $this->fieldName($field)]), e($text));
+        return CardFieldElement::of(new ComponentAttributeBag($this->marker(BindingAttribute::Text, $this->fieldName($field))), e($text));
     }
 
     /** WooCommerce formats the price with markup at indexing time: the one field written as HTML. */
@@ -113,7 +113,7 @@ final readonly class CardBinding
         $pairs = [];
 
         foreach ($toggles as $classes => $field) {
-            foreach ($this->classList($classes) as $class) {
+            foreach ($this->classNames($classes) as $class) {
                 $pairs[] = $this->pair($class, [$field]);
                 $switchedOn[$class] = $this->isTrue($field);
             }
@@ -125,9 +125,19 @@ final readonly class CardBinding
         ]);
     }
 
+    public function classList(BackedEnum|string $field): ComponentAttributeBag
+    {
+        $classes = $this->classNames($this->textOf([$field]));
+
+        return new ComponentAttributeBag([
+            self::CLASS_ATTRIBUTE => e(implode(BindingAttribute::LIST_SEPARATOR, $classes)),
+            ...$this->marker(BindingAttribute::ClassList, $this->fieldName($field)),
+        ]);
+    }
+
     private function condition(string $condition): CardFieldElement
     {
-        return CardFieldElement::of(new ComponentAttributeBag([BindingAttribute::Condition->value => e($condition)]));
+        return CardFieldElement::of(new ComponentAttributeBag($this->marker(BindingAttribute::Condition, $condition)));
     }
 
     private function isTrue(BackedEnum|string $field): bool
@@ -156,7 +166,15 @@ final readonly class CardBinding
      */
     private function listMarker(BindingAttribute $attribute, array $pairs): array
     {
-        return [$attribute->value => e(implode(BindingAttribute::LIST_SEPARATOR, $pairs))];
+        return $this->marker($attribute, implode(BindingAttribute::LIST_SEPARATOR, $pairs));
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function marker(BindingAttribute $attribute, string $value): array
+    {
+        return $this->isTemplate() ? [$attribute->value => e($value)] : [];
     }
 
     /**
@@ -204,7 +222,7 @@ final readonly class CardBinding
     /**
      * @return list<string>
      */
-    private function classList(string $classes): array
+    private function classNames(string $classes): array
     {
         return preg_split(self::CLASS_LIST_PATTERN, $classes, flags: PREG_SPLIT_NO_EMPTY) ?: [];
     }

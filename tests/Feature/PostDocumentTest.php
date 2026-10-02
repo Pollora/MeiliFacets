@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Tests\Feature;
 
 use Modules\MeiliFacets\Contracts\CardProjector;
+use Modules\MeiliFacets\Enums\CardField;
 use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Indexing\AnonymousVisitor;
 use Modules\MeiliFacets\Indexing\IndexedPostTypes;
@@ -111,6 +112,16 @@ final class PostDocumentTest extends TestCase
         $this->assertArrayNotHasKey(DocumentField::Price->value, $this->completed([]));
     }
 
+    #[Test]
+    public function it_writes_the_card_variants_as_a_list(): void
+    {
+        $card = ['title' => 'Routine', CardField::Variants->value => [1 => ['price' => 26], 3 => ['price' => 39]]];
+
+        $document = $this->postDocument($card)->complete([], $this->article());
+
+        $this->assertSame([['price' => 26], ['price' => 39]], $document[DocumentField::Card->value][CardField::Variants->value]);
+    }
+
     /** A frozen snapshot: every field, every value and the key order, on a post that lives only in memory. */
     #[Test]
     public function it_writes_this_exact_document(): void
@@ -140,25 +151,31 @@ final class PostDocumentTest extends TestCase
         return $this->postDocument()->complete([DocumentField::Terms->value => $terms], $this->article());
     }
 
-    private function postDocument(): PostDocument
+    /**
+     * @param  array<string, mixed>  $card
+     */
+    private function postDocument(array $card = self::CARD): PostDocument
     {
         return new PostDocument(
             new TermAncestry(new WordPressTermHierarchy),
             new IndexedTaxonomies(new IndexedPostTypes),
             new PostText,
-            $this->card(),
+            $this->card($card),
             new ProductPriceProjector,
             new ShopTaxLocation,
             new AnonymousVisitor
         );
     }
 
-    private function card(): CardProjector
+    /**
+     * @param  array<string, mixed>  $card
+     */
+    private function card(array $card): CardProjector
     {
-        return new readonly class(self::CARD) implements CardProjector
+        return new readonly class($card) implements CardProjector
         {
             /**
-             * @param  array<string, string>  $card
+             * @param  array<string, mixed>  $card
              */
             public function __construct(private array $card) {}
 
