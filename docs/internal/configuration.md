@@ -360,10 +360,11 @@ sortirait l'accueil de l'index. Vérifié le 2026-09-06 : `/boutique` reste `ind
 
 Un paramètre étranger au module ne déclenche rien : `?utm_source=news` reste indexable.
 
-**Pas de canonique** sur ces vues : un `noindex` et une canonique pointant ailleurs sont deux signaux
-contradictoires. Le module retire celle de Yoast (`wpseo_canonical`, priorité 20) et ôte `rel="next"`/`rel="prev"`
-de toute page de listing, chemin nu compris. Vérifié le 2026-09-22 : `/boutique` garde sa canonique,
-`/boutique?sort=newest` n'en a plus.
+**Canonique vers le chemin nu** sur ces vues, numéro de page conservé (`R-208`) : le module complète
+celle de Yoast (`wpseo_canonical`, priorité 20), qui a déjà retiré les paramètres qu'il ne connaît pas
+et garde `/page/N`. Il ôte aussi `rel="next"`/`rel="prev"` de toute page de listing, chemin nu compris.
+Vérifié le 2026-10-02 : `/boutique?q=ge` → `/boutique`, `/boutique?q=ge&pg=2` → `/boutique?pg=2`,
+`/boutique/page/2?marque=x` → `/boutique/page/2`.
 
 ## ⚠️ Le cron doit tourner, sinon l'index diverge en silence
 

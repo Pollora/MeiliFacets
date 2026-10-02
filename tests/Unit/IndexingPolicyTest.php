@@ -71,6 +71,50 @@ final class IndexingPolicyTest extends TestCase
     }
 
     #[Test]
+    public function it_points_a_filtered_view_to_its_bare_path(): void
+    {
+        $canonical = $this->policy->canonicalFor('https://shop.test/boutique', ['marque' => 'acme', 'sort' => 'newest', 'q' => 'ge']);
+
+        $this->assertSame('https://shop.test/boutique', $canonical);
+    }
+
+    /** A page lists other products than the first: it stays its own canonical, without the filters. */
+    #[Test]
+    public function it_keeps_the_page_number_in_the_canonical(): void
+    {
+        $canonical = $this->policy->canonicalFor('https://shop.test/boutique', ['marque' => 'acme', 'pg' => '3']);
+
+        $this->assertSame('https://shop.test/boutique?pg=3', $canonical);
+    }
+
+    #[Test]
+    public function it_leaves_the_first_page_out_of_the_canonical(): void
+    {
+        $this->assertSame('https://shop.test/boutique', $this->policy->canonicalFor('https://shop.test/boutique', ['pg' => '1']));
+    }
+
+    #[Test]
+    public function it_leaves_an_unreadable_page_out_of_the_canonical(): void
+    {
+        $this->assertSame('https://shop.test/boutique', $this->policy->canonicalFor('https://shop.test/boutique', ['pg' => '2"><script>']));
+        $this->assertSame('https://shop.test/boutique', $this->policy->canonicalFor('https://shop.test/boutique', ['pg' => ['2']]));
+    }
+
+    #[Test]
+    public function it_follows_a_renamed_page_parameter_in_the_canonical(): void
+    {
+        $policy = new IndexingPolicy(new UrlParameters([], ['pg' => 'page_produits']), new ListingPage);
+
+        $this->assertSame('https://shop.test/boutique?page_produits=2', $policy->canonicalFor('https://shop.test/boutique', ['page_produits' => '2']));
+    }
+
+    #[Test]
+    public function it_leaves_an_absent_canonical_absent(): void
+    {
+        $this->assertSame('', $this->policy->canonicalFor('', ['pg' => '2']));
+    }
+
+    #[Test]
     public function it_ignores_a_facet_left_empty(): void
     {
         $this->assertFalse($this->policy->appliesTo(['marque' => '']));
