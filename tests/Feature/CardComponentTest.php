@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Blade;
 use Illuminate\View\ViewException;
 use Modules\MeiliFacets\Enums\CardField;
 use Modules\MeiliFacets\Enums\ImagePriority;
+use Modules\MeiliFacets\View\CardBinding;
 use Modules\MeiliFacets\View\Components\Listing\Card;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -44,12 +45,18 @@ final class CardComponentTest extends TestCase
         $binding = new Card(['brand' => '<b>Acme</b>', 'id' => 12])->binding;
         $brand = $binding->text('brand');
 
-        $this->assertSame('data-meili-text="brand"', (string) $brand->attributes);
+        $this->assertSame('', (string) $brand->attributes);
         $this->assertSame('&lt;b&gt;Acme&lt;/b&gt;', $brand->toHtml());
-        $this->assertSame(
-            'data-product_id="12" data-meili-attr="data-product_id:id"',
-            (string) $binding->attributes(['data-product_id' => 'id'])
-        );
+        $this->assertSame('data-product_id="12"', (string) $binding->attributes(['data-product_id' => 'id']));
+    }
+
+    #[Test]
+    public function it_binds_only_the_template(): void
+    {
+        $template = CardBinding::template();
+
+        $this->assertSame('data-meili-text="brand"', (string) $template->text('brand')->attributes);
+        $this->assertSame('data-meili-attr="data-product_id:id"', (string) $template->attributes(['data-product_id' => 'id']));
     }
 
     /** The price is what WooCommerce formatted: it is rendered as it stands. */

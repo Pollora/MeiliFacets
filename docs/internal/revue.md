@@ -3301,6 +3301,24 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
+### R-207 · 🟢 · ouvert (en attente de commit) · ouvert le 2026-10-02 — une carte rendue par le serveur porte des instructions de liaison que personne ne lit
+
+**Constat** : `CardBinding` écrivait `data-meili-text`, `data-meili-attr`, `data-meili-class`,
+`data-meili-class-list` et `data-meili-if` sur chaque carte, gabarit ou non. Le client ne relie jamais
+une carte rendue : il clone le `<template>` et remplace la liste (`ResultsView.show()`,
+`replaceChildren`). Mesuré sur le projet local : environ 580 octets de liaison par carte, soit
+près de 32 Ko sur une page de 55 cartes.
+
+**Correctif** : les marqueurs ne sont écrits que dans le gabarit (`CardBinding::marker()`). Une carte
+rendue garde ses valeurs (attributs, texte, classes) et ses crochets `data-meili`, qu'un thème peut
+cibler en CSS ; les noms de champ restent validés dans les deux cas. `Contract::VERSION` inchangé : le
+client ne lisait ces marqueurs que dans le gabarit.
+
+**Vérifié** : `composer check` vert (PHP 593, client 911), suite `Modules` 963 tests
+(`CardComponentTest::it_binds_only_the_template`). Navigateur, WebKit iPhone et Chromium, `submit` et
+`immediate` : aucun marqueur hors gabarit sur l'accueil (55 cartes) ni sur la boutique (16), cartes
+rendues par le client identiques à avant, wishlist initialisée, ajout au panier en ajax.
+
 ### R-206 · 🟠 · ouvert (en attente de commit) · ouvert le 2026-10-01, revu le 2026-10-02 — la carte d'un produit variable ignore le filtre qui l'a trouvé
 
 Réalise la décision validée « Produits variables », jamais livrée. Constaté sur le projet de test : un produit vendu en
