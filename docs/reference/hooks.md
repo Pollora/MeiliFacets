@@ -203,6 +203,7 @@ The card template fills its fields from the `card` field of each hit. These attr
 | `data-meili-text` | a field name | the element's text becomes the field; removed when empty |
 | `data-meili-attr` | `attribute:field` pairs, space-separated; `alt:image_alt\|title` takes the first field holding a value | sets each attribute from its field |
 | `data-meili-class` | `class:field` pairs | toggles each class on the field's truth |
+| `data-meili-class-list` | a field name | adds the classes the field holds, space-separated |
 | `data-meili-if` | `field` or `!field` | keeps the element only when the field is true (or false) |
 
 Attributes that can be bound: `href`, `src`, `srcset`, `sizes`, `alt`, `title`, `width`, `height`, `value`,

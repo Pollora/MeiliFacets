@@ -231,7 +231,7 @@ and a server-rendered card holds the values as well as the binding:
 
 ## The binding attributes
 
-Four attributes, read by the browser on every card it draws. You do not write them by hand: `CardBinding` writes them
+Five attributes, read by the browser on every card it draws. You do not write them by hand: `CardBinding` writes them
 (see [Preparing the elements in PHP](#preparing-the-elements-in-php)). They are listed here so you can read the
 markup.
 
@@ -241,6 +241,7 @@ markup.
 | `data-meili-attr="name:field …"` | writes one attribute per pair; pairs are separated by spaces | `data-meili-attr="href:cart_url data-product_id:id"` |
 | `data-meili-attr="name:a\|b"` | the attribute takes the first of the fields that holds a value | `data-meili-attr="alt:image_alt\|title"` |
 | `data-meili-class="class:field …"` | adds the class when the field is true, removes it otherwise | `data-meili-class="is-new:fresh"` |
+| `data-meili-class-list="field"` | adds the classes the field holds, space-separated, to the element's own | `data-meili-class-list="cart_class"` |
 | `data-meili-if="field"` | the element is removed when the field is empty or false | `data-meili-if="cart_url"` |
 | `data-meili-if="!field"` | the element is removed when the field is true | `data-meili-if="!image_url"` |
 
@@ -248,6 +249,9 @@ markup.
 - In a pair, the field is what follows the **last** colon, so a class that holds a colon works:
   `md:hidden:fresh` toggles `md:hidden`.
 - `data-meili-class` takes one field per class, without fallback.
+- `data-meili-class-list` only adds: a card is drawn on a fresh copy of the template, never over another card. It
+  carries classes a platform computed for you — WooCommerce's `add_to_cart_button ajax_add_to_cart`, which its
+  script reads — so the card does not have to rebuild the rule that sets them.
 - `data-meili-if` takes a single condition. There is no `and` or `or`: nest two elements, or project a field that
   holds the combined answer.
 
@@ -265,6 +269,7 @@ Each element is a `CardFieldElement`, prepared by the component class from a `Ca
 | `$binding->onlyWithout($field)` | an element present when the field is false, with `data-meili-if="!…"` |
 | `$binding->attributes(['href' => $field, 'alt' => [$a, $b]])` | a `ComponentAttributeBag` holding the values and `data-meili-attr` |
 | `$binding->classes(['is-new md:hidden' => $field])` | a `ComponentAttributeBag` holding `class` and `data-meili-class` |
+| `$binding->classList($field)` | a `ComponentAttributeBag` holding the field's classes and `data-meili-class-list` |
 | `$element->with($bag, [...])` | the element with more attributes, merged as Laravel's `merge()` merges them |
 | `$element->containing($text)` | the element holding a fixed text, escaped |
 

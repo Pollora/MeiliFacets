@@ -113,7 +113,7 @@ final readonly class CardBinding
         $pairs = [];
 
         foreach ($toggles as $classes => $field) {
-            foreach ($this->classList($classes) as $class) {
+            foreach ($this->classNames($classes) as $class) {
                 $pairs[] = $this->pair($class, [$field]);
                 $switchedOn[$class] = $this->isTrue($field);
             }
@@ -122,6 +122,16 @@ final readonly class CardBinding
         return new ComponentAttributeBag([
             self::CLASS_ATTRIBUTE => e(Arr::toCssClasses($switchedOn)),
             ...$this->listMarker(BindingAttribute::ClassName, $pairs),
+        ]);
+    }
+
+    public function classList(BackedEnum|string $field): ComponentAttributeBag
+    {
+        $classes = $this->classNames($this->textOf([$field]));
+
+        return new ComponentAttributeBag([
+            self::CLASS_ATTRIBUTE => e(implode(BindingAttribute::LIST_SEPARATOR, $classes)),
+            BindingAttribute::ClassList->value => e($this->fieldName($field)),
         ]);
     }
 
@@ -204,7 +214,7 @@ final readonly class CardBinding
     /**
      * @return list<string>
      */
-    private function classList(string $classes): array
+    private function classNames(string $classes): array
     {
         return preg_split(self::CLASS_LIST_PATTERN, $classes, flags: PREG_SPLIT_NO_EMPTY) ?: [];
     }
