@@ -8,6 +8,7 @@ use Dom\Element;
 use Dom\HTMLDocument;
 use Generator;
 use Illuminate\View\ComponentAttributeBag;
+use Modules\MeiliFacets\Enums\BindingAttribute;
 use Modules\MeiliFacets\View\BindingRefused;
 use Modules\MeiliFacets\View\CardBinding;
 use Modules\MeiliFacets\View\CardFieldAttribute;
@@ -99,6 +100,35 @@ final class CardBindingTest extends TestCase
 
         foreach ($expected['attributes'] as $name => $value) {
             $this->assertSame($value, $element->getAttribute($name), $name);
+        }
+    }
+
+    /**
+     * @return Generator<string, array{Binding, array<string, mixed>}>
+     */
+    public static function renderedElements(): Generator
+    {
+        foreach (self::cases()['elements'] as $case) {
+            if ($case['expected']['present']) {
+                yield $case['case'] => [$case['binding'], $case['card']];
+            }
+        }
+    }
+
+    /**
+     * @param  Binding  $binding
+     * @param  array<string, mixed>  $card
+     */
+    #[DataProvider('renderedElements')]
+    #[Test]
+    public function a_rendered_card_carries_no_binding_instruction(array $binding, array $card): void
+    {
+        $element = $this->parsed($this->markup(CardBinding::of($card), $binding));
+
+        $this->assertInstanceOf(Element::class, $element);
+
+        foreach (BindingAttribute::cases() as $attribute) {
+            $this->assertFalse($element->hasAttribute($attribute->value), $attribute->value);
         }
     }
 
