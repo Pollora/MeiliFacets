@@ -250,9 +250,10 @@ markup.
 - In a pair, the field is what follows the **last** colon, so a class that holds a colon works:
   `md:hidden:fresh` toggles `md:hidden`.
 - `data-meili-class` takes one field per class, without fallback.
-- `data-meili-class-list` only adds: a card is drawn on a fresh copy of the template, never over another card. It
-  carries classes a platform computed for you — WooCommerce's `add_to_cart_button ajax_add_to_cart`, which its
-  script reads — so the card does not have to rebuild the rule that sets them.
+- `data-meili-class-list` only adds: it never removes a class an earlier drawing added. A listing draws every card on a
+  fresh copy of the template; the search panel redraws a card it keeps for the same result, whose field holds the same
+  classes. It carries classes a platform computed for you — WooCommerce's `add_to_cart_button ajax_add_to_cart`, which
+  its script reads — so the card does not have to rebuild the rule that sets them.
 - `data-meili-if` takes a single condition. There is no `and` or `or`: nest two elements, or project a field that
   holds the combined answer.
 
@@ -273,6 +274,8 @@ Each element is a `CardFieldElement`, prepared by the component class from a `Ca
 | `$binding->classList($field)` | a `ComponentAttributeBag` holding the field's classes and `data-meili-class-list` |
 | `$element->with($bag, [...])` | the element with more attributes, merged as Laravel's `merge()` merges them |
 | `$element->containing($text)` | the element holding a fixed text, escaped |
+
+The binding attributes are written by `CardBinding::template()` only; a rendered card holds the values.
 
 A field is named by an enum case or a string. `CardField` names the module's fields: `Id`, `Title`, `Url`,
 `ImageUrl`, `ImageSrcset`, `ImageSizes`, `ImageAlt`, `ImageWidth`, `ImageHeight`, `Price`, `Summary`, and
@@ -324,11 +327,13 @@ the one the visitor filtered on — the 400 ml bottle and its price when `400ml`
 variants.
 
 **1. Project them.** Each variant is a `Listing\CardVariant`: the terms it carries, keyed by taxonomy, its displayed
-price, and the card fields it shows instead of the product's. Any field can be overridden. Project the variations the
+price, and the card fields it shows instead of the product's. Any field can be overridden but `id`, `variants` and
+`several_variants`, which the module sets and drops from a variant's fields. Project the variations the
 platform offers — `get_available_variations()` applies WooCommerce's own visibility and stock rules — rather than
 filtering them again:
 
 ```php
+use App\Shop\ShopCardField;
 use Modules\MeiliFacets\Enums\CardField;
 use Modules\MeiliFacets\Listing\CardVariant;
 use WC_Product_Variable;
@@ -338,10 +343,12 @@ use WC_Product_Variation;
 private function variants(WC_Product_Variable $product): array
 {
     return array_map(static function (WC_Product_Variation $variation): array {
-        $facets = array_map(
-            static fn (string $slug): array => [$slug],
-            array_filter($variation->get_attributes(), static fn (string $slug): bool => $slug !== ''),
+        $terms = array_filter(
+            $variation->get_attributes(),
+            static fn (string $slug, string $taxonomy): bool => $slug !== '' && taxonomy_exists($taxonomy),
+            ARRAY_FILTER_USE_BOTH,
         );
+        $facets = array_map(static fn (string $slug): array => [$slug], $terms);
 
         return new CardVariant($facets, (float) wc_get_price_to_display($variation), [
             ShopCardField::Volume->value => $variation->get_attribute('pa_volume'),
@@ -352,9 +359,11 @@ private function variants(WC_Product_Variable $product): array
 }
 ```
 
-Store the list under `CardField::Variants`, then reindex. Keep the product's own fields too: they are what the card
-shows whenever no variant is chosen. A variation's `get_permalink()` opens the product page with that variation
-selected: override every link that leads there, the title's and a « choose » button's alike.
+A custom attribute typed on the product is not a taxonomy, and no facet filters on it: `taxonomy_exists()` keeps it out.
+Store the list under `CardField::Variants`, then reindex: the module writes it as a JSON list even when it has gaps, as
+`array_filter()` leaves. Keep the product's own fields too: they are what the card shows whenever no variant is chosen.
+A variation's `get_permalink()` opens the product page with that variation selected: override every link that leads
+there, the title's and a « choose » button's alike.
 
 **2. Nothing to do in the listing.** The server and the browser apply the same rule to every card before binding it:
 
@@ -385,6 +394,10 @@ variants: only the listing reads them.
 **Known limit: crossed filters.** A variant is matched as a whole. With two facets ticked, `400ml` and `rose`, and a
 product sold as « 400 ml, iris » and « 15 ml, rose », the product is listed — each filter matches one of its
 variations — but no single variant matches both. The card is then shown as projected.
+
+**Known limit: a price range between two variants.** The engine lists a product whose price range overlaps the one asked
+for, as WooCommerce does: a product sold at 26 and 39 is listed for 30 to 35, while none of its variants is priced
+within that range. The card is then shown as projected, with its whole range.
 
 ## What the contract asks of a card
 

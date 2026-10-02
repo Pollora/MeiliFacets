@@ -15,6 +15,8 @@ What to change in a project when moving from one version to the next is in
   them the listing shows the card through the cheapest matching variant (`Listing\VariantChoice`), on the server and in
   the browser alike. `several_variants` flags a card on which several variants match, for a « from » prefix. With no
   such filter, or none matching, the card is shown as projected.
+- `Enums\VariantField`, which names the keys of a variant (`facets`, `price`, `fields`), and `CardField::Variants`
+  and `CardField::SeveralVariants`, which name the card's `variants` list and its `several_variants` flag.
 - `data-meili-class-list` and `CardBinding::classList()`: adds the classes a card field holds to the element's own,
   for classes a platform computes, such as WooCommerce's loop button classes.
 
@@ -22,7 +24,13 @@ What to change in a project when moving from one version to the next is in
 
 - A card rendered by the server no longer carries the binding attributes (`data-meili-text`, `data-meili-attr`,
   `data-meili-class`, `data-meili-class-list`, `data-meili-if`): only the template does, since the browser draws every
-  card from a copy of it. About 580 bytes less per card on a product card.
+  card from a copy of it. A few hundred bytes less per card on a product card.
+- With Yoast SEO, a secondary listing view (filtered, sorted, searched or paginated, still `noindex, follow`) declares
+  the bare path as its canonical, page number kept, instead of none.
+
+### Fixed
+
+- The clear button of the site search field shows its glyph centred vertically on WebKit (Safari, iOS).
 
 ## [0.1.0](https://github.com/Pollora/MeiliFacets/releases/tag/0.1.0) - 2026-10-01
 
