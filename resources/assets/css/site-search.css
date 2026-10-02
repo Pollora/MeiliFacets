@@ -169,6 +169,7 @@
 
 [data-meili="search-input"]::-webkit-search-cancel-button {
     appearance: none;
+    align-self: center;
     width: var(--meili-search-glyph);
     height: var(--meili-search-glyph);
     margin: 0;
