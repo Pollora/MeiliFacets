@@ -1606,7 +1606,7 @@ réservés y compris renommés. Vérifié en HTTP :
 | `/?q=bonjour` | **noindex si `q` avait été inclus** | index |
 | `/?categorie=cheveux` | **noindex** | **index** |
 
-### R-59 · 🔴 · **fermé le 2026-09-06** · ouvert le 2026-09-06 — chaque URL de listing émettait `noindex` **et** une canonique vers une autre URL
+### R-59 · 🔴 · **fermé le 2026-09-06**, inversé le 2026-10-02 par `R-208` · ouvert le 2026-09-06 — chaque URL de listing émettait `noindex` **et** une canonique vers une autre URL
 
 **Mesuré le 2026-09-06** en HTTP, sur le site local :
 
@@ -1637,6 +1637,10 @@ Trois sorties possibles :
 | **Renoncer au `noindex`** et s'en remettre à la canonique | Contredit la règle du projet, et les URLs filtrées resteraient explorées |
 
 **Fermé le 2026-09-06 : la canonique est supprimée quand le module pose `noindex`.**
+
+*Inversé le 2026-10-02 par `R-208`* : une vue secondaire porte de nouveau une canonique, vers son chemin nu, numéro
+de page du module conservé (`IndexingPolicy::canonicalFor()`) ; le `noindex, follow` reste posé, et le risque décrit
+ci-dessus est accepté.
 
 Deux choses apprises en le corrigeant, aucune des deux évidente :
 
@@ -3301,67 +3305,152 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
-### R-208 · 🟠 · ouvert (en attente de commit) · ouvert le 2026-10-02 — décision SEO : une vue secondaire porte une canonique vers son chemin nu
+### R-209 · 🟡 · ouvert (en attente de commit) · ouvert le 2026-10-02 — revue de la PR #7 (`9c4474a`) et de `14391f7`
 
-**Demande** : décision SEO du projet Pluralia, transmise par Louis — une URL filtrée doit déclarer
+Rattaché à `R-206`, `R-207`, `R-208`. Constats publiés en anglais dans la PR (« Review — `9c4474a` »), puis revue de
+`14391f7`, qui n'avait été revu par personne. Rien n'est commité, réindexé ni écrit en base ou dans le moteur : les
+documents indexés portent déjà une liste JSON, la nouvelle règle de lecture ne change rien à l'index.
+
+**Constats de la PR et suite donnée.**
+1. *Branchement client des variantes non tenu* : `ListingBinding` « draws each card through the variant the answered
+   state points to ». Rouge quand `fieldsOf(hit, choice)` redevient `fieldsOf(hit)` (mutation vérifiée).
+2. *Variantes reçues deux fois par le panneau* : **non corrigé, documenté** (`reference/index-settings.md`, « Watch
+   out »). Meilisearch 1.53, mesuré en lecture sur l'index de test : `attributesToRetrieve: ["card.title"]` ne rend
+   rien tant que `displayedAttributes` vaut `["ID", "card"]`, et surligner un sous-champ seul ne rend aucun
+   `_formatted` ; aucune syntaxe d'exclusion. L'exclure demanderait de déclarer chaque sous-champ affiché dans
+   `displayedAttributes` (réglages + réindexation) alors que le module ne connaît pas les champs de carte d'un projet.
+   Mesure : une carte de deux variantes porte environ 0,9 Ko de variantes, reçues une seconde fois en `_formatted`.
+3. *Parité sur un objet à clés entières non croissantes* : `variants` est une liste JSON ; un objet n'est lu que s'il
+   est indexé de 0 à n-1, dans l'ordre des indices (`ksort` + `array_is_list` en PHP, clés `"0"`…`"n-1"` en TS). La
+   règle de `R-206` (« un tableau ou un objet se lit par ses valeurs ») est resserrée pour la seule liste des
+   variantes : PHP garde l'ordre d'insertion, JavaScript range les clés entières, et PHP ne distingue plus `[a, b]` de
+   `{"0": a, "1": b}` une fois décodé — « liste seulement » n'était donc pas tenable des deux côtés. Les listes de
+   slugs gardent la règle de `R-206` (leur ordre ne compte pas).
+4. *Champs réservés* : `id`, `variants` et `several_variants` sont retirés des `fields` d'une variante, dans
+   `VariantChoice` des deux côtés (`FIELDS_SET_BY_THE_MODULE`). `ID_FIELD` déménage de `card-view.ts` dans
+   `variant-choice.ts` (jumeau de `ContractParityTest` suivi).
+5. *`perf(card)` tenu par la suite autonome* : `CardBindingTest::a_rendered_card_carries_no_binding_instruction`, sur
+   les 26 éléments présents des cas partagés (texte, attributs, classes, liste de classes, conditions). `marker()` qui
+   écrit toujours : 26 échecs.
+6. *Docs* : `customising/card.md` (`data-meili-class-list` n'enlève rien ; le panneau redessine un nœud gardé),
+   exemple corrigé (`use App\Shop\ShopCardField`, attributs non taxonomiques écartés par `taxonomy_exists()`), règles
+   (liste JSON, champs réservés), limite « fourchette de prix entre deux variantes » ; `reference/components.md`
+   (`classList()`, `data-meili-class`, `data-meili-class-list`, carte rendue sans marqueur) ; `upgrading.md`
+   (section « Unreleased » : marqueurs, canonique).
+7. `VariantChoiceTest` : `assertSame` partout (aller-retour comparé par `toArray()`), test renommé
+   `it_shows_the_card_through_the_matching_variant_or_as_projected`.
+8. *Registre* : `R-206`, `R-207`, `R-208` fermés avec leurs commits ; `R-206` et `R-207` portent les chiffres mesurés
+   à `9c4474a`, `R-208` n'en porte pas ; détails du projet de test reformulés (`R-206`, `R-207`, `R-208`,
+   `decisions.md`).
+9. *Nits* : type `Selection` (`ListingState`, importé par `VariantChoice`, `CardVariant`, `StateReader`) et `Selection`
+   côté TS (`shared/description.ts`) ; `$variants`/`variants` qui désignaient un `VariantChoice` deviennent
+   `$choice`/`choice` ; commentaire de `card-variant.ts` supprimé (justifiait un choix) ; celui de `card-binding.ts:16`
+   gardé (contournement technique : `\s` de JavaScript est Unicode, celui de PCRE ASCII).
+
+**Relecture en deux passes (code, puis docs).** Corrigés après la passe code : le docblock de `canonicalFor()` disait
+encore que Yoast pagine par `/page/N` (il pagine aussi par la requête, sans permaliens « jolis ») ; deux cas partagés
+écartent une clé `"00"` et `"-0"` (une mutation TS en `Number(key) === index` passait les 26 autres) ;
+`a_rendered_card_carries_no_binding_instruction` ne tourne plus que sur les éléments présents et exige un élément ; le
+commentaire de `VariantChoice::listed()` dit le fait (`json_decode` garde l'ordre d'écriture, le navigateur range les
+clés entières) au lieu de justifier ; `PostDocument` réécrit `variants` avec `array_values()` à l'indexation, pour
+qu'une liste à trous laissée par `array_filter()` ne soit pas stockée en objet et ignorée sans signal.
+
+Corrigés après la passe docs. *Faux* : la canonique vers le chemin nu (`R-208`) n'était pas reportée dans
+`architecture.md` ni dans la section « Facette de recherche » de `configuration.md`, qui la disaient encore retirée ; « qu'il
+construit » attribuait la canonique au module au lieu de Yoast (`configuration.md`). *Incohérent* : cinq attributs de
+liaison et non quatre (`decisions.md`, `architecture.md`, qui dit aussi qu'ils ne sont écrits que dans le gabarit) ;
+ligne `data-meili-class-list` ajoutée au tableau « Lier un champ de la carte » ; `R-59` marqué inversé par `R-208` ;
+chiffres de `9c4474a` attribués à `R-206` et `R-207` seulement (`Modules` valait 966 à `a4b5319`) ; ligne TS de
+`R-206` marquée retirée. *Manquant* : `CHANGELOG.md` (section « Fixed » pour `417b687`, `Enums\VariantField`,
+`CardField::Variants`, `CardField::SeveralVariants`) ; champs réservés et écriture en liste JSON à l'indexation dans
+`reference/index-settings.md` ; marqueurs écrits par `CardBinding::template()` seul (`customising/card.md`) ;
+`upgrading.md` (`Contract::VERSION` inchangé, pas de réindexation, `module:publish`). *Neutralité* : poids par carte,
+pages et nombres de cartes, tailles, noms de tests et slugs du projet de test retirés (`CHANGELOG.md`, `R-206` à
+`R-209`, `decisions.md`). *Nits* : exemple de poids d'une variante, formulations de `card.md` et `upgrading.md`,
+exemples harmonisés en `/shop/?…`, lignes de plus de 120 caractères rewrappées.
+
+**Revue de `14391f7`.** Corrigés : le docblock de `canonicalFor()` disait que Yoast « retire les paramètres qu'il ne
+connaît pas » — il construit la canonique depuis le permalien, sans query string ; aucun test ne tenait le séparateur
+`&` (canonique qui porte déjà `?`) ; exemples de la doc publique sous les slugs du projet (→ `/shop/?…&brand=`, comme le
+reste de la doc) ; nom du projet consommateur et slugs de test dans `R-208` ; entrée de `CHANGELOG.md` manquante.
+**Laissés en question** (relevés en HTTP) : la canonique relit `pg` à sa façon au lieu de la page que le listing a
+servie — `/shop/page/2/?pg=3` sert la page 3 sous la canonique `/shop/page/2/?pg=3`, `/shop/page/2/?pg=1` sert la page 1
+sous `/shop/page/2/`, `?pg=2abc` sert la page 2 (`StateReader` caste) sous le chemin nu, `?pg=99` sert la dernière page
+sous `?pg=99` ; une canonique saisie à la main dans Yoast sur un terme reçoit aussi `?pg=N`. Le crochet lui-même
+(`canonicalizeSecondaryViews()`, garde `isSecondaryView()`) n'est tenu par aucun test, comme avant lui
+`dropCanonicalOfSecondaryViews()`. Sécurité : rien — la page est un entier, `http_build_query` encode le nom.
+
+**Vérifié (2026-10-02).** `composer check` vert (PHP 636, client 922) ; suite `Modules` 1007 verte ; les tests de carte
+du projet de test passent. Nouveaux cas rouges sans leur correction : 4 cas partagés en PHP, 3 en TS (l'ordre d'un objet
+indexé ne divergeait que côté PHP). Navigateur, WebKit iPhone et Chromium, `submit` et `immediate`, sans ajout au
+panier : carte projetée sans filtre, variante au premier rendu et après clic, préfixe sur deux tailles cochées,
+aucun marqueur sur les cartes rendues par le serveur ; panneau de recherche : un résultat, surligné, sans variante
+dessinée, console sans erreur.
+
+### R-208 · 🟠 · **fermé le 2026-10-02** (`14391f7`, revu sous `R-209`) · ouvert le 2026-10-02 — décision SEO : une vue secondaire porte une canonique vers son chemin nu
+
+**Demande** : décision SEO d'un projet consommateur, validée par Louis — une URL filtrée doit déclarer
 une canonique vers l'URL non filtrée. Elle **inverse** la sortie retenue par `R-59` (canonique
 supprimée). Deux points tranchés par Louis avant de coder : le `noindex, follow` reste posé ; la
 pagination garde une canonique auto-référente, sans les filtres.
 
-**Mesuré avant** : `/boutique?q=ge` → `noindex, follow`, aucune canonique.
+**Mesuré avant** : `/shop/?q=…` → `noindex, follow`, aucune canonique.
 
-**Correctif** : `IndexingPolicy::canonicalizeSecondaryViews()` remplace
-`dropCanonicalOfSecondaryViews()`, sur le même `wpseo_canonical` à 20. Yoast fournit déjà le chemin
-nu (il retire les paramètres qu'il ne connaît pas et garde `/page/N`) : `canonicalFor()` n'y remet
-que le numéro de page du module, entier strictement supérieur à 1, sous son nom configuré.
+**Correctif** : `IndexingPolicy::canonicalizeSecondaryViews()` remplace `dropCanonicalOfSecondaryViews()`, sur le même
+`wpseo_canonical` à 20. Yoast fournit déjà le chemin nu (il construit la canonique depuis le permalien et sa propre
+pagination, sans les paramètres du listing) : `canonicalFor()` n'y remet que le numéro de page du module, entier
+strictement supérieur à 1, sous son nom configuré.
 
 **Coût accepté** : la paire `noindex` + canonique vers une autre URL est celle que `R-59` qualifiait
 de contradictoire — Google peut reporter le `noindex` sur la cible. Rien ne le signalera : à surveiller
-dans la Search Console (statut d'indexation de `/boutique` et des archives de catégorie).
-Reste aussi deux formes pour une même page 2, `?pg=2` et `/page/2`, chacune canonique d'elle-même ;
+dans la Search Console (statut d'indexation du chemin nu de l'archive produit et des archives de catégorie).
+Restent aussi deux formes pour une même page 2, `?pg=2` et `/page/2/`, chacune canonique d'elle-même ;
 toutes deux en `noindex`.
 
 **Vérifié** en HTTP le 2026-10-02 :
 
 | URL | robots | canonical |
 | --- | --- | --- |
-| `/boutique` | index | `/boutique` |
-| `/boutique?q=ge` | noindex | `/boutique` |
-| `/boutique?sort=newest` | noindex | `/boutique` |
-| `/boutique?pg=2` | noindex | `/boutique?pg=2` |
-| `/boutique?q=ge&pg=2` | noindex | `/boutique?pg=2` |
-| `/boutique?pg=abc` | noindex | `/boutique` |
-| `/boutique/page/2` | noindex | `/boutique/page/2` |
-| `/boutique/page/2?marque=x` | noindex | `/boutique/page/2` |
-| `/categorie-produit/cheveux?sort=newest` | noindex | `/categorie-produit/cheveux` |
-| `/?q=bonjour` | index | `/` |
+| `/shop/` | index | `/shop/` |
+| `/shop/?q=…` | noindex | `/shop/` |
+| `/shop/?sort=newest` | noindex | `/shop/` |
+| `/shop/?pg=2` | noindex | `/shop/?pg=2` |
+| `/shop/?q=…&pg=2` | noindex | `/shop/?pg=2` |
+| `/shop/?pg=abc` | noindex | `/shop/` |
+| `/shop/page/2/` | noindex | `/shop/page/2/` |
+| `/shop/page/2/?brand=x` | noindex | `/shop/page/2/` |
+| `/<archive de catégorie>?sort=newest` | noindex | `/<archive de catégorie>` |
+| `/?q=…` (accueil) | index | `/` |
+
+*(chemins génériques : le relevé a été fait sur le projet de test, sous ses propres slugs.)*
 
 Tests : `IndexingPolicyTest` (chemin nu, page conservée, page 1 et valeur illisible écartées, paramètre
 renommé, canonique absente laissée absente).
 
-### R-207 · 🟢 · ouvert (en attente de commit) · ouvert le 2026-10-02 — une carte rendue par le serveur porte des instructions de liaison que personne ne lit
+### R-207 · 🟢 · **fermé le 2026-10-02** (`9c4474a`, constats de revue suivis sous `R-209`) · ouvert le 2026-10-02 — une carte rendue par le serveur porte des instructions de liaison que personne ne lit
 
 **Constat** : `CardBinding` écrivait `data-meili-text`, `data-meili-attr`, `data-meili-class`,
 `data-meili-class-list` et `data-meili-if` sur chaque carte, gabarit ou non. Le client ne relie jamais
 une carte rendue : il clone le `<template>` et remplace la liste (`ResultsView.show()`,
-`replaceChildren`). Mesuré sur le projet local : environ 580 octets de liaison par carte, soit
-près de 32 Ko sur une page de 55 cartes.
+`replaceChildren`). Mesuré sur le projet de test : quelques centaines d'octets de liaison par carte, soit
+plusieurs dizaines de Ko sur une page qui en montre une cinquantaine.
 
 **Correctif** : les marqueurs ne sont écrits que dans le gabarit (`CardBinding::marker()`). Une carte
 rendue garde ses valeurs (attributs, texte, classes) et ses crochets `data-meili`, qu'un thème peut
 cibler en CSS ; les noms de champ restent validés dans les deux cas. `Contract::VERSION` inchangé : le
 client ne lisait ces marqueurs que dans le gabarit.
 
-**Vérifié** : `composer check` vert (PHP 593, client 911), suite `Modules` 963 tests
-(`CardComponentTest::it_binds_only_the_template`). Navigateur, WebKit iPhone et Chromium, `submit` et
-`immediate` : aucun marqueur hors gabarit sur l'accueil (55 cartes) ni sur la boutique (16), cartes
+**Vérifié** au commit `9c4474a` : `composer check` vert (PHP 597, client 915), suite `Modules` 967 tests
+(`CardComponentTest::it_binds_only_the_template`). La suite autonome ne tenait pas encore l'absence des marqueurs
+sur une carte rendue : ajouté sous `R-209`. Navigateur, WebKit iPhone et Chromium, `submit` et
+`immediate` : aucun marqueur hors gabarit sur les pages de cartes du projet de test, cartes
 rendues par le client identiques à avant, wishlist initialisée, ajout au panier en ajax.
 
-### R-206 · 🟠 · ouvert (en attente de commit) · ouvert le 2026-10-01, revu le 2026-10-02 — la carte d'un produit variable ignore le filtre qui l'a trouvé
+### R-206 · 🟠 · **fermé le 2026-10-02** (`a1d695c`, `a4b5319`, constats de revue suivis sous `R-209`) · ouvert le 2026-10-01, revu le 2026-10-02 — la carte d'un produit variable ignore le filtre qui l'a trouvé
 
 Réalise la décision validée « Produits variables », jamais livrée. Constaté sur le projet de test : un produit vendu en
-400 ml à 39 € et en 15 ml à 26 € est bien trouvé par le filtre `400ml`, mais sa carte affiche « 15ml » et « 26 € » —
-la carte était calculée à l'indexation, sans rien savoir des filtres.
+deux tailles, à deux prix, est bien trouvé par le filtre de la plus grande, mais sa carte affiche la plus petite et
+son prix — la carte était calculée à l'indexation, sans rien savoir des filtres.
 
 **Conception (option A, validée, révisée « au plus près du natif » le 2026-10-01).** Un document par produit ; la carte
 porte ses variantes.
@@ -3375,9 +3464,9 @@ porte ses variantes.
   (`CardVariant::carriesAny()`). Une variante correspond si, pour chaque facette active qu'elle porte, un de ses termes
   est coché, et si son prix est dans la fourchette (`Range::contains()`). Parmi les correspondantes, la moins chère (la
   première listée à égalité) ; ses champs remplacent ceux de la carte ; `several_variants`
-  (`CardField::SeveralVariants`) vaut `true` si plusieurs correspondent. Aucune : carte projetée. La liste est retirée de
-  toute carte que le module montre (listing, serveur et navigateur ; panneau de recherche).
-- Serveur : `ResolvedListing::cards()`. Navigateur : `CardView.fieldsOf(hit, variants)`, sur l'état auquel répond la
+  (`CardField::SeveralVariants`) vaut `true` si plusieurs correspondent. Aucune : carte projetée. La liste est retirée
+  de toute carte que le module montre (listing, serveur et navigateur ; panneau de recherche).
+- Serveur : `ResolvedListing::cards()`. Navigateur : `CardView.fieldsOf(hit, choice)`, sur l'état auquel répond la
   recherche (`ListingBinding::#repaintGrid`) ; le panneau de recherche passe sans filtre.
 - Hors listing, une carte est rendue telle que projetée, sans `VariantChoice` ; le projet de test ne calcule plus ses
   variantes que pour l'index.
@@ -3394,9 +3483,10 @@ porte ses variantes.
 **Données mal formées (2026-10-02).** PHP lisait le document décodé en tableaux, le client en objets : une liste de
 termes stockée en objet (`{"0":"a"}`) passait en PHP et non en TS ; une taxonomie ou un champ à nom numérique était
 écarté en PHP (clé entière après décodage) et gardé en TS. Règle commune, la seule que PHP puisse tenir : un tableau ou
-un objet JSON se lit par ses valeurs (listes) ou ses clés (dictionnaires), sans regarder le type des clés. Fusion des
-champs par `array_replace()` (l'opérateur `...` renumérote les clés entières). Quatre cas ajoutés, chacun rouge d'un
-seul côté avant correction.
+un objet JSON se lit par ses valeurs (listes) ou ses clés (dictionnaires), sans regarder le type des clés. *Resserré le
+2026-10-02 pour la liste des variantes (`R-209`)* : l'ordre d'un objet à clés entières diffère entre PHP et JavaScript.
+Fusion des champs par `array_replace()` (l'opérateur `...` renumérote les clés entières). Quatre cas ajoutés, chacun
+rouge d'un seul côté avant correction.
 
 **Tests.** `tests/card-variant-cases.json` (21 cas : une, plusieurs, aucune, fourchette, borne seule, sans filtre,
 variante unique, taxonomie non portée, égalité, sans variantes, prix non fini, listes et dictionnaires mal formés,
@@ -3406,21 +3496,22 @@ noms numériques), joués par `Unit\VariantChoiceTest` et `ts/variant-choice.tes
 
 **Les cinq passes (2026-10-02).** *Lisibilité* : `CardVariants` renommé `VariantChoice` (il choisit, `CardVariant` lit
 et compare) ; `variants_several` renommé `several_variants`. *Commentaires* : retirés ceux qui justifiaient un choix
-(`CardBinding::classList()`, `#classList()` côté TS, seconde moitié de `CardVariant::read()` des deux côtés) ; une
-ligne ajoutée côté TS (un tableau JSON est un objet pour le serveur). *Performance* : un `VariantChoice` par réponse,
-linéaire en variantes ; côté projet, la carte de page ne charge plus les variations (produit variable : 0,90 → 0,39 ms
-par carte construite, mesures entrelacées dans un même processus). *Sécurité* : l'état de l'URL n'est que comparé ;
-les surcharges passent par la même liaison (liste blanche, prix seul en HTML). *Contexte et i18n* : rien de
-WooCommerce dans le module ; libellé traduisible côté thème.
+(`CardBinding::classList()`, `#classList()` côté TS, seconde moitié de `CardVariant::read()` des deux côtés) ; une ligne
+ajoutée côté TS (un tableau JSON est un objet pour le serveur), retirée sous `R-209`. *Performance* : un `VariantChoice`
+par réponse, linéaire en variantes ; côté projet, la carte de page ne charge plus les variations (produit variable :
+carte construite deux fois plus vite, mesures entrelacées dans un même processus). *Sécurité* : l'état de l'URL n'est
+que comparé ; les surcharges passent par la même liaison (liste blanche, prix seul en HTML). *Contexte et i18n* : rien
+de WooCommerce dans le module ; libellé traduisible côté thème.
 
-**Vérifié (2026-10-02).** `composer check` vert (PHP 597, client 915) ; suite `Modules` 967 verte ; index du projet de
-test inchangé (64 documents comparés avant/après, valeurs identiques) ; navigateur WebKit iPhone et Chromium,
-`submit` et `immediate` : filtre `400ml` → « 400ml · 39,00 € » au premier rendu et après clic ; `15ml` + `400ml` →
-préfixe et 15 ml ; aucun marqueur hors gabarit ; ajout au panier en ajax.
+**Vérifié au commit `9c4474a` (2026-10-02).** `composer check` vert (PHP 597, client 915) ; suite `Modules`
+967 verte ; index du projet de test inchangé (tous les documents comparés avant/après, valeurs identiques) ; navigateur
+WebKit iPhone et Chromium, `submit` et `immediate` : filtre sur la grande taille → sa variante et son prix au
+premier rendu et après clic ; les deux tailles cochées → préfixe et la moins chère ; aucun marqueur hors gabarit ;
+ajout au panier en ajax.
 
 **Constaté hors périmètre.** La fiche produit du projet de test est rendue par une vue générique : aucun formulaire de
 variations. La pré-sélection est vérifiée sur la fonction native (`wc_dropdown_variation_attribute_options()` lit
-`attribute_pa_contenance` de l'URL).
+`attribute_<taxonomie>` de l'URL).
 
 ### R-205 · ⚪ · **fermé le 2026-10-01, sans code** · ouvert le 2026-10-01 — une panne du moteur au rendu du listing serait silencieuse
 
