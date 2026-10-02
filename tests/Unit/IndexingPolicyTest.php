@@ -109,6 +109,14 @@ final class IndexingPolicyTest extends TestCase
     }
 
     #[Test]
+    public function it_appends_the_page_number_to_a_canonical_that_already_has_a_query(): void
+    {
+        $canonical = $this->policy->canonicalFor('https://shop.test/?post_type=product', ['pg' => '2']);
+
+        $this->assertSame('https://shop.test/?post_type=product&pg=2', $canonical);
+    }
+
+    #[Test]
     public function it_leaves_an_absent_canonical_absent(): void
     {
         $this->assertSame('', $this->policy->canonicalFor('', ['pg' => '2']));
