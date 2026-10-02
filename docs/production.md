@@ -252,8 +252,8 @@ signed by the server; it is not implemented yet.
 On an archive or a search page, every view that is not the bare path is served `noindex, follow`: a facet value, a
 sort, a search term, a price bound or a page number, in a parameter or as `/page/N`.
 
-- These views carry a **canonical to the bare path**, page number kept: `/boutique?q=ge&pg=2` points to
-  `/boutique?pg=2`. The bare path keeps its own canonical, and `rel="next"` / `rel="prev"` are removed from listing
+- These views carry a **canonical to the bare path**, page number kept: `/shop/?q=cream&pg=2` points to
+  `/shop/?pg=2`. The bare path keeps its own canonical, and `rel="next"` / `rel="prev"` are removed from listing
   pages.
 - Facets, sorting and pagination are **buttons, not links**. Crawlers do not follow them, so they do not discover the
   combinations of filters.

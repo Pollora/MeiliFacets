@@ -219,8 +219,8 @@ a search term, a price bound, a page number in `pg`, or a `/page/N` path. A seco
 `noindex, follow`, because its content already exists on the bare path, and its links stay followed.
 
 - A secondary view's canonical points to the bare path, without facets, sort, search or price bounds. A page number
-  is kept, because page 2 does not list the products of page 1: `/boutique?q=ge&pg=2` points to `/boutique?pg=2`, and
-  `/boutique/page/2?marque=x` to `/boutique/page/2`. The module builds it from the one Yoast SEO prints; without
+  is kept, because page 2 does not list the products of page 1: `/shop/?q=cream&pg=2` points to `/shop/?pg=2`, and
+  `/shop/page/2/?brand=acme` to `/shop/page/2/`. The module builds it from the one Yoast SEO prints; without
   Yoast, no canonical is printed on an archive.
 - `rel="next"` and `rel="prev"` are removed from every archive and search page, bare path included. Product pages
   are found through the sitemap, not through paginated listings.

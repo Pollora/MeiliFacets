@@ -43,8 +43,8 @@ final readonly class IndexingPolicy
     }
 
     /**
-     * Yoast already strips the parameters it does not know, and keeps `/page/N`:
-     * only the module's own page number is missing.
+     * Yoast builds it from the permalink and its own pagination; it never carries
+     * the listing's parameters: only the module's own page number is missing.
      *
      * @param  array<string, mixed>  $query
      */
