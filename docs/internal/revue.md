@@ -3315,6 +3315,101 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
+### R-220 · 🟠 · ouvert · ouvert le 2026-10-05 — revue de la PR #9 (`c86a74e`) : 15 constats
+
+Publiés en anglais sur la PR (`/code-review max`, un commentaire par constat). Traités un par un : vérifier
+qu'il est vrai, corriger, tester, puis passer au suivant.
+
+1. *Lot de réindexation refusé au-delà de 100 Mo* (`VariantDocuments`, une fiche variante recopie la fiche produit et
+   la liste de toutes les variantes ; MeiliScout envoie 500 produits d'un bloc) ; suppression avant écriture.
+   *Vérifié* : produit 125, 5,75 Ko par fiche dont 952 o de liste (2 variantes, 476 o chacune), lot de 500
+   (`Indexer.php:56`). *Corrigé le 2026-10-05* : MeiliScout `328fc16` (envois découpés à 10 Mo, filtre
+   `meiliscout/max_payload_bytes` ; écriture d'abord, puis suppression des seules fiches périmées) et module
+   `0a41ac8` (`ID` filtrable). Mesuré en local : suppression `(parent_id IN [125]) AND NOT ID IN ["125-0",
+   "125-1"]` réussie ; une fausse fiche `125-9` disparaît, les deux vraies restent.
+2. *Slug d'une taille renommé* : les fiches variante gardent l'ancien slug. *Vérifié* : sur `edited_term`, priorité
+   10, MeiliScout (`handleTermSave`, qui réindexe les produits du terme) passe avant `WC_Post_Data::edited_term`, qui
+   réécrit ensuite par SQL `attribute_pa_*` des variations et `_default_attributes` des produits, sans vider leur cache
+   (`class-wc-post-data.php:275-291`). Sous 50 variations, la régénération des résumés de WooCommerce vide le cache par
+   chance ; au-delà (`woocommerce_regenerate_variation_summaries_sync_threshold`), elle part en tâche de fond et une
+   réindexation dans la même requête lit l'ancien slug — prouvé par un test rouge, seuil forcé à 0.
+   *Premier correctif abandonné le 2026-10-05, avant commit* : une réindexation de plus côté module, qui doublait celle
+   de MeiliScout, lisait le cache périmé et dépendait d'un crochet interne de MeiliScout.
+   *Corrigé le 2026-10-05, non commité* :
+   - MeiliScout (non commité) : `edited_term` écouté à `EDITED_TERM_PRIORITY` (100), après les plugins qui réécrivent
+     les articles d'un terme à la priorité par défaut. Création et suppression inchangées. Action publique
+     `meiliscout/schedule_indexation`, sans argument : programme une fois la tâche de fond du bouton « Indexer », sans
+     vider l'index, et ne fait rien pendant `meiliscout/skip_indexing`.
+   - module : `Indexing\VariationMetaRewrites` vide le cache des métas après chaque réécriture SQL de WooCommerce.
+     Sur `edited_term`, à la priorité 20 (entre WooCommerce et MeiliScout), pour un attribut produit : cache des
+     produits du terme et des variations qui portent son nouveau slug (la requête même de WooCommerce,
+     `class-wc-post-data.php:1046`). Au renommage d'un attribut entier, en fin de requête : cache des variations qui
+     portent la nouvelle clé (`wc_variation_attribute_name()`), puis `meiliscout/schedule_indexation`.
+   Tests (`VariationMetaRewritesTest`) : attribut fictif en mémoire, aucune ligne dans la table des attributs, cron et
+   Action Scheduler court-circuités.
+   - À la priorité de MeiliScout, la variation et son produit portent déjà le nouveau slug.
+   - Un terme hors attributs, rattaché au produit, laisse le cache du produit et de la variation.
+   - Un attribut renommé deux fois dans la même requête vide le cache et ne programme qu'une tâche.
+   - Un attribut enregistré sous le même slug ne programme rien.
+   Dix mutations, chacune rattrapée par un test : module après MeiliScout, MeiliScout remis à 10, produits oubliés,
+   variations oubliées, garde de taxonomie, programmation, comparaison des slugs, vidage retirés ; MeiliScout,
+   priorité écrite en dur à 15, garde `skip_indexing` retirée. Base relue après coup : aucune donnée de test, aucun événement programmé.
+   *Revue, le 2026-10-05* :
+   - Corrigé : une première version reportait la réindexation des termes à `shutdown` dans une liste en mémoire.
+     C'était une seconde file à côté de `AsyncIndexingQueue`, et elle reportait aussi `created_term` : un produit
+     enregistré avec une nouvelle étiquette aurait été indexé deux fois. Remplacée par la priorité.
+   - Corrigé : écouteur de test non retiré (même cause que le n°15). Rector change `[$this, 'm']` en
+     `$this->m(...)`, et chaque écriture crée une nouvelle closure que `remove_action()` ne retrouve pas. Une seule
+     closure est donc gardée dans une propriété.
+   - Corrigé : `tearDown` d'un test sauté ; catégorie de test au nom unique.
+   - Corrigé : drapeau booléen retiré de l'action MeiliScout ; `skip_indexing` respecté.
+   - Corrigé : `wc_variation_attribute_name()` au lieu d'un préfixe recopié ; noms revus ; `nopaging` au lieu de
+     `posts_per_page => -1`.
+   - Corrigé : les variations à vider sont cherchées par clé et slug, plus par `post_parent__in` — une liste vide y
+     est ignorée et renvoie toutes les variations (`class-wp-query.php:2257`).
+   - Corrigé (MeiliScout, tests) : deux fichiers déclaraient un `apply_filters` qui ignore `$GLOBALS['filters']` ;
+     chargés avant, ils désarmaient la garde `skip_indexing` de `ReindexPostTest` et `ScheduleIndexationTest`. Un seul
+     bouchon dans `tests/Pest.php`, remis à zéro avant chaque test.
+   - Refusé : renommer la classe `AttributeMetaRewrites`. « Attribut » désigne déjà dans le module les champs de
+     l'index (`IndexAttributes`).
+   - Refusé : vider le cache seulement si le slug change. Il faudrait retenir l'ancien slug sur `edit_term` ; le gain
+     est de deux requêtes, sur une action d'administration après laquelle MeiliScout relit de toute façon ces produits.
+   - Refusé : `clean_post_cache()` pour le cache d'instances produit de WooCommerce. L'option `product_instance_caching`
+     est à `no` sur ce site, et `clean_post_cache()` déclenche ses propres écouteurs sur chaque variation.
+   - Noté, hors périmètre (MeiliScout, antérieur) : le bouton « Indexer » cherche une tâche déjà programmée avec
+     `wp_next_scheduled()` sans arguments et ne la trouve jamais (`IndexationServiceProvider.php:176`).
+   *Recensement de tous les chemins qui changent le slug d'un attribut dans une variation* :
+   - terme renommé : corrigé ci-dessus ;
+   - terme supprimé : WooCommerce ne réécrit pas les variations (`class-wc-post-data.php:1087-1123`, résumés seuls) ;
+     MeiliScout réindexe les produits du terme ; la variante garde un slug que plus aucun filtre ne propose et que les
+     autres tailles n'atteignent pas — aucun produit ne disparaît, rien à corriger ;
+   - variation enregistrée (admin, import CSV, REST) : crochets de variation, déjà gérés ;
+   - produit parent enregistré : `save_post`, déjà géré ;
+   - méta d'une variation écrite directement, restauration depuis la corbeille : constat n°6 ;
+   - attribut entier renommé (`pa_contenance` en `pa_volume`) : WooCommerce réécrit taxonomies et métas par SQL après
+     `woocommerce_attribute_updated` (`wc-attribute-functions.php:615-663`) ; toutes les fiches et les réglages de
+     l'index gardent l'ancien champ, et le moteur refuse un listing filtré sur le nouveau (vue de panne) jusqu'à la
+     fin de la tâche de fond. Corrigé ci-dessus ; il faut un cron (déjà exigé par `production.md`) — en local
+     `DISABLE_WP_CRON` est vrai sans cron système, une tâche de MeiliScout attend depuis le 2026-09-25.
+     `url_parameters` reste à mettre à jour à la main (doc `indexing/README.md`).
+3. *Compteurs et grille divergent* au-delà de `R-214` (fourchette de prix seule). À trancher.
+4. *Requêtes produit écrites hors `VisibleProducts`* (doc antérieure, `PublishedPosts::of('product')`) : produits
+   variables listés 1+N fois. À vérifier.
+5. *Attribut hors variation* : l'ordre « stock d'abord » contredit la carte. À trancher (choix « A »).
+6. *Produit variable restauré de la corbeille* sans fiches variante. À vérifier.
+7. *Attribut hiérarchique* : un terme parent ne trouve plus ses produits en mode variantes. À vérifier.
+8. *Attribut local homonyme d'une taxonomie* (`taxonomy_exists` au lieu de `taxonomy_is_product_attribute`). À vérifier.
+9. *Taille d'image des variantes* liée à `card.image_size`. À trancher.
+10. *Deux listes de champs relus tenues à la main* (`READ_BY_THE_MODULE`, `VARIANT_RETRIEVED`). À vérifier.
+11. *Suppression par filtre envoyée pour tout article*, pas seulement les produits. À trancher.
+12. *`card.variants` sur la fiche produit*, envoyé sans être lu hors mode variantes. À trancher.
+13. *Pas de cas partagés PHP/TS* pour `measures` et `variantResults`. À vérifier.
+14. *Registre contradictoire* (503, « non commité »). À corriger.
+15. *Écouteur de test jamais retiré* (`VariationChangesTest`). Confirmé par vérification séparée ; à corriger.
+
+Écartés par la revue : `several_variants` hors filtre (voulu), réindexation en trop (`R-215`), noyau HTTP (Pollora
+utilise celui de Laravel).
+
 ### R-219 · 🟢 · ouvert (corrigé, non commité) · ouvert le 2026-10-05 — une valeur de facette lue dans l'URL n'avait pas de longueur maximale
 
 Audit de sécurité du 2026-10-05. `StateReader::isReadable()` acceptait une valeur de n'importe quelle longueur : une

@@ -22,6 +22,7 @@ use Modules\MeiliFacets\Indexing\IndexedTaxonomies;
 use Modules\MeiliFacets\Indexing\PostText;
 use Modules\MeiliFacets\Indexing\SummaryCardProjector;
 use Modules\MeiliFacets\Indexing\VariationChanges;
+use Modules\MeiliFacets\Indexing\VariationMetaRewrites;
 use Modules\MeiliFacets\Indexing\WooCommerceCardProjector;
 use Modules\MeiliFacets\Indexing\WooCommerceIndexAttributes;
 use Modules\MeiliFacets\Indexing\WooCommerceProductFields;
@@ -42,8 +43,9 @@ final class IndexingServiceProvider extends ServiceProvider
 
         $this->app->scoped(IndexedTaxonomies::class);
         $this->app->scoped(FacetedPostIndexable::class);
-        // Hooks discovered on it share what it remembered during the request.
+        // Hooks discovered on them share what they remembered during the request.
         $this->app->singleton(VariationChanges::class);
+        $this->app->singleton(VariationMetaRewrites::class);
         $this->app->bind(
             WooCommerceProductFields::class,
             fn (): WooCommerceProductFields => new WooCommerceProductFields(WooCommerce::isActive(...))

@@ -224,7 +224,9 @@ wp meiliscout index
 | Change | Reindex needed? |
 | --- | --- |
 | a post, a product or its terms saved in the admin, a quick edit, an import through WordPress | no: the post is reindexed |
-| a term renamed or moved | no: MeiliScout reindexes the posts filed under it |
+| a term renamed or moved | no: MeiliScout reindexes the posts filed under it, after WooCommerce has rewritten an attribute term's slug in their variations |
+| a variation saved on its own: price, stock after an order, added, removed | no: the module reindexes its product |
+| **an attribute's slug renamed** (Products › Attributes) | **yes, scheduled**: the module schedules MeiliScout's background run, as long as MeiliScout is configured and cron runs; until it ends, listings answer with the outage view. Update `url_parameters` by hand: it names the old taxonomy |
 | a scheduled sale starting or ending | no, as long as cron runs: see [Indexed prices](prices.md#scheduled-sales) |
 | **an image edited**: alternative text changed in the media library, thumbnails regenerated, an image size redeclared | **yes** |
 | `card.image_size`, a `CardProjector`, the `excerpt_length` filter | **yes** |
