@@ -7,15 +7,8 @@ namespace Modules\MeiliFacets\Tests\Feature;
 use Modules\MeiliFacets\Contracts\CardProjector;
 use Modules\MeiliFacets\Enums\CardField;
 use Modules\MeiliFacets\Enums\DocumentField;
-use Modules\MeiliFacets\Indexing\AnonymousVisitor;
-use Modules\MeiliFacets\Indexing\IndexedPostTypes;
-use Modules\MeiliFacets\Indexing\IndexedTaxonomies;
 use Modules\MeiliFacets\Indexing\PostDocument;
-use Modules\MeiliFacets\Indexing\PostText;
-use Modules\MeiliFacets\Indexing\ProductPriceProjector;
-use Modules\MeiliFacets\Indexing\ShopTaxLocation;
-use Modules\MeiliFacets\Indexing\TermAncestry;
-use Modules\MeiliFacets\Indexing\WordPressTermHierarchy;
+use Modules\MeiliFacets\Indexing\ShopFields;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 use WP_Post;
@@ -113,13 +106,13 @@ final class PostDocumentTest extends TestCase
     }
 
     #[Test]
-    public function it_writes_the_card_variants_as_a_list(): void
+    public function it_drops_the_variants_and_the_stock_flag_a_projector_writes_on_a_post(): void
     {
-        $card = ['title' => 'Routine', CardField::Variants->value => [1 => ['price' => 26], 3 => ['price' => 39]]];
+        $card = ['title' => 'Routine', CardField::Variants->value => [['price' => 26]], CardField::OutOfStock->value => true];
 
         $document = $this->postDocument($card)->complete([], $this->article());
 
-        $this->assertSame([['price' => 26], ['price' => 39]], $document[DocumentField::Card->value][CardField::Variants->value]);
+        $this->assertSame(['title' => 'Routine'], $document[DocumentField::Card->value]);
     }
 
     /** A frozen snapshot: every field, every value and the key order, on a post that lives only in memory. */
@@ -156,15 +149,9 @@ final class PostDocumentTest extends TestCase
      */
     private function postDocument(array $card = self::CARD): PostDocument
     {
-        return new PostDocument(
-            new TermAncestry(new WordPressTermHierarchy),
-            new IndexedTaxonomies(new IndexedPostTypes),
-            new PostText,
-            $this->card($card),
-            new ProductPriceProjector,
-            new ShopTaxLocation,
-            new AnonymousVisitor
-        );
+        $shopFields = $this->app->make(ShopFields::class, ['cards' => $this->card($card)]);
+
+        return $this->app->make(PostDocument::class, ['shopFields' => $shopFields]);
     }
 
     /**

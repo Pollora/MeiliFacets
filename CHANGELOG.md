@@ -11,16 +11,27 @@ What to change in a project when moving from one version to the next is in
 
 ### Added
 
-- Card variants: a card may carry `variants` (`Listing\CardVariant`), and when an active facet or price range concerns
-  them the listing shows the card through the cheapest matching variant (`Listing\VariantChoice`), on the server and in
-  the browser alike. `several_variants` flags a card on which several variants match, for a « from » prefix. With no
-  such filter, or none matching, the card is shown as projected.
-- `Enums\VariantField`, which names the keys of a variant (`facets`, `price`, `fields`), and `CardField::Variants`
-  and `CardField::SeveralVariants`, which name the card's `variants` list and its `several_variants` flag.
+- Card variants: with WooCommerce, the module reads a variable product's variants when it is indexed
+  (`Indexing\ProductVariants`, `Listing\CardVariant`): terms, price, stock, price HTML, link and own image, which
+  replaces the product's image whole. When an active facet or price range concerns them, the listing shows the card
+  through a matching variant (`Listing\VariantChoice`), on the server and in the browser alike: those in stock are
+  preferred, then the cheapest. `several_variants` flags a card on which several variants are offered, for a « from »
+  prefix; `out_of_stock` flags a card that shows a variant out of stock. With no such filter, or none matching, the
+  card is shown as projected. A `variants` list a `CardProjector` returns is dropped.
+- `out_of_stock` on the card of every product WooCommerce holds out of stock, whatever its type
+  (`Indexing\ProductStock`).
+- `Contracts\VariantFields`, which lets a project add fields to each variant; `Indexing\EmptyVariantFields` is the
+  default.
+- `Enums\VariantField`, which names the keys of a variant (`facets`, `price`, `fields`, `in_stock`), and
+  `CardField::Variants`, `CardField::SeveralVariants` and `CardField::OutOfStock`, which name the card's `variants`
+  list and its two flags.
 - `data-meili-class-list` and `CardBinding::classList()`: adds the classes a card field holds to the element's own,
   for classes a platform computes, such as WooCommerce's loop button classes.
 
 ### Changed
+
+- Products and their variants default to the `woocommerce_thumbnail` image size instead of `medium`; `card.image_size`
+  still sets one size for every card.
 
 - A card rendered by the server no longer carries the binding attributes (`data-meili-text`, `data-meili-attr`,
   `data-meili-class`, `data-meili-class-list`, `data-meili-if`): only the template does, since the browser draws every

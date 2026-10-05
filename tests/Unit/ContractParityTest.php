@@ -148,6 +148,8 @@ final class ContractParityTest extends TestCase
         yield 'variant facets' => ['results/card-variant.ts', "FACETS_FIELD = '([^']*)'", VariantField::Facets->value];
         yield 'variant price' => ['results/card-variant.ts', "PRICE_FIELD = '([^']*)'", VariantField::Price->value];
         yield 'variant fields' => ['results/card-variant.ts', "FIELDS_FIELD = '([^']*)'", VariantField::Fields->value];
+        yield 'variant stock' => ['results/card-variant.ts', "IN_STOCK_FIELD = '([^']*)'", VariantField::InStock->value];
+        yield 'out of stock field' => ['results/variant-choice.ts', "OUT_OF_STOCK_FIELD = '([^']*)'", CardField::OutOfStock->value];
         yield 'retrieved card' => ['site-search/site-search-query.ts', "RETRIEVED = \\['ID', '([^']*)'\\]", DocumentField::Card->value];
         yield 'search brick prefix' => ['shared/root-component.ts', "SEARCH_PREFIX = '([^']*)'", Hook::Search->value];
         yield 'facet field prefix' => ['shared/description.ts', "FACET_FIELD_PREFIX = '([^']*)'", DocumentField::Facets->value.'.'];

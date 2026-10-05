@@ -48,7 +48,7 @@ document (see [commands](commands.md#wordpress-cli)).
 | `url_parameters` | `array<string, string>` | `[]` | `[]` | render | Taxonomy name to URL parameter name. A taxonomy left out travels as `f_<taxonomy>`. | [How a listing works](../listing/README.md) |
 | `query_parameters` | `array<string, string>` | `[]` | `[]` | render | Renames a reserved parameter: keys `sort`, `q`, `pg`, `min_price`, `max_price`. | [How a listing works](../listing/README.md) |
 | `card.eager` | `int` | `4` | `4` | render | Number of first cards whose image loads eagerly with `fetchpriority="high"`. | [Results](../listing/results-sort-pagination.md) |
-| `card.image_size` | `string` | `medium` | `medium` | indexing | WordPress image size stored in the card. | [What gets indexed](../indexing/README.md) |
+| `card.image_size` | `string` | `woocommerce_thumbnail` for products and their variants, `medium` otherwise | commented out | indexing | WordPress image size stored in every card, products included. | [What gets indexed](../indexing/README.md) |
 | `engine.reachable_hits` | `int` | `1000` | `1000` | indexing and render | Written as `pagination.maxTotalHits`; caps the last reachable page. | [Index settings](index-settings.md) |
 | `engine.max_facet_values` | `int` | `1000` | `1000` | indexing and render | Written as `faceting.maxValuesPerFacet`; a facet returning that many values is reported as truncated. | [Facets](../listing/facets.md) |
 | `displayed_attributes` | `list<string>` | `[]` | `[]` | indexing | Document fields the search key may read besides `ID` and `card`. `*` opens the whole document. | [What gets indexed](../indexing/README.md) |

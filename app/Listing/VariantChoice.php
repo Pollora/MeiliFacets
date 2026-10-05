@@ -13,10 +13,15 @@ use Modules\MeiliFacets\Enums\CardField;
  */
 final readonly class VariantChoice
 {
+    private const array FLAGS_OF_THE_CHOSEN_VARIANT = [
+        CardField::SeveralVariants->value,
+        CardField::OutOfStock->value,
+    ];
+
     private const array FIELDS_SET_BY_THE_MODULE = [
         CardField::Id->value,
         CardField::Variants->value,
-        CardField::SeveralVariants->value,
+        ...self::FLAGS_OF_THE_CHOSEN_VARIANT,
     ];
 
     /**
@@ -42,7 +47,24 @@ final readonly class VariantChoice
             return $card;
         }
 
-        return array_replace($card, $this->overrides($this->cheapest($matching)), $this->several($matching));
+        $offered = $this->offered($matching);
+        $chosen = $this->cheapest($offered);
+
+        return array_replace(
+            $this->unflagged($card),
+            $this->overrides($chosen),
+            $this->several($offered),
+            $this->stock($chosen),
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $card
+     * @return array<string, mixed>
+     */
+    private function unflagged(array $card): array
+    {
+        return array_diff_key($card, array_flip(self::FLAGS_OF_THE_CHOSEN_VARIANT));
     }
 
     /**
@@ -101,6 +123,17 @@ final readonly class VariantChoice
     }
 
     /**
+     * @param  non-empty-list<CardVariant>  $matching
+     * @return non-empty-list<CardVariant>
+     */
+    private function offered(array $matching): array
+    {
+        $inStock = array_values(array_filter($matching, static fn (CardVariant $variant): bool => $variant->inStock));
+
+        return $inStock === [] ? $matching : $inStock;
+    }
+
+    /**
      * The first listed wins a tie.
      *
      * @param  non-empty-list<CardVariant>  $variants
@@ -115,11 +148,19 @@ final readonly class VariantChoice
     }
 
     /**
-     * @param  list<CardVariant>  $matching
+     * @param  list<CardVariant>  $offered
      * @return array<string, true>
      */
-    private function several(array $matching): array
+    private function several(array $offered): array
     {
-        return count($matching) > 1 ? [CardField::SeveralVariants->value => true] : [];
+        return count($offered) > 1 ? [CardField::SeveralVariants->value => true] : [];
+    }
+
+    /**
+     * @return array<string, true>
+     */
+    private function stock(CardVariant $chosen): array
+    {
+        return $chosen->inStock ? [] : [CardField::OutOfStock->value => true];
     }
 }

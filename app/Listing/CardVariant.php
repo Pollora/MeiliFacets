@@ -9,7 +9,12 @@ use Modules\MeiliFacets\Enums\VariantField;
 /**
  * One way a product is sold — a size, a colour — inside the product's card.
  *
- * @phpstan-type StoredVariant array{facets: array<string, list<string>>, price: float, fields: array<string, mixed>}
+ * @phpstan-type StoredVariant array{
+ *     facets: array<string, list<string>>,
+ *     price: float,
+ *     fields: array<string, mixed>,
+ *     in_stock: bool,
+ * }
  *
  * @phpstan-import-type Selection from ListingState
  */
@@ -23,6 +28,7 @@ final readonly class CardVariant
         public array $facets,
         public float $price,
         public array $fields = [],
+        public bool $inStock = true,
     ) {}
 
     /** Anything without a finite price is not a variant. */
@@ -36,6 +42,7 @@ final readonly class CardVariant
             self::facetsOf($stored[VariantField::Facets->value] ?? null),
             (float) $stored[VariantField::Price->value],
             self::fieldsOf($stored[VariantField::Fields->value] ?? null),
+            ($stored[VariantField::InStock->value] ?? true) !== false,
         );
     }
 
@@ -48,6 +55,7 @@ final readonly class CardVariant
             VariantField::Facets->value => $this->facets,
             VariantField::Price->value => $this->price,
             VariantField::Fields->value => $this->fields,
+            VariantField::InStock->value => $this->inStock,
         ];
     }
 

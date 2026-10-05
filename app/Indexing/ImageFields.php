@@ -17,6 +17,27 @@ final readonly class ImageFields
 
     private const string AUTO_SIZES = 'auto, ';
 
+    private const array NO_FIELD = [
+        CardField::ImageUrl->value => '',
+        CardField::ImageAlt->value => '',
+        CardField::ImageWidth->value => '',
+        CardField::ImageHeight->value => '',
+        CardField::ImageSrcset->value => '',
+        CardField::ImageSizes->value => '',
+    ];
+
+    /**
+     * Every image field, empty where this image has none.
+     *
+     * @return array<string, string|int>
+     */
+    public static function whole(int $imageId, string $size): array
+    {
+        $fields = self::of($imageId, $size);
+
+        return $fields === [] ? [] : [...self::NO_FIELD, ...$fields];
+    }
+
     /**
      * @return array<string, string|int>
      */

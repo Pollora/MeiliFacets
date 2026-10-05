@@ -278,8 +278,8 @@ Each element is a `CardFieldElement`, prepared by the component class from a `Ca
 The binding attributes are written by `CardBinding::template()` only; a rendered card holds the values.
 
 A field is named by an enum case or a string. `CardField` names the module's fields: `Id`, `Title`, `Url`,
-`ImageUrl`, `ImageSrcset`, `ImageSizes`, `ImageAlt`, `ImageWidth`, `ImageHeight`, `Price`, `Summary`, and
-`SeveralVariants` (see [Card variants](#card-variants)).
+`ImageUrl`, `ImageSrcset`, `ImageSizes`, `ImageAlt`, `ImageWidth`, `ImageHeight`, `Price`, `Summary`, `Variants`,
+`SeveralVariants` and `OutOfStock` (see [Card variants](#card-variants)).
 
 `CardHooks` prepares the module's own elements and adds the `data-meili` hook each one carries:
 
@@ -323,47 +323,46 @@ depends on the visitor (a cart, a login, a currency) does not belong in the card
 
 The product is the unit of a listing: it never appears twice. When it is sold in several ways, its card shows the
 product as projected — WooCommerce's price range, every volume — until a filter concerns its variants; then it shows
-the one the visitor filtered on — the 400 ml bottle and its price when `400ml` is ticked — if the projector stores its
-variants.
+the one the visitor filtered on — the 400 ml bottle and its price when `400ml` is ticked.
 
-**1. Project them.** Each variant is a `Listing\CardVariant`: the terms it carries, keyed by taxonomy, its displayed
-price, and the card fields it shows instead of the product's. Any field can be overridden but `id`, `variants` and
-`several_variants`, which the module sets and drops from a variant's fields. Project the variations the
-platform offers — `get_available_variations()` applies WooCommerce's own visibility and stock rules — rather than
-filtering them again:
+**1. The module reads them.** With WooCommerce active, every variable product carries its variants in
+`card.variants`, read when the product is indexed from the variations WooCommerce offers
+(`get_available_variations()`, which applies its visibility rules and « Hide out of stock items »). Each variant
+holds:
+
+- the terms it carries, keyed by taxonomy. A custom attribute typed on the product is not a taxonomy, and no facet
+  filters on it: it is left out. A variation sold for « any » value carries no term for that attribute;
+- its displayed price, from the same list as `price.min` and `price.max` (`get_variation_prices()`), so on the same
+  scale;
+- whether it is in stock (`in_stock`);
+- the card fields it shows instead of the product's: `price` (its price HTML), `url` (the product page with that
+  variation selected) and, when the variation has an image of its own, every image field — empty where that image
+  has none, so no field of the product's image stays under it.
+
+A `variants` list a `CardProjector` returns is always dropped: only the module's, read from WooCommerce, is indexed.
+Without WooCommerce, no card has variants. Override every other link that leads to the product page, a « choose »
+button's for instance, through your own fields below.
+
+**Your own fields.** Bind `Contracts\VariantFields`: it receives each `WC_Product_Variation` and returns fields added
+to the module's, which they override. An empty string or array is left out. `id`, `variants`, `several_variants` and
+`out_of_stock` are set by the module and dropped from a variant's fields.
 
 ```php
 use App\Shop\ShopCardField;
-use Modules\MeiliFacets\Enums\CardField;
-use Modules\MeiliFacets\Listing\CardVariant;
-use WC_Product_Variable;
+use Modules\MeiliFacets\Contracts\VariantFields;
 use WC_Product_Variation;
 
-/** @return list<array<string, mixed>> */
-private function variants(WC_Product_Variable $product): array
+final readonly class ShopVariantFields implements VariantFields
 {
-    return array_map(static function (WC_Product_Variation $variation): array {
-        $terms = array_filter(
-            $variation->get_attributes(),
-            static fn (string $slug, string $taxonomy): bool => $slug !== '' && taxonomy_exists($taxonomy),
-            ARRAY_FILTER_USE_BOTH,
-        );
-        $facets = array_map(static fn (string $slug): array => [$slug], $terms);
-
-        return new CardVariant($facets, (float) wc_get_price_to_display($variation), [
-            ShopCardField::Volume->value => $variation->get_attribute('pa_volume'),
-            CardField::Price->value => $variation->get_price_html(),
-            CardField::Url->value => $variation->get_permalink(),
-        ])->toArray();
-    }, $product->get_available_variations('objects'));
+    public function project(WC_Product_Variation $variation): array
+    {
+        return [ShopCardField::Volume->value => $variation->get_attribute('pa_volume')];
+    }
 }
-```
 
-A custom attribute typed on the product is not a taxonomy, and no facet filters on it: `taxonomy_exists()` keeps it out.
-Store the list under `CardField::Variants`, then reindex: the module writes it as a JSON list even when it has gaps, as
-`array_filter()` leaves. Keep the product's own fields too: they are what the card shows whenever no variant is chosen.
-A variation's `get_permalink()` opens the product page with that variation selected: override every link that leads
-there, the title's and a « choose » button's alike.
+// In a service provider of the project:
+$this->app->bind(VariantFields::class, ShopVariantFields::class);
+```
 
 **2. Nothing to do in the listing.** The server and the browser apply the same rule to every card before binding it:
 
@@ -371,9 +370,13 @@ there, the title's and a « choose » button's alike.
   carries. Otherwise the card is shown exactly as projected;
 - a variant **matches** when, for every active facet whose taxonomy it carries, one of its terms is selected, and its
   price lies within the asked range when there is one. A facet it does not carry rules nothing out;
-- among the matching variants, the **cheapest** wins; its fields are merged over the card's. The first listed wins a
+- among the matching variants, those **in stock** are offered; only when none is in stock are the ones out of stock
+  offered;
+- among the offered variants, the **cheapest** wins; its fields are merged over the card's. The first listed wins a
   tie. When none matches, the card is shown as projected;
-- when **several** variants match, the card gets `several_variants` set to `true`;
+- when **several** variants are offered, the card gets `several_variants` set to `true`; when the shown variant is
+  out of stock, it gets `out_of_stock` set to `true`. Both are reset whenever a variant is shown, whatever the
+  projected card held;
 - the `variants` list itself never reaches the binding.
 
 **3. Say « from » in the view.** Bind a prefix on the flag, and give its text in Blade:
@@ -388,8 +391,14 @@ $this->from = $binding->onlyWith(CardField::SeveralVariants);
 @endif
 ```
 
-**4. A card outside the listing** has no filter: bind it as projected, with nothing to call. Build it without
-variants: only the listing reads them.
+**4. A card outside the listing** has no filter: bind it as projected, with nothing to call. Only the listing reads
+the variants.
+
+**5. Show what is out of stock.** With WooCommerce, the module sets `out_of_stock` on the card of every product
+WooCommerce holds out of stock, whatever its type — a variable product when none of its variations is in stock.
+When the listing shows a variant, the flag follows that variant instead. Bind its rendering on the flag, as for
+« from », with `$binding->onlyWith(CardField::OutOfStock)`. The module lists products out of stock even when « Hide
+out of stock items » is ticked; only their variants out of stock are left out.
 
 **Known limit: crossed filters.** A variant is matched as a whole. With two facets ticked, `400ml` and `rose`, and a
 product sold as « 400 ml, iris » and « 15 ml, rose », the product is listed — each filter matches one of its

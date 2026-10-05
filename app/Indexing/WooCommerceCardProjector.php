@@ -11,6 +11,8 @@ use WP_Post;
 
 final readonly class WooCommerceCardProjector implements CardProjector
 {
+    public const string DEFAULT_IMAGE_SIZE = 'woocommerce_thumbnail';
+
     public function __construct(private CardProjector $productCard, private CardProjector $otherCard) {}
 
     /**

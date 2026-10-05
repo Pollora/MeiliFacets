@@ -6,7 +6,9 @@ import type { Card, Selection } from '../shared/description.ts'
 export const ID_FIELD = 'id'
 const VARIANTS_FIELD = 'variants'
 const SEVERAL_FIELD = 'several_variants'
-const FIELDS_SET_BY_THE_MODULE: readonly string[] = [ID_FIELD, VARIANTS_FIELD, SEVERAL_FIELD]
+const OUT_OF_STOCK_FIELD = 'out_of_stock'
+const FLAGS_OF_THE_CHOSEN_VARIANT: readonly string[] = [SEVERAL_FIELD, OUT_OF_STOCK_FIELD]
+const FIELDS_SET_BY_THE_MODULE: readonly string[] = [ID_FIELD, VARIANTS_FIELD, ...FLAGS_OF_THE_CHOSEN_VARIANT]
 
 /** The browser's copy of `Listing\VariantChoice`: shows a card through the variant the active filters point to, and as projected when none concerns its variants. */
 export class VariantChoice {
@@ -27,9 +29,21 @@ export class VariantChoice {
             return rest
         }
 
-        const chosen = VariantChoice.#cheapest(matching)
+        const offered = VariantChoice.#offered(matching)
+        const chosen = VariantChoice.#cheapest(offered)
 
-        return { ...rest, ...VariantChoice.#overrides(chosen), ...(matching.length > 1 ? { [SEVERAL_FIELD]: true } : {}) }
+        return {
+            ...VariantChoice.#unflagged(rest),
+            ...VariantChoice.#overrides(chosen),
+            ...(offered.length > 1 ? { [SEVERAL_FIELD]: true } : {}),
+            ...(chosen.inStock ? {} : { [OUT_OF_STOCK_FIELD]: true }),
+        }
+    }
+
+    static #unflagged(card: Card): Card {
+        const kept = Object.entries(card).filter(([field]) => !FLAGS_OF_THE_CHOSEN_VARIANT.includes(field))
+
+        return Object.fromEntries(kept)
     }
 
     static #read(stored: unknown) {
@@ -57,6 +71,12 @@ export class VariantChoice {
 
     #matching(variants: CardVariant[]) {
         return variants.filter((variant) => variant.matches(this.#selected, this.#price))
+    }
+
+    static #offered(matching: CardVariant[]) {
+        const inStock = matching.filter((variant) => variant.inStock)
+
+        return inStock.length === 0 ? matching : inStock
     }
 
     /** The first listed wins a tie. */

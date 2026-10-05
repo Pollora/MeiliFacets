@@ -19,4 +19,5 @@ enum CardField: string
     case Summary = 'summary';
     case Variants = 'variants';
     case SeveralVariants = 'several_variants';
+    case OutOfStock = 'out_of_stock';
 }

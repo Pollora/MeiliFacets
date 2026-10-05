@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Tests\Feature;
 
 use Modules\MeiliFacets\Enums\ApplyMode;
-use Modules\MeiliFacets\Indexing\DefaultCardProjector;
 use Modules\MeiliFacets\Search\EngineLimits;
 use Modules\MeiliFacets\View\CardSettings;
 use PHPUnit\Framework\Attributes\Test;
@@ -26,7 +25,7 @@ final class ConfigStubTest extends TestCase
     public function it_publishes_the_card_settings_the_code_defaults_to(): void
     {
         $this->assertSame(
-            ['eager' => CardSettings::DEFAULT_EAGER, 'image_size' => DefaultCardProjector::DEFAULT_IMAGE_SIZE],
+            ['eager' => CardSettings::DEFAULT_EAGER],
             $this->stub()['card']
         );
     }

@@ -6,6 +6,7 @@ namespace Modules\MeiliFacets\Indexing;
 
 use Modules\MeiliFacets\Enums\PriceField;
 use Modules\MeiliFacets\Enums\ProductMeta;
+use Modules\MeiliFacets\Enums\VariationPrices;
 use Modules\MeiliFacets\Support\WooCommerce;
 use WC_Product;
 use WC_Product_Grouped;
@@ -59,7 +60,7 @@ final readonly class ProductPriceProjector
      */
     private function variationRange(WC_Product_Variable $product): ?array
     {
-        $prices = $product->get_variation_prices(true)['price'];
+        $prices = $product->get_variation_prices(for_display: true)[VariationPrices::Active->value];
 
         return $prices === [] ? null : [(float) current($prices), (float) end($prices)];
     }

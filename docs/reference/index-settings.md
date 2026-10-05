@@ -84,8 +84,9 @@ Named by `Enums\CardField`. The default projectors write them; a `CardProjector`
 | `price` | `WooCommerceCardProjector` | the product's price HTML, as WooCommerce formats it |
 | `summary` | `SummaryCardProjector`, posts that are not products | the excerpt cut to `excerpt_length` words |
 | `id` | not indexed: added to each card from `ID` on the server and in the browser | the post ID |
-| `variants` | a `CardProjector` of yours | the ways the product is sold, each a `Listing\CardVariant`: see [Card variants](../customising/card.md#card-variants). A variant's `fields` cannot set `id`, `variants` or `several_variants`: the module drops them. The module writes the list as a JSON list when it indexes the document, even when the projector's array has gaps. Never bound: removed from the cards the module shows — the listing, on the server and in the browser, and the search panel — after picking one when a filter concerns them. A card a project renders itself is not concerned |
-| `several_variants` | not indexed: set when several variants match the active filters | `true`, or absent |
+| `variants` | the module (`Indexing\ProductVariants`), for a variable product, with WooCommerce | the ways the product is sold, each a `Listing\CardVariant`, as a JSON list: see [Card variants](../customising/card.md#card-variants). A variant's `fields` cannot set `id`, `variants`, `several_variants` or `out_of_stock`: the module drops them. Never bound: removed from the cards the module shows — the listing, on the server and in the browser, and the search panel — after picking one when a filter concerns them. A card a project renders itself is not concerned |
+| `several_variants` | not indexed: set when several variants are offered (those in stock first) | `true`, or absent |
+| `out_of_stock` | the module, for a product WooCommerce holds out of stock; on a listing showing a variant, set when that variant is out of stock | `true`, or absent |
 
 A variant is stored as:
 
@@ -94,6 +95,7 @@ A variant is stored as:
 | `facets` | `VariantField::Facets` | taxonomy to the term slugs the variant carries, as the facets hold them |
 | `price` | `VariantField::Price` | its displayed price, a number on the same scale as `price.min` and `price.max` |
 | `fields` | `VariantField::Fields` | the card fields shown instead of the product's when it is chosen |
+| `in_stock` | `VariantField::InStock` | `true` when the variation is in stock; read as `true` when absent |
 
 Image fields are absent when the post has no featured image; `summary` is absent when empty.
 

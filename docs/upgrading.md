@@ -7,9 +7,19 @@ changes is in the [changelog](../CHANGELOG.md).
 
 ## Unreleased
 
-- **Nothing to reindex, same contract.** `Contract::VERSION` is unchanged and the indexed documents keep their shape.
-  The client scripts in `dist/` and the site search stylesheet changed: publish them with
-  `php artisan module:publish MeiliFacets`, then clear the page cache.
+- **Publish, then reindex; same contract.** `Contract::VERSION` is unchanged. The client scripts in `dist/` and the
+  site search stylesheet changed: publish them with `php artisan module:publish MeiliFacets`, then clear the page
+  cache. The module reads the variants of a variable product off WooCommerce, with their stock: run
+  `wp meiliscout index --clear` to store them.
+- **If you projected `variants`.** A `variants` list your `CardProjector` returns is now always dropped: only the
+  module's is indexed. Remove the code that built it, and move the fields of your own — a size label, a cart link —
+  to a `Contracts\VariantFields` you bind. See [Card variants](customising/card.md#card-variants).
+- **Reserved card fields.** `variants`, `several_variants` and `out_of_stock` belong to the module. A `variants` or
+  `out_of_stock` your `CardProjector` returns is dropped, a variant's fields cannot set any of them, and whenever a
+  variant is shown the module clears `several_variants` and `out_of_stock` before setting them again.
+- **The default image size of a product card is WooCommerce's.** Products and their variants now default to
+  `woocommerce_thumbnail` instead of `medium`; other posts keep `medium`. Set `card.image_size` to keep one size for
+  every card, then reindex.
 - **Binding attributes leave the cards the server renders.** `data-meili-text`, `data-meili-attr`, `data-meili-class`,
   `data-meili-class-list` and `data-meili-if` are now written in the card `<template>` only. A card rendered with its
   values keeps its values, its classes and its `data-meili` hooks. Search the theme's stylesheets and scripts for

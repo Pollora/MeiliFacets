@@ -54,6 +54,7 @@ final class SearchServiceProvider extends ServiceProvider
 | `ProductFacets` | `Listing\WooCommerceFacets`: category as a `ChildTermsFacet`, then brand, both ordered by `NameOrder` | `scopedIf` | `scoped` | [Facets](../listing/facets.md) |
 | `ProductSorts` | `Listing\WooCommerceSorts`: `price_asc`, `price_desc`, `newest`, `on_sale` | `scopedIf` | `scoped` | [Sorting](../listing/results-sort-pagination.md) |
 | `CardProjector` | `Indexing\DeferredCardProjector`: with WooCommerce, `WooCommerceCardProjector` (products: default card plus `price`; other posts: summary card); without, `SummaryCardProjector`. Both wrap `DefaultCardProjector` (title, URL, image) | `bindIf` | `extend` to add fields; `bind` to replace | [What gets indexed](../indexing/README.md) |
+| `VariantFields` | `Indexing\EmptyVariantFields`: no field | `bindIf` | `bind` | [Card variants](../customising/card.md#card-variants) |
 | `IndexAttributes` | `Indexing\ConfiguredIndexAttributes` (adds `displayed_attributes`) around `DeferredIndexAttributes`: `WooCommerceIndexAttributes` with WooCommerce, `EmptyIndexAttributes` without | `bind` | `extend` | [What gets indexed](../indexing/README.md) |
 | `SearchableAttributes` | `Indexing\DefaultSearchableAttributes`: title, then brand, category and SKU (WooCommerce), other labels, excerpt, content | `scopedIf` | `scoped` or `bind`, decorating the default | [Search relevance](../indexing/relevance.md) |
 | `SearchableTypes` | `SiteSearch\WooCommerceSearchableTypes`: products first when WooCommerce is active and products are searchable, then `WordPressSearchableTypes` | `scopedIf` | `scoped`, decorating the default | [Searchable types](../search/types.md) |
@@ -76,6 +77,7 @@ final class SearchServiceProvider extends ServiceProvider
 | `ProductFacets` | `all(): list<Facet\|PriceFilter>` |
 | `ProductSorts` | `all(): array<string, Sort>`, keyed as the sort travels in the URL |
 | `CardProjector` | `project(WP_Post $post): array<string, mixed>` |
+| `VariantFields` | `project(WC_Product_Variation $variation): array<string, mixed>` |
 | `IndexAttributes` | `exactlyMatched(): list<string>`, `filterable(): list<string>`, `sortable(): list<string>`, `displayed(): list<string>` |
 | `SearchableAttributes` | `all(): list<string>`, most important first |
 | `SearchableTypes` | `all(): array<string, SearchableType>`, keyed by post type |
@@ -120,7 +122,7 @@ All under `Modules\MeiliFacets\`.
 | `Listing\Sort` | class | a sort: label, Meilisearch sort expressions, optional filter; `Sort::filtering()` | [Sorting](../listing/results-sort-pagination.md) |
 | `Listing\SortFilter` | class | the filter a sort carries; `SortFilter::whereTrue()` | [Sorting](../listing/results-sort-pagination.md) |
 | `Listing\NameOrder` | class | orders values by name in the site language | [Facets](../listing/facets.md) |
-| `Listing\CardVariant` | class | one way a product is sold, inside its card: facets, price, fields; `toArray()`, `read()` | [Card variants](../customising/card.md#card-variants) |
+| `Listing\CardVariant` | class | one way a product is sold, inside its card: facets, price, fields, in stock; `toArray()`, `read()` | [Card variants](../customising/card.md#card-variants) |
 | `Listing\VariantChoice` | class | `shown(array $card)`: the card through the variant the filters point to, as projected when none concerns its variants | [Card variants](../customising/card.md#card-variants) |
 | `Listing\ListingUnavailable` | exception | thrown by a listing's constructor to opt out quietly | [Listing other content](../listing/custom-listing.md) |
 | `SiteSearch\SearchableType` | class | a searchable type; `withHeading()`, `withSeeAllLabel()`, `withCard()`, `withArchive()`, `withoutArchive()`, `withSearchOn()` | [Searchable types](../search/types.md) |
@@ -151,7 +153,8 @@ All under `Modules\MeiliFacets\`.
   the module's. Use `extend()`.
 - The defaults ask whether WooCommerce is active on every call. A replacement that calls WooCommerce functions
   checks `Support\WooCommerce::isActive()` itself.
-- A change to `IndexAttributes`, `SearchableAttributes` or `CardProjector` reaches the index at the next indexing.
+- A change to `IndexAttributes`, `SearchableAttributes`, `CardProjector` or `VariantFields` reaches the index at the next
+  indexing.
   After adding a `Listing` class, run `php artisan discovery:clear`.
 
 ## See also

@@ -331,6 +331,124 @@
             "selected": {},
             "price": { "min": null, "max": 30 },
             "expected": { "title": "Lotion", "12": "x" }
+        },
+        {
+            "case": "a lone matching variant out of stock is shown and said out of stock",
+            "card": {
+                "title": "Lotion",
+                "variants": [
+                    { "facets": { "pa_volume": ["400ml"] }, "price": 39, "fields": { "volume": "400ml" }, "in_stock": false },
+                    { "facets": { "pa_volume": ["15ml"] }, "price": 26, "fields": { "volume": "15ml" }, "in_stock": true }
+                ]
+            },
+            "selected": { "pa_volume": ["400ml"] },
+            "price": { "min": null, "max": null },
+            "expected": { "title": "Lotion", "volume": "400ml", "out_of_stock": true }
+        },
+        {
+            "case": "a matching variant in stock wins over a cheaper one out of stock, and is not one of several",
+            "card": {
+                "title": "Lotion",
+                "variants": [
+                    { "facets": { "pa_volume": ["400ml"] }, "price": 10, "fields": { "volume": "400ml" }, "in_stock": false },
+                    { "facets": { "pa_volume": ["15ml"] }, "price": 30, "fields": { "volume": "15ml" }, "in_stock": true }
+                ]
+            },
+            "selected": { "pa_volume": ["15ml", "400ml"] },
+            "price": { "min": null, "max": null },
+            "expected": { "title": "Lotion", "volume": "15ml" }
+        },
+        {
+            "case": "variants out of stock are left out of the several in stock",
+            "card": {
+                "title": "Lotion",
+                "variants": [
+                    { "facets": { "pa_volume": ["400ml"] }, "price": 20, "fields": { "volume": "400ml" }, "in_stock": false },
+                    { "facets": { "pa_volume": ["100ml"] }, "price": 32, "fields": { "volume": "100ml" }, "in_stock": true },
+                    { "facets": { "pa_volume": ["15ml"] }, "price": 26, "fields": { "volume": "15ml" }, "in_stock": true }
+                ]
+            },
+            "selected": { "pa_volume": ["15ml", "100ml", "400ml"] },
+            "price": { "min": null, "max": null },
+            "expected": { "title": "Lotion", "volume": "15ml", "several_variants": true }
+        },
+        {
+            "case": "when every matching variant is out of stock the cheapest is shown, one of several, out of stock",
+            "card": {
+                "title": "Lotion",
+                "variants": [
+                    { "facets": { "pa_volume": ["400ml"] }, "price": 39, "fields": { "volume": "400ml" }, "in_stock": false },
+                    { "facets": { "pa_volume": ["15ml"] }, "price": 26, "fields": { "volume": "15ml" }, "in_stock": false }
+                ]
+            },
+            "selected": { "pa_volume": ["15ml", "400ml"] },
+            "price": { "min": null, "max": null },
+            "expected": { "title": "Lotion", "volume": "15ml", "several_variants": true, "out_of_stock": true }
+        },
+        {
+            "case": "a variant without a stock flag is in stock",
+            "card": {
+                "title": "Lotion",
+                "variants": [
+                    { "facets": { "pa_volume": ["400ml"] }, "price": 10, "fields": { "volume": "400ml" } },
+                    { "facets": { "pa_volume": ["15ml"] }, "price": 30, "fields": { "volume": "15ml" }, "in_stock": false }
+                ]
+            },
+            "selected": { "pa_volume": ["15ml", "400ml"] },
+            "price": { "min": null, "max": null },
+            "expected": { "title": "Lotion", "volume": "400ml" }
+        },
+        {
+            "case": "only false puts a variant out of stock",
+            "card": {
+                "title": "Lotion",
+                "variants": [
+                    { "facets": { "pa_volume": ["400ml"] }, "price": 10, "fields": { "volume": "400ml" }, "in_stock": 0 },
+                    { "facets": { "pa_volume": ["15ml"] }, "price": 30, "fields": { "volume": "15ml" }, "in_stock": "no" }
+                ]
+            },
+            "selected": { "pa_volume": ["15ml", "400ml"] },
+            "price": { "min": null, "max": null },
+            "expected": { "title": "Lotion", "volume": "400ml", "several_variants": true }
+        },
+        {
+            "case": "a variant cannot say itself out of stock through its fields",
+            "card": {
+                "title": "Lotion",
+                "variants": [
+                    { "facets": { "pa_volume": ["400ml"] }, "price": 39, "fields": { "volume": "400ml", "out_of_stock": true }, "in_stock": true }
+                ]
+            },
+            "selected": { "pa_volume": ["400ml"] },
+            "price": { "min": null, "max": null },
+            "expected": { "title": "Lotion", "volume": "400ml" }
+        },
+        {
+            "case": "a chosen variant sets the module flags, whatever the projected card held",
+            "card": {
+                "title": "Lotion",
+                "several_variants": true,
+                "out_of_stock": true,
+                "variants": [
+                    { "facets": { "pa_volume": ["400ml"] }, "price": 39, "fields": { "volume": "400ml" }, "in_stock": true }
+                ]
+            },
+            "selected": { "pa_volume": ["400ml"] },
+            "price": { "min": null, "max": null },
+            "expected": { "title": "Lotion", "volume": "400ml" }
+        },
+        {
+            "case": "a card no filter concerns keeps the flags it was projected with",
+            "card": {
+                "title": "Lotion",
+                "several_variants": true,
+                "variants": [
+                    { "facets": { "pa_volume": ["400ml"] }, "price": 39, "fields": { "volume": "400ml" } }
+                ]
+            },
+            "selected": {},
+            "price": { "min": null, "max": null },
+            "expected": { "title": "Lotion", "several_variants": true }
         }
     ]
 }

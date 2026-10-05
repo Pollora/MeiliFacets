@@ -60,19 +60,21 @@ The full list of fields and settings is in [Index settings and document fields](
 | --- | --- | --- |
 | `title` | the post title, as plain text | every post |
 | `url` | the permalink | every post |
-| `image_url`, `image_width`, `image_height` | the featured image at the size `card.image_size` (default `medium`) | posts with a featured image |
+| `image_url`, `image_width`, `image_height` | the featured image at the size `card.image_size` (default `woocommerce_thumbnail` for products, `medium` otherwise) | posts with a featured image |
 | `image_srcset`, `image_sizes` | the image's candidates, when WordPress has any | posts with a featured image |
 | `image_alt` | the image's alternative text, as plain text | posts with a featured image |
 | `price` | WooCommerce's price HTML (`get_price_html()`) | products |
 | `summary` | the author's excerpt, whole; otherwise the opening of the content, cut at `excerpt_length` words (WordPress filter, 55 by default) | everything but products |
 
-A field with nothing to show is absent, not empty. The exception is a product with no price, whose `card.price` is
-WooCommerce's (empty) price HTML.
+A field with nothing to show is absent, not empty. The exceptions are a product with no price, whose `card.price` is
+WooCommerce's (empty) price HTML, and the image fields inside a variant's `fields`, which may be empty so that they
+replace the product's.
 
-A product sold in several ways — sizes, colours — can also carry `variants`: one entry per way it is sold, with the
-terms the filters can match, its price and the card fields it shows instead of the product's. The module writes
-none: a projector of yours adds them, and the listing shows each card through the variant the filters point to when
-a filter concerns them, as projected otherwise. See [Card variants](../customising/card.md#card-variants).
+A variable product also carries `variants`: one entry per variation WooCommerce offers, with the terms the filters
+can match, its price, whether it is in stock and the card fields it shows instead of the product's. The module reads
+them off WooCommerce; a project adds its own fields through `Contracts\VariantFields`. The listing shows each card
+through the variant the filters point to when a filter concerns them, as projected otherwise. See
+[Card variants](../customising/card.md#card-variants).
 
 `summary` is stored decoded: `&` is `&`, not `&amp;`. Render it as text (`{{ }}` in Blade, `textContent` in
 JavaScript), never as HTML.

@@ -7,22 +7,26 @@ interface Parts {
     facets: Facets
     price: number
     fields: Readonly<Record<string, unknown>>
+    inStock: boolean
 }
 
 const FACETS_FIELD = 'facets'
 const PRICE_FIELD = 'price'
 const FIELDS_FIELD = 'fields'
+const IN_STOCK_FIELD = 'in_stock'
 
 /** The browser's copy of `Listing\CardVariant`: one way a product is sold, inside its card. */
 export class CardVariant {
     readonly facets: Facets
     readonly price: number
     readonly fields: Readonly<Record<string, unknown>>
+    readonly inStock: boolean
 
-    constructor({ facets, price, fields }: Parts) {
+    constructor({ facets, price, fields, inStock }: Parts) {
         this.facets = facets
         this.price = price
         this.fields = fields
+        this.inStock = inStock
     }
 
     /** Anything without a finite price is not a variant. */
@@ -43,6 +47,7 @@ export class CardVariant {
             facets: CardVariant.#facetsOf(stored[FACETS_FIELD]),
             price,
             fields: CardVariant.#isObject(fields) ? fields : {},
+            inStock: stored[IN_STOCK_FIELD] !== false,
         })
     }
 
