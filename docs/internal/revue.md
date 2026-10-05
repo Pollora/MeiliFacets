@@ -3305,7 +3305,121 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
-### R-209 · 🟡 · ouvert (en attente de commit) · ouvert le 2026-10-02 — revue de la PR #7 (`9c4474a`) et de `14391f7`
+### R-213 · 🔴 · ouvert (corrigé, non commité) · ouvert le 2026-10-05 — Pollora 13.34 : les vues du module ne sont plus surchargeables par le thème
+
+La mise à jour du projet (`b4389d5`, `pollora/framework` v13.4.2 → v13.34.2) renomme le contrat des actions :
+`Pollora\Hook\Domain\Contracts\Action` devient `Pollora\Hook\Domain\Contract\Action`. Le fournisseur du module
+importait l'ancien nom et sortait sans rien dire sur `! $this->app->bound(...)` : plus de `prependNamespace` sur
+`after_setup_theme`, donc plus de surcharge des vues du module par le thème. Relevé par la suite `Modules`
+(`ComponentFoldersTest`, 9 rouges, rouge aussi sur le module tel que commité) et par `ProductCardProjectionTest` du
+projet (8 rouges, cartes rendues par la vue du module au lieu de celle du thème). Corrigé par `add_action()` de
+WordPress, stable sur toute la plage que le module accepte (`pollora/framework` `>=13.4 <14`). Vérifié : seul nom
+importé de Pollora qui ne se charge plus (contrôle d'autoload des 41 `use Pollora\…` du module, du projet et du
+thème) ; `ComponentFoldersTest` 21, `ProductCardProjectionTest` 27, `Modules` 1031 verts. Audit des autres effets (2026-10-05,
+lecture seule) : aucune autre classe ni garde cassée ; les 10 crochets `#[Action]`/`#[Filter]` du module enregistrés ;
+pages du site en 200 sans erreur PHP ; Meilisearch répond avec Guzzle 8 ; `__()` traduit (`helper-overrider` 1.2.1).
+Relevés à trancher : styles d'éditeur du thème chargés deux fois par Pollora (`add_editor_style`, thème) ; blocs du
+thème dans `resources/blocks`, déprécié jusqu'à Pollora 15 ; le module demande `helper-overrider` ≥ 1.1 pour lire
+`lang/fr.json` sur un site `fr_FR` (contrainte à déclarer) ; `patches.lock.json` à versionner dans le projet. La
+garde `bound()` qui se tait reste le défaut de fond.
+
+### R-212 · 🟡 · ouvert · ouvert le 2026-10-05 — l'ajout au panier d'une carte est projeté par le projet, pas par le module
+
+Demandé par l'utilisateur le 2026-10-05 : le lien d'ajout au panier (produit et variante) doit être natif au module,
+conditionné à WooCommerce, comme les variantes (`R-210` n°1, `decisions.md` « Produits variables »). Aujourd'hui le
+projet le pose (`cart_url`, `ajax_add_to_cart`, dans `app/Cms/Products/ProductCard.php`). Lot à part, après les
+variantes natives ; lire d'abord ce que WooCommerce offre (`add_to_cart_url()`, `supports('ajax_add_to_cart')`,
+`woocommerce_loop_add_to_cart_link`).
+
+### R-211 · 🟡 · ouvert · ouvert le 2026-10-05 — l'option « Masquer les produits en rupture » n'est pas suivie
+
+`VisibleProducts::hiding()` (`app/Search/VisibleProducts.php:38`) n'écarte que `exclude-from-catalog` et
+`exclude-from-search`. Avec `woocommerce_hide_out_of_stock_items = yes`, WooCommerce masque un produit en rupture
+(terme `outofstock` de `product_visibility`) et ses variations en rupture (`class-wc-product-variable.php:343`) ; le
+module affiche le produit. Ses variations en rupture sortent de `card.variants` depuis `ProductVariants` (2026-10-05),
+qui passe par `get_available_variations()`, mais leurs termes restent dans les facettes du document produit. Sans effet sur le projet de test (option à `no`, lu le 2026-10-05). Un produit en rupture reste
+affiché tant que l'option est décochée : c'est le comportement voulu.
+
+### R-210 · 🟠 · ouvert · ouvert le 2026-10-05 — seconde revue de la PR #7 (`9639a56`) : le choix de variante et ce qu'il touche
+
+Rattaché à `R-206`, `R-208`, `R-209`. Constats publiés en anglais dans la PR (revue `5411977381`, un commentaire
+par constat). Les points déjà acceptés sous `R-209` sont exclus. Rien n'est corrigé : chaque constat attend d'être
+trié. *Reproduit* : constaté par un script ; *lu* : mécanisme confirmé à la lecture ; *plausible* : sans relevé HTTP
+ni cas réel.
+
+**Probablement bloquants pour la PR.**
+1. *Tri par prix contre prix affiché* (`VariantChoice.php:45`, lu). La carte montre le prix de la variante retenue,
+   `price_asc`/`price_desc` trient toujours sur `price.min`/`price.max` du produit : `?pa_volume=400ml&sort=price_asc`
+   classe A (15ml à 26, 400ml à 39) avant B (400ml à 30), et la grille lit 39 € puis 30 €.
+   *Tranché le 2026-10-05* : un document par variante en plus du document produit, interrogé avec `distinct` quand un
+   filtre concerne les variantes, compteurs sur les documents produit (`decisions.md`, « Produits variables »). Mesuré
+   sur un index temporaire local, supprimé ensuite ; non codé.
+2. *Archive d'attribut sans variante* (`ResolvedListing.php:96`, lu). Sur `/pa_volume/400ml/`, le terme parcouru est
+   épinglé dans le filtre de base et absent de `facets()` : `VariantChoice` ne choisit rien, et la carte montre le
+   symptôme que `R-206` corrige pour `?pa_volume=400ml`.
+
+**Défauts réels.**
+3. *Champs de variante fusionnés clé par clé* (`VariantChoice.php:79`, lu). *En partie le 2026-10-05 (avancement)*. Une variante sans `image_srcset` garde
+   celui du produit : `src` de la variante, `srcset` du produit, le navigateur affiche la photo du produit.
+4. *Tri filtrant `on_sale` ignoré* (`CardVariant.php:75`, lu). `?sort=on_sale&pa_volume=400ml` liste le produit pour
+   sa variante 15ml en promo et montre la 400ml plein tarif.
+5. *`several_variants` jamais retiré* (`VariantChoice.php:123`, lu et exécuté en mémoire). *Fermé le 2026-10-05
+   (avancement)*. Une valeur posée par le
+   projecteur survit à une seule correspondance : « À partir de 39 € » pour une variante. Même chose côté TS.
+6. *Champs réservés non annoncés* (`VariantChoice.php:37`, lu). `variants` et `several_variants` sont retirés de toute
+   carte affichée ; un projet qui les projetait perd le texte sans erreur, `upgrading.md` dit « same contract ».
+7. *Borne brute contre borne arrondie* (`listing-binding.ts:228`, reproduit). Le navigateur compare la borne saisie, la
+   requête et l'URL portent `formatBound` (4 décimales) : 25.99999 liste le produit à 26, le navigateur garde la carte
+   projetée, le serveur montre la variante à 26 € après rechargement.
+8. *Canonique `?pg=N` sur une archive sans listing* (`IndexingPolicy.php:42`, plausible). `isSecondaryView()` est vrai
+   sur toute archive qui porte `?pg=` : `/category/news/?pg=3` reçoit une canonique vers un paramètre qu'elle ignore.
+   Rejoint la question laissée ouverte sous `R-209` (la canonique relit `pg` à sa façon).
+9. *ItemList JSON-LD sur les cartes choisies* (`ResolvedListing.php:88`, plausible). Sur une page ordinaire,
+   `isSecondaryView()` est faux et `itemListElement.url` publie l'URL de variation au lieu du permalien.
+
+**Robustesse.**
+10. *Prix non fini accepté* (`CardVariant.php:24`, reproduit). Le constructeur et `toArray()` acceptent `INF`, que
+    `read()` refuse et que `json_encode` ne sérialise pas : le lot d'indexation de MeiliScout l'écarte entier. Des
+    slugs entiers `[42]` reviennent en liste vide.
+11. *Échelle de prix de la doc* (`customising/card.md`, exemple retiré depuis, plausible). *Fermé le 2026-10-05
+    (avancement)*. `wc_get_price_to_display()` peut rendre 8.3333
+    contre 8.33 indexé : `?max_price=8.33` liste le produit, aucune variante ne correspond.
+12. *Deux `classList()` sur un élément* (`CardBinding.php:134`, reproduit). `ComponentAttributeBag` garde le premier
+    marqueur `data-meili-class-list` : la carte du serveur porte les deux jeux de classes, celle redessinée par le
+    navigateur perd le second.
+13. *Facette lue par la chaîne de prototypes* (`card-variant.ts:60`, reproduit). Une taxonomie `constructor` ou
+    `__proto__` sélectionnée lève une `TypeError` dans `#repaintGrid` ; PHP (`isset`) dessine la variante.
+14. *Fourchette inversée* (`Range.php:27`, reproduit). `contains()` s'appuie sur `clamp()` : `?min_price=50&max_price=10`
+    contient exactement 10, et la carte montre la variante à 10 € comme correspondante. Même chose côté TS.
+
+**Performance.**
+15. *Variantes lues avant `isConcerned()`* (`VariantChoice.php:36`, mesuré par micro-benchmark). Sans filtre, 48 cartes
+    de 4 variantes : 130 à 170 µs en PHP et environ 98 µs par repeinte navigateur, contre 4 à 8 µs avec un retour
+    anticipé quand sélection et fourchette sont vides. Vaut aussi pour chaque résultat du panneau.
+
+**Résidus non publiés** (au-delà du plafond de 15) : docblock de `canonicalFor()` qui redit `decisions.md` ;
+`CardView.fieldsOf` crée un `VariantChoice` par résultat et le paquet du panneau grossit d'environ 9 % ; `marker()`
+construit encore les paires d'attributs sur une carte rendue avant de les jeter ; `PostDocument` ne réécrit pas en liste
+une `Collection` Laravel stockée dans `variants` ; `ResolvedListingStateTest` écrit des noms de champs en chaînes ;
+`ListingResults::card()` renumérote les clés numériques avant le choix de variante (antérieur à la PR, casse la parité
+que la PR teste).
+
+**Avancement du 2026-10-05, branche `feat/variant-documents`, non commité.** Étape 1 de n°1 codée : le module lit les
+variantes dans WooCommerce (`Indexing\ProductVariants`, appelé par `Indexing\ShopFields`, extrait de `PostDocument`),
+stock compris ; un projet ajoute ses champs par `Contracts\VariantFields` (défaut `EmptyVariantFields`) ; règle « en
+stock d'abord » et `out_of_stock` des deux côtés, 9 cas partagés de plus (mutations vérifiées : 3 rouges en PHP et en
+TS sur la préférence, 1 sur la remise à zéro des drapeaux). Ferme au passage n°5 (`several_variants` et
+`out_of_stock` remis à zéro quand une variante est montrée) et n°11 (prix lu dans `get_variation_prices(for_display:
+true)`, la liste d'où viennent `price.min`/`price.max`) ; n°3 seulement pour l'image propre d'une variante, écrite en
+entier (`ImageFields::whole()`) — la fusion clé par clé reste pour les champs d'un projet. Revue en cinq passes faite ;
+laissé ouvert : un `wc_get_product()` et un `get_variation_prices()` par projecteur et par document (au moins trois
+objets produit par document), à traiter à part. Vérifié : `composer check` (PHP 647, client 931), `Modules` 1026,
+`ProductCardProjectionTest` du projet 27.
+
+**Sain, au moment de la revue (`9639a56`)** : `dist/` conforme aux sources (`node bundle.ts --check`) ; aucune carte du serveur ne contourne
+`ResolvedListing::cards()` ; rien ne lit les `data-meili-*` d'une carte rendue ; PHP 636 tests, client 922.
+
+### R-209 · 🟡 · ouvert (commité dans `3209a46`, `2714f09`, `9639a56` ; suite sous `R-210`) · ouvert le 2026-10-02 — revue de la PR #7 (`9c4474a`) et de `14391f7`
 
 Rattaché à `R-206`, `R-207`, `R-208`. Constats publiés en anglais dans la PR (« Review — `9c4474a` »), puis revue de
 `14391f7`, qui n'avait été revu par personne. Rien n'est commité, réindexé ni écrit en base ou dans le moteur : les
