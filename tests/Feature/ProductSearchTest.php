@@ -66,7 +66,12 @@ final class ProductSearchTest extends TestCase
     public function it_hides_what_woocommerce_hides_from_its_search_and_pins_no_term(): void
     {
         $this->assertSame(
-            ['post_type = "product"', 'post_status = "publish"', 'NOT facets.product_visibility = "exclude-from-search"'],
+            [
+                'post_type = "product"',
+                'post_status = "publish"',
+                'NOT facets.product_visibility = "exclude-from-search"',
+                'NOT document_kind = "variant"',
+            ],
             $this->scopeOnSearch()->filter
         );
     }
@@ -75,7 +80,12 @@ final class ProductSearchTest extends TestCase
     #[Test]
     public function it_browses_the_catalogue_whatever_the_route(): void
     {
-        $catalogue = ['post_type = "product"', 'post_status = "publish"', 'NOT facets.product_visibility = "exclude-from-catalog"'];
+        $catalogue = [
+            'post_type = "product"',
+            'post_status = "publish"',
+            'NOT facets.product_visibility = "exclude-from-catalog"',
+            'NOT document_kind = "variant"',
+        ];
 
         $this->assertSame($catalogue, $this->onSearch(['s' => self::TERM], static fn (ProductListing $listing): array => $listing->baseFilter()));
         $this->assertSame($catalogue, $this->onSearch([], static fn (ProductListing $listing): array => $listing->baseFilter()));
@@ -88,7 +98,12 @@ final class ProductSearchTest extends TestCase
         $scope = $this->scopeOnSearch();
 
         $this->assertSame(
-            ['post_type = "product"', 'post_status = "publish"', 'NOT facets.product_visibility = "exclude-from-search"'],
+            [
+                'post_type = "product"',
+                'post_status = "publish"',
+                'NOT facets.product_visibility = "exclude-from-search"',
+                'NOT document_kind = "variant"',
+            ],
             $scope->filter
         );
         $this->assertSame(['post_title', 'labels.product_brand', 'labels.product_cat', 'metas._sku'], $scope->fields);

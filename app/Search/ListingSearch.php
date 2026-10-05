@@ -16,6 +16,8 @@ final readonly class ListingSearch
 
     private const string UNFILTERED = 'unfiltered';
 
+    private const string MEASURES = 'measures';
+
     public function __construct(
         private SearchEngine $engine,
         private FacetCounter $counter,
@@ -24,15 +26,15 @@ final readonly class ListingSearch
     public function run(Listing $listing, ListingState $state): ListingResults
     {
         $responses = $this->engine->multiSearch($this->searches($listing, $state));
-        $main = $responses[self::RESULTS] ?? [];
+        $results = $responses[self::RESULTS] ?? [];
 
         return new ListingResults(
-            array_values($main['hits'] ?? []),
-            (int) ($main['totalHits'] ?? 0),
+            array_values($results['hits'] ?? []),
+            (int) ($results['totalHits'] ?? 0),
             $this->distributions($listing, $responses),
             $this->facetStats($responses),
             $this->unfilteredDistributions($listing, $responses),
-            $this->sortMatches($listing, $main),
+            $this->sortMatches($listing, $this->measuresIn($responses)),
         );
     }
 
@@ -48,9 +50,32 @@ final readonly class ListingSearch
 
         return [
             self::RESULTS => QueryPlan::results($listing, $state, array_keys($measuredSeparately)),
+            ...$this->measureQueries($listing, $state, array_keys($measuredSeparately)),
             ...$measuredSeparately,
             ...$this->unfilteredQueries($listing, $state),
         ];
+    }
+
+    /**
+     * @param  list<string>  $measuredSeparately
+     * @return array<string, array<string, mixed>>
+     */
+    private function measureQueries(Listing $listing, ListingState $state, array $measuredSeparately): array
+    {
+        if (! QueryPlan::readsVariants($listing, $state)) {
+            return [];
+        }
+
+        return [self::MEASURES => QueryPlan::measures($listing, $state, $measuredSeparately)];
+    }
+
+    /**
+     * @param  array<string, array<string, mixed>>  $responses
+     * @return array<string, mixed>
+     */
+    private function measuresIn(array $responses): array
+    {
+        return $responses[self::MEASURES] ?? $responses[self::RESULTS] ?? [];
     }
 
     /**
@@ -104,12 +129,12 @@ final readonly class ListingSearch
     }
 
     /**
-     * @param  array<string, mixed>  $main
+     * @param  array<string, mixed>  $measures
      * @return array<string, int>
      */
-    private function sortMatches(Listing $listing, array $main): array
+    private function sortMatches(Listing $listing, array $measures): array
     {
-        return QueryPlan::sortQuery($listing)?->matchesIn($main['facetDistribution'] ?? []) ?? [];
+        return QueryPlan::sortQuery($listing)?->matchesIn($measures['facetDistribution'] ?? []) ?? [];
     }
 
     /**
@@ -137,7 +162,7 @@ final readonly class ListingSearch
      */
     private function facetStats(array $responses): array
     {
-        return ($responses[PriceQuery::KEY] ?? $responses[self::RESULTS] ?? [])['facetStats'] ?? [];
+        return ($responses[PriceQuery::KEY] ?? $this->measuresIn($responses))['facetStats'] ?? [];
     }
 
     /**
@@ -149,7 +174,7 @@ final readonly class ListingSearch
         $distributions = [];
 
         foreach ($listing->facets() as $facet) {
-            $response = $responses[FacetQuery::keyFor($facet->taxonomy)] ?? $responses[self::RESULTS] ?? [];
+            $response = $responses[FacetQuery::keyFor($facet->taxonomy)] ?? $this->measuresIn($responses);
             $distributions[$facet->taxonomy] = $response['facetDistribution'][$facet->field()] ?? [];
         }
 

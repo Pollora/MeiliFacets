@@ -6,6 +6,7 @@ namespace Modules\MeiliFacets\Listing;
 
 use Modules\MeiliFacets\Contracts\Listing;
 use Modules\MeiliFacets\Contracts\Placeable;
+use Modules\MeiliFacets\Contracts\VariantScopedListing;
 use Modules\MeiliFacets\Enums\ApplyMode;
 use Modules\MeiliFacets\Enums\QueryParameter;
 use Modules\MeiliFacets\Http\ServiceUnavailable;
@@ -337,6 +338,11 @@ final class ResolvedListing
     public function searchScope(): SearchScope
     {
         return SearchScope::searching($this->listing);
+    }
+
+    public function variantListing(): ?VariantScopedListing
+    {
+        return $this->listing instanceof VariantScopedListing ? $this->listing : null;
     }
 
     public function isRoutedSearch(): bool

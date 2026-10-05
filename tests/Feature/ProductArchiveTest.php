@@ -153,7 +153,12 @@ final class ProductArchiveTest extends TestCase
     public function it_narrows_nothing_off_an_archive(): void
     {
         $this->assertSame(
-            ['post_type = "product"', 'post_status = "publish"', 'NOT facets.product_visibility = "exclude-from-catalog"'],
+            [
+                'post_type = "product"',
+                'post_status = "publish"',
+                'NOT facets.product_visibility = "exclude-from-catalog"',
+                'NOT document_kind = "variant"',
+            ],
             $this->baseFilterOn([])
         );
     }

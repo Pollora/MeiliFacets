@@ -4,13 +4,10 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Tests\Feature;
 
-use Modules\MeiliFacets\Contracts\SearchableAttributes;
 use Modules\MeiliFacets\Enums\FacetingSetting;
 use Modules\MeiliFacets\Enums\IndexSetting;
 use Modules\MeiliFacets\Indexing\EmptyIndexAttributes;
 use Modules\MeiliFacets\Indexing\FacetedPostIndexable;
-use Modules\MeiliFacets\Indexing\IndexedPostTypes;
-use Modules\MeiliFacets\Indexing\IndexedTaxonomies;
 use Modules\MeiliFacets\Search\EngineLimits;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -36,17 +33,30 @@ final class IndexFacetingTest extends TestCase
         $this->assertNotSame(EngineLimits::ENGINE_MAX_FACET_VALUES, $written);
     }
 
+    /** MeiliScout removes a product's variant documents by this field on every save, with or without a plugin. */
+    #[Test]
+    public function it_filters_on_the_parent_of_a_document_without_any_plugin(): void
+    {
+        $filterable = $this->settingsFor(new EngineLimits(1000))[IndexSetting::FilterableAttributes->value];
+
+        $this->assertContains('parent_id', $filterable);
+    }
+
     /**
      * @return array<string, mixed>
      */
     private function facetingFor(EngineLimits $limits): array
     {
-        return new FacetedPostIndexable(
-            new EmptyIndexAttributes,
-            $this->app->make(SearchableAttributes::class),
-            new IndexedTaxonomies(new IndexedPostTypes),
-            $limits
-        )
-            ->getIndexSettings()[IndexSetting::Faceting->value];
+        return $this->settingsFor($limits)[IndexSetting::Faceting->value];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function settingsFor(EngineLimits $limits): array
+    {
+        $attributes = ['attributes' => new EmptyIndexAttributes, 'limits' => $limits];
+
+        return $this->app->make(FacetedPostIndexable::class, $attributes)->getIndexSettings();
     }
 }

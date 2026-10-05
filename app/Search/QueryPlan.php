@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Search;
 
 use Modules\MeiliFacets\Contracts\Listing;
+use Modules\MeiliFacets\Contracts\VariantScopedListing;
 use Modules\MeiliFacets\Enums\DocumentField;
+use Modules\MeiliFacets\Enums\PriceField;
 use Modules\MeiliFacets\Listing\Facet;
 use Modules\MeiliFacets\Listing\ListingState;
 use Modules\MeiliFacets\Listing\PriceFilter;
@@ -16,6 +18,14 @@ use Modules\MeiliFacets\Listing\StateReader;
 final readonly class QueryPlan
 {
     private const int NO_HIT = 0;
+
+    private const string IN_STOCK_FIRST = DocumentField::InStock->value.':desc';
+
+    private const string SORT_DIRECTION_SEPARATOR = ':';
+
+    public const array RETRIEVED = [DocumentField::Id->value, DocumentField::Card->value];
+
+    public const array VARIANT_RETRIEVED = [...self::RETRIEVED, DocumentField::ParentId->value];
 
     /**
      * @return list<FilterQuery>
@@ -46,23 +56,112 @@ final readonly class QueryPlan
      */
     public static function results(Listing $listing, ListingState $state, array $separatelyMeasuredKeys): array
     {
+        if (self::readsVariants($listing, $state)) {
+            return self::variantResults($listing, $state);
+        }
+
         $filters = self::filterQueries($listing);
         $scope = self::scope($listing, $state);
         $query = [
             'q' => self::searchTerm($listing, $state),
             'filter' => self::filter($scope, $state, $filters),
-            'facets' => self::fieldsOnMain($filters, $separatelyMeasuredKeys),
+            'facets' => self::fieldsMeasuredTogether($filters, $separatelyMeasuredKeys),
             // `hitsPerPage`/`page` answer with `totalHits` and `totalPages`;
             // `limit`/`offset` only give an estimate, capped at maxTotalHits.
             'hitsPerPage' => $listing->perPage(),
             'page' => $state->page,
-            'attributesToRetrieve' => [DocumentField::Id->value, DocumentField::Card->value],
+            'attributesToRetrieve' => self::RETRIEVED,
             ...self::searchedFields($scope),
         ];
 
         $sort = $listing->sorts()[$state->sort] ?? null;
 
         return $sort === null ? $query : [...$query, 'sort' => $sort->expressions];
+    }
+
+    /**
+     * @phpstan-assert-if-true VariantScopedListing $listing
+     */
+    public static function readsVariants(Listing $listing, ListingState $state): bool
+    {
+        if (! $listing instanceof VariantScopedListing) {
+            return false;
+        }
+
+        $filtersAVariant = array_intersect(array_keys($state->facets), $listing->variantTaxonomies()) !== [];
+
+        return $filtersAVariant || ! $state->price->isEmpty();
+    }
+
+    /**
+     * @param  list<string>  $separatelyMeasuredKeys
+     * @return array<string, mixed>
+     */
+    public static function measures(Listing $listing, ListingState $state, array $separatelyMeasuredKeys): array
+    {
+        $filters = self::filterQueries($listing);
+        $scope = self::scope($listing, $state);
+
+        return [
+            'q' => self::searchTerm($listing, $state),
+            'filter' => self::filter($scope, $state, $filters),
+            'facets' => self::fieldsMeasuredTogether($filters, $separatelyMeasuredKeys),
+            'hitsPerPage' => self::NO_HIT,
+            'page' => ListingState::FIRST_PAGE,
+            ...self::searchedFields($scope),
+        ];
+    }
+
+    /**
+     * @param  list<string>  $expressions
+     * @return list<string>
+     */
+    public static function variantSort(array $expressions): array
+    {
+        return self::sortsOnPrice($expressions) ? [self::IN_STOCK_FIRST, ...$expressions] : $expressions;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function variantResults(VariantScopedListing $listing, ListingState $state): array
+    {
+        $scope = self::variantScope($listing, $state);
+        $query = [
+            'q' => self::searchTerm($listing, $state),
+            'filter' => self::filter($scope, $state, self::filterQueries($listing)),
+            'distinct' => DocumentField::ParentId->value,
+            'hitsPerPage' => $listing->perPage(),
+            'page' => $state->page,
+            'attributesToRetrieve' => self::VARIANT_RETRIEVED,
+            ...self::searchedFields($scope),
+        ];
+
+        $sort = $listing->sorts()[$state->sort] ?? null;
+
+        return $sort === null ? $query : [...$query, 'sort' => self::variantSort($sort->expressions)];
+    }
+
+    private static function variantScope(VariantScopedListing $listing, ListingState $state): SearchScope
+    {
+        if (self::searchTerm($listing, $state) === '') {
+            return new SearchScope($listing->variantFilter());
+        }
+
+        return $listing->variantSearchScope();
+    }
+
+    /**
+     * @param  list<string>  $expressions
+     */
+    private static function sortsOnPrice(array $expressions): bool
+    {
+        $fields = array_map(
+            static fn (string $expression): string => explode(self::SORT_DIRECTION_SEPARATOR, $expression)[0],
+            $expressions
+        );
+
+        return array_intersect($fields, PriceField::paths()) !== [];
     }
 
     /**
@@ -144,7 +243,7 @@ final readonly class QueryPlan
      * @param  list<string>  $separatelyMeasuredKeys
      * @return list<string>
      */
-    private static function fieldsOnMain(array $filters, array $separatelyMeasuredKeys): array
+    private static function fieldsMeasuredTogether(array $filters, array $separatelyMeasuredKeys): array
     {
         $onMain = array_filter($filters, static fn (FilterQuery $filter): bool => ! in_array($filter->key(), $separatelyMeasuredKeys, true));
 

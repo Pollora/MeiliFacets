@@ -13,6 +13,7 @@ export const described = (partial: Partial<ListingDescription>) =>
         reachableHits: 1000,
         filter: 'post_type = "product"',
         attributes: ['card'],
+        variantResults: null,
         apply: 'submit',
         countPattern: ':count result|:count results',
         filterPattern: ':count active filter|:count active filters',

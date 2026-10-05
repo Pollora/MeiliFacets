@@ -9,7 +9,7 @@ use Modules\MeiliFacets\Contracts\Placeable;
 use Modules\MeiliFacets\Contracts\ProductFacets;
 use Modules\MeiliFacets\Contracts\ProductSorts;
 use Modules\MeiliFacets\Contracts\SearchableTypes;
-use Modules\MeiliFacets\Contracts\SearchScopedListing;
+use Modules\MeiliFacets\Contracts\VariantScopedListing;
 use Modules\MeiliFacets\Enums\ApplyMode;
 use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Enums\PriceField;
@@ -19,7 +19,7 @@ use Modules\MeiliFacets\SiteSearch\SearchableType;
 use Modules\MeiliFacets\Support\WooCommerce;
 use WP_Term;
 
-final readonly class ProductListing implements SearchScopedListing
+final readonly class ProductListing implements VariantScopedListing
 {
     public const string NAME = 'products';
 
@@ -106,6 +106,23 @@ final readonly class ProductListing implements SearchScopedListing
         return $browsed instanceof WP_Term
             ? [FilterExpression::equals(DocumentField::Facets->path($browsed->taxonomy), $browsed->slug)]
             : [];
+    }
+
+    public function variantTaxonomies(): array
+    {
+        return array_values(wc_get_attribute_taxonomy_names());
+    }
+
+    public function variantFilter(): array
+    {
+        return VisibleProducts::onVariants($this->baseFilter());
+    }
+
+    public function variantSearchScope(): SearchScope
+    {
+        $scope = $this->searchScope();
+
+        return new SearchScope(VisibleProducts::onVariants($scope->filter), $scope->fields);
     }
 
     public function baseQuery(): string

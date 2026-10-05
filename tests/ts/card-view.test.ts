@@ -56,4 +56,10 @@ describe('CardView', () => {
         assert.deepEqual(CardView.fieldsOf({ ID: 393, card: { title: 'Crème', id: 7 } }), { title: 'Crème', id: 393 })
         assert.deepEqual(CardView.fieldsOf({ card: { title: 'Crème' } }), { title: 'Crème' })
     })
+
+    it('hands a card read off a variant the id of its product', () => {
+        const hit = { ID: '393-1', parent_id: 393, card: { title: 'Crème' } }
+
+        assert.deepEqual(CardView.fieldsOf(hit), { title: 'Crème', id: 393 })
+    })
 })

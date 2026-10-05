@@ -15,7 +15,9 @@ export class CardView {
     }
 
     static fieldsOf(hit: SearchHit, choice = new VariantChoice()): Card {
-        return choice.shown(hit.ID === undefined ? { ...hit.card } : { ...hit.card, [ID_FIELD]: hit.ID })
+        const id = hit.parent_id ?? hit.ID
+
+        return choice.shown(id === undefined ? { ...hit.card } : { ...hit.card, [ID_FIELD]: id })
     }
 
     /** A copy of the template's first node, filled; nothing when the template holds no element. */

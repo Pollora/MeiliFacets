@@ -1,8 +1,8 @@
 import { FilterExpression } from '../shared/filter-expression.ts'
-import { RESULTS } from '../shared/plan.ts'
+import { MEASURES, RESULTS } from '../shared/plan.ts'
 import { FIRST_PAGE } from './listing-state.ts'
 
-import type { ListingDescription, SearchScope } from '../shared/description.ts'
+import type { ListingDescription, SearchScope, VariantResultsDescription } from '../shared/description.ts'
 import type { FilterQuery } from '../shared/filter-query.ts'
 import type { FacetedQuery, Plan } from '../shared/plan.ts'
 import type { ListingState } from './listing-state.ts'
@@ -23,7 +23,10 @@ export class ListingQuery {
     }
 
     plan(state: ListingState) {
-        const queries: Plan = { [RESULTS]: this.#results(state) }
+        const variants = this.#listing.variantResults ?? null
+        const queries: Plan = variants !== null && this.#readsVariants(variants, state)
+            ? { [RESULTS]: this.#variantResults(variants, state), [MEASURES]: this.#measures(state) }
+            : { [RESULTS]: this.#results(state) }
 
         for (const filterQuery of this.#filterQueries) {
             if (filterQuery.isMeasuredSeparately(state)) {
@@ -36,19 +39,65 @@ export class ListingQuery {
 
     #results(state: ListingState): FacetedQuery {
         const { perPage, attributes, sorts } = this.#listing
-        const sort = state.sort !== null && Object.hasOwn(sorts, state.sort) ? sorts[state.sort] : undefined
+        const sort = ListingQuery.#sortIn(sorts, state)
         const scope = this.#scope(state)
 
         return {
             q: this.#searchTerm(state),
             filter: this.#filterExpression(scope, state, null),
-            facets: this.#filterQueries.filter((query) => !query.isMeasuredSeparately(state)).flatMap((query) => query.fields),
+            facets: this.#fieldsMeasuredTogether(state),
             hitsPerPage: perPage,
             page: state.page,
             ...(attributes ? { attributesToRetrieve: attributes } : {}),
             ...(sort ? { sort } : {}),
             ...this.#searchedFields(scope),
         }
+    }
+
+    #readsVariants(variants: VariantResultsDescription, state: ListingState) {
+        const filtersAVariant = Object.keys(state.facets).some((taxonomy) => variants.taxonomies.includes(taxonomy))
+
+        return filtersAVariant || !state.price.isEmpty()
+    }
+
+    #variantResults(variants: VariantResultsDescription, state: ListingState): FacetedQuery {
+        const sort = ListingQuery.#sortIn(variants.sorts, state)
+        const scope = this.#searchTerm(state) === '' ? { filter: variants.filter, fields: null } : variants.searchScope
+
+        return {
+            q: this.#searchTerm(state),
+            filter: this.#filterExpression(scope, state, null),
+            facets: [],
+            distinct: variants.distinct,
+            hitsPerPage: this.#listing.perPage,
+            page: state.page,
+            attributesToRetrieve: variants.attributes,
+            ...(sort ? { sort } : {}),
+            ...this.#searchedFields(scope),
+        }
+    }
+
+    #measures(state: ListingState): FacetedQuery {
+        const scope = this.#scope(state)
+
+        return {
+            q: this.#searchTerm(state),
+            filter: this.#filterExpression(scope, state, null),
+            facets: this.#fieldsMeasuredTogether(state),
+            hitsPerPage: NO_HIT,
+            page: FIRST_PAGE,
+            ...this.#searchedFields(scope),
+        }
+    }
+
+    #fieldsMeasuredTogether(state: ListingState) {
+        return this.#filterQueries
+            .filter((query) => !query.isMeasuredSeparately(state))
+            .flatMap((query) => query.fields)
+    }
+
+    static #sortIn(sorts: Record<string, string[]>, state: ListingState) {
+        return state.sort !== null && Object.hasOwn(sorts, state.sort) ? sorts[state.sort] : undefined
     }
 
     #searchTerm(state: ListingState) {

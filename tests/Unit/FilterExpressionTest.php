@@ -131,4 +131,10 @@ final class FilterExpressionTest extends TestCase
         $this->assertSame('price.min <= 12.5', FilterExpression::overlapping(new Range(max: 12.50)));
         $this->assertSame('price.min <= 1000000', FilterExpression::overlapping(new Range(max: 1e6)));
     }
+
+    #[Test]
+    public function it_writes_a_list_of_integers_bare(): void
+    {
+        $this->assertSame('parent_id IN [125, 126]', FilterExpression::oneOf('parent_id', [125, 126]));
+    }
 }

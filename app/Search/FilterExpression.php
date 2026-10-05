@@ -63,6 +63,14 @@ final readonly class FilterExpression
         ])));
     }
 
+    /**
+     * @param  non-empty-list<int>  $values
+     */
+    public static function oneOf(string $field, array $values): string
+    {
+        return $field.' IN ['.implode(', ', $values).']';
+    }
+
     public static function equals(string $field, string $value): string
     {
         return $field.' = '.self::quote($value);

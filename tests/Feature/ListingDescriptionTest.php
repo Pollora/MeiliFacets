@@ -66,6 +66,20 @@ final class ListingDescriptionTest extends TestCase
         $this->assertNotSame([], array_filter(array_map(static fn (array $facet): array => (array) $facet['labels'], $facets)));
     }
 
+    #[Test]
+    public function it_hands_the_client_the_query_that_reads_variants(): void
+    {
+        $variants = $this->describedWith([])['variantResults'];
+
+        $this->assertSame(array_values(wc_get_attribute_taxonomy_names()), $variants['taxonomies']);
+        $this->assertStringContainsString('NOT document_kind = "parent"', $variants['filter']);
+        $this->assertStringNotContainsString('NOT document_kind = "variant"', $variants['filter']);
+        $this->assertStringContainsString('NOT document_kind = "parent"', $variants['searchScope']['filter']);
+        $this->assertSame('parent_id', $variants['distinct']);
+        $this->assertSame(['ID', 'card', 'parent_id'], $variants['attributes']);
+        $this->assertSame('in_stock:desc', $variants['sorts']['price_asc'][0] ?? null);
+    }
+
     /** Missing, the whole site answers 500: the resolved listing copies the contract by hand. */
     #[Test]
     public function it_always_hands_the_client_a_base_query(): void

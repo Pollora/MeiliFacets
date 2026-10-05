@@ -8,9 +8,10 @@ use Closure;
 use Modules\MeiliFacets\Contracts\CardProjector;
 use Modules\MeiliFacets\Enums\CardField;
 use Modules\MeiliFacets\Enums\DocumentField;
+use Modules\MeiliFacets\Enums\DocumentKind;
 use WP_Post;
 
-/** The card and the price a document carries, read as an anonymous visitor of the shop's tax location. */
+/** The card, the price, the stock and the kind of a product's document, read as an anonymous visitor of the shop. */
 final readonly class ShopFields
 {
     private const array FIELDS_SET_BY_THE_MODULE = [CardField::Variants->value, CardField::OutOfStock->value];
@@ -37,10 +38,41 @@ final readonly class ShopFields
      */
     private function fields(WP_Post $post): array
     {
-        $card = [DocumentField::Card->value => $this->card($post)];
+        $card = $this->card($post);
         $price = $this->prices->project($post);
 
-        return $price === [] ? $card : [...$card, DocumentField::Price->value => $price];
+        if ($price === []) {
+            return [DocumentField::Card->value => $card];
+        }
+
+        return [
+            DocumentField::Card->value => $card,
+            DocumentField::Price->value => $price,
+            ...$this->inStockField($card),
+            ...$this->kindField($card),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $card
+     * @return array<string, int>
+     */
+    private function inStockField(array $card): array
+    {
+        $isOutOfStock = isset($card[CardField::OutOfStock->value]);
+
+        return [DocumentField::InStock->value => $isOutOfStock ? 0 : 1];
+    }
+
+    /**
+     * @param  array<string, mixed>  $card
+     * @return array<string, string>
+     */
+    private function kindField(array $card): array
+    {
+        $hasVariantDocuments = isset($card[CardField::Variants->value]);
+
+        return $hasVariantDocuments ? [DocumentField::Kind->value => DocumentKind::Parent->value] : [];
     }
 
     /**

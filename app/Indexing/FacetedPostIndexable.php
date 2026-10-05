@@ -14,9 +14,10 @@ use Modules\MeiliFacets\Enums\PaginationSetting;
 use Modules\MeiliFacets\Enums\TypoToleranceSetting;
 use Modules\MeiliFacets\Search\EngineLimits;
 use Modules\MeiliFacets\Support\UniqueList;
+use Pollora\MeiliScout\Contracts\HasDependentDocuments;
 use Pollora\MeiliScout\Indexables\PostIndexable;
 
-final class FacetedPostIndexable extends PostIndexable
+final class FacetedPostIndexable extends PostIndexable implements HasDependentDocuments
 {
     private const string ALL_FACETS = '*';
 
@@ -26,14 +27,29 @@ final class FacetedPostIndexable extends PostIndexable
      * The only fields the module reads back from a hit. Anything else a project
      * needs is declared, not inherited.
      */
-    private const array READ_BY_THE_MODULE = [DocumentField::Id->value, DocumentField::Card->value];
+    private const array READ_BY_THE_MODULE = [
+        DocumentField::Id->value,
+        DocumentField::Card->value,
+        DocumentField::ParentId->value,
+    ];
 
     public function __construct(
         private readonly IndexAttributes $attributes,
         private readonly SearchableAttributes $searchable,
         private readonly IndexedTaxonomies $taxonomies,
         private readonly EngineLimits $limits,
+        private readonly VariantDocuments $variants,
     ) {}
+
+    public function dependentDocuments(array $document, mixed $item): array
+    {
+        return $this->variants->of($document);
+    }
+
+    public function dependentsFilter(array $itemIds): string
+    {
+        return $this->variants->filterOf($itemIds);
+    }
 
     /**
      * @return array<string, mixed>
@@ -46,6 +62,7 @@ final class FacetedPostIndexable extends PostIndexable
             $settings,
             IndexSetting::FilterableAttributes,
             $this->facetAttributes(),
+            [DocumentField::ParentId->value],
             $this->attributes->filterable()
         );
 

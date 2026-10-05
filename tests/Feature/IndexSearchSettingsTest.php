@@ -190,12 +190,10 @@ final class IndexSearchSettingsTest extends TestCase
      */
     private function exactlyMatchedWith(IndexAttributes $attributes): array
     {
-        $settings = new FacetedPostIndexable(
-            $attributes,
-            $this->app->make(SearchableAttributes::class),
-            new IndexedTaxonomies(new IndexedPostTypes),
-            new EngineLimits(self::REACHABLE_HITS)
-        )->getIndexSettings();
+        $settings = $this->app->make(FacetedPostIndexable::class, [
+            'attributes' => $attributes,
+            'limits' => new EngineLimits(self::REACHABLE_HITS),
+        ])->getIndexSettings();
 
         return $settings[IndexSetting::TypoTolerance->value][TypoToleranceSetting::DisableOnAttributes->value];
     }

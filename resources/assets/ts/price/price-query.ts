@@ -1,5 +1,5 @@
 import { FilterExpression } from '../shared/filter-expression.ts'
-import { RESULTS } from '../shared/plan.ts'
+import { Measures } from '../shared/plan.ts'
 import { Range } from '../shared/range.ts'
 
 import type { FilterQuery } from '../shared/filter-query.ts'
@@ -43,7 +43,7 @@ export class PriceQuery implements FilterQuery {
     }
 
     boundsFrom(answers: Answers) {
-        const stats = (answers[PriceQuery.KEY] ?? answers[RESULTS])?.facetStats ?? {}
+        const stats = (answers[PriceQuery.KEY] ?? Measures.in(answers)).facetStats ?? {}
 
         return this.#widened(stats[this.#fields.min]?.min, stats[this.#fields.max]?.max)
     }

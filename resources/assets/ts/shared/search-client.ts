@@ -14,11 +14,15 @@ export interface SearchQuery {
     highlightPreTag?: string
     highlightPostTag?: string
     sort?: string[]
+    /** one hit per value of this field, the first ranked */
+    distinct?: string
 }
 
 export interface SearchHit {
     /** The document's identity, the same whatever term found it. */
     ID?: number | string
+    /** The product a variant's document belongs to. */
+    parent_id?: number
     card?: Card
     /** The retrieved fields again, highlighted terms wrapped in the query's tags. */
     _formatted?: { card?: Card }

@@ -8,7 +8,7 @@ import { ListingState } from '../../resources/assets/ts/listing/listing-state.ts
 import { FacetQuery } from '../../resources/assets/ts/facets/facet-query.ts'
 import { PriceQuery } from '../../resources/assets/ts/price/price-query.ts'
 import { FilterExpression } from '../../resources/assets/ts/shared/filter-expression.ts'
-import { RESULTS } from '../../resources/assets/ts/shared/plan.ts'
+import { MEASURES, RESULTS } from '../../resources/assets/ts/shared/plan.ts'
 import { described } from './fixtures.ts'
 
 import type { StateChanges } from '../../resources/assets/ts/listing/listing-state.ts'
@@ -227,4 +227,71 @@ describe('ListingQuery, scope of a search shared with the server', () => {
             assert.deepEqual(counting?.attributesToSearchOn ?? null, expected.attributesToSearchOn)
         })
     }
+})
+
+describe('ListingQuery reading variants', () => {
+    const variantResults = {
+        taxonomies: ['pa_size'],
+        filter: 'post_type = product AND NOT document_kind = "parent"',
+        searchScope: {
+            filter: 'post_type = product AND NOT document_kind = "parent" AND searched',
+            fields: ['post_title'],
+        },
+        distinct: 'parent_id',
+        attributes: ['ID', 'card', 'parent_id'],
+        sorts: { price_asc: ['in_stock:desc', 'metas._price:asc'] },
+    }
+    const priced = { variantResults, priceFields: { min: 'price.min', max: 'price.max' } }
+
+    it('reads products while no filter concerns a variant', () => {
+        const queries = plan({ facets: { product_brand: ['acme'] }, sort: 'price_asc' }, priced)
+
+        assert.equal(queries[RESULTS].distinct, undefined)
+        assert.equal(queries[MEASURES], undefined)
+        assert.deepEqual(queries[RESULTS].sort, ['metas._price:asc'])
+    })
+
+    it('reads one variant per product once a size is ticked, in stock first under a price sort', () => {
+        const results = plan({ facets: { pa_size: ['400ml'] }, sort: 'price_asc' }, priced)[RESULTS]
+
+        assert.ok(results.filter.startsWith(variantResults.filter))
+        assert.ok(results.filter.includes('facets.pa_size = "400ml"'))
+        assert.equal(results.distinct, 'parent_id')
+        assert.deepEqual(results.attributesToRetrieve, ['ID', 'card', 'parent_id'])
+        assert.deepEqual(results.facets, [])
+        assert.deepEqual(results.sort, ['in_stock:desc', 'metas._price:asc'])
+    })
+
+    it('reads variants through the search scope once a term is searched', () => {
+        const results = plan({ facets: { pa_size: ['400ml'] }, query: 'lotion' }, priced)[RESULTS]
+
+        assert.ok(results.filter.startsWith(variantResults.searchScope.filter))
+        assert.deepEqual(results.attributesToSearchOn, ['post_title'])
+    })
+
+    it('measures on the products beside the variant results', () => {
+        const measures = plan({ facets: { pa_size: ['400ml'] }, sort: 'price_asc' }, priced)[MEASURES]
+
+        assert.ok(measures !== undefined)
+        assert.ok(measures.filter.startsWith('post_type = product'))
+        assert.ok(!measures.filter.includes('document_kind'))
+        // The ticked size is counted by a search of its own.
+        assert.deepEqual(measures.facets, ['facets.product_brand', 'price.min', 'price.max'])
+        assert.equal(measures.hitsPerPage, 0)
+        assert.equal(measures.sort, undefined)
+    })
+
+    it('reads variants under a price range alone', () => {
+        assert.equal(plan({ price: { max: 30 } }, priced)[RESULTS].distinct, 'parent_id')
+    })
+
+    it('never reads variants of a listing without a document per variant', () => {
+        assert.equal(plan({ price: { max: 30 } }, { priceFields: priced.priceFields })[RESULTS].distinct, undefined)
+    })
+
+    it('reads products off a page served before variants were described', () => {
+        const older = { ...priced, variantResults: undefined } as unknown as Partial<ListingDescription>
+
+        assert.equal(plan({ facets: { pa_size: ['400ml'] } }, older)[RESULTS].distinct, undefined)
+    })
 })

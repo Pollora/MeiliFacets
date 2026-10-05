@@ -63,7 +63,7 @@ final readonly class ListingResults
             return null;
         }
 
-        $id = $hit[DocumentField::Id->value] ?? null;
+        $id = $hit[DocumentField::ParentId->value] ?? $hit[DocumentField::Id->value] ?? null;
 
         return $id === null ? $card : [...$card, CardField::Id->value => $id];
     }

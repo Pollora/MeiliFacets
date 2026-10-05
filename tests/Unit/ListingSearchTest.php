@@ -11,6 +11,7 @@ use Modules\MeiliFacets\Search\ListingSearch;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeFacetCounter;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeListing;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeSearchEngine;
+use Modules\MeiliFacets\Tests\Unit\Doubles\FakeVariantScopedListing;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -99,6 +100,42 @@ final class ListingSearchTest extends TestCase
         $results = $this->searchWith($engine)->run(FakeListing::withBrandAndCategory(), new ListingState);
 
         $this->assertSame([['title' => 'Coat', 'id' => 393]], $results->cards());
+    }
+
+    #[Test]
+    public function it_hands_a_card_read_off_a_variant_the_id_of_its_product(): void
+    {
+        $engine = new FakeSearchEngine([self::RESULTS => [
+            'hits' => [['ID' => '393-1', 'parent_id' => 393, 'card' => ['title' => 'Coat']]],
+        ]]);
+
+        $results = $this->searchWith($engine)->run(FakeListing::withBrandAndCategory(), new ListingState);
+
+        $this->assertSame([['title' => 'Coat', 'id' => 393]], $results->cards());
+    }
+
+    #[Test]
+    public function it_measures_on_the_products_once_the_results_read_variants(): void
+    {
+        $engine = new FakeSearchEngine([
+            self::RESULTS => [
+                'hits' => [],
+                'totalHits' => 2,
+                'facetDistribution' => ['facets.product_brand' => ['acme' => 1]],
+            ],
+            'measures' => [
+                'facetDistribution' => ['facets.product_brand' => ['acme' => 4]],
+                'facetStats' => ['price.min' => ['min' => 12.0, 'max' => 40.0]],
+            ],
+        ]);
+
+        $state = new ListingState([FakeVariantScopedListing::SIZE => ['400ml']]);
+        $results = $this->searchWith($engine)->run(new FakeVariantScopedListing, $state);
+
+        $this->assertArrayHasKey('measures', $engine->received[0]);
+        $this->assertSame(['acme' => 4], $results->distributions['product_brand']);
+        $this->assertSame(['min' => 12.0, 'max' => 40.0], $results->facetStats['price.min']);
+        $this->assertSame(2, $results->total);
     }
 
     #[Test]

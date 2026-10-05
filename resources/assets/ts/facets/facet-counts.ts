@@ -1,5 +1,5 @@
 import { facetField } from '../shared/description.ts'
-import { RESULTS } from '../shared/plan.ts'
+import { Measures } from '../shared/plan.ts'
 import { FacetQuery } from './facet-query.ts'
 
 import type { FacetDescription } from '../shared/description.ts'
@@ -18,7 +18,7 @@ export class FacetCounts {
 
     of(facet: FacetDescription): Record<string, number> {
         const measuredSeparately = this.#answers[FacetQuery.keyFor(facet.taxonomy)]
-        const response = measuredSeparately ?? this.#answers[RESULTS] ?? {}
+        const response = measuredSeparately ?? Measures.in(this.#answers)
 
         return response.facetDistribution?.[facetField(facet)] ?? {}
     }

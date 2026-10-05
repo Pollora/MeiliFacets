@@ -9,7 +9,7 @@ import { VariantChoice } from '../results/variant-choice.ts'
 import { CardView } from '../results/card-view.ts'
 import { ResultsView } from '../results/results-view.ts'
 import { InputSource } from '../shared/input-source.ts'
-import { RESULTS } from '../shared/plan.ts'
+import { Measures, RESULTS } from '../shared/plan.ts'
 import { SortCombobox } from '../sort/sort-combobox.ts'
 import { SortQuery } from '../sort/sort-query.ts'
 import { SortRadios } from '../sort/sort-radios.ts'
@@ -207,7 +207,7 @@ export class ListingBinding {
 
         this.#facets.showCounts(new FacetCounts(answers))
         this.#price.showBounds(answers, state)
-        const matches = this.#sortQuery.matchesIn(results.facetDistribution ?? {})
+        const matches = this.#sortQuery.matchesIn(Measures.in(answers).facetDistribution ?? {})
 
         this.#sort.showMatches(matches, state)
         this.#sortRadios.showMatches(matches, state)
