@@ -7,10 +7,15 @@ changes is in the [changelog](../CHANGELOG.md).
 
 ## Unreleased
 
-- **Publish, then reindex; same contract.** `Contract::VERSION` is unchanged. The client scripts in `dist/` and the
-  site search stylesheet changed: publish them with `php artisan module:publish MeiliFacets`, then clear the page
-  cache. The module reads the variants of a variable product off WooCommerce, with their stock: run
-  `wp meiliscout index --clear` to store them.
+- **Update MeiliScout first.** The module now implements MeiliScout's `HasDependentDocuments` and fires
+  `meiliscout/reindex_post`: run `composer update amphibee/meiliscout` before updating the module, or the indexable
+  fails to load.
+- **Reindex, then publish; same contract.** `Contract::VERSION` is unchanged. Every product query now filters
+  on `document_kind`, which the engine refuses until the new settings are pushed: run
+  `wp meiliscout index --clear` before the new code serves a page, or the listings answer with the outage view until
+  it is done. It also writes one document per variant. Then publish the client scripts in `dist/` and the site
+  search stylesheet with `php artisan module:publish MeiliFacets`, and clear the page cache: a page cached before the
+  release sends the engine the queries of the old client.
 - **If you projected `variants`.** A `variants` list your `CardProjector` returns is now always dropped: only the
   module's is indexed. Remove the code that built it, and move the fields of your own — a size label, a cart link —
   to a `Contracts\VariantFields` you bind. See [Card variants](customising/card.md#card-variants).

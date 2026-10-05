@@ -3305,6 +3305,25 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
+### R-215 · 🟡 · ouvert · ouvert le 2026-10-05 — MeiliScout réindexe un article à chaque écriture d'une de ses métas
+
+`SingleIndexingServiceProvider::handlePostMetaUpdate` (sur `updated_post_meta`, `added_post_meta`,
+`deleted_post_meta`) réindexe l'article à chaque méta écrite, depuis le premier commit de MeiliScout : un produit
+enregistré par WooCommerce, qui écrit une dizaine de métas, est réindexé une dizaine de fois. Les documents variante
+(`R-210` n°1) rendent chaque passage plus coûteux (lecture des variations, suppression puis ajout de leurs documents).
+Une variation enregistrée seule fait réécrire `_price` et trois métas du parent par la synchronisation différée de
+WooCommerce (`class-wc-product-variable-data-store-cpt.php:940-951`) : au moins quatre réindexations, plus celle de
+`VariationChanges`. Non mesuré. *Laissé de côté le 2026-10-05 par l'utilisateur* : le mode différé (`MEILISCOUT_ASYNC_INDEXING`) en
+production regroupera les passages.
+
+### R-214 · 🟡 · ouvert · ouvert le 2026-10-05 — un compteur annonce plus de produits que la grille n'en montre
+
+Avec une facette de variante et une fourchette de prix combinées, la grille lit les documents variante (un filtre se
+vérifie sur une seule variante) et les compteurs les documents produit (fourchettes qui se chevauchent) : « 400 ml »
+peut annoncer 4 produits quand un seul a un 400 ml sous 30 €. Limite inscrite dans la décision « Produits variables »
+(2026-10-05, essai sur index temporaire) ; pour l'aligner, compter les facettes de variante sur les documents variante
+sans `distinct`.
+
 ### R-213 · 🔴 · ouvert (corrigé, non commité) · ouvert le 2026-10-05 — Pollora 13.34 : les vues du module ne sont plus surchargeables par le thème
 
 La mise à jour du projet (`b4389d5`, `pollora/framework` v13.4.2 → v13.34.2) renomme le contrat des actions :
@@ -3403,6 +3422,20 @@ construit encore les paires d'attributs sur une carte rendue avant de les jeter 
 une `Collection` Laravel stockée dans `variants` ; `ResolvedListingStateTest` écrit des noms de champs en chaînes ;
 `ListingResults::card()` renumérote les clés numériques avant le choix de variante (antérieur à la PR, casse la parité
 que la PR teste).
+
+**Avancement du 2026-10-05, suite.** Étape 2 codée, non commitée : un document par variante écrit et retiré avec
+le produit (MeiliScout `7ce229c`, `HasDependentDocuments`, implémenté par `FacetedPostIndexable` avec
+`VariantDocuments`) ; chaque requête produit écarte les documents variante ; une facette d'attribut ou une fourchette
+de prix fait lire les résultats sur les documents variante (`QueryPlan::readsVariants`, `variantResults`,
+`distinct: parent_id`, stock d'abord sous un tri par prix), les compteurs restant sur les produits (`measures`) ;
+jumeau navigateur depuis la clé publiée `variantResults`. Réindexation du produit quand une variation change seule
+(MeiliScout `246c358`, `meiliscout/reindex_post`, `VariationChanges`). Revue en six passes, vocabulaire unifié
+(« variant / parent / measures »). Trouvés sur le moteur réel et corrigés : `parent_id` absent de
+`displayedAttributes`, `distinct` ignoré par `MeilisearchQuery`. Vérifié : `composer check` (PHP 667, client 941 après la seconde revue),
+`Modules` 1057+, réindexation locale (2 documents variante, 65 produits), navigateur : 15 ml + 400 ml en tri
+décroissant, un seul « Eau Micellaire », en tête, « À partir de 26,00 € » ; 400 ml seul, 39,00 €. Reste ouvert :
+n°2 (archive d'attribut : la carte ne connaît pas le terme parcouru), n°4 (`price.onsale` hérité du produit par
+chaque variante), `R-214`, `R-215`.
 
 **Avancement du 2026-10-05, branche `feat/variant-documents`, non commité.** Étape 1 de n°1 codée : le module lit les
 variantes dans WooCommerce (`Indexing\ProductVariants`, appelé par `Indexing\ShopFields`, extrait de `PostDocument`),
