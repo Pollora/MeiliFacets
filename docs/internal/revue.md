@@ -3305,6 +3305,73 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
+### R-219 · 🟢 · ouvert (corrigé, non commité) · ouvert le 2026-10-05 — une valeur de facette lue dans l'URL n'avait pas de longueur maximale
+
+Audit de sécurité du 2026-10-05. `StateReader::isReadable()` acceptait une valeur de n'importe quelle longueur : une
+URL forgée portait jusqu'à `cap` valeurs de plusieurs kilo-octets chacune jusqu'au filtre envoyé au moteur. Une valeur
+utile est un slug de terme, et WordPress n'en stocke pas de plus long que 200 octets : colonne
+`wp_terms.slug varchar(200)` (`wp-admin/includes/schema.php:68`), slug coupé à 200 octets encodés par
+`sanitize_title_with_dashes()` (`utf8_uri_encode( $title, 200 )`, `wp-includes/formatting.php:2291`), et un suffixe
+ajouté par `wp_unique_term_slug()` au-delà de 200 fait refuser l'insertion par `wpdb::process_field_lengths()`
+(`wp-includes/class-wpdb.php:2997`). Corrigé : constante `StateReader::MAX_VALUE_BYTES` (200), comptée en octets
+(`strlen()`), puisqu'un slug non ASCII est stocké encodé en `%xx`. Le client ne lit jamais l'URL (état initial reçu
+du serveur, retour arrière par `history.state`) : rien à refléter côté navigateur, pas de jumeau dans
+`ContractParityTest`. Tests : `StateReaderTest` garde une valeur de 200 octets, écarte une valeur de 201 octets.
+Vérifié : `composer check` vert (669 tests PHP, 941 client), suite `Modules` 1061 verts.
+
+### R-218 · 🟡 · ouvert (sujet de production) · ouvert le 2026-10-05 — `MEILI_KEY` est la clé maître
+
+Audit de sécurité du 2026-10-05. En local, `MEILI_KEY` a la même valeur que `MEILI_MASTER_KEY` du conteneur
+Meilisearch (comparaison faite sans afficher les clés). La clé ne quitte pas le serveur, mais sa fuite donnerait tous
+les index, toutes les clés et le droit d'en créer. Recommandation : une clé d'administration dédiée, limitée aux index
+de MeiliScout (`posts`, `taxonomies`, `getIndexName()` des deux indexables) et aux actions qu'il appelle (`search`,
+`documents.*`, `indexes.*`, `settings.*`, `tasks.get`) ; la clé maître hors de l'environnement de l'application.
+Ajouté à `docs/production.md` (« The server key »). Non codé.
+
+### R-217 · 🟠 · ouvert · ouvert le 2026-10-05 — la vue de panne du listing part en 200 avec un cache public
+
+Audit de sécurité du 2026-10-05, mesuré en local, Meilisearch arrêté le temps de la mesure puis relancé.
+`ResolvedListing::attempt()` (`app/Listing/ResolvedListing.php:77`) appelle `ServiceUnavailable::sendHeaders()`, qui
+pose le statut par `status_header(503)` et les en-têtes par `header()`. Relevé sur `/boutique` et
+`/boutique?contenance=400ml`, identique sur les deux :
+
+```
+HTTP/2 200
+cache-control: no-store, max-age=3600, must-revalidate, public
+cache-control: max-age=0
+retry-after: 120
+```
+
+La vue de panne est bien rendue (`meilifacetsUnavailable` dans la page) ; moteur relancé, `/boutique` repasse en 200
+sans `retry-after`. Cause : ces appels se font pendant le rendu de la vue, en dehors de la réponse Symfony que Pollora
+renvoie. `FrontendController::handle()` construit `response(View::make(...), 200)`
+(`vendor/pollora/framework/src/Route/UI/Http/Controllers/FrontendController.php:61`) ; à l'envoi,
+`Response::sendHeaders()` réécrit la ligne de statut avec `header(..., true, 200)`
+(`vendor/symfony/http-foundation/Response.php:381`), ce qui écrase le 503. `WordPressHeaders` ne voit pas le
+`no-store` brut (`hasExplicitCacheDirectives()` lit l'objet réponse, `WordPressHeaders.php:232`) et ajoute
+`public, max-age=3600` (`applyPublicCacheHeaders()`, `WordPressHeaders.php:260`) ; Symfony envoie son
+`Cache-Control` sans remplacer celui de PHP (`Response.php:358`, `$replace` faux hors `Content-Type`) et nginx joint
+les deux. Conséquence : un cache qui lit le statut garde la panne comme une page valide ; le `no-store` ne protège que
+derrière un cache qui le lit dans un en-tête contradictoire. Le second `cache-control: max-age=0` et `expires` sont
+déjà là sur une page saine : origine non cherchée. `R-205` (« pose `503` ») et `ListingOutageTest` lisent l'appel à
+`sendHeaders()`, pas la réponse envoyée : aucun test ne tenait le statut reçu. Aucun code changé.
+
+### R-216 · 🟠 · ouvert (sujet de production) · ouvert le 2026-10-05 — un visiteur peut occuper le moteur des secondes avec une seule requête
+
+Audit de sécurité du 2026-10-05. Avec la clé publique, un filtre de 5 000 clauses `OR` (129 Ko) occupe le moteur
+3,5 s ; une recherche multiple de 300 requêtes de 500 clauses (3,7 Mo) l'occupe 40 s. La limite de débit de
+`docs/production.md` compte les requêtes, pas leur poids. Correctif au proxy, devant l'URL publique du moteur :
+`client_max_body_size` (nginx) ou `LimitRequestBody` (Apache), et seules les routes du navigateur en `POST`
+(`/indexes/posts/search`, `/multi-search`, `/indexes/posts/facet-search`, plus `OPTIONS` pour le contrôle CORS).
+Pas `--http-payload-size-limit` : il plafonne aussi l'ajout de documents, donc l'indexation. Ajouté à
+`docs/production.md` (« Request size »). Non codé.
+
+*Détail retiré de `production.md` le 2026-10-05 (doc réduite au principe, à la demande de l'utilisateur)* : au proxy,
+n'ouvrir que `POST` et `OPTIONS` (contrôle CORS du navigateur) sur `/indexes/posts/search`, `/multi-search` et
+`/indexes/posts/facet-search`, `403` ailleurs ; `client_max_body_size` (Apache : `LimitRequestBody`) réglé au-dessus
+de la plus grosse requête d'un vrai listing, toutes facettes cochées — `64k` n'est qu'un ordre de grandeur, non mesuré ;
+le serveur joint le moteur par son adresse privée (`MEILI_HOST`), jamais par ce proxy.
+
 ### R-215 · 🟡 · ouvert · ouvert le 2026-10-05 — MeiliScout réindexe un article à chaque écriture d'une de ses métas
 
 `SingleIndexingServiceProvider::handlePostMetaUpdate` (sur `updated_post_meta`, `added_post_meta`,

@@ -200,6 +200,11 @@ The key only reads what the index lets it read: the module restricts what a resp
 (Meilisearch's `displayedAttributes`). A field added through `displayed_attributes` becomes readable by every visitor.
 Filtering and counting are not restricted by that setting.
 
+### The server key
+
+`MEILI_KEY` is what the server indexes and searches with. Do not set it to the master key: give it an admin key
+limited to the indexes MeiliScout writes, and keep the master key out of the application's environment.
+
 ### Rate limiting
 
 Meilisearch has no rate limiting of its own, and the public key lets anyone send searches. Put a rate limit on the
@@ -223,6 +228,12 @@ sends one.
 
 Filtered and searched URLs are usually not served from a page cache, since each one carries its own query string.
 Every first render of such a URL reaches PHP and the engine.
+
+### Request size
+
+A rate limit counts requests, not their weight: a single search carrying a huge filter can keep the engine busy for
+seconds. On the engine's public URL, cap the size of a request body and open only the search routes the browser uses.
+Do not cap it with Meilisearch's own payload limit, which applies to indexing too.
 
 ### What the index may hold
 
