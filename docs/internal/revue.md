@@ -1095,7 +1095,17 @@ facettes cassent à la première sauvegarde de contenu.
 ni `1c59a05` ni `2acf53a` cités plus haut ; le module exige toujours `dev-feat/meilifacets`
 (`composer.json`). Le merge amont n'est pas vérifiable d'ici.
 
-### R-40 · 🟠 · ouvert · 2026-09-06 — le `503` ne sort pas
+### R-40 · 🟠 · **fermé le 2026-10-05** (`R-217`) · ouvert le 2026-09-06 — le `503` ne sort pas
+
+*Corrigé le 2026-10-05 (non commité), avec `R-217`* : le listing ne pose plus d'en-tête à la main ;
+`ServiceUnavailable::announce()` marque la panne pendant le rendu, et un middleware global du module
+(`Http\ServiceUnavailableHeaders`, poussé dans le noyau HTTP par `RenderingServiceProvider`) applique à la réponse
+Laravel `503`, `Retry-After: 120` et `Cache-Control: no-store` — global, il enveloppe la pile de Pollora et passe après
+`WordPressHeaders`. Mesuré moteur local arrêté puis relancé : `/boutique` et `?contenance=400ml` en `HTTP/2 503`,
+`cache-control: no-store, private`, `retry-after: 120`, vue de panne présente ; moteur relancé, `200` et 19 cartes.
+Tests : `ServiceUnavailableHeadersTest` (503 et `no-store` une fois la panne levée, page intacte sinon, middleware
+enregistré). Reste, hors de ce point : une page saine porte deux `Cache-Control` (`public, max-age=3600` et
+`max-age=0`), dont l'origine n'est pas cherchée.
 
 Pollora écrase le statut HTTP de WordPress. Correctif rédigé dans `decisions.md`, **non soumis en
 amont**. Tant qu'il ne l'est pas, `Unavailable::announce()` produit un `200` avec deux
@@ -3328,7 +3338,17 @@ de MeiliScout (`posts`, `taxonomies`, `getIndexName()` des deux indexables) et a
 `documents.*`, `indexes.*`, `settings.*`, `tasks.get`) ; la clé maître hors de l'environnement de l'application.
 Ajouté à `docs/production.md` (« The server key »). Non codé.
 
-### R-217 · 🟠 · ouvert · ouvert le 2026-10-05 — la vue de panne du listing part en 200 avec un cache public
+### R-217 · 🟠 · **fermé le 2026-10-05** (non commité) · ouvert le 2026-10-05 — la vue de panne du listing part en 200 avec un cache public
+
+*Corrigé le 2026-10-05 (non commité), avec `R-40`* : le listing ne pose plus d'en-tête à la main ;
+`ServiceUnavailable::announce()` marque la panne pendant le rendu, et un middleware global du module
+(`Http\ServiceUnavailableHeaders`, poussé dans le noyau HTTP par `RenderingServiceProvider`) applique à la réponse
+Laravel `503`, `Retry-After: 120` et `Cache-Control: no-store` — global, il enveloppe la pile de Pollora et passe après
+`WordPressHeaders`. Mesuré moteur local arrêté puis relancé : `/boutique` et `?contenance=400ml` en `HTTP/2 503`,
+`cache-control: no-store, private`, `retry-after: 120`, vue de panne présente ; moteur relancé, `200` et 19 cartes.
+Tests : `ServiceUnavailableHeadersTest` (503 et `no-store` une fois la panne levée, page intacte sinon, middleware
+enregistré). Reste, hors de ce point : une page saine porte deux `Cache-Control` (`public, max-age=3600` et
+`max-age=0`), dont l'origine n'est pas cherchée.
 
 Audit de sécurité du 2026-10-05, mesuré en local, Meilisearch arrêté le temps de la mesure puis relancé.
 `ResolvedListing::attempt()` (`app/Listing/ResolvedListing.php:77`) appelle `ServiceUnavailable::sendHeaders()`, qui
