@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Providers;
 
+use Illuminate\Contracts\Http\Kernel;
+use Illuminate\Foundation\Http\Kernel as HttpKernel;
 use Illuminate\Support\ServiceProvider;
 use Modules\MeiliFacets\Http\ServiceUnavailable;
+use Modules\MeiliFacets\Http\ServiceUnavailableHeaders;
 use Modules\MeiliFacets\Support\SiteLocale;
 use Modules\MeiliFacets\View\CardSettings;
 use Modules\MeiliFacets\View\ClientScript;
@@ -22,5 +25,14 @@ final class RenderingServiceProvider extends ServiceProvider
         $this->app->bind(CardSettings::class, fn (): CardSettings => new CardSettings(
             (int) config('meilifacets.card.eager', CardSettings::DEFAULT_EAGER)
         ));
+    }
+
+    public function boot(): void
+    {
+        $kernel = $this->app->make(Kernel::class);
+
+        if ($kernel instanceof HttpKernel) {
+            $kernel->pushMiddleware(ServiceUnavailableHeaders::class);
+        }
     }
 }

@@ -74,7 +74,7 @@ final class ResolvedListing
             return $this->search->run($this->listing, $this->state);
         } catch (EngineUnavailable $failure) {
             $this->failed = true;
-            $this->serviceUnavailable->sendHeaders();
+            $this->serviceUnavailable->announce();
             report($failure);
 
             return new ListingResults([], 0, []);
