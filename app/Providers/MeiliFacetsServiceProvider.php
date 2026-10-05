@@ -10,7 +10,6 @@ use Modules\MeiliFacets\Console\CheckParametersCommand;
 use Modules\MeiliFacets\Discovery\ListingDiscovery;
 use Nwidart\Modules\Support\ModuleServiceProvider;
 use Pollora\Discovery\Domain\Contracts\DiscoveryEngineInterface;
-use Pollora\Hook\Domain\Contracts\Action;
 
 /** The module's entry point: it declares itself, then hands each layer its own provider. */
 final class MeiliFacetsServiceProvider extends ModuleServiceProvider
@@ -80,14 +79,18 @@ final class MeiliFacetsServiceProvider extends ModuleServiceProvider
         }
     }
 
-    /** nwidart builds its cascade from `config('view.paths')`, which Pollora fills with the theme only afterwards. */
+    /**
+     * nwidart builds its cascade from `config('view.paths')`, which Pollora fills with the theme only afterwards.
+     * Pollora renamed its hook contract within 13.x (`Domain\Contracts` to `Domain\Contract`): WordPress's own
+     * function holds across the versions the module supports.
+     */
     private function letTheThemeOverrideViews(): void
     {
-        if (! $this->app->bound(Action::class)) {
+        if (! function_exists('add_action')) {
             return;
         }
 
-        $this->app->make(Action::class)->add('after_setup_theme', function (): void {
+        add_action('after_setup_theme', function (): void {
             $theme = get_stylesheet_directory().self::THEME_VIEWS;
 
             if (is_dir($theme)) {
