@@ -62,7 +62,7 @@ final class FacetedPostIndexable extends PostIndexable implements HasDependentDo
             $settings,
             IndexSetting::FilterableAttributes,
             $this->facetAttributes(),
-            [DocumentField::ParentId->value],
+            [DocumentField::Id->value, DocumentField::ParentId->value],
             $this->attributes->filterable()
         );
 

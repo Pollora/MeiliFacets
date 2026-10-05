@@ -33,12 +33,13 @@ final class IndexFacetingTest extends TestCase
         $this->assertNotSame(EngineLimits::ENGINE_MAX_FACET_VALUES, $written);
     }
 
-    /** MeiliScout removes a product's variant documents by this field on every save, with or without a plugin. */
+    /** MeiliScout removes the variant documents a save no longer writes by these two, with or without a plugin. */
     #[Test]
-    public function it_filters_on_the_parent_of_a_document_without_any_plugin(): void
+    public function it_filters_on_the_id_and_the_parent_of_a_document_without_any_plugin(): void
     {
         $filterable = $this->settingsFor(new EngineLimits(1000))[IndexSetting::FilterableAttributes->value];
 
+        $this->assertContains('ID', $filterable);
         $this->assertContains('parent_id', $filterable);
     }
 
