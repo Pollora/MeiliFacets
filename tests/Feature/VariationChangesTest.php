@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Tests\Feature;
 
+use Closure;
 use Modules\MeiliFacets\Indexing\VariationChanges;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -25,6 +26,12 @@ final class VariationChangesTest extends TestCase
     /** @var list<int> */
     private array $reindexed = [];
 
+    /** @var list<int> */
+    private array $variationsAtReindex = [];
+
+    /** Each `$this->method(...)` is a new closure, which `remove_action()` would not find. */
+    private Closure $recorder;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -33,13 +40,16 @@ final class VariationChangesTest extends TestCase
             $this->markTestSkipped('Variations are WooCommerce\'s.');
         }
 
-        add_action(self::REINDEX_POST, $this->record(...));
+        $this->recorder = $this->record(...);
+        add_action(self::REINDEX_POST, $this->recorder);
     }
 
     /** The listener outlives a test: what the cleanup deletes is flushed with nobody listening. */
     protected function tearDown(): void
     {
-        remove_action(self::REINDEX_POST, $this->record(...));
+        if (isset($this->recorder)) {
+            remove_action(self::REINDEX_POST, $this->recorder);
+        }
 
         foreach (array_reverse($this->created) as $product) {
             $product->delete(true);
@@ -76,6 +86,70 @@ final class VariationChangesTest extends TestCase
     }
 
     #[Test]
+    public function it_reindexes_a_restored_product_once_its_variations_are_back(): void
+    {
+        [$product] = $this->variable();
+        wp_trash_post($product->get_id());
+        $this->changes()->reindexChangedProducts();
+        $this->reindexed = [];
+        $this->variationsAtReindex = [];
+
+        wp_untrash_post($product->get_id());
+        $this->changes()->reindexChangedProducts();
+
+        $this->assertSame([$product->get_id()], $this->reindexed);
+        $this->assertSame([2], $this->variationsAtReindex);
+    }
+
+    #[Test]
+    public function it_reindexes_the_product_of_a_variation_whose_meta_is_written_directly(): void
+    {
+        [$product, $small] = $this->variable();
+        $this->reindexed = [];
+
+        update_post_meta($small->get_id(), '_price', '19');
+        $this->changes()->reindexChangedProducts();
+
+        $this->assertSame([$product->get_id()], $this->reindexed);
+    }
+
+    #[Test]
+    public function it_reindexes_nothing_for_the_meta_of_a_child_that_is_not_a_variation(): void
+    {
+        [$product] = $this->variable();
+        $attachment = ['post_title' => 'Variation changes, for the test', 'post_mime_type' => 'image/jpeg'];
+        $attachmentId = wp_insert_attachment($attachment, false, $product->get_id());
+        $this->reindexed = [];
+
+        update_post_meta($attachmentId, '_meilifacets_test', '1');
+        $this->changes()->reindexChangedProducts();
+        wp_delete_attachment($attachmentId, true);
+
+        $this->assertSame([], $this->reindexed);
+    }
+
+    #[Test]
+    public function it_reindexes_nothing_for_a_meta_deleted_from_every_post_while_a_variation_is_the_global_post(): void
+    {
+        global $post;
+
+        [$product, $small] = $this->variable();
+        update_post_meta($product->get_id(), '_meilifacets_test', '1');
+        $current = $post;
+        $post = get_post($small->get_id());
+        $this->reindexed = [];
+
+        try {
+            delete_post_meta_by_key('_meilifacets_test');
+            $this->changes()->reindexChangedProducts();
+        } finally {
+            $post = $current;
+        }
+
+        $this->assertSame([], $this->reindexed);
+    }
+
+    #[Test]
     public function it_reindexes_nothing_while_no_variation_changed(): void
     {
         $this->changes()->reindexChangedProducts();
@@ -83,9 +157,11 @@ final class VariationChangesTest extends TestCase
         $this->assertSame([], $this->reindexed);
     }
 
-    public function record(int $postId): void
+    private function record(int $postId): void
     {
         $this->reindexed[] = $postId;
+        $product = wc_get_product($postId);
+        $this->variationsAtReindex[] = $product instanceof WC_Product ? count($product->get_children()) : 0;
     }
 
     private function changes(): VariationChanges

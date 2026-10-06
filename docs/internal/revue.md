@@ -3434,8 +3434,47 @@ qu'il est vrai, corriger, tester, puis passer au suivant.
    Refusé pour l'instant : un enum des types WooCommerce (`product`, `product_variation`) — `VisibleProducts::POST_TYPE`
    sert déjà partout, chantier à part ; un diagnostic quand aucune clause de type n'est élargie — la limite est écrite
    dans la décision et dans `search/types.md`.
-5. *Attribut hors variation* : l'ordre « stock d'abord » contredit la carte. À trancher (choix « A »).
-6. *Produit variable restauré de la corbeille* sans fiches variante. À vérifier.
+5. *Attribut hors variation* : l'ordre « stock d'abord » contredit la carte. *Vérifié le 2026-10-06* : le cas cité
+   (attribut descriptif) est réglé par `R-214` tant que la table de WooCommerce sert ; reste un produit qui porte une
+   taille sans la décliner, ou une variation « toutes tailles » — la grille le range par sa variante en stock, la
+   carte reste projetée. Nouveau cas, visible sur Pluralia, créé par la fourchette seule « comme WooCommerce » : à
+   30–45 € triés par prix, le 125 s'affichait « 39 € » rangé avant un produit à 32 €. *Corrigé le 2026-10-06, non
+   commité* (choix de l'utilisateur) : la carte choisit sa variante selon la règle de la grille
+   (`VariantChoice::readsVariants()` et son jumeau TS, liste `variantTaxonomies` passée par `ResolvedListing` et par
+   la description) ; `CardVariant::carriesAny()` retiré. Cas partagés : fourchette seule → carte projetée ; taille non
+   portée → variante en stock ; facette hors attributs de variation → carte projetée ; les 14 cas qui testaient la
+   lecture de la liste sous une fourchette seule cochent une taille non portée. Doc : `customising/card.md` (la limite
+   « filtres croisés » est retirée : la grille lit les documents variante et ne liste plus ce produit).
+   *Question ouverte, le 2026-10-06* : l'utilisateur attend qu'une fourchette seule montre la variante disponible
+   (30–45 € → le 125 à 39 €, absent à 30–35 €). Possible sans écart de compteurs depuis `R-214` : la fourchette seule
+   relirait les documents variante (revient sur `R-220` n°3 « comme WooCommerce » et sur le cas 2 ci-dessus ; « en stock
+   d'abord » s'appliquerait sous une fourchette seule). Laissé en l'état à sa demande, à reprendre.
+6. *Produit variable restauré de la corbeille* sans fiches variante. *Vérifié le 2026-10-06* (lecture du code) :
+   `wp_untrash_post()` repasse le produit à son statut d'avant (`WC_Post_Data::wp_untrash_post_status()`) et
+   MeiliScout le réindexe pendant que ses variations sont encore à la corbeille ; WooCommerce ne les restaure qu'ensuite,
+   sur `untrashed_post`, par `wp_untrash_post()` (`class-wc-product-variable-data-store-cpt.php:1054-1071`), sans
+   crochet de variation. Même trou pour une méta de variation écrite directement (import, extension). Le stock après
+   une commande est couvert : `wc_update_product_stock()` enregistre la variation (`wc-stock-functions.php:62-64`).
+   *Corrigé le 2026-10-06, non commité* : `VariationChanges::rememberProductOfVariationMeta()` écoute l'ajout, la modification et la
+   suppression des métas d'une variation et retient son produit, réindexé une fois en fin de requête ; la restauration
+   passe par là (WordPress supprime la méta de corbeille de chaque variation) — une écoute de `untrashed_post` essayée
+   puis retirée, aucun test ne lui trouvant de rôle. Tests : produit restauré réindexé une fois, avec ses deux
+   variations revenues ; méta écrite directement ; méta d'un enfant qui n'est pas une variation (pièce jointe) : rien.
+   Rouges sans l'écoute et sans la vérification du type.
+15. *Écouteur de test jamais retiré* (`VariationChangesTest`) : corrigé au passage, le 2026-10-06 — une seule closure
+   gardée dans une propriété, comme dans `VariationMetaRewritesTest`.
+   *Revue des n°5, 6 et 15, le 2026-10-06* : aucun défaut de comportement (même règle PHP et TS, autres appelants
+   inchangés — le panneau de recherche n'a ni sélection ni fourchette —, aucune boucle de réindexation, environ 25 000
+   `get_post_type()` en cache pour un import de 1 000 variations). Corrigé : `CHANGELOG.md` et `customising/card.md`
+   (une fourchette seule ne choisit plus de variante ; un listing de projet n'en choisit que s'il implémente
+   `VariantScopedListing`), docblocks de `VariantChoice` et `contracts.md`, deux commentaires de justification retirés,
+   `ResolvedListing` passe par `variantListing()`, `rememberProductOfVariationMeta()` (au lieu de
+   `rememberProductOfMeta()`) avec sa garde fusionnée, garde `$postId === 0` pour `delete_post_meta_by_key()` (test,
+   rouge sans elle), le test de restauration relève le nombre de variations au moment de la réindexation, quatre cas
+   partagés renommés, décision précisée pour le tri décroissant. Refusé pour l'instant : une seule méthode
+   `ListingState::ticksAnyOf()` pour les quatre copies de la règle (jumeaux PHP/TS déjà verrouillés par les cas partagés
+   et les tests de requêtes) ; une liste de taxonomies par cas partagé ; une garde WooCommerce sur l'écoute des métas
+   (le type `product_variation` n'existe qu'avec WooCommerce).
 7. *Attribut hiérarchique* : un terme parent ne trouve plus ses produits en mode variantes. À vérifier.
 8. *Attribut local homonyme d'une taxonomie* (`taxonomy_exists` au lieu de `taxonomy_is_product_attribute`). À vérifier.
 9. *Taille d'image des variantes* liée à `card.image_size`. À trancher.
@@ -3444,7 +3483,6 @@ qu'il est vrai, corriger, tester, puis passer au suivant.
 12. *`card.variants` sur la fiche produit*, envoyé sans être lu hors mode variantes. À trancher.
 13. *Pas de cas partagés PHP/TS* pour `measures` et `variantResults`. À vérifier.
 14. *Registre contradictoire* (503, « non commité »). À corriger.
-15. *Écouteur de test jamais retiré* (`VariationChangesTest`). Confirmé par vérification séparée ; à corriger.
 
 Écartés par la revue : `several_variants` hors filtre (voulu), réindexation en trop (`R-215`), noyau HTTP (Pollora
 utilise celui de Laravel).

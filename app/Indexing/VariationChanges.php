@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Indexing;
 
+use Modules\MeiliFacets\Search\VisibleProducts;
 use Pollora\Attributes\Action;
 
 /** Re-indexes the product of every variation changed during the request, once. */
@@ -28,6 +29,26 @@ final class VariationChanges
 
         if ($productId > 0) {
             $this->changedProducts[$productId] = true;
+        }
+    }
+
+    /**
+     * An import, a plugin or a restore from the trash writes a variation's meta without WooCommerce's hooks.
+     *
+     * @param  int|array<int|string>  $metaId
+     */
+    #[Action('added_post_meta')]
+    #[Action('updated_post_meta')]
+    #[Action('deleted_post_meta')]
+    public function rememberProductOfVariationMeta(int|array $metaId, int $postId): void
+    {
+        // `delete_post_meta_by_key()` names no post, and `get_post_type(0)` reads the global one.
+        if ($postId === 0) {
+            return;
+        }
+
+        if (get_post_type($postId) === VisibleProducts::VARIATION_POST_TYPE) {
+            $this->rememberProductOf($postId);
         }
     }
 
