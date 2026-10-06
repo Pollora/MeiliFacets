@@ -6,6 +6,7 @@ namespace Modules\MeiliFacets\View;
 
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\View\ComponentAttributeBag;
+use Modules\MeiliFacets\Enums\BindingAttribute;
 
 /**
  * @phpstan-type Attributes ComponentAttributeBag|array<string, string>
@@ -31,12 +32,16 @@ final readonly class CardFieldElement implements Htmlable
 
     /**
      * @param  Attributes  ...$others
+     *
+     * @throws BindingRefused
      */
     public function with(ComponentAttributeBag|array ...$others): self
     {
         $attributes = $this->attributes;
 
         foreach ($others as $other) {
+            $this->refuseASecondClassList($attributes, $other);
+
             $attributes = $other instanceof ComponentAttributeBag
                 ? $attributes->merge($other->getAttributes(), escape: false)
                 : $attributes->merge($other);
@@ -53,5 +58,22 @@ final readonly class CardFieldElement implements Htmlable
     public function toHtml(): string
     {
         return $this->html ?? '';
+    }
+
+    /**
+     * `merge()` keeps the first value of any attribute but `class` and `style`.
+     *
+     * @param  Attributes  $other
+     *
+     * @throws BindingRefused
+     */
+    private function refuseASecondClassList(ComponentAttributeBag $attributes, ComponentAttributeBag|array $other): void
+    {
+        $marker = BindingAttribute::ClassList->value;
+        $added = $other instanceof ComponentAttributeBag ? $other : new ComponentAttributeBag($other);
+
+        if ($added->has($marker) && $attributes->has($marker)) {
+            throw BindingRefused::secondClassList();
+        }
     }
 }

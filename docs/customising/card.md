@@ -254,6 +254,8 @@ markup.
   fresh copy of the template; the search panel redraws a card it keeps for the same result, whose field holds the same
   classes. It carries classes a platform computed for you — WooCommerce's `add_to_cart_button ajax_add_to_cart`, which
   its script reads — so the card does not have to rebuild the rule that sets them.
+- An element takes one `data-meili-class-list`. `->with()` refuses a second one; a `merge()` of your own keeps the
+  first silently, so the browser would draw only its classes. Bind the second field on a child element.
 - `data-meili-if` takes a single condition. There is no `and` or `or`: nest two elements, or project a field that
   holds the combined answer.
 

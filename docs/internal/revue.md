@@ -3790,7 +3790,12 @@ fourchette inversée ne contient rien (PHP et TS) ; n°10 — `CardVariant` refu
 d'image fournis par le projet sont complétés en image entière (`ImageFields::withWholeImage()`). Tests sur chacun, rouges
 sans la correction pour n°7 et n°13. À trancher : n°2 (archive d'attribut, sans effet sur Pluralia), n°8 (canonique
 d'une archive sans listing : le module ne sait pas, dans le `<head>`, qu'un listing sera rendu), n°12 (deux
-`classList()` sur un élément).
+`classList()` sur un élément). *Tranché le 2026-10-06 par Louis* : n°2 est une limite connue, les archives d'attribut
+sont hors du périmètre actuel et le module recommande de laisser « Enable archives? » décoché
+(`docs/customising/card.md`, « Card variants ») ; Pluralia les a désactivées (`attribute_public = 0`, lu).
+*Tranché le 2026-10-06 par Louis, corrigé* : n°12, `CardFieldElement::with()` refuse un second `classList()`
+(`BindingRefused::secondClassList()`), un tableau comme un sac ; un `merge()` du projet reste silencieux, ce que la
+doc dit. Deux tests rouges sans le refus ; `composer check` vert, `Modules` 1121, `/boutique` en 200.
 
 **Résidus non publiés** (au-delà du plafond de 15) : docblock de `canonicalFor()` qui redit `decisions.md` ;
 `CardView.fieldsOf` crée un `VariantChoice` par résultat et le paquet du panneau grossit d'environ 9 % ; `marker()`
