@@ -9,6 +9,12 @@ What to change in a project when moving from one version to the next is in
 
 ## [Unreleased]
 
+## [0.2.0](https://github.com/Pollora/MeiliFacets/releases/tag/0.2.0) - 2026-10-06
+
+Second beta. Variable products are listed through their variants: a checked size ranks, prices and shows the
+product by that size. Requires MeiliScout's `feat/meilifacets` branch at `ef2bd18` or later, and a full reindex: see
+[docs/upgrading.md](docs/upgrading.md).
+
 ### Added
 
 - Card variants: with WooCommerce, the module reads a variable product's variants when it is indexed
@@ -58,6 +64,23 @@ What to change in a project when moving from one version to the next is in
 ### Fixed
 
 - The clear button of the site search field shows its glyph centred vertically on WebKit (Safari, iOS).
+- The theme override of the module's views registers through `add_action`, as Pollora 13.34 renamed the contract it
+  used.
+- The listing outage answers `503`, `Retry-After` and `Cache-Control: no-store` through a global middleware: Pollora
+  used to send it as a public `200`.
+- A facet value longer than a WordPress slug (200 bytes) is ignored instead of reaching the engine.
+
+### Known issues
+
+- A facet declared with `SelectionMode::Single` hides its other values once one is picked
+  ([#4](https://github.com/Pollora/MeiliFacets/issues/4)).
+- A failed search in the browser shows no message, and the URL and controls keep the filter that was not applied
+  ([#5](https://github.com/Pollora/MeiliFacets/issues/5)).
+- Saving a product re-indexes it once per meta WooCommerce writes, and each pass resends the index settings: a bulk
+  edit or a catalogue import can leave the engine's queue hours behind. The fix belongs in MeiliScout.
+- On a WooCommerce attribute archive (`/pa_volume/400ml/`), the card does not show the variant of the term browsed.
+  Attribute archives are outside the module's scope: leave « Enable archives? » unchecked.
+- A product whose variants share a term counts once per variant under that term.
 
 ## [0.1.0](https://github.com/Pollora/MeiliFacets/releases/tag/0.1.0) - 2026-10-01
 

@@ -3,9 +3,9 @@
 This page lists, for each release, what a project has to change when it updates MeiliFacets. The full list of
 changes is in the [changelog](../CHANGELOG.md).
 
-0.1.0 is the first release, a beta.
+0.1.0 was the first release, a beta; 0.2.0 is the second.
 
-## Unreleased
+## 0.2.0
 
 - **Update MeiliScout first.** The module now implements MeiliScout's `HasDependentDocuments` and fires
   `meiliscout/reindex_post`: run `composer update amphibee/meiliscout` before updating the module, or the indexable

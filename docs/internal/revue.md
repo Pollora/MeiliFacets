@@ -3415,7 +3415,7 @@ qu'il est vrai, corriger, tester, puis passer au suivant.
    - facette de taille seule : `get_available_variations()` écarte une variation désactivée ou sans prix
      (`class-wc-product-variable.php:371`), et une variation en rupture si les produits en rupture sont masqués
      (`:358`). Le produit garde le terme, donc le compteur le compte, mais aucun document variante ne le porte. Pas
-     reproductible sur Pluralia aujourd'hui (option à `no`, deux variations visibles) ;
+     reproductible sur le projet de test aujourd'hui (option à `no`, deux variations visibles) ;
    - `distinct` ne change pas `facetDistribution` : sans filtre, les documents variante comptent « Visage » 9 fois au
      lieu de 8, le 125 une fois par variante.
    *Fourchette seule corrigée le 2026-10-06, commité `ec5d9c4`* (choix de l'utilisateur, « comme WooCommerce », amendement
@@ -3432,7 +3432,7 @@ qu'il est vrai, corriger, tester, puis passer au suivant.
    MeiliScout (`use_meilisearch`, `TypeStatusBuilder.php:27-28`) — chaque variante revenait comme son produit parent,
    `(int) "123-0"` valant 123 (`class-wp-post.php:235`), soit 1 + N fois le même produit ; vrai pour un projet qui lie
    ses propres types de recherche ; `upgrading.md` n'en disait rien ; `onVariants()` comparait la clause à l'identique.
-   Pluralia n'est pas touché. *Corrigé le 2026-10-06, commité `b7906bc`* (option structurelle, choix de l'utilisateur) : le
+   Le projet de test n'est pas touché. *Corrigé le 2026-10-06, commité `b7906bc`* (option structurelle, choix de l'utilisateur) : le
    document variante porte `post_type = "product_variation"`, la clause d'exclusion disparaît, `onVariants()` élargit la
    clause de type (`FilterExpression::any()`, que `facet()` emploie aussi). Tests : `VisibleProductsTest` (produits sur
    leur seul type, variantes à la place des parents, filtre d'un projet élargi, clause écrite autrement laissée
@@ -3452,7 +3452,7 @@ qu'il est vrai, corriger, tester, puis passer au suivant.
 5. *Attribut hors variation* : l'ordre « stock d'abord » contredit la carte. *Vérifié le 2026-10-06* : le cas cité
    (attribut descriptif) est réglé par `R-214` tant que la table de WooCommerce sert ; reste un produit qui porte une
    taille sans la décliner, ou une variation « toutes tailles » — la grille le range par sa variante en stock, la
-   carte reste projetée. Nouveau cas, visible sur Pluralia, créé par la fourchette seule « comme WooCommerce » : à
+   carte reste projetée. Nouveau cas, visible sur le projet de test, créé par la fourchette seule « comme WooCommerce » : à
    30–45 € triés par prix, le 125 s'affichait « 39 € » rangé avant un produit à 32 €. *Corrigé le 2026-10-06, commité `00c28f0`* (choix de l'utilisateur) : la carte choisit sa variante selon la règle de la grille
    (`VariantChoice::readsVariants()` et son jumeau TS, liste `variantTaxonomies` passée par `ResolvedListing` et par
    la description) ; `CardVariant::carriesAny()` retiré. Cas partagés : fourchette seule → carte projetée ; taille non
@@ -3493,7 +3493,7 @@ qu'il est vrai, corriger, tester, puis passer au suivant.
    la fiche produit porte les ancêtres (`TermAncestry`), la variante seulement son terme (`ProductVariants::facetsOf()`)
    et `VariantDocuments` remplace la liste du produit ; WooCommerce enregistre les attributs non hiérarchiques
    (`class-wc-post-types.php:270`), un projet peut les rendre hiérarchiques (`woocommerce_taxonomy_args_{name}`).
-   Pluralia n'est pas concerné. *Corrigé le 2026-10-06, commité `f037d2b`* : la variante porte aussi les ancêtres de son terme
+   Le projet de test n'est pas concerné. *Corrigé le 2026-10-06, commité `f037d2b`* : la variante porte aussi les ancêtres de son terme
    (`TermHierarchy`), seulement sur une taxonomie hiérarchique — aucun coût sur des attributs plats ; la carte en
    profite (`VariantChoice` lit les mêmes termes). Test : variation 15 ml sous « petits formats », rouge sans la
    correction. Réindexation nécessaire pour un projet concerné.
@@ -3504,7 +3504,7 @@ qu'il est vrai, corriger, tester, puis passer au suivant.
    fictif en mémoire (`$wc_product_attributes`).
 9. *Taille d'image des variantes* liée à `card.image_size`. *Tranché le 2026-10-06 par l'utilisateur* : une seule clé,
    gardée. Corrigé : `customising/card.md` dit qu'un projet qui remplace le `CardProjector` doit fixer `card.image_size`
-   à sa taille, l'image propre d'une variante y étant lue. Assumé : sur Pluralia, `portrait` recadre aussi les cartes
+   à sa taille, l'image propre d'une variante y étant lue. Assumé : sur le projet de test, `portrait` recadre aussi les cartes
    d'articles du panneau de recherche (une clé produits séparée a été écartée).
 10. *Deux listes de champs relus tenues à la main* (`READ_BY_THE_MODULE`, `VARIANT_RETRIEVED`). *Vérifié et corrigé le
    2026-10-06, commité `28cde0b`* : identiques mais non liées — un champ lu sans être affiché revient vide, sans erreur.
@@ -3849,11 +3849,11 @@ l'URL du produit et non celle de la variation ; n°7 — le navigateur arrondit 
 `constructor`/`__proto__` ; n°15 — les variantes ne sont lues que si un filtre les concerne (PHP et TS) ; n°14 — une
 fourchette inversée ne contient rien (PHP et TS) ; n°10 — `CardVariant` refuse un prix non fini ; n°3 — des champs
 d'image fournis par le projet sont complétés en image entière (`ImageFields::withWholeImage()`). Tests sur chacun, rouges
-sans la correction pour n°7 et n°13. À trancher : n°2 (archive d'attribut, sans effet sur Pluralia), n°8 (canonique
+sans la correction pour n°7 et n°13. À trancher : n°2 (archive d'attribut, sans effet sur le projet de test), n°8 (canonique
 d'une archive sans listing : le module ne sait pas, dans le `<head>`, qu'un listing sera rendu), n°12 (deux
 `classList()` sur un élément). *Tranché le 2026-10-06 par Louis* : n°2 est une limite connue, les archives d'attribut
 sont hors du périmètre actuel et le module recommande de laisser « Enable archives? » décoché
-(`docs/customising/card.md`, « Card variants ») ; Pluralia les a désactivées (`attribute_public = 0`, lu).
+(`docs/customising/card.md`, « Card variants ») ; le projet de test les a désactivées (`attribute_public = 0`, lu).
 *Tranché le 2026-10-06 par Louis, corrigé* : n°12, `CardFieldElement::with()` refuse un second `classList()`
 (`BindingRefused::secondClassList()`), un tableau comme un sac ; un `merge()` du projet reste silencieux, ce que la
 doc dit. Deux tests rouges sans le refus ; `composer check` vert, `Modules` 1121, `/boutique` en 200.
