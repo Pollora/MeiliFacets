@@ -92,7 +92,7 @@ final readonly class ProductVariants
         $facets = [];
 
         foreach ($variation->get_attributes() as $taxonomy => $slug) {
-            if ($slug !== '' && taxonomy_exists($taxonomy)) {
+            if ($slug !== '' && taxonomy_is_product_attribute($taxonomy)) {
                 $facets[$taxonomy] = [$slug, ...$this->ancestorSlugsOf($slug, $taxonomy)];
             }
         }

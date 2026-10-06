@@ -3483,7 +3483,11 @@ qu'il est vrai, corriger, tester, puis passer au suivant.
    (`TermHierarchy`), seulement sur une taxonomie hiérarchique — aucun coût sur des attributs plats ; la carte en
    profite (`VariantChoice` lit les mêmes termes). Test : variation 15 ml sous « petits formats », rouge sans la
    correction. Réindexation nécessaire pour un projet concerné.
-8. *Attribut local homonyme d'une taxonomie* (`taxonomy_exists` au lieu de `taxonomy_is_product_attribute`). À vérifier.
+8. *Attribut local homonyme d'une taxonomie* (`taxonomy_exists` au lieu de `taxonomy_is_product_attribute`).
+   *Vérifié et corrigé le 2026-10-06, non commité* : `ProductVariants::facetsOf()` ne retient que les attributs produit
+   de WooCommerce (`taxonomy_is_product_attribute()`). Test : un attribut local « meilifacets_test_color », homonyme
+   d'une taxonomie du site, ne donne aucun terme ; rouge avec `taxonomy_exists()`. Les tests déclarent leur attribut
+   fictif en mémoire (`$wc_product_attributes`).
 9. *Taille d'image des variantes* liée à `card.image_size`. À trancher.
 10. *Deux listes de champs relus tenues à la main* (`READ_BY_THE_MODULE`, `VARIANT_RETRIEVED`). À vérifier.
 11. *Suppression par filtre envoyée pour tout article*, pas seulement les produits. À trancher.

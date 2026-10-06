@@ -25,6 +25,9 @@ final class ProductVariantsTest extends TestCase
 
     private const string ATTRIBUTE = 'pa_test_volume';
 
+    /** A taxonomy of the site that is not a product attribute, and a local attribute's name. */
+    private const string LOCAL = 'meilifacets_test_color';
+
     private const string HIDE_OUT_OF_STOCK = 'pre_option_woocommerce_hide_out_of_stock_items';
 
     private const string PROJECT_FIELD = 'volume';
@@ -48,6 +51,7 @@ final class ProductVariantsTest extends TestCase
         }
 
         register_taxonomy(self::ATTRIBUTE, 'product', ['public' => false]);
+        $this->declareAttribute();
     }
 
     protected function tearDown(): void
@@ -61,6 +65,7 @@ final class ProductVariantsTest extends TestCase
         }
 
         unregister_taxonomy(self::ATTRIBUTE);
+        unset($GLOBALS['wc_product_attributes'][self::ATTRIBUTE]);
         remove_all_filters(self::HIDE_OUT_OF_STOCK);
 
         parent::tearDown();
@@ -127,6 +132,30 @@ final class ProductVariantsTest extends TestCase
         }
 
         $this->assertSame([self::ATTRIBUTE => ['15ml', 'small-sizes']], $facets);
+    }
+
+    #[Test]
+    public function it_reads_no_term_off_a_local_attribute_named_like_a_taxonomy(): void
+    {
+        register_taxonomy(self::LOCAL, 'product', ['public' => false]);
+        $product = $this->variable(['15ml' => ['26', true]]);
+        $local = new WC_Product_Attribute;
+        $local->set_name(self::LOCAL);
+        $local->set_options(['Bleu ciel']);
+        $local->set_variation(true);
+        $product->set_attributes([...$product->get_attributes(), $local]);
+        $product->save();
+        $variation = wc_get_product($product->get_children()[0]);
+        $variation->set_attributes([self::ATTRIBUTE => '15ml', self::LOCAL => 'Bleu ciel']);
+        $variation->save();
+
+        try {
+            $facets = $this->variantsOf(new WC_Product_Variable($product->get_id()), $this->variants())[0][VariantField::Facets->value];
+        } finally {
+            unregister_taxonomy(self::LOCAL);
+        }
+
+        $this->assertSame([self::ATTRIBUTE => ['15ml']], $facets);
     }
 
     #[Test]
@@ -268,5 +297,11 @@ final class ProductVariantsTest extends TestCase
                 ];
             }
         };
+    }
+
+    /** In memory only: an attribute row would be a write to WooCommerce's own table. */
+    private function declareAttribute(): void
+    {
+        $GLOBALS['wc_product_attributes'][self::ATTRIBUTE] = (object) ['attribute_name' => 'test_volume'];
     }
 }
