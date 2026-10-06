@@ -3716,7 +3716,7 @@ module affiche le produit. Ses variations en rupture sortent de `card.variants` 
 qui passe par `get_available_variations()`, mais leurs termes restent dans les facettes du document produit. Sans effet sur le projet de test (option à `no`, lu le 2026-10-05). Un produit en rupture reste
 affiché tant que l'option est décochée : c'est le comportement voulu.
 
-### R-210 · 🟠 · ouvert · ouvert le 2026-10-05 — seconde revue de la PR #7 (`9639a56`) : le choix de variante et ce qu'il touche
+### R-210 · 🟠 · **fermé le 2026-10-06** (n°2 limite connue ; résidus non publiés laissés en l'état) · ouvert le 2026-10-05 — seconde revue de la PR #7 (`9639a56`) : le choix de variante et ce qu'il touche
 
 Rattaché à `R-206`, `R-208`, `R-209`. Constats publiés en anglais dans la PR (revue `5411977381`, un commentaire
 par constat). Les points déjà acceptés sous `R-209` sont exclus. Rien n'est corrigé : chaque constat attend d'être
@@ -3745,7 +3745,7 @@ ni cas réel.
    la carte ne choisit qu'une variante en promo sous un tri qui filtre sur `price.onsale`
    (`CardVariant::meetsSortFilter()`, PHP et TS ; le filtre du tri passé par `ResolvedListing` et la description).
    Tests : documents (une variante en promo, l'autre non, sur un produit marqué en promo), lecture de WooCommerce,
-   trois cas partagés ; rouges sans chacune des trois règles. Réindexation nécessaire.
+   trois cas partagés ; rouges sans chacune des trois règles. Réindexation nécessaire. Commité dans `23ca6df`.
 5. *`several_variants` jamais retiré* (`VariantChoice.php:123`, lu et exécuté en mémoire). *Fermé le 2026-10-05
    (avancement)*. Une valeur posée par le
    projecteur survit à une seule correspondance : « À partir de 39 € » pour une variante. Même chose côté TS.
@@ -3803,6 +3803,14 @@ doc dit. Deux tests rouges sans le refus ; `composer check` vert, `Modules` 1121
 `/categorie-produit/visage?contenance=400ml` inchangés (`noindex`, canonique, preconnect). Écarte au passage la
 recherche native `/?s=` sans listing (`R-161`). Test du `<head>` rouge sans la marque ; `composer check` vert,
 `Modules` 1127.
+
+*Fermé le 2026-10-06.* Les quinze constats ont une suite : n°1 par les documents variante (PR #9) ; n°3, 7, 9, 10,
+13, 14, 15 dans `6df085b` ; n°4 dans `23ca6df` ; n°5, 6, 11 réglés le 2026-10-05 ; n°12 dans `36af831` ; n°8 dans
+`f830cc2` ; n°2 limite connue, validée par Louis, documentée dans `ad43b14`. Les quinze fils de la PR #7 sont
+répondus et résolus, chacun avec son commit. Vérifié à la fermeture : `composer check` vert, `Modules` 1127, pages
+`/boutique`, `/categorie-produit/visage` et `/author/amphibee/?pg=3` relevées, choix de variante et « Indisponible »
+vus dans le navigateur. Les résidus ci-dessous n'ont pas été publiés ni traités : ils restent à trier s'ils doivent
+l'être.
 
 **Résidus non publiés** (au-delà du plafond de 15) : docblock de `canonicalFor()` qui redit `decisions.md` ;
 `CardView.fieldsOf` crée un `VariantChoice` par résultat et le paquet du panneau grossit d'environ 9 % ; `marker()`
