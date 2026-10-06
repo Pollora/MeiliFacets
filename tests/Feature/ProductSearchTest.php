@@ -71,7 +71,6 @@ final class ProductSearchTest extends TestCase
                 'post_type = "product"',
                 'post_status = "publish"',
                 'NOT facets.product_visibility = "exclude-from-search"',
-                'NOT document_kind = "variant"',
             ],
             $this->scopeOnSearch()->filter
         );
@@ -85,7 +84,6 @@ final class ProductSearchTest extends TestCase
             'post_type = "product"',
             'post_status = "publish"',
             'NOT facets.product_visibility = "exclude-from-catalog"',
-            'NOT document_kind = "variant"',
         ];
 
         $this->assertSame($catalogue, $this->onSearch(['s' => self::TERM], static fn (ProductListing $listing): array => $listing->baseFilter()));
@@ -103,7 +101,6 @@ final class ProductSearchTest extends TestCase
                 'post_type = "product"',
                 'post_status = "publish"',
                 'NOT facets.product_visibility = "exclude-from-search"',
-                'NOT document_kind = "variant"',
             ],
             $scope->filter
         );

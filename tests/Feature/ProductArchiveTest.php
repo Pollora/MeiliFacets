@@ -158,7 +158,6 @@ final class ProductArchiveTest extends TestCase
                 'post_type = "product"',
                 'post_status = "publish"',
                 'NOT facets.product_visibility = "exclude-from-catalog"',
-                'NOT document_kind = "variant"',
             ],
             $this->baseFilterOn([])
         );

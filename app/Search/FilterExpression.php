@@ -31,12 +31,20 @@ final readonly class FilterExpression
             return '';
         }
 
-        $clauses = array_map(
+        return self::any(array_map(
             static fn (string $value): string => self::equals($facet->field(), $value),
             $values
-        );
+        ));
+    }
 
-        return count($clauses) > 1 ? '('.implode(' OR ', $clauses).')' : $clauses[0];
+    /**
+     * @param  list<string>  $clauses
+     */
+    public static function any(array $clauses): string
+    {
+        $kept = array_values(array_filter($clauses, strlen(...)));
+
+        return count($kept) > 1 ? '('.implode(' OR ', $kept).')' : $kept[0] ?? '';
     }
 
     /**

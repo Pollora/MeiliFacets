@@ -32,15 +32,16 @@ final class VariantDocumentsTest extends TestCase
         $documents = new VariantDocuments()->of(self::PRODUCT);
 
         $this->assertSame([
-            ...self::PRODUCT,
+            ...array_diff_key(self::PRODUCT, ['document_kind' => true]),
             'ID' => '125-1',
             'parent_id' => 125,
-            'document_kind' => 'variant',
+            'post_type' => 'product_variation',
             'in_stock' => 0,
             'facets' => ['pa_volume' => ['400ml'], 'product_brand' => ['odessa']],
             'price' => ['min' => 39.0, 'max' => 39.0, 'onsale' => true],
         ], $documents[1]);
         $this->assertSame(['125-0', '125-1'], array_column($documents, 'ID'));
+        $this->assertSame([], array_column($documents, 'document_kind'));
         $this->assertSame([1, 0], array_column($documents, 'in_stock'));
     }
 

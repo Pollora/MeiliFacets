@@ -67,11 +67,12 @@ Named by `Enums\DocumentField`. “Written by” says who puts the field in the 
 | `card` | the module, through `CardProjector` | the fields a card shows (below) | the browser |
 | `price` | the module, WooCommerce products only | `min`, `max`, `onsale` (below) | price filter, sorts |
 | `in_stock` | the module, WooCommerce products with a price, and their variants | `1` in stock, `0` out of stock | the stock-first price sort of the variant results |
-| `document_kind` | the module | `parent` on a product whose variants have documents, `variant` on a variant's document, absent otherwise | every product query (`NOT document_kind = "variant"`), the variant results (`NOT document_kind = "parent"`) |
+| `document_kind` | the module | `parent` on a product whose variants have documents, absent otherwise | the variant results (`NOT document_kind = "parent"`) |
 | `parent_id` | the module, on a variant's document | the ID of its product | `distinct` of the variant results, the card identity, the removal of a product's variant documents |
 
 A variable product also has **one document per variant**, `ID` `<product>-<n>`: the product's document under the
-variant's terms, price and stock. They are written and removed with the product's own (MeiliScout's
+variant's terms, price and stock, and under WooCommerce's post type for a variation, `product_variation` — a query on
+`post_type = "product"`, the module's or anyone else's, never reads them. They are written and removed with the product's own (MeiliScout's
 `HasDependentDocuments`). With a variation attribute ticked, the results read them, one per product
 (`distinct: parent_id`), and so do the counts, so that each one announces what the grid shows once it is ticked. A
 price range alone reads the products, as WooCommerce does. The terms of a variation attribute are always counted on

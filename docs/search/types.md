@@ -32,7 +32,7 @@ Each type is described by a `SearchableType`, built from WordPress:
 | `heading` | the type's `labels->name` |
 | `seeAllLabel` | the type's `labels->all_items` |
 | `archive` | `get_post_type_archive_link()`, or `null` when the type has no archive |
-| `baseFilter` | published documents of that type; for products, also without products hidden from search and without the documents of variants (`Search\VisibleProducts::inSearch()`) |
+| `baseFilter` | published documents of that type; for products, also without products hidden from search (`Search\VisibleProducts::inSearch()`) |
 | `searchOn` | the title, the labels of the type's taxonomies and the excerpt; for products, the title, brand, category and SKU — in both cases, only the fields the index searches, in its ranking |
 | `card` | `meilifacets::search.card` |
 
@@ -160,8 +160,8 @@ The clauses are [Meilisearch filter expressions](https://www.meilisearch.com/doc
 joined with `AND`. They can only use filterable attributes: `facets.<taxonomy>` is filterable for every taxonomy of an
 indexed type (see [What gets indexed](../indexing/README.md)). Keep the `post_type` and `post_status` clauses: without
 them the section returns any document of the index. For products, start from `Search\VisibleProducts::inSearch()`
-and add your clauses to it: it also leaves out the document of each variant, without which a variable product is
-listed once per variant.
+and add your clauses to it: a listing filtered on a variation attribute widens its `post_type` clause to the
+variations, and only recognises it written as `Search\PublishedPosts::of()` writes it.
 
 ## The see-all link
 

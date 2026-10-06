@@ -6,10 +6,10 @@ namespace Modules\MeiliFacets\Indexing;
 
 use Modules\MeiliFacets\Enums\CardField;
 use Modules\MeiliFacets\Enums\DocumentField;
-use Modules\MeiliFacets\Enums\DocumentKind;
 use Modules\MeiliFacets\Enums\PriceField;
 use Modules\MeiliFacets\Listing\CardVariant;
 use Modules\MeiliFacets\Search\FilterExpression;
+use Modules\MeiliFacets\Search\VisibleProducts;
 
 /** One document per variant of a product: the product's document, under the variant's terms, price and stock. */
 final readonly class VariantDocuments
@@ -54,10 +54,10 @@ final readonly class VariantDocuments
     private function document(array $product, int $productId, int $position, CardVariant $variant): array
     {
         return [
-            ...$product,
+            ...array_diff_key($product, [DocumentField::Kind->value => true]),
             DocumentField::Id->value => $productId.self::ID_SEPARATOR.$position,
             DocumentField::ParentId->value => $productId,
-            DocumentField::Kind->value => DocumentKind::Variant->value,
+            DocumentField::PostType->value => VisibleProducts::VARIATION_POST_TYPE,
             DocumentField::InStock->value => (int) $variant->inStock,
             DocumentField::Facets->value => array_replace(
                 $this->arrayAt($product, DocumentField::Facets),

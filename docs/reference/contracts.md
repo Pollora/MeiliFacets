@@ -142,8 +142,8 @@ All under `Modules\MeiliFacets\`.
 | `Enums\ProductTaxonomy` | enum | WooCommerce taxonomies; `technical()` lists those never searched | [Search relevance](../indexing/relevance.md) |
 | `Enums\Hook` | enum | the `data-meili` hooks; `->attribute()` | [`data-meili` hooks](hooks.md) |
 | `Search\PublishedPosts` | helper | `of($postType)`: filter clauses for published posts of a type | [Listing other content](../listing/custom-listing.md) |
-| `Search\FilterExpression` | helper | `equals()`, `without()`, `all()`: Meilisearch filter clauses | [Listing other content](../listing/custom-listing.md) |
-| `Search\VisibleProducts` | helper | `inCatalogue()`, `inSearch()`: clauses for visible products, variant documents left out; `onVariants()`: the same clauses read on the variant documents, parents left out | [Searchable types](../search/types.md) |
+| `Search\FilterExpression` | helper | `equals()`, `without()`, `all()`, `any()`: Meilisearch filter clauses | [Listing other content](../listing/custom-listing.md) |
+| `Search\VisibleProducts` | helper | `inCatalogue()`, `inSearch()`: clauses for visible products; `onVariants()`: the same clauses widened to the variations' post type, parents left out | [Searchable types](../search/types.md) |
 | `Support\WooCommerce` | helper | `isActive()` | [Composing the panel](../search/composition.md) |
 
 ## Watch out

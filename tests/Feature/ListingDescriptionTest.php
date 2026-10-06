@@ -74,7 +74,7 @@ final class ListingDescriptionTest extends TestCase
 
         $this->assertSame($this->app->make(ProductListing::class)->variantTaxonomies(), $variants['taxonomies']);
         $this->assertStringContainsString('NOT document_kind = "parent"', $variants['filter']);
-        $this->assertStringNotContainsString('NOT document_kind = "variant"', $variants['filter']);
+        $this->assertStringContainsString('post_type = "product_variation"', $variants['filter']);
         $this->assertStringContainsString('NOT document_kind = "parent"', $variants['searchScope']['filter']);
         $this->assertSame('parent_id', $variants['distinct']);
         $this->assertSame(['ID', 'card', 'parent_id'], $variants['attributes']);

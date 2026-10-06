@@ -232,9 +232,9 @@ describe('ListingQuery, scope of a search shared with the server', () => {
 describe('ListingQuery reading variants', () => {
     const variantResults = {
         taxonomies: ['pa_size'],
-        filter: 'post_type = product AND NOT document_kind = "parent"',
+        filter: '(post_type = product OR post_type = product_variation) AND NOT document_kind = "parent"',
         searchScope: {
-            filter: 'post_type = product AND NOT document_kind = "parent" AND searched',
+            filter: '(post_type = product OR post_type = product_variation) AND NOT document_kind = "parent" AND searched',
             fields: ['post_title'],
         },
         distinct: 'parent_id',

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Indexing;
 
+use Modules\MeiliFacets\Search\VisibleProducts;
 use Modules\MeiliFacets\Support\WooCommerce;
 use Pollora\Attributes\Action;
 use WP_Term;
@@ -12,8 +13,6 @@ use WP_Term;
 final class VariationMetaRewrites
 {
     private const string POST_META_CACHE = 'post_meta';
-
-    private const string VARIATION = 'product_variation';
 
     private const string SCHEDULE_INDEXATION = 'meiliscout/schedule_indexation';
 
@@ -108,7 +107,7 @@ final class VariationMetaRewrites
     {
         return get_posts([
             ...$criteria,
-            'post_type' => self::VARIATION,
+            'post_type' => VisibleProducts::VARIATION_POST_TYPE,
             'post_status' => 'any',
             'nopaging' => true,
             'fields' => 'ids',

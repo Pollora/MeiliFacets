@@ -3411,8 +3411,29 @@ qu'il est vrai, corriger, tester, puis passer au suivant.
    cartes dont le 125, « Aeris (1) » → 1 carte, aucune requête `distinct`, aucune erreur en console.
    *Taille sans variation disponible* : réglé avec `R-214` (le 2026-10-06) — les tailles se comptent sur les documents
    variante, qui n'existent que pour les variations disponibles ; aucune réindexation.
-4. *Requêtes produit écrites hors `VisibleProducts`* (doc antérieure, `PublishedPosts::of('product')`) : produits
-   variables listés 1+N fois. À vérifier.
+4. *Requêtes produit écrites hors `VisibleProducts`*. *Vérifié le 2026-10-06* (lecture seule) : un document variante
+   recopiait `post_type = "product"` et `post_status = "publish"` ; seule `NOT document_kind = "variant"` l'écartait.
+   Les requêtes du module passaient toutes par elle (faux pour le module) ; vrai pour l'intégration `WP_Query` de
+   MeiliScout (`use_meilisearch`, `TypeStatusBuilder.php:27-28`) — chaque variante revenait comme son produit parent,
+   `(int) "123-0"` valant 123 (`class-wp-post.php:235`), soit 1 + N fois le même produit ; vrai pour un projet qui lie
+   ses propres types de recherche ; `upgrading.md` n'en disait rien ; `onVariants()` comparait la clause à l'identique.
+   Pluralia n'est pas touché. *Corrigé le 2026-10-06, non commité* (option structurelle, choix de l'utilisateur) : le
+   document variante porte `post_type = "product_variation"`, la clause d'exclusion disparaît, `onVariants()` élargit la
+   clause de type (`FilterExpression::any()`, que `facet()` emploie aussi). Tests : `VisibleProductsTest` (produits sur
+   leur seul type, variantes à la place des parents, filtre d'un projet élargi, clause écrite autrement laissée
+   telle quelle), `VariantDocumentsTest`, requêtes et descriptions mises à jour. Doc : `index-settings.md`,
+   `contracts.md`, `search/types.md`, `upgrading.md`, `CHANGELOG.md`.
+   *Défaut trouvé à la réindexation locale (autorisée), puis par la revue* : un document variante recopiait
+   `document_kind = "parent"` de son produit, que l'ancienne ligne écrasait ; le mode variantes écartait donc aussi les
+   variantes (`?contenance=400ml` : 0 carte). `VariantDocumentsTest` figeait ce défaut : l'attendu reprenait le produit
+   entier. Corrigé (`array_diff_key`), test qui exige l'absence du champ, rouge sans le correctif. Vérifié après une
+   seconde réindexation locale : 125 sous `product`, 125-0 et 125-1 sous `product_variation` sans `document_kind` ;
+   400 ml → 1 carte (le 125), 15 ml → 3, 400 ml + 30–35 € → 0, 30–35 € → 8 dont le 125, une seule fois.
+   *Revue, le 2026-10-06* : corrigé — `withVariants()` (au lieu de `admittingVariations()`), `any()` ignore les clauses
+   vides comme `all()` (test), deux commentaires retirés, `any()` dans `contracts.md`, fixture TS à la forme actuelle.
+   Refusé pour l'instant : un enum des types WooCommerce (`product`, `product_variation`) — `VisibleProducts::POST_TYPE`
+   sert déjà partout, chantier à part ; un diagnostic quand aucune clause de type n'est élargie — la limite est écrite
+   dans la décision et dans `search/types.md`.
 5. *Attribut hors variation* : l'ordre « stock d'abord » contredit la carte. À trancher (choix « A »).
 6. *Produit variable restauré de la corbeille* sans fiches variante. À vérifier.
 7. *Attribut hiérarchique* : un terme parent ne trouve plus ses produits en mode variantes. À vérifier.

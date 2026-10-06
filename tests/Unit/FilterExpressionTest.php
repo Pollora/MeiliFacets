@@ -137,4 +137,12 @@ final class FilterExpressionTest extends TestCase
     {
         $this->assertSame('parent_id IN [125, 126]', FilterExpression::oneOf('parent_id', [125, 126]));
     }
+
+    #[Test]
+    public function it_joins_clauses_with_or_like_all_joins_them_with_and(): void
+    {
+        $this->assertSame('(a = 1 OR b = 2)', FilterExpression::any(['a = 1', '', 'b = 2']));
+        $this->assertSame('a = 1', FilterExpression::any(['', 'a = 1']));
+        $this->assertSame('', FilterExpression::any([]));
+    }
 }

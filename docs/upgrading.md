@@ -10,10 +10,11 @@ changes is in the [changelog](../CHANGELOG.md).
 - **Update MeiliScout first.** The module now implements MeiliScout's `HasDependentDocuments` and fires
   `meiliscout/reindex_post`: run `composer update amphibee/meiliscout` before updating the module, or the indexable
   fails to load.
-- **Reindex, then publish; same contract.** `Contract::VERSION` is unchanged. Every product query now filters
-  on `document_kind`, which the engine refuses until the new settings are pushed: run
-  `wp meiliscout index --clear` before the new code serves a page, or the listings answer with the outage view until
-  it is done. It also writes one document per variant. Then publish the client scripts in `dist/` and the site
+- **Reindex, then publish; same contract.** `Contract::VERSION` is unchanged. A listing filtered on a variation
+  attribute filters on `document_kind` and `parent_id`, which the engine refuses until the new settings are pushed:
+  run `wp meiliscout index --clear` before the new code serves a page, or those listings answer with the outage view
+  until it is done. It also writes one document per variant, under the post type `product_variation`: your own
+  queries on `post_type = "product"` keep reading one document per product. Then publish the client scripts in `dist/` and the site
   search stylesheet with `php artisan module:publish MeiliFacets`, and clear the page cache: a page cached before the
   release sends the engine the queries of the old client.
 - **If you projected `variants`.** A `variants` list your `CardProjector` returns is now always dropped: only the

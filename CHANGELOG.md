@@ -20,11 +20,15 @@ What to change in a project when moving from one version to the next is in
   card is shown as projected. A `variants` list a `CardProjector` returns is dropped.
 - `out_of_stock` on the card of every product WooCommerce holds out of stock, whatever its type
   (`Indexing\ProductStock`).
-- One document per variant of a variable product, written and removed with the product's (`Indexing\VariantDocuments`,
-  through MeiliScout's `HasDependentDocuments`). A filter on a variation attribute or a price range reads the results
-  on them, one per product and in stock first under a price sort (`Contracts\VariantScopedListing`), while the
-  counts stay on the products. A product is re-indexed when one of its variations changes during a request
-  (`Indexing\VariationChanges`). New document fields: `in_stock`, `document_kind`, `parent_id`.
+- One document per variant of a variable product, under WooCommerce's variation post type `product_variation`,
+  written and removed with the product's (`Indexing\VariantDocuments`, through MeiliScout's `HasDependentDocuments`):
+  a query on `post_type = "product"` keeps reading one document per product. A filter on a variation attribute reads
+  the results on them, one per product and in stock first under a price sort (`Contracts\VariantScopedListing`), and
+  the counts follow; a price range alone reads the products, as WooCommerce does. The terms of a variation attribute
+  are counted on the variants, which WooCommerce's attribute lookup table names (`Listing\VariationTaxonomies`). A
+  product is re-indexed when one of its variations changes during a request (`Indexing\VariationChanges`). New
+  document fields: `in_stock`, `document_kind` (on a parent), `parent_id`. `FilterExpression::any()` joins clauses
+  with `OR`.
 - `Contracts\VariantFields`, which lets a project add fields to each variant; `Indexing\EmptyVariantFields` is the
   default.
 - `Enums\VariantField`, which names the keys of a variant (`facets`, `price`, `fields`, `in_stock`), and
