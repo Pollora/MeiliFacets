@@ -3508,8 +3508,16 @@ qu'il est vrai, corriger, tester, puis passer au suivant.
    sous 120 caractères. À publier dans l'ordre : MeiliScout d'abord (`upgrading.md`).
    *Limite acceptée par l'utilisateur le 2026-10-06* (« on se fie au natif ») : un produit variable dont un projet
    change le type de publication (code ou extension, l'admin ne le permet pas) garde ses fiches variante dans l'index.
-12. *`card.variants` sur la fiche produit*, envoyé sans être lu hors mode variantes. À trancher.
-13. *Pas de cas partagés PHP/TS* pour `measures` et `variantResults`. À vérifier.
+12. *`card.variants` sur la fiche produit*, envoyé sans être lu hors mode variantes. *Vérifié le 2026-10-06* : vrai,
+   un coût et non un défaut — quelques centaines d'octets par variante dans chaque réponse (boutique, panneau). Le
+   retirer demande que MeiliScout laisse ôter un champ de la fiche produit après avoir construit les fiches dépendantes.
+   *Noté, à reprendre* (choix de l'utilisateur).
+13. *Pas de cas partagés PHP/TS* pour `measures` et `variantResults`. *Corrigé le 2026-10-06, non commité* :
+   `tests/variant-plan-cases.json`, sept états (rien, une marque, une taille triée par prix, taille et marque, taille et
+   fourchette, fourchette seule, taille et recherche) et le plan attendu de chaque recherche (requête, filtre, champs
+   comptés, `distinct`, tri, champs cherchés), joués par `VariantPlanCasesTest` et `listing-query.test.ts` ; un test
+   vérifie que la description du fichier est bien celle de `FakeVariantScopedListing`. Aucun écart trouvé ; un
+   `distinct` retiré d'un côté fait échouer ce côté.
 14. *Registre contradictoire* (503, « non commité »). À corriger.
 
 Écartés par la revue : `several_variants` hors filtre (voulu), réindexation en trop (`R-215`), noyau HTTP (Pollora

@@ -360,3 +360,43 @@ describe('ListingQuery reading variants', () => {
         assert.equal(plan({ facets: { pa_size: ['400ml'] } }, older)[RESULTS].distinct, undefined)
     })
 })
+
+interface PlanCase {
+    case: string
+    state: StateChanges
+    plan: Record<string, Record<string, unknown>>
+}
+
+interface SharedPlanCases {
+    listing: {
+        facets: string[]
+        filter: string
+        searchScope: { filter: string, fields: string[] | null }
+        sorts: Record<string, string[]>
+        priceFields: { min: string, max: string }
+        variantResults: NonNullable<ListingDescription['variantResults']>
+    }
+    cases: PlanCase[]
+}
+
+/** The server plans the same states (`VariantPlanCasesTest`): render and first gesture count the same documents. */
+describe('ListingQuery on a listing with variant documents, shared with the server', () => {
+    const shared = JSON.parse(readFileSync(new URL('../variant-plan-cases.json', import.meta.url), 'utf8')) as SharedPlanCases
+    const compared = ['q', 'filter', 'facets', 'distinct', 'sort', 'attributesToSearchOn']
+    const description = described({
+        ...shared.listing,
+        facets: shared.listing.facets.map((taxonomy) => ({ taxonomy, multiple: true, cap: 30, visible: 10, labels: {}, counts: {} })),
+    })
+    const comparedOf = (search: object) => Object.fromEntries(
+        Object.entries({ q: '', filter: '', facets: [], ...search }).filter(([key, value]) => compared.includes(key) && value !== undefined),
+    )
+
+    for (const expected of shared.cases) {
+        it(expected.case, () => {
+            const queries = new ListingQuery(description, filterQueriesOf(description)).plan(new ListingState(expected.state))
+            const plan = Object.fromEntries(Object.entries(queries).map(([key, search]) => [key, comparedOf(search)]))
+
+            assert.deepEqual(plan, expected.plan)
+        })
+    }
+})
