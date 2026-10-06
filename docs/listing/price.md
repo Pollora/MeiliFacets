@@ -107,12 +107,13 @@ The attribute bag lands on the `<fieldset>`. A price filter given to `<x-meilifa
 ## How it behaves
 
 - **Bounds.** The slider and the fields span the prices of the products that match every other filter, rounded down
-  and up to whole units. They follow the facets: ticking a brand narrows them.
+  and up to whole units. They follow the facets: checking a brand narrows them; checking a variation attribute, such as
+  a size, makes them span the prices of the matching variants.
 - **Hidden when there is nothing to choose.** When no product matches, or every matching product has the same
   price, the block renders hidden.
 - **When it filters.** A field filters when its value is committed (Enter or leaving the field); a handle filters
   when it is released, or when the key that moves it is let go. Dragging previews, releasing filters. In `submit`
-  mode, the range waits for Apply like a ticked box (see [How a listing works](README.md#instant-or-on-submit)).
+  mode, the range waits for Apply like a checked box (see [How a listing works](README.md#instant-or-on-submit)).
 - **A bound at the edge is no filter.** A field emptied, or a handle moved back to the end of the track, removes that
   bound.
 - **Keyboard.** Each handle is a `role="slider"` button: the arrow keys move it by one unit, Shift with an arrow by a
@@ -125,9 +126,10 @@ The attribute bag lands on the `<fieldset>`. A price filter given to `<x-meilifa
 The price is the one the shop displays, taxes included or not as WooCommerce is set to display them, computed for the
 shop's base address. The module reads it from WooCommerce and never recomputes it.
 
-A product has a price range: a variable product spans its variations, a grouped product its children. A product
-matches when its range **overlaps** the range asked for, which is the test WooCommerce itself applies: a product sold
-from 28 to 62 matches a search for 40 to 70.
+A product has a price range: a variable product spans its variations, a grouped product its children. With a price
+range alone, a product matches when its range **overlaps** the range asked for, which is the test WooCommerce itself
+applies: a product sold from 28 to 62 matches a search for 40 to 70. Once a variation attribute is checked, a product
+matches when one of its matching variants is priced within the range.
 
 How prices are indexed, and when they must be reindexed, is in [Indexed prices](../indexing/prices.md).
 

@@ -3523,6 +3523,27 @@ qu'il est vrai, corriger, tester, puis passer au suivant.
 Écartés par la revue : `several_variants` hors filtre (voulu), réindexation en trop (`R-215`), noyau HTTP (Pollora
 utilise celui de Laravel).
 
+*Revue de régression et de véracité de la doc, le 2026-10-06* (après fermeture) :
+- Corrigé : deux tests Feature du projet (`ProductCardProjectionTest`) construisaient `VariantChoice` sans liste de
+  taxonomies et attendaient une variante ; la liste est désormais obligatoire en PHP, et passée par le test. Le
+  troisième échec de ce fichier (`the_wishlist_card_leaves_the_grid…`) vient du travail en cours sur la wishlist.
+- Corrigé : le refus du n°2 sur `clean_post_cache()` ne tenait pas — WooCommerce active son cache d'instances produit
+  sur toute nouvelle installation (`class-wc-install.php:393`, `:1363`). `VariationMetaRewrites` appelle
+  `clean_post_cache()`, que WooCommerce écoute (`ProductCacheController.php:86`). Tests : la variation d'un terme
+  renommé et celle d'un attribut renommé passent par `clean_post_cache` ; rouges avec le seul cache des métas.
+- Corrigé : doc publique (`upgrading.md` — toute liste avec une facette de variation tombe en panne avant la
+  réindexation —, `facets.md`, `price.md`, `results-sort-pagination.md`, réglages d'index, `indexing/README.md`,
+  `wordpress-hooks.md`, `contracts.md`), « ticked » remplacé par « checked ».
+- Corrigé : une valeur de facette de variation sans variante (L déclaré, variations S et M) apparaissait à 0 dès
+  qu'un filtre affinait — la liste des valeurs offertes était lue sur les produits. `QueryPlan::unfilteredVariants()`
+  la lit sur les variantes pour ces facettes ; test, rouge sans la correction ; page vérifiée (`/boutique` et
+  `?marque=aeris` offrent les mêmes contenances).
+- Noté, à reprendre : une facette de variation à choix unique est
+  comptée sans sa sélection, une facette partagée avec ; la table de WooCommerce compte les brouillons, et une table
+  vide coupe le mode variantes sans secours ; la lecture de la table n'est pas mise en cache d'une requête à l'autre ;
+  un `FacetCounter` de projet écrase le compte d'une facette de variation cochée ; liens absolus de
+  `accessibility.md`.
+
 ### R-219 · 🟢 · **fermé le 2026-10-05** (`02f7506`) · ouvert le 2026-10-05 — une valeur de facette lue dans l'URL n'avait pas de longueur maximale
 
 Audit de sécurité du 2026-10-05. `StateReader::isReadable()` acceptait une valeur de n'importe quelle longueur : une

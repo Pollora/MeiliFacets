@@ -104,6 +104,9 @@ sees yet.
 | New arrivals | `newest` | by publication date, newest first |
 | On sale | `on_sale` | products on sale only, in the engine's order |
 
+Once a variation attribute is checked, a price sort ranks each product by its matching variant's price, the variants
+in stock first.
+
 - “Relevance” cannot be removed or moved; its label is translatable like the others.
 - “On sale” is offered only by a listing that declares a [price filter](price.md), and it is hidden while no matching
   product is on sale, unless it is the sort in force.
@@ -157,10 +160,10 @@ a key breaks the links that carry it.
 | `SortFilter::whereTrue($field)` | the document field, which must be `true` |
 
 `Sort` and `SortFilter` live in `Modules\MeiliFacets\Listing`. A sort expression needs a sortable attribute, and a
-filtering sort a filterable one. Sortable out of the box: `post_title` and `post_date` (from MeiliScout), `price.min`
-and `price.max` (from the module, with WooCommerce), and the meta keys MeiliScout is set to index, as `metas.<key>`.
-An attribute the index does not declare makes the engine refuse the query: the whole listing then shows the
-unavailable message. See [Index settings and document fields](../reference/index-settings.md).
+filtering sort a filterable one. Sortable out of the box: `post_title` and `post_date` (from MeiliScout), `price.min`,
+`price.max` and `in_stock` (from the module, with WooCommerce), and the meta keys MeiliScout is set to index, as
+`metas.<key>`. An attribute the index does not declare makes the engine refuse the query: the whole listing then shows
+the unavailable message. See [Index settings and document fields](../reference/index-settings.md).
 
 A filtering sort is hidden while it would match nothing, like “On sale”.
 

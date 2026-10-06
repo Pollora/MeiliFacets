@@ -40,7 +40,7 @@ Use your theme's own layout in place of `layouts.app`. The layout must call `wp_
 is printed there.
 
 Nothing is declared in PHP: on a WooCommerce project, the module provides a product listing filtered by category and
-brand. Open the shop, tick a brand, and the address becomes:
+brand. Open the shop, check a brand, and the address becomes:
 
 ```text
 https://projet.ddev.site/shop/?f_product_brand=acme
@@ -170,7 +170,7 @@ final class ShopFacets implements ProductFacets
 $this->app->scoped(\Modules\MeiliFacets\Contracts\ProductFacets::class, \App\Listing\ShopFacets::class);
 ```
 
-The `pa_color` attribute must be indexed: tick it in MeiliScout's admin screen, then run `wp meiliscout index`. The
+The `pa_color` attribute must be indexed: select it in MeiliScout's admin screen, then run `wp meiliscout index`. The
 colour facet appears after the category and the brand, under `?f_pa_color=…`. See [Facets](listing/facets.md).
 
 ## Where to go next

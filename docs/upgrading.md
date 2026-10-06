@@ -10,13 +10,14 @@ changes is in the [changelog](../CHANGELOG.md).
 - **Update MeiliScout first.** The module now implements MeiliScout's `HasDependentDocuments` and fires
   `meiliscout/reindex_post`: run `composer update amphibee/meiliscout` before updating the module, or the indexable
   fails to load.
-- **Reindex, then publish; same contract.** `Contract::VERSION` is unchanged. A listing filtered on a variation
-  attribute filters on `document_kind` and `parent_id`, which the engine refuses until the new settings are pushed:
-  run `wp meiliscout index --clear` before the new code serves a page, or those listings answer with the outage view
-  until it is done. It also writes one document per variant, under the post type `product_variation`: your own
-  queries on `post_type = "product"` keep reading one document per product. Then publish the client scripts in `dist/` and the site
-  search stylesheet with `php artisan module:publish MeiliFacets`, and clear the page cache: a page cached before the
-  release sends the engine the queries of the old client.
+- **Reindex, then publish; same contract.** `Contract::VERSION` is unchanged. Every listing with a facet on a variation
+  attribute counts it on `document_kind` and `parent_id`, filtered or not, and the engine refuses those queries until
+  the new settings are pushed: run `wp meiliscout index --clear` right after deploying the code, before it serves a
+  page, or those listings answer with the outage view until it is done. It also writes one document per variant, under
+  the post type `product_variation`: your own queries on `post_type = "product"` keep reading one document per product.
+  Then publish the client scripts in `dist/` and the site search stylesheet with `php artisan module:publish
+  MeiliFacets`, and clear the page cache: a page cached before the release sends the engine the queries of the old
+  client.
 - **If you projected `variants`.** A `variants` list your `CardProjector` returns is now always dropped: only the
   module's is indexed. Remove the code that built it, and move the fields of your own — a size label, a cart link —
   to a `Contracts\VariantFields` you bind. See [Card variants](customising/card.md#card-variants).

@@ -59,7 +59,8 @@ final class SearchServiceProvider extends ServiceProvider
 | `SearchableAttributes` | `Indexing\DefaultSearchableAttributes`: title, then brand, category and SKU (WooCommerce), other labels, excerpt, content | `scopedIf` | `scoped` or `bind`, decorating the default | [Search relevance](../indexing/relevance.md) |
 | `SearchableTypes` | `SiteSearch\WooCommerceSearchableTypes`: products first when WooCommerce is active and products are searchable, then `WordPressSearchableTypes` | `scopedIf` | `scoped`, decorating the default | [Searchable types](../search/types.md) |
 | `Listing` | `Listing\ProductListing`, named `products`; refuses itself without WooCommerce | discovered | implement it in a class Pollora discovers (`app/`, or a module's `app/`) | [Listing other content](../listing/custom-listing.md) |
-| `SearchScopedListing` | `Listing\ProductListing` | discovered | implement it instead of `Listing` | [Listing other content](../listing/custom-listing.md) |
+| `SearchScopedListing` | — | discovered | implement it instead of `Listing` | [Listing other content](../listing/custom-listing.md) |
+| `VariantScopedListing` | `Listing\ProductListing` | discovered | implement it instead of `SearchScopedListing` for items with a document per variant | [Card variants](../customising/card.md#card-variants) |
 | `ValueOrder` | none bound; `Listing\NameOrder` is provided (bound `scoped`, collates by the site language) | pass it to a `Facet` | implement it | [Facets](../listing/facets.md) |
 | `ValuePresentation` | `Enums\Presentation` (`control`, `pill`) | pass it to a `Facet` or a component | implement it, as an enum | [Facets](../listing/facets.md) |
 | `Placeable` | `Listing\Facet`, `Listing\PriceFilter` | none | do not implement: the components only place these two | [Facets](../listing/facets.md) |
@@ -83,6 +84,7 @@ final class SearchServiceProvider extends ServiceProvider
 | `SearchableTypes` | `all(): array<string, SearchableType>`, keyed by post type |
 | `Listing` | `name(): string`, `facets(): list<Facet>`, `filters(): list<Placeable>`, `sorts(): array<string, Sort>`, `baseFilter(): list<string>`, `baseQuery(): string`, `perPage(): int`, `applyMode(): ApplyMode` |
 | `SearchScopedListing` | the `Listing` methods, plus `searchScope(): SearchScope`: filter and fields used once a term is typed |
+| `VariantScopedListing` | the `SearchScopedListing` methods, plus `variantTaxonomies(): list<string>`, `variantFilter(): list<string>` and `variantSearchScope(): SearchScope`: what a filter on a variation attribute reads on the variant documents |
 | `ValueOrder` | `compare(FacetValue $first, FacetValue $second): int` |
 | `ValuePresentation` | `slug(): string` (the `data-presentation` value), `allowsSingleSelection(): bool` |
 | `Placeable` | properties `string $name { get; }`, `string $label { get; }` |
@@ -94,7 +96,7 @@ changes behaviour the rest of the module relies on.
 
 | Contract | Default implementation | Module binding | Used for |
 | --- | --- | --- | --- |
-| `FacetCounter` | `Search\DisjunctiveFacetCounter` | `bindIf` | the extra queries that count a multi-value facet on the first render; the browser counts on its own |
+| `FacetCounter` | `Search\DisjunctiveFacetCounter` | `bindIf` | the extra queries that count a multi-value facet on the first render; facets on a variation attribute are counted by the module on the variant documents, whatever the binding; the browser counts on its own |
 | `SearchEngine` | `Search\MeilisearchEngine` (MeiliScout's search client, index `posts`) | `scoped` | sends the server's searches; throws `EngineUnavailable` |
 | `TermHierarchy` | `Indexing\WordPressTermHierarchy` | `bind` | ancestors of a term at indexing; children for `ChildTermsFacet` |
 | `TermLabels` | `Listing\WordPressTermLabels` | `bind` | the names of a facet's values, in the taxonomy's order |
@@ -123,7 +125,7 @@ All under `Modules\MeiliFacets\`.
 | `Listing\SortFilter` | class | the filter a sort carries; `SortFilter::whereTrue()` | [Sorting](../listing/results-sort-pagination.md) |
 | `Listing\NameOrder` | class | orders values by name in the site language | [Facets](../listing/facets.md) |
 | `Listing\CardVariant` | class | one way a product is sold, inside its card: facets, price, fields, in stock; `toArray()`, `read()` | [Card variants](../customising/card.md#card-variants) |
-| `Listing\VariantChoice` | class | `shown(array $card)`: the card through the variant the filters point to once a variation attribute is ticked, as projected otherwise | [Card variants](../customising/card.md#card-variants) |
+| `Listing\VariantChoice` | class | `shown(array $card)`: the card through the variant the filters point to once a variation attribute is checked, as projected otherwise | [Card variants](../customising/card.md#card-variants) |
 | `Listing\ListingUnavailable` | exception | thrown by a listing's constructor to opt out quietly | [Listing other content](../listing/custom-listing.md) |
 | `SiteSearch\SearchableType` | class | a searchable type; `withHeading()`, `withSeeAllLabel()`, `withCard()`, `withArchive()`, `withoutArchive()`, `withSearchOn()` | [Searchable types](../search/types.md) |
 | `SiteSearch\SearchableTypeFactory` | class | `forPostType()`, `make()` | [Searchable types](../search/types.md) |

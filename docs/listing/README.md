@@ -35,7 +35,7 @@ place the components in the Blade template that renders the shop archive.
 </x-meilifacets::listing>
 ```
 
-The server renders the first page with the filters of the URL already applied. After that, every tick, sort, page or
+The server renders the first page with the filters of the URL already applied. After that, every check, sort, page or
 search is one request from the browser to Meilisearch, and the module rewrites the address bar.
 
 ## The root and its components
@@ -51,7 +51,7 @@ search is one request from the browser to Meilisearch, and the module rewrites t
 
 Components are free to sit in any order and in any markup of the theme (a sidebar, a toolbar, a grid), as long as
 they are **inside** the root. The client binds once per root and only reads what is inside it. A component placed
-outside renders, can be ticked and styled, and does nothing. The client says so in the browser console when it
+outside renders, can be checked and styled, and does nothing. The client says so in the browser console when it
 starts:
 
 ```text
@@ -141,7 +141,7 @@ listing to the state of that entry.
 
 ## Instant or on submit
 
-`apply_mode` decides whether a ticked box searches at once or waits for the visitor to apply.
+`apply_mode` decides whether a checked box searches at once or waits for the visitor to apply.
 
 ```php
 // config/meilifacets.php
@@ -150,7 +150,7 @@ listing to the state of that entry.
 
 | Gesture | `immediate` | `submit` |
 | --- | --- | --- |
-| tick or untick a facet value | searches | waits: the change is pending |
+| check or uncheck a facet value | searches | waits: the change is pending |
 | commit a price (field changed, handle released) | searches | waits |
 | type in the [search field](#the-search-field) | searches after a pause | waits |
 | press Enter in the search field | searches | searches, with every pending change |
@@ -163,7 +163,7 @@ In `submit` mode, an Apply button is rendered at the end of `<x-meilifacets::lis
 [Results, sorting and pagination](results-sort-pagination.md#apply)). The count on the drawer opener and on the
 pill-shaped Apply button follows the pending selection, so the visitor sees what Apply is about to send.
 
-`immediate` costs one search per tick and suits a modest catalogue. `submit` costs one search per Apply and suits a
+`immediate` costs one search per check and suits a modest catalogue. `submit` costs one search per Apply and suits a
 large one.
 
 There is no `<form method="get">` around the facets: a GET form writes `brand[]=acme&brand[]=globex`, a second URL for
@@ -194,7 +194,7 @@ With JavaScript:
 - in `immediate` mode, a term searches once the visitor has typed at least 2 characters and paused for 120 ms (the
   same settings as the site search, see [Site search](../search/README.md)). Under the threshold, the term already
   applied is removed;
-- in `submit` mode, the term waits like a ticked box; Enter or Apply sends it;
+- in `submit` mode, the term waits like a checked box; Enter or Apply sends it;
 - the ✕ button and the active-value pill of the term remove it at once, in both modes;
 - the page goes back to 1.
 
@@ -277,7 +277,7 @@ The scroll is skipped when the gesture came from the keyboard, so that the focus
 own `scroll-behavior` decides whether the scroll is smooth.
 
 `listing.facet`, `listing.price`, `listing.active-filters` and `listing.sort widget="radios"` also accept `scroll`,
-but no gesture of theirs scrolls: ticking a box never moves the page. An Apply button placed on its own takes the
+but no gesture of theirs scrolls: checking a box never moves the page. An Apply button placed on its own takes the
 attribute directly: `<x-meilifacets::listing.apply data-meili-scroll />`.
 
 ## Without JavaScript

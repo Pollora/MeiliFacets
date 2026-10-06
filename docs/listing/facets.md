@@ -276,14 +276,18 @@ value. See [How a listing works](README.md#the-browsed-term).
 ## One value or several
 
 `SelectionMode::Multiple` (the default) renders checkboxes. Values of the same facet combine with OR, facets combine
-with AND: ticking Acme and Globex in Brand, then Red in Color, lists the red products of either brand.
+with AND: checking Acme and Globex in Brand, then Red in Color, lists the red products of either brand.
 
 `SelectionMode::Single` renders radios: one value at a time.
 
 The count beside each value is the number of results that value would give:
 
-- for a multiple-selection facet holding at least one value, the count ignores the facet's own selection, so ticking
+- for a multiple-selection facet holding at least one value, the count ignores the facet's own selection, so checking
   Acme does not turn Globex's count to zero. This takes one extra query per such facet;
+- a facet on a variation attribute, such as a size, is always counted by a query of its own, on the variant
+  documents: each count is the number of products checking it would list. Once one is checked, the other facets are
+  counted on the variant documents too, once per product
+  ([Index settings](../reference/index-settings.md#document-fields));
 - every other facet is counted on the main query.
 
 A value with no result is hidden, unless it is selected.

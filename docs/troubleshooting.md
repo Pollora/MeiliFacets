@@ -37,7 +37,7 @@ not are listed in [Errors and console messages](reference/errors.md#silent-failu
 
 ## The listing does not filter
 
-The page renders, the boxes can be ticked, and nothing happens.
+The page renders, the boxes can be checked, and nothing happens.
 
 | Cause | How to tell | Fix |
 | --- | --- | --- |
@@ -77,7 +77,7 @@ served with status `503`. The log holds an `EngineUnavailable` report.
 | Symptom | Cause | Fix |
 | --- | --- | --- |
 | Zero results, and the engine answers | the index is empty | `curl …/stats` returns `{"indexes":{}}`: run `wp meiliscout index`. See [Installation](installation.md#check-that-it-works) |
-| A facet is missing or always empty | its taxonomy is not indexed in MeiliScout, or the settings were not pushed | tick the taxonomy in MeiliScout's admin screen, then `wp meiliscout index`. See [Facets](listing/facets.md) |
+| A facet is missing or always empty | its taxonomy is not indexed in MeiliScout, or the settings were not pushed | select the taxonomy in MeiliScout's admin screen, then `wp meiliscout index`. See [Facets](listing/facets.md) |
 | A facet misses values on a large taxonomy | the engine's ceiling on facet values; the log holds a `FacetTruncated` report | raise `engine.max_facet_values`, then reindex |
 | A facet does not show on a category archive | the path already filters on that taxonomy | expected; use a `ChildTermsFacet` for sub-levels. See [Facets](listing/facets.md#sub-level-navigation) |
 | A card's image is outdated after editing the image | the image fields are stored at indexing time | `wp meiliscout index` after `wp media regenerate` |
@@ -125,9 +125,9 @@ The panel shows « Search unavailable » when the engine refuses or does not ans
 Yes. The site search works on any indexed public post type. Without WooCommerce there is no product listing:
 declare your own by implementing `Listing`. See [Listing other content](listing/custom-listing.md).
 
-**Does the search key leak data?**
-It can read `ID` and `card` from every document of the `posts` index, and can rewrite a listing's base filter. Keep
-only published content in the index and use a search-only key. See [Going to production](production.md#security).
+**Does the search key leak data?** It can read `ID`, `card` and `parent_id` from every document of the `posts` index,
+and can rewrite a listing's base filter. Keep only published content in the index and use a search-only key. See [Going
+to production](production.md#security).
 
 **Why are the filters not in a `<form>`?**
 Each gesture is a request from the browser to the engine; nothing is submitted to WordPress. The listing search field

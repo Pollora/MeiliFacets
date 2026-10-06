@@ -323,7 +323,7 @@ depends on the visitor (a cart, a login, a currency) does not belong in the card
 
 The product is the unit of a listing: it never appears twice. When it is sold in several ways, its card shows the
 product as projected — WooCommerce's price range, every volume — until a filter concerns its variants; then it shows
-the one the visitor filtered on — the 400 ml bottle and its price when `400ml` is ticked.
+the one the visitor filtered on — the 400 ml bottle and its price when `400ml` is checked.
 
 **1. The module reads them.** With WooCommerce active, every variable product carries its variants in
 `card.variants`, read when the product is indexed from the variations WooCommerce offers
@@ -400,11 +400,11 @@ the variants.
 WooCommerce holds out of stock, whatever its type — a variable product when none of its variations is in stock.
 When the listing shows a variant, the flag follows that variant instead. Bind its rendering on the flag, as for
 « from », with `$binding->onlyWith(CardField::OutOfStock)`. The module lists products out of stock even when « Hide
-out of stock items » is ticked; only their variants out of stock are left out.
+out of stock items » is checked; only their variants out of stock are left out.
 
 **A price range alone.** The engine lists a product whose price range overlaps the one asked for, as WooCommerce
 does: a product sold at 26 and 39 is listed for 30 to 35, while none of its variants is priced within that range. Its
-card shows its whole range; a variant is shown once a variation attribute is ticked.
+card shows its whole range; a variant is shown once a variation attribute is checked.
 
 ## What the contract asks of a card
 
@@ -565,7 +565,7 @@ The thumbnail is decorative (`alt=""`), since the link already reads the title.
   the products that use it. Reindex after `wp media regenerate`.
 - **`card.image_size` has no effect on your projector** if you replace the module's instead of decorating it. Choose
   the size in your projector — and set `card.image_size` to the same size: a variant's own image is always read at
-  `card.image_size`, and the card would change its format once a size is ticked.
+  `card.image_size`, and the card would change its format once a size is checked.
 
 ## See also
 

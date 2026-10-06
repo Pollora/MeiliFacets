@@ -20,12 +20,13 @@ You want to…
 its `metas`. Which post types are indexed is a MeiliScout setting, stored in the database and set from its
 administration screen: set it on every environment.
 
-**The module** hooks into MeiliScout at two points:
+**The module** hooks into MeiliScout at three points:
 
 | MeiliScout filter | What the module does |
 | --- | --- |
 | `meiliscout/post/document` | adds its fields to every document, on every indexing path: full index, single save, async queue |
 | `meiliscout/indexables` | replaces MeiliScout's post indexable with its own, which writes the module's index settings |
+| `HasDependentDocuments` (contract of that indexable) | writes one document per variant of a variable product, under the post type `product_variation`, with the product's and removed with it |
 
 The module never pushes documents itself, and has no indexing command of its own. To reindex, use MeiliScout's:
 
@@ -43,6 +44,7 @@ wp meiliscout index
 | `content` | the post's content, as plain text: block delimiters, tags, shortcodes and entities removed |
 | `card` | everything a result card shows: see [The card](#the-card) |
 | `price` | `min`, `max` and `onsale`, for a product that has a price: see [Indexed prices](prices.md) |
+| `in_stock`, `document_kind`, `parent_id` | stock, the mark of a product with variant documents, and a variant document's product: see [Index settings](../reference/index-settings.md#document-fields) |
 
 A password-protected post gets an empty `excerpt`, an empty `content` and no summary on its card.
 
@@ -166,7 +168,8 @@ Rules for a projected field:
 
 - store plain text, never HTML: the client writes card fields as text. The price is the only HTML field;
 - leave a field out when there is nothing to show, rather than storing an empty string;
-- do not name a field `id`: the module writes the document's `ID` there when it binds a card;
+- do not name a field `id`: the module writes the product's ID there when it binds a card — `parent_id` on a variant's
+  document, `ID` otherwise;
 - **anything on the card is public**. Every visitor can read it with the search key: never project private data.
 
 Once the field is indexed, bind it in your card's view: see [Overriding views](../customising/views.md) for the
@@ -175,8 +178,8 @@ listing card, and [A card per type](../search/types.md#a-card-per-type) for the 
 ## What the browser may read
 
 The search key travels to every visitor's browser. Anyone can use it to query the index directly, so the module limits
-what a response may return through Meilisearch's `displayedAttributes`: **`ID` and `card` only**. Without that limit,
-any visitor could read every post's content and every meta, private ones included.
+what a response may return through Meilisearch's `displayedAttributes`: **`ID`, `card` and `parent_id` only**. Without
+that limit, any visitor could read every post's content and every meta, private ones included.
 
 `displayedAttributes` decides what a response returns, not what can be filtered or searched: a filter or a facet count
 keeps working on a field the key cannot read.
@@ -200,9 +203,9 @@ Each time MeiliScout indexes, the module writes these settings on the index:
 
 | Setting | What the module puts in it |
 | --- | --- |
-| `filterableAttributes` | MeiliScout's, plus `facets.<taxonomy>` for every indexed taxonomy, plus the WooCommerce price and stock fields when WooCommerce is active |
-| `sortableAttributes` | MeiliScout's, plus `price.min` and `price.max` when WooCommerce is active |
-| `displayedAttributes` | `ID`, `card`, and what is declared as above |
+| `filterableAttributes` | MeiliScout's, plus `facets.<taxonomy>` for every indexed taxonomy, plus `ID` and `parent_id`, plus the WooCommerce price and stock fields and `document_kind` when WooCommerce is active |
+| `sortableAttributes` | MeiliScout's, plus `price.min`, `price.max` and `in_stock` when WooCommerce is active |
+| `displayedAttributes` | `ID`, `card`, `parent_id`, and what is declared as above |
 | `searchableAttributes` | the search order: see [Search relevance](relevance.md) |
 | `typoTolerance.disableOnAttributes` | the fields matched exactly: the SKU when WooCommerce is active |
 | `faceting` | facet values sorted by count; at most `engine.max_facet_values` values per facet |
@@ -258,6 +261,8 @@ Most of the time this is what keeps the index right. It becomes visible when a p
 - WooCommerce writes `_regular_price`, then `_price`, when a price changes: the product is pushed twice;
 - a plugin that saves metas over AJAX, a bulk editor for example, reindexes one document per field it saves;
 - a script that writes many metas in a loop pushes as many documents.
+
+A meta written on a variation reindexes its product once, at the end of the request.
 
 Two counter-measures, in this order:
 

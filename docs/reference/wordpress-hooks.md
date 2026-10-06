@@ -51,8 +51,14 @@ WordPress and WooCommerce filters whose value the module uses. A project can hoo
 | `woocommerce_enable_post_clause_filtering` | filter | 10 | every request | returns `false`: WooCommerce no longer narrows a product archive's main query from the URL | [Indexed prices](../indexing/prices.md) |
 | `woocommerce_get_tax_location` | filter | 10 | added while a document is indexed, removed right after | taxes at the shop's base address | [Indexed prices](../indexing/prices.md) |
 | `rocket_delay_js_exclusions` | filter | 10 | when WP Rocket asks | excludes the published bundles from Delay JS | [Going to production](../production.md) |
-| `meiliscout/post/document` | filter | 10 | MeiliScout builds a post document | adds `facets`, `labels`, `excerpt`, `content`, `card`, `price` | [What gets indexed](../indexing/README.md) |
+| `meiliscout/post/document` | filter | 10 | MeiliScout builds a post document | adds `facets`, `labels`, `excerpt`, `content`, `card`, `price`, `in_stock`, `document_kind` | [What gets indexed](../indexing/README.md) |
 | `meiliscout/indexables` | filter | 10 | MeiliScout lists its indexables | replaces its post indexable with the module's, which writes the index settings | [Index settings](index-settings.md) |
+| `woocommerce_new_product_variation`, `woocommerce_update_product_variation`, `woocommerce_before_delete_product_variation`, `woocommerce_trash_product_variation` | action | 10 | a variation is saved, deleted or trashed | remembers its product | [What gets indexed](../indexing/README.md#when-to-reindex) |
+| `added_post_meta`, `updated_post_meta`, `deleted_post_meta` | action | 10 | a meta is written | remembers the product of a variation whose meta changed | [What gets indexed](../indexing/README.md#every-meta-write-reindexes-the-post) |
+| `shutdown` | action | 20 | end of the request | fires `meiliscout/reindex_post` once per remembered product | [What gets indexed](../indexing/README.md#when-to-reindex) |
+| `edited_term` | action | 20 | after WooCommerce rewrote a renamed attribute term in SQL | clears the meta cache of the products and variations it rewrote | [What gets indexed](../indexing/README.md#when-to-reindex) |
+| `woocommerce_attribute_updated` | action | 10 | an attribute is saved | remembers a renamed attribute | [What gets indexed](../indexing/README.md#when-to-reindex) |
+| `shutdown` | action | 10 | end of the request, after an attribute rename | clears the meta cache of its variations, fires `meiliscout/schedule_indexation` | [What gets indexed](../indexing/README.md#when-to-reindex) |
 
 Most of these are declared with `#[Filter]` and `#[Action]` attributes, which Pollora discovers and caches: after an
 update of the module, run `php artisan discovery:clear`.

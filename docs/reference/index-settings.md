@@ -26,9 +26,9 @@ own. Settings are named by `Enums\IndexSetting`, `Enums\FacetingSetting`, `Enums
 
 | Setting | Value written | Comes from | Explained in |
 | --- | --- | --- | --- |
-| `filterableAttributes` | MeiliScout's own, plus `facets.<taxonomy>` for every taxonomy of an indexed post type, plus `IndexAttributes::filterable()`: `metas._price`, `metas._stock_status`, `price.min`, `price.max`, `price.onsale` with WooCommerce | MeiliScout, `IndexAttributes` | [What gets indexed](../indexing/README.md) |
-| `sortableAttributes` | MeiliScout's own, plus `IndexAttributes::sortable()`: `price.min`, `price.max` with WooCommerce | MeiliScout, `IndexAttributes` | [Sorting](../listing/results-sort-pagination.md) |
-| `displayedAttributes` | `ID` and `card`, plus `IndexAttributes::displayed()` and `displayed_attributes`; `["*"]` when either holds `*` | `IndexAttributes`, configuration | [What gets indexed](../indexing/README.md) |
+| `filterableAttributes` | MeiliScout's own, plus `facets.<taxonomy>` for every taxonomy of an indexed post type, plus `ID` and `parent_id`, plus `IndexAttributes::filterable()`: `metas._price`, `metas._stock_status`, `price.min`, `price.max`, `price.onsale`, `document_kind` with WooCommerce | MeiliScout, `IndexAttributes` | [What gets indexed](../indexing/README.md) |
+| `sortableAttributes` | MeiliScout's own, plus `IndexAttributes::sortable()`: `price.min`, `price.max`, `in_stock` with WooCommerce | MeiliScout, `IndexAttributes` | [Sorting](../listing/results-sort-pagination.md) |
+| `displayedAttributes` | `ID`, `card` and `parent_id`, plus `IndexAttributes::displayed()` and `displayed_attributes`; `["*"]` when either holds `*` | `IndexAttributes`, configuration | [What gets indexed](../indexing/README.md) |
 | `faceting.sortFacetValuesBy` | `{"*": "count"}` | fixed | [Facets](../listing/facets.md) |
 | `faceting.maxValuesPerFacet` | `engine.max_facet_values` (`1000`) | configuration | [Facets](../listing/facets.md) |
 | `pagination.maxTotalHits` | `engine.reachable_hits` (`1000`) | configuration | [Pagination](../listing/results-sort-pagination.md) |
@@ -73,8 +73,8 @@ Named by `Enums\DocumentField`. “Written by” says who puts the field in the 
 A variable product also has **one document per variant**, `ID` `<product>-<n>`: the product's document under the
 variant's terms, price and stock, and under WooCommerce's post type for a variation, `product_variation` — a query on
 `post_type = "product"`, the module's or anyone else's, never reads them. They are written and removed with the product's own (MeiliScout's
-`HasDependentDocuments`). With a variation attribute ticked, the results read them, one per product
-(`distinct: parent_id`), and so do the counts, so that each one announces what the grid shows once it is ticked. A
+`HasDependentDocuments`). With a variation attribute checked, the results read them, one per product
+(`distinct: parent_id`), and so do the counts, so that each one announces what the grid shows once it is checked. A
 price range alone reads the products, as WooCommerce does. The terms of a variation attribute are always counted on
 the variants, without `distinct`: Meilisearch keeps a single variant per product, and would leave the others' terms
 uncounted. The variation attributes are those WooCommerce's attribute lookup table marks as such; every attribute
@@ -98,7 +98,7 @@ Named by `Enums\CardField`. The default projectors write them; a `CardProjector`
 | `image_height` | `DefaultCardProjector` | height in pixels |
 | `price` | `WooCommerceCardProjector` | the product's price HTML, as WooCommerce formats it |
 | `summary` | `SummaryCardProjector`, posts that are not products | the excerpt cut to `excerpt_length` words |
-| `id` | not indexed: added to each card from `ID` on the server and in the browser | the post ID |
+| `id` | not indexed: added to each card from `parent_id`, or `ID` when absent, on the server and in the browser | the product's ID, on a variant's document too |
 | `variants` | the module (`Indexing\ProductVariants`), for a variable product, with WooCommerce | the ways the product is sold, each a `Listing\CardVariant`, as a JSON list: see [Card variants](../customising/card.md#card-variants). A variant's `fields` cannot set `id`, `variants`, `several_variants` or `out_of_stock`: the module drops them. Never bound: removed from the cards the module shows — the listing, on the server and in the browser, and the search panel — after picking one when a filter concerns them. A card a project renders itself is not concerned |
 | `several_variants` | not indexed: set when several variants are offered (those in stock first) | `true`, or absent |
 | `out_of_stock` | the module, for a product WooCommerce holds out of stock; on a listing showing a variant, set when that variant is out of stock | `true`, or absent |

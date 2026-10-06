@@ -196,9 +196,9 @@ The `key` field of the response goes into `MEILI_SEARCH_KEY`. A key's value is d
 key: giving a fixed `uid` lets you recreate the same key after the engine's data is lost, without changing the
 environment.
 
-The key only reads what the index lets it read: the module restricts what a response returns to `ID` and `card`
-(Meilisearch's `displayedAttributes`). A field added through `displayed_attributes` becomes readable by every visitor.
-Filtering and counting are not restricted by that setting.
+The key only reads what the index lets it read: the module restricts what a response returns to `ID`, `card` and
+`parent_id` (Meilisearch's `displayedAttributes`). A field added through `displayed_attributes` becomes readable by
+every visitor. Filtering and counting are not restricted by that setting.
 
 ### The server key
 
