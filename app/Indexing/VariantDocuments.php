@@ -67,6 +67,7 @@ final readonly class VariantDocuments
                 ...$this->arrayAt($product, DocumentField::Price),
                 PriceField::Min->value => $variant->price,
                 PriceField::Max->value => $variant->price,
+                PriceField::OnSale->value => $variant->onSale,
             ],
         ];
     }

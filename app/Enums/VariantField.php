@@ -10,4 +10,5 @@ enum VariantField: string
     case Price = 'price';
     case Fields = 'fields';
     case InStock = 'in_stock';
+    case OnSale = 'on_sale';
 }

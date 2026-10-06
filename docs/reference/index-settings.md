@@ -111,6 +111,7 @@ A variant is stored as:
 | `price` | `VariantField::Price` | its displayed price, a number on the same scale as `price.min` and `price.max` |
 | `fields` | `VariantField::Fields` | the card fields shown instead of the product's when it is chosen |
 | `in_stock` | `VariantField::InStock` | `true` when the variation is in stock; read as `true` when absent |
+| `on_sale` | `VariantField::OnSale` | `true` when the variation is on sale (`is_on_sale()`); read as `false` unless it is `true` |
 
 Image fields are absent when the post has no featured image; `summary` is absent when empty.
 
@@ -120,7 +121,7 @@ Image fields are absent when the post has no featured image; `summary` is absent
 | --- | --- | --- | --- |
 | `price.min` | `PriceField::Min` | lowest displayed price (a variable or grouped product's cheapest child) | price filter, `price_asc` |
 | `price.max` | `PriceField::Max` | highest displayed price | price filter, `price_desc` |
-| `price.onsale` | `PriceField::OnSale` | `true` when WooCommerce lists the product as on sale | `on_sale` |
+| `price.onsale` | `PriceField::OnSale` | `true` when WooCommerce lists the product as on sale; on a variant's document, when that variation is | `on_sale` |
 | `metas._price` | `ProductMeta::Price` | WooCommerce's `_price` meta | filterable |
 | `metas._stock_status` | `ProductMeta::StockStatus` | WooCommerce's `_stock_status` meta | filterable |
 | `metas._sku` | `SearchedMeta::Sku` | WooCommerce's `_sku` meta | search, without typos |

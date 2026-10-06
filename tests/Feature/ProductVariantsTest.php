@@ -86,6 +86,19 @@ final class ProductVariantsTest extends TestCase
     }
 
     #[Test]
+    public function it_reads_whether_each_variation_is_on_sale(): void
+    {
+        $product = $this->variable(['15ml' => ['26', true], '400ml' => ['39', true]]);
+        $onSale = wc_get_product($product->get_children()[1]);
+        $onSale->set_sale_price('30');
+        $onSale->save();
+
+        $variants = $this->variantsOf(new WC_Product_Variable($product->get_id()), $this->variants());
+
+        $this->assertSame([false, true], array_column($variants, VariantField::OnSale->value));
+    }
+
+    #[Test]
     public function it_shows_the_variation_price_and_links_to_the_variation(): void
     {
         $fields = $this->fieldsOf($this->variable(['15ml' => ['26', true]]), $this->variants());

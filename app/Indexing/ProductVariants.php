@@ -79,6 +79,7 @@ final readonly class ProductVariants
             $price,
             $this->fieldsOf($variation),
             inStock: $variation->is_in_stock(),
+            onSale: $variation->is_on_sale(),
         );
     }
 

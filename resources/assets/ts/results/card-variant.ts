@@ -1,4 +1,4 @@
-import type { Selection } from '../shared/description.ts'
+import type { Selection, SortFilterDescription } from '../shared/description.ts'
 import type { Range } from '../shared/range.ts'
 
 type Facets = Readonly<Record<string, readonly string[]>>
@@ -8,12 +8,16 @@ interface Parts {
     price: number
     fields: Readonly<Record<string, unknown>>
     inStock: boolean
+    onSale: boolean
 }
 
 const FACETS_FIELD = 'facets'
 const PRICE_FIELD = 'price'
 const FIELDS_FIELD = 'fields'
 const IN_STOCK_FIELD = 'in_stock'
+const ON_SALE_FIELD = 'on_sale'
+/** The document path `PriceField::OnSale` names on the server. */
+const ON_SALE_PATH = 'price.onsale'
 
 /** The browser's copy of `Listing\CardVariant`: one way a product is sold, inside its card. */
 export class CardVariant {
@@ -21,12 +25,14 @@ export class CardVariant {
     readonly price: number
     readonly fields: Readonly<Record<string, unknown>>
     readonly inStock: boolean
+    readonly onSale: boolean
 
-    constructor({ facets, price, fields, inStock }: Parts) {
+    constructor({ facets, price, fields, inStock, onSale }: Parts) {
         this.facets = facets
         this.price = price
         this.fields = fields
         this.inStock = inStock
+        this.onSale = onSale
     }
 
     /** Anything without a finite price is not a variant. */
@@ -48,7 +54,13 @@ export class CardVariant {
             price,
             fields: CardVariant.#isObject(fields) ? fields : {},
             inStock: stored[IN_STOCK_FIELD] !== false,
+            onSale: stored[ON_SALE_FIELD] === true,
         })
+    }
+
+    /** Of the fields a sort filters on, a variant holds its own on-sale flag; the others are the product's. */
+    meetsSortFilter(filter: SortFilterDescription | null) {
+        return filter === null || filter.field !== ON_SALE_PATH || this.onSale
     }
 
     /** A facet the variant does not carry does not rule it out. */

@@ -7,6 +7,7 @@ namespace Modules\MeiliFacets\Tests\Unit;
 use Generator;
 use Modules\MeiliFacets\Listing\CardVariant;
 use Modules\MeiliFacets\Listing\Range;
+use Modules\MeiliFacets\Listing\SortFilter;
 use Modules\MeiliFacets\Listing\VariantChoice;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -21,7 +22,8 @@ use PHPUnit\Framework\TestCase;
  *     card: array<string, mixed>,
  *     selected: array<string, list<string>>,
  *     price: array{min: float|int|null, max: float|int|null},
- *     expected: array<string, mixed>
+ *     expected: array<string, mixed>,
+ *     sortFilter?: array{field: string, value: string}
  * }
  */
 final class VariantChoiceTest extends TestCase
@@ -50,7 +52,8 @@ final class VariantChoiceTest extends TestCase
     public function it_shows_the_card_through_the_matching_variant_or_as_projected(array $case, array $variantTaxonomies): void
     {
         $price = new Range($this->bound($case['price']['min']), $this->bound($case['price']['max']));
-        $choice = new VariantChoice($case['selected'], $price, $variantTaxonomies);
+        $sortFilter = isset($case['sortFilter']) ? new SortFilter($case['sortFilter']['field'], $case['sortFilter']['value']) : null;
+        $choice = new VariantChoice($case['selected'], $price, $variantTaxonomies, $sortFilter);
 
         $this->assertSame($case['expected'], $choice->shown($case['card']));
     }

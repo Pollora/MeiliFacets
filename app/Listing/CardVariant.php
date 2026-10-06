@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Listing;
 
+use Modules\MeiliFacets\Enums\PriceField;
 use Modules\MeiliFacets\Enums\VariantField;
 
 /**
@@ -14,6 +15,7 @@ use Modules\MeiliFacets\Enums\VariantField;
  *     price: float,
  *     fields: array<string, mixed>,
  *     in_stock: bool,
+ *     on_sale: bool,
  * }
  *
  * @phpstan-import-type Selection from ListingState
@@ -29,6 +31,7 @@ final readonly class CardVariant
         public float $price,
         public array $fields = [],
         public bool $inStock = true,
+        public bool $onSale = false,
     ) {}
 
     /** Anything without a finite price is not a variant. */
@@ -43,6 +46,7 @@ final readonly class CardVariant
             (float) $stored[VariantField::Price->value],
             self::fieldsOf($stored[VariantField::Fields->value] ?? null),
             ($stored[VariantField::InStock->value] ?? true) !== false,
+            ($stored[VariantField::OnSale->value] ?? false) === true,
         );
     }
 
@@ -56,7 +60,18 @@ final readonly class CardVariant
             VariantField::Price->value => $this->price,
             VariantField::Fields->value => $this->fields,
             VariantField::InStock->value => $this->inStock,
+            VariantField::OnSale->value => $this->onSale,
         ];
+    }
+
+    /** Of the fields a sort filters on, a variant holds its own on-sale flag; the others are the product's. */
+    public function meetsSortFilter(?SortFilter $filter): bool
+    {
+        if (! $filter instanceof SortFilter || $filter->field !== PriceField::OnSale->path()) {
+            return true;
+        }
+
+        return $this->onSale;
     }
 
     /**

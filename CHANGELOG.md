@@ -27,8 +27,9 @@ What to change in a project when moving from one version to the next is in
   the results on them, one per product and in stock first under a price sort (`Contracts\VariantScopedListing`), and
   the counts follow; a price range alone reads the products, as WooCommerce does. The terms of a variation attribute
   are counted on the variants, which WooCommerce's attribute lookup table names (`Listing\VariationTaxonomies`). A
-  product is re-indexed when one of its variations changes during a request (`Indexing\VariationChanges`). New
-  document fields: `in_stock`, `document_kind` (on a parent), `parent_id`. `FilterExpression::any()` joins clauses
+  product is re-indexed when one of its variations changes during a request (`Indexing\VariationChanges`). Each variant
+  document carries its variation's own on-sale flag, and under the « On sale » sort a card only shows a variant on
+  sale. New document fields: `in_stock`, `document_kind` (on a parent), `parent_id`. `FilterExpression::any()` joins clauses
   with `OR`.
 - `Contracts\VariantFields`, which lets a project add fields to each variant; `Indexing\EmptyVariantFields` is the
   default.

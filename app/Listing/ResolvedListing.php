@@ -94,9 +94,14 @@ final class ResolvedListing
      */
     private function shownCards(): array
     {
-        $choice = new VariantChoice($this->state->facets, $this->state->price, $this->variantTaxonomies());
+        $choice = new VariantChoice($this->state->facets, $this->state->price, $this->variantTaxonomies(), $this->sortFilter());
 
         return array_map($choice->shown(...), $this->results()->cards());
+    }
+
+    private function sortFilter(): ?SortFilter
+    {
+        return ($this->listing->sorts()[$this->state->sort ?? ''] ?? null)?->filter;
     }
 
     /**

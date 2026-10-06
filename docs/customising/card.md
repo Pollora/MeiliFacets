@@ -334,7 +334,7 @@ holds:
   filters on it: it is left out. A variation sold for « any » value carries no term for that attribute;
 - its displayed price, from the same list as `price.min` and `price.max` (`get_variation_prices()`), so on the same
   scale;
-- whether it is in stock (`in_stock`);
+- whether it is in stock (`in_stock`), and whether it is on sale (`on_sale`);
 - the card fields it shows instead of the product's: `price` (its price HTML), `url` (the product page with that
   variation selected) and, when the variation has an image of its own, every image field — empty where that image
   has none, so no field of the product's image stays under it.
@@ -372,6 +372,8 @@ $this->app->bind(VariantFields::class, ShopVariantFields::class);
   `Contracts\VariantScopedListing`. Otherwise the card is shown exactly as projected;
 - a variant **matches** when, for every active facet whose taxonomy it carries, one of its terms is selected, and its
   price lies within the asked range when there is one. A facet it does not carry rules nothing out;
+- under a sort that keeps the products on sale, only a variant **on sale** matches, as only its document answers the
+  grid's filter;
 - among the matching variants, those **in stock** are offered; only when none is in stock are the ones out of stock
   offered;
 - among the offered variants, the **cheapest** wins; its fields are merged over the card's. The first listed wins a

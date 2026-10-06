@@ -3739,6 +3739,13 @@ ni cas réel.
    celui du produit : `src` de la variante, `srcset` du produit, le navigateur affiche la photo du produit.
 4. *Tri filtrant `on_sale` ignoré* (`CardVariant.php:75`, lu). `?sort=on_sale&pa_volume=400ml` liste le produit pour
    sa variante 15ml en promo et montre la 400ml plein tarif.
+   *Corrigé le 2026-10-06, non commité* (« très grave », demandé par l'utilisateur ; présenté à tort comme « limite
+   connue » dans le registre et la description de la PR #9, sans décision de l'utilisateur) : chaque variante relève
+   `is_on_sale()` de sa variation (`CardVariant::$onSale`, `on_sale`), sa fiche porte son propre `price.onsale`, et
+   la carte ne choisit qu'une variante en promo sous un tri qui filtre sur `price.onsale`
+   (`CardVariant::meetsSortFilter()`, PHP et TS ; le filtre du tri passé par `ResolvedListing` et la description).
+   Tests : documents (une variante en promo, l'autre non, sur un produit marqué en promo), lecture de WooCommerce,
+   trois cas partagés ; rouges sans chacune des trois règles. Réindexation nécessaire.
 5. *`several_variants` jamais retiré* (`VariantChoice.php:123`, lu et exécuté en mémoire). *Fermé le 2026-10-05
    (avancement)*. Une valeur posée par le
    projecteur survit à une seule correspondance : « À partir de 39 € » pour une variante. Même chose côté TS.

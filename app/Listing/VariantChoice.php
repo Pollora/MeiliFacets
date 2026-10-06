@@ -32,6 +32,7 @@ final readonly class VariantChoice
         private array $selected,
         private Range $price,
         private array $variantTaxonomies,
+        private ?SortFilter $sortFilter,
     ) {}
 
     /**
@@ -116,7 +117,8 @@ final readonly class VariantChoice
     {
         return array_values(array_filter(
             $variants,
-            fn (CardVariant $variant): bool => $variant->matches($this->selected, $this->price),
+            fn (CardVariant $variant): bool => $variant->matches($this->selected, $this->price)
+                && $variant->meetsSortFilter($this->sortFilter),
         ));
     }
 

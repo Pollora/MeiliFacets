@@ -492,6 +492,49 @@
             "selected": { "pa_finish": ["matte"] },
             "price": { "min": null, "max": null },
             "expected": { "title": "Lotion", "price": "26 – 39" }
+        },
+        {
+            "case": "under the on-sale sort, only a variant on sale is offered",
+            "card": {
+                "title": "Lotion",
+                "price": "26 – 39",
+                "variants": [
+                    { "facets": { "pa_volume": ["15ml"] }, "price": 26, "fields": { "price": "26" } },
+                    { "facets": { "pa_volume": ["400ml"] }, "price": 39, "fields": { "price": "39" }, "on_sale": true }
+                ]
+            },
+            "selected": { "pa_volume": ["15ml", "400ml"] },
+            "price": { "min": null, "max": null },
+            "sortFilter": { "field": "price.onsale", "value": "true" },
+            "expected": { "title": "Lotion", "price": "39" }
+        },
+        {
+            "case": "under the on-sale sort, a size with no variant on sale keeps the card as projected",
+            "card": {
+                "title": "Lotion",
+                "price": "26 – 39",
+                "variants": [
+                    { "facets": { "pa_volume": ["15ml"] }, "price": 26, "fields": { "price": "26" } },
+                    { "facets": { "pa_volume": ["400ml"] }, "price": 39, "fields": { "price": "39" }, "on_sale": true }
+                ]
+            },
+            "selected": { "pa_volume": ["15ml"] },
+            "price": { "min": null, "max": null },
+            "sortFilter": { "field": "price.onsale", "value": "true" },
+            "expected": { "title": "Lotion", "price": "26 – 39" }
+        },
+        {
+            "case": "a variant without an on-sale flag is not on sale",
+            "card": {
+                "title": "Lotion",
+                "variants": [
+                    { "facets": { "pa_volume": ["15ml"] }, "price": 26, "fields": { "price": "26" }, "on_sale": "yes" }
+                ]
+            },
+            "selected": { "pa_volume": ["15ml"] },
+            "price": { "min": null, "max": null },
+            "sortFilter": { "field": "price.onsale", "value": "true" },
+            "expected": { "title": "Lotion" }
         }
     ]
 }

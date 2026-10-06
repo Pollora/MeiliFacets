@@ -1,7 +1,7 @@
 import { CardVariant } from './card-variant.ts'
 import { Range } from '../shared/range.ts'
 
-import type { Card, Selection } from '../shared/description.ts'
+import type { Card, Selection, SortFilterDescription } from '../shared/description.ts'
 
 export const ID_FIELD = 'id'
 const VARIANTS_FIELD = 'variants'
@@ -10,16 +10,26 @@ const OUT_OF_STOCK_FIELD = 'out_of_stock'
 const FLAGS_OF_THE_CHOSEN_VARIANT: readonly string[] = [SEVERAL_FIELD, OUT_OF_STOCK_FIELD]
 const FIELDS_SET_BY_THE_MODULE: readonly string[] = [ID_FIELD, VARIANTS_FIELD, ...FLAGS_OF_THE_CHOSEN_VARIANT]
 
+/** What a listing knows when it shows its cards. */
+export interface ChoiceContext {
+    selected?: Selection
+    price?: Range
+    variantTaxonomies?: readonly string[]
+    sortFilter?: SortFilterDescription | null | undefined
+}
+
 /** The browser's copy of `Listing\VariantChoice`. */
 export class VariantChoice {
     #selected: Selection
     #price: Range
     #variantTaxonomies: readonly string[]
+    #sortFilter: SortFilterDescription | null
 
-    constructor(selected: Selection = {}, price = new Range(), variantTaxonomies: readonly string[] = []) {
+    constructor({ selected = {}, price = new Range(), variantTaxonomies = [], sortFilter = null }: ChoiceContext = {}) {
         this.#selected = selected
         this.#price = price
         this.#variantTaxonomies = variantTaxonomies
+        this.#sortFilter = sortFilter
     }
 
     shown(card: Card): Card {
@@ -72,7 +82,7 @@ export class VariantChoice {
     }
 
     #matching(variants: CardVariant[]) {
-        return variants.filter((variant) => variant.matches(this.#selected, this.#price))
+        return variants.filter((variant) => variant.matches(this.#selected, this.#price) && variant.meetsSortFilter(this.#sortFilter))
     }
 
     static #offered(matching: CardVariant[]) {
