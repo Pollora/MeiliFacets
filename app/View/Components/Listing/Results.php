@@ -31,7 +31,7 @@ final class Results extends ListingComponent
         $this->cards = $this->listing->cards();
         $this->items = $indexing->isSecondaryView()
             ? null
-            : new ItemList($this->cards, $this->listing->offset());
+            : new ItemList($this->listing->projectedCards(), $this->listing->offset());
     }
 
     public function priority(int $rank): ImagePriority

@@ -27,8 +27,9 @@ export class Range {
         return this.min === other.min && this.max === other.max
     }
 
+    /** An inverted range — from 50 up to 10 — holds nothing, as the engine's two bounds match nothing. */
     contains(value: number) {
-        return this.clamp(value) === value
+        return (this.min ?? value) <= value && value <= (this.max ?? value)
     }
 
     clamp(value: number) {

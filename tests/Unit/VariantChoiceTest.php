@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Tests\Unit;
 
 use Generator;
+use InvalidArgumentException;
 use Modules\MeiliFacets\Listing\CardVariant;
 use Modules\MeiliFacets\Listing\Range;
 use Modules\MeiliFacets\Listing\SortFilter;
@@ -69,5 +70,13 @@ final class VariantChoiceTest extends TestCase
     private function bound(float|int|null $bound): ?float
     {
         return $bound === null ? null : (float) $bound;
+    }
+
+    #[Test]
+    public function a_variant_refuses_a_price_the_index_cannot_hold(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        new CardVariant(['pa_volume' => ['400ml']], INF);
     }
 }

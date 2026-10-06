@@ -34,8 +34,7 @@ export class VariantChoice {
 
     shown(card: Card): Card {
         const { [VARIANTS_FIELD]: stored, ...rest } = card
-        const variants = VariantChoice.#read(stored)
-        const matching = this.#readsVariants() ? this.#matching(variants) : []
+        const matching = this.#readsVariants() ? this.#matching(VariantChoice.#read(stored)) : []
 
         if (matching.length === 0) {
             return rest

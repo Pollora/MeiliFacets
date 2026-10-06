@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Listing;
 
+use InvalidArgumentException;
 use Modules\MeiliFacets\Enums\PriceField;
 use Modules\MeiliFacets\Enums\VariantField;
 
@@ -25,6 +26,8 @@ final readonly class CardVariant
     /**
      * @param  array<string, list<string>>  $facets  taxonomy to the term slugs this variant carries
      * @param  array<string, mixed>  $fields  card fields shown instead of the product's when this variant is chosen
+     *
+     * @throws InvalidArgumentException
      */
     public function __construct(
         public array $facets,
@@ -32,7 +35,11 @@ final readonly class CardVariant
         public array $fields = [],
         public bool $inStock = true,
         public bool $onSale = false,
-    ) {}
+    ) {
+        if (! is_finite($price)) {
+            throw new InvalidArgumentException('A variant price must be a finite number: the index cannot hold another.');
+        }
+    }
 
     /** Anything without a finite price is not a variant. */
     public static function read(mixed $stored): ?self

@@ -3780,6 +3780,18 @@ ni cas réel.
     de 4 variantes : 130 à 170 µs en PHP et environ 98 µs par repeinte navigateur, contre 4 à 8 µs avec un retour
     anticipé quand sélection et fourchette sont vides. Vaut aussi pour chaque résultat du panneau.
 
+*Vérification dans le code, le 2026-10-06* (lecture seule, reproductions en mémoire) : fils de la PR répondus ; n°1,
+5, 6, 11 réglés et résolus ; n°10 et 14 ne s'appliquent plus (répondus, ouverts). *Corrigés le 2026-10-06, non
+commités* : n°9 — le JSON-LD `ItemList` se bâtit sur les cartes projetées (`ResolvedListing::projectedCards()`),
+l'URL du produit et non celle de la variation ; n°7 — le navigateur arrondit les bornes comme la requête et l'adresse
+(`ListingState`) ; n°13 — une facette n'est lue que parmi les propres clés de la variante (`Object.hasOwn`), cas partagé
+`constructor`/`__proto__` ; n°15 — les variantes ne sont lues que si un filtre les concerne (PHP et TS) ; n°14 — une
+fourchette inversée ne contient rien (PHP et TS) ; n°10 — `CardVariant` refuse un prix non fini ; n°3 — des champs
+d'image fournis par le projet sont complétés en image entière (`ImageFields::withWholeImage()`). Tests sur chacun, rouges
+sans la correction pour n°7 et n°13. À trancher : n°2 (archive d'attribut, sans effet sur Pluralia), n°8 (canonique
+d'une archive sans listing : le module ne sait pas, dans le `<head>`, qu'un listing sera rendu), n°12 (deux
+`classList()` sur un élément).
+
 **Résidus non publiés** (au-delà du plafond de 15) : docblock de `canonicalFor()` qui redit `decisions.md` ;
 `CardView.fieldsOf` crée un `VariantChoice` par résultat et le paquet du panneau grossit d'environ 9 % ; `marker()`
 construit encore les paires d'attributs sur une carte rendue avant de les jeter ; `PostDocument` ne réécrit pas en liste

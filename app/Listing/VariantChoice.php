@@ -41,10 +41,10 @@ final readonly class VariantChoice
      */
     public function shown(array $card): array
     {
-        $variants = $this->read($card[CardField::Variants->value] ?? null);
+        $stored = $card[CardField::Variants->value] ?? null;
         unset($card[CardField::Variants->value]);
 
-        $matching = $this->readsVariants() ? $this->matching($variants) : [];
+        $matching = $this->readsVariants() ? $this->matching($this->read($stored)) : [];
 
         if ($matching === []) {
             return $card;

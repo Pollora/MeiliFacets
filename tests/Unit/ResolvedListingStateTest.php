@@ -75,6 +75,20 @@ final class ResolvedListingStateTest extends TestCase
         $this->assertSame([['id' => 125]], $this->listing($state, $engine)->cards());
     }
 
+    /** Search engines read the product's address, not the one of the variant the filters point to. */
+    #[Test]
+    public function it_keeps_the_product_card_beside_the_card_shown_through_a_variant(): void
+    {
+        $variants = [new CardVariant(['pa_size' => ['large']], 39.0, ['url' => '/product/?size=large'])->toArray()];
+        $card = ['url' => '/product/', 'variants' => $variants];
+        $engine = new FakeSearchEngine([self::RESULTS => ['hits' => [['ID' => 125, 'card' => $card]]]]);
+
+        $listing = $this->listing(new ListingState(facets: ['pa_size' => ['large']]), $engine, new FakeVariantScopedListing);
+
+        $this->assertSame('/product/?size=large', $listing->cards()[0]['url']);
+        $this->assertSame('/product/', $listing->projectedCards()[0]['url']);
+    }
+
     private function listing(ListingState $state, FakeSearchEngine $engine = new FakeSearchEngine, ?Listing $listing = null): ResolvedListing
     {
         return new ResolvedListing(

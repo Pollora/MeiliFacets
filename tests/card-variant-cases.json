@@ -535,6 +535,18 @@
             "price": { "min": null, "max": null },
             "sortFilter": { "field": "price.onsale", "value": "true" },
             "expected": { "title": "Lotion" }
+        },
+        {
+            "case": "a taxonomy named like a member of every object is a taxonomy like another",
+            "card": {
+                "title": "Lotion",
+                "variants": [
+                    { "facets": { "pa_volume": ["400ml"] }, "price": 39, "fields": { "volume": "400ml" } }
+                ]
+            },
+            "selected": { "pa_volume": ["400ml"], "constructor": ["x"], "__proto__": ["y"] },
+            "price": { "min": null, "max": null },
+            "expected": { "title": "Lotion", "volume": "400ml" }
         }
     ]
 }

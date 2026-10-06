@@ -128,7 +128,7 @@ final readonly class ProductVariants
             ...$this->variantFields->project($variation),
         ]);
 
-        return [...$this->ownImage($variation), ...$fields];
+        return ImageFields::withWholeImage([...$this->ownImage($variation), ...$fields]);
     }
 
     /**

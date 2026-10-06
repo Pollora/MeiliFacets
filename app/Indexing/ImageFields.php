@@ -39,6 +39,17 @@ final readonly class ImageFields
     }
 
     /**
+     * Card fields holding part of an image hold all of it, so that none of another image's fields stays under them.
+     *
+     * @param  array<string, mixed>  $fields
+     * @return array<string, mixed>
+     */
+    public static function withWholeImage(array $fields): array
+    {
+        return array_intersect_key($fields, self::NO_FIELD) === [] ? $fields : [...self::NO_FIELD, ...$fields];
+    }
+
+    /**
      * @return array<string, string|int>
      */
     public static function of(int $imageId, string $size): array

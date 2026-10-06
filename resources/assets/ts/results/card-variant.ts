@@ -70,7 +70,7 @@ export class CardVariant {
     }
 
     #meets(taxonomy: string, selected: readonly string[]) {
-        const carried = this.facets[taxonomy]
+        const carried = Object.hasOwn(this.facets, taxonomy) ? this.facets[taxonomy] : undefined
 
         return carried === undefined || carried.some((slug) => selected.includes(slug))
     }

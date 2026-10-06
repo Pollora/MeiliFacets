@@ -38,9 +38,10 @@ export class ListingState {
         return SearchTermInput.holdsAWord(term) ? term : ''
     }
 
+    /** Rounded as the query and the address write it, so the cards read the bound the server reads after a reload. */
     static #bound(value: number | null | undefined) {
         // `-0` would reach the engine as `>= -0`, which it does not read as `>= 0`.
-        return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value + 0 : null
+        return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? Number(Range.formatBound(value)) + 0 : null
     }
 
     get facets() {

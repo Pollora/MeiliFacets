@@ -90,13 +90,23 @@ final class ResolvedListing
     }
 
     /**
+     * The cards before any variant is chosen: what a product is, whatever the filters point to.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function projectedCards(): array
+    {
+        return $this->results()->cards();
+    }
+
+    /**
      * @return list<array<string, mixed>>
      */
     private function shownCards(): array
     {
         $choice = new VariantChoice($this->state->facets, $this->state->price, $this->variantTaxonomies(), $this->sortFilter());
 
-        return array_map($choice->shown(...), $this->results()->cards());
+        return array_map($choice->shown(...), $this->projectedCards());
     }
 
     private function sortFilter(): ?SortFilter

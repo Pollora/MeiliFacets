@@ -71,4 +71,14 @@ final class RangeTest extends TestCase
     {
         $this->assertSame(['0', '1000000000000000000000'], [Range::formatBound(1e-9), Range::formatBound(1e21)]);
     }
+
+    #[Test]
+    public function an_inverted_range_contains_nothing(): void
+    {
+        $inverted = new Range(50.0, 10.0);
+
+        $this->assertFalse($inverted->contains(10.0));
+        $this->assertFalse($inverted->contains(50.0));
+        $this->assertFalse($inverted->contains(30.0));
+    }
 }
