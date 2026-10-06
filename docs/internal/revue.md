@@ -3488,7 +3488,10 @@ qu'il est vrai, corriger, tester, puis passer au suivant.
    de WooCommerce (`taxonomy_is_product_attribute()`). Test : un attribut local « meilifacets_test_color », homonyme
    d'une taxonomie du site, ne donne aucun terme ; rouge avec `taxonomy_exists()`. Les tests déclarent leur attribut
    fictif en mémoire (`$wc_product_attributes`).
-9. *Taille d'image des variantes* liée à `card.image_size`. À trancher.
+9. *Taille d'image des variantes* liée à `card.image_size`. *Tranché le 2026-10-06 par l'utilisateur* : une seule clé,
+   gardée. Corrigé : `customising/card.md` dit qu'un projet qui remplace le `CardProjector` doit fixer `card.image_size`
+   à sa taille, l'image propre d'une variante y étant lue. Assumé : sur Pluralia, `portrait` recadre aussi les cartes
+   d'articles du panneau de recherche (une clé produits séparée a été écartée).
 10. *Deux listes de champs relus tenues à la main* (`READ_BY_THE_MODULE`, `VARIANT_RETRIEVED`). À vérifier.
 11. *Suppression par filtre envoyée pour tout article*, pas seulement les produits. À trancher.
 12. *`card.variants` sur la fiche produit*, envoyé sans être lu hors mode variantes. À trancher.

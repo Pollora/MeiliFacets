@@ -564,7 +564,8 @@ The thumbnail is decorative (`alt=""`), since the link already reads the title.
 - **The image is frozen at indexing time.** Changing an image's alt text or regenerating thumbnails does not reindex
   the products that use it. Reindex after `wp media regenerate`.
 - **`card.image_size` has no effect on your projector** if you replace the module's instead of decorating it. Choose
-  the size in your projector.
+  the size in your projector — and set `card.image_size` to the same size: a variant's own image is always read at
+  `card.image_size`, and the card would change its format once a size is ticked.
 
 ## See also
 
