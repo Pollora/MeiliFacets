@@ -8,7 +8,9 @@ use Meilisearch\Contracts\SearchQuery;
 
 final readonly class MeilisearchQuery
 {
-    private const array OPTIONS = ['filter', 'facets', 'sort', 'attributesToRetrieve', 'attributesToSearchOn'];
+    private const array OPTIONS = [
+        'filter', 'facets', 'sort', 'distinct', 'attributesToRetrieve', 'attributesToSearchOn',
+    ];
 
     public function __construct(private string $index) {}
 
@@ -37,6 +39,7 @@ final readonly class MeilisearchQuery
             $option === 'filter' => $search->setFilter([$value]),
             $option === 'facets' => $search->setFacets($value),
             $option === 'sort' => $search->setSort($value),
+            $option === 'distinct' => $search->setDistinct($value),
             $option === 'attributesToSearchOn' => $search->setAttributesToSearchOn($value),
             default => $search->setAttributesToRetrieve($value),
         };

@@ -11,22 +11,49 @@ What to change in a project when moving from one version to the next is in
 
 ### Added
 
-- Card variants: a card may carry `variants` (`Listing\CardVariant`), and when an active facet or price range concerns
-  them the listing shows the card through the cheapest matching variant (`Listing\VariantChoice`), on the server and in
-  the browser alike. `several_variants` flags a card on which several variants match, for a « from » prefix. With no
-  such filter, or none matching, the card is shown as projected.
-- `Enums\VariantField`, which names the keys of a variant (`facets`, `price`, `fields`), and `CardField::Variants`
-  and `CardField::SeveralVariants`, which name the card's `variants` list and its `several_variants` flag.
+- Card variants: with WooCommerce, the module reads a variable product's variants when it is indexed
+  (`Indexing\ProductVariants`, `Listing\CardVariant`): terms, price, stock, price HTML, link and own image, which
+  replaces the product's image whole. When a facet on a variation attribute is checked, a listing with variant
+  documents (`Contracts\VariantScopedListing`) shows the card through a matching variant (`Listing\VariantChoice`), on
+  the server and in the browser alike: those in stock are preferred, then the cheapest. A price range alone keeps the
+  card as projected, and a listing without variant documents always does. `several_variants` flags a card on which several variants are offered, for a « from »
+  prefix; `out_of_stock` flags a card that shows a variant out of stock. With no such filter, or none matching, the
+  card is shown as projected. A `variants` list a `CardProjector` returns is dropped.
+- `out_of_stock` on the card of every product WooCommerce holds out of stock, whatever its type
+  (`Indexing\ProductStock`).
+- One document per variant of a variable product, under WooCommerce's variation post type `product_variation`,
+  written and removed with the product's (`Indexing\VariantDocuments`, through MeiliScout's `HasDependentDocuments`):
+  a query on `post_type = "product"` keeps reading one document per product. A filter on a variation attribute reads
+  the results on them, one per product and in stock first under a price sort (`Contracts\VariantScopedListing`), and
+  the counts follow; a price range alone reads the products, as WooCommerce does. The terms of a variation attribute
+  are counted on the variants, which WooCommerce's attribute lookup table names (`Listing\VariationTaxonomies`). A
+  product is re-indexed when one of its variations changes during a request (`Indexing\VariationChanges`). Each variant
+  document carries its variation's own on-sale flag, and under the « On sale » sort a card only shows a variant on
+  sale. New document fields: `in_stock`, `document_kind` (on a parent), `parent_id`. `FilterExpression::any()` joins clauses
+  with `OR`.
+- `Contracts\VariantFields`, which lets a project add fields to each variant; `Indexing\EmptyVariantFields` is the
+  default.
+- `Enums\VariantField`, which names the keys of a variant (`facets`, `price`, `fields`, `in_stock`, `on_sale`), and
+  `CardField::Variants`, `CardField::SeveralVariants` and `CardField::OutOfStock`, which name the card's `variants`
+  list and its two flags.
 - `data-meili-class-list` and `CardBinding::classList()`: adds the classes a card field holds to the element's own,
-  for classes a platform computes, such as WooCommerce's loop button classes.
+  for classes a platform computes, such as WooCommerce's loop button classes. `CardFieldElement::with()` refuses a
+  second `classList()` on one element (`BindingRefused`), which the card template would drop.
+- The `meilifacets/is_listing_page` filter, which tells the module whether a page renders a listing.
 
 ### Changed
+
+- Products and their variants default to the `woocommerce_thumbnail` image size instead of `medium`; `card.image_size`
+  still sets one size for every card.
 
 - A card rendered by the server no longer carries the binding attributes (`data-meili-text`, `data-meili-attr`,
   `data-meili-class`, `data-meili-class-list`, `data-meili-if`): only the template does, since the browser draws every
   card from a copy of it. A few hundred bytes less per card on a product card.
 - With Yoast SEO, a secondary listing view (filtered, sorted, searched or paginated, still `noindex, follow`) declares
   the bare path as its canonical, page number kept, instead of none.
+- The `noindex` and canonical rules, the removal of `rel="next"` and `rel="prev"`, and the preconnect hint apply on
+  the pages that render `<x-meilifacets::listing>` before their `<head>`, instead of every archive and search page:
+  an archive with no listing keeps its own robots and canonical.
 
 ### Fixed
 

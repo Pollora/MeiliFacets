@@ -1,4 +1,5 @@
 {
+    "variantTaxonomies": ["pa_volume", "pa_scent", "pa_size", "12"],
     "cases": [
         {
             "case": "a filter met by one variant shows that variant",
@@ -45,7 +46,7 @@
             "expected": { "title": "Lotion", "volume": "400ml, 15ml", "price": "26 – 39" }
         },
         {
-            "case": "a filter on a taxonomy no variant carries keeps the card as projected",
+            "case": "a filter outside the variant taxonomies keeps the card as projected",
             "card": {
                 "title": "Lotion",
                 "volume": "400ml, 15ml",
@@ -106,7 +107,7 @@
             "expected": { "title": "Lotion", "volume": "400ml", "price": "39" }
         },
         {
-            "case": "a price range keeps the variants priced within it, both ends included",
+            "case": "under a ticked size, a price range keeps the variants priced within it, both ends included",
             "card": {
                 "title": "Lotion",
                 "variants": [
@@ -115,12 +116,12 @@
                     { "facets": { "pa_volume": ["15ml"] }, "price": 26, "fields": { "volume": "15ml" } }
                 ]
             },
-            "selected": {},
+            "selected": { "pa_size": ["400ml"] },
             "price": { "min": 33, "max": 39 },
             "expected": { "title": "Lotion", "volume": "400ml" }
         },
         {
-            "case": "a price range with one end bounds that end only",
+            "case": "under a ticked size, a price range with one end bounds that end only",
             "card": {
                 "title": "Lotion",
                 "variants": [
@@ -129,12 +130,12 @@
                     { "facets": {}, "price": 26, "fields": { "volume": "15ml" } }
                 ]
             },
-            "selected": {},
+            "selected": { "pa_size": ["400ml"] },
             "price": { "min": null, "max": 32.5 },
             "expected": { "title": "Lotion", "volume": "15ml", "several_variants": true }
         },
         {
-            "case": "a price range no variant meets keeps the card as projected",
+            "case": "under a ticked size, a price range no variant meets keeps the card as projected",
             "card": {
                 "title": "Lotion",
                 "volume": "400ml, 15ml",
@@ -144,7 +145,7 @@
                     { "facets": { "pa_volume": ["15ml"] }, "price": 26, "fields": { "volume": "15ml", "price": "26" } }
                 ]
             },
-            "selected": {},
+            "selected": { "pa_size": ["400ml"] },
             "price": { "min": 40, "max": null },
             "expected": { "title": "Lotion", "volume": "400ml, 15ml", "price": "26 – 39" }
         },
@@ -169,7 +170,7 @@
                     { "facets": {}, "price": 26, "fields": { "volume": "second" } }
                 ]
             },
-            "selected": {},
+            "selected": { "pa_size": ["400ml"] },
             "price": { "min": 20, "max": null },
             "expected": { "title": "Lotion", "volume": "first", "several_variants": true }
         },
@@ -198,12 +199,12 @@
         {
             "case": "a malformed variant list is dropped",
             "card": { "title": "Lotion", "variants": { "facets": {}, "price": 26 } },
-            "selected": {},
+            "selected": { "pa_size": ["400ml"] },
             "price": { "min": 20, "max": null },
             "expected": { "title": "Lotion" }
         },
         {
-            "case": "facets holding no slug list carry nothing",
+            "case": "facets holding no slug list carry nothing, so no size rules the variant out",
             "card": {
                 "title": "Lotion",
                 "variants": [
@@ -212,7 +213,7 @@
             },
             "selected": { "pa_volume": ["400ml"] },
             "price": { "min": null, "max": null },
-            "expected": { "title": "Lotion" }
+            "expected": { "title": "Lotion", "volume": "15ml" }
         },
         {
             "case": "a variant overrides any other field it holds",
@@ -224,7 +225,7 @@
                     { "facets": {}, "price": 26, "fields": { "url": "/lotion?size=15ml", "image_url": "/15ml.jpg" } }
                 ]
             },
-            "selected": {},
+            "selected": { "pa_size": ["400ml"] },
             "price": { "min": null, "max": 30 },
             "expected": { "title": "Lotion", "id": 7, "url": "/lotion?size=15ml", "image_url": "/15ml.jpg" }
         },
@@ -244,7 +245,7 @@
         {
             "case": "a variant list stored as an object indexed from zero is read as a list",
             "card": { "title": "Lotion", "variants": { "0": { "facets": {}, "price": 26, "fields": { "volume": "15ml" } } } },
-            "selected": {},
+            "selected": { "pa_size": ["400ml"] },
             "price": { "min": null, "max": 30 },
             "expected": { "title": "Lotion", "volume": "15ml" }
         },
@@ -257,7 +258,7 @@
                     "0": { "facets": {}, "price": 26, "fields": { "volume": "zero" } }
                 }
             },
-            "selected": {},
+            "selected": { "pa_size": ["400ml"] },
             "price": { "min": null, "max": 30 },
             "expected": { "title": "Lotion", "volume": "zero", "several_variants": true }
         },
@@ -270,28 +271,28 @@
                     "1": { "facets": {}, "price": 26, "fields": { "volume": "one" } }
                 }
             },
-            "selected": {},
+            "selected": { "pa_size": ["400ml"] },
             "price": { "min": null, "max": 30 },
             "expected": { "title": "Lotion" }
         },
         {
             "case": "a variant list keyed by a zero-padded index is dropped",
             "card": { "title": "Lotion", "variants": { "00": { "facets": {}, "price": 26, "fields": { "volume": "15ml" } } } },
-            "selected": {},
+            "selected": { "pa_size": ["400ml"] },
             "price": { "min": null, "max": 30 },
             "expected": { "title": "Lotion" }
         },
         {
             "case": "a variant list keyed by a negative zero is dropped",
             "card": { "title": "Lotion", "variants": { "-0": { "facets": {}, "price": 26, "fields": { "volume": "15ml" } } } },
-            "selected": {},
+            "selected": { "pa_size": ["400ml"] },
             "price": { "min": null, "max": 30 },
             "expected": { "title": "Lotion" }
         },
         {
             "case": "a variant list keyed by name is dropped",
             "card": { "title": "Lotion", "variants": { "small": { "facets": {}, "price": 26, "fields": { "volume": "15ml" } } } },
-            "selected": {},
+            "selected": { "pa_size": ["400ml"] },
             "price": { "min": null, "max": 30 },
             "expected": { "title": "Lotion" }
         },
@@ -308,7 +309,7 @@
                     }
                 ]
             },
-            "selected": {},
+            "selected": { "pa_size": ["400ml"] },
             "price": { "min": null, "max": 30 },
             "expected": { "title": "Lotion", "id": 7, "volume": "15ml" }
         },
@@ -328,9 +329,224 @@
         {
             "case": "a field with a numeric name is merged like another",
             "card": { "title": "Lotion", "variants": [{ "facets": {}, "price": 26, "fields": { "12": "x" } }] },
-            "selected": {},
+            "selected": { "pa_size": ["400ml"] },
             "price": { "min": null, "max": 30 },
             "expected": { "title": "Lotion", "12": "x" }
+        },
+        {
+            "case": "a lone matching variant out of stock is shown and said out of stock",
+            "card": {
+                "title": "Lotion",
+                "variants": [
+                    { "facets": { "pa_volume": ["400ml"] }, "price": 39, "fields": { "volume": "400ml" }, "in_stock": false },
+                    { "facets": { "pa_volume": ["15ml"] }, "price": 26, "fields": { "volume": "15ml" }, "in_stock": true }
+                ]
+            },
+            "selected": { "pa_volume": ["400ml"] },
+            "price": { "min": null, "max": null },
+            "expected": { "title": "Lotion", "volume": "400ml", "out_of_stock": true }
+        },
+        {
+            "case": "a matching variant in stock wins over a cheaper one out of stock, and is not one of several",
+            "card": {
+                "title": "Lotion",
+                "variants": [
+                    { "facets": { "pa_volume": ["400ml"] }, "price": 10, "fields": { "volume": "400ml" }, "in_stock": false },
+                    { "facets": { "pa_volume": ["15ml"] }, "price": 30, "fields": { "volume": "15ml" }, "in_stock": true }
+                ]
+            },
+            "selected": { "pa_volume": ["15ml", "400ml"] },
+            "price": { "min": null, "max": null },
+            "expected": { "title": "Lotion", "volume": "15ml" }
+        },
+        {
+            "case": "variants out of stock are left out of the several in stock",
+            "card": {
+                "title": "Lotion",
+                "variants": [
+                    { "facets": { "pa_volume": ["400ml"] }, "price": 20, "fields": { "volume": "400ml" }, "in_stock": false },
+                    { "facets": { "pa_volume": ["100ml"] }, "price": 32, "fields": { "volume": "100ml" }, "in_stock": true },
+                    { "facets": { "pa_volume": ["15ml"] }, "price": 26, "fields": { "volume": "15ml" }, "in_stock": true }
+                ]
+            },
+            "selected": { "pa_volume": ["15ml", "100ml", "400ml"] },
+            "price": { "min": null, "max": null },
+            "expected": { "title": "Lotion", "volume": "15ml", "several_variants": true }
+        },
+        {
+            "case": "when every matching variant is out of stock the cheapest is shown, one of several, out of stock",
+            "card": {
+                "title": "Lotion",
+                "variants": [
+                    { "facets": { "pa_volume": ["400ml"] }, "price": 39, "fields": { "volume": "400ml" }, "in_stock": false },
+                    { "facets": { "pa_volume": ["15ml"] }, "price": 26, "fields": { "volume": "15ml" }, "in_stock": false }
+                ]
+            },
+            "selected": { "pa_volume": ["15ml", "400ml"] },
+            "price": { "min": null, "max": null },
+            "expected": { "title": "Lotion", "volume": "15ml", "several_variants": true, "out_of_stock": true }
+        },
+        {
+            "case": "a variant without a stock flag is in stock",
+            "card": {
+                "title": "Lotion",
+                "variants": [
+                    { "facets": { "pa_volume": ["400ml"] }, "price": 10, "fields": { "volume": "400ml" } },
+                    { "facets": { "pa_volume": ["15ml"] }, "price": 30, "fields": { "volume": "15ml" }, "in_stock": false }
+                ]
+            },
+            "selected": { "pa_volume": ["15ml", "400ml"] },
+            "price": { "min": null, "max": null },
+            "expected": { "title": "Lotion", "volume": "400ml" }
+        },
+        {
+            "case": "only false puts a variant out of stock",
+            "card": {
+                "title": "Lotion",
+                "variants": [
+                    { "facets": { "pa_volume": ["400ml"] }, "price": 10, "fields": { "volume": "400ml" }, "in_stock": 0 },
+                    { "facets": { "pa_volume": ["15ml"] }, "price": 30, "fields": { "volume": "15ml" }, "in_stock": "no" }
+                ]
+            },
+            "selected": { "pa_volume": ["15ml", "400ml"] },
+            "price": { "min": null, "max": null },
+            "expected": { "title": "Lotion", "volume": "400ml", "several_variants": true }
+        },
+        {
+            "case": "a variant cannot say itself out of stock through its fields",
+            "card": {
+                "title": "Lotion",
+                "variants": [
+                    { "facets": { "pa_volume": ["400ml"] }, "price": 39, "fields": { "volume": "400ml", "out_of_stock": true }, "in_stock": true }
+                ]
+            },
+            "selected": { "pa_volume": ["400ml"] },
+            "price": { "min": null, "max": null },
+            "expected": { "title": "Lotion", "volume": "400ml" }
+        },
+        {
+            "case": "a chosen variant sets the module flags, whatever the projected card held",
+            "card": {
+                "title": "Lotion",
+                "several_variants": true,
+                "out_of_stock": true,
+                "variants": [
+                    { "facets": { "pa_volume": ["400ml"] }, "price": 39, "fields": { "volume": "400ml" }, "in_stock": true }
+                ]
+            },
+            "selected": { "pa_volume": ["400ml"] },
+            "price": { "min": null, "max": null },
+            "expected": { "title": "Lotion", "volume": "400ml" }
+        },
+        {
+            "case": "a card no filter concerns keeps the flags it was projected with",
+            "card": {
+                "title": "Lotion",
+                "several_variants": true,
+                "variants": [
+                    { "facets": { "pa_volume": ["400ml"] }, "price": 39, "fields": { "volume": "400ml" } }
+                ]
+            },
+            "selected": {},
+            "price": { "min": null, "max": null },
+            "expected": { "title": "Lotion", "several_variants": true }
+        },
+        {
+            "case": "a price range alone keeps the card as projected, as WooCommerce lists the product on its own range",
+            "card": {
+                "title": "Lotion",
+                "price": "26 – 39",
+                "variants": [
+                    { "facets": { "pa_volume": ["400ml"] }, "price": 39, "fields": { "price": "39" } },
+                    { "facets": { "pa_volume": ["15ml"] }, "price": 26, "fields": { "price": "26" } }
+                ]
+            },
+            "selected": {},
+            "price": { "min": 30, "max": 45 },
+            "expected": { "title": "Lotion", "price": "26 – 39" }
+        },
+        {
+            "case": "a size its variants do not carry rules none out, so the card follows the variant in stock",
+            "card": {
+                "title": "Shower gel",
+                "price": "10 – 50",
+                "variants": [
+                    { "facets": { "pa_scent": ["rose"] }, "price": 10, "fields": { "price": "10" }, "in_stock": false },
+                    { "facets": { "pa_scent": ["iris"] }, "price": 50, "fields": { "price": "50" } }
+                ]
+            },
+            "selected": { "pa_size": ["400ml"] },
+            "price": { "min": null, "max": null },
+            "expected": { "title": "Shower gel", "price": "50" }
+        },
+        {
+            "case": "a ticked facet outside the variant taxonomies keeps the card as projected, even when a variant carries it",
+            "card": {
+                "title": "Lotion",
+                "price": "26 – 39",
+                "variants": [
+                    { "facets": { "pa_finish": ["matte"] }, "price": 39, "fields": { "price": "39" } },
+                    { "facets": { "pa_finish": ["glossy"] }, "price": 26, "fields": { "price": "26" } }
+                ]
+            },
+            "selected": { "pa_finish": ["matte"] },
+            "price": { "min": null, "max": null },
+            "expected": { "title": "Lotion", "price": "26 – 39" }
+        },
+        {
+            "case": "under the on-sale sort, only a variant on sale is offered",
+            "card": {
+                "title": "Lotion",
+                "price": "26 – 39",
+                "variants": [
+                    { "facets": { "pa_volume": ["15ml"] }, "price": 26, "fields": { "price": "26" } },
+                    { "facets": { "pa_volume": ["400ml"] }, "price": 39, "fields": { "price": "39" }, "on_sale": true }
+                ]
+            },
+            "selected": { "pa_volume": ["15ml", "400ml"] },
+            "price": { "min": null, "max": null },
+            "sortFilter": { "field": "price.onsale", "value": "true" },
+            "expected": { "title": "Lotion", "price": "39" }
+        },
+        {
+            "case": "under the on-sale sort, a size with no variant on sale keeps the card as projected",
+            "card": {
+                "title": "Lotion",
+                "price": "26 – 39",
+                "variants": [
+                    { "facets": { "pa_volume": ["15ml"] }, "price": 26, "fields": { "price": "26" } },
+                    { "facets": { "pa_volume": ["400ml"] }, "price": 39, "fields": { "price": "39" }, "on_sale": true }
+                ]
+            },
+            "selected": { "pa_volume": ["15ml"] },
+            "price": { "min": null, "max": null },
+            "sortFilter": { "field": "price.onsale", "value": "true" },
+            "expected": { "title": "Lotion", "price": "26 – 39" }
+        },
+        {
+            "case": "a variant without an on-sale flag is not on sale",
+            "card": {
+                "title": "Lotion",
+                "variants": [
+                    { "facets": { "pa_volume": ["15ml"] }, "price": 26, "fields": { "price": "26" }, "on_sale": "yes" }
+                ]
+            },
+            "selected": { "pa_volume": ["15ml"] },
+            "price": { "min": null, "max": null },
+            "sortFilter": { "field": "price.onsale", "value": "true" },
+            "expected": { "title": "Lotion" }
+        },
+        {
+            "case": "a taxonomy named like a member of every object is a taxonomy like another",
+            "card": {
+                "title": "Lotion",
+                "variants": [
+                    { "facets": { "pa_volume": ["400ml"] }, "price": 39, "fields": { "volume": "400ml" } }
+                ]
+            },
+            "selected": { "pa_volume": ["400ml"], "constructor": ["x"], "__proto__": ["y"] },
+            "price": { "min": null, "max": null },
+            "expected": { "title": "Lotion", "volume": "400ml" }
         }
     ]
 }

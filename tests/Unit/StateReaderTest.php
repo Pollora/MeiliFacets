@@ -220,6 +220,22 @@ final class StateReaderTest extends TestCase
         $this->assertSame(['acme'], $state->selected('product_brand'));
     }
 
+    #[Test]
+    public function it_keeps_a_value_as_long_as_a_slug_can_be(): void
+    {
+        $longest = str_repeat('a', StateReader::MAX_VALUE_BYTES);
+
+        $this->assertSame([$longest], $this->reader->read($this->listing, ['brand' => $longest])->selected('product_brand'));
+    }
+
+    #[Test]
+    public function it_drops_a_value_longer_than_a_slug_can_be(): void
+    {
+        $state = $this->reader->read($this->listing, ['brand' => 'acme,'.str_repeat('a', StateReader::MAX_VALUE_BYTES + 1)]);
+
+        $this->assertSame(['acme'], $state->selected('product_brand'));
+    }
+
     /**
      * @param  array<string, list<string>>  $facets
      * @param  array{?float, ?float}  $price

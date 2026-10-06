@@ -53,7 +53,7 @@ indexing              WordPress ──► MeiliScout ────────►
 
 - The server renders the first page with the filters of the URL already applied. The page is complete without
   JavaScript, and search engines see real content.
-- After that, every tick, sort, page or search term is a single request from the browser to Meilisearch. The client
+- After that, every check, sort, page or search term is a single request from the browser to Meilisearch. The client
   rewrites the address bar, so a filtered view can be bookmarked and shared.
 - The engine computes the results and the facet counts in a few milliseconds. A full WordPress page load is avoided
   on every click, while WordPress keeps the URLs, the routing and the SEO.
@@ -98,7 +98,7 @@ The details, and the step-by-step setup, are in [Installation](docs/installation
   searched types each sit behind a PHP interface. A project with nothing to declare gets a working listing; a project
   that binds its own implementation wins.
 - **The browser key is public, so the index exposes little.** The search key travels to every visitor. The index
-  only lets it read `ID` and `card`, and it must only hold published content. See
+  only lets it read `ID`, `card` and `parent_id`, and it must only hold published content. See
   [Going to production](docs/production.md#security).
 
 ## Documentation

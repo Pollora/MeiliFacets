@@ -328,7 +328,7 @@ otherwise.
 | facets withdrawn on a term archive | automatic | yours to write in `facets()` ([above](#filtering-on-the-archives-term)) |
 | price filter and “On sale” sort | available | not available: the module indexes prices for WooCommerce products only |
 | price on the card | shown | none |
-| `noindex` on filtered views, preconnect to the engine | on archive and search pages | the same: a post type archive is covered, a listing on an ordinary page is not |
+| `noindex` on filtered views, preconnect to the engine | on the pages that render the listing | the same |
 | search scope on a search page | products a WordPress search may show | `baseFilter()`, unless the listing implements `SearchScopedListing` |
 
 ## Watch out

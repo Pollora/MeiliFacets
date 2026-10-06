@@ -80,8 +80,8 @@ public function addModuleFields(array $document, WP_Post $post): array
 ```
 
 `PostDocument::complete()` construit les champs dans un ordre fixe : termes étendus une seule fois
-(`facets`, puis `labels` hors taxonomies techniques), `excerpt` et `content`, puis `card` et `price` lus en
-visiteur anonyme à l'adresse de la boutique (`R-182`).
+(`facets`, puis `labels` hors taxonomies techniques), `excerpt` et `content`, puis, par `ShopFields`, `card` (dont
+`variants`, lues par `ProductVariants`) et `price`, lus en visiteur anonyme à l'adresse de la boutique (`R-182`).
 
 **Les réglages, par l'indexable.** `Indexer` lit bien l'indexable filtré pour appeler
 `updateSettings($indexable->getIndexSettings())`. Une classe qui étend celle de MeiliScout et

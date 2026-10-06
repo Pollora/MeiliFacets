@@ -7,9 +7,31 @@ changes is in the [changelog](../CHANGELOG.md).
 
 ## Unreleased
 
-- **Nothing to reindex, same contract.** `Contract::VERSION` is unchanged and the indexed documents keep their shape.
-  The client scripts in `dist/` and the site search stylesheet changed: publish them with
-  `php artisan module:publish MeiliFacets`, then clear the page cache.
+- **Update MeiliScout first.** The module now implements MeiliScout's `HasDependentDocuments` and fires
+  `meiliscout/reindex_post`: run `composer update amphibee/meiliscout` before updating the module, or the indexable
+  fails to load.
+- **Reindex, then publish; same contract.** `Contract::VERSION` is unchanged. Every listing with a facet on a variation
+  attribute counts it on `document_kind` and `parent_id`, filtered or not, and the engine refuses those queries until
+  the new settings are pushed: run `wp meiliscout index --clear` right after deploying the code, before it serves a
+  page, or those listings answer with the outage view until it is done. It also writes one document per variant, under
+  the post type `product_variation`: your own queries on `post_type = "product"` keep reading one document per product.
+  Then publish the client scripts in `dist/` and the site search stylesheet with `php artisan module:publish
+  MeiliFacets`, and clear the page cache: a page cached before the release sends the engine the queries of the old
+  client.
+- **Robots, canonical and preconnect follow the listing, not the archive.** They applied on every archive and search
+  page; they now apply on the pages that render `<x-meilifacets::listing>` before their `<head>`, which a view that
+  extends its layout does. A blog archive with no listing loses its `noindex` and its `?pg=N` canonical. If your
+  layout prints the `<head>` before the listing, return `true` from `meilifacets/is_listing_page` on those pages. See
+  [What search engines see](listing/README.md#what-search-engines-see).
+- **If you projected `variants`.** A `variants` list your `CardProjector` returns is now always dropped: only the
+  module's is indexed. Remove the code that built it, and move the fields of your own — a size label, a cart link —
+  to a `Contracts\VariantFields` you bind. See [Card variants](customising/card.md#card-variants).
+- **Reserved card fields.** `variants`, `several_variants` and `out_of_stock` belong to the module. A `variants` or
+  `out_of_stock` your `CardProjector` returns is dropped, a variant's fields cannot set any of them, and whenever a
+  variant is shown the module clears `several_variants` and `out_of_stock` before setting them again.
+- **The default image size of a product card is WooCommerce's.** Products and their variants now default to
+  `woocommerce_thumbnail` instead of `medium`; other posts keep `medium`. Set `card.image_size` to keep one size for
+  every card, then reindex.
 - **Binding attributes leave the cards the server renders.** `data-meili-text`, `data-meili-attr`, `data-meili-class`,
   `data-meili-class-list` and `data-meili-if` are now written in the card `<template>` only. A card rendered with its
   values keeps its values, its classes and its `data-meili` hooks. Search the theme's stylesheets and scripts for

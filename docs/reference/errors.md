@@ -71,6 +71,7 @@ extend `LogicException`.
 | --- | --- | --- | --- |
 | `BindingRefused` | `Attribute "<name>" cannot be bound to a card field: only href, src, srcset, sizes, alt, title, width, height, value, datetime, aria-*, data-* can, data-meili* excepted. Write classes with classes(), and anything else in the view.` | `$binding->attributes()` in a card view names another attribute | bind an allowed attribute; write the rest in the view |
 | `BindingRefused` | `Card field "<field>" cannot be bound: a field name is made of letters, digits and underscores only.` | a field name with other characters | rename the field |
+| `BindingRefused` | `An element takes one classList(): the card template would keep only the first field. Bind the second on a child element.` | `->with()` gives an element a second `classList()` | bind the second field on a child element |
 | `ValueError` | `"<value>" is not a valid backing value for enum Modules\MeiliFacets\Enums\<Enum>` | an unknown string for `heading`, `shape`, `widget` or `presentation` | use a listed value (see [components](components.md)) |
 | `TypeError` | PHP's message for a wrong argument type | `priority` on `listing.card` given as a string | bind an `ImagePriority` case |
 

@@ -135,7 +135,7 @@ The default icons are served from `public/modules/meilifacets/images/`, copied t
 
 ## Apply in immediate mode
 
-In `immediate` mode, every tick searches already, so Apply has nothing to send:
+In `immediate` mode, every check searches already, so Apply has nothing to send:
 
 - `<x-meilifacets::listing.apply visible-in-drawer />` is rendered, visible only while the drawer is a bottom sheet,
   where it closes the sheet. It is never seen in the desktop row;

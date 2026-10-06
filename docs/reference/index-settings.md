@@ -26,9 +26,9 @@ own. Settings are named by `Enums\IndexSetting`, `Enums\FacetingSetting`, `Enums
 
 | Setting | Value written | Comes from | Explained in |
 | --- | --- | --- | --- |
-| `filterableAttributes` | MeiliScout's own, plus `facets.<taxonomy>` for every taxonomy of an indexed post type, plus `IndexAttributes::filterable()`: `metas._price`, `metas._stock_status`, `price.min`, `price.max`, `price.onsale` with WooCommerce | MeiliScout, `IndexAttributes` | [What gets indexed](../indexing/README.md) |
-| `sortableAttributes` | MeiliScout's own, plus `IndexAttributes::sortable()`: `price.min`, `price.max` with WooCommerce | MeiliScout, `IndexAttributes` | [Sorting](../listing/results-sort-pagination.md) |
-| `displayedAttributes` | `ID` and `card`, plus `IndexAttributes::displayed()` and `displayed_attributes`; `["*"]` when either holds `*` | `IndexAttributes`, configuration | [What gets indexed](../indexing/README.md) |
+| `filterableAttributes` | MeiliScout's own, plus `facets.<taxonomy>` for every taxonomy of an indexed post type, plus `ID` and `parent_id`, plus `IndexAttributes::filterable()`: `metas._price`, `metas._stock_status`, `price.min`, `price.max`, `price.onsale`, `document_kind` with WooCommerce | MeiliScout, `IndexAttributes` | [What gets indexed](../indexing/README.md) |
+| `sortableAttributes` | MeiliScout's own, plus `IndexAttributes::sortable()`: `price.min`, `price.max`, `in_stock` with WooCommerce | MeiliScout, `IndexAttributes` | [Sorting](../listing/results-sort-pagination.md) |
+| `displayedAttributes` | `ID`, `card` and `parent_id`, plus `IndexAttributes::displayed()` and `displayed_attributes`; `["*"]` when either holds `*` | `IndexAttributes`, configuration | [What gets indexed](../indexing/README.md) |
 | `faceting.sortFacetValuesBy` | `{"*": "count"}` | fixed | [Facets](../listing/facets.md) |
 | `faceting.maxValuesPerFacet` | `engine.max_facet_values` (`1000`) | configuration | [Facets](../listing/facets.md) |
 | `pagination.maxTotalHits` | `engine.reachable_hits` (`1000`) | configuration | [Pagination](../listing/results-sort-pagination.md) |
@@ -66,6 +66,21 @@ Named by `Enums\DocumentField`. “Written by” says who puts the field in the 
 | `content` | the module | the content as plain text | search |
 | `card` | the module, through `CardProjector` | the fields a card shows (below) | the browser |
 | `price` | the module, WooCommerce products only | `min`, `max`, `onsale` (below) | price filter, sorts |
+| `in_stock` | the module, WooCommerce products with a price, and their variants | `1` in stock, `0` out of stock | the stock-first price sort of the variant results |
+| `document_kind` | the module | `parent` on a product whose variants have documents, absent otherwise | the variant results (`NOT document_kind = "parent"`) |
+| `parent_id` | the module, on a variant's document | the ID of its product | `distinct` of the variant results, the card identity, the removal of a product's variant documents |
+
+A variable product also has **one document per variant**, `ID` `<product>-<n>`: the product's document under the
+variant's terms, price and stock, and under WooCommerce's post type for a variation, `product_variation` — a query on
+`post_type = "product"`, the module's or anyone else's, never reads them. They are written and removed with the product's own (MeiliScout's
+`HasDependentDocuments`). With a variation attribute checked, the results read them, one per product
+(`distinct: parent_id`), and so do the counts, so that each one announces what the grid shows once it is checked. A
+price range alone reads the products, as WooCommerce does. The terms of a variation attribute are always counted on
+the variants, without `distinct`: Meilisearch keeps a single variant per product, and would leave the others' terms
+uncounted. The variation attributes are those WooCommerce's attribute lookup table marks as such; every attribute
+counts as one while WooCommerce does not filter with the table, or rebuilds it. The price bounds read every variant
+too. *Known limit*: a product whose variants share a term counts once per variant under it — two variants 400 ml rose
+and 400 ml iris, a size the product does not vary by while another product does, a variation sold as « any size ».
 
 ## Card fields
 
@@ -83,9 +98,10 @@ Named by `Enums\CardField`. The default projectors write them; a `CardProjector`
 | `image_height` | `DefaultCardProjector` | height in pixels |
 | `price` | `WooCommerceCardProjector` | the product's price HTML, as WooCommerce formats it |
 | `summary` | `SummaryCardProjector`, posts that are not products | the excerpt cut to `excerpt_length` words |
-| `id` | not indexed: added to each card from `ID` on the server and in the browser | the post ID |
-| `variants` | a `CardProjector` of yours | the ways the product is sold, each a `Listing\CardVariant`: see [Card variants](../customising/card.md#card-variants). A variant's `fields` cannot set `id`, `variants` or `several_variants`: the module drops them. The module writes the list as a JSON list when it indexes the document, even when the projector's array has gaps. Never bound: removed from the cards the module shows — the listing, on the server and in the browser, and the search panel — after picking one when a filter concerns them. A card a project renders itself is not concerned |
-| `several_variants` | not indexed: set when several variants match the active filters | `true`, or absent |
+| `id` | not indexed: added to each card from `parent_id`, or `ID` when absent, on the server and in the browser | the product's ID, on a variant's document too |
+| `variants` | the module (`Indexing\ProductVariants`), for a variable product, with WooCommerce | the ways the product is sold, each a `Listing\CardVariant`, as a JSON list: see [Card variants](../customising/card.md#card-variants). A variant's `fields` cannot set `id`, `variants`, `several_variants` or `out_of_stock`: the module drops them. Never bound: removed from the cards the module shows — the listing, on the server and in the browser, and the search panel — after picking one when a filter concerns them. A card a project renders itself is not concerned |
+| `several_variants` | not indexed: set when several variants are offered (those in stock first) | `true`, or absent |
+| `out_of_stock` | the module, for a product WooCommerce holds out of stock; on a listing showing a variant, set when that variant is out of stock | `true`, or absent |
 
 A variant is stored as:
 
@@ -94,6 +110,8 @@ A variant is stored as:
 | `facets` | `VariantField::Facets` | taxonomy to the term slugs the variant carries, as the facets hold them |
 | `price` | `VariantField::Price` | its displayed price, a number on the same scale as `price.min` and `price.max` |
 | `fields` | `VariantField::Fields` | the card fields shown instead of the product's when it is chosen |
+| `in_stock` | `VariantField::InStock` | `true` when the variation is in stock; read as `true` when absent |
+| `on_sale` | `VariantField::OnSale` | `true` when the variation is on sale (`is_on_sale()`); read as `false` unless it is `true` |
 
 Image fields are absent when the post has no featured image; `summary` is absent when empty.
 
@@ -103,7 +121,7 @@ Image fields are absent when the post has no featured image; `summary` is absent
 | --- | --- | --- | --- |
 | `price.min` | `PriceField::Min` | lowest displayed price (a variable or grouped product's cheapest child) | price filter, `price_asc` |
 | `price.max` | `PriceField::Max` | highest displayed price | price filter, `price_desc` |
-| `price.onsale` | `PriceField::OnSale` | `true` when WooCommerce lists the product as on sale | `on_sale` |
+| `price.onsale` | `PriceField::OnSale` | `true` when WooCommerce lists the product as on sale; on a variant's document, when that variation is | `on_sale` |
 | `metas._price` | `ProductMeta::Price` | WooCommerce's `_price` meta | filterable |
 | `metas._stock_status` | `ProductMeta::StockStatus` | WooCommerce's `_stock_status` meta | filterable |
 | `metas._sku` | `SearchedMeta::Sku` | WooCommerce's `_sku` meta | search, without typos |

@@ -272,6 +272,37 @@ final class CardBindingTest extends TestCase
         $this->assertSame('&amp;', $element->attributes->get('alt'));
     }
 
+    #[Test]
+    public function it_refuses_a_second_class_list_on_one_element(): void
+    {
+        $binding = CardBinding::template();
+
+        $this->expectException(BindingRefused::class);
+
+        CardFieldElement::of($binding->classList('cart_class'))->with($binding->classList('badge_class'));
+    }
+
+    #[Test]
+    public function it_refuses_a_second_class_list_given_as_an_array(): void
+    {
+        $binding = CardBinding::template();
+
+        $this->expectException(BindingRefused::class);
+
+        CardFieldElement::of($binding->classList('cart_class'))->with($binding->classList('badge_class')->getAttributes());
+    }
+
+    #[Test]
+    public function it_merges_one_class_list_with_other_attributes(): void
+    {
+        $binding = CardBinding::template();
+
+        $element = CardFieldElement::of(new ComponentAttributeBag(['class' => 'cta']))
+            ->with($binding->classList('cart_class'), $binding->attributes(['href' => 'url']));
+
+        $this->assertSame('cart_class', $element->attributes->get(BindingAttribute::ClassList->value));
+    }
+
     /**
      * @return Generator<string, array{string}>
      */

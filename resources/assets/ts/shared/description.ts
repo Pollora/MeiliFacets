@@ -59,6 +59,16 @@ export interface SearchScope {
     fields: string[] | null
 }
 
+export interface VariantResultsDescription {
+    taxonomies: string[]
+    filter: string
+    searchScope: SearchScope
+    distinct: string
+    attributes: string[]
+    /** key to engine sort expressions, the stock first under a price sort */
+    sorts: Record<string, string[]>
+}
+
 export interface ListingDescription {
     name: string
     filter: string
@@ -73,6 +83,8 @@ export interface ListingDescription {
     /** hits the engine will serve past which no page exists */
     reachableHits: number
     attributes: string[]
+    /** null when the listing has no document per variant */
+    variantResults: VariantResultsDescription | null
     /** key to engine sort expressions */
     sorts: Record<string, string[]>
     /** sort key to the filter it carries */

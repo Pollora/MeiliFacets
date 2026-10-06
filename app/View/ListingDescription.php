@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\View;
 
+use Modules\MeiliFacets\Contracts\VariantScopedListing;
 use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Enums\PriceField;
 use Modules\MeiliFacets\Enums\QueryParameter;
@@ -13,10 +14,12 @@ use Modules\MeiliFacets\Listing\FacetValue;
 use Modules\MeiliFacets\Listing\ListingState;
 use Modules\MeiliFacets\Listing\PriceFilter;
 use Modules\MeiliFacets\Listing\ResolvedListing;
+use Modules\MeiliFacets\Listing\SearchScope;
 use Modules\MeiliFacets\Listing\Sort;
 use Modules\MeiliFacets\Listing\SortFilter;
 use Modules\MeiliFacets\Search\EngineLimits;
 use Modules\MeiliFacets\Search\FilterExpression;
+use Modules\MeiliFacets\Search\QueryPlan;
 use Modules\MeiliFacets\SiteSearch\SearchSettings;
 use Modules\MeiliFacets\Support\Money;
 use Modules\MeiliFacets\Support\UrlParameters;
@@ -51,7 +54,8 @@ final readonly class ListingDescription
             'delay' => $this->searchSettings->delay,
             'perPage' => $listing->perPage(),
             'reachableHits' => $this->limits->reachableHits,
-            'attributes' => [DocumentField::Id->value, DocumentField::Card->value],
+            'attributes' => QueryPlan::RETRIEVED,
+            'variantResults' => $this->variantResults($listing),
             'apply' => $listing->applyMode()->value,
             'facets' => $this->facets($listing),
             'params' => $params,
@@ -88,12 +92,48 @@ final readonly class ListingDescription
     }
 
     /**
+     * @return array<string, mixed>|null
+     */
+    private function variantResults(ResolvedListing $listing): ?array
+    {
+        $variants = $listing->variantListing();
+
+        if (! $variants instanceof VariantScopedListing) {
+            return null;
+        }
+
+        return [
+            'taxonomies' => $variants->variantTaxonomies(),
+            'filter' => FilterExpression::all($variants->variantFilter()),
+            'searchScope' => $this->scope($variants->variantSearchScope()),
+            'distinct' => DocumentField::ParentId->value,
+            'attributes' => QueryPlan::VARIANT_RETRIEVED,
+            'sorts' => $this->variantSorts($listing->sorts()),
+        ];
+    }
+
+    /**
+     * @param  array<string, Sort>  $sorts
+     * @return array<string, list<string>>
+     */
+    private function variantSorts(array $sorts): array
+    {
+        return array_map(static fn (Sort $sort): array => QueryPlan::variantSort($sort->expressions), $sorts);
+    }
+
+    /**
      * @return array{filter: string, fields: list<string>|null}
      */
     private function searchScope(ResolvedListing $listing): array
     {
-        $scope = $listing->searchScope();
+        return $this->scope($listing->searchScope());
+    }
 
+    /**
+     * @return array{filter: string, fields: list<string>|null}
+     */
+    private function scope(SearchScope $scope): array
+    {
         return ['filter' => FilterExpression::all($scope->filter), 'fields' => $scope->fields];
     }
 

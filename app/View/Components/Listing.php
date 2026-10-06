@@ -8,6 +8,7 @@ use Illuminate\Contracts\View\View;
 use Modules\MeiliFacets\Enums\Contract;
 use Modules\MeiliFacets\Enums\ScriptModule;
 use Modules\MeiliFacets\Enums\Stylesheet;
+use Modules\MeiliFacets\Http\ListingPage;
 use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\View\ClientScript;
 use Modules\MeiliFacets\View\ClientStylesheet;
@@ -20,9 +21,12 @@ final class Listing extends ListingComponent
         ClientStylesheet $stylesheet,
         ClientScript $script,
         ListingDescription $description,
+        ListingPage $page,
         string $name = '',
     ) {
         parent::__construct($listings, $name);
+
+        $page->markAsCurrent();
 
         $stylesheet->require(Stylesheet::Listing);
         $script->require(ScriptModule::Listing, $this->listing->name(), fn (): array => $description->of($this->listing));

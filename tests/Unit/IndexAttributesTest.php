@@ -44,9 +44,15 @@ final class IndexAttributesTest extends TestCase
 
     /** Ascending reads the low end, descending the high one — see `WooCommerceSorts`. */
     #[Test]
-    public function it_sorts_on_both_ends_of_the_price_interval(): void
+    public function it_sorts_on_both_ends_of_the_price_interval_and_on_the_stock(): void
     {
-        $this->assertSame(['price.min', 'price.max'], (new WooCommerceIndexAttributes)->sortable());
+        $this->assertSame(['price.min', 'price.max', 'in_stock'], (new WooCommerceIndexAttributes)->sortable());
+    }
+
+    #[Test]
+    public function it_filters_on_the_kind_of_document(): void
+    {
+        $this->assertContains('document_kind', (new WooCommerceIndexAttributes)->filterable());
     }
 
     #[Test]
@@ -69,11 +75,10 @@ final class IndexAttributesTest extends TestCase
     {
         $attributes = new ConfiguredIndexAttributes(new WooCommerceIndexAttributes, ['post_excerpt']);
 
-        $this->assertSame(
-            ['metas._price', 'metas._stock_status', 'price.min', 'price.max', 'price.onsale'],
-            $attributes->filterable()
-        );
-        $this->assertSame(['price.min', 'price.max'], $attributes->sortable());
+        $woocommerce = new WooCommerceIndexAttributes;
+
+        $this->assertSame($woocommerce->filterable(), $attributes->filterable());
+        $this->assertSame($woocommerce->sortable(), $attributes->sortable());
         $this->assertSame((new WooCommerceIndexAttributes)->exactlyMatched(), $attributes->exactlyMatched());
     }
 

@@ -54,11 +54,13 @@ final class SearchServiceProvider extends ServiceProvider
 | `ProductFacets` | `Listing\WooCommerceFacets`: category as a `ChildTermsFacet`, then brand, both ordered by `NameOrder` | `scopedIf` | `scoped` | [Facets](../listing/facets.md) |
 | `ProductSorts` | `Listing\WooCommerceSorts`: `price_asc`, `price_desc`, `newest`, `on_sale` | `scopedIf` | `scoped` | [Sorting](../listing/results-sort-pagination.md) |
 | `CardProjector` | `Indexing\DeferredCardProjector`: with WooCommerce, `WooCommerceCardProjector` (products: default card plus `price`; other posts: summary card); without, `SummaryCardProjector`. Both wrap `DefaultCardProjector` (title, URL, image) | `bindIf` | `extend` to add fields; `bind` to replace | [What gets indexed](../indexing/README.md) |
+| `VariantFields` | `Indexing\EmptyVariantFields`: no field | `bindIf` | `bind` | [Card variants](../customising/card.md#card-variants) |
 | `IndexAttributes` | `Indexing\ConfiguredIndexAttributes` (adds `displayed_attributes`) around `DeferredIndexAttributes`: `WooCommerceIndexAttributes` with WooCommerce, `EmptyIndexAttributes` without | `bind` | `extend` | [What gets indexed](../indexing/README.md) |
 | `SearchableAttributes` | `Indexing\DefaultSearchableAttributes`: title, then brand, category and SKU (WooCommerce), other labels, excerpt, content | `scopedIf` | `scoped` or `bind`, decorating the default | [Search relevance](../indexing/relevance.md) |
 | `SearchableTypes` | `SiteSearch\WooCommerceSearchableTypes`: products first when WooCommerce is active and products are searchable, then `WordPressSearchableTypes` | `scopedIf` | `scoped`, decorating the default | [Searchable types](../search/types.md) |
 | `Listing` | `Listing\ProductListing`, named `products`; refuses itself without WooCommerce | discovered | implement it in a class Pollora discovers (`app/`, or a module's `app/`) | [Listing other content](../listing/custom-listing.md) |
-| `SearchScopedListing` | `Listing\ProductListing` | discovered | implement it instead of `Listing` | [Listing other content](../listing/custom-listing.md) |
+| `SearchScopedListing` | — | discovered | implement it instead of `Listing` | [Listing other content](../listing/custom-listing.md) |
+| `VariantScopedListing` | `Listing\ProductListing` | discovered | implement it instead of `SearchScopedListing` for items with a document per variant | [Card variants](../customising/card.md#card-variants) |
 | `ValueOrder` | none bound; `Listing\NameOrder` is provided (bound `scoped`, collates by the site language) | pass it to a `Facet` | implement it | [Facets](../listing/facets.md) |
 | `ValuePresentation` | `Enums\Presentation` (`control`, `pill`) | pass it to a `Facet` or a component | implement it, as an enum | [Facets](../listing/facets.md) |
 | `Placeable` | `Listing\Facet`, `Listing\PriceFilter` | none | do not implement: the components only place these two | [Facets](../listing/facets.md) |
@@ -76,11 +78,13 @@ final class SearchServiceProvider extends ServiceProvider
 | `ProductFacets` | `all(): list<Facet\|PriceFilter>` |
 | `ProductSorts` | `all(): array<string, Sort>`, keyed as the sort travels in the URL |
 | `CardProjector` | `project(WP_Post $post): array<string, mixed>` |
+| `VariantFields` | `project(WC_Product_Variation $variation): array<string, mixed>` |
 | `IndexAttributes` | `exactlyMatched(): list<string>`, `filterable(): list<string>`, `sortable(): list<string>`, `displayed(): list<string>` |
 | `SearchableAttributes` | `all(): list<string>`, most important first |
 | `SearchableTypes` | `all(): array<string, SearchableType>`, keyed by post type |
 | `Listing` | `name(): string`, `facets(): list<Facet>`, `filters(): list<Placeable>`, `sorts(): array<string, Sort>`, `baseFilter(): list<string>`, `baseQuery(): string`, `perPage(): int`, `applyMode(): ApplyMode` |
 | `SearchScopedListing` | the `Listing` methods, plus `searchScope(): SearchScope`: filter and fields used once a term is typed |
+| `VariantScopedListing` | the `SearchScopedListing` methods, plus `variantTaxonomies(): list<string>`, `variantFilter(): list<string>` and `variantSearchScope(): SearchScope`: what a filter on a variation attribute reads on the variant documents |
 | `ValueOrder` | `compare(FacetValue $first, FacetValue $second): int` |
 | `ValuePresentation` | `slug(): string` (the `data-presentation` value), `allowsSingleSelection(): bool` |
 | `Placeable` | properties `string $name { get; }`, `string $label { get; }` |
@@ -92,7 +96,7 @@ changes behaviour the rest of the module relies on.
 
 | Contract | Default implementation | Module binding | Used for |
 | --- | --- | --- | --- |
-| `FacetCounter` | `Search\DisjunctiveFacetCounter` | `bindIf` | the extra queries that count a multi-value facet on the first render; the browser counts on its own |
+| `FacetCounter` | `Search\DisjunctiveFacetCounter` | `bindIf` | the extra queries that count a multi-value facet on the first render; facets on a variation attribute are counted by the module on the variant documents, whatever the binding; the browser counts on its own |
 | `SearchEngine` | `Search\MeilisearchEngine` (MeiliScout's search client, index `posts`) | `scoped` | sends the server's searches; throws `EngineUnavailable` |
 | `TermHierarchy` | `Indexing\WordPressTermHierarchy` | `bind` | ancestors of a term at indexing; children for `ChildTermsFacet` |
 | `TermLabels` | `Listing\WordPressTermLabels` | `bind` | the names of a facet's values, in the taxonomy's order |
@@ -120,8 +124,8 @@ All under `Modules\MeiliFacets\`.
 | `Listing\Sort` | class | a sort: label, Meilisearch sort expressions, optional filter; `Sort::filtering()` | [Sorting](../listing/results-sort-pagination.md) |
 | `Listing\SortFilter` | class | the filter a sort carries; `SortFilter::whereTrue()` | [Sorting](../listing/results-sort-pagination.md) |
 | `Listing\NameOrder` | class | orders values by name in the site language | [Facets](../listing/facets.md) |
-| `Listing\CardVariant` | class | one way a product is sold, inside its card: facets, price, fields; `toArray()`, `read()` | [Card variants](../customising/card.md#card-variants) |
-| `Listing\VariantChoice` | class | `shown(array $card)`: the card through the variant the filters point to, as projected when none concerns its variants | [Card variants](../customising/card.md#card-variants) |
+| `Listing\CardVariant` | class | one way a product is sold, inside its card: facets, price, fields, in stock; `toArray()`, `read()` | [Card variants](../customising/card.md#card-variants) |
+| `Listing\VariantChoice` | class | `shown(array $card)`: the card through the variant the filters point to once a variation attribute is checked, as projected otherwise | [Card variants](../customising/card.md#card-variants) |
 | `Listing\ListingUnavailable` | exception | thrown by a listing's constructor to opt out quietly | [Listing other content](../listing/custom-listing.md) |
 | `SiteSearch\SearchableType` | class | a searchable type; `withHeading()`, `withSeeAllLabel()`, `withCard()`, `withArchive()`, `withoutArchive()`, `withSearchOn()` | [Searchable types](../search/types.md) |
 | `SiteSearch\SearchableTypeFactory` | class | `forPostType()`, `make()` | [Searchable types](../search/types.md) |
@@ -140,8 +144,8 @@ All under `Modules\MeiliFacets\`.
 | `Enums\ProductTaxonomy` | enum | WooCommerce taxonomies; `technical()` lists those never searched | [Search relevance](../indexing/relevance.md) |
 | `Enums\Hook` | enum | the `data-meili` hooks; `->attribute()` | [`data-meili` hooks](hooks.md) |
 | `Search\PublishedPosts` | helper | `of($postType)`: filter clauses for published posts of a type | [Listing other content](../listing/custom-listing.md) |
-| `Search\FilterExpression` | helper | `equals()`, `without()`, `all()`: Meilisearch filter clauses | [Listing other content](../listing/custom-listing.md) |
-| `Search\VisibleProducts` | helper | `inCatalogue()`, `inSearch()`: clauses for visible products | [Searchable types](../search/types.md) |
+| `Search\FilterExpression` | helper | `equals()`, `without()`, `all()`, `any()`: Meilisearch filter clauses | [Listing other content](../listing/custom-listing.md) |
+| `Search\VisibleProducts` | helper | `inCatalogue()`, `inSearch()`: clauses for visible products; `onVariants()`: the same clauses widened to the variations' post type, parents left out | [Searchable types](../search/types.md) |
 | `Support\WooCommerce` | helper | `isActive()` | [Composing the panel](../search/composition.md) |
 
 ## Watch out
@@ -151,7 +155,8 @@ All under `Modules\MeiliFacets\`.
   the module's. Use `extend()`.
 - The defaults ask whether WooCommerce is active on every call. A replacement that calls WooCommerce functions
   checks `Support\WooCommerce::isActive()` itself.
-- A change to `IndexAttributes`, `SearchableAttributes` or `CardProjector` reaches the index at the next indexing.
+- A change to `IndexAttributes`, `SearchableAttributes`, `CardProjector` or `VariantFields` reaches the index at the next
+  indexing.
   After adding a `Listing` class, run `php artisan discovery:clear`.
 
 ## See also

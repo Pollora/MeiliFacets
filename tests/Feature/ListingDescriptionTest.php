@@ -7,6 +7,7 @@ namespace Modules\MeiliFacets\Tests\Feature;
 use Modules\MeiliFacets\Contracts\SearchableTypes;
 use Modules\MeiliFacets\Enums\QueryParameter;
 use Modules\MeiliFacets\Listing\CurrentListing;
+use Modules\MeiliFacets\Listing\ProductListing;
 use Modules\MeiliFacets\Listing\ResolvedListing;
 use Modules\MeiliFacets\Search\FilterExpression;
 use Modules\MeiliFacets\Search\VisibleProducts;
@@ -64,6 +65,20 @@ final class ListingDescriptionTest extends TestCase
         }
 
         $this->assertNotSame([], array_filter(array_map(static fn (array $facet): array => (array) $facet['labels'], $facets)));
+    }
+
+    #[Test]
+    public function it_hands_the_client_the_query_that_reads_variants(): void
+    {
+        $variants = $this->describedWith([])['variantResults'];
+
+        $this->assertSame($this->app->make(ProductListing::class)->variantTaxonomies(), $variants['taxonomies']);
+        $this->assertStringContainsString('NOT document_kind = "parent"', $variants['filter']);
+        $this->assertStringContainsString('post_type = "product_variation"', $variants['filter']);
+        $this->assertStringContainsString('NOT document_kind = "parent"', $variants['searchScope']['filter']);
+        $this->assertSame('parent_id', $variants['distinct']);
+        $this->assertSame(['ID', 'card', 'parent_id'], $variants['attributes']);
+        $this->assertSame('in_stock:desc', $variants['sorts']['price_asc'][0] ?? null);
     }
 
     /** Missing, the whole site answers 500: the resolved listing copies the contract by hand. */

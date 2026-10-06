@@ -18,6 +18,9 @@ final readonly class StateReader
     /** A query string is public input: both bounds keep a crafted URL cheap. */
     public const int MAX_QUERY_LENGTH = 200;
 
+    /** WordPress stores a term slug in `wp_terms.slug varchar(200)` and refuses a longer insert. */
+    public const int MAX_VALUE_BYTES = 200;
+
     /** A term the engine tokenises into nothing serves the whole index. */
     private const string WORD = '/[\p{L}\p{N}]/u';
 
@@ -114,7 +117,7 @@ final readonly class StateReader
     /** A value that is not UTF-8 cannot be encoded into a search: the engine client would throw. */
     private function isReadable(string $value): bool
     {
-        return $value !== '' && mb_check_encoding($value, 'UTF-8');
+        return $value !== '' && strlen($value) <= self::MAX_VALUE_BYTES && mb_check_encoding($value, 'UTF-8');
     }
 
     /**

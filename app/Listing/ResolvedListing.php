@@ -6,6 +6,7 @@ namespace Modules\MeiliFacets\Listing;
 
 use Modules\MeiliFacets\Contracts\Listing;
 use Modules\MeiliFacets\Contracts\Placeable;
+use Modules\MeiliFacets\Contracts\VariantScopedListing;
 use Modules\MeiliFacets\Enums\ApplyMode;
 use Modules\MeiliFacets\Enums\QueryParameter;
 use Modules\MeiliFacets\Http\ServiceUnavailable;
@@ -73,7 +74,7 @@ final class ResolvedListing
             return $this->search->run($this->listing, $this->state);
         } catch (EngineUnavailable $failure) {
             $this->failed = true;
-            $this->serviceUnavailable->sendHeaders();
+            $this->serviceUnavailable->announce();
             report($failure);
 
             return new ListingResults([], 0, []);
@@ -89,13 +90,36 @@ final class ResolvedListing
     }
 
     /**
+     * The cards before any variant is chosen: what a product is, whatever the filters point to.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function projectedCards(): array
+    {
+        return $this->results()->cards();
+    }
+
+    /**
      * @return list<array<string, mixed>>
      */
     private function shownCards(): array
     {
-        $choice = new VariantChoice($this->state->facets, $this->state->price);
+        $choice = new VariantChoice($this->state->facets, $this->state->price, $this->variantTaxonomies(), $this->sortFilter());
 
-        return array_map($choice->shown(...), $this->results()->cards());
+        return array_map($choice->shown(...), $this->projectedCards());
+    }
+
+    private function sortFilter(): ?SortFilter
+    {
+        return ($this->listing->sorts()[$this->state->sort ?? ''] ?? null)?->filter;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function variantTaxonomies(): array
+    {
+        return $this->variantListing()?->variantTaxonomies() ?? [];
     }
 
     public function state(): ListingState
@@ -337,6 +361,11 @@ final class ResolvedListing
     public function searchScope(): SearchScope
     {
         return SearchScope::searching($this->listing);
+    }
+
+    public function variantListing(): ?VariantScopedListing
+    {
+        return $this->listing instanceof VariantScopedListing ? $this->listing : null;
     }
 
     public function isRoutedSearch(): bool

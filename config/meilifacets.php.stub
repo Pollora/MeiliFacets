@@ -28,7 +28,8 @@ return [
 
     'card' => [
         'eager' => 4,
-        'image_size' => 'medium',
+        // One size for every card. Products default to `woocommerce_thumbnail`, other posts to `medium`.
+        // 'image_size' => 'medium',
     ],
 
     // Caps the last reachable page, and costs memory on the engine.

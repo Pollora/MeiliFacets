@@ -24,4 +24,12 @@ describe('Range', () => {
         assert.equal(Range.formatBound(1e-9), '0')
         assert.equal(Range.formatBound(1e21), '1000000000000000000000')
     })
+
+    it('contains nothing when inverted', () => {
+        const inverted = new Range(50, 10)
+
+        assert.equal(inverted.contains(10), false)
+        assert.equal(inverted.contains(50), false)
+        assert.equal(inverted.contains(30), false)
+    })
 })

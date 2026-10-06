@@ -10,6 +10,7 @@ use Modules\MeiliFacets\Listing\NameOrder;
 use Modules\MeiliFacets\Listing\ProductListing;
 use Modules\MeiliFacets\Listing\SearchScope;
 use Modules\MeiliFacets\Listing\StateReader;
+use Modules\MeiliFacets\Listing\VariationTaxonomies;
 use Modules\MeiliFacets\Listing\WooCommerceFacets;
 use Modules\MeiliFacets\Listing\WooCommerceSorts;
 use Modules\MeiliFacets\Search\VisibleProducts;
@@ -66,7 +67,11 @@ final class ProductSearchTest extends TestCase
     public function it_hides_what_woocommerce_hides_from_its_search_and_pins_no_term(): void
     {
         $this->assertSame(
-            ['post_type = "product"', 'post_status = "publish"', 'NOT facets.product_visibility = "exclude-from-search"'],
+            [
+                'post_type = "product"',
+                'post_status = "publish"',
+                'NOT facets.product_visibility = "exclude-from-search"',
+            ],
             $this->scopeOnSearch()->filter
         );
     }
@@ -75,7 +80,11 @@ final class ProductSearchTest extends TestCase
     #[Test]
     public function it_browses_the_catalogue_whatever_the_route(): void
     {
-        $catalogue = ['post_type = "product"', 'post_status = "publish"', 'NOT facets.product_visibility = "exclude-from-catalog"'];
+        $catalogue = [
+            'post_type = "product"',
+            'post_status = "publish"',
+            'NOT facets.product_visibility = "exclude-from-catalog"',
+        ];
 
         $this->assertSame($catalogue, $this->onSearch(['s' => self::TERM], static fn (ProductListing $listing): array => $listing->baseFilter()));
         $this->assertSame($catalogue, $this->onSearch([], static fn (ProductListing $listing): array => $listing->baseFilter()));
@@ -88,7 +97,11 @@ final class ProductSearchTest extends TestCase
         $scope = $this->scopeOnSearch();
 
         $this->assertSame(
-            ['post_type = "product"', 'post_status = "publish"', 'NOT facets.product_visibility = "exclude-from-search"'],
+            [
+                'post_type = "product"',
+                'post_status = "publish"',
+                'NOT facets.product_visibility = "exclude-from-search"',
+            ],
             $scope->filter
         );
         $this->assertSame(['post_title', 'labels.product_brand', 'labels.product_cat', 'metas._sku'], $scope->fields);
@@ -170,6 +183,7 @@ final class ProductSearchTest extends TestCase
                 new WooCommerceFacets(new NameOrder),
                 new WooCommerceSorts,
                 $this->app->make(SearchableTypes::class),
+                new VariationTaxonomies,
             ));
         } finally {
             $wp_query = $current;

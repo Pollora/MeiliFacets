@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Indexing;
 
-use Closure;
-use Modules\MeiliFacets\Contracts\CardProjector;
-use Modules\MeiliFacets\Enums\CardField;
 use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Enums\TermField;
 use WP_Post;
@@ -18,10 +15,7 @@ final readonly class PostDocument
         private TermAncestry $ancestry,
         private IndexedTaxonomies $taxonomies,
         private PostText $postText,
-        private CardProjector $cards,
-        private ProductPriceProjector $prices,
-        private ShopTaxLocation $shopTaxLocation,
-        private AnonymousVisitor $anonymousVisitor,
+        private ShopFields $shopFields,
     ) {}
 
     /**
@@ -34,7 +28,7 @@ final readonly class PostDocument
             ...$document,
             ...$this->termFields($document),
             ...$this->textFields($post),
-            ...$this->asShopVisitor(fn (): array => $this->shopFields($post)),
+            ...$this->shopFields->project($post),
         ];
     }
 
@@ -81,40 +75,5 @@ final readonly class PostDocument
             DocumentField::Excerpt->value => $this->postText->excerpt($post),
             DocumentField::Content->value => $this->postText->content($post),
         ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function shopFields(WP_Post $post): array
-    {
-        $card = [DocumentField::Card->value => $this->withListedVariants($this->cards->project($post))];
-        $price = $this->prices->project($post);
-
-        return $price === [] ? $card : [...$card, DocumentField::Price->value => $price];
-    }
-
-    /**
-     * A list with gaps, left by `array_filter()`, would be stored as an object, which the listing ignores.
-     *
-     * @param  array<string, mixed>  $card
-     * @return array<string, mixed>
-     */
-    private function withListedVariants(array $card): array
-    {
-        $variants = $card[CardField::Variants->value] ?? null;
-
-        return is_array($variants) ? array_replace($card, [CardField::Variants->value => array_values($variants)]) : $card;
-    }
-
-    /**
-     * @template T
-     *
-     * @param  Closure(): T  $read
-     * @return T
-     */
-    private function asShopVisitor(Closure $read): mixed
-    {
-        return $this->shopTaxLocation->during(fn (): mixed => $this->anonymousVisitor->during($read));
     }
 }

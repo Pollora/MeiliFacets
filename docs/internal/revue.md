@@ -1095,7 +1095,17 @@ facettes cassent à la première sauvegarde de contenu.
 ni `1c59a05` ni `2acf53a` cités plus haut ; le module exige toujours `dev-feat/meilifacets`
 (`composer.json`). Le merge amont n'est pas vérifiable d'ici.
 
-### R-40 · 🟠 · ouvert · 2026-09-06 — le `503` ne sort pas
+### R-40 · 🟠 · **fermé le 2026-10-05** (`R-217`) · ouvert le 2026-09-06 — le `503` ne sort pas
+
+*Corrigé le 2026-10-05 (non commité), avec `R-217`* : le listing ne pose plus d'en-tête à la main ;
+`ServiceUnavailable::announce()` marque la panne pendant le rendu, et un middleware global du module
+(`Http\ServiceUnavailableHeaders`, poussé dans le noyau HTTP par `RenderingServiceProvider`) applique à la réponse
+Laravel `503`, `Retry-After: 120` et `Cache-Control: no-store` — global, il enveloppe la pile de Pollora et passe après
+`WordPressHeaders`. Mesuré moteur local arrêté puis relancé : `/boutique` et `?contenance=400ml` en `HTTP/2 503`,
+`cache-control: no-store, private`, `retry-after: 120`, vue de panne présente ; moteur relancé, `200` et 19 cartes.
+Tests : `ServiceUnavailableHeadersTest` (503 et `no-store` une fois la panne levée, page intacte sinon, middleware
+enregistré). Reste, hors de ce point : une page saine porte deux `Cache-Control` (`public, max-age=3600` et
+`max-age=0`), dont l'origine n'est pas cherchée.
 
 Pollora écrase le statut HTTP de WordPress. Correctif rédigé dans `decisions.md`, **non soumis en
 amont**. Tant qu'il ne l'est pas, `Unavailable::announce()` produit un `200` avec deux
@@ -3305,7 +3315,555 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
-### R-209 · 🟡 · ouvert (en attente de commit) · ouvert le 2026-10-02 — revue de la PR #7 (`9c4474a`) et de `14391f7`
+### R-221 · 🟢 · **fermé le 2026-10-06** · ouvert le 2026-10-06 — `ActiveValueListTest` rouge dans la suite complète du projet
+
+Six tests de `ActiveValueListTest` échouent dans `ddev exec vendor/bin/phpunit`, et passent sous `--testsuite Modules`
+(reproduit). Le test, dans `tests/Unit`, attend les motifs anglais et des prix en `number_format` : il suppose
+WordPress absent. La suite complète lance d'abord les tests `Feature` du projet, qui chargent WordPress et WooCommerce
+dans le même processus ; `__()` traduit alors les motifs (« À partir de 10,00 € », « Retirer le filtre … ») et `Money`
+passe par `wc_price()`. La suite `Modules` lance ses `Unit` avant ses `Feature`, d'où le vert. Le code est juste : il
+rend sur le site ce qu'il doit rendre. Reproduit avec `--testsuite Modules --filter 'ListingPageTest|ActiveValueListTest'
+--order-by=reverse` : 6 rouges.
+
+*Corrigé le 2026-10-06, validé par Louis* : la classe tourne dans un processus séparé
+(`#[RunTestsInSeparateProcesses]`). Vert dans les deux ordres ; la classe seule prend 1,9 s pour ses 11 tests ;
+`composer check` vert, `Modules` 1127. Le septième échec de la suite complète, `test_permalinks_are_set_to_postname`,
+relevait du projet : `/%postname%` sans barre finale est le réglage voulu (Louis), le test du projet est aligné.
+
+### R-220 · 🟠 · **fermé le 2026-10-06** (n°12 noté, à reprendre ; question ouverte sous n°5) · ouvert le 2026-10-05 — revue de la PR #9 (`c86a74e`) : 15 constats
+
+Publiés en anglais sur la PR (`/code-review max`, un commentaire par constat). Traités un par un : vérifier
+qu'il est vrai, corriger, tester, puis passer au suivant.
+
+1. *Lot de réindexation refusé au-delà de 100 Mo* (`VariantDocuments`, une fiche variante recopie la fiche produit et
+   la liste de toutes les variantes ; MeiliScout envoie 500 produits d'un bloc) ; suppression avant écriture.
+   *Vérifié* : produit 125, 5,75 Ko par fiche dont 952 o de liste (2 variantes, 476 o chacune), lot de 500
+   (`Indexer.php:56`). *Corrigé le 2026-10-05* : MeiliScout `328fc16` (envois découpés à 10 Mo, filtre
+   `meiliscout/max_payload_bytes` ; écriture d'abord, puis suppression des seules fiches périmées) et module
+   `0a41ac8` (`ID` filtrable). Mesuré en local : suppression `(parent_id IN [125]) AND NOT ID IN ["125-0",
+   "125-1"]` réussie ; une fausse fiche `125-9` disparaît, les deux vraies restent.
+2. *Slug d'une taille renommé* : les fiches variante gardent l'ancien slug. *Vérifié* : sur `edited_term`, priorité
+   10, MeiliScout (`handleTermSave`, qui réindexe les produits du terme) passe avant `WC_Post_Data::edited_term`, qui
+   réécrit ensuite par SQL `attribute_pa_*` des variations et `_default_attributes` des produits, sans vider leur cache
+   (`class-wc-post-data.php:275-291`). Sous 50 variations, la régénération des résumés de WooCommerce vide le cache par
+   chance ; au-delà (`woocommerce_regenerate_variation_summaries_sync_threshold`), elle part en tâche de fond et une
+   réindexation dans la même requête lit l'ancien slug — prouvé par un test rouge, seuil forcé à 0.
+   *Premier correctif abandonné le 2026-10-05, avant commit* : une réindexation de plus côté module, qui doublait celle
+   de MeiliScout, lisait le cache périmé et dépendait d'un crochet interne de MeiliScout.
+   *Corrigé le 2026-10-05, commité `c91a3f2`, MeiliScout `ffd3064`* :
+   - MeiliScout (`ffd3064`) : `edited_term` écouté à `EDITED_TERM_PRIORITY` (100), après les plugins qui réécrivent
+     les articles d'un terme à la priorité par défaut. Création et suppression inchangées. Action publique
+     `meiliscout/schedule_indexation`, sans argument : programme une fois la tâche de fond du bouton « Indexer », sans
+     vider l'index, et ne fait rien pendant `meiliscout/skip_indexing`.
+   - module : `Indexing\VariationMetaRewrites` vide le cache des métas après chaque réécriture SQL de WooCommerce.
+     Sur `edited_term`, à la priorité 20 (entre WooCommerce et MeiliScout), pour un attribut produit : cache des
+     produits du terme et des variations qui portent son nouveau slug (la requête même de WooCommerce,
+     `class-wc-post-data.php:1046`). Au renommage d'un attribut entier, en fin de requête : cache des variations qui
+     portent la nouvelle clé (`wc_variation_attribute_name()`), puis `meiliscout/schedule_indexation`.
+   Tests (`VariationMetaRewritesTest`) : attribut fictif en mémoire, aucune ligne dans la table des attributs, cron et
+   Action Scheduler court-circuités.
+   - À la priorité de MeiliScout, la variation et son produit portent déjà le nouveau slug.
+   - Un terme hors attributs, rattaché au produit, laisse le cache du produit et de la variation.
+   - Un attribut renommé deux fois dans la même requête vide le cache et ne programme qu'une tâche.
+   - Un attribut enregistré sous le même slug ne programme rien.
+   Dix mutations, chacune rattrapée par un test : module après MeiliScout, MeiliScout remis à 10, produits oubliés,
+   variations oubliées, garde de taxonomie, programmation, comparaison des slugs, vidage retirés ; MeiliScout,
+   priorité écrite en dur à 15, garde `skip_indexing` retirée. Base relue après coup : aucune donnée de test, aucun événement programmé.
+   *Revue, le 2026-10-05* :
+   - Corrigé : une première version reportait la réindexation des termes à `shutdown` dans une liste en mémoire.
+     C'était une seconde file à côté de `AsyncIndexingQueue`, et elle reportait aussi `created_term` : un produit
+     enregistré avec une nouvelle étiquette aurait été indexé deux fois. Remplacée par la priorité.
+   - Corrigé : écouteur de test non retiré (même cause que le n°15). Rector change `[$this, 'm']` en
+     `$this->m(...)`, et chaque écriture crée une nouvelle closure que `remove_action()` ne retrouve pas. Une seule
+     closure est donc gardée dans une propriété.
+   - Corrigé : `tearDown` d'un test sauté ; catégorie de test au nom unique.
+   - Corrigé : drapeau booléen retiré de l'action MeiliScout ; `skip_indexing` respecté.
+   - Corrigé : `wc_variation_attribute_name()` au lieu d'un préfixe recopié ; noms revus ; `nopaging` au lieu de
+     `posts_per_page => -1`.
+   - Corrigé : les variations à vider sont cherchées par clé et slug, plus par `post_parent__in` — une liste vide y
+     est ignorée et renvoie toutes les variations (`class-wp-query.php:2257`).
+   - Corrigé (MeiliScout, tests) : deux fichiers déclaraient un `apply_filters` qui ignore `$GLOBALS['filters']` ;
+     chargés avant, ils désarmaient la garde `skip_indexing` de `ReindexPostTest` et `ScheduleIndexationTest`. Un seul
+     bouchon dans `tests/Pest.php`, remis à zéro avant chaque test.
+   - Refusé : renommer la classe `AttributeMetaRewrites`. « Attribut » désigne déjà dans le module les champs de
+     l'index (`IndexAttributes`).
+   - Refusé : vider le cache seulement si le slug change. Il faudrait retenir l'ancien slug sur `edit_term` ; le gain
+     est de deux requêtes, sur une action d'administration après laquelle MeiliScout relit de toute façon ces produits.
+   - Refusé : `clean_post_cache()` pour le cache d'instances produit de WooCommerce. L'option `product_instance_caching`
+     est à `no` sur ce site, et `clean_post_cache()` déclenche ses propres écouteurs sur chaque variation.
+   - Noté, hors périmètre (MeiliScout, antérieur) : le bouton « Indexer » cherche une tâche déjà programmée avec
+     `wp_next_scheduled()` sans arguments et ne la trouve jamais (`IndexationServiceProvider.php:176`).
+   *Recensement de tous les chemins qui changent le slug d'un attribut dans une variation* :
+   - terme renommé : corrigé ci-dessus ;
+   - terme supprimé : WooCommerce ne réécrit pas les variations (`class-wc-post-data.php:1087-1123`, résumés seuls) ;
+     MeiliScout réindexe les produits du terme ; la variante garde un slug que plus aucun filtre ne propose et que les
+     autres tailles n'atteignent pas — aucun produit ne disparaît, rien à corriger ;
+   - variation enregistrée (admin, import CSV, REST) : crochets de variation, déjà gérés ;
+   - produit parent enregistré : `save_post`, déjà géré ;
+   - méta d'une variation écrite directement, restauration depuis la corbeille : constat n°6 ;
+   - attribut entier renommé (`pa_contenance` en `pa_volume`) : WooCommerce réécrit taxonomies et métas par SQL après
+     `woocommerce_attribute_updated` (`wc-attribute-functions.php:615-663`) ; toutes les fiches et les réglages de
+     l'index gardent l'ancien champ, et le moteur refuse un listing filtré sur le nouveau (vue de panne) jusqu'à la
+     fin de la tâche de fond. Corrigé ci-dessus ; il faut un cron (déjà exigé par `production.md`) — en local
+     `DISABLE_WP_CRON` est vrai sans cron système, une tâche de MeiliScout attend depuis le 2026-09-25.
+     `url_parameters` reste à mettre à jour à la main (doc `indexing/README.md`).
+3. *Compteurs et grille divergent* au-delà de `R-214`. *Vérifié le 2026-10-05, en lecture seule sur l'index local* :
+   - fourchette seule, 30–35 € : la grille lit les documents variante et liste 7 produits ; les compteurs lisent les
+     documents produit, qui se chevauchent avec la fourchette, et en comptent 8. Le produit 125 (variantes 26 € et 39 €)
+     ajoute « Visage » (2 au lieu de 1), « 15 ml » (1) et « 400 ml » (1) : cocher l'un des deux affiche 0 produit.
+     WooCommerce, lui, filtre par chevauchement (`class-wc-query.php:813-817`) et liste le 125 ;
+   - facette de taille seule : `get_available_variations()` écarte une variation désactivée ou sans prix
+     (`class-wc-product-variable.php:371`), et une variation en rupture si les produits en rupture sont masqués
+     (`:358`). Le produit garde le terme, donc le compteur le compte, mais aucun document variante ne le porte. Pas
+     reproductible sur Pluralia aujourd'hui (option à `no`, deux variations visibles) ;
+   - `distinct` ne change pas `facetDistribution` : sans filtre, les documents variante comptent « Visage » 9 fois au
+     lieu de 8, le 125 une fois par variante.
+   *Fourchette seule corrigée le 2026-10-06, commité `ec5d9c4`* (choix de l'utilisateur, « comme WooCommerce », amendement
+   de la décision « Produits variables ») : `QueryPlan::readsVariants()` et son jumeau `ListingQuery.#readsVariants()`
+   ne passent aux documents variante que pour une facette de variante. Tests PHP et TS : fourchette seule, produits lus
+   par chevauchement, sans `distinct`, tri du produit ; garde « liste sans document par variante » portée sur une
+   taille. Vérifié sur la page, serveur et client (Playwright) : à 30–35 €, 8 cartes dont le 125, « Visage (2) » → 2
+   cartes dont le 125, « Aeris (1) » → 1 carte, aucune requête `distinct`, aucune erreur en console.
+   *Taille sans variation disponible* : réglé avec `R-214` (le 2026-10-06) — les tailles se comptent sur les documents
+   variante, qui n'existent que pour les variations disponibles ; aucune réindexation.
+4. *Requêtes produit écrites hors `VisibleProducts`*. *Vérifié le 2026-10-06* (lecture seule) : un document variante
+   recopiait `post_type = "product"` et `post_status = "publish"` ; seule `NOT document_kind = "variant"` l'écartait.
+   Les requêtes du module passaient toutes par elle (faux pour le module) ; vrai pour l'intégration `WP_Query` de
+   MeiliScout (`use_meilisearch`, `TypeStatusBuilder.php:27-28`) — chaque variante revenait comme son produit parent,
+   `(int) "123-0"` valant 123 (`class-wp-post.php:235`), soit 1 + N fois le même produit ; vrai pour un projet qui lie
+   ses propres types de recherche ; `upgrading.md` n'en disait rien ; `onVariants()` comparait la clause à l'identique.
+   Pluralia n'est pas touché. *Corrigé le 2026-10-06, commité `b7906bc`* (option structurelle, choix de l'utilisateur) : le
+   document variante porte `post_type = "product_variation"`, la clause d'exclusion disparaît, `onVariants()` élargit la
+   clause de type (`FilterExpression::any()`, que `facet()` emploie aussi). Tests : `VisibleProductsTest` (produits sur
+   leur seul type, variantes à la place des parents, filtre d'un projet élargi, clause écrite autrement laissée
+   telle quelle), `VariantDocumentsTest`, requêtes et descriptions mises à jour. Doc : `index-settings.md`,
+   `contracts.md`, `search/types.md`, `upgrading.md`, `CHANGELOG.md`.
+   *Défaut trouvé à la réindexation locale (autorisée), puis par la revue* : un document variante recopiait
+   `document_kind = "parent"` de son produit, que l'ancienne ligne écrasait ; le mode variantes écartait donc aussi les
+   variantes (`?contenance=400ml` : 0 carte). `VariantDocumentsTest` figeait ce défaut : l'attendu reprenait le produit
+   entier. Corrigé (`array_diff_key`), test qui exige l'absence du champ, rouge sans le correctif. Vérifié après une
+   seconde réindexation locale : 125 sous `product`, 125-0 et 125-1 sous `product_variation` sans `document_kind` ;
+   400 ml → 1 carte (le 125), 15 ml → 3, 400 ml + 30–35 € → 0, 30–35 € → 8 dont le 125, une seule fois.
+   *Revue, le 2026-10-06* : corrigé — `withVariants()` (au lieu de `admittingVariations()`), `any()` ignore les clauses
+   vides comme `all()` (test), deux commentaires retirés, `any()` dans `contracts.md`, fixture TS à la forme actuelle.
+   Refusé pour l'instant : un enum des types WooCommerce (`product`, `product_variation`) — `VisibleProducts::POST_TYPE`
+   sert déjà partout, chantier à part ; un diagnostic quand aucune clause de type n'est élargie — la limite est écrite
+   dans la décision et dans `search/types.md`.
+5. *Attribut hors variation* : l'ordre « stock d'abord » contredit la carte. *Vérifié le 2026-10-06* : le cas cité
+   (attribut descriptif) est réglé par `R-214` tant que la table de WooCommerce sert ; reste un produit qui porte une
+   taille sans la décliner, ou une variation « toutes tailles » — la grille le range par sa variante en stock, la
+   carte reste projetée. Nouveau cas, visible sur Pluralia, créé par la fourchette seule « comme WooCommerce » : à
+   30–45 € triés par prix, le 125 s'affichait « 39 € » rangé avant un produit à 32 €. *Corrigé le 2026-10-06, commité `00c28f0`* (choix de l'utilisateur) : la carte choisit sa variante selon la règle de la grille
+   (`VariantChoice::readsVariants()` et son jumeau TS, liste `variantTaxonomies` passée par `ResolvedListing` et par
+   la description) ; `CardVariant::carriesAny()` retiré. Cas partagés : fourchette seule → carte projetée ; taille non
+   portée → variante en stock ; facette hors attributs de variation → carte projetée ; les 14 cas qui testaient la
+   lecture de la liste sous une fourchette seule cochent une taille non portée. Doc : `customising/card.md` (la limite
+   « filtres croisés » est retirée : la grille lit les documents variante et ne liste plus ce produit).
+   *Question ouverte, le 2026-10-06* : l'utilisateur attend qu'une fourchette seule montre la variante disponible
+   (30–45 € → le 125 à 39 €, absent à 30–35 €). Possible sans écart de compteurs depuis `R-214` : la fourchette seule
+   relirait les documents variante (revient sur `R-220` n°3 « comme WooCommerce » et sur le cas 2 ci-dessus ; « en stock
+   d'abord » s'appliquerait sous une fourchette seule). Laissé en l'état à sa demande, à reprendre.
+6. *Produit variable restauré de la corbeille* sans fiches variante. *Vérifié le 2026-10-06* (lecture du code) :
+   `wp_untrash_post()` repasse le produit à son statut d'avant (`WC_Post_Data::wp_untrash_post_status()`) et
+   MeiliScout le réindexe pendant que ses variations sont encore à la corbeille ; WooCommerce ne les restaure qu'ensuite,
+   sur `untrashed_post`, par `wp_untrash_post()` (`class-wc-product-variable-data-store-cpt.php:1054-1071`), sans
+   crochet de variation. Même trou pour une méta de variation écrite directement (import, extension). Le stock après
+   une commande est couvert : `wc_update_product_stock()` enregistre la variation (`wc-stock-functions.php:62-64`).
+   *Corrigé le 2026-10-06, commité `6dd8a27`* : `VariationChanges::rememberProductOfVariationMeta()` écoute l'ajout, la modification et la
+   suppression des métas d'une variation et retient son produit, réindexé une fois en fin de requête ; la restauration
+   passe par là (WordPress supprime la méta de corbeille de chaque variation) — une écoute de `untrashed_post` essayée
+   puis retirée, aucun test ne lui trouvant de rôle. Tests : produit restauré réindexé une fois, avec ses deux
+   variations revenues ; méta écrite directement ; méta d'un enfant qui n'est pas une variation (pièce jointe) : rien.
+   Rouges sans l'écoute et sans la vérification du type.
+15. *Écouteur de test jamais retiré* (`VariationChangesTest`) : corrigé au passage, le 2026-10-06 — une seule closure
+   gardée dans une propriété, comme dans `VariationMetaRewritesTest`.
+   *Revue des n°5, 6 et 15, le 2026-10-06* : aucun défaut de comportement (même règle PHP et TS, autres appelants
+   inchangés — le panneau de recherche n'a ni sélection ni fourchette —, aucune boucle de réindexation, environ 25 000
+   `get_post_type()` en cache pour un import de 1 000 variations). Corrigé : `CHANGELOG.md` et `customising/card.md`
+   (une fourchette seule ne choisit plus de variante ; un listing de projet n'en choisit que s'il implémente
+   `VariantScopedListing`), docblocks de `VariantChoice` et `contracts.md`, deux commentaires de justification retirés,
+   `ResolvedListing` passe par `variantListing()`, `rememberProductOfVariationMeta()` (au lieu de
+   `rememberProductOfMeta()`) avec sa garde fusionnée, garde `$postId === 0` pour `delete_post_meta_by_key()` (test,
+   rouge sans elle), le test de restauration relève le nombre de variations au moment de la réindexation, quatre cas
+   partagés renommés, décision précisée pour le tri décroissant. Refusé pour l'instant : une seule méthode
+   `ListingState::ticksAnyOf()` pour les quatre copies de la règle (jumeaux PHP/TS déjà verrouillés par les cas partagés
+   et les tests de requêtes) ; une liste de taxonomies par cas partagé ; une garde WooCommerce sur l'écoute des métas
+   (le type `product_variation` n'existe qu'avec WooCommerce).
+7. *Attribut hiérarchique* : un terme parent ne trouve plus ses produits en mode variantes. *Vérifié le 2026-10-06* :
+   la fiche produit porte les ancêtres (`TermAncestry`), la variante seulement son terme (`ProductVariants::facetsOf()`)
+   et `VariantDocuments` remplace la liste du produit ; WooCommerce enregistre les attributs non hiérarchiques
+   (`class-wc-post-types.php:270`), un projet peut les rendre hiérarchiques (`woocommerce_taxonomy_args_{name}`).
+   Pluralia n'est pas concerné. *Corrigé le 2026-10-06, commité `f037d2b`* : la variante porte aussi les ancêtres de son terme
+   (`TermHierarchy`), seulement sur une taxonomie hiérarchique — aucun coût sur des attributs plats ; la carte en
+   profite (`VariantChoice` lit les mêmes termes). Test : variation 15 ml sous « petits formats », rouge sans la
+   correction. Réindexation nécessaire pour un projet concerné.
+8. *Attribut local homonyme d'une taxonomie* (`taxonomy_exists` au lieu de `taxonomy_is_product_attribute`).
+   *Vérifié et corrigé le 2026-10-06, commité `ca11837`* : `ProductVariants::facetsOf()` ne retient que les attributs produit
+   de WooCommerce (`taxonomy_is_product_attribute()`). Test : un attribut local « meilifacets_test_color », homonyme
+   d'une taxonomie du site, ne donne aucun terme ; rouge avec `taxonomy_exists()`. Les tests déclarent leur attribut
+   fictif en mémoire (`$wc_product_attributes`).
+9. *Taille d'image des variantes* liée à `card.image_size`. *Tranché le 2026-10-06 par l'utilisateur* : une seule clé,
+   gardée. Corrigé : `customising/card.md` dit qu'un projet qui remplace le `CardProjector` doit fixer `card.image_size`
+   à sa taille, l'image propre d'une variante y étant lue. Assumé : sur Pluralia, `portrait` recadre aussi les cartes
+   d'articles du panneau de recherche (une clé produits séparée a été écartée).
+10. *Deux listes de champs relus tenues à la main* (`READ_BY_THE_MODULE`, `VARIANT_RETRIEVED`). *Vérifié et corrigé le
+   2026-10-06, commité `28cde0b`* : identiques mais non liées — un champ lu sans être affiché revient vide, sans erreur.
+   `FacetedPostIndexable::READ_BY_THE_MODULE` reprend `QueryPlan::VARIANT_RETRIEVED`. Test : les champs affichés
+   contiennent ceux que les deux requêtes lisent ; rouge si la liste ne reprend que `RETRIEVED`.
+11. *Suppression par filtre envoyée pour tout article*, pas seulement les produits. *Corrigé le 2026-10-06, commité `447143e`, MeiliScout `ef2bd18`* (demandé par l'utilisateur) : MeiliScout n'envoie plus de suppression quand
+   `dependentDocumentsFilter()` rend `null` (contrat `?string`, une seule garde `dependentDocumentsFilterOf()` pour
+   l'écriture et la suppression, tests Pest) ; le module ne garde que les produits et les articles déjà supprimés —
+   une suppression asynchrone arrive quand l'article n'existe plus (`FacetedPostIndexable::mayHaveVariants()`).
+   Tests : une page et une variation n'ont pas de filtre, un lot mêlé ne filtre que ses produits, un article disparu
+   est gardé ; rouge si on l'écarte. Vocabulaire MeiliScout renommé « dependent documents » (« dependents » seul se
+   lisait « personnes à charge »). Revue des deux dépôts : renommages (`dependentDocumentIdsIn`, `$keptFilter`,
+   tests), suppression ramenée à `removeStaleDependentDocuments(…, [])`, commentaire faux corrigé, lignes ramenées
+   sous 120 caractères. À publier dans l'ordre : MeiliScout d'abord (`upgrading.md`).
+   *Limite acceptée par l'utilisateur le 2026-10-06* (« on se fie au natif ») : un produit variable dont un projet
+   change le type de publication (code ou extension, l'admin ne le permet pas) garde ses fiches variante dans l'index.
+12. *`card.variants` sur la fiche produit*, envoyé sans être lu hors mode variantes. *Vérifié le 2026-10-06* : vrai,
+   un coût et non un défaut — quelques centaines d'octets par variante dans chaque réponse (boutique, panneau). Le
+   retirer demande que MeiliScout laisse ôter un champ de la fiche produit après avoir construit les fiches dépendantes.
+   *Noté, à reprendre* (choix de l'utilisateur).
+13. *Pas de cas partagés PHP/TS* pour `measures` et `variantResults`. *Corrigé le 2026-10-06, commité `5b3dc66`* :
+   `tests/variant-plan-cases.json`, sept états (rien, une marque, une taille triée par prix, taille et marque, taille et
+   fourchette, fourchette seule, taille et recherche) et le plan attendu de chaque recherche (requête, filtre, champs
+   comptés, `distinct`, tri, champs cherchés), joués par `VariantPlanCasesTest` et `listing-query.test.ts` ; un test
+   vérifie que la description du fichier est bien celle de `FakeVariantScopedListing`. Aucun écart trouvé ; un
+   `distinct` retiré d'un côté fait échouer ce côté.
+14. *Registre contradictoire* (503, « non commité »). *Corrigé le 2026-10-06* : états des entrées commitées mis à jour
+   (`R-213` `11c0d80`, `R-214` `ec5d9c4`, `R-217` `58f5b33`, `R-219` `02f7506`, points de cette entrée), dette « le
+   `503` ne sort pas » de `decisions.md` marquée réglée, note sur l'absence de cas partagés du plan mise à jour.
+
+Écartés par la revue : `several_variants` hors filtre (voulu), réindexation en trop (`R-215`), noyau HTTP (Pollora
+utilise celui de Laravel).
+
+*Revue de régression et de véracité de la doc, le 2026-10-06* (après fermeture) :
+- Corrigé : deux tests Feature du projet (`ProductCardProjectionTest`) construisaient `VariantChoice` sans liste de
+  taxonomies et attendaient une variante ; la liste est désormais obligatoire en PHP, et passée par le test. Le
+  troisième échec de ce fichier (`the_wishlist_card_leaves_the_grid…`) vient du travail en cours sur la wishlist.
+- Corrigé : le refus du n°2 sur `clean_post_cache()` ne tenait pas — WooCommerce active son cache d'instances produit
+  sur toute nouvelle installation (`class-wc-install.php:393`, `:1363`). `VariationMetaRewrites` appelle
+  `clean_post_cache()`, que WooCommerce écoute (`ProductCacheController.php:86`). Tests : la variation d'un terme
+  renommé et celle d'un attribut renommé passent par `clean_post_cache` ; rouges avec le seul cache des métas.
+- Corrigé : doc publique (`upgrading.md` — toute liste avec une facette de variation tombe en panne avant la
+  réindexation —, `facets.md`, `price.md`, `results-sort-pagination.md`, réglages d'index, `indexing/README.md`,
+  `wordpress-hooks.md`, `contracts.md`), « ticked » remplacé par « checked ».
+- Corrigé : une valeur de facette de variation sans variante (L déclaré, variations S et M) apparaissait à 0 dès
+  qu'un filtre affinait — la liste des valeurs offertes était lue sur les produits. `QueryPlan::unfilteredVariants()`
+  la lit sur les variantes pour ces facettes ; test, rouge sans la correction ; page vérifiée (`/boutique` et
+  `?marque=aeris` offrent les mêmes contenances).
+- Noté, à reprendre : une facette de variation à choix unique est
+  comptée sans sa sélection, une facette partagée avec ; la table de WooCommerce compte les brouillons, et une table
+  vide coupe le mode variantes sans secours ; la lecture de la table n'est pas mise en cache d'une requête à l'autre ;
+  un `FacetCounter` de projet écrase le compte d'une facette de variation cochée ; liens absolus de
+  `accessibility.md`.
+
+### R-219 · 🟢 · **fermé le 2026-10-05** (`02f7506`) · ouvert le 2026-10-05 — une valeur de facette lue dans l'URL n'avait pas de longueur maximale
+
+Audit de sécurité du 2026-10-05. `StateReader::isReadable()` acceptait une valeur de n'importe quelle longueur : une
+URL forgée portait jusqu'à `cap` valeurs de plusieurs kilo-octets chacune jusqu'au filtre envoyé au moteur. Une valeur
+utile est un slug de terme, et WordPress n'en stocke pas de plus long que 200 octets : colonne
+`wp_terms.slug varchar(200)` (`wp-admin/includes/schema.php:68`), slug coupé à 200 octets encodés par
+`sanitize_title_with_dashes()` (`utf8_uri_encode( $title, 200 )`, `wp-includes/formatting.php:2291`), et un suffixe
+ajouté par `wp_unique_term_slug()` au-delà de 200 fait refuser l'insertion par `wpdb::process_field_lengths()`
+(`wp-includes/class-wpdb.php:2997`). Corrigé : constante `StateReader::MAX_VALUE_BYTES` (200), comptée en octets
+(`strlen()`), puisqu'un slug non ASCII est stocké encodé en `%xx`. Le client ne lit jamais l'URL (état initial reçu
+du serveur, retour arrière par `history.state`) : rien à refléter côté navigateur, pas de jumeau dans
+`ContractParityTest`. Tests : `StateReaderTest` garde une valeur de 200 octets, écarte une valeur de 201 octets.
+Vérifié : `composer check` vert (669 tests PHP, 941 client), suite `Modules` 1061 verts.
+
+### R-218 · 🟡 · ouvert (sujet de production) · ouvert le 2026-10-05 — `MEILI_KEY` est la clé maître
+
+Audit de sécurité du 2026-10-05. En local, `MEILI_KEY` a la même valeur que `MEILI_MASTER_KEY` du conteneur
+Meilisearch (comparaison faite sans afficher les clés). La clé ne quitte pas le serveur, mais sa fuite donnerait tous
+les index, toutes les clés et le droit d'en créer. Recommandation : une clé d'administration dédiée, limitée aux index
+de MeiliScout (`posts`, `taxonomies`, `getIndexName()` des deux indexables) et aux actions qu'il appelle (`search`,
+`documents.*`, `indexes.*`, `settings.*`, `tasks.get`) ; la clé maître hors de l'environnement de l'application.
+Ajouté à `docs/production.md` (« The server key »). Non codé.
+
+### R-217 · 🟠 · **fermé le 2026-10-05** (`58f5b33`, `c86a74e`) · ouvert le 2026-10-05 — la vue de panne du listing part en 200 avec un cache public
+
+*Corrigé le 2026-10-05 (non commité), avec `R-40`* : le listing ne pose plus d'en-tête à la main ;
+`ServiceUnavailable::announce()` marque la panne pendant le rendu, et un middleware global du module
+(`Http\ServiceUnavailableHeaders`, poussé dans le noyau HTTP par `RenderingServiceProvider`) applique à la réponse
+Laravel `503`, `Retry-After: 120` et `Cache-Control: no-store` — global, il enveloppe la pile de Pollora et passe après
+`WordPressHeaders`. Mesuré moteur local arrêté puis relancé : `/boutique` et `?contenance=400ml` en `HTTP/2 503`,
+`cache-control: no-store, private`, `retry-after: 120`, vue de panne présente ; moteur relancé, `200` et 19 cartes.
+Tests : `ServiceUnavailableHeadersTest` (503 et `no-store` une fois la panne levée, page intacte sinon, middleware
+enregistré). Reste, hors de ce point : une page saine porte deux `Cache-Control` (`public, max-age=3600` et
+`max-age=0`), dont l'origine n'est pas cherchée.
+
+Audit de sécurité du 2026-10-05, mesuré en local, Meilisearch arrêté le temps de la mesure puis relancé.
+`ResolvedListing::attempt()` (`app/Listing/ResolvedListing.php:77`) appelle `ServiceUnavailable::sendHeaders()`, qui
+pose le statut par `status_header(503)` et les en-têtes par `header()`. Relevé sur `/boutique` et
+`/boutique?contenance=400ml`, identique sur les deux :
+
+```
+HTTP/2 200
+cache-control: no-store, max-age=3600, must-revalidate, public
+cache-control: max-age=0
+retry-after: 120
+```
+
+La vue de panne est bien rendue (`meilifacetsUnavailable` dans la page) ; moteur relancé, `/boutique` repasse en 200
+sans `retry-after`. Cause : ces appels se font pendant le rendu de la vue, en dehors de la réponse Symfony que Pollora
+renvoie. `FrontendController::handle()` construit `response(View::make(...), 200)`
+(`vendor/pollora/framework/src/Route/UI/Http/Controllers/FrontendController.php:61`) ; à l'envoi,
+`Response::sendHeaders()` réécrit la ligne de statut avec `header(..., true, 200)`
+(`vendor/symfony/http-foundation/Response.php:381`), ce qui écrase le 503. `WordPressHeaders` ne voit pas le
+`no-store` brut (`hasExplicitCacheDirectives()` lit l'objet réponse, `WordPressHeaders.php:232`) et ajoute
+`public, max-age=3600` (`applyPublicCacheHeaders()`, `WordPressHeaders.php:260`) ; Symfony envoie son
+`Cache-Control` sans remplacer celui de PHP (`Response.php:358`, `$replace` faux hors `Content-Type`) et nginx joint
+les deux. Conséquence : un cache qui lit le statut garde la panne comme une page valide ; le `no-store` ne protège que
+derrière un cache qui le lit dans un en-tête contradictoire. Le second `cache-control: max-age=0` et `expires` sont
+déjà là sur une page saine : origine non cherchée. `R-205` (« pose `503` ») et `ListingOutageTest` lisent l'appel à
+`sendHeaders()`, pas la réponse envoyée : aucun test ne tenait le statut reçu. Aucun code changé.
+
+### R-216 · 🟠 · ouvert (sujet de production) · ouvert le 2026-10-05 — un visiteur peut occuper le moteur des secondes avec une seule requête
+
+Audit de sécurité du 2026-10-05. Avec la clé publique, un filtre de 5 000 clauses `OR` (129 Ko) occupe le moteur
+3,5 s ; une recherche multiple de 300 requêtes de 500 clauses (3,7 Mo) l'occupe 40 s. La limite de débit de
+`docs/production.md` compte les requêtes, pas leur poids. Correctif au proxy, devant l'URL publique du moteur :
+`client_max_body_size` (nginx) ou `LimitRequestBody` (Apache), et seules les routes du navigateur en `POST`
+(`/indexes/posts/search`, `/multi-search`, `/indexes/posts/facet-search`, plus `OPTIONS` pour le contrôle CORS).
+Pas `--http-payload-size-limit` : il plafonne aussi l'ajout de documents, donc l'indexation. Ajouté à
+`docs/production.md` (« Request size »). Non codé.
+
+*Détail retiré de `production.md` le 2026-10-05 (doc réduite au principe, à la demande de l'utilisateur)* : au proxy,
+n'ouvrir que `POST` et `OPTIONS` (contrôle CORS du navigateur) sur `/indexes/posts/search`, `/multi-search` et
+`/indexes/posts/facet-search`, `403` ailleurs ; `client_max_body_size` (Apache : `LimitRequestBody`) réglé au-dessus
+de la plus grosse requête d'un vrai listing, toutes facettes cochées — `64k` n'est qu'un ordre de grandeur, non mesuré ;
+le serveur joint le moteur par son adresse privée (`MEILI_HOST`), jamais par ce proxy.
+
+### R-215 · 🟡 · ouvert · ouvert le 2026-10-05 — MeiliScout réindexe un article à chaque écriture d'une de ses métas
+
+`SingleIndexingServiceProvider::handlePostMetaUpdate` (sur `updated_post_meta`, `added_post_meta`,
+`deleted_post_meta`) réindexe l'article à chaque méta écrite, depuis le premier commit de MeiliScout : un produit
+enregistré par WooCommerce, qui écrit une dizaine de métas, est réindexé une dizaine de fois. Les documents variante
+(`R-210` n°1) rendent chaque passage plus coûteux (lecture des variations, suppression puis ajout de leurs documents).
+Une variation enregistrée seule fait réécrire `_price` et trois métas du parent par la synchronisation différée de
+WooCommerce (`class-wc-product-variable-data-store-cpt.php:940-951`) : au moins quatre réindexations, plus celle de
+`VariationChanges`. Non mesuré. *Laissé de côté le 2026-10-05 par l'utilisateur* : le mode différé (`MEILISCOUT_ASYNC_INDEXING`) en
+production regroupera les passages.
+
+### R-214 · 🟡 · **fermé le 2026-10-06** (`ec5d9c4`) · ouvert le 2026-10-05 — un compteur annonce plus de produits que la grille n'en montre
+
+Avec une facette de variante et une fourchette de prix combinées, la grille lit les documents variante (un filtre se
+vérifie sur une seule variante) et les compteurs les documents produit (fourchettes qui se chevauchent) : « 400 ml »
+peut annoncer 4 produits quand un seul a un 400 ml sous 30 €. Limite inscrite dans la décision « Produits variables »
+(2026-10-05, essai sur index temporaire) ; pour l'aligner, compter les facettes de variante sur les documents variante
+sans `distinct`.
+
+*Corrigé le 2026-10-06, non commité* (amendement « Produits variables » du 2026-10-06, méthode native de Meilisearch,
+choisie par l'utilisateur ; option « liste de produits puis comptage » écartée). La piste d'origine comptait deux
+fois un produit par variante (« Visage » 9 au lieu de 8, mesuré). `QueryPlan::measures()` et `measureWithout()`, et
+leurs jumeaux `ListingQuery`, lisent les documents variante avec `distinct` en mode page dès qu'une facette de variante
+est cochée ; les attributs de variation se comptent toujours à part, sur les variantes, sans `distinct`
+(`ListingSearch::variantCountQueries()`, `ListingQuery.#isMeasuredSeparately()`) ; `Listing\VariationTaxonomies` lit
+la table de correspondance de WooCommerce, tous les attributs en secours. Tests : 7 cas PHP, 7 cas TS, 2 de
+`ListingSearch`, 3 de `VariationTaxonomies` (table lue, table désactivée, table en reconstruction) ; onze mutations,
+chacune rattrapée. Vérifié sur la page (serveur, puis client sous Playwright) : 400 ml + 30–35 € → 0 carte et
+« Visage (0) » (1 avant) ; 30–35 € seul → « 400 ml (0) », « 15 ml (0) » (1 chacun avant), « 100 ml (1) » → 1 carte,
+« Visage (2) » → 2 cartes ; aucune erreur en console. Relevé en chemin : la page de liste est servie avec
+`Cache-Control: public, max-age=3600` — un navigateur montre une heure durant les compteurs d'avant un changement.
+*Revue en six passes, le 2026-10-06* :
+- Corrigé : bornes de prix lues avec `distinct` dans `measures` quand une taille est cochée sans fourchette — mesuré
+  39–39 € au lieu de 26–39 € sur le produit 125 ; les bornes ont désormais leur recherche, sur les variantes, sans
+  `distinct` (`ListingSearch::boundsQueries()`, `ListingQuery.#needsSearchOfItsOwn()`). Test PHP et TS, rouges sans la
+  règle ; vérifié dans le navigateur : quatre recherches, résultats et compteurs partagés avec `distinct`, contenances
+  et bornes sans.
+- Corrigé : `VariationTaxonomies` se rabat sur tous les attributs si l'API interne de WooCommerce lève une erreur ;
+  injectée dans `ProductListing` sans valeur par défaut ; renommages `all()`, `isLookupTableInUse()`,
+  `markedInLookupTable()`, `#needsSearchOfItsOwn`, `measuring`/`measuringWithout`, noms de tests ; quatre commentaires
+  retirés ou raccourcis ; lignes longues ajoutées ramenées sous 120 caractères.
+- Corrigé : tests — `ListingDescriptionTest` compare à la liste du listing et non à l'implémentation ;
+  `VariationTaxonomiesTest` fixe lui-même les deux options de WooCommerce ; le test « jamais compté deux fois » inclut
+  la recherche principale ; nouveau test des bornes.
+- Précisé : la limite assumée couvre tout produit dont plusieurs variantes portent un même terme, pas seulement taille
+  × couleur (décision et `reference/index-settings.md`).
+- Refusé : placer la règle des facettes de variante dans `DisjunctiveFacetCounter`. Côté PHP, les recherches comptées à
+  part (facettes, bornes) se décident déjà dans `ListingSearch` ; un compteur de projet garde la main sur les clés
+  qu'il renvoie.
+- Refusé : changer le critère du secours. Le module fait confiance à la table exactement quand WooCommerce le fait
+  pour filtrer (`Filterer.php:46-47`) ; la table est tenue à jour même désactivée, mais rien ne dit alors qu'elle est
+  complète.
+- Refusé pour l'instant : mettre en cache la lecture de la table d'une requête à l'autre. Une lecture par requête qui
+  affiche un listing, par l'index `is_variation_attribute_term_id` ; à mesurer sur un catalogue de plusieurs dizaines
+  de milliers de variations.
+- Refusé : renommer `VariationTaxonomies` en `VariantTaxonomies` — « variation » désigne dans le module les objets de
+  WooCommerce (`VariationChanges`, `VariationPrices`), et la classe lit ce que WooCommerce dit de ses variations.
+- Noté : `QueryPlan` passe à vingt méthodes statiques qui prennent toutes `($listing, $state)` ; le schéma préexiste,
+  une classe par listing et par état serait un chantier à part.
+
+### R-213 · 🔴 · **fermé le 2026-10-05** (`11c0d80`) · ouvert le 2026-10-05 — Pollora 13.34 : les vues du module ne sont plus surchargeables par le thème
+
+La mise à jour du projet (`b4389d5`, `pollora/framework` v13.4.2 → v13.34.2) renomme le contrat des actions :
+`Pollora\Hook\Domain\Contracts\Action` devient `Pollora\Hook\Domain\Contract\Action`. Le fournisseur du module
+importait l'ancien nom et sortait sans rien dire sur `! $this->app->bound(...)` : plus de `prependNamespace` sur
+`after_setup_theme`, donc plus de surcharge des vues du module par le thème. Relevé par la suite `Modules`
+(`ComponentFoldersTest`, 9 rouges, rouge aussi sur le module tel que commité) et par `ProductCardProjectionTest` du
+projet (8 rouges, cartes rendues par la vue du module au lieu de celle du thème). Corrigé par `add_action()` de
+WordPress, stable sur toute la plage que le module accepte (`pollora/framework` `>=13.4 <14`). Vérifié : seul nom
+importé de Pollora qui ne se charge plus (contrôle d'autoload des 41 `use Pollora\…` du module, du projet et du
+thème) ; `ComponentFoldersTest` 21, `ProductCardProjectionTest` 27, `Modules` 1031 verts. Audit des autres effets (2026-10-05,
+lecture seule) : aucune autre classe ni garde cassée ; les 10 crochets `#[Action]`/`#[Filter]` du module enregistrés ;
+pages du site en 200 sans erreur PHP ; Meilisearch répond avec Guzzle 8 ; `__()` traduit (`helper-overrider` 1.2.1).
+Relevés à trancher : styles d'éditeur du thème chargés deux fois par Pollora (`add_editor_style`, thème) ; blocs du
+thème dans `resources/blocks`, déprécié jusqu'à Pollora 15 ; le module demande `helper-overrider` ≥ 1.1 pour lire
+`lang/fr.json` sur un site `fr_FR` (contrainte à déclarer) ; `patches.lock.json` à versionner dans le projet. La
+garde `bound()` qui se tait reste le défaut de fond.
+
+### R-212 · 🟡 · ouvert · ouvert le 2026-10-05 — l'ajout au panier d'une carte est projeté par le projet, pas par le module
+
+Demandé par l'utilisateur le 2026-10-05 : le lien d'ajout au panier (produit et variante) doit être natif au module,
+conditionné à WooCommerce, comme les variantes (`R-210` n°1, `decisions.md` « Produits variables »). Aujourd'hui le
+projet le pose (`cart_url`, `ajax_add_to_cart`, dans `app/Cms/Products/ProductCard.php`). Lot à part, après les
+variantes natives ; lire d'abord ce que WooCommerce offre (`add_to_cart_url()`, `supports('ajax_add_to_cart')`,
+`woocommerce_loop_add_to_cart_link`).
+
+### R-211 · 🟡 · ouvert · ouvert le 2026-10-05 — l'option « Masquer les produits en rupture » n'est pas suivie
+
+`VisibleProducts::hiding()` (`app/Search/VisibleProducts.php:38`) n'écarte que `exclude-from-catalog` et
+`exclude-from-search`. Avec `woocommerce_hide_out_of_stock_items = yes`, WooCommerce masque un produit en rupture
+(terme `outofstock` de `product_visibility`) et ses variations en rupture (`class-wc-product-variable.php:343`) ; le
+module affiche le produit. Ses variations en rupture sortent de `card.variants` depuis `ProductVariants` (2026-10-05),
+qui passe par `get_available_variations()`, mais leurs termes restent dans les facettes du document produit. Sans effet sur le projet de test (option à `no`, lu le 2026-10-05). Un produit en rupture reste
+affiché tant que l'option est décochée : c'est le comportement voulu.
+
+### R-210 · 🟠 · **fermé le 2026-10-06** (n°2 limite connue ; résidus non publiés laissés en l'état) · ouvert le 2026-10-05 — seconde revue de la PR #7 (`9639a56`) : le choix de variante et ce qu'il touche
+
+Rattaché à `R-206`, `R-208`, `R-209`. Constats publiés en anglais dans la PR (revue `5411977381`, un commentaire
+par constat). Les points déjà acceptés sous `R-209` sont exclus. Rien n'est corrigé : chaque constat attend d'être
+trié. *Reproduit* : constaté par un script ; *lu* : mécanisme confirmé à la lecture ; *plausible* : sans relevé HTTP
+ni cas réel.
+
+**Probablement bloquants pour la PR.**
+1. *Tri par prix contre prix affiché* (`VariantChoice.php:45`, lu). La carte montre le prix de la variante retenue,
+   `price_asc`/`price_desc` trient toujours sur `price.min`/`price.max` du produit : `?pa_volume=400ml&sort=price_asc`
+   classe A (15ml à 26, 400ml à 39) avant B (400ml à 30), et la grille lit 39 € puis 30 €.
+   *Tranché le 2026-10-05* : un document par variante en plus du document produit, interrogé avec `distinct` quand un
+   filtre concerne les variantes, compteurs sur les documents produit (`decisions.md`, « Produits variables »). Mesuré
+   sur un index temporaire local, supprimé ensuite ; non codé.
+2. *Archive d'attribut sans variante* (`ResolvedListing.php:96`, lu). Sur `/pa_volume/400ml/`, le terme parcouru est
+   épinglé dans le filtre de base et absent de `facets()` : `VariantChoice` ne choisit rien, et la carte montre le
+   symptôme que `R-206` corrige pour `?pa_volume=400ml`.
+
+**Défauts réels.**
+3. *Champs de variante fusionnés clé par clé* (`VariantChoice.php:79`, lu). *En partie le 2026-10-05 (avancement)*. Une variante sans `image_srcset` garde
+   celui du produit : `src` de la variante, `srcset` du produit, le navigateur affiche la photo du produit.
+4. *Tri filtrant `on_sale` ignoré* (`CardVariant.php:75`, lu). `?sort=on_sale&pa_volume=400ml` liste le produit pour
+   sa variante 15ml en promo et montre la 400ml plein tarif.
+   *Corrigé le 2026-10-06, non commité* (« très grave », demandé par l'utilisateur ; présenté à tort comme « limite
+   connue » dans le registre et la description de la PR #9, sans décision de l'utilisateur) : chaque variante relève
+   `is_on_sale()` de sa variation (`CardVariant::$onSale`, `on_sale`), sa fiche porte son propre `price.onsale`, et
+   la carte ne choisit qu'une variante en promo sous un tri qui filtre sur `price.onsale`
+   (`CardVariant::meetsSortFilter()`, PHP et TS ; le filtre du tri passé par `ResolvedListing` et la description).
+   Tests : documents (une variante en promo, l'autre non, sur un produit marqué en promo), lecture de WooCommerce,
+   trois cas partagés ; rouges sans chacune des trois règles. Réindexation nécessaire. Commité dans `23ca6df`.
+5. *`several_variants` jamais retiré* (`VariantChoice.php:123`, lu et exécuté en mémoire). *Fermé le 2026-10-05
+   (avancement)*. Une valeur posée par le
+   projecteur survit à une seule correspondance : « À partir de 39 € » pour une variante. Même chose côté TS.
+6. *Champs réservés non annoncés* (`VariantChoice.php:37`, lu). `variants` et `several_variants` sont retirés de toute
+   carte affichée ; un projet qui les projetait perd le texte sans erreur, `upgrading.md` dit « same contract ».
+7. *Borne brute contre borne arrondie* (`listing-binding.ts:228`, reproduit). Le navigateur compare la borne saisie, la
+   requête et l'URL portent `formatBound` (4 décimales) : 25.99999 liste le produit à 26, le navigateur garde la carte
+   projetée, le serveur montre la variante à 26 € après rechargement.
+8. *Canonique `?pg=N` sur une archive sans listing* (`IndexingPolicy.php:42`, plausible). `isSecondaryView()` est vrai
+   sur toute archive qui porte `?pg=` : `/category/news/?pg=3` reçoit une canonique vers un paramètre qu'elle ignore.
+   Rejoint la question laissée ouverte sous `R-209` (la canonique relit `pg` à sa façon).
+9. *ItemList JSON-LD sur les cartes choisies* (`ResolvedListing.php:88`, plausible). Sur une page ordinaire,
+   `isSecondaryView()` est faux et `itemListElement.url` publie l'URL de variation au lieu du permalien.
+
+**Robustesse.**
+10. *Prix non fini accepté* (`CardVariant.php:24`, reproduit). Le constructeur et `toArray()` acceptent `INF`, que
+    `read()` refuse et que `json_encode` ne sérialise pas : le lot d'indexation de MeiliScout l'écarte entier. Des
+    slugs entiers `[42]` reviennent en liste vide.
+11. *Échelle de prix de la doc* (`customising/card.md`, exemple retiré depuis, plausible). *Fermé le 2026-10-05
+    (avancement)*. `wc_get_price_to_display()` peut rendre 8.3333
+    contre 8.33 indexé : `?max_price=8.33` liste le produit, aucune variante ne correspond.
+12. *Deux `classList()` sur un élément* (`CardBinding.php:134`, reproduit). `ComponentAttributeBag` garde le premier
+    marqueur `data-meili-class-list` : la carte du serveur porte les deux jeux de classes, celle redessinée par le
+    navigateur perd le second.
+13. *Facette lue par la chaîne de prototypes* (`card-variant.ts:60`, reproduit). Une taxonomie `constructor` ou
+    `__proto__` sélectionnée lève une `TypeError` dans `#repaintGrid` ; PHP (`isset`) dessine la variante.
+14. *Fourchette inversée* (`Range.php:27`, reproduit). `contains()` s'appuie sur `clamp()` : `?min_price=50&max_price=10`
+    contient exactement 10, et la carte montre la variante à 10 € comme correspondante. Même chose côté TS.
+
+**Performance.**
+15. *Variantes lues avant `isConcerned()`* (`VariantChoice.php:36`, mesuré par micro-benchmark). Sans filtre, 48 cartes
+    de 4 variantes : 130 à 170 µs en PHP et environ 98 µs par repeinte navigateur, contre 4 à 8 µs avec un retour
+    anticipé quand sélection et fourchette sont vides. Vaut aussi pour chaque résultat du panneau.
+
+*Vérification dans le code, le 2026-10-06* (lecture seule, reproductions en mémoire) : fils de la PR répondus ; n°1,
+5, 6, 11 réglés et résolus ; n°10 et 14 ne s'appliquent plus (répondus, ouverts). *Corrigés le 2026-10-06, non
+commités* : n°9 — le JSON-LD `ItemList` se bâtit sur les cartes projetées (`ResolvedListing::projectedCards()`),
+l'URL du produit et non celle de la variation ; n°7 — le navigateur arrondit les bornes comme la requête et l'adresse
+(`ListingState`) ; n°13 — une facette n'est lue que parmi les propres clés de la variante (`Object.hasOwn`), cas partagé
+`constructor`/`__proto__` ; n°15 — les variantes ne sont lues que si un filtre les concerne (PHP et TS) ; n°14 — une
+fourchette inversée ne contient rien (PHP et TS) ; n°10 — `CardVariant` refuse un prix non fini ; n°3 — des champs
+d'image fournis par le projet sont complétés en image entière (`ImageFields::withWholeImage()`). Tests sur chacun, rouges
+sans la correction pour n°7 et n°13. À trancher : n°2 (archive d'attribut, sans effet sur Pluralia), n°8 (canonique
+d'une archive sans listing : le module ne sait pas, dans le `<head>`, qu'un listing sera rendu), n°12 (deux
+`classList()` sur un élément). *Tranché le 2026-10-06 par Louis* : n°2 est une limite connue, les archives d'attribut
+sont hors du périmètre actuel et le module recommande de laisser « Enable archives? » décoché
+(`docs/customising/card.md`, « Card variants ») ; Pluralia les a désactivées (`attribute_public = 0`, lu).
+*Tranché le 2026-10-06 par Louis, corrigé* : n°12, `CardFieldElement::with()` refuse un second `classList()`
+(`BindingRefused::secondClassList()`), un tableau comme un sac ; un `merge()` du projet reste silencieux, ce que la
+doc dit. Deux tests rouges sans le refus ; `composer check` vert, `Modules` 1121, `/boutique` en 200.
+*Tranché le 2026-10-06 par Louis, corrigé* : n°8, `<x-meilifacets::listing>` marque la page
+(`ListingPage::markAsCurrent()`, service par requête) et le filtre `meilifacets/is_listing_page` surcharge la réponse
+(`decisions.md`, « Indexation des URLs de listing », coût compris). Relevé avant/après sur `/author/amphibee/?pg=3` :
+`noindex`, canonique `?pg=3` et preconnect avant, `index` et canonique de Yoast sans `pg` après ; `/boutique?pg=2` et
+`/categorie-produit/visage?contenance=400ml` inchangés (`noindex`, canonique, preconnect). Écarte au passage la
+recherche native `/?s=` sans listing (`R-161`). Test du `<head>` rouge sans la marque ; `composer check` vert,
+`Modules` 1127.
+
+*Fermé le 2026-10-06.* Les quinze constats ont une suite : n°1 par les documents variante (PR #9) ; n°3, 7, 9, 10,
+13, 14, 15 dans `6df085b` ; n°4 dans `23ca6df` ; n°5, 6, 11 réglés le 2026-10-05 ; n°12 dans `36af831` ; n°8 dans
+`f830cc2` ; n°2 limite connue, validée par Louis, documentée dans `ad43b14`. Les quinze fils de la PR #7 sont
+répondus et résolus, chacun avec son commit. Vérifié à la fermeture : `composer check` vert, `Modules` 1127, pages
+`/boutique`, `/categorie-produit/visage` et `/author/amphibee/?pg=3` relevées, choix de variante et « Indisponible »
+vus dans le navigateur. Les résidus ci-dessous n'ont pas été publiés ni traités : ils restent à trier s'ils doivent
+l'être.
+
+**Résidus non publiés** (au-delà du plafond de 15) : docblock de `canonicalFor()` qui redit `decisions.md` ;
+`CardView.fieldsOf` crée un `VariantChoice` par résultat et le paquet du panneau grossit d'environ 9 % ; `marker()`
+construit encore les paires d'attributs sur une carte rendue avant de les jeter ; `PostDocument` ne réécrit pas en liste
+une `Collection` Laravel stockée dans `variants` ; `ResolvedListingStateTest` écrit des noms de champs en chaînes ;
+`ListingResults::card()` renumérote les clés numériques avant le choix de variante (antérieur à la PR, casse la parité
+que la PR teste).
+
+**Avancement du 2026-10-05, suite.** Étape 2 codée, non commitée : un document par variante écrit et retiré avec
+le produit (MeiliScout `7ce229c`, `HasDependentDocuments`, implémenté par `FacetedPostIndexable` avec
+`VariantDocuments`) ; chaque requête produit écarte les documents variante ; une facette d'attribut ou une fourchette
+de prix fait lire les résultats sur les documents variante (`QueryPlan::readsVariants`, `variantResults`,
+`distinct: parent_id`, stock d'abord sous un tri par prix), les compteurs restant sur les produits (`measures`) ;
+jumeau navigateur depuis la clé publiée `variantResults`. Réindexation du produit quand une variation change seule
+(MeiliScout `246c358`, `meiliscout/reindex_post`, `VariationChanges`). Revue en six passes, vocabulaire unifié
+(« variant / parent / measures »). Trouvés sur le moteur réel et corrigés : `parent_id` absent de
+`displayedAttributes`, `distinct` ignoré par `MeilisearchQuery`. Vérifié : `composer check` (PHP 667, client 941 après la seconde revue),
+`Modules` 1057+, réindexation locale (2 documents variante, 65 produits), navigateur : 15 ml + 400 ml en tri
+décroissant, un seul « Eau Micellaire », en tête, « À partir de 26,00 € » ; 400 ml seul, 39,00 €. Reste ouvert :
+n°2 (archive d'attribut : la carte ne connaît pas le terme parcouru), n°4 (`price.onsale` hérité du produit par
+chaque variante), `R-214`, `R-215`.
+
+**Avancement du 2026-10-05, branche `feat/variant-documents`, non commité.** Étape 1 de n°1 codée : le module lit les
+variantes dans WooCommerce (`Indexing\ProductVariants`, appelé par `Indexing\ShopFields`, extrait de `PostDocument`),
+stock compris ; un projet ajoute ses champs par `Contracts\VariantFields` (défaut `EmptyVariantFields`) ; règle « en
+stock d'abord » et `out_of_stock` des deux côtés, 9 cas partagés de plus (mutations vérifiées : 3 rouges en PHP et en
+TS sur la préférence, 1 sur la remise à zéro des drapeaux). Ferme au passage n°5 (`several_variants` et
+`out_of_stock` remis à zéro quand une variante est montrée) et n°11 (prix lu dans `get_variation_prices(for_display:
+true)`, la liste d'où viennent `price.min`/`price.max`) ; n°3 seulement pour l'image propre d'une variante, écrite en
+entier (`ImageFields::whole()`) — la fusion clé par clé reste pour les champs d'un projet. Revue en cinq passes faite ;
+laissé ouvert : un `wc_get_product()` et un `get_variation_prices()` par projecteur et par document (au moins trois
+objets produit par document), à traiter à part. Vérifié : `composer check` (PHP 647, client 931), `Modules` 1026,
+`ProductCardProjectionTest` du projet 27.
+
+**Sain, au moment de la revue (`9639a56`)** : `dist/` conforme aux sources (`node bundle.ts --check`) ; aucune carte du serveur ne contourne
+`ResolvedListing::cards()` ; rien ne lit les `data-meili-*` d'une carte rendue ; PHP 636 tests, client 922.
+
+### R-209 · 🟡 · ouvert (commité dans `3209a46`, `2714f09`, `9639a56` ; suite sous `R-210`) · ouvert le 2026-10-02 — revue de la PR #7 (`9c4474a`) et de `14391f7`
 
 Rattaché à `R-206`, `R-207`, `R-208`. Constats publiés en anglais dans la PR (« Review — `9c4474a` »), puis revue de
 `14391f7`, qui n'avait été revu par personne. Rien n'est commité, réindexé ni écrit en base ou dans le moteur : les

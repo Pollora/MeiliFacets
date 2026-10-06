@@ -22,9 +22,10 @@ final readonly class Range
         return $this->min === null && $this->max === null;
     }
 
+    /** An inverted range — from 50 up to 10 — holds nothing, as the engine's two bounds match nothing. */
     public function contains(float $value): bool
     {
-        return $this->clamp($value) === $value;
+        return ($this->min ?? $value) <= $value && $value <= ($this->max ?? $value);
     }
 
     public function clamp(float $value): float

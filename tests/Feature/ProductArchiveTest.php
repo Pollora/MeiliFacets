@@ -12,6 +12,7 @@ use Modules\MeiliFacets\Enums\ProductTaxonomy;
 use Modules\MeiliFacets\Listing\Facet;
 use Modules\MeiliFacets\Listing\NameOrder;
 use Modules\MeiliFacets\Listing\ProductListing;
+use Modules\MeiliFacets\Listing\VariationTaxonomies;
 use Modules\MeiliFacets\Listing\WooCommerceFacets;
 use Modules\MeiliFacets\Listing\WooCommerceSorts;
 use Modules\MeiliFacets\Search\FilterExpression;
@@ -153,7 +154,11 @@ final class ProductArchiveTest extends TestCase
     public function it_narrows_nothing_off_an_archive(): void
     {
         $this->assertSame(
-            ['post_type = "product"', 'post_status = "publish"', 'NOT facets.product_visibility = "exclude-from-catalog"'],
+            [
+                'post_type = "product"',
+                'post_status = "publish"',
+                'NOT facets.product_visibility = "exclude-from-catalog"',
+            ],
             $this->baseFilterOn([])
         );
     }
@@ -259,6 +264,7 @@ final class ProductArchiveTest extends TestCase
                 new WooCommerceFacets(new NameOrder),
                 new WooCommerceSorts,
                 $this->app->make(SearchableTypes::class),
+                new VariationTaxonomies,
             ));
         } finally {
             $wp_query = $current;

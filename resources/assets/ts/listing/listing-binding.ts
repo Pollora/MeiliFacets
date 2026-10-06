@@ -9,7 +9,7 @@ import { VariantChoice } from '../results/variant-choice.ts'
 import { CardView } from '../results/card-view.ts'
 import { ResultsView } from '../results/results-view.ts'
 import { InputSource } from '../shared/input-source.ts'
-import { RESULTS } from '../shared/plan.ts'
+import { Measures, RESULTS } from '../shared/plan.ts'
 import { SortCombobox } from '../sort/sort-combobox.ts'
 import { SortQuery } from '../sort/sort-query.ts'
 import { SortRadios } from '../sort/sort-radios.ts'
@@ -207,7 +207,7 @@ export class ListingBinding {
 
         this.#facets.showCounts(new FacetCounts(answers))
         this.#price.showBounds(answers, state)
-        const matches = this.#sortQuery.matchesIn(results.facetDistribution ?? {})
+        const matches = this.#sortQuery.matchesIn(Measures.in(answers).facetDistribution ?? {})
 
         this.#sort.showMatches(matches, state)
         this.#sortRadios.showMatches(matches, state)
@@ -225,7 +225,9 @@ export class ListingBinding {
 
     #repaintGrid(results: SearchAnswer, state: ListingState) {
         const pageWindow = this.#pageWindowOf(state, results.totalHits ?? 0)
-        const choice = new VariantChoice(state.facets, state.price)
+        const variantTaxonomies = this.#description.variantResults?.taxonomies ?? []
+        const sortFilter = state.sort === null ? null : this.#description.sortFilters[state.sort] ?? null
+        const choice = new VariantChoice({ selected: state.facets, price: state.price, variantTaxonomies, sortFilter })
 
         this.#results.show((results.hits ?? []).map((hit) => CardView.fieldsOf(hit, choice)), pageWindow)
         this.#pagination.show(pageWindow)

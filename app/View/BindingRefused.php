@@ -25,4 +25,12 @@ final class BindingRefused extends LogicException
             "Card field \"{$field}\" cannot be bound: a field name is made of letters, digits and underscores only."
         );
     }
+
+    public static function secondClassList(): self
+    {
+        return new self(
+            'An element takes one classList(): the card template would keep only the first field. '
+            .'Bind the second on a child element.'
+        );
+    }
 }

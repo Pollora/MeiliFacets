@@ -13,10 +13,13 @@ use Modules\MeiliFacets\Enums\IndexSetting;
 use Modules\MeiliFacets\Enums\PaginationSetting;
 use Modules\MeiliFacets\Enums\TypoToleranceSetting;
 use Modules\MeiliFacets\Search\EngineLimits;
+use Modules\MeiliFacets\Search\QueryPlan;
+use Modules\MeiliFacets\Search\VisibleProducts;
 use Modules\MeiliFacets\Support\UniqueList;
+use Pollora\MeiliScout\Contracts\HasDependentDocuments;
 use Pollora\MeiliScout\Indexables\PostIndexable;
 
-final class FacetedPostIndexable extends PostIndexable
+final class FacetedPostIndexable extends PostIndexable implements HasDependentDocuments
 {
     private const string ALL_FACETS = '*';
 
@@ -26,14 +29,27 @@ final class FacetedPostIndexable extends PostIndexable
      * The only fields the module reads back from a hit. Anything else a project
      * needs is declared, not inherited.
      */
-    private const array READ_BY_THE_MODULE = [DocumentField::Id->value, DocumentField::Card->value];
+    private const array READ_BY_THE_MODULE = QueryPlan::VARIANT_RETRIEVED;
 
     public function __construct(
         private readonly IndexAttributes $attributes,
         private readonly SearchableAttributes $searchable,
         private readonly IndexedTaxonomies $taxonomies,
         private readonly EngineLimits $limits,
+        private readonly VariantDocuments $variants,
     ) {}
+
+    public function dependentDocuments(array $document, mixed $item): array
+    {
+        return $this->variants->of($document);
+    }
+
+    public function dependentDocumentsFilter(array $itemIds): ?string
+    {
+        $productIds = array_values(array_filter($itemIds, $this->mayHaveVariants(...)));
+
+        return $productIds === [] ? null : $this->variants->filterOf($productIds);
+    }
 
     /**
      * @return array<string, mixed>
@@ -46,6 +62,7 @@ final class FacetedPostIndexable extends PostIndexable
             $settings,
             IndexSetting::FilterableAttributes,
             $this->facetAttributes(),
+            [DocumentField::Id->value, DocumentField::ParentId->value],
             $this->attributes->filterable()
         );
 
@@ -136,5 +153,13 @@ final class FacetedPostIndexable extends PostIndexable
             DocumentField::Facets->path(...),
             $this->taxonomies->all()
         );
+    }
+
+    /** A removal processed asynchronously reaches the engine once the post is gone: it may have been a product. */
+    private function mayHaveVariants(int|string $itemId): bool
+    {
+        $postType = get_post_type((int) $itemId);
+
+        return $postType === false || $postType === VisibleProducts::POST_TYPE;
     }
 }

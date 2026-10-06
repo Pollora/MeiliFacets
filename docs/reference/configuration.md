@@ -44,14 +44,14 @@ document (see [commands](commands.md#wordpress-cli)).
 | --- | --- | --- | --- | --- | --- | --- |
 | `browser.url` | `string` | `''` | `env('MEILI_PUBLIC_URL')` | render | Engine address for the browser, scheme included (`https://search.projet.ddev.site`). Without a scheme and a host, the client is not loaded. | [Installation](../installation.md) |
 | `browser.key` | `string` | `''` | `env('MEILI_SEARCH_KEY')` | render | Key the browser sends. Readable by every visitor: a search-only key. Empty, the client is not loaded. | [Going to production](../production.md) |
-| `apply_mode` | `string` | `submit` | `submit` | render | `immediate`: every ticked box searches. `submit`: changes wait for Apply. Any other value falls back to `submit`. Read by the default product listing; a custom `Listing` decides through `applyMode()`. | [How a listing works](../listing/README.md) |
+| `apply_mode` | `string` | `submit` | `submit` | render | `immediate`: every checked box searches. `submit`: changes wait for Apply. Any other value falls back to `submit`. Read by the default product listing; a custom `Listing` decides through `applyMode()`. | [How a listing works](../listing/README.md) |
 | `url_parameters` | `array<string, string>` | `[]` | `[]` | render | Taxonomy name to URL parameter name. A taxonomy left out travels as `f_<taxonomy>`. | [How a listing works](../listing/README.md) |
 | `query_parameters` | `array<string, string>` | `[]` | `[]` | render | Renames a reserved parameter: keys `sort`, `q`, `pg`, `min_price`, `max_price`. | [How a listing works](../listing/README.md) |
 | `card.eager` | `int` | `4` | `4` | render | Number of first cards whose image loads eagerly with `fetchpriority="high"`. | [Results](../listing/results-sort-pagination.md) |
-| `card.image_size` | `string` | `medium` | `medium` | indexing | WordPress image size stored in the card. | [What gets indexed](../indexing/README.md) |
+| `card.image_size` | `string` | `woocommerce_thumbnail` for products and their variants, `medium` otherwise | commented out | indexing | WordPress image size stored in every card, products included. | [What gets indexed](../indexing/README.md) |
 | `engine.reachable_hits` | `int` | `1000` | `1000` | indexing and render | Written as `pagination.maxTotalHits`; caps the last reachable page. | [Index settings](index-settings.md) |
 | `engine.max_facet_values` | `int` | `1000` | `1000` | indexing and render | Written as `faceting.maxValuesPerFacet`; a facet returning that many values is reported as truncated. | [Facets](../listing/facets.md) |
-| `displayed_attributes` | `list<string>` | `[]` | `[]` | indexing | Document fields the search key may read besides `ID` and `card`. `*` opens the whole document. | [What gets indexed](../indexing/README.md) |
+| `displayed_attributes` | `list<string>` | `[]` | `[]` | indexing | Document fields the search key may read besides `ID`, `card` and `parent_id`. `*` opens the whole document. | [What gets indexed](../indexing/README.md) |
 
 The module's own `config/config.php` declares one key, `meilifacets.name` (`MeiliFacets`). nwidart merges it over
 the project's, so it cannot be overridden; nothing reads it.

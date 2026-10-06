@@ -20,12 +20,13 @@ You want to…
 its `metas`. Which post types are indexed is a MeiliScout setting, stored in the database and set from its
 administration screen: set it on every environment.
 
-**The module** hooks into MeiliScout at two points:
+**The module** hooks into MeiliScout at three points:
 
 | MeiliScout filter | What the module does |
 | --- | --- |
 | `meiliscout/post/document` | adds its fields to every document, on every indexing path: full index, single save, async queue |
 | `meiliscout/indexables` | replaces MeiliScout's post indexable with its own, which writes the module's index settings |
+| `HasDependentDocuments` (contract of that indexable) | writes one document per variant of a variable product, under the post type `product_variation`, with the product's and removed with it |
 
 The module never pushes documents itself, and has no indexing command of its own. To reindex, use MeiliScout's:
 
@@ -43,6 +44,7 @@ wp meiliscout index
 | `content` | the post's content, as plain text: block delimiters, tags, shortcodes and entities removed |
 | `card` | everything a result card shows: see [The card](#the-card) |
 | `price` | `min`, `max` and `onsale`, for a product that has a price: see [Indexed prices](prices.md) |
+| `in_stock`, `document_kind`, `parent_id` | stock, the mark of a product with variant documents, and a variant document's product: see [Index settings](../reference/index-settings.md#document-fields) |
 
 A password-protected post gets an empty `excerpt`, an empty `content` and no summary on its card.
 
@@ -60,19 +62,21 @@ The full list of fields and settings is in [Index settings and document fields](
 | --- | --- | --- |
 | `title` | the post title, as plain text | every post |
 | `url` | the permalink | every post |
-| `image_url`, `image_width`, `image_height` | the featured image at the size `card.image_size` (default `medium`) | posts with a featured image |
+| `image_url`, `image_width`, `image_height` | the featured image at the size `card.image_size` (default `woocommerce_thumbnail` for products, `medium` otherwise) | posts with a featured image |
 | `image_srcset`, `image_sizes` | the image's candidates, when WordPress has any | posts with a featured image |
 | `image_alt` | the image's alternative text, as plain text | posts with a featured image |
 | `price` | WooCommerce's price HTML (`get_price_html()`) | products |
 | `summary` | the author's excerpt, whole; otherwise the opening of the content, cut at `excerpt_length` words (WordPress filter, 55 by default) | everything but products |
 
-A field with nothing to show is absent, not empty. The exception is a product with no price, whose `card.price` is
-WooCommerce's (empty) price HTML.
+A field with nothing to show is absent, not empty. The exceptions are a product with no price, whose `card.price` is
+WooCommerce's (empty) price HTML, and the image fields inside a variant's `fields`, which may be empty so that they
+replace the product's.
 
-A product sold in several ways — sizes, colours — can also carry `variants`: one entry per way it is sold, with the
-terms the filters can match, its price and the card fields it shows instead of the product's. The module writes
-none: a projector of yours adds them, and the listing shows each card through the variant the filters point to when
-a filter concerns them, as projected otherwise. See [Card variants](../customising/card.md#card-variants).
+A variable product also carries `variants`: one entry per variation WooCommerce offers, with the terms the filters
+can match, its price, whether it is in stock and the card fields it shows instead of the product's. The module reads
+them off WooCommerce; a project adds its own fields through `Contracts\VariantFields`. The listing shows each card
+through the variant the filters point to when a filter concerns them, as projected otherwise. See
+[Card variants](../customising/card.md#card-variants).
 
 `summary` is stored decoded: `&` is `&`, not `&amp;`. Render it as text (`{{ }}` in Blade, `textContent` in
 JavaScript), never as HTML.
@@ -164,7 +168,8 @@ Rules for a projected field:
 
 - store plain text, never HTML: the client writes card fields as text. The price is the only HTML field;
 - leave a field out when there is nothing to show, rather than storing an empty string;
-- do not name a field `id`: the module writes the document's `ID` there when it binds a card;
+- do not name a field `id`: the module writes the product's ID there when it binds a card — `parent_id` on a variant's
+  document, `ID` otherwise;
 - **anything on the card is public**. Every visitor can read it with the search key: never project private data.
 
 Once the field is indexed, bind it in your card's view: see [Overriding views](../customising/views.md) for the
@@ -173,8 +178,8 @@ listing card, and [A card per type](../search/types.md#a-card-per-type) for the 
 ## What the browser may read
 
 The search key travels to every visitor's browser. Anyone can use it to query the index directly, so the module limits
-what a response may return through Meilisearch's `displayedAttributes`: **`ID` and `card` only**. Without that limit,
-any visitor could read every post's content and every meta, private ones included.
+what a response may return through Meilisearch's `displayedAttributes`: **`ID`, `card` and `parent_id` only**. Without
+that limit, any visitor could read every post's content and every meta, private ones included.
 
 `displayedAttributes` decides what a response returns, not what can be filtered or searched: a filter or a facet count
 keeps working on a field the key cannot read.
@@ -198,9 +203,9 @@ Each time MeiliScout indexes, the module writes these settings on the index:
 
 | Setting | What the module puts in it |
 | --- | --- |
-| `filterableAttributes` | MeiliScout's, plus `facets.<taxonomy>` for every indexed taxonomy, plus the WooCommerce price and stock fields when WooCommerce is active |
-| `sortableAttributes` | MeiliScout's, plus `price.min` and `price.max` when WooCommerce is active |
-| `displayedAttributes` | `ID`, `card`, and what is declared as above |
+| `filterableAttributes` | MeiliScout's, plus `facets.<taxonomy>` for every indexed taxonomy, plus `ID` and `parent_id`, plus the WooCommerce price and stock fields and `document_kind` when WooCommerce is active |
+| `sortableAttributes` | MeiliScout's, plus `price.min`, `price.max` and `in_stock` when WooCommerce is active |
+| `displayedAttributes` | `ID`, `card`, `parent_id`, and what is declared as above |
 | `searchableAttributes` | the search order: see [Search relevance](relevance.md) |
 | `typoTolerance.disableOnAttributes` | the fields matched exactly: the SKU when WooCommerce is active |
 | `faceting` | facet values sorted by count; at most `engine.max_facet_values` values per facet |
@@ -222,7 +227,9 @@ wp meiliscout index
 | Change | Reindex needed? |
 | --- | --- |
 | a post, a product or its terms saved in the admin, a quick edit, an import through WordPress | no: the post is reindexed |
-| a term renamed or moved | no: MeiliScout reindexes the posts filed under it |
+| a term renamed or moved | no: MeiliScout reindexes the posts filed under it, after WooCommerce has rewritten an attribute term's slug in their variations |
+| a variation saved on its own: price, stock after an order, added, removed | no: the module reindexes its product |
+| **an attribute's slug renamed** (Products › Attributes) | **yes, scheduled**: the module schedules MeiliScout's background run, as long as MeiliScout is configured and cron runs; until it ends, listings answer with the outage view. Update `url_parameters` by hand: it names the old taxonomy |
 | a scheduled sale starting or ending | no, as long as cron runs: see [Indexed prices](prices.md#scheduled-sales) |
 | **an image edited**: alternative text changed in the media library, thumbnails regenerated, an image size redeclared | **yes** |
 | `card.image_size`, a `CardProjector`, the `excerpt_length` filter | **yes** |
@@ -254,6 +261,8 @@ Most of the time this is what keeps the index right. It becomes visible when a p
 - WooCommerce writes `_regular_price`, then `_price`, when a price changes: the product is pushed twice;
 - a plugin that saves metas over AJAX, a bulk editor for example, reindexes one document per field it saves;
 - a script that writes many metas in a loop pushes as many documents.
+
+A meta written on a variation reindexes its product once, at the end of the request.
 
 Two counter-measures, in this order:
 

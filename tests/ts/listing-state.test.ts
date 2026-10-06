@@ -50,6 +50,14 @@ describe('ListingState', () => {
         assert.equal(new ListingState().isPristine(), true)
     })
 
+    it('rounds a bound as the query and the address write it', () => {
+        const { price } = new ListingState({ price: { min: 25.99999, max: 39.123456 } })
+
+        assert.equal(price.min, 26)
+        assert.equal(price.max, 39.1235)
+        assert.ok(price.contains(26))
+    })
+
     it('counts a price range as one filter, whatever its ends', () => {
         assert.equal(new ListingState({ price: { min: 20, max: 60 } }).activeFilterCount(), 1)
         assert.equal(new ListingState({ price: { max: 60 } }).activeFilterCount(), 1)

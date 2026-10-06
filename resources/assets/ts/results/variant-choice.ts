@@ -1,35 +1,60 @@
 import { CardVariant } from './card-variant.ts'
 import { Range } from '../shared/range.ts'
 
-import type { Card, Selection } from '../shared/description.ts'
+import type { Card, Selection, SortFilterDescription } from '../shared/description.ts'
 
 export const ID_FIELD = 'id'
 const VARIANTS_FIELD = 'variants'
 const SEVERAL_FIELD = 'several_variants'
-const FIELDS_SET_BY_THE_MODULE: readonly string[] = [ID_FIELD, VARIANTS_FIELD, SEVERAL_FIELD]
+const OUT_OF_STOCK_FIELD = 'out_of_stock'
+const FLAGS_OF_THE_CHOSEN_VARIANT: readonly string[] = [SEVERAL_FIELD, OUT_OF_STOCK_FIELD]
+const FIELDS_SET_BY_THE_MODULE: readonly string[] = [ID_FIELD, VARIANTS_FIELD, ...FLAGS_OF_THE_CHOSEN_VARIANT]
 
-/** The browser's copy of `Listing\VariantChoice`: shows a card through the variant the active filters point to, and as projected when none concerns its variants. */
+/** What a listing knows when it shows its cards. */
+export interface ChoiceContext {
+    selected?: Selection
+    price?: Range
+    variantTaxonomies?: readonly string[]
+    sortFilter?: SortFilterDescription | null | undefined
+}
+
+/** The browser's copy of `Listing\VariantChoice`. */
 export class VariantChoice {
     #selected: Selection
     #price: Range
+    #variantTaxonomies: readonly string[]
+    #sortFilter: SortFilterDescription | null
 
-    constructor(selected: Selection = {}, price = new Range()) {
+    constructor({ selected = {}, price = new Range(), variantTaxonomies = [], sortFilter = null }: ChoiceContext = {}) {
         this.#selected = selected
         this.#price = price
+        this.#variantTaxonomies = variantTaxonomies
+        this.#sortFilter = sortFilter
     }
 
     shown(card: Card): Card {
         const { [VARIANTS_FIELD]: stored, ...rest } = card
-        const variants = VariantChoice.#read(stored)
-        const matching = this.#isConcerned(variants) ? this.#matching(variants) : []
+        const matching = this.#readsVariants() ? this.#matching(VariantChoice.#read(stored)) : []
 
         if (matching.length === 0) {
             return rest
         }
 
-        const chosen = VariantChoice.#cheapest(matching)
+        const offered = VariantChoice.#offered(matching)
+        const chosen = VariantChoice.#cheapest(offered)
 
-        return { ...rest, ...VariantChoice.#overrides(chosen), ...(matching.length > 1 ? { [SEVERAL_FIELD]: true } : {}) }
+        return {
+            ...VariantChoice.#unflagged(rest),
+            ...VariantChoice.#overrides(chosen),
+            ...(offered.length > 1 ? { [SEVERAL_FIELD]: true } : {}),
+            ...(chosen.inStock ? {} : { [OUT_OF_STOCK_FIELD]: true }),
+        }
+    }
+
+    static #unflagged(card: Card): Card {
+        const kept = Object.entries(card).filter(([field]) => !FLAGS_OF_THE_CHOSEN_VARIANT.includes(field))
+
+        return Object.fromEntries(kept)
     }
 
     static #read(stored: unknown) {
@@ -51,12 +76,18 @@ export class VariantChoice {
         return Object.fromEntries(Object.entries(variant.fields).filter(([field]) => !FIELDS_SET_BY_THE_MODULE.includes(field)))
     }
 
-    #isConcerned(variants: CardVariant[]) {
-        return !this.#price.isEmpty() || variants.some((variant) => variant.carriesAny(this.#selected))
+    #readsVariants() {
+        return Object.keys(this.#selected).some((taxonomy) => this.#variantTaxonomies.includes(taxonomy))
     }
 
     #matching(variants: CardVariant[]) {
-        return variants.filter((variant) => variant.matches(this.#selected, this.#price))
+        return variants.filter((variant) => variant.matches(this.#selected, this.#price) && variant.meetsSortFilter(this.#sortFilter))
+    }
+
+    static #offered(matching: CardVariant[]) {
+        const inStock = matching.filter((variant) => variant.inStock)
+
+        return inStock.length === 0 ? matching : inStock
     }
 
     /** The first listed wins a tie. */

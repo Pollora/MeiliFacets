@@ -196,9 +196,14 @@ The `key` field of the response goes into `MEILI_SEARCH_KEY`. A key's value is d
 key: giving a fixed `uid` lets you recreate the same key after the engine's data is lost, without changing the
 environment.
 
-The key only reads what the index lets it read: the module restricts what a response returns to `ID` and `card`
-(Meilisearch's `displayedAttributes`). A field added through `displayed_attributes` becomes readable by every visitor.
-Filtering and counting are not restricted by that setting.
+The key only reads what the index lets it read: the module restricts what a response returns to `ID`, `card` and
+`parent_id` (Meilisearch's `displayedAttributes`). A field added through `displayed_attributes` becomes readable by
+every visitor. Filtering and counting are not restricted by that setting.
+
+### The server key
+
+`MEILI_KEY` is what the server indexes and searches with. Do not set it to the master key: give it an admin key
+limited to the indexes MeiliScout writes, and keep the master key out of the application's environment.
 
 ### Rate limiting
 
@@ -223,6 +228,12 @@ sends one.
 
 Filtered and searched URLs are usually not served from a page cache, since each one carries its own query string.
 Every first render of such a URL reaches PHP and the engine.
+
+### Request size
+
+A rate limit counts requests, not their weight: a single search carrying a huge filter can keep the engine busy for
+seconds. On the engine's public URL, cap the size of a request body and open only the search routes the browser uses.
+Do not cap it with Meilisearch's own payload limit, which applies to indexing too.
 
 ### What the index may hold
 
@@ -249,7 +260,7 @@ signed by the server; it is not implemented yet.
 
 ## Robots
 
-On an archive or a search page, every view that is not the bare path is served `noindex, follow`: a facet value, a
+On a page that renders a listing, every view that is not the bare path is served `noindex, follow`: a facet value, a
 sort, a search term, a price bound or a page number, in a parameter or as `/page/N`.
 
 - These views carry a **canonical to the bare path**, page number kept: `/shop/?q=cream&pg=2` points to
@@ -258,7 +269,8 @@ sort, a search term, a price bound or a page number, in a parameter or as `/page
 - Facets, sorting and pagination are **buttons, not links**. Crawlers do not follow them, so they do not discover the
   combinations of filters.
 - Search terms read from the URL are escaped wherever they are printed.
-- A listing placed on an ordinary page, not an archive or search page, is not covered by these rules.
+- A listing rendered after the page's `<head>` is not covered by these rules until its page is declared with the
+  `meilifacets/is_listing_page` filter.
 
 Details in [How a listing works](listing/README.md#what-search-engines-see).
 

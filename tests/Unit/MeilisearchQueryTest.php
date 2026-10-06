@@ -14,6 +14,7 @@ use Modules\MeiliFacets\Search\PriceQuery;
 use Modules\MeiliFacets\Search\QueryPlan;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeListing;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeSearchScopedListing;
+use Modules\MeiliFacets\Tests\Unit\Doubles\FakeVariantScopedListing;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -43,6 +44,16 @@ final class MeilisearchQueryTest extends TestCase
         $query = QueryPlan::unfiltered($this->scopedListing('creme'));
 
         $this->assertSame(self::SEARCHED_FIELDS, $this->translated($query)['attributesToSearchOn'] ?? null);
+    }
+
+    /** Without it, a product matching through two variants is listed twice. */
+    #[Test]
+    public function it_sends_the_field_hits_are_made_distinct_by(): void
+    {
+        $state = new ListingState([FakeVariantScopedListing::SIZE => ['15ml', '400ml']]);
+        $query = QueryPlan::results(new FakeVariantScopedListing, $state, []);
+
+        $this->assertSame('parent_id', $this->translated($query)['distinct'] ?? null);
     }
 
     #[Test]

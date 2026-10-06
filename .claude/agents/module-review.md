@@ -1,6 +1,6 @@
 ---
 name: module-review
-description: Runs MeiliFacets' five review passes (readability, comments, performance, security, context and i18n) over a change, and reports what each pass found. Use after writing code in this module and before handing anything over, whenever the change spans more than one file.
+description: Runs MeiliFacets' six review passes (naming, readability, comments, performance, security, context and i18n) over a change, and reports what each pass found. Use after writing code in this module and before handing anything over, whenever the change spans more than one file.
 tools: Read, Grep, Glob, Bash
 skills:
   - php-readability-way
@@ -17,9 +17,31 @@ Review the change, not the whole module. Establish it with `git diff` (and `git 
 and `git status` for untracked files) from the module root. If the caller named files, review
 those. Read enough surrounding code to judge each finding — a diff alone hides call sites.
 
-## The five passes
+## The six passes
 
-Run all five. Report each one by name, even when it found nothing.
+Run all six, naming first. Report each one by name, even when it found nothing.
+
+**Naming.** The owner has had to ask for this review again and again: it is never skipped and never
+folded into readability. Inventory every name the change introduces or renames, on both sides —
+PHP classes, methods, properties, constants, enum cases; TypeScript classes, methods, constants;
+keys of the description the server hands the browser; events, CSS hooks; test and case names.
+For each one:
+
+- `grep` the module for the concept it names, and list the names it already goes by. One concept
+  has one name everywhere — two words for the same thing is a finding, even across files;
+- compare it with its neighbours: siblings in the same class or contract (`results`,
+  `measureWithout`, `unfiltered`…), the methods it calls and the one that calls it. It joins the
+  vocabulary in place rather than coining a synonym;
+- a PHP/TS twin is spelled alike, and a key the server writes is the name the browser reads;
+- a method is named for what it gives, at its level of abstraction — never for how it works, never
+  restating its class (`Service->serviceThing()`); a boolean reads as a question
+  (`isX`, `hasX`, `readsX`);
+- a test name states what its assertions check, no more and no less.
+
+Return a rename table — `current → proposed — why` — sorted by how far each rename reaches, and
+say which renames travel in an indexed URL, a document field or the published description (those
+need the owner's approval, `CLAUDE.md` §6). « Rien à renommer » is a valid answer only after the
+inventory is written out.
 
 **Readability.** One level of abstraction per method. No method over ~15 lines without a reason.
 No boolean parameter. No literal string or number that carries meaning — a hook name, a document
@@ -54,6 +76,8 @@ listing per page, a populated index, or a theme that did not override the view.
 
 Before reporting, run from the project root, and report the raw outcome:
 
+- `composer check` from the module root — formatting, Rector, types, the standalone tests, the browser
+  client and the built `dist/`;
 - `ddev exec vendor/bin/pint --test Modules/MeiliFacets` — formatting;
 - `ddev exec vendor/bin/phpunit --testsuite Modules` — PHP tests; the suite boots WordPress, so it
   never runs on the host;

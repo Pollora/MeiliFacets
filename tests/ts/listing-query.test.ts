@@ -8,7 +8,7 @@ import { ListingState } from '../../resources/assets/ts/listing/listing-state.ts
 import { FacetQuery } from '../../resources/assets/ts/facets/facet-query.ts'
 import { PriceQuery } from '../../resources/assets/ts/price/price-query.ts'
 import { FilterExpression } from '../../resources/assets/ts/shared/filter-expression.ts'
-import { RESULTS } from '../../resources/assets/ts/shared/plan.ts'
+import { MEASURES, RESULTS } from '../../resources/assets/ts/shared/plan.ts'
 import { described } from './fixtures.ts'
 
 import type { StateChanges } from '../../resources/assets/ts/listing/listing-state.ts'
@@ -225,6 +225,178 @@ describe('ListingQuery, scope of a search shared with the server', () => {
             assert.equal(counting?.filter, expected.filter)
             assert.deepEqual(main.attributesToSearchOn ?? null, expected.attributesToSearchOn)
             assert.deepEqual(counting?.attributesToSearchOn ?? null, expected.attributesToSearchOn)
+        })
+    }
+})
+
+describe('ListingQuery reading variants', () => {
+    const variantResults = {
+        taxonomies: ['pa_size'],
+        filter: '(post_type = product OR post_type = product_variation) AND NOT document_kind = "parent"',
+        searchScope: {
+            filter: '(post_type = product OR post_type = product_variation) AND NOT document_kind = "parent" AND searched',
+            fields: ['post_title'],
+        },
+        distinct: 'parent_id',
+        attributes: ['ID', 'card', 'parent_id'],
+        sorts: { price_asc: ['in_stock:desc', 'metas._price:asc'] },
+    }
+    const priced = { variantResults, priceFields: { min: 'price.min', max: 'price.max' } }
+
+    it('reads products while no filter concerns a variant', () => {
+        const queries = plan({ facets: { product_brand: ['acme'] }, sort: 'price_asc' }, priced)
+
+        assert.equal(queries[RESULTS].distinct, undefined)
+        assert.equal(queries[MEASURES], undefined)
+        assert.deepEqual(queries[RESULTS].sort, ['metas._price:asc'])
+    })
+
+    it('reads one variant per product once a size is ticked, in stock first under a price sort', () => {
+        const results = plan({ facets: { pa_size: ['400ml'] }, sort: 'price_asc' }, priced)[RESULTS]
+
+        assert.ok(results.filter.startsWith(variantResults.filter))
+        assert.ok(results.filter.includes('facets.pa_size = "400ml"'))
+        assert.equal(results.distinct, 'parent_id')
+        assert.deepEqual(results.attributesToRetrieve, ['ID', 'card', 'parent_id'])
+        assert.deepEqual(results.facets, [])
+        assert.deepEqual(results.sort, ['in_stock:desc', 'metas._price:asc'])
+    })
+
+    it('reads variants through the search scope once a term is searched', () => {
+        const results = plan({ facets: { pa_size: ['400ml'] }, query: 'lotion' }, priced)[RESULTS]
+
+        assert.ok(results.filter.startsWith(variantResults.searchScope.filter))
+        assert.deepEqual(results.attributesToSearchOn, ['post_title'])
+    })
+
+    it('measures once per product on the variants beside the variant results', () => {
+        const measures = plan({ facets: { pa_size: ['400ml'] }, sort: 'price_asc' }, priced)[MEASURES]
+
+        assert.ok(measures !== undefined)
+        assert.ok(measures.filter.startsWith(variantResults.filter))
+        assert.ok(measures.filter.includes('facets.pa_size = "400ml"'))
+        assert.equal(measures.distinct, 'parent_id')
+        assert.deepEqual(measures.facets, ['facets.product_brand'])
+        assert.equal(measures.hitsPerPage, 0)
+        assert.equal(measures.page, 1)
+        assert.equal(measures.sort, undefined)
+    })
+
+    it('counts the sizes once per variant under the other filters', () => {
+        const sizes = plan({ facets: { product_brand: ['acme'] }, price: { min: 30, max: 35 } }, priced)[FacetQuery.keyFor('pa_size')]
+
+        assert.ok(sizes !== undefined)
+        assert.ok(sizes.filter.startsWith(variantResults.filter))
+        assert.ok(sizes.filter.includes('facets.product_brand = "acme"'))
+        assert.match(sizes.filter, /price\.min <= 35 AND price\.max >= 30/)
+        assert.equal(sizes.distinct, undefined)
+        assert.deepEqual(sizes.facets, ['facets.pa_size'])
+    })
+
+    it('counts a ticked size without its own clause', () => {
+        const sizes = plan({ facets: { pa_size: ['400ml'] } }, priced)[FacetQuery.keyFor('pa_size')]
+
+        assert.ok(sizes !== undefined)
+        assert.ok(!sizes.filter.includes('facets.pa_size'))
+        assert.equal(sizes.distinct, undefined)
+    })
+
+    it('counts a shared facet once per product while a size is ticked', () => {
+        const brands = plan({ facets: { product_brand: ['acme'], pa_size: ['400ml'] } }, priced)[FacetQuery.keyFor('product_brand')]
+
+        assert.ok(brands !== undefined)
+        assert.ok(brands.filter.startsWith(variantResults.filter))
+        assert.ok(brands.filter.includes('facets.pa_size = "400ml"'))
+        assert.equal(brands.distinct, 'parent_id')
+    })
+
+    it('counts a shared facet on the products while no size is ticked', () => {
+        const brands = plan({ facets: { product_brand: ['acme'] }, price: { max: 30 } }, priced)[FacetQuery.keyFor('product_brand')]
+
+        assert.ok(brands !== undefined)
+        assert.ok(!brands.filter.includes('document_kind'))
+        assert.equal(brands.distinct, undefined)
+    })
+
+    it('bounds the price on every variant while a size is ticked, with no range held', () => {
+        const bounds = plan({ facets: { pa_size: ['400ml'] } }, priced)[PriceQuery.KEY]
+
+        assert.ok(bounds !== undefined)
+        assert.ok(bounds.filter.startsWith(variantResults.filter))
+        assert.equal(bounds.distinct, undefined)
+        assert.deepEqual(bounds.facets, ['price.min', 'price.max'])
+    })
+
+    it('bounds the price on every variant while a size is ticked', () => {
+        const bounds = plan({ facets: { pa_size: ['400ml'] }, price: { max: 30 } }, priced)[PriceQuery.KEY]
+
+        assert.ok(bounds !== undefined)
+        assert.ok(bounds.filter.startsWith(variantResults.filter))
+        assert.ok(!bounds.filter.includes('price.min <='))
+        assert.equal(bounds.distinct, undefined)
+    })
+
+    it('leaves the variant facets out of the product results they are counted apart from', () => {
+        assert.deepEqual(build({}, priced).facets, ['facets.product_brand', 'price.min', 'price.max'])
+    })
+
+    it('reads products under a price range alone, as WooCommerce does', () => {
+        const results = plan({ price: { min: 30, max: 35 }, sort: 'price_asc' }, priced)[RESULTS]
+
+        assert.equal(results.distinct, undefined)
+        assert.match(results.filter ?? '', /price\.min <= 35 AND price\.max >= 30/)
+        assert.deepEqual(results.sort, ['metas._price:asc'])
+    })
+
+    it('never reads variants of a listing without a document per variant', () => {
+        const unvaried = { priceFields: priced.priceFields }
+
+        assert.equal(plan({ facets: { pa_size: ['400ml'] } }, unvaried)[RESULTS].distinct, undefined)
+    })
+
+    it('reads products off a page served before variants were described', () => {
+        const older = { ...priced, variantResults: undefined } as unknown as Partial<ListingDescription>
+
+        assert.equal(plan({ facets: { pa_size: ['400ml'] } }, older)[RESULTS].distinct, undefined)
+    })
+})
+
+interface PlanCase {
+    case: string
+    state: StateChanges
+    plan: Record<string, Record<string, unknown>>
+}
+
+interface SharedPlanCases {
+    listing: {
+        facets: string[]
+        filter: string
+        searchScope: { filter: string, fields: string[] | null }
+        sorts: Record<string, string[]>
+        priceFields: { min: string, max: string }
+        variantResults: NonNullable<ListingDescription['variantResults']>
+    }
+    cases: PlanCase[]
+}
+
+/** The server plans the same states (`VariantPlanCasesTest`): render and first gesture count the same documents. */
+describe('ListingQuery on a listing with variant documents, shared with the server', () => {
+    const shared = JSON.parse(readFileSync(new URL('../variant-plan-cases.json', import.meta.url), 'utf8')) as SharedPlanCases
+    const compared = ['q', 'filter', 'facets', 'distinct', 'sort', 'attributesToSearchOn']
+    const description = described({
+        ...shared.listing,
+        facets: shared.listing.facets.map((taxonomy) => ({ taxonomy, multiple: true, cap: 30, visible: 10, labels: {}, counts: {} })),
+    })
+    const comparedOf = (search: object) => Object.fromEntries(
+        Object.entries({ q: '', filter: '', facets: [], ...search }).filter(([key, value]) => compared.includes(key) && value !== undefined),
+    )
+
+    for (const expected of shared.cases) {
+        it(expected.case, () => {
+            const queries = new ListingQuery(description, filterQueriesOf(description)).plan(new ListingState(expected.state))
+            const plan = Object.fromEntries(Object.entries(queries).map(([key, search]) => [key, comparedOf(search)]))
+
+            assert.deepEqual(plan, expected.plan)
         })
     }
 })

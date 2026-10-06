@@ -31,12 +31,20 @@ final readonly class FilterExpression
             return '';
         }
 
-        $clauses = array_map(
+        return self::any(array_map(
             static fn (string $value): string => self::equals($facet->field(), $value),
             $values
-        );
+        ));
+    }
 
-        return count($clauses) > 1 ? '('.implode(' OR ', $clauses).')' : $clauses[0];
+    /**
+     * @param  list<string>  $clauses
+     */
+    public static function any(array $clauses): string
+    {
+        $kept = array_values(array_filter($clauses, strlen(...)));
+
+        return count($kept) > 1 ? '('.implode(' OR ', $kept).')' : $kept[0] ?? '';
     }
 
     /**
@@ -61,6 +69,14 @@ final readonly class FilterExpression
             $range->max === null ? '' : PriceField::Min->path().' <= '.Range::formatBound($range->max),
             $range->min === null ? '' : PriceField::Max->path().' >= '.Range::formatBound($range->min),
         ])));
+    }
+
+    /**
+     * @param  non-empty-list<int>  $values
+     */
+    public static function oneOf(string $field, array $values): string
+    {
+        return $field.' IN ['.implode(', ', $values).']';
     }
 
     public static function equals(string $field, string $value): string

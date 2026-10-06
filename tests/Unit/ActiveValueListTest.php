@@ -24,10 +24,15 @@ use Modules\MeiliFacets\Tests\Unit\Doubles\FakeTermLabels;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeTermScope;
 use Modules\MeiliFacets\View\ActiveValue;
 use Modules\MeiliFacets\View\ActiveValueList;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-/** Standalone, `__()` hands back its key: the patterns below are the English ones. */
+/**
+ * Standalone, `__()` hands back its key: the patterns below are the English ones. A suite that loaded WordPress
+ * would translate them, and `wc_price()` would format the prices.
+ */
+#[RunTestsInSeparateProcesses]
 final class ActiveValueListTest extends TestCase
 {
     private const array BRANDS = ['acme' => 5, 'globex' => 3, 'initech' => 2];

@@ -11,6 +11,7 @@ use Modules\MeiliFacets\Search\ListingSearch;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeFacetCounter;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeListing;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeSearchEngine;
+use Modules\MeiliFacets\Tests\Unit\Doubles\FakeVariantScopedListing;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -23,6 +24,8 @@ final class ListingSearchTest extends TestCase
     private const string BOUNDS = 'bounds';
 
     private const string UNFILTERED = 'unfiltered';
+
+    private const string UNFILTERED_VARIANTS = 'unfiltered:variants';
 
     #[Test]
     public function it_sends_every_search_in_a_single_request(): void
@@ -99,6 +102,42 @@ final class ListingSearchTest extends TestCase
         $results = $this->searchWith($engine)->run(FakeListing::withBrandAndCategory(), new ListingState);
 
         $this->assertSame([['title' => 'Coat', 'id' => 393]], $results->cards());
+    }
+
+    #[Test]
+    public function it_hands_a_card_read_off_a_variant_the_id_of_its_product(): void
+    {
+        $engine = new FakeSearchEngine([self::RESULTS => [
+            'hits' => [['ID' => '393-1', 'parent_id' => 393, 'card' => ['title' => 'Coat']]],
+        ]]);
+
+        $results = $this->searchWith($engine)->run(FakeListing::withBrandAndCategory(), new ListingState);
+
+        $this->assertSame([['title' => 'Coat', 'id' => 393]], $results->cards());
+    }
+
+    #[Test]
+    public function it_measures_off_a_search_of_its_own_once_the_results_read_variants(): void
+    {
+        $engine = new FakeSearchEngine([
+            self::RESULTS => [
+                'hits' => [],
+                'totalHits' => 2,
+                'facetDistribution' => ['facets.product_brand' => ['acme' => 1]],
+            ],
+            'measures' => [
+                'facetDistribution' => ['facets.product_brand' => ['acme' => 4]],
+                'facetStats' => ['price.min' => ['min' => 12.0, 'max' => 40.0]],
+            ],
+        ]);
+
+        $state = new ListingState([FakeVariantScopedListing::SIZE => ['400ml']]);
+        $results = $this->searchWith($engine)->run(new FakeVariantScopedListing, $state);
+
+        $this->assertArrayHasKey('measures', $engine->received[0]);
+        $this->assertSame(['acme' => 4], $results->distributions['product_brand']);
+        $this->assertSame(['min' => 12.0, 'max' => 40.0], $results->facetStats['price.min']);
+        $this->assertSame(2, $results->total);
     }
 
     #[Test]
@@ -239,6 +278,73 @@ final class ListingSearchTest extends TestCase
 
         $this->assertSame(['facets.product_brand', 'price.min', 'price.max'], $engine->received[0][self::RESULTS]['facets']);
         $this->assertSame(['facets.product_brand'], $engine->received[1][self::RESULTS]['facets']);
+    }
+
+    #[Test]
+    public function it_counts_the_variant_facets_apart_while_nothing_is_ticked(): void
+    {
+        $engine = new FakeSearchEngine([
+            self::RESULTS => ['facetDistribution' => ['facets.product_brand' => ['acme' => 3]]],
+            self::COUNT.FakeVariantScopedListing::SIZE => ['facetDistribution' => ['facets.pa_size' => ['400ml' => 2]]],
+        ]);
+
+        $results = $this->searchWith($engine)->run(new FakeVariantScopedListing, new ListingState);
+
+        $this->assertSame([self::RESULTS, self::COUNT.FakeVariantScopedListing::SIZE], array_keys($engine->received[0]));
+        $this->assertNotContains('facets.pa_size', $engine->received[0][self::RESULTS]['facets']);
+        $this->assertSame(['400ml' => 2], $results->distributions[FakeVariantScopedListing::SIZE]);
+    }
+
+    #[Test]
+    public function it_never_counts_a_facet_twice_on_a_listing_with_variants(): void
+    {
+        $engine = new FakeSearchEngine;
+        $state = new ListingState(['product_brand' => ['acme'], FakeVariantScopedListing::SIZE => ['400ml']], price: new Range(55.0));
+
+        $this->searchWith($engine)->run(new FakeVariantScopedListing, $state);
+
+        $counted = [];
+
+        foreach ($engine->received[0] as $key => $query) {
+            if (! str_starts_with($key, self::UNFILTERED)) {
+                $facets = $query['facets'] ?? [];
+                $this->assertSame([], array_intersect($facets, $counted), "\"{$key}\" is counted twice.");
+                $counted = [...$counted, ...$facets];
+            }
+        }
+    }
+
+    #[Test]
+    public function it_bounds_the_price_on_every_variant_once_the_results_read_variants(): void
+    {
+        $engine = new FakeSearchEngine;
+
+        $this->searchWith($engine)->run(new FakeVariantScopedListing, new ListingState([FakeVariantScopedListing::SIZE => ['400ml']]));
+
+        $bounds = $engine->received[0][self::BOUNDS] ?? [];
+
+        $this->assertSame(['price.min', 'price.max'], $bounds['facets'] ?? null);
+        $this->assertArrayNotHasKey('distinct', $bounds);
+        $this->assertNotContains('price.min', $engine->received[0]['measures']['facets']);
+    }
+
+    /** A product declaring L without a variation in L carries it on its own document, never on a variant's. */
+    #[Test]
+    public function it_offers_a_variation_facet_only_the_values_a_variant_carries(): void
+    {
+        $engine = new FakeSearchEngine([
+            self::UNFILTERED => ['facetDistribution' => ['facets.product_brand' => ['acme' => 1], 'facets.pa_size' => ['s' => 1, 'l' => 1]]],
+            self::UNFILTERED_VARIANTS => ['facetDistribution' => ['facets.pa_size' => ['s' => 1]]],
+        ]);
+
+        $results = $this->searchWith($engine)->run(new FakeVariantScopedListing, new ListingState(['product_brand' => ['acme']]));
+        $searches = $engine->received[0];
+
+        $this->assertSame(['s' => 1], $results->unfilteredDistribution(FakeVariantScopedListing::SIZE));
+        $this->assertSame(['acme' => 1], $results->unfilteredDistribution('product_brand'));
+        $this->assertSame(['facets.pa_size'], $searches[self::UNFILTERED_VARIANTS]['facets']);
+        $this->assertStringContainsString('NOT document_kind = "parent"', $searches[self::UNFILTERED_VARIANTS]['filter']);
+        $this->assertNotContains('facets.pa_size', $searches[self::UNFILTERED]['facets']);
     }
 
     private function searchWith(FakeSearchEngine $engine): ListingSearch

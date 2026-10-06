@@ -154,7 +154,7 @@ other key is described in [Configuration and environment](reference/configuratio
 
 ## Choose what is indexed
 
-In MeiliScout's admin screen, tick the post types, the taxonomies and the meta keys to index. For a shop, index
+In MeiliScout's admin screen, select the post types, the taxonomies and the meta keys to index. For a shop, index
 `product`, its taxonomies (`product_cat`, `product_brand`, the `pa_*` attributes you filter on) and, if you set a list
 of meta keys, keep `_price`, `_stock_status` and `_sku`: the module declares them filterable or searchable.
 
@@ -200,7 +200,7 @@ curl -s -H "Authorization: Bearer <MEILI_KEY>" http://meilisearch:7700/stats
 `{"indexes":{}}` means the engine runs **without any data**. An empty engine answers `200 OK` to every search, so
 this is the only place where it shows.
 
-Finally, open the shop page with a listing on it (see [Quick start](quick-start.md)), tick a box, and open the
+Finally, open the shop page with a listing on it (see [Quick start](quick-start.md)), check a box, and open the
 browser console: a `[meilifacets]` line means the markup or the publication is wrong. See
 [Errors and console messages](reference/errors.md#browser-console).
 

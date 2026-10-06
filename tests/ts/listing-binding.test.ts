@@ -88,7 +88,21 @@ describe('ListingBinding', () => {
         assert.equal(one('empty').hidden, true)
     })
 
-    it('draws each card through the variant the answered state points to', async () => {
+    it('draws each card through the variant the answered state points to, on a listing with variant documents', async () => {
+        const variants = described({
+            ...description,
+            variantResults: {
+                taxonomies: ['product_brand'],
+                filter: 'post_type = "product"',
+                searchScope: { filter: 'post_type = "product"', fields: null },
+                distinct: 'parent_id',
+                attributes: ['ID', 'card', 'parent_id'],
+                sorts: {},
+            },
+        })
+        ;({ window, root } = open(listingMarkup()))
+        listing = new Listing(variants, connection, { filterQueries: filterQueriesOf(variants), client, history })
+        new ListingBinding(new Contract(root), listing, variants).start()
         const variant = (brand: string, price: number) => ({ facets: { product_brand: [brand] }, price, fields: { title: `Lotion ${brand}` } })
         client.answer = { results: { hits: [{ card: { title: 'Lotion', variants: [variant('acme', 39), variant('globex', 26)] } }], totalHits: 1 } }
 
@@ -96,6 +110,16 @@ describe('ListingBinding', () => {
         await listing.apply()
 
         assert.deepEqual(cards(), ['Lotion acme'])
+    })
+
+    it('draws each card as projected on a listing without variant documents', async () => {
+        const variant = (brand: string, price: number) => ({ facets: { product_brand: [brand] }, price, fields: { title: `Lotion ${brand}` } })
+        client.answer = { results: { hits: [{ card: { title: 'Lotion', variants: [variant('acme', 39), variant('globex', 26)] } }], totalHits: 1 } }
+
+        tick(window, box('acme'))
+        await listing.apply()
+
+        assert.deepEqual(cards(), ['Lotion'])
     })
 
     it('says so when nothing matches', async () => {

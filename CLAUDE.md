@@ -110,15 +110,21 @@ If the sentence would still make sense in a design document, it belongs in the d
 
 ---
 
-## 4. Before handing over — the five passes
+## 4. Before handing over — the six passes
 
 Never hand over code with « please check ». Run these yourself, and **report what each one found**
 — « nothing » is a valid finding, silence is not.
 
+**Naming.** Run first, on every change, however small. List every name the change introduces or
+renames — class, method, property, constant, enum case, description key, event, CSS hook, test —
+on both sides, PHP and TypeScript. For each one, `grep` the module for the concept it names and
+compare: one concept has one name everywhere, a new name joins the vocabulary already in place
+rather than inventing a synonym, and a PHP/TS twin is spelled alike. A method is named for what
+it gives at its level of abstraction, never for how; a test name says what its assertions check.
+Report a rename table — current, proposed, why — or « nothing to rename ».
+
 **Readability.** One level of abstraction per method. No method over ~15 lines without a reason.
-No boolean parameter: write a second method. A name you introduce is compared to the name of what
-it wraps — two names for one concept is how a codebase stops being readable. A test whose name
-disagrees with the method it exercises is a finding waiting to be written.
+No boolean parameter: write a second method.
 
 **Comments.** Apply the table above to every line you added. Count what you deleted.
 
@@ -135,7 +141,7 @@ key — and remember that a filter the browser sends is a filter the browser can
 domain and named placeholders; identifiers, logs and diagnostics are English. Nothing assumes a
 single language.
 
-Delegate the five passes to the `module-review` subagent when the change spans more than one file.
+Delegate the six passes to the `module-review` subagent when the change spans more than one file.
 Its findings still have to be acted on or refused in writing — a reported finding that is neither
 fixed nor answered is the failure mode this whole file exists to prevent.
 
@@ -145,7 +151,7 @@ fixed nor answered is the failure mode this whole file exists to prevent.
 
 A point is closed when all of these are true, and not before:
 
-- [ ] the five passes ran, and what each found is written down;
+- [ ] the six passes ran, naming first, and what each found is written down;
 - [ ] `composer check` from the module root is green — formatting, Rector, the standalone tests
       and the browser client, in one command that needs no host project;
 - [ ] `ddev exec vendor/bin/phpunit --testsuite Modules` is green from the project root — this is

@@ -12,15 +12,18 @@ interface VariantCase {
     selected: Record<string, string[]>
     price: { min: number | null, max: number | null }
     expected: Record<string, unknown>
+    sortFilter?: { field: string, value: string }
 }
 
 /** The server half is `tests/Unit/VariantChoiceTest.php`: same cases, same rule. */
-const { cases } = JSON.parse(readFileSync(new URL('../card-variant-cases.json', import.meta.url), 'utf8')) as { cases: VariantCase[] }
+const { variantTaxonomies, cases } = JSON.parse(readFileSync(new URL('../card-variant-cases.json', import.meta.url), 'utf8')) as { variantTaxonomies: string[], cases: VariantCase[] }
 
 describe('VariantChoice', () => {
-    for (const { case: name, card, selected, price, expected } of cases) {
+    for (const { case: name, card, selected, price, expected, sortFilter } of cases) {
         it(name, () => {
-            assert.deepEqual(new VariantChoice(selected, new Range(price.min, price.max)).shown(card), expected)
+            const choice = new VariantChoice({ selected, price: new Range(price.min, price.max), variantTaxonomies, sortFilter })
+
+            assert.deepEqual(choice.shown(card), expected)
         })
     }
 
@@ -36,7 +39,9 @@ describe('VariantChoice', () => {
             },
         }
 
-        assert.deepEqual(CardView.fieldsOf(hit, new VariantChoice({ pa_volume: ['400ml'] })), { id: 125, volume: '400ml' })
+        const choice = new VariantChoice({ selected: { pa_volume: ['400ml'] }, variantTaxonomies: ['pa_volume'] })
+
+        assert.deepEqual(CardView.fieldsOf(hit, choice), { id: 125, volume: '400ml' })
         assert.deepEqual(CardView.fieldsOf(hit), { id: 125, volume: '400ml, 15ml' })
     })
 })
