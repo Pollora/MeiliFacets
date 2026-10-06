@@ -14,6 +14,7 @@ use Modules\MeiliFacets\Enums\PaginationSetting;
 use Modules\MeiliFacets\Enums\TypoToleranceSetting;
 use Modules\MeiliFacets\Search\EngineLimits;
 use Modules\MeiliFacets\Search\QueryPlan;
+use Modules\MeiliFacets\Search\VisibleProducts;
 use Modules\MeiliFacets\Support\UniqueList;
 use Pollora\MeiliScout\Contracts\HasDependentDocuments;
 use Pollora\MeiliScout\Indexables\PostIndexable;
@@ -43,9 +44,11 @@ final class FacetedPostIndexable extends PostIndexable implements HasDependentDo
         return $this->variants->of($document);
     }
 
-    public function dependentsFilter(array $itemIds): string
+    public function dependentDocumentsFilter(array $itemIds): ?string
     {
-        return $this->variants->filterOf($itemIds);
+        $productIds = array_values(array_filter($itemIds, $this->mayHaveVariants(...)));
+
+        return $productIds === [] ? null : $this->variants->filterOf($productIds);
     }
 
     /**
@@ -150,5 +153,13 @@ final class FacetedPostIndexable extends PostIndexable implements HasDependentDo
             DocumentField::Facets->path(...),
             $this->taxonomies->all()
         );
+    }
+
+    /** A removal processed asynchronously reaches the engine once the post is gone: it may have been a product. */
+    private function mayHaveVariants(int|string $itemId): bool
+    {
+        $postType = get_post_type((int) $itemId);
+
+        return $postType === false || $postType === VisibleProducts::POST_TYPE;
     }
 }

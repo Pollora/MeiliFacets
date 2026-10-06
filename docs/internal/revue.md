@@ -3496,7 +3496,18 @@ qu'il est vrai, corriger, tester, puis passer au suivant.
    2026-10-06, non commité* : identiques mais non liées — un champ lu sans être affiché revient vide, sans erreur.
    `FacetedPostIndexable::READ_BY_THE_MODULE` reprend `QueryPlan::VARIANT_RETRIEVED`. Test : les champs affichés
    contiennent ceux que les deux requêtes lisent ; rouge si la liste ne reprend que `RETRIEVED`.
-11. *Suppression par filtre envoyée pour tout article*, pas seulement les produits. À trancher.
+11. *Suppression par filtre envoyée pour tout article*, pas seulement les produits. *Corrigé le 2026-10-06, non
+   commité* (demandé par l'utilisateur) : MeiliScout n'envoie plus de suppression quand
+   `dependentDocumentsFilter()` rend `null` (contrat `?string`, une seule garde `dependentDocumentsFilterOf()` pour
+   l'écriture et la suppression, tests Pest) ; le module ne garde que les produits et les articles déjà supprimés —
+   une suppression asynchrone arrive quand l'article n'existe plus (`FacetedPostIndexable::mayHaveVariants()`).
+   Tests : une page et une variation n'ont pas de filtre, un lot mêlé ne filtre que ses produits, un article disparu
+   est gardé ; rouge si on l'écarte. Vocabulaire MeiliScout renommé « dependent documents » (« dependents » seul se
+   lisait « personnes à charge »). Revue des deux dépôts : renommages (`dependentDocumentIdsIn`, `$keptFilter`,
+   tests), suppression ramenée à `removeStaleDependentDocuments(…, [])`, commentaire faux corrigé, lignes ramenées
+   sous 120 caractères. À publier dans l'ordre : MeiliScout d'abord (`upgrading.md`).
+   *Limite acceptée par l'utilisateur le 2026-10-06* (« on se fie au natif ») : un produit variable dont un projet
+   change le type de publication (code ou extension, l'admin ne le permet pas) garde ses fiches variante dans l'index.
 12. *`card.variants` sur la fiche produit*, envoyé sans être lu hors mode variantes. À trancher.
 13. *Pas de cas partagés PHP/TS* pour `measures` et `variantResults`. À vérifier.
 14. *Registre contradictoire* (503, « non commité »). À corriger.
