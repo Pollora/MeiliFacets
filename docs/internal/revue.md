@@ -3475,7 +3475,14 @@ qu'il est vrai, corriger, tester, puis passer au suivant.
    `ListingState::ticksAnyOf()` pour les quatre copies de la règle (jumeaux PHP/TS déjà verrouillés par les cas partagés
    et les tests de requêtes) ; une liste de taxonomies par cas partagé ; une garde WooCommerce sur l'écoute des métas
    (le type `product_variation` n'existe qu'avec WooCommerce).
-7. *Attribut hiérarchique* : un terme parent ne trouve plus ses produits en mode variantes. À vérifier.
+7. *Attribut hiérarchique* : un terme parent ne trouve plus ses produits en mode variantes. *Vérifié le 2026-10-06* :
+   la fiche produit porte les ancêtres (`TermAncestry`), la variante seulement son terme (`ProductVariants::facetsOf()`)
+   et `VariantDocuments` remplace la liste du produit ; WooCommerce enregistre les attributs non hiérarchiques
+   (`class-wc-post-types.php:270`), un projet peut les rendre hiérarchiques (`woocommerce_taxonomy_args_{name}`).
+   Pluralia n'est pas concerné. *Corrigé le 2026-10-06, non commité* : la variante porte aussi les ancêtres de son terme
+   (`TermHierarchy`), seulement sur une taxonomie hiérarchique — aucun coût sur des attributs plats ; la carte en
+   profite (`VariantChoice` lit les mêmes termes). Test : variation 15 ml sous « petits formats », rouge sans la
+   correction. Réindexation nécessaire pour un projet concerné.
 8. *Attribut local homonyme d'une taxonomie* (`taxonomy_exists` au lieu de `taxonomy_is_product_attribute`). À vérifier.
 9. *Taille d'image des variantes* liée à `card.image_size`. À trancher.
 10. *Deux listes de champs relus tenues à la main* (`READ_BY_THE_MODULE`, `VARIANT_RETRIEVED`). À vérifier.

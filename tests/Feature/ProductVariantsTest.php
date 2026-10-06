@@ -113,6 +113,23 @@ final class ProductVariantsTest extends TestCase
     }
 
     #[Test]
+    public function it_files_a_variation_under_the_ancestors_of_its_term_on_a_hierarchical_attribute(): void
+    {
+        register_taxonomy(self::ATTRIBUTE, 'product', ['public' => false, 'hierarchical' => true]);
+        $parent = wp_insert_term('Small sizes', self::ATTRIBUTE, ['slug' => 'small-sizes']);
+        $child = wp_insert_term('15ml', self::ATTRIBUTE, ['slug' => '15ml', 'parent' => $parent['term_id']]);
+
+        try {
+            $facets = $this->variantsOf($this->variable(['15ml' => ['26', true]]), $this->variants())[0][VariantField::Facets->value];
+        } finally {
+            wp_delete_term($child['term_id'], self::ATTRIBUTE);
+            wp_delete_term($parent['term_id'], self::ATTRIBUTE);
+        }
+
+        $this->assertSame([self::ATTRIBUTE => ['15ml', 'small-sizes']], $facets);
+    }
+
+    #[Test]
     public function it_gives_a_variation_sold_for_any_value_no_term(): void
     {
         $product = $this->variable(['' => ['26', true]]);

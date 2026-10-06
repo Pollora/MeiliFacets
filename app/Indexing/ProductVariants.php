@@ -5,14 +5,17 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Indexing;
 
 use Illuminate\Container\Attributes\Config;
+use Modules\MeiliFacets\Contracts\TermHierarchy;
 use Modules\MeiliFacets\Contracts\VariantFields;
 use Modules\MeiliFacets\Enums\CardField;
+use Modules\MeiliFacets\Enums\TermField;
 use Modules\MeiliFacets\Enums\VariationPrices;
 use Modules\MeiliFacets\Listing\CardVariant;
 use Modules\MeiliFacets\Support\WooCommerce;
 use WC_Product_Variable;
 use WC_Product_Variation;
 use WP_Post;
+use WP_Term;
 
 /**
  * The ways a variable product is sold, read off WooCommerce for the product's card.
@@ -28,6 +31,7 @@ final readonly class ProductVariants
 
     public function __construct(
         private VariantFields $variantFields,
+        private TermHierarchy $hierarchy,
         #[Config('meilifacets.card.image_size', WooCommerceCardProjector::DEFAULT_IMAGE_SIZE)]
         private string $imageSize,
     ) {}
@@ -89,11 +93,27 @@ final readonly class ProductVariants
 
         foreach ($variation->get_attributes() as $taxonomy => $slug) {
             if ($slug !== '' && taxonomy_exists($taxonomy)) {
-                $facets[$taxonomy] = [$slug];
+                $facets[$taxonomy] = [$slug, ...$this->ancestorSlugsOf($slug, $taxonomy)];
             }
         }
 
         return $facets;
+    }
+
+    /**
+     * A filter on a parent term matches the product's document, which carries its ancestors: the variant's must too.
+     *
+     * @return list<string>
+     */
+    private function ancestorSlugsOf(string $slug, string $taxonomy): array
+    {
+        $term = is_taxonomy_hierarchical($taxonomy) ? get_term_by('slug', $slug, $taxonomy) : false;
+
+        if (! $term instanceof WP_Term) {
+            return [];
+        }
+
+        return array_column($this->hierarchy->ancestorsOf($term->term_id, $taxonomy), TermField::Slug->value);
     }
 
     /**
