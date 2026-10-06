@@ -410,6 +410,10 @@ out of stock items » is checked; only their variants out of stock are left out.
 does: a product sold at 26 and 39 is listed for 30 to 35, while none of its variants is priced within that range. Its
 card shows its whole range; a variant is shown once a variation attribute is checked.
 
+**Known limit: attribute archives.** On a WooCommerce attribute archive (`/pa_volume/400ml/`), the card does not
+show the variant of the term browsed: the term is the page itself, not a checked facet. Attribute archives are not
+part of the module's current scope: leave « Enable archives? » unchecked on your attributes.
+
 ## What the contract asks of a card
 
 The client checks the markup before it starts (see [Overriding views](views.md)). For cards, it asks for very
