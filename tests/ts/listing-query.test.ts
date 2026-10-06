@@ -269,24 +269,89 @@ describe('ListingQuery reading variants', () => {
         assert.deepEqual(results.attributesToSearchOn, ['post_title'])
     })
 
-    it('measures on the products beside the variant results', () => {
+    it('measures once per product on the variants beside the variant results', () => {
         const measures = plan({ facets: { pa_size: ['400ml'] }, sort: 'price_asc' }, priced)[MEASURES]
 
         assert.ok(measures !== undefined)
-        assert.ok(measures.filter.startsWith('post_type = product'))
-        assert.ok(!measures.filter.includes('document_kind'))
-        // The ticked size is counted by a search of its own.
-        assert.deepEqual(measures.facets, ['facets.product_brand', 'price.min', 'price.max'])
+        assert.ok(measures.filter.startsWith(variantResults.filter))
+        assert.ok(measures.filter.includes('facets.pa_size = "400ml"'))
+        assert.equal(measures.distinct, 'parent_id')
+        assert.deepEqual(measures.facets, ['facets.product_brand'])
         assert.equal(measures.hitsPerPage, 0)
+        assert.equal(measures.page, 1)
         assert.equal(measures.sort, undefined)
     })
 
-    it('reads variants under a price range alone', () => {
-        assert.equal(plan({ price: { max: 30 } }, priced)[RESULTS].distinct, 'parent_id')
+    it('counts the sizes once per variant under the other filters', () => {
+        const sizes = plan({ facets: { product_brand: ['acme'] }, price: { min: 30, max: 35 } }, priced)[FacetQuery.keyFor('pa_size')]
+
+        assert.ok(sizes !== undefined)
+        assert.ok(sizes.filter.startsWith(variantResults.filter))
+        assert.ok(sizes.filter.includes('facets.product_brand = "acme"'))
+        assert.match(sizes.filter, /price\.min <= 35 AND price\.max >= 30/)
+        assert.equal(sizes.distinct, undefined)
+        assert.deepEqual(sizes.facets, ['facets.pa_size'])
+    })
+
+    it('counts a ticked size without its own clause', () => {
+        const sizes = plan({ facets: { pa_size: ['400ml'] } }, priced)[FacetQuery.keyFor('pa_size')]
+
+        assert.ok(sizes !== undefined)
+        assert.ok(!sizes.filter.includes('facets.pa_size'))
+        assert.equal(sizes.distinct, undefined)
+    })
+
+    it('counts a shared facet once per product while a size is ticked', () => {
+        const brands = plan({ facets: { product_brand: ['acme'], pa_size: ['400ml'] } }, priced)[FacetQuery.keyFor('product_brand')]
+
+        assert.ok(brands !== undefined)
+        assert.ok(brands.filter.startsWith(variantResults.filter))
+        assert.ok(brands.filter.includes('facets.pa_size = "400ml"'))
+        assert.equal(brands.distinct, 'parent_id')
+    })
+
+    it('counts a shared facet on the products while no size is ticked', () => {
+        const brands = plan({ facets: { product_brand: ['acme'] }, price: { max: 30 } }, priced)[FacetQuery.keyFor('product_brand')]
+
+        assert.ok(brands !== undefined)
+        assert.ok(!brands.filter.includes('document_kind'))
+        assert.equal(brands.distinct, undefined)
+    })
+
+    it('bounds the price on every variant while a size is ticked, with no range held', () => {
+        const bounds = plan({ facets: { pa_size: ['400ml'] } }, priced)[PriceQuery.KEY]
+
+        assert.ok(bounds !== undefined)
+        assert.ok(bounds.filter.startsWith(variantResults.filter))
+        assert.equal(bounds.distinct, undefined)
+        assert.deepEqual(bounds.facets, ['price.min', 'price.max'])
+    })
+
+    it('bounds the price on every variant while a size is ticked', () => {
+        const bounds = plan({ facets: { pa_size: ['400ml'] }, price: { max: 30 } }, priced)[PriceQuery.KEY]
+
+        assert.ok(bounds !== undefined)
+        assert.ok(bounds.filter.startsWith(variantResults.filter))
+        assert.ok(!bounds.filter.includes('price.min <='))
+        assert.equal(bounds.distinct, undefined)
+    })
+
+    it('leaves the variant facets out of the product results they are counted apart from', () => {
+        assert.deepEqual(build({}, priced).facets, ['facets.product_brand', 'price.min', 'price.max'])
+    })
+
+    it('reads products under a price range alone, as WooCommerce does', () => {
+        const results = plan({ price: { min: 30, max: 35 }, sort: 'price_asc' }, priced)[RESULTS]
+
+        assert.equal(results.distinct, undefined)
+        assert.match(results.filter ?? '', /price\.min <= 35 AND price\.max >= 30/)
+        assert.deepEqual(results.sort, ['metas._price:asc'])
     })
 
     it('never reads variants of a listing without a document per variant', () => {
-        assert.equal(plan({ price: { max: 30 } }, { priceFields: priced.priceFields })[RESULTS].distinct, undefined)
+        const unvaried = { priceFields: priced.priceFields }
+
+        assert.equal(plan({ facets: { pa_size: ['400ml'] } }, unvaried)[RESULTS].distinct, undefined)
     })
 
     it('reads products off a page served before variants were described', () => {

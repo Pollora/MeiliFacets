@@ -32,6 +32,7 @@ final readonly class ProductListing implements VariantScopedListing
         private ProductFacets $facets,
         private ProductSorts $sorts,
         private SearchableTypes $searchableTypes,
+        private VariationTaxonomies $variationTaxonomies,
         #[Config('meilifacets.apply_mode', ApplyMode::DEFAULT->value)] string $applyMode = ApplyMode::DEFAULT->value,
     ) {
         $this->applyMode = ApplyMode::tryFrom($applyMode) ?? ApplyMode::DEFAULT;
@@ -110,7 +111,7 @@ final readonly class ProductListing implements VariantScopedListing
 
     public function variantTaxonomies(): array
     {
-        return array_values(wc_get_attribute_taxonomy_names());
+        return $this->variationTaxonomies->all();
     }
 
     public function variantFilter(): array

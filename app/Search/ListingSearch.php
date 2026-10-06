@@ -92,6 +92,20 @@ final readonly class ListingSearch
             $queries[FacetQuery::keyFor($taxonomy)] = $query;
         }
 
+        return [...$this->variantCountQueries($listing, $state), ...$queries];
+    }
+
+    /**
+     * @return array<string, array<string, mixed>>
+     */
+    private function variantCountQueries(Listing $listing, ListingState $state): array
+    {
+        $queries = [];
+
+        foreach (QueryPlan::variantFacetQueries($listing) as $query) {
+            $queries[$query->key()] = QueryPlan::measureWithout($listing, $state, $query);
+        }
+
         return $queries;
     }
 
@@ -108,7 +122,11 @@ final readonly class ListingSearch
 
         $query = new PriceQuery($price);
 
-        return $query->isMeasuredSeparately($state) ? [$query->key() => QueryPlan::measureWithout($listing, $state, $query)] : [];
+        if (! $query->isMeasuredSeparately($state) && ! QueryPlan::readsVariants($listing, $state)) {
+            return [];
+        }
+
+        return [$query->key() => QueryPlan::measureWithout($listing, $state, $query)];
     }
 
     /**

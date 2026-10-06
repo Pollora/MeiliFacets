@@ -3392,7 +3392,25 @@ qu'il est vrai, corriger, tester, puis passer au suivant.
      fin de la tâche de fond. Corrigé ci-dessus ; il faut un cron (déjà exigé par `production.md`) — en local
      `DISABLE_WP_CRON` est vrai sans cron système, une tâche de MeiliScout attend depuis le 2026-09-25.
      `url_parameters` reste à mettre à jour à la main (doc `indexing/README.md`).
-3. *Compteurs et grille divergent* au-delà de `R-214` (fourchette de prix seule). À trancher.
+3. *Compteurs et grille divergent* au-delà de `R-214`. *Vérifié le 2026-10-05, en lecture seule sur l'index local* :
+   - fourchette seule, 30–35 € : la grille lit les documents variante et liste 7 produits ; les compteurs lisent les
+     documents produit, qui se chevauchent avec la fourchette, et en comptent 8. Le produit 125 (variantes 26 € et 39 €)
+     ajoute « Visage » (2 au lieu de 1), « 15 ml » (1) et « 400 ml » (1) : cocher l'un des deux affiche 0 produit.
+     WooCommerce, lui, filtre par chevauchement (`class-wc-query.php:813-817`) et liste le 125 ;
+   - facette de taille seule : `get_available_variations()` écarte une variation désactivée ou sans prix
+     (`class-wc-product-variable.php:371`), et une variation en rupture si les produits en rupture sont masqués
+     (`:358`). Le produit garde le terme, donc le compteur le compte, mais aucun document variante ne le porte. Pas
+     reproductible sur Pluralia aujourd'hui (option à `no`, deux variations visibles) ;
+   - `distinct` ne change pas `facetDistribution` : sans filtre, les documents variante comptent « Visage » 9 fois au
+     lieu de 8, le 125 une fois par variante.
+   *Fourchette seule corrigée le 2026-10-06, non commité* (choix de l'utilisateur, « comme WooCommerce », amendement
+   de la décision « Produits variables ») : `QueryPlan::readsVariants()` et son jumeau `ListingQuery.#readsVariants()`
+   ne passent aux documents variante que pour une facette de variante. Tests PHP et TS : fourchette seule, produits lus
+   par chevauchement, sans `distinct`, tri du produit ; garde « liste sans document par variante » portée sur une
+   taille. Vérifié sur la page, serveur et client (Playwright) : à 30–35 €, 8 cartes dont le 125, « Visage (2) » → 2
+   cartes dont le 125, « Aeris (1) » → 1 carte, aucune requête `distinct`, aucune erreur en console.
+   *Taille sans variation disponible* : réglé avec `R-214` (le 2026-10-06) — les tailles se comptent sur les documents
+   variante, qui n'existent que pour les variations disponibles ; aucune réindexation.
 4. *Requêtes produit écrites hors `VisibleProducts`* (doc antérieure, `PublishedPosts::of('product')`) : produits
    variables listés 1+N fois. À vérifier.
 5. *Attribut hors variation* : l'ordre « stock d'abord » contredit la carte. À trancher (choix « A »).
@@ -3498,13 +3516,54 @@ WooCommerce (`class-wc-product-variable-data-store-cpt.php:940-951`) : au moins 
 `VariationChanges`. Non mesuré. *Laissé de côté le 2026-10-05 par l'utilisateur* : le mode différé (`MEILISCOUT_ASYNC_INDEXING`) en
 production regroupera les passages.
 
-### R-214 · 🟡 · ouvert · ouvert le 2026-10-05 — un compteur annonce plus de produits que la grille n'en montre
+### R-214 · 🟡 · ouvert (corrigé, non commité) · ouvert le 2026-10-05 — un compteur annonce plus de produits que la grille n'en montre
 
 Avec une facette de variante et une fourchette de prix combinées, la grille lit les documents variante (un filtre se
 vérifie sur une seule variante) et les compteurs les documents produit (fourchettes qui se chevauchent) : « 400 ml »
 peut annoncer 4 produits quand un seul a un 400 ml sous 30 €. Limite inscrite dans la décision « Produits variables »
 (2026-10-05, essai sur index temporaire) ; pour l'aligner, compter les facettes de variante sur les documents variante
 sans `distinct`.
+
+*Corrigé le 2026-10-06, non commité* (amendement « Produits variables » du 2026-10-06, méthode native de Meilisearch,
+choisie par l'utilisateur ; option « liste de produits puis comptage » écartée). La piste d'origine comptait deux
+fois un produit par variante (« Visage » 9 au lieu de 8, mesuré). `QueryPlan::measures()` et `measureWithout()`, et
+leurs jumeaux `ListingQuery`, lisent les documents variante avec `distinct` en mode page dès qu'une facette de variante
+est cochée ; les attributs de variation se comptent toujours à part, sur les variantes, sans `distinct`
+(`ListingSearch::variantCountQueries()`, `ListingQuery.#isMeasuredSeparately()`) ; `Listing\VariationTaxonomies` lit
+la table de correspondance de WooCommerce, tous les attributs en secours. Tests : 7 cas PHP, 7 cas TS, 2 de
+`ListingSearch`, 3 de `VariationTaxonomies` (table lue, table désactivée, table en reconstruction) ; onze mutations,
+chacune rattrapée. Vérifié sur la page (serveur, puis client sous Playwright) : 400 ml + 30–35 € → 0 carte et
+« Visage (0) » (1 avant) ; 30–35 € seul → « 400 ml (0) », « 15 ml (0) » (1 chacun avant), « 100 ml (1) » → 1 carte,
+« Visage (2) » → 2 cartes ; aucune erreur en console. Relevé en chemin : la page de liste est servie avec
+`Cache-Control: public, max-age=3600` — un navigateur montre une heure durant les compteurs d'avant un changement.
+*Revue en six passes, le 2026-10-06* :
+- Corrigé : bornes de prix lues avec `distinct` dans `measures` quand une taille est cochée sans fourchette — mesuré
+  39–39 € au lieu de 26–39 € sur le produit 125 ; les bornes ont désormais leur recherche, sur les variantes, sans
+  `distinct` (`ListingSearch::boundsQueries()`, `ListingQuery.#needsSearchOfItsOwn()`). Test PHP et TS, rouges sans la
+  règle ; vérifié dans le navigateur : quatre recherches, résultats et compteurs partagés avec `distinct`, contenances
+  et bornes sans.
+- Corrigé : `VariationTaxonomies` se rabat sur tous les attributs si l'API interne de WooCommerce lève une erreur ;
+  injectée dans `ProductListing` sans valeur par défaut ; renommages `all()`, `isLookupTableInUse()`,
+  `markedInLookupTable()`, `#needsSearchOfItsOwn`, `measuring`/`measuringWithout`, noms de tests ; quatre commentaires
+  retirés ou raccourcis ; lignes longues ajoutées ramenées sous 120 caractères.
+- Corrigé : tests — `ListingDescriptionTest` compare à la liste du listing et non à l'implémentation ;
+  `VariationTaxonomiesTest` fixe lui-même les deux options de WooCommerce ; le test « jamais compté deux fois » inclut
+  la recherche principale ; nouveau test des bornes.
+- Précisé : la limite assumée couvre tout produit dont plusieurs variantes portent un même terme, pas seulement taille
+  × couleur (décision et `reference/index-settings.md`).
+- Refusé : placer la règle des facettes de variante dans `DisjunctiveFacetCounter`. Côté PHP, les recherches comptées à
+  part (facettes, bornes) se décident déjà dans `ListingSearch` ; un compteur de projet garde la main sur les clés
+  qu'il renvoie.
+- Refusé : changer le critère du secours. Le module fait confiance à la table exactement quand WooCommerce le fait
+  pour filtrer (`Filterer.php:46-47`) ; la table est tenue à jour même désactivée, mais rien ne dit alors qu'elle est
+  complète.
+- Refusé pour l'instant : mettre en cache la lecture de la table d'une requête à l'autre. Une lecture par requête qui
+  affiche un listing, par l'index `is_variation_attribute_term_id` ; à mesurer sur un catalogue de plusieurs dizaines
+  de milliers de variations.
+- Refusé : renommer `VariationTaxonomies` en `VariantTaxonomies` — « variation » désigne dans le module les objets de
+  WooCommerce (`VariationChanges`, `VariationPrices`), et la classe lit ce que WooCommerce dit de ses variations.
+- Noté : `QueryPlan` passe à vingt méthodes statiques qui prennent toutes `($listing, $state)` ; le schéma préexiste,
+  une classe par listing et par état serait un chantier à part.
 
 ### R-213 · 🔴 · ouvert (corrigé, non commité) · ouvert le 2026-10-05 — Pollora 13.34 : les vues du module ne sont plus surchargeables par le thème
 

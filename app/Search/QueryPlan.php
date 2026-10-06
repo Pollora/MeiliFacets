@@ -88,28 +88,42 @@ final readonly class QueryPlan
             return false;
         }
 
-        $filtersAVariant = array_intersect(array_keys($state->facets), $listing->variantTaxonomies()) !== [];
-
-        return $filtersAVariant || ! $state->price->isEmpty();
+        return array_intersect(array_keys($state->facets), $listing->variantTaxonomies()) !== [];
     }
 
     /**
      * @param  list<string>  $separatelyMeasuredKeys
      * @return array<string, mixed>
      */
-    public static function measures(Listing $listing, ListingState $state, array $separatelyMeasuredKeys): array
-    {
+    public static function measures(
+        VariantScopedListing $listing,
+        ListingState $state,
+        array $separatelyMeasuredKeys,
+    ): array {
         $filters = self::filterQueries($listing);
-        $scope = self::scope($listing, $state);
 
         return [
-            'q' => self::searchTerm($listing, $state),
-            'filter' => self::filter($scope, $state, $filters),
+            ...self::onVariantsOncePerProduct($listing, $state, $filters),
             'facets' => self::fieldsMeasuredTogether($filters, $separatelyMeasuredKeys),
-            'hitsPerPage' => self::NO_HIT,
-            'page' => ListingState::FIRST_PAGE,
-            ...self::searchedFields($scope),
         ];
+    }
+
+    /**
+     * @return list<FacetQuery>
+     */
+    public static function variantFacetQueries(Listing $listing): array
+    {
+        if (! $listing instanceof VariantScopedListing) {
+            return [];
+        }
+
+        $taxonomies = $listing->variantTaxonomies();
+        $facets = array_filter(
+            $listing->facets(),
+            static fn (Facet $facet): bool => in_array($facet->taxonomy, $taxonomies, true)
+        );
+
+        return array_values(array_map(static fn (Facet $facet): FacetQuery => new FacetQuery($facet), $facets));
     }
 
     /**
@@ -169,21 +183,32 @@ final readonly class QueryPlan
      */
     public static function measureWithout(Listing $listing, ListingState $state, FilterQuery $lifted): array
     {
-        $others = array_filter(
+        return [...self::measuringWithout($listing, $state, $lifted), 'facets' => $lifted->fields()];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function measuringWithout(Listing $listing, ListingState $state, FilterQuery $lifted): array
+    {
+        $others = array_values(array_filter(
             self::filterQueries($listing),
             static fn (FilterQuery $filter): bool => $filter->key() !== $lifted->key()
-        );
+        ));
 
-        $scope = self::scope($listing, $state);
+        if (! $listing instanceof VariantScopedListing) {
+            return self::onProducts($listing, $state, $others);
+        }
 
-        return [
-            'q' => self::searchTerm($listing, $state),
-            'filter' => self::filter($scope, $state, $others),
-            'facets' => $lifted->fields(),
-            'hitsPerPage' => self::NO_HIT,
-            'page' => ListingState::FIRST_PAGE,
-            ...self::searchedFields($scope),
-        ];
+        if (self::differsBetweenVariants($listing, $lifted)) {
+            return self::onVariants($listing, $state, $others);
+        }
+
+        if (self::readsVariants($listing, $state)) {
+            return self::onVariantsOncePerProduct($listing, $state, $others);
+        }
+
+        return self::onProducts($listing, $state, $others);
     }
 
     /**
@@ -236,6 +261,60 @@ final readonly class QueryPlan
             ...$scope->filter,
             ...array_map(static fn (FilterQuery $filter): string => $filter->clause($state), array_values($filters)),
         ]);
+    }
+
+    /**
+     * `distinct` only deduplicates the counts in page mode.
+     *
+     * @param  list<FilterQuery>  $filters
+     * @return array<string, mixed>
+     */
+    private static function onVariantsOncePerProduct(
+        VariantScopedListing $listing,
+        ListingState $state,
+        array $filters,
+    ): array {
+        return [...self::onVariants($listing, $state, $filters), 'distinct' => DocumentField::ParentId->value];
+    }
+
+    /**
+     * @param  list<FilterQuery>  $filters
+     * @return array<string, mixed>
+     */
+    private static function onVariants(VariantScopedListing $listing, ListingState $state, array $filters): array
+    {
+        return self::measuring($listing, $state, self::variantScope($listing, $state), $filters);
+    }
+
+    /**
+     * @param  list<FilterQuery>  $filters
+     * @return array<string, mixed>
+     */
+    private static function onProducts(Listing $listing, ListingState $state, array $filters): array
+    {
+        return self::measuring($listing, $state, self::scope($listing, $state), $filters);
+    }
+
+    /**
+     * @param  list<FilterQuery>  $filters
+     * @return array<string, mixed>
+     */
+    private static function measuring(Listing $listing, ListingState $state, SearchScope $scope, array $filters): array
+    {
+        return [
+            'q' => self::searchTerm($listing, $state),
+            'filter' => self::filter($scope, $state, $filters),
+            'hitsPerPage' => self::NO_HIT,
+            'page' => ListingState::FIRST_PAGE,
+            ...self::searchedFields($scope),
+        ];
+    }
+
+    private static function differsBetweenVariants(VariantScopedListing $listing, FilterQuery $filter): bool
+    {
+        $variantKeys = [PriceQuery::KEY, ...array_map(FacetQuery::keyFor(...), $listing->variantTaxonomies())];
+
+        return in_array($filter->key(), $variantKeys, true);
     }
 
     /**

@@ -7,6 +7,7 @@ namespace Modules\MeiliFacets\Tests\Feature;
 use Modules\MeiliFacets\Contracts\SearchableTypes;
 use Modules\MeiliFacets\Enums\QueryParameter;
 use Modules\MeiliFacets\Listing\CurrentListing;
+use Modules\MeiliFacets\Listing\ProductListing;
 use Modules\MeiliFacets\Listing\ResolvedListing;
 use Modules\MeiliFacets\Search\FilterExpression;
 use Modules\MeiliFacets\Search\VisibleProducts;
@@ -71,7 +72,7 @@ final class ListingDescriptionTest extends TestCase
     {
         $variants = $this->describedWith([])['variantResults'];
 
-        $this->assertSame(array_values(wc_get_attribute_taxonomy_names()), $variants['taxonomies']);
+        $this->assertSame($this->app->make(ProductListing::class)->variantTaxonomies(), $variants['taxonomies']);
         $this->assertStringContainsString('NOT document_kind = "parent"', $variants['filter']);
         $this->assertStringNotContainsString('NOT document_kind = "variant"', $variants['filter']);
         $this->assertStringContainsString('NOT document_kind = "parent"', $variants['searchScope']['filter']);

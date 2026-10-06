@@ -72,8 +72,14 @@ Named by `Enums\DocumentField`. “Written by” says who puts the field in the 
 
 A variable product also has **one document per variant**, `ID` `<product>-<n>`: the product's document under the
 variant's terms, price and stock. They are written and removed with the product's own (MeiliScout's
-`HasDependentDocuments`). With a filter on a variation attribute or a price range, the results read them, one per
-product (`distinct: parent_id`), while the counts stay on the products' documents.
+`HasDependentDocuments`). With a variation attribute ticked, the results read them, one per product
+(`distinct: parent_id`), and so do the counts, so that each one announces what the grid shows once it is ticked. A
+price range alone reads the products, as WooCommerce does. The terms of a variation attribute are always counted on
+the variants, without `distinct`: Meilisearch keeps a single variant per product, and would leave the others' terms
+uncounted. The variation attributes are those WooCommerce's attribute lookup table marks as such; every attribute
+counts as one while WooCommerce does not filter with the table, or rebuilds it. The price bounds read every variant
+too. *Known limit*: a product whose variants share a term counts once per variant under it — two variants 400 ml rose
+and 400 ml iris, a size the product does not vary by while another product does, a variation sold as « any size ».
 
 ## Card fields
 

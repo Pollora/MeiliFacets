@@ -115,7 +115,7 @@ final class ListingSearchTest extends TestCase
     }
 
     #[Test]
-    public function it_measures_on_the_products_once_the_results_read_variants(): void
+    public function it_measures_off_a_search_of_its_own_once_the_results_read_variants(): void
     {
         $engine = new FakeSearchEngine([
             self::RESULTS => [
@@ -276,6 +276,54 @@ final class ListingSearchTest extends TestCase
 
         $this->assertSame(['facets.product_brand', 'price.min', 'price.max'], $engine->received[0][self::RESULTS]['facets']);
         $this->assertSame(['facets.product_brand'], $engine->received[1][self::RESULTS]['facets']);
+    }
+
+    #[Test]
+    public function it_counts_the_variant_facets_apart_while_nothing_is_ticked(): void
+    {
+        $engine = new FakeSearchEngine([
+            self::RESULTS => ['facetDistribution' => ['facets.product_brand' => ['acme' => 3]]],
+            self::COUNT.FakeVariantScopedListing::SIZE => ['facetDistribution' => ['facets.pa_size' => ['400ml' => 2]]],
+        ]);
+
+        $results = $this->searchWith($engine)->run(new FakeVariantScopedListing, new ListingState);
+
+        $this->assertSame([self::RESULTS, self::COUNT.FakeVariantScopedListing::SIZE], array_keys($engine->received[0]));
+        $this->assertNotContains('facets.pa_size', $engine->received[0][self::RESULTS]['facets']);
+        $this->assertSame(['400ml' => 2], $results->distributions[FakeVariantScopedListing::SIZE]);
+    }
+
+    #[Test]
+    public function it_never_counts_a_facet_twice_on_a_listing_with_variants(): void
+    {
+        $engine = new FakeSearchEngine;
+        $state = new ListingState(['product_brand' => ['acme'], FakeVariantScopedListing::SIZE => ['400ml']], price: new Range(55.0));
+
+        $this->searchWith($engine)->run(new FakeVariantScopedListing, $state);
+
+        $counted = [];
+
+        foreach ($engine->received[0] as $key => $query) {
+            if ($key !== self::UNFILTERED) {
+                $facets = $query['facets'] ?? [];
+                $this->assertSame([], array_intersect($facets, $counted), "\"{$key}\" is counted twice.");
+                $counted = [...$counted, ...$facets];
+            }
+        }
+    }
+
+    #[Test]
+    public function it_bounds_the_price_on_every_variant_once_the_results_read_variants(): void
+    {
+        $engine = new FakeSearchEngine;
+
+        $this->searchWith($engine)->run(new FakeVariantScopedListing, new ListingState([FakeVariantScopedListing::SIZE => ['400ml']]));
+
+        $bounds = $engine->received[0][self::BOUNDS] ?? [];
+
+        $this->assertSame(['price.min', 'price.max'], $bounds['facets'] ?? null);
+        $this->assertArrayNotHasKey('distinct', $bounds);
+        $this->assertNotContains('price.min', $engine->received[0]['measures']['facets']);
     }
 
     private function searchWith(FakeSearchEngine $engine): ListingSearch
