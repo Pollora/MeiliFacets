@@ -3315,6 +3315,21 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
+### R-221 · 🟢 · **fermé le 2026-10-06** · ouvert le 2026-10-06 — `ActiveValueListTest` rouge dans la suite complète du projet
+
+Six tests de `ActiveValueListTest` échouent dans `ddev exec vendor/bin/phpunit`, et passent sous `--testsuite Modules`
+(reproduit). Le test, dans `tests/Unit`, attend les motifs anglais et des prix en `number_format` : il suppose
+WordPress absent. La suite complète lance d'abord les tests `Feature` du projet, qui chargent WordPress et WooCommerce
+dans le même processus ; `__()` traduit alors les motifs (« À partir de 10,00 € », « Retirer le filtre … ») et `Money`
+passe par `wc_price()`. La suite `Modules` lance ses `Unit` avant ses `Feature`, d'où le vert. Le code est juste : il
+rend sur le site ce qu'il doit rendre. Reproduit avec `--testsuite Modules --filter 'ListingPageTest|ActiveValueListTest'
+--order-by=reverse` : 6 rouges.
+
+*Corrigé le 2026-10-06, validé par Louis* : la classe tourne dans un processus séparé
+(`#[RunTestsInSeparateProcesses]`). Vert dans les deux ordres ; la classe seule prend 1,9 s pour ses 11 tests ;
+`composer check` vert, `Modules` 1127. Le septième échec de la suite complète, `test_permalinks_are_set_to_postname`,
+relevait du projet : `/%postname%` sans barre finale est le réglage voulu (Louis), le test du projet est aligné.
+
 ### R-220 · 🟠 · **fermé le 2026-10-06** (n°12 noté, à reprendre ; question ouverte sous n°5) · ouvert le 2026-10-05 — revue de la PR #9 (`c86a74e`) : 15 constats
 
 Publiés en anglais sur la PR (`/code-review max`, un commentaire par constat). Traités un par un : vérifier
