@@ -13,6 +13,7 @@ use Modules\MeiliFacets\Enums\IndexSetting;
 use Modules\MeiliFacets\Enums\PaginationSetting;
 use Modules\MeiliFacets\Enums\TypoToleranceSetting;
 use Modules\MeiliFacets\Search\EngineLimits;
+use Modules\MeiliFacets\Search\QueryPlan;
 use Modules\MeiliFacets\Support\UniqueList;
 use Pollora\MeiliScout\Contracts\HasDependentDocuments;
 use Pollora\MeiliScout\Indexables\PostIndexable;
@@ -27,11 +28,7 @@ final class FacetedPostIndexable extends PostIndexable implements HasDependentDo
      * The only fields the module reads back from a hit. Anything else a project
      * needs is declared, not inherited.
      */
-    private const array READ_BY_THE_MODULE = [
-        DocumentField::Id->value,
-        DocumentField::Card->value,
-        DocumentField::ParentId->value,
-    ];
+    private const array READ_BY_THE_MODULE = QueryPlan::VARIANT_RETRIEVED;
 
     public function __construct(
         private readonly IndexAttributes $attributes,

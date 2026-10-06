@@ -16,6 +16,7 @@ use Modules\MeiliFacets\Indexing\IndexedTaxonomies;
 use Modules\MeiliFacets\Indexing\MeiliScoutBridge;
 use Modules\MeiliFacets\Indexing\WooCommerceIndexAttributes;
 use Modules\MeiliFacets\Search\EngineLimits;
+use Modules\MeiliFacets\Search\QueryPlan;
 use Modules\MeiliFacets\Tests\Unit\Doubles\ExcerptFirstSearchableAttributes;
 use PHPUnit\Framework\Attributes\Test;
 use Pollora\MeiliScout\Indexables\PostIndexable;
@@ -175,6 +176,20 @@ final class IndexSearchSettingsTest extends TestCase
         $indexable = $this->app->make(MeiliScoutBridge::class)->declareFacetAttributes([new PostIndexable])[0];
 
         return $indexable->getIndexSettings()[IndexSetting::SearchableAttributes->value];
+    }
+
+    #[Test]
+    public function it_displays_every_field_the_module_reads_off_a_hit(): void
+    {
+        $settings = $this->app->make(FacetedPostIndexable::class, [
+            'attributes' => new EmptyIndexAttributes,
+            'limits' => new EngineLimits(self::REACHABLE_HITS),
+        ])->getIndexSettings();
+
+        $displayed = $settings[IndexSetting::DisplayedAttributes->value];
+
+        $this->assertSame([], array_diff(QueryPlan::VARIANT_RETRIEVED, $displayed));
+        $this->assertSame([], array_diff(QueryPlan::RETRIEVED, $displayed));
     }
 
     /** All three are scoped: kept, they would carry the taxonomies and the order of a former test. */

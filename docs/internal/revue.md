@@ -3492,7 +3492,10 @@ qu'il est vrai, corriger, tester, puis passer au suivant.
    gardée. Corrigé : `customising/card.md` dit qu'un projet qui remplace le `CardProjector` doit fixer `card.image_size`
    à sa taille, l'image propre d'une variante y étant lue. Assumé : sur Pluralia, `portrait` recadre aussi les cartes
    d'articles du panneau de recherche (une clé produits séparée a été écartée).
-10. *Deux listes de champs relus tenues à la main* (`READ_BY_THE_MODULE`, `VARIANT_RETRIEVED`). À vérifier.
+10. *Deux listes de champs relus tenues à la main* (`READ_BY_THE_MODULE`, `VARIANT_RETRIEVED`). *Vérifié et corrigé le
+   2026-10-06, non commité* : identiques mais non liées — un champ lu sans être affiché revient vide, sans erreur.
+   `FacetedPostIndexable::READ_BY_THE_MODULE` reprend `QueryPlan::VARIANT_RETRIEVED`. Test : les champs affichés
+   contiennent ceux que les deux requêtes lisent ; rouge si la liste ne reprend que `RETRIEVED`.
 11. *Suppression par filtre envoyée pour tout article*, pas seulement les produits. À trancher.
 12. *`card.variants` sur la fiche produit*, envoyé sans être lu hors mode variantes. À trancher.
 13. *Pas de cas partagés PHP/TS* pour `measures` et `variantResults`. À vérifier.
