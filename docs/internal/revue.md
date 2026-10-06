@@ -3315,7 +3315,7 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
-### R-220 · 🟠 · ouvert · ouvert le 2026-10-05 — revue de la PR #9 (`c86a74e`) : 15 constats
+### R-220 · 🟠 · **fermé le 2026-10-06** (n°12 noté, à reprendre ; question ouverte sous n°5) · ouvert le 2026-10-05 — revue de la PR #9 (`c86a74e`) : 15 constats
 
 Publiés en anglais sur la PR (`/code-review max`, un commentaire par constat). Traités un par un : vérifier
 qu'il est vrai, corriger, tester, puis passer au suivant.
@@ -3335,8 +3335,8 @@ qu'il est vrai, corriger, tester, puis passer au suivant.
    réindexation dans la même requête lit l'ancien slug — prouvé par un test rouge, seuil forcé à 0.
    *Premier correctif abandonné le 2026-10-05, avant commit* : une réindexation de plus côté module, qui doublait celle
    de MeiliScout, lisait le cache périmé et dépendait d'un crochet interne de MeiliScout.
-   *Corrigé le 2026-10-05, non commité* :
-   - MeiliScout (non commité) : `edited_term` écouté à `EDITED_TERM_PRIORITY` (100), après les plugins qui réécrivent
+   *Corrigé le 2026-10-05, commité `c91a3f2`, MeiliScout `ffd3064`* :
+   - MeiliScout (`ffd3064`) : `edited_term` écouté à `EDITED_TERM_PRIORITY` (100), après les plugins qui réécrivent
      les articles d'un terme à la priorité par défaut. Création et suppression inchangées. Action publique
      `meiliscout/schedule_indexation`, sans argument : programme une fois la tâche de fond du bouton « Indexer », sans
      vider l'index, et ne fait rien pendant `meiliscout/skip_indexing`.
@@ -3403,7 +3403,7 @@ qu'il est vrai, corriger, tester, puis passer au suivant.
      reproductible sur Pluralia aujourd'hui (option à `no`, deux variations visibles) ;
    - `distinct` ne change pas `facetDistribution` : sans filtre, les documents variante comptent « Visage » 9 fois au
      lieu de 8, le 125 une fois par variante.
-   *Fourchette seule corrigée le 2026-10-06, non commité* (choix de l'utilisateur, « comme WooCommerce », amendement
+   *Fourchette seule corrigée le 2026-10-06, commité `ec5d9c4`* (choix de l'utilisateur, « comme WooCommerce », amendement
    de la décision « Produits variables ») : `QueryPlan::readsVariants()` et son jumeau `ListingQuery.#readsVariants()`
    ne passent aux documents variante que pour une facette de variante. Tests PHP et TS : fourchette seule, produits lus
    par chevauchement, sans `distinct`, tri du produit ; garde « liste sans document par variante » portée sur une
@@ -3417,7 +3417,7 @@ qu'il est vrai, corriger, tester, puis passer au suivant.
    MeiliScout (`use_meilisearch`, `TypeStatusBuilder.php:27-28`) — chaque variante revenait comme son produit parent,
    `(int) "123-0"` valant 123 (`class-wp-post.php:235`), soit 1 + N fois le même produit ; vrai pour un projet qui lie
    ses propres types de recherche ; `upgrading.md` n'en disait rien ; `onVariants()` comparait la clause à l'identique.
-   Pluralia n'est pas touché. *Corrigé le 2026-10-06, non commité* (option structurelle, choix de l'utilisateur) : le
+   Pluralia n'est pas touché. *Corrigé le 2026-10-06, commité `b7906bc`* (option structurelle, choix de l'utilisateur) : le
    document variante porte `post_type = "product_variation"`, la clause d'exclusion disparaît, `onVariants()` élargit la
    clause de type (`FilterExpression::any()`, que `facet()` emploie aussi). Tests : `VisibleProductsTest` (produits sur
    leur seul type, variantes à la place des parents, filtre d'un projet élargi, clause écrite autrement laissée
@@ -3438,8 +3438,7 @@ qu'il est vrai, corriger, tester, puis passer au suivant.
    (attribut descriptif) est réglé par `R-214` tant que la table de WooCommerce sert ; reste un produit qui porte une
    taille sans la décliner, ou une variation « toutes tailles » — la grille le range par sa variante en stock, la
    carte reste projetée. Nouveau cas, visible sur Pluralia, créé par la fourchette seule « comme WooCommerce » : à
-   30–45 € triés par prix, le 125 s'affichait « 39 € » rangé avant un produit à 32 €. *Corrigé le 2026-10-06, non
-   commité* (choix de l'utilisateur) : la carte choisit sa variante selon la règle de la grille
+   30–45 € triés par prix, le 125 s'affichait « 39 € » rangé avant un produit à 32 €. *Corrigé le 2026-10-06, commité `00c28f0`* (choix de l'utilisateur) : la carte choisit sa variante selon la règle de la grille
    (`VariantChoice::readsVariants()` et son jumeau TS, liste `variantTaxonomies` passée par `ResolvedListing` et par
    la description) ; `CardVariant::carriesAny()` retiré. Cas partagés : fourchette seule → carte projetée ; taille non
    portée → variante en stock ; facette hors attributs de variation → carte projetée ; les 14 cas qui testaient la
@@ -3455,7 +3454,7 @@ qu'il est vrai, corriger, tester, puis passer au suivant.
    sur `untrashed_post`, par `wp_untrash_post()` (`class-wc-product-variable-data-store-cpt.php:1054-1071`), sans
    crochet de variation. Même trou pour une méta de variation écrite directement (import, extension). Le stock après
    une commande est couvert : `wc_update_product_stock()` enregistre la variation (`wc-stock-functions.php:62-64`).
-   *Corrigé le 2026-10-06, non commité* : `VariationChanges::rememberProductOfVariationMeta()` écoute l'ajout, la modification et la
+   *Corrigé le 2026-10-06, commité `6dd8a27`* : `VariationChanges::rememberProductOfVariationMeta()` écoute l'ajout, la modification et la
    suppression des métas d'une variation et retient son produit, réindexé une fois en fin de requête ; la restauration
    passe par là (WordPress supprime la méta de corbeille de chaque variation) — une écoute de `untrashed_post` essayée
    puis retirée, aucun test ne lui trouvant de rôle. Tests : produit restauré réindexé une fois, avec ses deux
@@ -3479,12 +3478,12 @@ qu'il est vrai, corriger, tester, puis passer au suivant.
    la fiche produit porte les ancêtres (`TermAncestry`), la variante seulement son terme (`ProductVariants::facetsOf()`)
    et `VariantDocuments` remplace la liste du produit ; WooCommerce enregistre les attributs non hiérarchiques
    (`class-wc-post-types.php:270`), un projet peut les rendre hiérarchiques (`woocommerce_taxonomy_args_{name}`).
-   Pluralia n'est pas concerné. *Corrigé le 2026-10-06, non commité* : la variante porte aussi les ancêtres de son terme
+   Pluralia n'est pas concerné. *Corrigé le 2026-10-06, commité `f037d2b`* : la variante porte aussi les ancêtres de son terme
    (`TermHierarchy`), seulement sur une taxonomie hiérarchique — aucun coût sur des attributs plats ; la carte en
    profite (`VariantChoice` lit les mêmes termes). Test : variation 15 ml sous « petits formats », rouge sans la
    correction. Réindexation nécessaire pour un projet concerné.
 8. *Attribut local homonyme d'une taxonomie* (`taxonomy_exists` au lieu de `taxonomy_is_product_attribute`).
-   *Vérifié et corrigé le 2026-10-06, non commité* : `ProductVariants::facetsOf()` ne retient que les attributs produit
+   *Vérifié et corrigé le 2026-10-06, commité `ca11837`* : `ProductVariants::facetsOf()` ne retient que les attributs produit
    de WooCommerce (`taxonomy_is_product_attribute()`). Test : un attribut local « meilifacets_test_color », homonyme
    d'une taxonomie du site, ne donne aucun terme ; rouge avec `taxonomy_exists()`. Les tests déclarent leur attribut
    fictif en mémoire (`$wc_product_attributes`).
@@ -3493,11 +3492,10 @@ qu'il est vrai, corriger, tester, puis passer au suivant.
    à sa taille, l'image propre d'une variante y étant lue. Assumé : sur Pluralia, `portrait` recadre aussi les cartes
    d'articles du panneau de recherche (une clé produits séparée a été écartée).
 10. *Deux listes de champs relus tenues à la main* (`READ_BY_THE_MODULE`, `VARIANT_RETRIEVED`). *Vérifié et corrigé le
-   2026-10-06, non commité* : identiques mais non liées — un champ lu sans être affiché revient vide, sans erreur.
+   2026-10-06, commité `28cde0b`* : identiques mais non liées — un champ lu sans être affiché revient vide, sans erreur.
    `FacetedPostIndexable::READ_BY_THE_MODULE` reprend `QueryPlan::VARIANT_RETRIEVED`. Test : les champs affichés
    contiennent ceux que les deux requêtes lisent ; rouge si la liste ne reprend que `RETRIEVED`.
-11. *Suppression par filtre envoyée pour tout article*, pas seulement les produits. *Corrigé le 2026-10-06, non
-   commité* (demandé par l'utilisateur) : MeiliScout n'envoie plus de suppression quand
+11. *Suppression par filtre envoyée pour tout article*, pas seulement les produits. *Corrigé le 2026-10-06, commité `447143e`, MeiliScout `ef2bd18`* (demandé par l'utilisateur) : MeiliScout n'envoie plus de suppression quand
    `dependentDocumentsFilter()` rend `null` (contrat `?string`, une seule garde `dependentDocumentsFilterOf()` pour
    l'écriture et la suppression, tests Pest) ; le module ne garde que les produits et les articles déjà supprimés —
    une suppression asynchrone arrive quand l'article n'existe plus (`FacetedPostIndexable::mayHaveVariants()`).
@@ -3512,18 +3510,20 @@ qu'il est vrai, corriger, tester, puis passer au suivant.
    un coût et non un défaut — quelques centaines d'octets par variante dans chaque réponse (boutique, panneau). Le
    retirer demande que MeiliScout laisse ôter un champ de la fiche produit après avoir construit les fiches dépendantes.
    *Noté, à reprendre* (choix de l'utilisateur).
-13. *Pas de cas partagés PHP/TS* pour `measures` et `variantResults`. *Corrigé le 2026-10-06, non commité* :
+13. *Pas de cas partagés PHP/TS* pour `measures` et `variantResults`. *Corrigé le 2026-10-06, commité `5b3dc66`* :
    `tests/variant-plan-cases.json`, sept états (rien, une marque, une taille triée par prix, taille et marque, taille et
    fourchette, fourchette seule, taille et recherche) et le plan attendu de chaque recherche (requête, filtre, champs
    comptés, `distinct`, tri, champs cherchés), joués par `VariantPlanCasesTest` et `listing-query.test.ts` ; un test
    vérifie que la description du fichier est bien celle de `FakeVariantScopedListing`. Aucun écart trouvé ; un
    `distinct` retiré d'un côté fait échouer ce côté.
-14. *Registre contradictoire* (503, « non commité »). À corriger.
+14. *Registre contradictoire* (503, « non commité »). *Corrigé le 2026-10-06* : états des entrées commitées mis à jour
+   (`R-213` `11c0d80`, `R-214` `ec5d9c4`, `R-217` `58f5b33`, `R-219` `02f7506`, points de cette entrée), dette « le
+   `503` ne sort pas » de `decisions.md` marquée réglée, note sur l'absence de cas partagés du plan mise à jour.
 
 Écartés par la revue : `several_variants` hors filtre (voulu), réindexation en trop (`R-215`), noyau HTTP (Pollora
 utilise celui de Laravel).
 
-### R-219 · 🟢 · ouvert (corrigé, non commité) · ouvert le 2026-10-05 — une valeur de facette lue dans l'URL n'avait pas de longueur maximale
+### R-219 · 🟢 · **fermé le 2026-10-05** (`02f7506`) · ouvert le 2026-10-05 — une valeur de facette lue dans l'URL n'avait pas de longueur maximale
 
 Audit de sécurité du 2026-10-05. `StateReader::isReadable()` acceptait une valeur de n'importe quelle longueur : une
 URL forgée portait jusqu'à `cap` valeurs de plusieurs kilo-octets chacune jusqu'au filtre envoyé au moteur. Une valeur
@@ -3546,7 +3546,7 @@ de MeiliScout (`posts`, `taxonomies`, `getIndexName()` des deux indexables) et a
 `documents.*`, `indexes.*`, `settings.*`, `tasks.get`) ; la clé maître hors de l'environnement de l'application.
 Ajouté à `docs/production.md` (« The server key »). Non codé.
 
-### R-217 · 🟠 · **fermé le 2026-10-05** (non commité) · ouvert le 2026-10-05 — la vue de panne du listing part en 200 avec un cache public
+### R-217 · 🟠 · **fermé le 2026-10-05** (`58f5b33`, `c86a74e`) · ouvert le 2026-10-05 — la vue de panne du listing part en 200 avec un cache public
 
 *Corrigé le 2026-10-05 (non commité), avec `R-40`* : le listing ne pose plus d'en-tête à la main ;
 `ServiceUnavailable::announce()` marque la panne pendant le rendu, et un middleware global du module
@@ -3611,7 +3611,7 @@ WooCommerce (`class-wc-product-variable-data-store-cpt.php:940-951`) : au moins 
 `VariationChanges`. Non mesuré. *Laissé de côté le 2026-10-05 par l'utilisateur* : le mode différé (`MEILISCOUT_ASYNC_INDEXING`) en
 production regroupera les passages.
 
-### R-214 · 🟡 · ouvert (corrigé, non commité) · ouvert le 2026-10-05 — un compteur annonce plus de produits que la grille n'en montre
+### R-214 · 🟡 · **fermé le 2026-10-06** (`ec5d9c4`) · ouvert le 2026-10-05 — un compteur annonce plus de produits que la grille n'en montre
 
 Avec une facette de variante et une fourchette de prix combinées, la grille lit les documents variante (un filtre se
 vérifie sur une seule variante) et les compteurs les documents produit (fourchettes qui se chevauchent) : « 400 ml »
@@ -3660,7 +3660,7 @@ chacune rattrapée. Vérifié sur la page (serveur, puis client sous Playwright)
 - Noté : `QueryPlan` passe à vingt méthodes statiques qui prennent toutes `($listing, $state)` ; le schéma préexiste,
   une classe par listing et par état serait un chantier à part.
 
-### R-213 · 🔴 · ouvert (corrigé, non commité) · ouvert le 2026-10-05 — Pollora 13.34 : les vues du module ne sont plus surchargeables par le thème
+### R-213 · 🔴 · **fermé le 2026-10-05** (`11c0d80`) · ouvert le 2026-10-05 — Pollora 13.34 : les vues du module ne sont plus surchargeables par le thème
 
 La mise à jour du projet (`b4389d5`, `pollora/framework` v13.4.2 → v13.34.2) renomme le contrat des actions :
 `Pollora\Hook\Domain\Contracts\Action` devient `Pollora\Hook\Domain\Contract\Action`. Le fournisseur du module
