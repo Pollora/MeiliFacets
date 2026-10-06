@@ -123,7 +123,7 @@ All under `Modules\MeiliFacets\`.
 | `Listing\SortFilter` | class | the filter a sort carries; `SortFilter::whereTrue()` | [Sorting](../listing/results-sort-pagination.md) |
 | `Listing\NameOrder` | class | orders values by name in the site language | [Facets](../listing/facets.md) |
 | `Listing\CardVariant` | class | one way a product is sold, inside its card: facets, price, fields, in stock; `toArray()`, `read()` | [Card variants](../customising/card.md#card-variants) |
-| `Listing\VariantChoice` | class | `shown(array $card)`: the card through the variant the filters point to, as projected when none concerns its variants | [Card variants](../customising/card.md#card-variants) |
+| `Listing\VariantChoice` | class | `shown(array $card)`: the card through the variant the filters point to once a variation attribute is ticked, as projected otherwise | [Card variants](../customising/card.md#card-variants) |
 | `Listing\ListingUnavailable` | exception | thrown by a listing's constructor to opt out quietly | [Listing other content](../listing/custom-listing.md) |
 | `SiteSearch\SearchableType` | class | a searchable type; `withHeading()`, `withSeeAllLabel()`, `withCard()`, `withArchive()`, `withoutArchive()`, `withSearchOn()` | [Searchable types](../search/types.md) |
 | `SiteSearch\SearchableTypeFactory` | class | `forPostType()`, `make()` | [Searchable types](../search/types.md) |

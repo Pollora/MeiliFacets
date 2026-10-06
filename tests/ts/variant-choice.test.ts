@@ -15,12 +15,12 @@ interface VariantCase {
 }
 
 /** The server half is `tests/Unit/VariantChoiceTest.php`: same cases, same rule. */
-const { cases } = JSON.parse(readFileSync(new URL('../card-variant-cases.json', import.meta.url), 'utf8')) as { cases: VariantCase[] }
+const { variantTaxonomies, cases } = JSON.parse(readFileSync(new URL('../card-variant-cases.json', import.meta.url), 'utf8')) as { variantTaxonomies: string[], cases: VariantCase[] }
 
 describe('VariantChoice', () => {
     for (const { case: name, card, selected, price, expected } of cases) {
         it(name, () => {
-            assert.deepEqual(new VariantChoice(selected, new Range(price.min, price.max)).shown(card), expected)
+            assert.deepEqual(new VariantChoice(selected, new Range(price.min, price.max), variantTaxonomies).shown(card), expected)
         })
     }
 
@@ -36,7 +36,9 @@ describe('VariantChoice', () => {
             },
         }
 
-        assert.deepEqual(CardView.fieldsOf(hit, new VariantChoice({ pa_volume: ['400ml'] })), { id: 125, volume: '400ml' })
+        const choice = new VariantChoice({ pa_volume: ['400ml'] }, new Range(), ['pa_volume'])
+
+        assert.deepEqual(CardView.fieldsOf(hit, choice), { id: 125, volume: '400ml' })
         assert.deepEqual(CardView.fieldsOf(hit), { id: 125, volume: '400ml, 15ml' })
     })
 })

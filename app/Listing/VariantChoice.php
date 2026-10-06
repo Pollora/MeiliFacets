@@ -7,7 +7,7 @@ namespace Modules\MeiliFacets\Listing;
 use Modules\MeiliFacets\Enums\CardField;
 
 /**
- * Shows a card through the variant the active filters point to, and as projected when none concerns its variants.
+ * Shows a card through the variant the active filters point to once a variation attribute is ticked, as projected otherwise.
  *
  * @phpstan-import-type Selection from ListingState
  */
@@ -26,10 +26,12 @@ final readonly class VariantChoice
 
     /**
      * @param  Selection  $selected
+     * @param  list<string>  $variantTaxonomies
      */
     public function __construct(
         private array $selected = [],
         private Range $price = new Range,
+        private array $variantTaxonomies = [],
     ) {}
 
     /**
@@ -41,7 +43,7 @@ final readonly class VariantChoice
         $variants = $this->read($card[CardField::Variants->value] ?? null);
         unset($card[CardField::Variants->value]);
 
-        $matching = $this->isConcerned($variants) ? $this->matching($variants) : [];
+        $matching = $this->readsVariants() ? $this->matching($variants) : [];
 
         if ($matching === []) {
             return $card;
@@ -101,13 +103,9 @@ final readonly class VariantChoice
         return array_diff_key($variant->fields, array_flip(self::FIELDS_SET_BY_THE_MODULE));
     }
 
-    /**
-     * @param  list<CardVariant>  $variants
-     */
-    private function isConcerned(array $variants): bool
+    private function readsVariants(): bool
     {
-        return ! $this->price->isEmpty()
-            || array_any($variants, fn (CardVariant $variant): bool => $variant->carriesAny($this->selected));
+        return array_intersect(array_keys($this->selected), $this->variantTaxonomies) !== [];
     }
 
     /**

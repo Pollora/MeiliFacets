@@ -13,9 +13,10 @@ What to change in a project when moving from one version to the next is in
 
 - Card variants: with WooCommerce, the module reads a variable product's variants when it is indexed
   (`Indexing\ProductVariants`, `Listing\CardVariant`): terms, price, stock, price HTML, link and own image, which
-  replaces the product's image whole. When an active facet or price range concerns them, the listing shows the card
-  through a matching variant (`Listing\VariantChoice`), on the server and in the browser alike: those in stock are
-  preferred, then the cheapest. `several_variants` flags a card on which several variants are offered, for a « from »
+  replaces the product's image whole. When a facet on a variation attribute is ticked, a listing with variant
+  documents (`Contracts\VariantScopedListing`) shows the card through a matching variant (`Listing\VariantChoice`), on
+  the server and in the browser alike: those in stock are preferred, then the cheapest. A price range alone keeps the
+  card as projected, and a listing without variant documents always does. `several_variants` flags a card on which several variants are offered, for a « from »
   prefix; `out_of_stock` flags a card that shows a variant out of stock. With no such filter, or none matching, the
   card is shown as projected. A `variants` list a `CardProjector` returns is dropped.
 - `out_of_stock` on the card of every product WooCommerce holds out of stock, whatever its type

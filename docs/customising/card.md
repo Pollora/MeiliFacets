@@ -366,8 +366,10 @@ $this->app->bind(VariantFields::class, ShopVariantFields::class);
 
 **2. Nothing to do in the listing.** The server and the browser apply the same rule to every card before binding it:
 
-- variants are applied only when a filter **concerns** them: a price range, or a facet whose taxonomy one of them
-  carries. Otherwise the card is shown exactly as projected;
+- variants are applied only when a filter **concerns** them: a facet on a variation attribute — the same rule that
+  makes the grid read the variant documents. A price range alone does not: the grid ranks the product by its own
+  range, as WooCommerce does. A listing of your own applies variants only if it implements
+  `Contracts\VariantScopedListing`. Otherwise the card is shown exactly as projected;
 - a variant **matches** when, for every active facet whose taxonomy it carries, one of its terms is selected, and its
   price lies within the asked range when there is one. A facet it does not carry rules nothing out;
 - among the matching variants, those **in stock** are offered; only when none is in stock are the ones out of stock
@@ -400,13 +402,9 @@ When the listing shows a variant, the flag follows that variant instead. Bind it
 « from », with `$binding->onlyWith(CardField::OutOfStock)`. The module lists products out of stock even when « Hide
 out of stock items » is ticked; only their variants out of stock are left out.
 
-**Known limit: crossed filters.** A variant is matched as a whole. With two facets ticked, `400ml` and `rose`, and a
-product sold as « 400 ml, iris » and « 15 ml, rose », the product is listed — each filter matches one of its
-variations — but no single variant matches both. The card is then shown as projected.
-
-**Known limit: a price range between two variants.** The engine lists a product whose price range overlaps the one asked
-for, as WooCommerce does: a product sold at 26 and 39 is listed for 30 to 35, while none of its variants is priced
-within that range. The card is then shown as projected, with its whole range.
+**A price range alone.** The engine lists a product whose price range overlaps the one asked for, as WooCommerce
+does: a product sold at 26 and 39 is listed for 30 to 35, while none of its variants is priced within that range. Its
+card shows its whole range; a variant is shown once a variation attribute is ticked.
 
 ## What the contract asks of a card
 

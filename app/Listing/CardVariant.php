@@ -60,14 +60,6 @@ final readonly class CardVariant
     }
 
     /**
-     * @param  Selection  $selected
-     */
-    public function carriesAny(array $selected): bool
-    {
-        return array_intersect_key($selected, $this->facets) !== [];
-    }
-
-    /**
      * A facet the variant does not carry does not rule it out.
      *
      * @param  Selection  $selected

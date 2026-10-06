@@ -94,9 +94,17 @@ final class ResolvedListing
      */
     private function shownCards(): array
     {
-        $choice = new VariantChoice($this->state->facets, $this->state->price);
+        $choice = new VariantChoice($this->state->facets, $this->state->price, $this->variantTaxonomies());
 
         return array_map($choice->shown(...), $this->results()->cards());
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function variantTaxonomies(): array
+    {
+        return $this->variantListing()?->variantTaxonomies() ?? [];
     }
 
     public function state(): ListingState

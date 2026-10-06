@@ -51,10 +51,6 @@ export class CardVariant {
         })
     }
 
-    carriesAny(selected: Selection) {
-        return Object.keys(selected).some((taxonomy) => Object.hasOwn(this.facets, taxonomy))
-    }
-
     /** A facet the variant does not carry does not rule it out. */
     matches(selected: Selection, price: Range) {
         return Object.entries(selected).every(([taxonomy, slugs]) => this.#meets(taxonomy, slugs))

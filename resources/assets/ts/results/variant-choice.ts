@@ -10,20 +10,22 @@ const OUT_OF_STOCK_FIELD = 'out_of_stock'
 const FLAGS_OF_THE_CHOSEN_VARIANT: readonly string[] = [SEVERAL_FIELD, OUT_OF_STOCK_FIELD]
 const FIELDS_SET_BY_THE_MODULE: readonly string[] = [ID_FIELD, VARIANTS_FIELD, ...FLAGS_OF_THE_CHOSEN_VARIANT]
 
-/** The browser's copy of `Listing\VariantChoice`: shows a card through the variant the active filters point to, and as projected when none concerns its variants. */
+/** The browser's copy of `Listing\VariantChoice`. */
 export class VariantChoice {
     #selected: Selection
     #price: Range
+    #variantTaxonomies: readonly string[]
 
-    constructor(selected: Selection = {}, price = new Range()) {
+    constructor(selected: Selection = {}, price = new Range(), variantTaxonomies: readonly string[] = []) {
         this.#selected = selected
         this.#price = price
+        this.#variantTaxonomies = variantTaxonomies
     }
 
     shown(card: Card): Card {
         const { [VARIANTS_FIELD]: stored, ...rest } = card
         const variants = VariantChoice.#read(stored)
-        const matching = this.#isConcerned(variants) ? this.#matching(variants) : []
+        const matching = this.#readsVariants() ? this.#matching(variants) : []
 
         if (matching.length === 0) {
             return rest
@@ -65,8 +67,8 @@ export class VariantChoice {
         return Object.fromEntries(Object.entries(variant.fields).filter(([field]) => !FIELDS_SET_BY_THE_MODULE.includes(field)))
     }
 
-    #isConcerned(variants: CardVariant[]) {
-        return !this.#price.isEmpty() || variants.some((variant) => variant.carriesAny(this.#selected))
+    #readsVariants() {
+        return Object.keys(this.#selected).some((taxonomy) => this.#variantTaxonomies.includes(taxonomy))
     }
 
     #matching(variants: CardVariant[]) {

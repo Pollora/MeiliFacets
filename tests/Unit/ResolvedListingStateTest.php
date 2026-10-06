@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Tests\Unit;
 
+use Modules\MeiliFacets\Contracts\Listing;
 use Modules\MeiliFacets\Http\ServiceUnavailable;
 use Modules\MeiliFacets\Listing\CardVariant;
 use Modules\MeiliFacets\Listing\Facet;
@@ -20,6 +21,7 @@ use Modules\MeiliFacets\Tests\Unit\Doubles\FakeListing;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeSearchEngine;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeTermLabels;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeTermScope;
+use Modules\MeiliFacets\Tests\Unit\Doubles\FakeVariantScopedListing;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -59,7 +61,7 @@ final class ResolvedListingStateTest extends TestCase
     }
 
     #[Test]
-    public function it_shows_each_card_through_the_variant_the_state_points_to(): void
+    public function it_shows_a_card_through_its_variant_only_on_a_listing_with_variant_documents(): void
     {
         $variants = [
             new CardVariant(['pa_size' => ['large']], 39.0, ['size' => 'Large'])->toArray(),
@@ -67,15 +69,16 @@ final class ResolvedListingStateTest extends TestCase
         ];
         $engine = new FakeSearchEngine([self::RESULTS => ['hits' => [['ID' => 125, 'card' => ['variants' => $variants]]]]]);
 
-        $cards = $this->listing(new ListingState(facets: ['pa_size' => ['large']]), $engine)->cards();
+        $state = new ListingState(facets: ['pa_size' => ['large']]);
 
-        $this->assertSame([['id' => 125, 'size' => 'Large']], $cards);
+        $this->assertSame([['id' => 125, 'size' => 'Large']], $this->listing($state, $engine, new FakeVariantScopedListing)->cards());
+        $this->assertSame([['id' => 125]], $this->listing($state, $engine)->cards());
     }
 
-    private function listing(ListingState $state, FakeSearchEngine $engine = new FakeSearchEngine): ResolvedListing
+    private function listing(ListingState $state, FakeSearchEngine $engine = new FakeSearchEngine, ?Listing $listing = null): ResolvedListing
     {
         return new ResolvedListing(
-            new FakeListing([$this->brand, $this->size]),
+            $listing ?? new FakeListing([$this->brand, $this->size]),
             $state,
             new ListingSearch($engine, new DisjunctiveFacetCounter),
             new FacetValues(new FakeTermLabels, new FakeTermScope, new FakeDefaultTerms),
