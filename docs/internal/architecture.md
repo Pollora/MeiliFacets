@@ -381,9 +381,11 @@ même contenu existe déjà sur le chemin nu.
 >
 > Limite connue : un listing posé sur une page libre, hors archive, n'est pas couvert par la garde.
 
-Aucune canonique n'est posée vers le chemin nu, et celle que Yoast poserait est retirée des vues
-secondaires (`IndexingPolicy`) — `noindex` et une canonique pointant ailleurs sont deux signaux
-contradictoires. Les liens `next`/`prev` de Yoast sont retirés de tout listing.
+*Inversé le 2026-10-02 (`R-208`)* : une vue secondaire porte une canonique vers son chemin nu, numéro de page du
+module conservé (`IndexingPolicy::canonicalizeSecondaryViews()`, puis `canonicalFor()`, qui complète celle que Yoast
+construit depuis le permalien et sa propre pagination). Elle était retirée depuis `R-59`, `noindex` et une canonique
+pointant ailleurs étant deux signaux contradictoires : ce risque est accepté, le `noindex, follow` reste posé. Les
+liens `next`/`prev` de Yoast sont retirés de tout listing.
 
 ⚠️ Ne pas compter sur le `follow` dans la durée : une page durablement `noindex` finit traitée
 comme `nofollow` par Google. Ce qui garantit la découverte des fiches produits est le sitemap
@@ -681,14 +683,15 @@ qui les oublie casse le client sans qu'aucune infraction ne soit signalée :
 | `hidden` sur le bloc `facet` tant que `$hasReadableValues()` est faux, et non plus quand `$values === []` | une page filtrée rend aussi les valeurs sans résultat : la légende reste affichée au-dessus de rien jusqu'à la première recherche |
 | `hidden` sur une option de tri quand `$choice->hidden` | « Promotions » reste proposée jusqu'à la première recherche du client et mène à une grille vide |
 
-**Liaison des champs de la carte.** Tous les champs de la carte, sauf le prix, s'écrivent par quatre
-attributs : `data-meili-text`, `data-meili-attr`, `data-meili-class`, `data-meili-if` (`BindingAttribute`,
-`results/card-binding.ts`, `R-203`). Le serveur les rend par `CardBinding` (éléments préparés en
-`CardFieldElement` par la classe du composant, imprimés en Blade standard par la vue), le client (`CardView`, puis
-`CardBinding`) les réécrit à chaque carte dessinée et retire l'élément qui n'a rien à montrer ; mêmes règles des
-deux côtés, verrouillées par `tests/card-binding-cases.json`. La carte liée porte aussi `id`, l'identifiant du
-document (`ID`), ajouté par `ListingResults::cards()` et `CardView.fieldsOf()`. Les crochets posés par `CardHooks`
-servent d'ancres au contrat, au surlignage et à l'ordre de tabulation, pas au remplissage. Syntaxe et sécurité :
+**Liaison des champs de la carte.** Tous les champs de la carte, sauf le prix, s'écrivent par cinq attributs :
+`data-meili-text`, `data-meili-attr`, `data-meili-class`, `data-meili-class-list` (`R-206`), `data-meili-if`
+(`BindingAttribute`, `results/card-binding.ts`, `R-203`). Le serveur les rend par `CardBinding` (éléments préparés en
+`CardFieldElement` par la classe du composant, imprimés en Blade standard par la vue) ; ils ne sont écrits que dans le
+gabarit (`R-207`), une carte rendue n'en porte que les valeurs. Le client (`CardView`, puis `CardBinding`) les relit
+dans sa copie du gabarit à chaque carte dessinée et retire l'élément qui n'a rien à montrer ; mêmes règles des deux
+côtés, verrouillées par `tests/card-binding-cases.json`. La carte liée porte aussi `id`, l'identifiant du document
+(`ID`), ajouté par `ListingResults::cards()` et `CardView.fieldsOf()`. Les crochets posés par `CardHooks` servent
+d'ancres au contrat, au surlignage et à l'ordre de tabulation, pas au remplissage. Syntaxe et sécurité :
 `configuration.md`, « Lier un champ de la carte ».
 
 Renommer ou retirer un crochet **incrémente `Contract::VERSION`** des deux côtés ; en ajouter un ne

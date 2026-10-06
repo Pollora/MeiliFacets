@@ -88,6 +88,16 @@ describe('ListingBinding', () => {
         assert.equal(one('empty').hidden, true)
     })
 
+    it('draws each card through the variant the answered state points to', async () => {
+        const variant = (brand: string, price: number) => ({ facets: { product_brand: [brand] }, price, fields: { title: `Lotion ${brand}` } })
+        client.answer = { results: { hits: [{ card: { title: 'Lotion', variants: [variant('acme', 39), variant('globex', 26)] } }], totalHits: 1 } }
+
+        tick(window, box('acme'))
+        await listing.apply()
+
+        assert.deepEqual(cards(), ['Lotion acme'])
+    })
+
     it('says so when nothing matches', async () => {
         await listing.apply()
 

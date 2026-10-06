@@ -10,6 +10,7 @@ You want to…
 - [write the binding attributes](#the-binding-attributes);
 - [prepare the elements in PHP](#preparing-the-elements-in-php);
 - [add your own fields to the card](#adding-your-own-fields);
+- [show the variant the filters point to](#card-variants);
 - [know what the markup contract asks of a card](#what-the-contract-asks-of-a-card);
 - [know the rules that apply to every field](#rules);
 - [give the site search its own card](#a-card-for-the-site-search).
@@ -222,16 +223,16 @@ For the add-to-cart link above, the template holds:
 <a data-meili-attr="href:cart_url data-product_id:id" data-meili-if="cart_url" class="shopCardCart">Add to cart</a>
 ```
 
-and a server-rendered card holds the values as well as the binding:
+and a server-rendered card holds the values only. The browser never binds a card the server rendered: it draws every
+card it shows from a copy of the template.
 
 ```html
-<a href="/shop/?add-to-cart=12" data-product_id="12" data-meili-attr="href:cart_url data-product_id:id"
-   data-meili-if="cart_url" class="shopCardCart">Add to cart</a>
+<a href="/shop/?add-to-cart=12" data-product_id="12" class="shopCardCart">Add to cart</a>
 ```
 
 ## The binding attributes
 
-Four attributes, read by the browser on every card it draws. You do not write them by hand: `CardBinding` writes them
+Five attributes, read by the browser on every card it draws. You do not write them by hand: `CardBinding` writes them
 (see [Preparing the elements in PHP](#preparing-the-elements-in-php)). They are listed here so you can read the
 markup.
 
@@ -241,6 +242,7 @@ markup.
 | `data-meili-attr="name:field …"` | writes one attribute per pair; pairs are separated by spaces | `data-meili-attr="href:cart_url data-product_id:id"` |
 | `data-meili-attr="name:a\|b"` | the attribute takes the first of the fields that holds a value | `data-meili-attr="alt:image_alt\|title"` |
 | `data-meili-class="class:field …"` | adds the class when the field is true, removes it otherwise | `data-meili-class="is-new:fresh"` |
+| `data-meili-class-list="field"` | adds the classes the field holds, space-separated, to the element's own | `data-meili-class-list="cart_class"` |
 | `data-meili-if="field"` | the element is removed when the field is empty or false | `data-meili-if="cart_url"` |
 | `data-meili-if="!field"` | the element is removed when the field is true | `data-meili-if="!image_url"` |
 
@@ -248,6 +250,10 @@ markup.
 - In a pair, the field is what follows the **last** colon, so a class that holds a colon works:
   `md:hidden:fresh` toggles `md:hidden`.
 - `data-meili-class` takes one field per class, without fallback.
+- `data-meili-class-list` only adds: it never removes a class an earlier drawing added. A listing draws every card on a
+  fresh copy of the template; the search panel redraws a card it keeps for the same result, whose field holds the same
+  classes. It carries classes a platform computed for you — WooCommerce's `add_to_cart_button ajax_add_to_cart`, which
+  its script reads — so the card does not have to rebuild the rule that sets them.
 - `data-meili-if` takes a single condition. There is no `and` or `or`: nest two elements, or project a field that
   holds the combined answer.
 
@@ -265,11 +271,15 @@ Each element is a `CardFieldElement`, prepared by the component class from a `Ca
 | `$binding->onlyWithout($field)` | an element present when the field is false, with `data-meili-if="!…"` |
 | `$binding->attributes(['href' => $field, 'alt' => [$a, $b]])` | a `ComponentAttributeBag` holding the values and `data-meili-attr` |
 | `$binding->classes(['is-new md:hidden' => $field])` | a `ComponentAttributeBag` holding `class` and `data-meili-class` |
+| `$binding->classList($field)` | a `ComponentAttributeBag` holding the field's classes and `data-meili-class-list` |
 | `$element->with($bag, [...])` | the element with more attributes, merged as Laravel's `merge()` merges them |
 | `$element->containing($text)` | the element holding a fixed text, escaped |
 
+The binding attributes are written by `CardBinding::template()` only; a rendered card holds the values.
+
 A field is named by an enum case or a string. `CardField` names the module's fields: `Id`, `Title`, `Url`,
-`ImageUrl`, `ImageSrcset`, `ImageSizes`, `ImageAlt`, `ImageWidth`, `ImageHeight`, `Price`, `Summary`.
+`ImageUrl`, `ImageSrcset`, `ImageSizes`, `ImageAlt`, `ImageWidth`, `ImageHeight`, `Price`, `Summary`, and
+`SeveralVariants` (see [Card variants](#card-variants)).
 
 `CardHooks` prepares the module's own elements and adds the `data-meili` hook each one carries:
 
@@ -308,6 +318,86 @@ from `onlyWithout()`, each given its text by `containing(__('…'))`. No transla
 
 The projector runs at indexing time. Anything it writes is stored in the document and read back as is: a value that
 depends on the visitor (a cart, a login, a currency) does not belong in the card.
+
+## Card variants
+
+The product is the unit of a listing: it never appears twice. When it is sold in several ways, its card shows the
+product as projected — WooCommerce's price range, every volume — until a filter concerns its variants; then it shows
+the one the visitor filtered on — the 400 ml bottle and its price when `400ml` is ticked — if the projector stores its
+variants.
+
+**1. Project them.** Each variant is a `Listing\CardVariant`: the terms it carries, keyed by taxonomy, its displayed
+price, and the card fields it shows instead of the product's. Any field can be overridden but `id`, `variants` and
+`several_variants`, which the module sets and drops from a variant's fields. Project the variations the
+platform offers — `get_available_variations()` applies WooCommerce's own visibility and stock rules — rather than
+filtering them again:
+
+```php
+use App\Shop\ShopCardField;
+use Modules\MeiliFacets\Enums\CardField;
+use Modules\MeiliFacets\Listing\CardVariant;
+use WC_Product_Variable;
+use WC_Product_Variation;
+
+/** @return list<array<string, mixed>> */
+private function variants(WC_Product_Variable $product): array
+{
+    return array_map(static function (WC_Product_Variation $variation): array {
+        $terms = array_filter(
+            $variation->get_attributes(),
+            static fn (string $slug, string $taxonomy): bool => $slug !== '' && taxonomy_exists($taxonomy),
+            ARRAY_FILTER_USE_BOTH,
+        );
+        $facets = array_map(static fn (string $slug): array => [$slug], $terms);
+
+        return new CardVariant($facets, (float) wc_get_price_to_display($variation), [
+            ShopCardField::Volume->value => $variation->get_attribute('pa_volume'),
+            CardField::Price->value => $variation->get_price_html(),
+            CardField::Url->value => $variation->get_permalink(),
+        ])->toArray();
+    }, $product->get_available_variations('objects'));
+}
+```
+
+A custom attribute typed on the product is not a taxonomy, and no facet filters on it: `taxonomy_exists()` keeps it out.
+Store the list under `CardField::Variants`, then reindex: the module writes it as a JSON list even when it has gaps, as
+`array_filter()` leaves. Keep the product's own fields too: they are what the card shows whenever no variant is chosen.
+A variation's `get_permalink()` opens the product page with that variation selected: override every link that leads
+there, the title's and a « choose » button's alike.
+
+**2. Nothing to do in the listing.** The server and the browser apply the same rule to every card before binding it:
+
+- variants are applied only when a filter **concerns** them: a price range, or a facet whose taxonomy one of them
+  carries. Otherwise the card is shown exactly as projected;
+- a variant **matches** when, for every active facet whose taxonomy it carries, one of its terms is selected, and its
+  price lies within the asked range when there is one. A facet it does not carry rules nothing out;
+- among the matching variants, the **cheapest** wins; its fields are merged over the card's. The first listed wins a
+  tie. When none matches, the card is shown as projected;
+- when **several** variants match, the card gets `several_variants` set to `true`;
+- the `variants` list itself never reaches the binding.
+
+**3. Say « from » in the view.** Bind a prefix on the flag, and give its text in Blade:
+
+```php
+$this->from = $binding->onlyWith(CardField::SeveralVariants);
+```
+
+```blade
+@if ($from->isPresent())
+    <span {{ $from->attributes->class('shopCardFrom') }}>{{ __('Starting at') }}</span>
+@endif
+```
+
+**4. A card outside the listing** has no filter: bind it as projected, with nothing to call. Build it without
+variants: only the listing reads them.
+
+**Known limit: crossed filters.** A variant is matched as a whole. With two facets ticked, `400ml` and `rose`, and a
+product sold as « 400 ml, iris » and « 15 ml, rose », the product is listed — each filter matches one of its
+variations — but no single variant matches both. The card is then shown as projected.
+
+**Known limit: a price range between two variants.** The engine lists a product whose price range overlaps the one asked
+for, as WooCommerce does: a product sold at 26 and 39 is listed for 30 to 35, while none of its variants is priced
+within that range. The card is then shown as projected, with its whole range.
 
 ## What the contract asks of a card
 

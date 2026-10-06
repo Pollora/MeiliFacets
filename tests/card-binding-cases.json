@@ -1,7 +1,7 @@
 {
     "attributes": {
         "allowed": ["href", "src", "alt", "title", "width", "height", "value", "datetime", "aria-label", "aria-describedby", "data-product_id", "data-product-id", "srcset", "sizes"],
-        "refused": ["onclick", "onmouseover", "on", "style", "srcdoc", "class", "id", "rel", "target", "formaction", "x-data", "x-bind:href", ":href", "@click", "xlink:href", "Href", "data-meili", "data-meili-text", "data-meili-attr", "data-meili-hidden", "data-meili-if", "data-meili-class", "data-meilifacets", "DATA-MEILI", "DATA-MEILI-TEXT", "Data-Meili-Attr"]
+        "refused": ["onclick", "onmouseover", "on", "style", "srcdoc", "class", "id", "rel", "target", "formaction", "x-data", "x-bind:href", ":href", "@click", "xlink:href", "Href", "data-meili", "data-meili-text", "data-meili-attr", "data-meili-hidden", "data-meili-if", "data-meili-class", "data-meili-class-list", "data-meilifacets", "DATA-MEILI", "DATA-MEILI-TEXT", "Data-Meili-Attr"]
     },
     "urls": {
         "safe": ["https://example.test/creme", "HTTP://example.test/creme", "/produit/creme/?add-to-cart=12", "?add-to-cart=12", "produit/creme", "//cdn.example.test/creme.jpg", "#top", "%6Aavascript:alert(1)", "&#106;avascript:alert(1)", "javascript :alert(1)"],
@@ -124,6 +124,20 @@
             "template": "<a class=\"\" data-meili-class=\"md:flex:fresh\"></a>",
             "card": { "fresh": "yes" },
             "expected": { "text": "", "elements": 0, "attributes": {}, "classes": ["md:flex"], "present": true }
+        },
+        {
+            "case": "a class list field adds its classes to the element's own",
+            "binding": { "classList": "cart_class", "classes": { "always": "card", "toggles": {} } },
+            "template": "<a class=\"card\" data-meili-class-list=\"cart_class\"></a>",
+            "card": { "cart_class": " button  add_to_cart_button\tajax_add_to_cart " },
+            "expected": { "text": "", "elements": 0, "attributes": {}, "classes": ["add_to_cart_button", "ajax_add_to_cart", "button", "card"], "present": true }
+        },
+        {
+            "case": "a class list field that holds no text adds nothing",
+            "binding": { "classList": "cart_class", "classes": { "always": "card", "toggles": {} } },
+            "template": "<a class=\"card\" data-meili-class-list=\"cart_class\"></a>",
+            "card": { "cart_class": true },
+            "expected": { "text": "", "elements": 0, "attributes": {}, "classes": ["card"], "present": true }
         },
         {
             "case": "left out with a false field",

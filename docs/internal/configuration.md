@@ -162,6 +162,7 @@ pour chaque carte. Le prix seul garde son crochet `price`, parce que c'est le se
 | `data-meili-attr="attr:champ …"` | écrit un ou plusieurs attributs, paires séparées par des espaces | `data-meili-attr="href:url data-product_id:id"` |
 | `data-meili-attr="alt:image_alt\|title"` | l'attribut prend le premier champ qui a une valeur | |
 | `data-meili-class="classe:champ …"` | ajoute la classe quand le champ est vrai, la retire sinon | `data-meili-class="is-new:fresh"` (`fresh`, un champ ajouté par votre projet) |
+| `data-meili-class-list="champ"` | ajoute aux classes de l'élément celles que tient le champ, séparées par des espaces ; n'en retire aucune | `data-meili-class-list="cart_class"` (`cart_class`, un champ ajouté par votre projet) |
 | `data-meili-if="champ"` | élément retiré quand le champ est vide ou faux | `data-meili-if="featured"` (`featured`, un champ ajouté par votre projet) |
 | `data-meili-if="!champ"` | élément retiré quand le champ est vrai | `data-meili-if="!image_url"` |
 
@@ -360,10 +361,11 @@ sortirait l'accueil de l'index. Vérifié le 2026-09-06 : `/boutique` reste `ind
 
 Un paramètre étranger au module ne déclenche rien : `?utm_source=news` reste indexable.
 
-**Pas de canonique** sur ces vues : un `noindex` et une canonique pointant ailleurs sont deux signaux
-contradictoires. Le module retire celle de Yoast (`wpseo_canonical`, priorité 20) et ôte `rel="next"`/`rel="prev"`
-de toute page de listing, chemin nu compris. Vérifié le 2026-09-22 : `/boutique` garde sa canonique,
-`/boutique?sort=newest` n'en a plus.
+**Canonique vers le chemin nu** sur ces vues, numéro de page conservé (`R-208`) : le module complète celle de Yoast
+(`wpseo_canonical`, priorité 20), que Yoast construit depuis le permalien et sa propre pagination, sans les paramètres
+du listing. Il ôte aussi `rel="next"`/`rel="prev"` de toute page de listing, chemin nu compris. Vérifié le 2026-10-02 :
+`/shop/?q=…` → `/shop/`, `/shop/?q=…&pg=2` → `/shop/?pg=2`, `/shop/page/2/?brand=x` → `/shop/page/2/`. Cas limites
+laissés en question sous `R-209`.
 
 ## ⚠️ Le cron doit tourner, sinon l'index diverge en silence
 
@@ -1388,8 +1390,8 @@ grossier (`--meili-field-font-min`, pas de zoom iOS). Dans la barre desktop du t
 `--meili-listing-search-min` (12rem) et grandit jusqu'à `--meili-listing-search-width` (18rem) s'il reste de la place : une rangée
 qui passe à la ligne découpe ses lignes sur les largeurs de base.
 
-`q` est un paramètre d'URL indexé : toute URL qui le porte rempli est déjà `noindex, follow`, sans canonique
-(`IndexingPolicy`).
+`q` est un paramètre d'URL indexé : toute URL qui le porte rempli est déjà `noindex, follow`, avec une canonique
+vers le chemin nu, numéro de page du module conservé (`IndexingPolicy::canonicalFor()`, `R-208`).
 
 ## Tiroir mobile et barre de filtres
 

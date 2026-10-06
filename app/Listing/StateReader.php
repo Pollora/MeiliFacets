@@ -8,6 +8,9 @@ use Modules\MeiliFacets\Contracts\Listing;
 use Modules\MeiliFacets\Enums\QueryParameter;
 use Modules\MeiliFacets\Support\UrlParameters;
 
+/**
+ * @phpstan-import-type Selection from ListingState
+ */
 final readonly class StateReader
 {
     public const string VALUE_SEPARATOR = ',';
@@ -75,7 +78,7 @@ final readonly class StateReader
 
     /**
      * @param  array<string, mixed>  $query
-     * @return array<string, list<string>>
+     * @return Selection
      */
     private function facets(Listing $listing, array $query): array
     {

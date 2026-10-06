@@ -22,6 +22,11 @@ final readonly class Range
         return $this->min === null && $this->max === null;
     }
 
+    public function contains(float $value): bool
+    {
+        return $this->clamp($value) === $value;
+    }
+
     public function clamp(float $value): float
     {
         $floored = max($value, $this->min ?? $value);
