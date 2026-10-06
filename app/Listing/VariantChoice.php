@@ -7,7 +7,7 @@ namespace Modules\MeiliFacets\Listing;
 use Modules\MeiliFacets\Enums\CardField;
 
 /**
- * Shows a card through the variant the active filters point to once a variation attribute is ticked, as projected otherwise.
+ * Shows a card through the variant the active filters point to once a variation attribute is checked, as projected otherwise.
  *
  * @phpstan-import-type Selection from ListingState
  */
@@ -29,9 +29,9 @@ final readonly class VariantChoice
      * @param  list<string>  $variantTaxonomies
      */
     public function __construct(
-        private array $selected = [],
-        private Range $price = new Range,
-        private array $variantTaxonomies = [],
+        private array $selected,
+        private Range $price,
+        private array $variantTaxonomies,
     ) {}
 
     /**

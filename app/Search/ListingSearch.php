@@ -7,6 +7,7 @@ namespace Modules\MeiliFacets\Search;
 use Modules\MeiliFacets\Contracts\FacetCounter;
 use Modules\MeiliFacets\Contracts\Listing;
 use Modules\MeiliFacets\Contracts\SearchEngine;
+use Modules\MeiliFacets\Contracts\VariantScopedListing;
 use Modules\MeiliFacets\Listing\ListingState;
 use Modules\MeiliFacets\Listing\PriceFilter;
 
@@ -15,6 +16,8 @@ final readonly class ListingSearch
     private const string RESULTS = 'results';
 
     private const string UNFILTERED = 'unfiltered';
+
+    private const string UNFILTERED_VARIANTS = 'unfiltered:variants';
 
     private const string MEASURES = 'measures';
 
@@ -134,7 +137,17 @@ final readonly class ListingSearch
      */
     private function unfilteredQueries(Listing $listing, ListingState $state): array
     {
-        return $listing->facets() !== [] && $this->isNarrowed($listing, $state) ? [self::UNFILTERED => QueryPlan::unfiltered($listing)] : [];
+        if ($listing->facets() === [] || ! $this->isNarrowed($listing, $state)) {
+            return [];
+        }
+
+        $queries = [self::UNFILTERED => QueryPlan::unfiltered($listing)];
+
+        if ($listing instanceof VariantScopedListing && QueryPlan::variantFacetQueries($listing) !== []) {
+            $queries[self::UNFILTERED_VARIANTS] = QueryPlan::unfilteredVariants($listing);
+        }
+
+        return $queries;
     }
 
     private function isNarrowed(Listing $listing, ListingState $state): bool
@@ -165,10 +178,13 @@ final readonly class ListingSearch
             return [];
         }
 
+        $variantKeys = array_map(static fn (FacetQuery $query): string => $query->key(), QueryPlan::variantFacetQueries($listing));
         $distributions = [];
 
         foreach ($listing->facets() as $facet) {
-            $distributions[$facet->taxonomy] = $responses[self::UNFILTERED]['facetDistribution'][$facet->field()] ?? [];
+            $isVariantFacet = in_array(FacetQuery::keyFor($facet->taxonomy), $variantKeys, true);
+            $response = $responses[$isVariantFacet ? self::UNFILTERED_VARIANTS : self::UNFILTERED] ?? [];
+            $distributions[$facet->taxonomy] = $response['facetDistribution'][$facet->field()] ?? [];
         }
 
         return $distributions;

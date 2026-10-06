@@ -12,8 +12,6 @@ use WP_Term;
 /** WooCommerce rewrites the attribute metas of products and variations in SQL, and leaves their cache stale. */
 final class VariationMetaRewrites
 {
-    private const string POST_META_CACHE = 'post_meta';
-
     private const string SCHEDULE_INDEXATION = 'meiliscout/schedule_indexation';
 
     /** WooCommerce rewrites the metas at priority 10, MeiliScout reads them at `EDITED_TERM_PRIORITY`. */
@@ -23,7 +21,7 @@ final class VariationMetaRewrites
     private array $renamedMetaKeys = [];
 
     #[Action('edited_term', priority: self::AFTER_TERM_REWRITE)]
-    public function clearMetaCacheOfTermProducts(int $termId, int $termTaxonomyId, string $taxonomy): void
+    public function clearCacheOfTerm(int $termId, int $termTaxonomyId, string $taxonomy): void
     {
         if (! $this->isProductAttribute($taxonomy)) {
             return;
@@ -37,8 +35,8 @@ final class VariationMetaRewrites
 
         $metaKey = wc_variation_attribute_name($taxonomy);
 
-        $this->clearMetaCache($this->productsOf($term));
-        $this->clearMetaCache($this->variationsWithValue($metaKey, $term->slug));
+        $this->clearPostCache($this->productsOf($term));
+        $this->clearPostCache($this->variationsWithValue($metaKey, $term->slug));
     }
 
     /**
@@ -64,16 +62,16 @@ final class VariationMetaRewrites
             return;
         }
 
-        $this->clearMetaCacheOfRenamedAttributes();
+        $this->clearCacheOfRenamedAttributes();
         $this->renamedMetaKeys = [];
 
         do_action(self::SCHEDULE_INDEXATION);
     }
 
-    private function clearMetaCacheOfRenamedAttributes(): void
+    private function clearCacheOfRenamedAttributes(): void
     {
         foreach (array_keys($this->renamedMetaKeys) as $metaKey) {
-            $this->clearMetaCache($this->variationsWithKey($metaKey));
+            $this->clearPostCache($this->variationsWithKey($metaKey));
         }
     }
 
@@ -114,8 +112,11 @@ final class VariationMetaRewrites
         ]);
     }
 
-    private function clearMetaCache(array $postIds): void
+    /** `clean_post_cache` is also the hook WooCommerce drops its cached product instances on. */
+    private function clearPostCache(array $postIds): void
     {
-        wp_cache_delete_multiple($postIds, self::POST_META_CACHE);
+        foreach ($postIds as $postId) {
+            clean_post_cache($postId);
+        }
     }
 }

@@ -25,6 +25,8 @@ final class ListingSearchTest extends TestCase
 
     private const string UNFILTERED = 'unfiltered';
 
+    private const string UNFILTERED_VARIANTS = 'unfiltered:variants';
+
     #[Test]
     public function it_sends_every_search_in_a_single_request(): void
     {
@@ -304,7 +306,7 @@ final class ListingSearchTest extends TestCase
         $counted = [];
 
         foreach ($engine->received[0] as $key => $query) {
-            if ($key !== self::UNFILTERED) {
+            if (! str_starts_with($key, self::UNFILTERED)) {
                 $facets = $query['facets'] ?? [];
                 $this->assertSame([], array_intersect($facets, $counted), "\"{$key}\" is counted twice.");
                 $counted = [...$counted, ...$facets];
@@ -324,6 +326,25 @@ final class ListingSearchTest extends TestCase
         $this->assertSame(['price.min', 'price.max'], $bounds['facets'] ?? null);
         $this->assertArrayNotHasKey('distinct', $bounds);
         $this->assertNotContains('price.min', $engine->received[0]['measures']['facets']);
+    }
+
+    /** A product declaring L without a variation in L carries it on its own document, never on a variant's. */
+    #[Test]
+    public function it_offers_a_variation_facet_only_the_values_a_variant_carries(): void
+    {
+        $engine = new FakeSearchEngine([
+            self::UNFILTERED => ['facetDistribution' => ['facets.product_brand' => ['acme' => 1], 'facets.pa_size' => ['s' => 1, 'l' => 1]]],
+            self::UNFILTERED_VARIANTS => ['facetDistribution' => ['facets.pa_size' => ['s' => 1]]],
+        ]);
+
+        $results = $this->searchWith($engine)->run(new FakeVariantScopedListing, new ListingState(['product_brand' => ['acme']]));
+        $searches = $engine->received[0];
+
+        $this->assertSame(['s' => 1], $results->unfilteredDistribution(FakeVariantScopedListing::SIZE));
+        $this->assertSame(['acme' => 1], $results->unfilteredDistribution('product_brand'));
+        $this->assertSame(['facets.pa_size'], $searches[self::UNFILTERED_VARIANTS]['facets']);
+        $this->assertStringContainsString('NOT document_kind = "parent"', $searches[self::UNFILTERED_VARIANTS]['filter']);
+        $this->assertNotContains('facets.pa_size', $searches[self::UNFILTERED]['facets']);
     }
 
     private function searchWith(FakeSearchEngine $engine): ListingSearch

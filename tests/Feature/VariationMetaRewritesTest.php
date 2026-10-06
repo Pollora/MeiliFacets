@@ -110,6 +110,28 @@ final class VariationMetaRewritesTest extends TestCase
         $this->assertSame(['15-ml', [self::TAXONOMY => '15-ml']], $read);
     }
 
+    /** WooCommerce drops its cached product instances on `clean_post_cache`: a meta cache cleared alone would keep them. */
+    #[Test]
+    public function the_variation_of_a_renamed_term_leaves_woocommerce_s_product_cache(): void
+    {
+        $termId = $this->term('15ml');
+        [, $variation] = $this->variable($termId, '15ml');
+        $cleaned = [];
+        $recordCleaned = function (int $postId) use (&$cleaned): void {
+            $cleaned[] = $postId;
+        };
+
+        add_action('clean_post_cache', $recordCleaned);
+
+        try {
+            wp_update_term($termId, self::TAXONOMY, ['slug' => '15-ml']);
+        } finally {
+            remove_action('clean_post_cache', $recordCleaned);
+        }
+
+        $this->assertContains($variation->get_id(), $cleaned);
+    }
+
     #[Test]
     public function a_term_outside_the_product_attributes_leaves_the_cache_alone(): void
     {
@@ -120,7 +142,7 @@ final class VariationMetaRewritesTest extends TestCase
         get_post_meta($product->get_id());
         get_post_meta($variation->get_id());
 
-        $this->rewrites()->clearMetaCacheOfTermProducts($category['term_id'], $category['term_taxonomy_id'], 'product_cat');
+        $this->rewrites()->clearCacheOfTerm($category['term_id'], $category['term_taxonomy_id'], 'product_cat');
 
         $this->assertNotFalse(wp_cache_get($product->get_id(), 'post_meta'));
         $this->assertNotFalse(wp_cache_get($variation->get_id(), 'post_meta'));
@@ -130,13 +152,21 @@ final class VariationMetaRewritesTest extends TestCase
     public function a_renamed_attribute_clears_its_variations_and_schedules_one_indexation(): void
     {
         [, $variation] = $this->variable($this->term('15ml'), '15ml');
-        get_post_meta($variation->get_id());
+        $cleaned = [];
+        $recordCleaned = function (int $postId) use (&$cleaned): void {
+            $cleaned[] = $postId;
+        };
+        add_action('clean_post_cache', $recordCleaned);
 
-        $this->rewrites()->rememberRenamedAttribute(1, ['attribute_name' => self::ATTRIBUTE], 'meilifacets_test_old');
-        $this->rewrites()->rememberRenamedAttribute(1, ['attribute_name' => self::ATTRIBUTE], 'meilifacets_test_old');
-        $this->rewrites()->reindexRenamedAttributes();
+        try {
+            $this->rewrites()->rememberRenamedAttribute(1, ['attribute_name' => self::ATTRIBUTE], 'meilifacets_test_old');
+            $this->rewrites()->rememberRenamedAttribute(1, ['attribute_name' => self::ATTRIBUTE], 'meilifacets_test_old');
+            $this->rewrites()->reindexRenamedAttributes();
+        } finally {
+            remove_action('clean_post_cache', $recordCleaned);
+        }
 
-        $this->assertFalse(wp_cache_get($variation->get_id(), 'post_meta'));
+        $this->assertContains($variation->get_id(), $cleaned);
         $this->assertSame(1, $this->scheduled);
     }
 

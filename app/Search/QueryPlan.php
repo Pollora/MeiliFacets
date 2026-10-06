@@ -216,16 +216,48 @@ final readonly class QueryPlan
      */
     public static function unfiltered(Listing $listing): array
     {
-        $scope = self::scope($listing, new ListingState);
+        $variantFields = self::fieldsOf(self::variantFacetQueries($listing));
+        $fields = array_map(static fn (Facet $facet): string => $facet->field(), $listing->facets());
 
+        return self::unfilteredOn(self::scope($listing, new ListingState), $listing, array_values(array_diff($fields, $variantFields)));
+    }
+
+    /**
+     * The values of the facets on a variation attribute, read on the documents their counts read: a value a product
+     * declares without selling it is never offered.
+     *
+     * @return array<string, mixed>
+     */
+    public static function unfilteredVariants(VariantScopedListing $listing): array
+    {
+        $fields = self::fieldsOf(self::variantFacetQueries($listing));
+
+        return self::unfilteredOn(self::variantScope($listing, new ListingState), $listing, $fields);
+    }
+
+    /**
+     * @param  list<string>  $fields
+     * @return array<string, mixed>
+     */
+    private static function unfilteredOn(SearchScope $scope, Listing $listing, array $fields): array
+    {
         return [
             'q' => $listing->baseQuery(),
             'filter' => FilterExpression::all($scope->filter),
-            'facets' => array_map(static fn (Facet $facet): string => $facet->field(), $listing->facets()),
+            'facets' => $fields,
             'hitsPerPage' => self::NO_HIT,
             'page' => ListingState::FIRST_PAGE,
             ...self::searchedFields($scope),
         ];
+    }
+
+    /**
+     * @param  list<FacetQuery>  $queries
+     * @return list<string>
+     */
+    private static function fieldsOf(array $queries): array
+    {
+        return array_merge(...array_map(static fn (FacetQuery $query): array => $query->fields(), $queries));
     }
 
     private static function searchTerm(Listing $listing, ListingState $state): string

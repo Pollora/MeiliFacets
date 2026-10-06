@@ -32,6 +32,8 @@ final class VariantPlanCasesTest extends TestCase
 
     private const string UNFILTERED = 'unfiltered';
 
+    private const string UNFILTERED_VARIANTS = 'unfiltered:variants';
+
     private const array COMPARED = ['q', 'filter', 'facets', 'distinct', 'sort', 'attributesToSearchOn'];
 
     /**
@@ -78,7 +80,7 @@ final class VariantPlanCasesTest extends TestCase
      */
     private function compared(array $searches): array
     {
-        unset($searches[self::UNFILTERED]);
+        unset($searches[self::UNFILTERED], $searches[self::UNFILTERED_VARIANTS]);
 
         return array_map(
             static fn (array $search): array => array_filter(
