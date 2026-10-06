@@ -3647,6 +3647,52 @@ WooCommerce (`class-wc-product-variable-data-store-cpt.php:940-951`) : au moins 
 `VariationChanges`. Non mesuré. *Laissé de côté le 2026-10-05 par l'utilisateur* : le mode différé (`MEILISCOUT_ASYNC_INDEXING`) en
 production regroupera les passages.
 
+**Mesuré le 2026-10-06** (lecture seule du code et de la file du moteur local ; seule écriture : la variation 336 passée
+en rupture pour un test, avec l'accord de Louis). Le décompte ci-dessus était faux sur l'arithmétique.
+- *Neuf réindexations pour une sauvegarde.* `$v->save()` de la variation 336 puis `WC_Product_Variable::sync(125)` :
+  neuf séries identiques sur le produit 125 en 0,3 s (tâches 341110 à 341137). Chaque `sync_price`
+  (`class-wc-product-variable-data-store-cpt.php:921-957`) fait un `delete_post_meta(_price)` puis un `add_post_meta`
+  par prix distinct (2 ici) : 3 réindexations. La synchronisation différée de WooCommerce au `shutdown`
+  (`class-wc-post-data.php:113-143`) la refait, l'appel explicite ne retirant pas le produit de sa file : 3 de plus.
+  `VariationChanges` : 1. Deux écritures ponctuelles sur le parent, dont `_product_version`, déduites et non prouvées :
+  2. Les écritures sur la variation elle-même ne coûtent rien (`product_variation` n'est pas indexé). Rien ne
+  regroupe dans MeiliScout en mode synchrone : le gestionnaire ignore la clé de méta
+  (`SingleIndexingServiceProvider.php:241-244`). Le mode différé dédoublonne par `post:{id}`
+  (`AsyncIndexingQueue.php:53-54`) mais réécrit son option à chaque appel ; il est désactivé en local. La promesse
+  « une fois par requête » de la PR #9 ne valait que pour la part de `VariationChanges` (description corrigée).
+- *Trois tâches par réindexation, aucune regroupable.* `AbstractSingleIndexer::indexItem` (`:174-205`) envoie à chaque
+  fois les réglages (`ensureIndexExists()`, `updateSettings`, `:419-420`, sans comparaison ni cache), les documents,
+  puis la suppression par filtre des documents dépendants périmés (`:257-264`, nôtre : `7ce229c`, `328fc16`,
+  `ef2bd18`). D'après la documentation de Meilisearch (« Asynchronous operations »), un lot ne réunit que des tâches
+  de même type sur le même index et se ferme sur une mise à jour de réglages ou un `deleteByFilter` : une tâche par
+  lot, environ 6 par seconde mesurées.
+- *Création d'index en échec à chaque processus.* `indexExists()` (`AbstractSingleIndexer.php:437-464`, écrit en amont
+  en janvier et mars 2026) lit `$indexes['results']` sur un `IndexesResults` qui ne l'expose pas : l'index n'est jamais
+  trouvé, `createIndex` part et échoue (« already exists »). Même lecture dans `Indexer.php:864-884`, sans dégât.
+  Une seconde lecture l'attribuait à la file bloquée ; à départager sur la prochaine sauvegarde, file vide.
+- *Une fiche ouverte dans l'admin réindexe toutes les deux minutes.* Produit 385 réindexé de 11 h 48 à 11 h 54 UTC au
+  rythme du verrou d'édition (`_edit_lock`, utilisateur 1, dernière écriture 12 h 00 UTC) : environ 120 tâches par
+  heure sans modification. Concordant, non prouvé tâche par tâche.
+- *Les tests du projet écrivent dans l'index de dev.* La suite complète, lancée deux fois entre 11 h 40 et 11 h 47 UTC,
+  a mis environ 43 000 tâches en file (`posts` et `taxonomies`), soit environ deux heures de traitement ; annulées et
+  index reconstruit le même jour avec l'accord de Louis. Environ 28 classes enregistrent sans `KeepsTheIndexOut`
+  (les 23 de `Fulfillments`, `WishlistTest`, `ArchiveContentTest`, `FaqBlockTest`, `FaqRestTest`,
+  `CategorySelectionBlockTest`). Les tests tournent sur la base de dev, sans transaction : identifiants 17067 à
+  24414 consommés, les suppressions envoyées visent ces identifiants (108 suppressions par identifiant non
+  vérifiables). Chaque enregistrement réécrit les réglages de l'index depuis le contexte du test (`R-171`).
+  `MEILI_INDEX_NAME` n'est lu nulle part (MeiliScout fixe `posts` en dur) ; vider `MEILI_HOST` ferait planter les
+  enregistrements (client `null` non gardé).
+
+**Pistes, rien n'est codé.** En amont, dans MeiliScout : réparer `indexExists()` (`getResults()`, `getUid()`, ou
+`getIndex()` pour dépasser les 20 index listés par défaut) ; n'envoyer les réglages qu'à la création ou une fois par
+processus ; regrouper les identifiants de la requête et écrire une fois au `shutdown`, après la synchronisation
+différée de WooCommerce (priorité 10) et `VariationChanges` (priorité 20) ; ignorer les métas sans effet sur le
+document (`_edit_lock`). Dans le module : rien d'obligatoire, `VariationChanges` alimenterait la même liste ; éviter
+la suppression par filtre quand l'article n'avait aucun document dépendant demande de connaître l'état précédent (gain
+non mesuré). Dans le projet : `meiliscout/skip_indexing` posé pour tous les tests dans `tests/TestCase.php`, comme
+`KeepsTheIndexOut` (règle aussi `R-183`). *Reporté le 2026-10-06 par Louis* : la feature est livrée avec cette limite,
+écrite dans la description de la PR #9.
+
 ### R-214 · 🟡 · **fermé le 2026-10-06** (`ec5d9c4`) · ouvert le 2026-10-05 — un compteur annonce plus de produits que la grille n'en montre
 
 Avec une facette de variante et une fourchette de prix combinées, la grille lit les documents variante (un filtre se
