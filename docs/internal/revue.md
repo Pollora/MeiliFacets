@@ -3796,6 +3796,13 @@ sont hors du périmètre actuel et le module recommande de laisser « Enable arc
 *Tranché le 2026-10-06 par Louis, corrigé* : n°12, `CardFieldElement::with()` refuse un second `classList()`
 (`BindingRefused::secondClassList()`), un tableau comme un sac ; un `merge()` du projet reste silencieux, ce que la
 doc dit. Deux tests rouges sans le refus ; `composer check` vert, `Modules` 1121, `/boutique` en 200.
+*Tranché le 2026-10-06 par Louis, corrigé* : n°8, `<x-meilifacets::listing>` marque la page
+(`ListingPage::markAsCurrent()`, service par requête) et le filtre `meilifacets/is_listing_page` surcharge la réponse
+(`decisions.md`, « Indexation des URLs de listing », coût compris). Relevé avant/après sur `/author/amphibee/?pg=3` :
+`noindex`, canonique `?pg=3` et preconnect avant, `index` et canonique de Yoast sans `pg` après ; `/boutique?pg=2` et
+`/categorie-produit/visage?contenance=400ml` inchangés (`noindex`, canonique, preconnect). Écarte au passage la
+recherche native `/?s=` sans listing (`R-161`). Test du `<head>` rouge sans la marque ; `composer check` vert,
+`Modules` 1127.
 
 **Résidus non publiés** (au-delà du plafond de 15) : docblock de `canonicalFor()` qui redit `decisions.md` ;
 `CardView.fieldsOf` crée un `VariantChoice` par résultat et le paquet du panneau grossit d'environ 9 % ; `marker()`

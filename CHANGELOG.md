@@ -33,11 +33,13 @@ What to change in a project when moving from one version to the next is in
   with `OR`.
 - `Contracts\VariantFields`, which lets a project add fields to each variant; `Indexing\EmptyVariantFields` is the
   default.
-- `Enums\VariantField`, which names the keys of a variant (`facets`, `price`, `fields`, `in_stock`), and
+- `Enums\VariantField`, which names the keys of a variant (`facets`, `price`, `fields`, `in_stock`, `on_sale`), and
   `CardField::Variants`, `CardField::SeveralVariants` and `CardField::OutOfStock`, which name the card's `variants`
   list and its two flags.
 - `data-meili-class-list` and `CardBinding::classList()`: adds the classes a card field holds to the element's own,
-  for classes a platform computes, such as WooCommerce's loop button classes.
+  for classes a platform computes, such as WooCommerce's loop button classes. `CardFieldElement::with()` refuses a
+  second `classList()` on one element (`BindingRefused`), which the card template would drop.
+- The `meilifacets/is_listing_page` filter, which tells the module whether a page renders a listing.
 
 ### Changed
 
@@ -49,6 +51,9 @@ What to change in a project when moving from one version to the next is in
   card from a copy of it. A few hundred bytes less per card on a product card.
 - With Yoast SEO, a secondary listing view (filtered, sorted, searched or paginated, still `noindex, follow`) declares
   the bare path as its canonical, page number kept, instead of none.
+- The `noindex` and canonical rules, the removal of `rel="next"` and `rel="prev"`, and the preconnect hint apply on
+  the pages that render `<x-meilifacets::listing>` before their `<head>`, instead of every archive and search page:
+  an archive with no listing keeps its own robots and canonical.
 
 ### Fixed
 

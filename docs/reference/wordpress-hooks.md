@@ -5,7 +5,7 @@ handles it registers.
 
 You want to…
 
-- [change the load priority of the browser client](#filters-the-module-exposes);
+- [change the load priority of the browser client, or say which pages render a listing](#filters-the-module-exposes);
 - [know which WordPress or WooCommerce filters change the module's output](#filters-the-module-reads);
 - [know which hooks the module attaches to, to spot a conflict](#hooks-the-module-attaches-to);
 - [dequeue or inspect a stylesheet or script](#handles).
@@ -21,8 +21,9 @@ add_filter('meilifacets/script_fetchpriority', function (string $priority, strin
 | Filter | Arguments | Default | Returns | Applied |
 | --- | --- | --- | --- | --- |
 | `meilifacets/script_fetchpriority` | `string $priority`, `string $module` (`@meilifacets/listing` or `@meilifacets/site-search`) | `low` | the `fetchpriority` of the module's `<script type="module">` | once per bundle, when a root first asks for it on the page |
+| `meilifacets/is_listing_page` | `bool $isListingPage` | `true` once `<x-meilifacets::listing>` is built on the page | whether the page gets the `noindex` and canonical rules, the removal of `rel="next"` and `rel="prev"`, and the preconnect hint | in `wp_head`, by each hook below marked « listing pages » and by `wpseo_canonical` |
 
-It is the only filter the module applies under its own name. See [PHP extension points](../customising/php.md).
+They are the only filters the module applies under its own name. See [PHP extension points](../customising/php.md).
 
 ## Filters the module reads
 
@@ -40,14 +41,14 @@ WordPress and WooCommerce filters whose value the module uses. A project can hoo
 | Hook | Type | Priority | When | What the module does | Explained in |
 | --- | --- | --- | --- | --- | --- |
 | `wp_enqueue_scripts` | action | 10 | every page | registers the `meilifacets` and `meilifacets-site-search` styles, when published | [Styles](../customising/styles.md) |
-| `wp_head` | action | 2 | archive and search pages | prints `<link rel="preconnect">` to the engine's origin, when the browser connection is set | [Going to production](../production.md) |
+| `wp_head` | action | 2 | listing pages | prints `<link rel="preconnect">` to the engine's origin, when the browser connection is set | [How a listing works](../listing/README.md#what-search-engines-see) |
 | `after_setup_theme` | action | 10 | every request | puts `<theme>/resources/views/modules/meilifacets` first in the view lookup | [Overriding views](../customising/views.md) |
 | `script_module_data_@meilifacets/listing` | filter | 10 | added when a listing root renders | publishes the browser connection and the description of each listing root | [How a listing works](../listing/README.md) |
 | `script_module_data_@meilifacets/site-search` | filter | 10 | added when a search root renders | publishes the browser connection and the description of each search root | [Site search](../search/README.md) |
-| `wp_robots` | filter | 10 | archive and search pages | `noindex, follow` on a filtered, sorted, searched or paginated view | [How a listing works](../listing/README.md) |
+| `wp_robots` | filter | 10 | listing pages | `noindex, follow` on a filtered, sorted, searched or paginated view | [How a listing works](../listing/README.md) |
 | `wpseo_canonical` | filter | 20 | same views | points Yoast's canonical to the bare path, page number kept | [How a listing works](../listing/README.md) |
-| `wpseo_next_rel_link` | filter | 10 | archive and search pages | removes Yoast's `rel="next"` | [How a listing works](../listing/README.md) |
-| `wpseo_prev_rel_link` | filter | 10 | archive and search pages | removes Yoast's `rel="prev"` | [How a listing works](../listing/README.md) |
+| `wpseo_next_rel_link` | filter | 10 | listing pages | removes Yoast's `rel="next"` | [How a listing works](../listing/README.md) |
+| `wpseo_prev_rel_link` | filter | 10 | listing pages | removes Yoast's `rel="prev"` | [How a listing works](../listing/README.md) |
 | `woocommerce_enable_post_clause_filtering` | filter | 10 | every request | returns `false`: WooCommerce no longer narrows a product archive's main query from the URL | [Indexed prices](../indexing/prices.md) |
 | `woocommerce_get_tax_location` | filter | 10 | added while a document is indexed, removed right after | taxes at the shop's base address | [Indexed prices](../indexing/prices.md) |
 | `rocket_delay_js_exclusions` | filter | 10 | when WP Rocket asks | excludes the published bundles from Delay JS | [Going to production](../production.md) |
@@ -87,7 +88,7 @@ add_action('wp_enqueue_scripts', function (): void {
 ## Watch out
 
 - `woocommerce_enable_post_clause_filtering` is switched off for every request, not only on pages with a listing.
-- Yoast's `rel="next"` and `rel="prev"` are removed on every archive and search page, filtered or not.
+- Yoast's `rel="next"` and `rel="prev"` are removed on every page that renders a listing, filtered or not.
 - The module overrides MeiliScout's `meiliscout/post/displayed_attributes`: its value never reaches the index.
 - A dequeued stylesheet leaves the `hidden` rule and the drawer sheet to the theme. See
   [Styles and design tokens](../customising/styles.md).

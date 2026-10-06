@@ -106,7 +106,7 @@ The panel shows « Search unavailable » when the engine refuses or does not ans
 | An override is ignored | the file is not under `<theme>/resources/views/modules/meilifacets/components/` with the module's own path | copy the module's path exactly, for example `components/listing/facet.blade.php`. See [Overriding views](customising/views.md#the-cascade) |
 | A `class` given to a component is lost | `listing.results`, `listing.facets`, `listing.sort`, `listing.pagination`, `listing.reset` and `listing.active-filters` take no attribute bag | wrap the component, or override its view |
 | A token set on `:root` has no effect | the defaults are declared on the component roots | set it on `body [data-listing]` or `body [data-meili="search"]`. See [Styles and design tokens](customising/styles.md#where-to-set-the-tokens) |
-| A filtered URL is not `noindex` | the listing sits on an ordinary page, not an archive or search page | expected; see [How a listing works](listing/README.md#what-search-engines-see) |
+| A filtered URL is not `noindex` | the layout prints the `<head>` before it renders the listing | return `true` from the `meilifacets/is_listing_page` filter on that page; see [How a listing works](listing/README.md#what-search-engines-see) |
 
 ## Known limitations
 

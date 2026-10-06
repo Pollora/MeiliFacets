@@ -18,6 +18,11 @@ changes is in the [changelog](../CHANGELOG.md).
   Then publish the client scripts in `dist/` and the site search stylesheet with `php artisan module:publish
   MeiliFacets`, and clear the page cache: a page cached before the release sends the engine the queries of the old
   client.
+- **Robots, canonical and preconnect follow the listing, not the archive.** They applied on every archive and search
+  page; they now apply on the pages that render `<x-meilifacets::listing>` before their `<head>`, which a view that
+  extends its layout does. A blog archive with no listing loses its `noindex` and its `?pg=N` canonical. If your
+  layout prints the `<head>` before the listing, return `true` from `meilifacets/is_listing_page` on those pages. See
+  [What search engines see](listing/README.md#what-search-engines-see).
 - **If you projected `variants`.** A `variants` list your `CardProjector` returns is now always dropped: only the
   module's is indexed. Remove the code that built it, and move the fields of your own — a size label, a cart link —
   to a `Contracts\VariantFields` you bind. See [Card variants](customising/card.md#card-variants).

@@ -260,7 +260,7 @@ signed by the server; it is not implemented yet.
 
 ## Robots
 
-On an archive or a search page, every view that is not the bare path is served `noindex, follow`: a facet value, a
+On a page that renders a listing, every view that is not the bare path is served `noindex, follow`: a facet value, a
 sort, a search term, a price bound or a page number, in a parameter or as `/page/N`.
 
 - These views carry a **canonical to the bare path**, page number kept: `/shop/?q=cream&pg=2` points to
@@ -269,7 +269,8 @@ sort, a search term, a price bound or a page number, in a parameter or as `/page
 - Facets, sorting and pagination are **buttons, not links**. Crawlers do not follow them, so they do not discover the
   combinations of filters.
 - Search terms read from the URL are escaped wherever they are printed.
-- A listing placed on an ordinary page, not an archive or search page, is not covered by these rules.
+- A listing rendered after the page's `<head>` is not covered by these rules until its page is declared with the
+  `meilifacets/is_listing_page` filter.
 
 Details in [How a listing works](listing/README.md#what-search-engines-see).
 

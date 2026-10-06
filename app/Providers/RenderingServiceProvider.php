@@ -7,6 +7,7 @@ namespace Modules\MeiliFacets\Providers;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
 use Illuminate\Support\ServiceProvider;
+use Modules\MeiliFacets\Http\ListingPage;
 use Modules\MeiliFacets\Http\ServiceUnavailable;
 use Modules\MeiliFacets\Http\ServiceUnavailableHeaders;
 use Modules\MeiliFacets\Support\SiteLocale;
@@ -20,6 +21,7 @@ final class RenderingServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->scoped(ServiceUnavailable::class);
+        $this->app->scoped(ListingPage::class);
         $this->app->scoped(ClientScript::class);
         $this->app->scoped(CountLabel::class, fn (): CountLabel => new CountLabel(SiteLocale::current(...)));
         $this->app->bind(CardSettings::class, fn (): CardSettings => new CardSettings(

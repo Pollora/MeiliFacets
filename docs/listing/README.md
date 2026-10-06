@@ -214,27 +214,35 @@ term can still be removed with its pill or with Clear all.
 
 ## What search engines see
 
-On an archive or a search results page, any view that is not the bare path is a secondary view: a facet value, a sort,
+On a page that renders a listing, any view that is not the bare path is a secondary view: a facet value, a sort,
 a search term, a price bound, a page number in `pg`, or a `/page/N` path. A secondary view is served
 `noindex, follow`, because its content already exists on the bare path, and its links stay followed.
 
 - A secondary view's canonical points to the bare path, without facets, sort, search or price bounds. A page number
   is kept, because page 2 does not list the products of page 1: `/shop/?q=cream&pg=2` points to `/shop/?pg=2`, and
-  `/shop/page/2/?brand=acme` to `/shop/page/2/`. The module builds it from the one Yoast SEO prints; without
-  Yoast, no canonical is printed on an archive.
-- `rel="next"` and `rel="prev"` are removed from every archive and search page, bare path included. Product pages
+  `/shop/page/2/?brand=acme` to `/shop/page/2/`. The module builds it from the one Yoast SEO prints. Without
+  Yoast, the module prints none: an archive has no canonical, and a page keeps the one WordPress prints for it.
+- `rel="next"` and `rel="prev"` are removed from every page that renders a listing, bare path included. Product pages
   are found through the sitemap, not through paginated listings.
 - A query parameter the module does not own, such as `?utm_source=news`, changes nothing.
 - An indexable view carries a JSON-LD `ItemList` of the cards on the page, with their position, URL and title.
   Secondary views carry none.
 
-These rules only apply on archive and search pages. A listing placed on an ordinary page gets neither the `noindex`
-nor the preconnect hint to the engine.
+These rules, and the preconnect hint to the engine, apply on the pages that render `<x-meilifacets::listing>` before
+their `<head>`: a view that extends its layout renders its sections first, so its listing is known when the head is
+printed. A layout that prints the head first (`get_header()`, then the content) is not covered. Tell the module with
+the `meilifacets/is_listing_page` filter, which can also withdraw a page:
+
+```php
+add_filter('meilifacets/is_listing_page', fn (bool $isListingPage): bool => $isListingPage || is_page('catalogue'));
+```
 
 ## The browsed term
 
 On a term archive of a product taxonomy (a category, a brand, a `pa_*` attribute with archives), the path's term
-filters the listing: `https://projet.ddev.site/product-category/skincare/` lists the skincare products only.
+filters the listing: `https://projet.ddev.site/product-category/skincare/` lists the skincare products only. On an
+attribute archive the card does not show the matching variant: the module recommends leaving attribute archives off
+([Card variants](../customising/card.md#card-variants)).
 
 - A facet of the same taxonomy is not offered any more: it would hold one value, the one the path already filters
   on. It can still be placed, and renders hidden.
@@ -299,7 +307,8 @@ as a regular form. On small screens the [drawer](drawer.md#without-javascript) l
 - **Renaming a URL parameter breaks every link already shared or indexed** with the old name.
 - **Declaring a second listing** makes every component without `name` fail with `Name the listing: …`. Name them all
   before adding one.
-- **A listing on an ordinary page** is not covered by the `noindex` rule.
+- **A listing rendered after the `<head>`** is not covered by the `noindex` rule: declare its page with the
+  `meilifacets/is_listing_page` filter ([What search engines see](#what-search-engines-see)).
 - **Some components take no attribute bag.** `listing.results`, `listing.facets`, `listing.sort`,
   `listing.pagination`, `listing.reset` and `listing.active-filters` drop a `class` given to them, without error. Wrap
   them, or override their view.
