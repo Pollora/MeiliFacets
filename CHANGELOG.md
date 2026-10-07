@@ -9,6 +9,10 @@ What to change in a project when moving from one version to the next is in
 
 ## [Unreleased]
 
+### Changed
+
+- README: Pollora banner and badges, installation and requirements up front, contributing and security footer; the GPL-2.0 text now ships as `LICENSE`, and `package.json` declares `GPL-2.0-or-later`
+
 ## [0.2.0](https://github.com/Pollora/MeiliFacets/releases/tag/0.2.0) - 2026-10-06
 
 Second beta. Variable products are listed through their variants: a checked size ranks, prices and shows the

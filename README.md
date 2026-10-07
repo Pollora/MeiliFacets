@@ -1,17 +1,55 @@
-# MeiliFacets
+<p align="center">
+  <a href="https://pollora.dev">
+    <img src="https://raw.githubusercontent.com/Pollora/.github/main/brand/banners/MeiliFacets.png" width="100%" alt="MeiliFacets: Meilisearch facets and site search for Pollora">
+  </a>
+</p>
 
-Faceted product listings and a site-wide search panel for [Pollora](https://pollora.dev) projects, served by
-[Meilisearch](https://www.meilisearch.com) straight from the visitor's browser.
+<p align="center">
+  <a href="https://packagist.org/packages/pollora/meilifacets"><img src="https://img.shields.io/packagist/v/pollora/meilifacets" alt="Latest Stable Version"></a>
+  <a href="https://packagist.org/packages/pollora/meilifacets"><img src="https://img.shields.io/packagist/dt/pollora/meilifacets" alt="Total Downloads"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/Pollora/MeiliFacets" alt="License"></a>
+</p>
+
+MeiliFacets is a Pollora module that adds faceted product listings and a site-wide search panel, served by
+[Meilisearch](https://www.meilisearch.com) straight from the visitor's browser. It is for WooCommerce and content sites
+built on [Pollora](https://pollora.dev): the first page is rendered by PHP with the URL's
+filters applied, and every later click is one request to the engine, with no WordPress page load in the loop.
 
 You want to…
 
+- [install it](#installation);
+- [see what a page needs](#quick-start);
 - [know what the module does](#what-it-is);
 - [understand how a page is served](#how-it-works);
 - [know what you get without writing PHP](#what-you-get-without-writing-php);
-- [check that it fits your stack](#requirements);
 - [know the rules the module is built on](#design-principles);
 - [find the right page](#documentation);
 - [work on the module itself](#development).
+
+## Installation
+
+```bash
+composer require pollora/meilifacets:^0.2 amphibee/meiliscout:dev-feat/meilifacets -W
+```
+
+MeiliScout has no tagged release yet, so the project requires its branch itself. The project's `composer.json` needs
+an `installer-paths` rule and `merge-dev: false` first, and the module is then enabled in `modules_statuses.json`: the
+whole sequence is in [Installation](docs/installation.md).
+
+### Requirements
+
+| | |
+| --- | --- |
+| PHP | 8.4 or later |
+| Framework | Pollora 13.x from 13.4 (`pollora/framework` `>=13.4 <14`), on Laravel 13. Laravel modules (`nwidart/laravel-modules`) ship with Pollora |
+| Indexing | MeiliScout (`amphibee/meiliscout`), a WordPress plugin, currently its `dev-feat/meilifacets` branch |
+| Engine | a Meilisearch server |
+| Products | WooCommerce, for the product listing and its prices. The site search works without it |
+| Optional | `ext-intl`, so that facet values ordered by name follow the site's language |
+
+## Quick start
+
+A product listing, composed from the module's Blade components:
 
 ```blade
 <x-meilifacets::listing>
@@ -23,6 +61,8 @@ You want to…
     <x-meilifacets::listing.pagination />
 </x-meilifacets::listing>
 ```
+
+A search panel in the header:
 
 ```blade
 <header class="site-header">
@@ -73,24 +113,11 @@ On a WooCommerce project, with MeiliScout indexing products:
 Everything else (other facets, the price filter, your own card, other sorts) is a configuration key, a view override
 or a container binding. See [Quick start](docs/quick-start.md).
 
-## Requirements
-
-| | |
-| --- | --- |
-| PHP | 8.4 or later |
-| Framework | Pollora 13.4 or later, on Laravel 13. Laravel modules (`nwidart/laravel-modules`) ship with Pollora |
-| Indexing | MeiliScout (`amphibee/meiliscout`), a WordPress plugin, currently its `dev-feat/meilifacets` branch |
-| Engine | a Meilisearch server |
-| Products | WooCommerce, for the product listing and its prices. The site search works without it |
-| Optional | `ext-intl`, so that facet values ordered by name follow the site's language |
-
-The details, and the step-by-step setup, are in [Installation](docs/installation.md).
-
 ## Design principles
 
 - **The URL is the state.** WordPress's own paths are kept, filters travel as query parameters, and the server
   applies them on first render.
-- **Behaviour in the module, appearance in the theme.** Every view can be overridden from the theme. The stylesheets
+- **Behavior in the module, appearance in the theme.** Every view can be overridden from the theme. The stylesheets
   are neutral and tuned with CSS custom properties.
 - **Hooks, not classes.** The browser client binds to `data-meili` attributes, never to a class name. A theme
   changes tags and classes freely as long as it keeps the hooks.
@@ -102,6 +129,8 @@ The details, and the step-by-step setup, are in [Installation](docs/installation
   [Going to production](docs/production.md#security).
 
 ## Documentation
+
+Installing a module with Composer, and the `installer-paths` rule it needs, is covered on [pollora.dev/advanced/modules](https://pollora.dev/advanced/modules/#installing-a-module-with-composer). The module's own guide lives in [`docs/`](docs):
 
 ### Reading this documentation
 
@@ -119,7 +148,7 @@ The details, and the step-by-step setup, are in [Installation](docs/installation
 | Listing and filters | [How a listing works](docs/listing/README.md) · [Facets](docs/listing/facets.md) · [Price filter](docs/listing/price.md) · [Results, sorting and pagination](docs/listing/results-sort-pagination.md) · [Mobile drawer and filter bar](docs/listing/drawer.md) · [Listing other content](docs/listing/custom-listing.md) |
 | Site search | [Site search](docs/search/README.md) · [Composing the search panel](docs/search/composition.md) · [Searchable content types](docs/search/types.md) |
 | Relevance and indexing | [What gets indexed](docs/indexing/README.md) · [Search relevance](docs/indexing/relevance.md) · [Indexed prices (WooCommerce)](docs/indexing/prices.md) |
-| Customising | [Overriding views](docs/customising/views.md) · [Your own card](docs/customising/card.md) · [Styles and design tokens](docs/customising/styles.md) · [PHP extension points](docs/customising/php.md) · [Translating the interface](docs/customising/translations.md) |
+| Customizing | [Overriding views](docs/customising/views.md) · [Your own card](docs/customising/card.md) · [Styles and design tokens](docs/customising/styles.md) · [PHP extension points](docs/customising/php.md) · [Translating the interface](docs/customising/translations.md) |
 | Accessibility | [Accessibility and motion](docs/accessibility.md) |
 | Reference | [Overview](docs/reference/README.md) · [Blade components](docs/reference/components.md) · [`data-meili` hooks](docs/reference/hooks.md) · [CSS custom properties](docs/reference/css-tokens.md) · [Configuration and environment](docs/reference/configuration.md) · [PHP contracts](docs/reference/contracts.md) · [WordPress filters and actions](docs/reference/wordpress-hooks.md) · [Index settings and document fields](docs/reference/index-settings.md) · [Errors and console messages](docs/reference/errors.md) · [Commands](docs/reference/commands.md) |
 | When something goes wrong | [Troubleshooting and FAQ](docs/troubleshooting.md) |
@@ -150,6 +179,10 @@ Commits follow [Conventional Commits](https://www.conventionalcommits.org/). Bef
 `composer check` and the `Feature` tests should both pass. The current release is 0.2.0, a beta: see the
 [changelog](CHANGELOG.md).
 
+## Contributing
+
+Contributions are welcome: see the [contributing guide](https://github.com/Pollora/.github/blob/main/CONTRIBUTING.md). Report security issues privately, as described in the [security policy](https://github.com/Pollora/.github/blob/main/SECURITY.md).
+
 ## License
 
-GPL-2.0-or-later.
+MeiliFacets is open-source software licensed under the [GPL-2.0-or-later](LICENSE). © [RuBee group](https://rubee.group)
