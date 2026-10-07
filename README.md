@@ -117,7 +117,7 @@ or a container binding. See [Quick start](docs/quick-start.md).
 
 - **The URL is the state.** WordPress's own paths are kept, filters travel as query parameters, and the server
   applies them on first render.
-- **Behavior in the module, appearance in the theme.** Every view can be overridden from the theme. The stylesheets
+- **Behaviour in the module, appearance in the theme.** Every view can be overridden from the theme. The stylesheets
   are neutral and tuned with CSS custom properties.
 - **Hooks, not classes.** The browser client binds to `data-meili` attributes, never to a class name. A theme
   changes tags and classes freely as long as it keeps the hooks.
@@ -148,7 +148,7 @@ Installing a module with Composer, and the `installer-paths` rule it needs, is c
 | Listing and filters | [How a listing works](docs/listing/README.md) · [Facets](docs/listing/facets.md) · [Price filter](docs/listing/price.md) · [Results, sorting and pagination](docs/listing/results-sort-pagination.md) · [Mobile drawer and filter bar](docs/listing/drawer.md) · [Listing other content](docs/listing/custom-listing.md) |
 | Site search | [Site search](docs/search/README.md) · [Composing the search panel](docs/search/composition.md) · [Searchable content types](docs/search/types.md) |
 | Relevance and indexing | [What gets indexed](docs/indexing/README.md) · [Search relevance](docs/indexing/relevance.md) · [Indexed prices (WooCommerce)](docs/indexing/prices.md) |
-| Customizing | [Overriding views](docs/customising/views.md) · [Your own card](docs/customising/card.md) · [Styles and design tokens](docs/customising/styles.md) · [PHP extension points](docs/customising/php.md) · [Translating the interface](docs/customising/translations.md) |
+| Customising | [Overriding views](docs/customising/views.md) · [Your own card](docs/customising/card.md) · [Styles and design tokens](docs/customising/styles.md) · [PHP extension points](docs/customising/php.md) · [Translating the interface](docs/customising/translations.md) |
 | Accessibility | [Accessibility and motion](docs/accessibility.md) |
 | Reference | [Overview](docs/reference/README.md) · [Blade components](docs/reference/components.md) · [`data-meili` hooks](docs/reference/hooks.md) · [CSS custom properties](docs/reference/css-tokens.md) · [Configuration and environment](docs/reference/configuration.md) · [PHP contracts](docs/reference/contracts.md) · [WordPress filters and actions](docs/reference/wordpress-hooks.md) · [Index settings and document fields](docs/reference/index-settings.md) · [Errors and console messages](docs/reference/errors.md) · [Commands](docs/reference/commands.md) |
 | When something goes wrong | [Troubleshooting and FAQ](docs/troubleshooting.md) |
