@@ -35,7 +35,7 @@ php artisan meilifacets:check-assets
 | Requirement | Version | Notes |
 | --- | --- | --- |
 | PHP | 8.4 or later | |
-| Pollora | 13.4 or later, on Laravel 13 | Laravel modules (`nwidart/laravel-modules`) ship with Pollora: nothing to install |
+| Pollora | 13.x from 13.4 (`pollora/framework` `>=13.4 <14`), on Laravel 13 | Laravel modules (`nwidart/laravel-modules`) ship with Pollora: nothing to install |
 | MeiliScout | `amphibee/meiliscout`, branch `dev-feat/meilifacets` | a WordPress plugin; it builds and pushes the documents |
 | Meilisearch | a server reachable from PHP and from the browser | see [Engine version](production.md#engine-version) |
 | WooCommerce | for the product listing | 9.8 for grouped product prices, 9.9 to switch off WooCommerce's own filtering of the shop query. The site search runs without WooCommerce |
@@ -44,13 +44,16 @@ php artisan meilifacets:check-assets
 ## Prepare `composer.json`
 
 The project's `composer.json` needs two settings under `extra`. New projects will get them from the Pollora skeleton;
-until then, add them by hand. Keep the WordPress rules already under `installer-paths`:
+until then, add them by hand. Keep the WordPress rules already under `installer-paths`, and add the `Modules/` rule
+**last**:
 
 ```json
 "extra": {
     "installer-paths": {
-        "Modules/{$name}/": ["vendor:pollora"],
-        "public/content/plugins/{$name}/": ["type:wordpress-plugin"]
+        "public/content/mu-plugins/{$name}/": ["type:wordpress-muplugin"],
+        "public/content/plugins/{$name}/": ["type:wordpress-plugin"],
+        "public/content/themes/{$name}/": ["type:wordpress-theme"],
+        "Modules/{$name}/": ["vendor:pollora"]
     },
     "merge-plugin": {
         "include": ["Modules/*/composer.json"],
@@ -63,7 +66,9 @@ until then, add them by hand. Keep the WordPress rules already under `installer-
   and `installer-name: MeiliFacets`, and requires `composer/installers`, which reads them. The rule is limited to the
   `pollora` vendor, so other Laravel packages that declare `laravel-library` keep their usual place. Without it
   `composer/installers` falls back to its own default for that type, `libraries/MeiliFacets/`, and Pollora never
-  finds it.
+  finds it. **Order matters:** `composer/installers` applies the first rule that matches, and a `vendor:` rule ignores
+  the package type, so placed first it would send Pollora's own WordPress plugins (`pollora/mcp-connector`,
+  `pollora/ai-visibility`) to `Modules/` too. This is the order the Pollora skeleton uses.
 - **`merge-plugin`** merges the module's `composer.json` into the project's, so its autoloading and dependencies
   reach the project.
 - **`merge-dev: false` is required.** Without it, the merge plugin also merges the module's `require-dev`, and a

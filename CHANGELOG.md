@@ -9,6 +9,17 @@ What to change in a project when moving from one version to the next is in
 
 ## [Unreleased]
 
+### Added
+
+- The GPL-2.0 text ships as `LICENSE`, and `package.json` declares `GPL-2.0-or-later`, as `composer.json` does.
+
+### Fixed
+
+- The installation guide puts the `Modules/{$name}/` rule last under `installer-paths`: `composer/installers` applies
+  the first rule that matches, and placed first, the `vendor:pollora` rule also sent Pollora's WordPress plugins to
+  `Modules/`.
+- The requirements read Pollora 13.x from 13.4, as `composer.json` allows, instead of « 13.4 or later ».
+
 ## [0.2.0](https://github.com/Pollora/MeiliFacets/releases/tag/0.2.0) - 2026-10-06
 
 Second beta. Variable products are listed through their variants: a checked size ranks, prices and shows the
