@@ -41,7 +41,7 @@ final class TotalComponentTest extends TestCase
     #[Test]
     public function it_counts_what_the_listing_found(): void
     {
-        $total = $this->app->make(CurrentListing::class)->sole()->total();
+        $total = $this->app->make(CurrentListing::class)->onlyOne()->total();
 
         $this->assertGreaterThan(1, $total);
         $this->assertStringContainsString('>'.$total.' items<', $this->underLocales('en', 'en_US', $this->renderComponent(...)));

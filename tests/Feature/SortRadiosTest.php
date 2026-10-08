@@ -41,7 +41,7 @@ final class SortRadiosTest extends TestCase
     #[Test]
     public function it_draws_one_radio_per_sort_with_the_one_in_force_checked(): void
     {
-        $sorts = $this->app->make(CurrentListing::class)->sole()->sorts();
+        $sorts = $this->app->make(CurrentListing::class)->onlyOne()->sorts();
         $choices = $this->rendered('<x-meilifacets::listing.sort widget="radios" />')->querySelectorAll($this->hooked(Hook::SortChoice));
 
         $this->assertCount(count($sorts) + 1, $choices);
@@ -54,7 +54,7 @@ final class SortRadiosTest extends TestCase
     #[Test]
     public function it_hooks_each_choice_row_and_publishes_each_label(): void
     {
-        $sorts = $this->app->make(CurrentListing::class)->sole()->sorts();
+        $sorts = $this->app->make(CurrentListing::class)->onlyOne()->sorts();
         $rows = $this->rendered('<x-meilifacets::listing.sort widget="radios" />')->querySelectorAll($this->hooked(Hook::SortChoiceRow));
 
         $this->assertCount(count($sorts) + 1, $rows);
@@ -95,12 +95,12 @@ final class SortRadiosTest extends TestCase
     #[Test]
     public function it_names_the_order_the_url_asks_for(): void
     {
-        $value = array_key_first($this->app->make(CurrentListing::class)->sole()->sorts());
+        $value = array_key_first($this->app->make(CurrentListing::class)->onlyOne()->sorts());
         request()->query->replace(['sort' => $value]);
         $this->app->forgetScopedInstances();
 
         [$label, $toggle] = $this->underLocales('en', 'en_US', fn (): array => [
-            $this->app->make(CurrentListing::class)->sole()->sorts()[$value]->label,
+            $this->app->make(CurrentListing::class)->onlyOne()->sorts()[$value]->label,
             $this->rendered(self::COLLAPSIBLE)->querySelector($this->hooked(Hook::Toggle)),
         ]);
 
@@ -143,7 +143,7 @@ final class SortRadiosTest extends TestCase
     #[Test]
     public function it_gives_its_trigger_no_badge(): void
     {
-        request()->query->replace(['sort' => array_key_first($this->app->make(CurrentListing::class)->sole()->sorts())]);
+        request()->query->replace(['sort' => array_key_first($this->app->make(CurrentListing::class)->onlyOne()->sorts())]);
         $this->app->forgetScopedInstances();
 
         $document = $this->rendered('<x-meilifacets::listing.sort widget="radios" collapsible />');

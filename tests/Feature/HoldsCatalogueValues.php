@@ -49,6 +49,6 @@ trait HoldsCatalogueValues
 
     private function catalogue(): ResolvedListing
     {
-        return $this->app->make(CurrentListing::class)->sole();
+        return $this->app->make(CurrentListing::class)->onlyOne();
     }
 }

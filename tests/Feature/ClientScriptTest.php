@@ -66,7 +66,7 @@ final class ClientScriptTest extends TestCase
     #[Test]
     public function it_publishes_the_listing_exactly_as_before_the_extraction(): void
     {
-        $listing = $this->app->make(CurrentListing::class)->sole();
+        $listing = $this->app->make(CurrentListing::class)->onlyOne();
 
         $this->printedModules($this->requireTheListing(...));
 
@@ -172,7 +172,7 @@ final class ClientScriptTest extends TestCase
 
     private function requireTheListing(): void
     {
-        $listing = $this->app->make(CurrentListing::class)->sole();
+        $listing = $this->app->make(CurrentListing::class)->onlyOne();
         $description = $this->app->make(ListingDescription::class);
 
         $this->script()->require(ScriptModule::Listing, $listing->name(), fn (): array => $description->of($listing));

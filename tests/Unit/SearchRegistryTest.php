@@ -34,7 +34,7 @@ final class SearchRegistryTest extends TestCase
         $registry = new SearchRegistry;
         $registry->add($this->root('header'));
 
-        $this->assertSame('header', $registry->sole()->name);
+        $this->assertSame('header', $registry->onlyOne()->name);
     }
 
     #[Test]
@@ -59,7 +59,7 @@ final class SearchRegistryTest extends TestCase
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Name the search: 2 are declared (header, footer)');
 
-        $registry->sole();
+        $registry->onlyOne();
     }
 
     #[Test]

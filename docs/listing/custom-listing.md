@@ -134,7 +134,7 @@ Rules that keep the methods consistent:
   its own taxonomy.
 - **Names are unique** across `filters()`: see [Facets](facets.md#naming-facets-with-an-enum).
 - **Compute request-dependent values inside the methods**, not in the constructor. The module builds your listing
-  once, when discovery runs, before WordPress has parsed the request; the methods are called while the page renders.
+  the first time a page renders a listing, then keeps the instance for the rest of the request.
 - **Sort and filter on declared attributes.** A sort expression needs a sortable attribute, a clause a filterable one.
   `post_type`, `post_status` and every `facets.<taxonomy>` are filterable; `post_title` and `post_date` are sortable.
   See [Index settings and document fields](../reference/index-settings.md). An attribute the index does not declare
@@ -164,8 +164,8 @@ constructor can ask for dependencies.
   }
   ```
 
-  Discovery may run before WordPress fires `init`: test for the plugin itself, a class or a function it defines,
-  rather than for a post type it registers on `init`.
+  The constructor runs the first time a page renders a listing, once WordPress has loaded its plugins and fired
+  `init`: discovery itself may run before the plugins are loaded, and only records the class.
 
 - Any other exception thrown while building the listing is reported to the application's exception handler, and the
   listing is skipped. Templates then fail with `No listing named "events". Declared: products.`, and the report says

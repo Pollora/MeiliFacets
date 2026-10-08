@@ -17,7 +17,7 @@ abstract class SearchComponent extends ContractComponent
 
     public function __construct(SearchRegistry $roots, string $name = '')
     {
-        $this->root = $name === '' ? $roots->sole() : $roots->named($name);
+        $this->root = $name === '' ? $roots->onlyOne() : $roots->named($name);
         $this->ids = new ElementId($this->root->name);
     }
 }

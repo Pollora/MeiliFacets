@@ -27,7 +27,7 @@ final readonly class ProductListing implements VariantScopedListing
 
     private ApplyMode $applyMode;
 
-    /** Discovery builds every listing it finds: the dependency has to refuse itself. */
+    /** The registry builds every listing discovery declares: the dependency has to refuse itself. */
     public function __construct(
         private ProductFacets $facets,
         private ProductSorts $sorts,

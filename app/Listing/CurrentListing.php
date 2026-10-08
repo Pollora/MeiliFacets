@@ -34,9 +34,9 @@ final class CurrentListing
     }
 
     /** What a template means when it names no listing. */
-    public function sole(): ResolvedListing
+    public function onlyOne(): ResolvedListing
     {
-        return $this->named($this->registry->sole()->name());
+        return $this->named($this->registry->onlyOne()->name());
     }
 
     private function resolve(string $name): ResolvedListing
