@@ -1086,7 +1086,7 @@ livré ».
 **Au 2026-09-22** (passe documentaire, `R-153`) : toujours vrai. Le décompte de commits non poussés
 écrit plus haut est périmé : la branche suit désormais `origin`.
 
-### R-39 · 🟠 · ouvert · 2026-09-06 — `amphibee/meiliscout` pointe une branche non mergée
+### R-39 · 🟠 · **fermé le 2026-10-08** (`R-224`) · ouvert le 2026-09-06 — `amphibee/meiliscout` pointe une branche non mergée
 
 `dev-feat/meilifacets`, commit `1c59a05`. Rappel : sans le correctif `resolveIndexable()`, les
 facettes cassent à la première sauvegarde de contenu.
@@ -1094,6 +1094,8 @@ facettes cassent à la première sauvegarde de contenu.
 **Au 2026-09-22** (passe documentaire, `R-153`) : toujours vrai. Le lock est à `a83fa4b` (depuis `R-112`),
 ni `1c59a05` ni `2acf53a` cités plus haut ; le module exige toujours `dev-feat/meilifacets`
 (`composer.json`). Le merge amont n'est pas vérifiable d'ici.
+
+*Corrigé le 2026-10-08 avec `R-224`* : la branche est dans `main` ; le module exige `dev-main`.
 
 ### R-40 · 🟠 · **fermé le 2026-10-05** (`R-217`) · ouvert le 2026-09-06 — le `503` ne sort pas
 
@@ -3314,6 +3316,50 @@ qu'aucune page n'ait à être chargée.
 
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
+
+### R-224 · 🟠 · ouvert · ouvert le 2026-10-08 — MeiliScout 2.0 : le module cherche dans l'index où MeiliScout écrit, pas dans celui qu'il lit
+
+**Constat.** MeiliScout 2.0 (AmphiBee/MeiliScout #35, déjà dans `main`, puis #36 à #38) préfixe ses index et distingue
+l'index **cible**, où il écrit, de l'index **actif**, où il cherche : les deux diffèrent tant qu'une migration est en
+attente, c'est-à-dire, sur un site 1.x mis à jour, jusqu'à la première indexation complète. `PostIndexable::getIndexName()`
+rend désormais la cible (`IndexNames::target('posts')`) ; `SearchServiceProvider` la passait au moteur et au navigateur.
+Pendant la migration, les listings interrogeaient donc un index vide ou en construction.
+
+**Correction.** `SearchServiceProvider::searchedIndex()` lit `IndexNames::active('posts')`, pour le moteur PHP comme pour
+le navigateur. Dépendance passée de `dev-feat/meilifacets` à `dev-main` (ferme `R-39` et la dette « Dépendance
+MeiliScout ») : `IndexNames` est dans `main` depuis #35.
+
+**Ce que la passe de conformité a écarté.** MeiliScout 2.0 sert aussi `WP_Query` et `get_terms()` depuis l'index commun,
+et relit ce que le module restreint. Trois écarts, **non traités ici** parce qu'ils renverseraient une décision :
+- `displayedAttributes` limité à `ID`, `card` (`parent_id` pour les variantes) — décision « `displayedAttributes` »,
+  `R-28`, `Q-03`, `Q-18` : `get_terms()` avec `object_ids` et `fields => 'id=>parent'` ne peuvent pas lire `taxonomies`
+  ni `post_parent` ;
+- `pagination.maxTotalHits` à `reachable_hits` (1 000) contre 10 000 par défaut pour MeiliScout — `R-42` ;
+- `searchableAttributes` sans `post_excerpt` ni `content_text` — choix de Louis du 2026-09-25 : `search_columns`.
+
+MeiliScout ne rend plus de résultat faux dans ces cas (AmphiBee/MeiliScout#38, `7df509d`) : il relit les réglages poussés
+par l'indexable et renvoie la requête à MySQL (`undisplayed_attribute:taxonomies`, `unsupported_arg:search_columns`), ou
+s'arrête au plus bas des deux `maxTotalHits` pour une requête sans `LIMIT`. Un projet qui veut ces requêtes servies par
+Meilisearch ouvre `meilifacets.displayed_attributes` (`taxonomies`, `post_parent`) en connaissance de `R-28`. À trancher.
+
+**Clés.** La clé de recherche (`R-29`) et la clé d'administration (`R-218`) doivent couvrir l'index actif **et** la
+cible pendant une migration, et les noms préfixés (`<préfixe>_posts`) après.
+
+**Tests.** `SearchedIndexTest` (`Feature`) : l'option `meiliscout/active_indexes` épinglée sur l'index 1.x, le moteur et
+la connexion du navigateur reçoivent cet index, distinct de la cible. **Non exécuté** : aucun projet hôte local n'a le
+module (suite `Modules` à lancer depuis le projet de test).
+
+**Six passes.** *Nommage* : `searchedIndex()`, `POSTS_INDEX` (la base que MeiliScout nomme `posts`, pas une
+valeur d'URL) ; `SearchedIndexTest` dit ce qu'il vérifie. *Lisibilité* : une méthode privée remplace deux appels
+identiques. *Commentaires* : un docblock d'une ligne (la cible et l'actif diffèrent pendant une migration).
+*Performance* : `IndexNames::active()` lit une option autochargée, une fois par requête (bindings `scoped`), comme
+`getIndexName()` avant. *Sécurité* : rien de neuf ne part au navigateur ; le nom de l'index y allait déjà. *Contexte* :
+sans migration en attente, l'actif est la cible, rien ne change.
+Doc publique : `upgrading.md`, `CHANGELOG.md` ; interne : `decisions.md`, `configuration.md`, `installation.md`.
+
+**Vérifié** : `composer check` — Pint, Rector, client et suite autonome verts, sauf `CountLabelTest`, rouge avant ce
+changement (`Illuminate\Translation\MessageSelector` absent hors hôte). Reste à faire avant fermeture : suite `Modules`
+et pages du projet de test (`/boutique`, recherche) contre MeiliScout 2.0.
 
 ### R-223 · 🟡 · **fermé le 2026-10-08** · ouvert le 2026-10-08 — la découverte des listings s'enregistrait à la main, contre la documentation de Pollora
 

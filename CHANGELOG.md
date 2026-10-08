@@ -9,6 +9,17 @@ What to change in a project when moving from one version to the next is in
 
 ## [Unreleased]
 
+### Changed
+
+- Requires MeiliScout `dev-main` instead of the `feat/meilifacets` branch, merged since: MeiliScout 2.0 names its indexes
+  with a prefix (`MEILI_INDEX_PREFIX`, or the site's domain).
+
+### Fixed
+
+- Listings search the index MeiliScout searches, its active one, and not the one it writes to: the two differ while a
+  migration is pending, as on a site updated from MeiliScout 1.x until its first full indexation, and listings read an
+  empty or half-built index meanwhile. The browser is handed the same index.
+
 ## [0.2.1](https://github.com/Pollora/MeiliFacets/releases/tag/0.2.1) - 2026-10-08
 
 Third beta. Under Pollora 13.34.3 and later, the product listing is declared again: listings are built the first time a

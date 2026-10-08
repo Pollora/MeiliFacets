@@ -620,8 +620,9 @@ toucher au reste.
 | Environnement | `MEILI_HOST`, `MEILI_SEARCH_KEY` | connexion PHP de recherche — le premier rendu du listing —, lue par MeiliScout (`ClientFactory::getSearchClient()`) ; à défaut, l'option `meiliscout/meili_search_key` |
 | Environnement, par `config/meilifacets.php` | `MEILI_PUBLIC_URL`, `MEILI_SEARCH_KEY` | connexion du navigateur (`browser.url`, `browser.key`) |
 
-Ni `MEILI_INDEX_NAME` ni `MEILI_MATCHING_STRATEGY` ne sont lus : l'index s'appelle `posts`, en dur dans
-`PostIndexable::getIndexName()`.
+Ni `MEILI_INDEX_NAME` ni `MEILI_MATCHING_STRATEGY` ne sont lus. Depuis MeiliScout 2.0, l'index est préfixé
+(`MEILI_INDEX_PREFIX`, à défaut le domaine du site : `<préfixe>_posts`) et le module cherche dans l'index **actif**,
+`IndexNames::active('posts')` — distinct de celui où MeiliScout écrit tant qu'une migration est en attente (`R-224`).
 
 ⚠️ `indexed_post_types` vit **en base**, alimenté depuis l'écran d'administration de MeiliScout :
 non versionné, à refaire sur chaque environnement. Les taxonomies filtrables en découlent
