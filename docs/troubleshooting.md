@@ -33,7 +33,7 @@ not are listed in [Errors and console messages](reference/errors.md#silent-failu
 | `php artisan module:list` does not show MeiliFacets, or shows it disabled | `modules_statuses.json` is missing or does not enable it | write `{"MeiliFacets": true}` in `modules_statuses.json` at the project root |
 | `php artisan list` shows no `meilifacets:` command | the module is not loaded | same as the two rows above; then `composer dump-autoload` |
 | `Unable to locate a class or view for component [meilifacets::listing]` | the module is not loaded | same |
-| `Name the listing: none is declared.` | WooCommerce is not active, or a `Listing` class threw while being built | activate WooCommerce; read the log for a reported exception |
+| `Name the listing: none is declared.` | WooCommerce is not active, a `Listing` class threw while being built, or Pollora is 13.34.3 or later with MeiliFacets 0.2.0 or earlier | activate WooCommerce; read the log for a reported exception; update the module (see [Upgrading](upgrading.md)) |
 
 ## The listing does not filter
 

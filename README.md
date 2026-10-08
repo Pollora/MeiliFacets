@@ -86,9 +86,17 @@ What it does not do: it does not index anything itself, and it does not replace 
 ## How it works
 
 ```text
-first render          browser ──► WordPress / Pollora ──► Meilisearch      filters of the URL applied by PHP
-every later gesture   browser ─────────────────────────► Meilisearch      one request, no WordPress in the loop
-indexing              WordPress ──► MeiliScout ────────► Meilisearch      MeiliFacets adds its fields to each document
+First render
+  browser ──► WordPress / Pollora ──► Meilisearch
+  the filters of the URL are applied by PHP
+
+Every later gesture
+  browser ──► Meilisearch
+  one request, no WordPress in the loop
+
+Indexing
+  WordPress ──► MeiliScout ──► Meilisearch
+  MeiliFacets adds its fields to each document
 ```
 
 - The server renders the first page with the filters of the URL already applied. The page is complete without

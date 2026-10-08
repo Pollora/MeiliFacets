@@ -9,12 +9,22 @@ What to change in a project when moving from one version to the next is in
 
 ## [Unreleased]
 
+### Changed
+
+- Requires Pollora 13.35 or later (`pollora/framework` `>=13.35 <14`) and `illuminate/*` `^13.35`. The listing
+  discovery is bound as a singleton and added by Pollora's `DiscoveryRegistrar` (13.32 and later), as Pollora's
+  documentation describes, instead of an `addDiscovery()` call in the module's provider.
+
 ### Added
 
 - The GPL-2.0 text ships as `LICENSE`, and `package.json` declares `GPL-2.0-or-later`, as `composer.json` does.
 
 ### Fixed
 
+- The product listing is declared again under Pollora 13.34.3 and later. Discovery now applies once per request, and
+  may do so before WordPress loads its plugins: `ProductListing` was built then, refused itself without WooCommerce,
+  and every listing page answered `Name the listing: none is declared`. Discovery now records the listing classes,
+  and the registry builds them the first time a page asks for a listing.
 - The installation guide puts the `Modules/{$name}/` rule last under `installer-paths`: `composer/installers` applies
   the first rule that matches, and placed first, the `vendor:pollora` rule also sent Pollora's WordPress plugins to
   `Modules/`.
