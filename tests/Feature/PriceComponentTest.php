@@ -189,6 +189,6 @@ final class PriceComponentTest extends TestCase
 
     private function aFacetName(): string
     {
-        return $this->app->make(CurrentListing::class)->sole()->facets()[0]->name;
+        return $this->app->make(CurrentListing::class)->onlyOne()->facets()[0]->name;
     }
 }

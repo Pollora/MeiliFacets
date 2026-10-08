@@ -22,6 +22,8 @@ abstract class NamedRegistry
      */
     public function named(string $name): object
     {
+        $this->beforeLookup();
+
         return $this->entries[$name] ?? throw new RuntimeException(
             "No {$this->kind()} named \"{$name}\". Declared: {$this->listed()}."
         );
@@ -33,8 +35,10 @@ abstract class NamedRegistry
      *
      * @return TEntry
      */
-    public function sole(): object
+    public function onlyOne(): object
     {
+        $this->beforeLookup();
+
         if (count($this->entries) === 1) {
             return reset($this->entries);
         }
@@ -47,8 +51,13 @@ abstract class NamedRegistry
      */
     public function names(): array
     {
+        $this->beforeLookup();
+
         return array_keys($this->entries);
     }
+
+    /** Runs before every lookup: a registry that builds its entries lazily does it here. */
+    protected function beforeLookup(): void {}
 
     private function declared(): string
     {

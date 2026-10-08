@@ -845,7 +845,7 @@ sections posées sont cherchées** :
 | `search.card` | — | la carte de résultat, rendue vide dans le template de chaque section |
 
 `name` désigne la racine ; il n'est requis que si la page en porte plusieurs (même règle que le listing :
-`sole()`, sinon `named()`). Règles, levées au rendu :
+`onlyOne()`, sinon `named()`). Règles, levées au rendu :
 - une section dont le type n'est pas **accepté par sa racine** (déclaré dans `SearchableTypes` et indexé) lève
   `SearchTypeRefused`, qui nomme les types acceptés — sans WooCommerce, gardez la section produits derrière
   `WooCommerce::isActive()` ;

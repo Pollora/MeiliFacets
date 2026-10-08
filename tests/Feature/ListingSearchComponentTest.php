@@ -111,7 +111,7 @@ final class ListingSearchComponentTest extends TestCase
 
         $typed = $this->onSearch(
             ['s' => 'creme', 'post_type' => 'product'],
-            fn (): string => $this->app->make(CurrentListing::class)->sole()->typedTerm(),
+            fn (): string => $this->app->make(CurrentListing::class)->onlyOne()->typedTerm(),
         );
 
         $this->assertSame('', $typed);
@@ -197,7 +197,7 @@ final class ListingSearchComponentTest extends TestCase
      */
     private function aFacetAndASort(): array
     {
-        $listing = $this->app->make(CurrentListing::class)->sole();
+        $listing = $this->app->make(CurrentListing::class)->onlyOne();
         $facets = $listing->facets();
         $sort = array_key_first($listing->sorts());
 

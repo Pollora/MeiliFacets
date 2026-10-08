@@ -10,6 +10,7 @@ use Modules\MeiliFacets\Contracts\ProductFacets;
 use Modules\MeiliFacets\Contracts\ProductSorts;
 use Modules\MeiliFacets\Contracts\TermLabels;
 use Modules\MeiliFacets\Contracts\TermScope;
+use Modules\MeiliFacets\Discovery\ListingDiscovery;
 use Modules\MeiliFacets\Discovery\ListingRegistry;
 use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\Listing\NameOrder;
@@ -36,6 +37,7 @@ final class ListingServiceProvider extends ServiceProvider
         $this->app->scopedIf(ProductFacets::class, WooCommerceFacets::class);
         $this->app->scopedIf(ProductSorts::class, WooCommerceSorts::class);
 
+        $this->app->singleton(ListingDiscovery::class);
         $this->app->singleton(ListingRegistry::class);
         $this->app->scoped(CurrentListing::class);
     }

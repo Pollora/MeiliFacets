@@ -3315,6 +3315,85 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
+### R-223 · 🟡 · **fermé le 2026-10-08** · ouvert le 2026-10-08 — la découverte des listings s'enregistrait à la main, contre la documentation de Pollora
+
+**Constat.** Relevé pendant la revue de `R-222`. `MeiliFacetsServiceProvider::registerListings()` appelait
+`addDiscovery('meilifacets_listings', …)` au `boot()`, garde `bound(DiscoveryEngineInterface)` comprise. La documentation
+de Pollora (`Pollora/documentation`, `discovery.md`, « Registering Custom Discovery ») dit de lier la découverte en
+singleton : le `DiscoveryRegistrar` l'ajoute au moteur (« Manual registration is no longer needed »). Aucune raison
+écrite au registre pour l'appel manuel.
+
+**Pourquoi l'appel manuel tenait.** Le `DiscoveryRegistrar` n'existe que depuis Pollora 13.32.0 (`37f32668`, absent du
+tag `v13.4.0`), et le module acceptait 13.4 à 13.x : sans appel manuel, aucun listing sous 13.4–13.31.
+
+**Correction, validée par Louis le 2026-10-08 (« relever le plancher »)** : plancher porté à **13.35** (`conflict`
+`<13.35 || >=14.0`), la version du projet de test, qui couvre le registrar (13.32), l'application unique de la
+découverte (13.34.3, `R-222`) et Pollora/framework#419 (13.35.1). `illuminate/*` aligné sur `^13.35`, ce que
+Pollora 13.35 exige déjà ; verrou local du module passé de 13.30.1 à 13.35.0. `ListingDiscovery` est lié en singleton
+dans `ListingServiceProvider`, à côté du registre ; `registerListings()` et ses imports sont retirés. Sans Pollora
+(suite autonome, `D-06`), le binding ne coûte rien et rien ne le lit. *Coût* : un projet en 13.4–13.34 doit monter
+Pollora avant le module (`docs/upgrading.md`).
+
+**Tests.** `ListingDiscoveryRegistrationTest` (`Feature`) : le registrar de Pollora ajoute la découverte à un moteur
+qui ne l'a pas, depuis le seul conteneur. Vérifié rouge sans le binding (`DiscoveryNotFoundException`), vert avec.
+
+**Six passes.** *Nommage* : aucun nom introduit hors du test, dont le nom dit ce qu'il vérifie. *Lisibilité* : une
+méthode de moins dans le provider d'entrée. *Commentaires* : un docblock d'une ligne sur le test (condition du registrar).
+*Performance* : le registrar parcourt déjà tous les bindings à chaque `discover()` ; la découverte est construite une
+fois (singleton), comme avant. *Sécurité* : rien. *Contexte* : sans Pollora, rien ne change.
+Doc publique : README, `installation.md`, `upgrading.md`, `CHANGELOG.md` ; interne : `architecture.md`.
+
+**Vérifié** après ce changement : `composer check` vert (708 tests autonomes, client), suite `Modules` 1130, suite
+complète du projet 1401 (2 ignorés) ; sous `wp eval`, la découverte est dans le moteur et liée en singleton, `onlyOne()`
+rend `products` ; `/boutique`, `?categorie=cheveux`, `?s=shampoing` et `/panier` en 200.
+
+### R-222 · 🔴 · **fermé le 2026-10-08** · ouvert le 2026-10-08 — Pollora 13.34.3 : plus aucun listing déclaré, `/boutique` en 500
+
+**Constat.** Après la mise à jour du projet vers `pollora/framework` 13.35.2 (et WordPress 7.1.3), `/boutique` répond
+500, `RuntimeException: Name the listing: none is declared.` (`CurrentListing.php:39`), et 40 tests `Feature` de la
+suite `Modules` échouent sur la même erreur (`DrawerComponentTest`, `CollapsibleFacetTest`, `ActiveValuesComponentTest`…).
+
+**Cause, prouvée.** Pollora 13.34.3 n'applique plus chaque élément découvert qu'une fois par requête (Pollora/framework#386 ;
+avant, environ cinq fois). Trace posée dans `ListingDiscovery` puis retirée : un seul `apply()`, `wc_get_product`
+absent, `ProductListing` lève `ListingUnavailable`, ignorée. Le listing n'existait jusqu'ici que grâce à un passage
+ultérieur, WooCommerce chargé — c'est le comportement que `R-171` relevait côté amont, et sur lequel `ListingRegistry::add()`
+comptait (« Pollora re-applies every discovery »). La découverte du module passe pendant le chargement des plugins
+(appelée par `PluginRegistrar::register()` du plugin d'expéditions du projet, chargé avant WooCommerce), donc trop tôt
+pour construire un listing qui dépend d'un plugin.
+
+**Correction, validée par Louis le 2026-10-08** : la découverte ne construit plus rien. `ListingDiscovery::apply()`
+déclare les classes (`ListingRegistry::addDeclaration()`) ; le registre les construit **une fois, à la première
+consultation** (`named()`, `onlyOne()`, `names()`, par le crochet `NamedRegistry::beforeLookup()`), c'est-à-dire au rendu d'un listing.
+`ListingUnavailable` écarte le listing pour la requête, toute autre exception est rapportée, comme avant. **Pas de
+reprise** d'un listing écarté : une première version la proposait, refusée — le bon moment est l'usage, pas une
+nouvelle tentative. Écartée aussi : construire sur `plugins_loaded`, qui coûterait la construction à chaque requête
+(admin, REST, AJAX, cron) et obligerait le module à connaître l'ordre de chargement. Gain au passage : rien n'est
+construit sur une page sans listing, là où la découverte tentait la construction à chaque requête.
+
+**Tests.** `ListingRegistryTest` : une déclaration n'est construite qu'à la première consultation, et une seule fois ;
+un listing qui se refuse est écarté (`none is declared`). Les 40 tests `Feature` rouges repassent.
+
+**Six passes.** *Nommage* : rien à renommer — « déclaration » est le terme de `decisions.md` (« Déclaration d'un
+listing ») et de `NamedRegistry::declared()`. *Lisibilité* : méthodes de 3 à 8 lignes, aucun booléen. *Commentaires* :
+une ligne ajoutée (anomalie amont, sur `addDeclaration()`), une supprimée (l'idempotence attribuée à la réapplication
+de Pollora, devenue fausse), une reformulée (`ProductListing`). *Performance* : construction une fois par requête, sur
+les seules pages qui consultent le registre ; aucune requête ajoutée. *Sécurité* : rien d'exposé, les classes viennent de
+la découverte. *Contexte* : sans WooCommerce, le listing produit reste écarté (`R-09`) ; aucune chaîne ajoutée.
+Doc publique corrigée (`listing/custom-listing.md` : moment de construction), `CHANGELOG.md`.
+
+**Vérifié** : `composer check` vert (708 tests autonomes, client), suite `Modules` 1129, suite complète du projet 1400
+(2 ignorés) ; `/boutique` 200 avec 158 articles, `?categorie=cheveux` 200, `?s=shampoing` 200. Navigateur non ouvert :
+aucun JavaScript modifié.
+
+**Revu le 2026-10-08, à la demande de Louis.** La première version passait par une méthode `entries()` qui portait le
+nom de la propriété `$entries` et construisait les listings en douce : remplacée par un crochet vide
+`NamedRegistry::beforeLookup()`, appelé avant chaque lecture, que seul `ListingRegistry` remplit (`prepare()` était
+pris par `Card`). `sole()` — vocabulaire de Laravel (`Collection::sole()`), jugé illisible — devient `onlyOne()`, dans
+`NamedRegistry` et `CurrentListing`.
+
+**Reste.** `R-06` reste ouvert : le contrat mélange toujours déclaration et résolution, mais l'instance n'est plus
+construite au démarrage — elle l'est au premier rendu.
+
 ### R-221 · 🟢 · **fermé le 2026-10-06** · ouvert le 2026-10-06 — `ActiveValueListTest` rouge dans la suite complète du projet
 
 Six tests de `ActiveValueListTest` échouent dans `ddev exec vendor/bin/phpunit`, et passent sous `--testsuite Modules`
@@ -6620,6 +6699,9 @@ environnement, alors que `curl` répond ; la clé de recherche publique filtre e
 **Reste ouvert.** Côté Pollora (upstream) : `PluginRegistrar::register()` réapplique **toutes** les
 découvertes, pas seulement celles du plugin — tout hook d'un module qui injecte un service dépendant
 d'un plugin est exposé au même piège.
+
+*Levé en amont le 2026-10-08* : Pollora 13.34.3 n'applique plus chaque élément découvert qu'une fois par
+requête. Effet inverse sur le listing, qui ne vivait que des passages répétés : voir `R-222`.
 
 **Vérifié dans le navigateur le 2026-09-24**, après `ddev restart` (le routeur refusait les navigateurs,
 `curl` répondait) : `/boutique` 15 articles et 15 cartes, bornes 12,00 € – 42,00 €, aucune erreur

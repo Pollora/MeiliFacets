@@ -139,13 +139,13 @@ trois sont filtrables, les deux bornes triables. Le stock reste un travail à pa
 
 `MeiliFacetsServiceProvider` est le point d'entrée que nwidart découvre. Il ne lie rien lui-même :
 il se déclare — nom, commandes, publication des assets et de la configuration de départ,
-découverte des listings, cascade de vues du thème — et enregistre **un provider par couche**, calqué sur les espaces de noms du module.
+cascade de vues du thème — et enregistre **un provider par couche**, calqué sur les espaces de noms du module.
 
 | Provider | Ce qu'il lie |
 | --- | --- |
 | `IndexingServiceProvider` | `IndexAttributes`, `CardProjector`, `TermHierarchy`, `SearchableAttributes`, `IndexedTaxonomies` — ce que le document porte et ce que l'index cherche |
 | `SearchServiceProvider` | `SearchEngine`, `BrowserConnection`, `EngineLimits`, `FacetCounter` — l'envoi des recherches |
-| `ListingServiceProvider` | les adaptateurs de termes, `SiteCollator`, `NameOrder`, `ProductFacets`, `ProductSorts`, le registre, `CurrentListing`, `UrlParameters` |
+| `ListingServiceProvider` | les adaptateurs de termes, `SiteCollator`, `NameOrder`, `ProductFacets`, `ProductSorts`, la découverte des listings (singleton, ajoutée au moteur par le `DiscoveryRegistrar` de Pollora) et leur registre, `CurrentListing`, `UrlParameters` |
 | `RenderingServiceProvider` | `ClientScript`, `CardSettings`, `CountLabel`, `ServiceUnavailable` — ce dont la page a besoin en plus. *Nommé ainsi et pas `ViewServiceProvider` : Laravel en charge déjà un du même nom court.* |
 
 Les fabriques privées restent avec leurs liaisons : c'est là que les réglages sont lus, avec leur

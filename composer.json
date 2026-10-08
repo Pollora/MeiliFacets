@@ -27,14 +27,14 @@
         "php": "^8.4",
         "amphibee/meiliscout": "dev-feat/meilifacets",
         "composer/installers": "^2.0",
-        "illuminate/console": "^13.0",
-        "illuminate/contracts": "^13.0",
-        "illuminate/support": "^13.0",
-        "illuminate/view": "^13.0",
+        "illuminate/console": "^13.35",
+        "illuminate/contracts": "^13.35",
+        "illuminate/support": "^13.35",
+        "illuminate/view": "^13.35",
         "league/uri": "^7.5"
     },
     "conflict": {
-        "pollora/framework": "<13.4 || >=14.0"
+        "pollora/framework": "<13.35 || >=14.0"
     },
     "extra": {
         "laravel": {

@@ -153,7 +153,7 @@ final class ActiveValuesComponentTest extends TestCase
      */
     private function aValue(): array
     {
-        $listing = $this->app->make(CurrentListing::class)->sole();
+        $listing = $this->app->make(CurrentListing::class)->onlyOne();
 
         foreach ($listing->facets() as $facet) {
             $values = $listing->valuesOf($facet);

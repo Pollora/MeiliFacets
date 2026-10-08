@@ -543,3 +543,17 @@ documentés dans `configuration.md` — jamais déclarés dans `config/config.ph
 Autrement dit, il n'y a **rien à publier** : `config/meilifacets.php` côté projet n'est pas une
 copie du fichier du module, c'est un fichier que le projet écrit lui-même, dont le module ne connaît
 aucune clé à l'avance. La commande n'a pas d'usage ici, et son `--force` est un piège.
+
+## En local, réécrire un fichier du module pendant une requête fait disparaître le listing
+
+En mode debug (`APP_DEBUG=true`), Pollora n'a pas de cache de découverte (`NullDiscoverCacheDriver`,
+`DiscoveryCacheManager::resolveCacheDriver()`) : chaque requête rescanne `Modules/MeiliFacets/app`. Une requête qui
+tombe pendant qu'un fichier est réécrit sur place lit un fichier incomplet, ne trouve pas `ProductListing`, et la page
+répond 500 avec `Name the listing: none is declared` — sans exception rapportée avant. **Reproduit le 2026-10-08**
+(`R-222`) : `ProductListing.php` réécrit à l'identique en boucle, 35 réponses 500 sur 40 requêtes. Sans réécriture,
+120 requêtes pendant une suite `Modules` complète : toutes en 200.
+
+Conséquence : une erreur isolée de ce type pendant qu'on édite le module n'est pas une régression — la rejouer à
+fichiers immobiles avant de chercher plus loin. En production (debug coupé), la découverte est mise en cache et le
+code n'est pas réécrit sous le trafic.
+

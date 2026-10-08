@@ -71,6 +71,8 @@ Voir aussi : [installation.md](installation.md) · [architecture.md](architectur
 | Forme des valeurs multiples | une seule, `?marque=a,b` — un formulaire GET n'aurait produit que `marque[]=a&marque[]=b`, soit deux URLs et deux entrées Varnish pour un même état |
 | Paramètres d'URL côté client | le JavaScript n'en connaît aucun : il lit les noms que la description publie |
 | Déclaration d'un listing | classe implémentant `Listing`, découverte automatiquement. Elle porte ce que la page impose : son filtre de base, et son **terme de base** — la recherche que WordPress a routée (`s`), lue jamais nommée, puisqu'un paramètre du module ne peut pas s'appeler comme une query var publique. Ce que le visiteur tape reste dans l'état, sous `q`, et l'emporte. *Étendu le 2026-09-23 (`R-158`).* |
+| Construction d'un listing | **au premier usage, une fois par requête** : la découverte ne fait que déclarer la classe (`ListingRegistry::addDeclaration()`), le registre la construit à la première consultation (`named()`, `onlyOne()`, `names()`, par le crochet `NamedRegistry::beforeLookup()`), c'est-à-dire au rendu d'un listing. `ListingUnavailable` l'écarte pour la requête, sans nouvelle tentative. *Validé par Louis le 2026-10-08 (`R-222`)* : une nouvelle tentative a été proposée puis refusée (« le bon moment est l'usage »), la construction sur `plugins_loaded` écartée (elle coûterait à chaque requête, admin, REST, AJAX et cron compris, et lierait le module à l'ordre de chargement). *Coût* : aucun mesuré — 0,5 ms une fois par page de listing, aucune requête SQL ; rien sur les autres pages. |
+| Version de Pollora | **13.35 au minimum** (`conflict` `<13.35 \|\| >=14.0`, `illuminate/*` `^13.35`), et la découverte des listings **liée en singleton**, ajoutée au moteur par le `DiscoveryRegistrar` de Pollora, comme le décrit sa documentation. *Validé par Louis le 2026-10-08 (`R-223`, « relever le plancher »)*. *Coût* : un projet en 13.4–13.34 monte Pollora avant le module (`docs/upgrading.md`). |
 | Listing produit | livré par le module quand WooCommerce est actif |
 | Facette catégorie sur une archive de catégorie | **conservée et restreinte au niveau courant** (`ChildTermsFacet`) : elle propose les enfants directs du rayon, rien sur une feuille. *Renversé le 2026-09-06 — elle était retirée, la maquette cliente demande l'inverse.* |
 | Surcharge du markup | le module ajoute le thème en tête de sa cascade de vues |
@@ -870,7 +872,7 @@ Rien de ce qui suit n'est acquis.
   second argument. Coût : un filtre de plus posé à l'exécution plutôt que découvert, et `ScriptModule::SiteSearch`
   nomme dès maintenant un paquet que l'étape 4 construira.
 - **Deux racines de recherche du même nom lèvent** (`R-188`, **validé par Louis le 2026-09-28**). Le listing refuse l'ambiguïté
-  (`sole()`), jamais un doublon — ses déclarations sont réappliquées par Pollora (`R-171`), son `add()` reste
+  (`onlyOne()`, ex-`sole()`, renommé le 2026-10-08), jamais un doublon — ses déclarations sont construites au premier usage, une fois (`R-222`), son `add()` reste
   idempotent. Une racine de recherche, elle, est rendue : deux du même nom publieraient une seule
   description et rendraient les mêmes identifiants. Coût : un en-tête rendu deux fois dans une même requête
   (gabarit inclus deux fois) casse au lieu de dupliquer en silence.

@@ -41,7 +41,7 @@ whole sequence is in [Installation](docs/installation.md).
 | | |
 | --- | --- |
 | PHP | 8.4 or later |
-| Framework | Pollora 13.x from 13.4 (`pollora/framework` `>=13.4 <14`), on Laravel 13. Laravel modules (`nwidart/laravel-modules`) ship with Pollora |
+| Framework | Pollora 13.x from 13.35 (`pollora/framework` `>=13.35 <14`), on Laravel 13. Laravel modules (`nwidart/laravel-modules`) ship with Pollora |
 | Indexing | MeiliScout (`amphibee/meiliscout`), a WordPress plugin, currently its `dev-feat/meilifacets` branch |
 | Engine | a Meilisearch server |
 | Products | WooCommerce, for the product listing and its prices. The site search works without it |
@@ -86,9 +86,17 @@ What it does not do: it does not index anything itself, and it does not replace 
 ## How it works
 
 ```text
-first render          browser ──► WordPress / Pollora ──► Meilisearch      filters of the URL applied by PHP
-every later gesture   browser ─────────────────────────► Meilisearch      one request, no WordPress in the loop
-indexing              WordPress ──► MeiliScout ────────► Meilisearch      MeiliFacets adds its fields to each document
+First render
+  browser ──► WordPress / Pollora ──► Meilisearch
+  the filters of the URL are applied by PHP
+
+Every later gesture
+  browser ──► Meilisearch
+  one request, no WordPress in the loop
+
+Indexing
+  WordPress ──► MeiliScout ──► Meilisearch
+  MeiliFacets adds its fields to each document
 ```
 
 - The server renders the first page with the filters of the URL already applied. The page is complete without

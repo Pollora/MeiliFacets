@@ -5,6 +5,12 @@ changes is in the [changelog](../CHANGELOG.md).
 
 0.1.0 was the first release, a beta; 0.2.0 is the second.
 
+## Unreleased
+
+- **Update Pollora to 13.35 or later first.** The module now declares a conflict with `pollora/framework` below 13.35:
+  run `composer update pollora/framework laravel/framework --with-dependencies` before updating the module. Under
+  Pollora 13.34.3 and later, the previous release declares no listing at all.
+
 ## 0.2.0
 
 - **Update MeiliScout first.** The module now implements MeiliScout's `HasDependentDocuments` and fires
