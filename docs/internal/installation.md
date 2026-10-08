@@ -67,8 +67,8 @@ MEILI_SEARCH_KEY=
 Ces noms sont ceux déjà en place sur les autres projets AmphiBee : les reprendre tels quels,
 sans préfixe propre au module. MeiliScout lit `MEILI_HOST`, `MEILI_KEY` et `MEILI_SEARCH_KEY` par `getenv()`
 (`Config::get()`) ; la troisième sert aussi au **premier rendu**, côté PHP (`ClientFactory::getSearchClient()`).
-`MEILI_INDEX_NAME` et `MEILI_MATCHING_STRATEGY` ne sont lues par personne : l'index s'appelle toujours `posts`,
-en dur dans `PostIndexable::getIndexName()`.
+`MEILI_INDEX_NAME` et `MEILI_MATCHING_STRATEGY` ne sont lues par personne. L'index est nommé par MeiliScout 2.0,
+préfixé par `MEILI_INDEX_PREFIX` ou le domaine du site ; le module cherche dans l'index actif (`R-224`).
 
 ⚠️ **Le module ne lit pas l'environnement.** Il ne connaît que
 `config('meilifacets.browser.url')` et `.key` : c'est le `config/meilifacets.php` du projet qui
