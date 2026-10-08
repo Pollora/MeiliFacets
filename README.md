@@ -41,7 +41,7 @@ whole sequence is in [Installation](docs/installation.md).
 | | |
 | --- | --- |
 | PHP | 8.4 or later |
-| Framework | Pollora 13.x from 13.4 (`pollora/framework` `>=13.4 <14`), on Laravel 13. Laravel modules (`nwidart/laravel-modules`) ship with Pollora |
+| Framework | Pollora 13.x from 13.35 (`pollora/framework` `>=13.35 <14`), on Laravel 13. Laravel modules (`nwidart/laravel-modules`) ship with Pollora |
 | Indexing | MeiliScout (`amphibee/meiliscout`), a WordPress plugin, currently its `dev-feat/meilifacets` branch |
 | Engine | a Meilisearch server |
 | Products | WooCommerce, for the product listing and its prices. The site search works without it |

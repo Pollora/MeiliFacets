@@ -7,9 +7,7 @@ namespace Modules\MeiliFacets\Providers;
 use Illuminate\Support\Facades\View;
 use Modules\MeiliFacets\Console\CheckAssetsCommand;
 use Modules\MeiliFacets\Console\CheckParametersCommand;
-use Modules\MeiliFacets\Discovery\ListingDiscovery;
 use Nwidart\Modules\Support\ModuleServiceProvider;
-use Pollora\Discovery\Domain\Contracts\DiscoveryEngineInterface;
 
 /** The module's entry point: it declares itself, then hands each layer its own provider. */
 final class MeiliFacetsServiceProvider extends ModuleServiceProvider
@@ -45,7 +43,6 @@ final class MeiliFacetsServiceProvider extends ModuleServiceProvider
     {
         parent::boot();
 
-        $this->registerListings();
         $this->letTheThemeOverrideViews();
         $this->publishAssets();
         $this->publishStarterConfig();
@@ -69,14 +66,6 @@ final class MeiliFacetsServiceProvider extends ModuleServiceProvider
             [module_path($this->name, 'config/'.$this->nameLower.'.php.stub') => config_path($this->nameLower.'.php')],
             $this->nameLower.'-config',
         );
-    }
-
-    private function registerListings(): void
-    {
-        if ($this->app->bound(DiscoveryEngineInterface::class)) {
-            $this->app->make(DiscoveryEngineInterface::class)
-                ->addDiscovery('meilifacets_listings', $this->app->make(ListingDiscovery::class));
-        }
     }
 
     /**
