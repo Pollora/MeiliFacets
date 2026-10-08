@@ -5,6 +5,17 @@ changes is in the [changelog](../CHANGELOG.md).
 
 0.1.0 was the first release, a beta; 0.2.0 is the second; 0.2.1 is the third.
 
+## Unreleased
+
+- **Update MeiliScout to `main` (2.0) first**: `composer update amphibee/meiliscout`. Its indexes are now prefixed with
+  `MEILI_INDEX_PREFIX`, or the site's domain: give the search key (`MEILI_SEARCH_KEY`) and the admin key access to
+  `<prefix>_posts` and `<prefix>_taxonomies`, as well as to `posts` while the migration is pending. Then run a full
+  indexation, `wp meiliscout index`: until it is done, searches keep reading the index built before.
+- MeiliScout 2.0 serves `WP_Query` and `get_terms()` from the same index. With the module's narrowed
+  `displayedAttributes`, `get_terms()` with `object_ids` and `WP_Query` with `fields => 'id=>parent'` run on MySQL, as
+  do `search_columns` on the excerpt or the content. To have them served by Meilisearch, add `taxonomies` and
+  `post_parent` to `meilifacets.displayed_attributes`, knowing the search key can then read them.
+
 ## 0.2.1
 
 - **Update Pollora to 13.35 or later first.** The module now declares a conflict with `pollora/framework` below 13.35:
