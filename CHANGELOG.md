@@ -9,6 +9,12 @@ What to change in a project when moving from one version to the next is in
 
 ## [Unreleased]
 
+## [0.2.1](https://github.com/Pollora/MeiliFacets/releases/tag/0.2.1) - 2026-10-08
+
+Third beta. Under Pollora 13.34.3 and later, the product listing is declared again: listings are built the first time a
+page looks one up. Requires Pollora 13.35 or later: update Pollora before the module, see
+[docs/upgrading.md](docs/upgrading.md). No reindex.
+
 ### Changed
 
 - Requires Pollora 13.35 or later (`pollora/framework` `>=13.35 <14`) and `illuminate/*` `^13.35`. The listing
@@ -29,6 +35,18 @@ What to change in a project when moving from one version to the next is in
   the first rule that matches, and placed first, the `vendor:pollora` rule also sent Pollora's WordPress plugins to
   `Modules/`.
 - The requirements read Pollora 13.x from 13.4, as `composer.json` allows, instead of « 13.4 or later ».
+
+### Known issues
+
+- A facet declared with `SelectionMode::Single` hides its other values once one is picked
+  ([#4](https://github.com/Pollora/MeiliFacets/issues/4)).
+- A failed search in the browser shows no message, and the URL and controls keep the filter that was not applied
+  ([#5](https://github.com/Pollora/MeiliFacets/issues/5)).
+- Saving a product re-indexes it once per meta WooCommerce writes, and each pass resends the index settings: a bulk
+  edit or a catalogue import can leave the engine's queue hours behind. The fix belongs in MeiliScout.
+- On a WooCommerce attribute archive (`/pa_volume/400ml/`), the card does not show the variant of the term browsed.
+  Attribute archives are outside the module's scope: leave « Enable archives? » unchecked.
+- A product whose variants share a term counts once per variant under that term.
 
 ## [0.2.0](https://github.com/Pollora/MeiliFacets/releases/tag/0.2.0) - 2026-10-06
 
