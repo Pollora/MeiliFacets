@@ -304,17 +304,19 @@ keeps at most 200 characters.
 
 ### `<x-meilifacets::listing.drawer>`
 
-A container that becomes a modal bottom sheet while `media` matches, and stays inline otherwise.
+A container that becomes a modal bottom sheet while `media` matches, a modal side sheet from `48em` past `row-limit`
+filters shown, and stays inline otherwise.
 
 | Attribute | Type | Default | Values |
 | --- | --- | --- | --- |
 | `name` | `string` | `''` | |
 | `media` | `string` | `(width < 48em)` | a media query; the stylesheet's own breakpoints do not follow it |
 | `heading` | `HeadingLevel` or `string` | `h2` | `h2` to `h6`, for the “Filters” title |
+| `row-limit` | `int` | `meilifacets.drawer.row_limit`, else `5` | the number of filters it holds and shows at page load past which it opens as a side sheet |
 
 | Slots | Bag lands on | Hooks rendered |
 | --- | --- | --- |
-| default (the body), `footer` (its own attributes land on the footer `<div>`) | the drawer `<div>` | `drawer`, `drawer-sheet`, `drawer-title`, `drawer-close` (button and drag handle), `drawer-body`, `drawer-footer` (with the slot); `data-media` |
+| default (the body), `footer` (its own attributes land on the footer `<div>`) | the drawer `<div>` | `drawer`, `drawer-sheet`, `drawer-title`, `drawer-close` (button and drag handle), `drawer-body`, `drawer-footer` (with the slot); `data-media`, `data-side-sheet` past the limit |
 
 ### `<x-meilifacets::listing.drawer-opener>`
 

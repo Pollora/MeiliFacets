@@ -9,6 +9,13 @@ What to change in a project when moving from one version to the next is in
 
 ## [Unreleased]
 
+### Added
+
+- Past 5 filters shown when the page loads, the drawer opens as a side sheet on wide screens, behind the “Filters”
+  button, instead of a row of pills that pushes the results down. The side sheet stays while the visitor filters. Set the limit with the drawer's `row-limit` attribute, or project-wide
+  with `meilifacets.drawer.row_limit`; the width with `--meili-side-sheet-width`. Below `48em`, nothing changes. A
+  theme that copied `components/listing/drawer.blade.php` copies it again to get the side sheet.
+
 ## [0.2.1](https://github.com/Pollora/MeiliFacets/releases/tag/0.2.1) - 2026-10-08
 
 Third beta. Under Pollora 13.34.3 and later, the product listing is declared again: listings are built the first time a

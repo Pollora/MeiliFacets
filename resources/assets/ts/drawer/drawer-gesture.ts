@@ -24,7 +24,7 @@ const SLOP = 4
 const RECENT_MS = 100
 
 interface Dismissible {
-    isOpen(): boolean
+    isDraggable(): boolean
     dismiss(): void
 }
 
@@ -81,7 +81,7 @@ export class DrawerGesture {
     #pressed(event: PointerEvent) {
         const sheet = this.#sheetUnder(event.target)
 
-        if (this.#drag !== null || !event.isPrimary || !this.#dismissible.isOpen() || sheet === null) {
+        if (this.#drag !== null || !event.isPrimary || !this.#dismissible.isDraggable() || sheet === null) {
             return
         }
 

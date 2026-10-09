@@ -1,5 +1,5 @@
 <fieldset {{ $attributes->class('meilifacetsFacet') }} data-taxonomy="{{ $facet->taxonomy }}"
-          @unless ($hasReadableValues()) hidden @endunless {{ $hook('facet') }} {{ $scrollMark() }}@if ($marksPresentation()) data-presentation="{{ $presentation->slug() }}"@endif>
+          @unless ($isShown()) hidden @endunless {{ $hook('facet') }} {{ $scrollMark() }}@if ($marksPresentation()) data-presentation="{{ $presentation->slug() }}"@endif>
 @if ($collapsible)
     <legend class="meilifacetsFacetLabel"><x-meilifacets::listing.toggle :disclosure="$disclosure()" /></legend>
 @else

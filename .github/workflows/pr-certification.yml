@@ -1,0 +1,22 @@
+name: PR certification
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize, ready_for_review]
+
+permissions: {}
+
+jobs:
+  certified:
+    name: Human certification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require the author's certification box to be ticked
+        # The body goes through the environment: interpolated into the script, it would run as shell.
+        env:
+          BODY: ${{ github.event.pull_request.body }}
+        run: |
+          if ! printf '%s' "$BODY" | grep -Eq '^- \[[xX]\] \*\*I DO CERTIFY'; then
+            echo "::error::Tick « I certify » in the pull request description once you have read every line."
+            exit 1
+          fi

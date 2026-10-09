@@ -39,15 +39,17 @@ You want to…
 
 ### Drawer
 
-Below `48em`, with JavaScript, the drawer opener turns the filters into a modal dialog:
+Below `48em`, and from `48em` past the drawer's row limit, with JavaScript, the drawer opener turns the filters into a
+modal dialog: a bottom sheet on small screens, a side sheet on wide ones:
 
 - the opener is a button with `aria-expanded` and `aria-controls`; the count of held values describes it;
 - open, the drawer takes `role="dialog"`, `aria-modal="true"` and `aria-labelledby` pointing at its title;
 - everything around it, up to `<body>`, is made `inert`, and the page stops scrolling;
 - the close button is named « Close the filters »; the drag handle is hidden from screen readers;
-- crossing the breakpoint while it is open turns it back into ordinary content, without the dialog role.
+- crossing the breakpoint while it is open turns it back into ordinary content, without the dialog role; a side sheet
+  stays open.
 
-From `48em`, or without JavaScript, the drawer is ordinary content: no dialog, nothing hidden.
+From `48em` within the row limit, or without JavaScript, the drawer is ordinary content: no dialog, nothing hidden.
 
 ### Site search
 

@@ -1,7 +1,7 @@
 # Mobile drawer and filter bar
 
 This page covers the drawer: the filters in a bottom sheet on small screens, and the same filters in a row of pills
-on larger ones.
+on larger ones, or in a side sheet when they are too many for a row.
 
 You want to…
 
@@ -38,7 +38,7 @@ You want to…
 
 The pattern has four parts, each a component of its own:
 
-- **the opener**, a “Filters” button shown on small screens only;
+- **the opener**, a “Filters” button shown on small screens, and on larger ones past the row limit;
 - **the drawer**, an ordinary container whose slot holds any listing component;
 - **collapsible facets and sort**, which fold into accordion sections in the sheet and into pills in the row (see
   [Collapsible facets](facets.md#collapsible-facets));
@@ -67,7 +67,7 @@ describes the button without being part of its name.
 
 ## From 48em: a row of pills
 
-The opener is hidden and the drawer is a plain row: its header and handle are hidden, its body and footer sit side by
+Within the [row limit](#past-the-row-limit-a-side-sheet), the opener is hidden and the drawer is a plain row: its header and handle are hidden, its body and footer sit side by
 side.
 
 - Each collapsible facet, price filter or sort is a pill; its panel floats under it. One
@@ -77,10 +77,25 @@ side.
 - The body shrinks before the footer wraps under it: Apply stays at the end of the row, aligned with the last line of
   pills when they wrap.
 
+## Past the row limit: a side sheet
+
+When a page loads with more filters shown than the drawer's `row-limit` (5 by default), the row gives way to the opener on
+wide screens too, and the drawer opens as a sheet fixed to the right of the page, full height. Only the filters inside
+the drawer count, and only those the visitor can see: a facet with at least one value on screen, the price once it has
+a range. A filter placed elsewhere on the page, the search field and the sort do not count.
+
+- The server decides when the page loads, so the page never shows the row and then removes it.
+- The decision holds while the visitor filters: a search that shows fewer filters keeps the side sheet, and one that
+  shows more keeps the row. A page loaded with filters in its address is decided on its own count.
+- Inside the side sheet, sections open as an accordion, as in the bottom sheet. The sheet does not follow the
+  finger and keeps the full height.
+- Below the drawer's `media` (`48em` by default), nothing changes: the bottom sheet serves, whatever the count.
+
 ## Without JavaScript
 
 The sheet styles only apply when scripting is enabled. Without JavaScript, nothing is hidden: the opener is not
-shown and the filters stay in the page, in line. They do not filter without the client (see
+shown and the filters stay in the page, in line. Past the row limit, they keep their place but lose their pills: they
+stack as in the sheet, their sections closed. They do not filter without the client (see
 [How a listing works](README.md#without-javascript)).
 
 ## The drawer
@@ -89,6 +104,7 @@ shown and the filters stay in the page, in line. They do not filter without the 
 | --- | --- | --- |
 | `heading` | `h2` | the level of the sheet's title, `h2` to `h6` |
 | `media` | `(width < 48em)` | the media query under which the opener opens the sheet. See [Changing the breakpoint](#changing-the-breakpoint) |
+| `row-limit` | `meilifacets.drawer.row_limit`, else `5` | the number of filters shown at page load past which the drawer opens as a [side sheet](#past-the-row-limit-a-side-sheet) |
 | `name` | the only listing | the listing it belongs to |
 
 The attribute bag lands on the drawer's container. The title reads “Filters”, translatable.
@@ -156,8 +172,9 @@ The `48em` threshold is written in two places, and both must change together:
 <x-meilifacets::listing.drawer media="(width < 64em)">
 ```
 
-Then redeclare, in the theme's stylesheet, the rules the module writes under `(scripting: enabled) and (width < 48em)`
-and `(width >= 48em)`, at the new value. There is no other way: changing `media` alone gives a sheet drawn as a row,
+Then redeclare, in the theme's stylesheet, the rules the module writes under `(scripting: enabled) and (width < 48em)`,
+`(width >= 48em)` and `(scripting: enabled) and (width >= 48em)` (the side sheet), at the new value. The rules of the
+open and closing states sit under `(scripting: enabled)` alone and need no copy. There is no other way: changing `media` alone gives a sheet drawn as a row,
 or a row that opens as a sheet. See [Styles and design tokens](../customising/styles.md).
 
 ## Styling
@@ -174,6 +191,7 @@ The drawer reads the module's custom properties, set on `[data-listing]`, among 
 | `--meili-layer-drawer` | `100` | the `z-index` of the sheet |
 | `--meili-duration-drawer-in`, `--meili-duration-drawer-out` | `350ms`, `250ms` | the sheet's entrance and exit |
 | `--meili-panel-min`, `--meili-panel-max` | `18rem`, `28rem` | the width of a floating panel |
+| `--meili-side-sheet-width` | `26rem` | the width of the side sheet, never wider than the screen |
 
 The full list is in [CSS custom properties](../reference/css-tokens.md). Motion, reduced motion and focus handling are
 in [Accessibility and motion](../accessibility.md).
@@ -183,10 +201,13 @@ in [Accessibility and motion](../accessibility.md).
 - **An ancestor with `transform`, `filter`, `contain` or `container-type`** traps the sheet: `position: fixed` then
   attaches to that ancestor instead of the viewport, and the sheet opens inside its box. Keep the listing out of such
   an ancestor.
-- **The client must start.** The stylesheet hides the drawer below `48em` whenever scripting is enabled, whether or
-  not the client is loaded. If the browser connection is not configured, or the client is not published, the opener
-  shows and opens nothing, and the filters are out of reach on small screens. See [Installation](../installation.md).
+- **The client must start.** The stylesheet hides the drawer below `48em`, and on wide screens past the row limit,
+  whenever scripting is enabled, whether or not the client is loaded. If the browser connection is not configured,
+  the client is not published or its script fails, the opener shows and opens nothing, and the filters are out of
+  reach. See [Installation](../installation.md).
 - **Change the breakpoint in both places**: the `media` attribute and the stylesheet.
+- **A drawer view copied before `row-limit` existed** never turns into a side sheet: it does not carry
+  `data-side-sheet`. Copy the view again.
 - **One Apply per footer, none in the group**: pass `:with-apply="false"` to `listing.facets` when the footer holds
   one.
 

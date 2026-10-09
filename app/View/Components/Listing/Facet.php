@@ -98,9 +98,9 @@ final class Facet extends ListingComponent
         return array_any($this->values, static fn (FacetValue $value): bool => $value->folded && $value->count > 0);
     }
 
-    public function hasReadableValues(): bool
+    public function isShown(): bool
     {
-        return array_any($this->values, static fn (FacetValue $value): bool => ! $value->folded);
+        return $this->listing->isShown($this->facet);
     }
 
     /** A plain attribute can only name the module's presentations; a theme's arrives bound (`:presentation`). */

@@ -15,6 +15,7 @@ final class DrawerFooterTest extends TestCase
 {
     use FindsHooks;
     use HoldsCatalogueValues;
+    use RendersTheModuleViews;
     use SwitchesApplyMode;
 
     private mixed $applyMode;
@@ -25,11 +26,13 @@ final class DrawerFooterTest extends TestCase
 
         $this->applyMode = config('meilifacets.apply_mode');
         $this->app->forgetScopedInstances();
+        $this->renderTheModuleViews();
     }
 
     /** The suite shares one application: a mode or an address left here would reach a later class. */
     protected function tearDown(): void
     {
+        $this->restoreTheThemeViews();
         $this->useApplyMode($this->applyMode);
         request()->query->replace([]);
         $this->app->forgetScopedInstances();
