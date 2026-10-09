@@ -7,6 +7,8 @@ import { find, listingMarkup, open } from './dom.ts'
 
 import type { TestWindow } from './dom.ts'
 
+const IN_ROW = ':where(:not([data-side-sheet] *))'
+
 /** The `[hidden]` guard is left out: happy-dom gives the attribute absolute priority, so the assertion cannot fail. */
 describe('the module stylesheet', () => {
     let window: TestWindow
@@ -380,7 +382,7 @@ describe('the stack of sections in the sheet', () => {
         const ruled = `${Contract.selector('facet')}:not([hidden]) ~ ${SECTION}:has(${Contract.selector('toggle')})`
 
         assert.match(declared(source, ruled), /border-top: 1px solid var\(--meili-rule\);/)
-        assert.match(declared(source.slice(source.indexOf('@media (width >= 48em)')), `    ${ruled}`), /border-top: 0;/)
+        assert.match(declared(source.slice(source.indexOf('@media (width >= 48em)')), `    ${ruled}${IN_ROW}`), /border-top: 0;/)
     })
 
     it('counts no section by its tag, nor writes a selector the minifier breaks', () => {
@@ -390,10 +392,10 @@ describe('the stack of sections in the sheet', () => {
 })
 
 /** Read as written: happy-dom lays nothing out. R-201. */
-describe('the drawer as a bar', () => {
+describe('the drawer as a row', () => {
     const source = readFileSync(new URL('../../resources/assets/css/meilifacets.css', import.meta.url), 'utf8')
     const bar = source.slice(source.indexOf('@media (width >= 48em)'))
-    const LISTING_SEARCH = `${Contract.selector('drawer-body')} > ${Contract.selector('listing-search')}`
+    const LISTING_SEARCH = `${Contract.selector('drawer-body')} > ${Contract.selector('listing-search')}${IN_ROW}`
 
     /** A wrapping row breaks its lines on the bases: a field reserving its full width pushes the pills to a second line. */
     it('lets the field reserve its minimum and grow to its width', () => {
@@ -406,8 +408,8 @@ describe('the drawer as a bar', () => {
 
     /** The body is as wide as its content and shrinks before the foot drops a line: « Apply » follows the pills. */
     it('keeps the body and the foot on one row, « Apply » on the line of the last pills', () => {
-        assert.match(declared(bar, Contract.selector('drawer-sheet')), /flex-wrap: nowrap;/)
-        assert.match(declared(bar, Contract.selector('drawer-sheet')), /align-items: flex-end;/)
+        assert.match(declared(bar, Contract.selector('drawer-sheet') + IN_ROW), /flex-wrap: nowrap;/)
+        assert.match(declared(bar, Contract.selector('drawer-sheet') + IN_ROW), /align-items: flex-end;/)
     })
 })
 
@@ -472,8 +474,8 @@ describe('the motion of the panels and the drawer', () => {
     it('pops a floating panel in over 180 ms and out over 120, through variables a theme can move', () => {
         assert.match(declared(source, '[data-listing]'), /--meili-duration-panel-in: 180ms;/)
         assert.match(declared(source, '[data-listing]'), /--meili-duration-panel-out: 120ms;/)
-        assert.match(desktop, /\[data-meili="panel"\] \{[^}]*opacity var\(--meili-duration-panel-in\) var\(--meili-ease\),\s+transform var\(--meili-duration-panel-in\) var\(--meili-ease\)/)
-        assert.match(declared(desktop, `${PANEL}[hidden]`), /transition-duration: var\(--meili-duration-panel-out\);/)
+        assert.match(declared(desktop, PANEL + IN_ROW), /opacity var\(--meili-duration-panel-in\) var\(--meili-ease\),\s+transform var\(--meili-duration-panel-in\) var\(--meili-ease\)/)
+        assert.match(declared(desktop, `${PANEL}[hidden]${IN_ROW}`), /transition-duration: var\(--meili-duration-panel-out\);/)
     })
 
     /** ANIM-3: a floating panel drops from its pill, a few pixels above and a touch smaller, and goes back there. */
@@ -481,8 +483,8 @@ describe('the motion of the panels and the drawer', () => {
         const from = /opacity: 0;\s+transform: translateY\(-4px\) scale\(0\.97\);/
         const starting = desktop.slice(desktop.indexOf('@starting-style'))
 
-        assert.match(declared(desktop, `${PANEL}[hidden]`), /transform: translateY\(-4px\) scale\(0\.97\);/)
-        assert.match(declared(starting, PANEL), from)
+        assert.match(declared(desktop, `${PANEL}[hidden]${IN_ROW}`), /transform: translateY\(-4px\) scale\(0\.97\);/)
+        assert.match(declared(starting, PANEL + IN_ROW), from)
         assert.ok(desktop.indexOf('@starting-style') < desktop.indexOf('\n}\n'), 'inside the floating block')
     })
 
@@ -490,9 +492,9 @@ describe('the motion of the panels and the drawer', () => {
         const floating = reduced.slice(reduced.indexOf('@media (width >= 48em)'))
 
         assert.match(declared(reduced, `${PANEL}[hidden]`), /transform: none;/)
-        assert.match(declared(floating, PANEL), /transition-duration: var\(--meili-duration-panel-in\);/)
-        assert.match(declared(floating, `${PANEL}[hidden]`), /transition-duration: var\(--meili-duration-panel-out\);/)
-        assert.match(declared(floating.slice(floating.indexOf('@starting-style')), PANEL), /transform: none;/)
+        assert.match(declared(floating, PANEL + IN_ROW), /transition-duration: var\(--meili-duration-panel-in\);/)
+        assert.match(declared(floating, `${PANEL}[hidden]${IN_ROW}`), /transition-duration: var\(--meili-duration-panel-out\);/)
+        assert.match(declared(floating.slice(floating.indexOf('@starting-style')), PANEL + IN_ROW), /transform: none;/)
     })
 
     /** ANIM-2: a length written in a rule is a length no theme can move. */
@@ -557,5 +559,22 @@ describe('the grid while a search is out', () => {
 
     it('fades the grid rather than moving it, so reduced motion keeps it', () => {
         assert.doesNotMatch(declared(source, BUSY), /transform/)
+    })
+})
+
+describe('the side sheet', () => {
+    const source = readFileSync(new URL('../../resources/assets/css/meilifacets.css', import.meta.url), 'utf8')
+    const sideSheet = source.slice(source.indexOf('@media (scripting: enabled) and (width >= 48em)'))
+
+    it('sits on the right and comes in from the right', () => {
+        const panel = declared(sideSheet, `[data-side-sheet] ${Contract.selector('drawer-sheet')}`)
+
+        assert.match(panel, /margin-left: auto;/)
+        assert.match(panel, /transform: translateX\(100%\);/)
+        assert.doesNotMatch(declared(sideSheet, '[data-meili="drawer"][data-side-sheet]'), /justify-content/)
+    })
+
+    it('shows the opener of its own listing only', () => {
+        assert.match(sideSheet, /:where\(\[data-listing\]:has\(\[data-meili="drawer"\]\[data-side-sheet\]\)\) \[data-meili="drawer-open"\] \{\s+display: inline-flex;/)
     })
 })

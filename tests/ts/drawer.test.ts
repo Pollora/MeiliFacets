@@ -9,11 +9,14 @@ import { filterQueriesOf } from '../../resources/assets/ts/filter-queries.ts'
 import { ListingBinding } from '../../resources/assets/ts/listing/listing-binding.ts'
 import { Listing } from '../../resources/assets/ts/listing/listing.ts'
 import { Contract } from '../../resources/assets/ts/shared/contract.ts'
+import { facetField } from '../../resources/assets/ts/shared/description.ts'
+import { FacetQuery } from '../../resources/assets/ts/facets/facet-query.ts'
 import { click, find, listingMarkup, nth, open, press, tick } from './dom.ts'
 import { connection, described, FakeClient, FakeHistory } from './fixtures.ts'
 
 import type { TestWindow } from './dom.ts'
 
+const SIDE_SHEET = 'data-side-sheet'
 const FACETS = '    <div class="meilifacetsFacets"'
 /** The theme renders its facets `:with-apply="false"`: « Apply » lives in the drawer's foot. */
 const FACETS_APPLY = '        <button type="button" class="meilifacetsApply" data-meili="apply">Apply filters</button>\n    </div>'
@@ -397,6 +400,39 @@ describe('Drawer', () => {
         })
     })
 
+    describe('as a side sheet', () => {
+        const sheet = () => find(drawer(), Contract.selector('drawer-sheet'))
+
+        beforeEach(() => drawer().setAttribute(SIDE_SHEET, ''))
+
+        it('opens as a modal dialog above the threshold', () => {
+            media.matches = false
+
+            click(window, opener())
+
+            assert.equal(isModal(), true)
+            assert.ok(inert().includes('header'))
+        })
+
+        it('stays open when the window grows past the threshold', () => {
+            click(window, opener())
+
+            media.cross(false)
+
+            assert.equal(isModal(), true)
+        })
+
+        it('writes no height above the threshold, and follows it again once the window narrows', () => {
+            media.matches = false
+            click(window, opener())
+            assert.equal(sheet().style.height, '')
+
+            media.cross(true)
+
+            assert.notEqual(sheet().style.height, '')
+        })
+    })
+
     it('ignores the threshold while closed', () => {
         media.cross(false)
         media.cross(true)
@@ -671,5 +707,32 @@ describe('the foot of the drawer', () => {
         const { drawer } = boundUnderDrawer('submit')
 
         assert.equal(find(drawer, Contract.selector('apply')).matches(SHEET_ONLY), false)
+    })
+})
+
+describe('a side sheet over a listing that searches', () => {
+    it('stays a side sheet once an answer shows fewer filters', async () => {
+        const markup = drawerMarkup({ apply: 'immediate' }).replace('data-meili="drawer"', 'data-side-sheet data-meili="drawer"')
+        const { window, root } = open(markup)
+        window.matchMedia = (() => Object.assign(new EventTarget(), { matches: false })) as unknown as typeof window.matchMedia
+        const client = new FakeClient()
+        const [brand] = description.facets
+        const brands = { [facetField(brand!)]: { acme: 3 } }
+        client.answer = {
+            results: { hits: [], totalHits: 0, facetDistribution: brands },
+            [FacetQuery.keyFor(brand!.taxonomy)]: { hits: [], facetDistribution: brands },
+        }
+        const immediate = { ...description, apply: 'immediate' as const }
+        const listing = new Listing(immediate, connection, { filterQueries: filterQueriesOf(immediate), client, history: new FakeHistory() })
+        new ListingBinding(new Contract(root), listing, immediate).start()
+        const drawer = find(root, Contract.selector('drawer'))
+
+        tick(window, find<HTMLInputElement>(root, 'input[value="acme"]'))
+        await settled(window)
+        click(window, find(root, Contract.selector('drawer-open')))
+
+        assert.equal(find(root, `${Contract.selector('facet')}[data-taxonomy="product_cat"]`).hidden, true)
+        assert.equal(drawer.hasAttribute(SIDE_SHEET), true)
+        assert.equal(drawer.getAttribute('aria-modal'), 'true')
     })
 })

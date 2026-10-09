@@ -1,5 +1,5 @@
 <fieldset {{ $attributes->class('meilifacetsFacet') }} data-filter="{{ $filter->name }}"
-          @if ($bounds()->isEmpty()) hidden @endif {{ $hook('facet') }} {{ $scrollMark() }}>
+          @unless ($isShown()) hidden @endunless {{ $hook('facet') }} {{ $scrollMark() }}>
 @if ($collapsible)
     <legend class="meilifacetsFacetLabel"><x-meilifacets::listing.toggle :disclosure="$disclosure()" /></legend>
 @else

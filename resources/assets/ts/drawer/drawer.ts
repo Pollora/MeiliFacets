@@ -6,6 +6,7 @@ import { InertPage } from './inert-page.ts'
 import { SheetHeight } from './sheet-height.ts'
 
 const MEDIA = 'data-media'
+const SIDE_SHEET = 'data-side-sheet'
 const CLOSING = 'data-closing'
 const INERT = 'inert'
 const MODAL = 'aria-modal'
@@ -37,7 +38,7 @@ export class Drawer {
         this.#media = contract.window.matchMedia(drawer.getAttribute(MEDIA) ?? 'all')
         this.#gesture = new DrawerGesture(
             drawer,
-            { isOpen: () => this.#isOpen(), dismiss: () => this.#close() },
+            { isDraggable: () => this.#isDraggable(), dismiss: () => this.#close() },
             contract.window.matchMedia(REDUCED_MOTION),
         )
         this.#height = Drawer.#heightOf(contract.one('drawer-sheet', drawer))
@@ -63,7 +64,7 @@ export class Drawer {
     }
 
     #open(opener: HTMLElement) {
-        if (!this.#media.matches || this.#isOpen()) {
+        if (!this.#opensAsDialog() || this.#isOpen()) {
             return
         }
 
@@ -77,7 +78,7 @@ export class Drawer {
         this.#expand('true')
         this.#page.seal()
         this.#height?.release()
-        this.#height?.follow()
+        this.#followHeight()
         this.#title()?.focus()
     }
 
@@ -130,11 +131,20 @@ export class Drawer {
 
     #resized() {
         if (this.#media.matches) {
+            if (this.#isOpen()) {
+                this.#followHeight()
+            }
+
             return
         }
 
         this.#height?.release()
         this.#gesture.cancel()
+
+        if (this.#isSideSheet()) {
+            return
+        }
+
         this.#drawer.removeAttribute(INERT)
 
         if (this.#isOpen()) {
@@ -158,6 +168,24 @@ export class Drawer {
 
     #isOpen() {
         return this.#drawer.getAttribute(MODAL) === 'true'
+    }
+
+    #isSideSheet() {
+        return this.#drawer.hasAttribute(SIDE_SHEET)
+    }
+
+    #opensAsDialog() {
+        return this.#media.matches || this.#isSideSheet()
+    }
+
+    #isDraggable() {
+        return this.#isOpen() && this.#media.matches
+    }
+
+    #followHeight() {
+        if (this.#media.matches) {
+            this.#height?.follow()
+        }
     }
 
     #title() {

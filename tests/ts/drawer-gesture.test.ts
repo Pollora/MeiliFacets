@@ -53,7 +53,7 @@ describe('DrawerGesture', () => {
         now = 1000
         reduced = { matches: false }
         Object.defineProperty(sheet(), 'offsetHeight', { value: HEIGHT })
-        gesture = new DrawerGesture(drawer(), { isOpen: () => open, dismiss: () => dismissed++ }, reduced as MediaQueryList).start()
+        gesture = new DrawerGesture(drawer(), { isDraggable: () => open, dismiss: () => dismissed++ }, reduced as MediaQueryList).start()
     })
 
     it('follows the finger one to one while it pulls down', () => {

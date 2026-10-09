@@ -198,6 +198,30 @@ final class ResolvedListing
         return $this->placement->remaining($this->filters());
     }
 
+    public function shownFilterCount(): int
+    {
+        return count(array_filter($this->filters(), $this->isShown(...)));
+    }
+
+    public function isShown(Placeable $filter): bool
+    {
+        return match (true) {
+            $filter instanceof PriceFilter => $this->hasPriceBounds($filter),
+            $filter instanceof Facet => $this->hasReadableValues($filter),
+            default => false,
+        };
+    }
+
+    private function hasPriceBounds(PriceFilter $filter): bool
+    {
+        return ! $filter->boundsFrom($this->facetStats())->isEmpty();
+    }
+
+    private function hasReadableValues(Facet $facet): bool
+    {
+        return array_any($this->valuesOf($facet), static fn (FacetValue $value): bool => ! $value->folded);
+    }
+
     /**
      * A declaration comes from the group and stays in it; a name comes from a template
      * that placed the facet on its own, so the group leaves it out. A component only

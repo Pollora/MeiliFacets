@@ -88,6 +88,7 @@ Declared on `[data-listing]`.
 | `--meili-panel-min` | `18rem` | size | minimum width of a floating panel | |
 | `--meili-panel-max` | `28rem` | size | maximum width of a floating panel | |
 | `--meili-panel-price` | `20rem` | size | width of the floating panel holding the price slider | |
+| `--meili-side-sheet-width` | `26rem` | size | width of the side sheet past the row limit, capped at the screen's | |
 | `--meili-listing-search-min` | `12rem` | size | flex basis of the listing search field in the filter row | |
 | `--meili-listing-search-width` | `18rem` | size | width of the listing search field in the filter row | |
 | `--meili-layer` | `10` | layer | floating panels | |

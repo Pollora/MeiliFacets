@@ -3315,6 +3315,173 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
+### R-224 · 🟡 · **livré le 2026-10-09, en attente de validation** · ouvert le 2026-10-09 — trop de facettes : la rangée desktop repousse la grille, sans repli sur le tiroir
+
+**Constat.** Sur le projet de test, `/boutique` à 1512 px déclare 15 facettes (13 attributs ajoutés le 2026-10-09) :
+avec la recherche et le tri, la rangée occupe quatre lignes, environ 215 px, et la grille passe sous la ligne de
+flottaison. Une page catégorie en affiche moins, les facettes sans valeur étant masquées. Le tiroir ne devient modal
+que sous `Drawer::MOBILE` (`(width < 48em)`), seuil écrit en dur dans le CSS (`Q-3`), et l'ouvreur est masqué au-delà.
+
+**Demande** (Louis, 2026-10-09) : pouvoir utiliser le tiroir mobile en desktop quand trop de filtres sont présents.
+
+**Pistes, rien de tranché.**
+- *A. Déclarative* : le thème choisit, par gabarit (attribut du tiroir). Simple, mais fixe : la boutique à 15 filtres
+  et une catégorie à 9 auraient le même rendu.
+- *B. Nombre de facettes visibles* : au-delà de N facettes ayant des valeurs, le tiroir sert en desktop. Le serveur le
+  sait au rendu, sans flash ; le client doit recompter après chaque recherche, les facettes apparaissant et
+  disparaissant.
+- *C. Place disponible* : le client mesure si la rangée dépasse une ligne et bascule. Suit la largeur réelle, mais le
+  serveur l'ignore (flash au premier rendu) et le résultat dépend du CSS du thème.
+
+**Contraintes connues.** Un seul exemplaire DOM de chaque facette (`R-95`) ; `Drawer` (`drawer/drawer.ts:37`, `:131`)
+promeut et rétrograde le tiroir sur `matchMedia` du seul attribut `data-media` — `ListingDrawers` ne fait que les
+construire — : un critère autre que la largeur touche ce mécanisme ; parité du seuil CSS et de `media` vérifiée par
+`ContractParityTest` (Q-3 de `chantier-filtres-architecture.md`, distinct du `Q-03` de ce registre) ; ouvreur masqué
+par le CSS du module hors mobile.
+
+**Piste retenue : B** (Louis, 2026-10-09), le seul critère qui suit la page sans flash au premier rendu.
+Comportement : au-delà de N filtres, la page desktop rend ce que rend le mobile — le bouton « Filtres » global,
+qui ouvre le tiroir.
+
+Réponses de Louis le 2026-10-09 :
+- *N* : un seuil par défaut dans le module, surchargeable par le projet en configuration (clé autorisée par Louis,
+  défaut porté là où il est lu, `CLAUDE.md` § 3) ;
+- *ce qui compte* : les filtres que l'utilisateur voit, c'est-à-dire les facettes ayant des valeurs, prix compris ;
+  recherche et tri exclus (confirmé par Louis le 2026-10-09) ;
+- *bascule côté client* : la disposition ne change qu'une fois le tiroir fermé et aucun panneau ouvert ;
+- *rétrogradation* : `Drawer` combine la largeur (`data-media`) et le compte, sans second exemplaire DOM.
+
+**Passe de conformité** (2026-10-09). Aucune décision validée renversée ; trois lignes de « Validées » à amender :
+l.82 (disposition composée par le thème), l.89 (promu « sur mobile »), l.91 (seuil mobile unique). Rien de natif
+dans WooCommerce, WordPress ou Pollora ; le CSS seul compte (`:has()` + `:nth-child(n of …)`) mais avec un N en dur
+et sans attendre la fermeture du tiroir : écarté. Aucun point en cours (`D-03`).
+
+Réponses de Louis le 2026-10-09, après la passe :
+- *N est un attribut du tiroir*, comme `media`, la clé de configuration n'en étant que le défaut : le thème garde la
+  main par gabarit (l.82 précisée, pas renversée) ;
+- *défaut : 8* ;
+- *le mobile ne change pas* ;
+- *en desktop, un panneau latéral fixé à droite* (pas le sheet du bas), à droite aussi en écriture de droite à gauche ;
+- *« au-delà de 8 »* : 9 filtres visibles ou plus ouvrent le tiroir, 8 ou moins gardent la rangée.
+
+**Livré** (plan et noms validés par Louis le 2026-10-09).
+- *Serveur* : `ResolvedListing::shownFilterCount()` / `isShown()`, seule règle « filtre affiché » (facette avec une valeur
+  lisible, prix avec des bornes), que `Facet` et `Price` suivent aussi ; `Drawer` reçoit `row-limit`
+  (`#[Config('meilifacets.drawer.row_limit', 8)]`) et pose `data-row-limit`, et `data-side-sheet` au-delà.
+- *Client* : `SideSheet` suit le compte des `[data-meili="facet"]` visibles du listing ; `Drawer::followShownFilters()`,
+  appelé après chaque réponse, à la fermeture d'un panneau ou du tiroir et quand le focus quitte le tiroir, ne bascule
+  que tiroir fermé, aucun panneau ouvert (`DisclosureGroup::hasOpenWithin()`) et focus hors du tiroir. Le focus d'un
+  ouvreur que la bascule masque passe au premier toggle. Geste et hauteur suivie réservés au sheet du bas.
+- *CSS* : les règles de la rangée (`@media (width >= 48em)`, survol et mouvement réduit compris) portent
+  `:where(:not([data-side-sheet] *))` ; nouveau bloc `(scripting: enabled) and (width >= 48em)` pour le panneau,
+  placé et animé sur les côtés physiques (`margin-left: auto`, `translateX(100%)`), largeur `--meili-side-sheet-width`.
+  Le bloc mobile n'est pas modifié.
+
+**Six passes** (`module-review`, 2026-10-09).
+- *Nommage* : le tableau a été appliqué en entier :
+  - `shows` → `isShown`, `drawsPriceRange` → `hasPriceBounds` ;
+  - `SideSheetSwitch` → `SideSheet`, `recount` → `followShownFilters`, `holdsAnOpenPanel` → `DisclosureGroup::hasOpenWithin` ;
+  - `#isModalHere` → `#opensAsDialog`, `#keepFocus` → `#handFocusOver`, `Dismissible.isOpen` → `isDraggable` ;
+  - `$sideSheet` → `$isSideSheet`, `drawerUnder` → `drawerLimitedTo`, `aside` → `isSideSheet` ;
+  - le `describe` « as a bar » devient « as a row ».
+- *Lisibilité* : le passage du focus n'a plus qu'une seule branche ; le prix délègue au listing.
+  Deux points sont refusés :
+  - Le double recomptage à la fermeture d'un tiroir qui tenait un panneau reste. L'opération est idempotente et ne
+    parcourt que le DOM.
+  - `isShown()` ne lève rien sur un `Placeable` inconnu : `Facets::componentFor()` fait la même hypothèse (facette ou prix).
+- *Commentaires* : 8 supprimés, 1 raccourci.
+- *Performance* : une facette déclarée mais jamais placée passe maintenant par `FacetValues::of()`, soit une lecture
+  `get_terms` par requête. C'est accepté : aucune requête moteur de plus, les valeurs sont mises en cache par nom.
+- *Sécurité* : rien.
+- *Contexte* : trois défauts corrigés et testés :
+  - en écriture de droite à gauche, le panneau s'ouvrait à gauche ;
+  - la bascule pouvait se produire pendant la frappe dans le champ de recherche de la rangée ;
+  - le suivi de hauteur ne repartait pas quand la fenêtre se resserre, panneau ouvert.
+
+  En plus : l'ouvreur dépend de sa racine (`:where([data-listing]:has(…))`) et n'a plus de spécificité forcée, les
+  transitions du pied sont reprises, et une valeur de config non entière est documentée.
+
+**Révision du 2026-10-09** (Louis, après la livraison) : la décision se prend **au chargement de la page** et
+tient pendant le filtrage. Une recherche qui affiche moins de filtres garde le panneau latéral, une recherche qui en
+affiche plus garde la rangée. **Limite par défaut : 5.** Sur le projet de test, `/boutique` (15 filtres),
+`?categorie=maquillage` et `?q=baume` (8 chacun) passent tous en panneau latéral.
+
+*Coût* : une page chargée avec des filtres dans son adresse se décide sur son propre compte, pas sur le parcours qui
+y a mené.
+
+*Retiré du livré* : toute la bascule côté client. Cela supprime `SideSheet`, `followShownFilters()`, l'attente sur le
+focus, les panneaux et la fermeture, le passage du focus, `DisclosureGroup::hasOpenWithin()` et l'attribut
+`data-row-limit`, que plus personne ne lisait. `Drawer` ne fait plus que lire `data-side-sheet`.
+
+Les renommages de la passe de nommage qui portaient sur ces noms sont sans objet. La limite « serveur et client ne
+comptent pas la même chose » tombe aussi.
+
+*Tests* :
+- `a side sheet over a listing that searches` : après une réponse qui masque une facette, le tiroir reste latéral et
+  s'ouvre en dialogue ;
+- `DrawerComponentTest` : config et attribut, jugés sur `data-side-sheet`.
+
+*Vérifié* :
+- `composer check` vert (711 tests autonomes, client 971).
+- Suite `Modules` : 1136 tests, avec les 2 échecs antérieurs de `DrawerFooterTest`.
+- Navigateur : sur `/boutique`, « Maquillage » appliqué fait passer les filtres de 15 à 8. Le panneau latéral reste,
+  l'ouvreur aussi, et il rouvre le tiroir.
+
+*Thème du projet de test* (2026-10-09, signalé par Louis) : la poubelle du pied du tiroir était invisible dans le
+panneau latéral. `themes/pluralia/resources/assets/css/components/listing.css:136` la masque à partir de `48em`, parce
+que dans la rangée c'est le reset texte de `.productListingActive` qui sert. La règle est restreinte à
+`[data-meili="drawer"]:not([data-side-sheet])`. Vérifié : la poubelle est visible dans le panneau, toujours masquée
+dans la rangée. Rien à changer dans le module.
+
+**Revue de code demandée par Louis** (2026-10-09, après la révision).
+- *Minimalisation CSS* : les règles des états ouvert et en fermeture sont désormais écrites une seule fois, dans un
+  bloc `@media (scripting: enabled)` placé après le bloc latéral. Elles couvrent la visibilité, le fond, la
+  translation, les transitions du pied, le mouvement réduit, `data-instant` et le verrouillage du défilement, et ne
+  dépendent pas de la largeur : elles ne s'appliquent que quand le JS a posé `aria-modal` ou `data-closing`. Elles
+  étaient copiées dans le bloc latéral ; elles quittent aussi le bloc mobile, sélecteurs inchangés. Le CSS du tiroir
+  passe de 432 à 361 lignes. Restent dupliquées les règles de forme au repos (en-tête, corps, pied, tri) : il faudrait
+  pouvoir écrire « sous 48em *ou* `data-side-sheet` », ce que le CSS ne permet pas.
+- *PHP* : `isShown()` passe d'une expression combinée à un `match (true)`, comme `Facets::componentFor()`.
+- *TS* : `#followHeightWhileOpen()`, appelée à un seul endroit, est intégrée dans `#resized()`.
+- *Commentaires* : aucun commentaire ajouté dans le code de production. Deux commentaires de test qui justifiaient un
+  choix de conception ont été retirés.
+- *Gardé tel quel* : `Facet::hasReadableValues()`. Elle délègue désormais à `isShown()`, mais une vue copiée par un
+  thème l'appelle encore ; la renommer casserait cette vue.
+- *Vérifié* :
+  - `composer check` vert (711 tests, client 971) ;
+  - suite `Modules` : les 2 échecs antérieurs seulement ;
+  - navigateur, desktop et mobile : ouverture, fond, verrouillage du défilement, hauteur suivie en mobile, fermeture
+    par Échap.
+
+**Limites écrites, non corrigées.**
+- *`media` personnalisé* : il faut aussi redéclarer le bloc du panneau (`drawer.md`, « Changing the breakpoint »).
+- *Deux listings sur une page* (`R-166`) : la règle de l'ouvreur suit sa racine ; rien d'autre à faire.
+- *Sans JavaScript, au-delà de la limite* : les facettes perdent leurs pastilles et s'empilent. Les panneaux repliables
+  sont fermés côté serveur sans JavaScript, ce qui était déjà le cas avant ce changement. **À trancher par Louis.**
+
+**Tests** :
+- PHP :
+  - `ShownFilterCountTest` (3 cas, dont une valeur cochée sans résultat) ;
+  - `DrawerComponentTest` (limite franchie ou non, config, attribut) ;
+  - `ConfigStubTest`.
+- Client : `drawer.test.ts` (panneau latéral, attentes, focus, passage sous le seuil, branchement après une recherche) et
+  `stylesheet.test.ts` (rangée, côté droit, ouvreur).
+- Chaque garde a été vérifiée rouge sans elle, verte avec.
+
+**Vérifié** :
+- `composer check` vert (711 tests autonomes, client 978).
+- Suite `Modules` : 1136 tests, 2 échecs **antérieurs et étrangers** (`DrawerFooterTest`, « Annuler » au lieu de « Tout
+  effacer »), rouges aussi sans ce changement.
+- Navigateur, `/boutique` à 1512 px :
+  - 15 filtres, l'ouvreur remplace la rangée et la grille remonte de 767 à 596 px ;
+  - le panneau fait 416 px à droite, focus sur le titre, page inerte ; Échap rend le focus à l'ouvreur ;
+  - « Maquillage » appliqué : 8 filtres, la rangée revient, le focus passe à un toggle ; retirer la pastille rouvre le
+    panneau latéral ;
+  - `?q=baume` (8 filtres) : effacer le mot garde la rangée tant que le champ a le focus, puis passe au panneau ;
+  - le panneau est à droite aussi avec `dir="rtl"`.
+- Mobile à 390 px : le sheet du bas est inchangé.
+- Rendu serveur : `?categorie=maquillage` garde la rangée (8 filtres), cheveux, corps et visage passent au panneau.
+
 ### R-223 · 🟡 · **fermé le 2026-10-08** · ouvert le 2026-10-08 — la découverte des listings s'enregistrait à la main, contre la documentation de Pollora
 
 **Constat.** Relevé pendant la revue de `R-222`. `MeiliFacetsServiceProvider::registerListings()` appelait

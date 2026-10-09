@@ -50,6 +50,11 @@ final class Price extends ListingComponent
         return $this->bounds ??= $this->filter->boundsFrom($this->listing->facetStats());
     }
 
+    public function isShown(): bool
+    {
+        return $this->listing->isShown($this->filter);
+    }
+
     public function panelId(): string
     {
         return $this->ids->facetPanel($this->filter->name);

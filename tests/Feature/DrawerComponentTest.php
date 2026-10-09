@@ -22,9 +22,14 @@ final class DrawerComponentTest extends TestCase
     private const string PLACED = '<x-meilifacets::listing.drawer-opener /><x-meilifacets::listing.drawer class="flex-1"><p id="inside">Facets</p>'
         .'<x-slot:footer><x-meilifacets::listing.reset /></x-slot:footer></x-meilifacets::listing.drawer>';
 
+    /** @var array<string, mixed>|null */
+    private ?array $configuredDrawer = null;
+
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->configuredDrawer = config('meilifacets.drawer');
 
         $this->app->forgetScopedInstances();
     }
@@ -32,6 +37,7 @@ final class DrawerComponentTest extends TestCase
     protected function tearDown(): void
     {
         request()->query->replace([]);
+        config(['meilifacets.drawer' => $this->configuredDrawer]);
         $this->app->forgetScopedInstances();
 
         parent::tearDown();
@@ -186,6 +192,28 @@ final class DrawerComponentTest extends TestCase
     }
 
     #[Test]
+    public function it_turns_into_a_side_sheet_past_its_row_limit(): void
+    {
+        $shown = $this->shownFilterCount();
+
+        $this->assertTrue($this->drawerLimitedTo($shown - 1)->hasAttribute('data-side-sheet'));
+        $this->assertFalse($this->drawerLimitedTo($shown)->hasAttribute('data-side-sheet'));
+    }
+
+    #[Test]
+    public function it_takes_its_row_limit_from_the_configuration_unless_given_one(): void
+    {
+        $shown = $this->shownFilterCount();
+
+        config(['meilifacets.drawer.row_limit' => $shown]);
+        $this->assertFalse($this->drawer($this->placed())->hasAttribute('data-side-sheet'));
+
+        config(['meilifacets.drawer.row_limit' => $shown - 1]);
+        $this->assertTrue($this->drawer($this->placed())->hasAttribute('data-side-sheet'));
+        $this->assertFalse($this->drawerLimitedTo($shown)->hasAttribute('data-side-sheet'));
+    }
+
+    #[Test]
     public function it_speaks_the_language_of_the_site(): void
     {
         $document = HTMLDocument::createFromString($this->underLocales('fr', 'fr_FR', static fn (): string => Blade::render(self::PLACED)), LIBXML_NOERROR);
@@ -219,6 +247,25 @@ final class DrawerComponentTest extends TestCase
     private function placed(): HTMLDocument
     {
         return HTMLDocument::createFromString(Blade::render(self::PLACED), LIBXML_NOERROR);
+    }
+
+    private function shownFilterCount(): int
+    {
+        $shown = $this->catalogue()->shownFilterCount();
+
+        if ($shown === 0) {
+            $this->markTestSkipped('The catalogue shows no filter.');
+        }
+
+        return $shown;
+    }
+
+    private function drawerLimitedTo(int $rowLimit): Element
+    {
+        return $this->drawer(HTMLDocument::createFromString(
+            Blade::render('<x-meilifacets::listing.drawer :row-limit="'.$rowLimit.'">Facets</x-meilifacets::listing.drawer>'),
+            LIBXML_NOERROR
+        ));
     }
 
     private function drawer(HTMLDocument $document): Element

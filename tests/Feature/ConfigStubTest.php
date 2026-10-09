@@ -7,6 +7,7 @@ namespace Modules\MeiliFacets\Tests\Feature;
 use Modules\MeiliFacets\Enums\ApplyMode;
 use Modules\MeiliFacets\Search\EngineLimits;
 use Modules\MeiliFacets\View\CardSettings;
+use Modules\MeiliFacets\View\Components\Listing\Drawer;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -28,6 +29,12 @@ final class ConfigStubTest extends TestCase
             ['eager' => CardSettings::DEFAULT_EAGER],
             $this->stub()['card']
         );
+    }
+
+    #[Test]
+    public function it_publishes_the_row_limit_the_drawer_defaults_to(): void
+    {
+        $this->assertSame(['row_limit' => Drawer::ROW_LIMIT], $this->stub()['drawer']);
     }
 
     #[Test]

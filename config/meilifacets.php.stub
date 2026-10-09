@@ -26,6 +26,12 @@ return [
         // 'q' => 'search',
     ],
 
+    // Past this many filters on screen when the page loads, the desktop row gives way to a side sheet behind the
+    // "Filters" button, kept while the visitor filters.
+    'drawer' => [
+        'row_limit' => 5,
+    ],
+
     'card' => [
         'eager' => 4,
         // One size for every card. Products default to `woocommerce_thumbnail`, other posts to `medium`.
