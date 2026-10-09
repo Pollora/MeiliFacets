@@ -104,7 +104,7 @@ stack as in the sheet, their sections closed. They do not filter without the cli
 | --- | --- | --- |
 | `heading` | `h2` | the level of the sheet's title, `h2` to `h6` |
 | `media` | `(width < 48em)` | the media query under which the opener opens the sheet. See [Changing the breakpoint](#changing-the-breakpoint) |
-| `row-limit` | `meilifacets.drawer.row_limit`, else `5` | the number of filters shown at page load past which the drawer opens as a [side sheet](#past-the-row-limit-a-side-sheet) |
+| `row-limit` | `meilifacets.drawer.row_limit`, else `5` | the number of filters it holds and shows at page load past which the drawer opens as a [side sheet](#past-the-row-limit-a-side-sheet) |
 | `name` | the only listing | the listing it belongs to |
 
 The attribute bag lands on the drawer's container. The title reads “Filters”, translatable.

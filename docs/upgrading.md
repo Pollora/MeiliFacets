@@ -3,14 +3,17 @@
 This page lists, for each release, what a project has to change when it updates MeiliFacets. The full list of
 changes is in the [changelog](../CHANGELOG.md).
 
-0.1.0 was the first release, a beta; 0.2.0 is the second; 0.2.1 is the third.
+0.1.0 was the first release, a beta; 0.2.0 is the second; 0.2.1 is the third; 0.2.2 is the fourth.
 
-## Unreleased
+## 0.2.2
 
 - **Update Pollora to 13.35.3 or later first.** The module now declares a conflict with `pollora/framework` below
   13.35.3: run `composer update pollora/framework laravel/framework --with-dependencies` before updating the module.
   From then on, Plugins › Modules, Site Health and `php artisan pollora:module:outdated` say when a newer
   MeiliFacets is available.
+- **Past 5 filters, the desktop row becomes a side sheet.** A page that loads with more filters in its drawer shows
+  the « Filters » button on wide screens too. To keep the row, raise `meilifacets.drawer.row_limit`, or the drawer's
+  `row-limit` on one template ([Mobile drawer and filter bar](listing/drawer.md#past-the-row-limit-a-side-sheet)).
 - **A copied `components/listing/facet.blade.php` calls `$isShown()`** in place of `$hasReadableValues()`, which is
   gone: the old call fails the page. A copied `components/listing/price.blade.php` keeps working; `$isShown()` is
   there too.

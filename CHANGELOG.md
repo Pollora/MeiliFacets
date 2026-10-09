@@ -9,18 +9,43 @@ What to change in a project when moving from one version to the next is in
 
 ## [Unreleased]
 
+## [0.2.2](https://github.com/Pollora/MeiliFacets/releases/tag/0.2.2) - 2026-10-09
+
+Fourth beta. Past 5 filters in the drawer when the page loads, wide screens open the filters as a side sheet behind the
+« Filters » button instead of a row that pushes the results down. Requires Pollora 13.35.3 or later, which reports in
+the admin when a newer MeiliFacets is available: update Pollora before the module, see
+[docs/upgrading.md](docs/upgrading.md). No reindex.
+
 ### Changed
 
 - Requires Pollora 13.35.3 or later (`pollora/framework` `>=13.35.3 <14`), which reports in Plugins › Modules, Site
   Health and `pollora:module:outdated` when a newer MeiliFacets is available.
+- `Facet::isShown()` replaces `Facet::hasReadableValues()`, the name `Price` and the listing already use: a copied
+  `components/listing/facet.blade.php` calls `$isShown()`.
 
 ### Added
 
 - Past 5 filters shown when the page loads, the drawer opens as a side sheet on wide screens, behind the “Filters”
   button, instead of a row of pills that pushes the results down. The side sheet stays while the visitor filters. Set
   the limit with the drawer's `row-limit` attribute, or project-wide with `meilifacets.drawer.row_limit`; the width
-  with `--meili-side-sheet-width`. Below `48em`, nothing changes. A
-  theme that copied `components/listing/drawer.blade.php` copies it again to get the side sheet.
+  with `--meili-side-sheet-width`. Below `48em`, nothing changes. A theme that copied
+  `components/listing/drawer.blade.php` copies it again to get the side sheet.
+
+### Known issues
+
+- A facet declared with `SelectionMode::Single` hides its other values once one is picked
+  ([#4](https://github.com/Pollora/MeiliFacets/issues/4)).
+- A failed search in the browser shows no message, and the URL and controls keep the filter that was not applied
+  ([#5](https://github.com/Pollora/MeiliFacets/issues/5)).
+- Saving a product re-indexes it once per meta WooCommerce writes, and each pass resends the index settings: a bulk
+  edit or a catalogue import can leave the engine's queue hours behind. The fix belongs in MeiliScout.
+- On a WooCommerce attribute archive (`/pa_volume/400ml/`), the card does not show the variant of the term browsed.
+  Attribute archives are outside the module's scope: leave « Enable archives? » unchecked.
+- A product whose variants share a term counts once per variant under that term.
+- Past the row limit on a wide screen, the filters need the browser client: without JavaScript they stack in the page
+  without their pills, and when the client does not start, the « Filters » button opens nothing.
+- A theme that moves the drawer's `media` past `48em` also redeclares the side sheet block, or the drawer is drawn as a
+  side sheet and driven as a bottom sheet between the two widths.
 
 ## [0.2.1](https://github.com/Pollora/MeiliFacets/releases/tag/0.2.1) - 2026-10-08
 
