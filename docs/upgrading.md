@@ -7,6 +7,10 @@ changes is in the [changelog](../CHANGELOG.md).
 
 ## Unreleased
 
+- **Update Pollora to 13.35.3 or later first.** The module now declares a conflict with `pollora/framework` below
+  13.35.3: run `composer update pollora/framework laravel/framework --with-dependencies` before updating the module.
+  From then on, Plugins › Modules, Site Health and `php artisan pollora:module:outdated` say when a newer
+  MeiliFacets is available.
 - **A copied `components/listing/facet.blade.php` calls `$isShown()`** in place of `$hasReadableValues()`, which is
   gone: the old call fails the page. A copied `components/listing/price.blade.php` keeps working; `$isShown()` is
   there too.

@@ -35,7 +35,7 @@ php artisan meilifacets:check-assets
 | Requirement | Version | Notes |
 | --- | --- | --- |
 | PHP | 8.4 or later | |
-| Pollora | 13.x from 13.35 (`pollora/framework` `>=13.35 <14`), on Laravel 13 | Laravel modules (`nwidart/laravel-modules`) ship with Pollora: nothing to install |
+| Pollora | 13.x from 13.35.3 (`pollora/framework` `>=13.35.3 <14`), on Laravel 13 | Laravel modules (`nwidart/laravel-modules`) ship with Pollora: nothing to install. Plugins › Modules shows when a newer MeiliFacets is available |
 | MeiliScout | `amphibee/meiliscout`, branch `dev-feat/meilifacets` | a WordPress plugin; it builds and pushes the documents |
 | Meilisearch | a server reachable from PHP and from the browser | see [Engine version](production.md#engine-version) |
 | WooCommerce | for the product listing | 9.8 for grouped product prices, 9.9 to switch off WooCommerce's own filtering of the shop query. The site search runs without WooCommerce |
