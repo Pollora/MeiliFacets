@@ -5,6 +5,13 @@ changes is in the [changelog](../CHANGELOG.md).
 
 0.1.0 was the first release, a beta; 0.2.0 is the second; 0.2.1 is the third.
 
+## Unreleased
+
+- **A copied `components/listing/facet.blade.php` calls `$isShown()`** in place of `$hasReadableValues()`, which is
+  gone: the old call fails the page. A copied `components/listing/price.blade.php` keeps working; `$isShown()` is
+  there too.
+- **A copied `components/listing/drawer.blade.php`** never turns into a side sheet: copy it again.
+
 ## 0.2.1
 
 - **Update Pollora to 13.35 or later first.** The module now declares a conflict with `pollora/framework` below 13.35:

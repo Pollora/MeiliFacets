@@ -74,8 +74,8 @@ from the listing's name). Those that belong to a search receive `$root` and `$id
 | `listing/results` | `$cards`, `$items`, `$priority($rank)` |
 | `listing/card` | `$binding`, `$priority`, `$heading`, `$link`, `$image`, `$title`, `$price` |
 | `listing/facets` | `$applyMode`, `$needsApplyButton`, `$collapsible`, `$withApply`, `$componentFor($filter)` |
-| `listing/facet` | `$facet`, `$values`, `$presentation`, `$collapsible`, `$inputType()`, `$inputName()`, `$panelId()`, `$labelId($value)`, `$countId($value)`, `$countLabel($value)`, `$disclosure()`, `$hasFoldedValues()`, `$hasReadableValues()`, `$marksPresentation()` |
-| `listing/price` | `$filter`, `$money`, `$collapsible`, `$bounds()`, `$handles()`, `$fill()`, `$readout()`, `$showsSlider()`, `$showsFields()`, `$panelId()`, `$disclosure()` |
+| `listing/facet` | `$facet`, `$values`, `$presentation`, `$collapsible`, `$inputType()`, `$inputName()`, `$panelId()`, `$labelId($value)`, `$countId($value)`, `$countLabel($value)`, `$disclosure()`, `$hasFoldedValues()`, `$isShown()`, `$marksPresentation()` |
+| `listing/price` | `$filter`, `$money`, `$collapsible`, `$bounds()`, `$handles()`, `$fill()`, `$readout()`, `$showsSlider()`, `$showsFields()`, `$isShown()`, `$panelId()`, `$disclosure()` |
 | `listing/sort`, `listing/sort-radios` | `$choices`, `$selected`, `$caption`, `$widget`, `$collapsible`, `$disclosure()`, `$panelId()`, `$choiceName()` |
 | `listing/pagination` | `$pagination` |
 | `listing/total` | `$label` |
@@ -83,7 +83,7 @@ from the listing's name). Those that belong to a search receive `$root` and `$id
 | `listing/active-values` | `$values` |
 | `listing/apply` | `$shape`, `$visibleInDrawer`, `$badge`, `$label()`, `$onlyInDrawer()` |
 | `listing/reset`, `listing/reset-icon` | `$shape`, `$hasNothingToClear()`, `$defaultIconUrl()` |
-| `listing/drawer` | `$drawerId`, `$titleId`, `$media`, `$heading`, slot `$footer` |
+| `listing/drawer` | `$drawerId`, `$titleId`, `$media`, `$heading`, `$isSideSheet()`, slot `$footer` |
 | `listing/drawer-opener` | `$drawerId`, `$badge`, `$defaultIconUrl()`, slot `$icon` |
 | `listing/search` | `$action`, `$kept`, `$parameter`, `$term`, `$inputId`, `$maxLength`, `$label()` |
 | `search` | `$contract`, `$sectionTypes()`, slot `$icon` |
@@ -118,7 +118,7 @@ An example: a facet as a `<details>` element. The `facet` hook and `data-taxonom
 ```blade
 {{-- <theme>/resources/views/modules/meilifacets/components/listing/facet.blade.php --}}
 <details {{ $attributes->class('themeFacet') }} data-taxonomy="{{ $facet->taxonomy }}"
-         @unless ($hasReadableValues()) hidden @endunless {{ $hook('facet') }} {{ $scrollMark() }}>
+         @unless ($isShown()) hidden @endunless {{ $hook('facet') }} {{ $scrollMark() }}>
     <summary>{{ $facet->label }}</summary>
     <fieldset>
         <legend class="screen-reader-text">{{ $facet->label }}</legend>
@@ -158,7 +158,7 @@ without any message about the contract:
 | `data-listing="<name>"` on the listing root | the client binds no listing; the console names the hooks left outside any root |
 | `name="{{ $inputName() }}"` on a facet's `<input>` | the client finds a value's taxonomy by that name: the boxes do nothing |
 | a single root element in the card `<template>` | only the first element is cloned: the rest of the card disappears, and a template without an element paints no card |
-| `hidden` on a facet while `$hasReadableValues()` is false | a filtered page also renders values without results: the legend stays above nothing until the first search |
+| `hidden` on a facet while `$isShown()` is false | a filtered page also renders values without results: the legend stays above nothing until the first search |
 | `hidden` on a sort option when `$choice->hidden` | an option that would empty the grid stays offered until the first search |
 
 The same goes for the site search root: `data-search="{{ $root->name }}"` must stay on it.

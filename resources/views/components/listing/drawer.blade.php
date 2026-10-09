@@ -1,4 +1,4 @@
-<div {{ $attributes->class('meilifacetsDrawer') }} id="{{ $drawerId }}" data-media="{{ $media }}" @if ($isSideSheet) data-side-sheet @endif {{ $hook('drawer') }}>
+<div {{ $attributes->class('meilifacetsDrawer') }} id="{{ $drawerId }}" data-media="{{ $media }}" @if ($isSideSheet()) data-side-sheet @endif {{ $hook('drawer') }}>
     <div class="meilifacetsDrawerSheet" {{ $hook('drawer-sheet') }}>
         <div class="meilifacetsDrawerHead">
             <{{ $heading->value }} class="meilifacetsDrawerTitle" id="{{ $titleId }}" tabindex="-1" {{ $hook('drawer-title') }}>{{ __('Filters') }}</{{ $heading->value }}>

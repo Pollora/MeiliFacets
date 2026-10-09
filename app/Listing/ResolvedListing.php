@@ -198,9 +198,19 @@ final class ResolvedListing
         return $this->placement->remaining($this->filters());
     }
 
-    public function shownFilterCount(): int
+    public function placedFilterCount(): int
     {
-        return count(array_filter($this->filters(), $this->isShown(...)));
+        return $this->placement->placedFacetCount();
+    }
+
+    public function shownFilterCountSince(int $mark): int
+    {
+        $placed = $this->placement->facetsPlacedSince($mark);
+
+        return count(array_filter(
+            $this->filters(),
+            fn (Placeable $filter): bool => in_array($filter->name, $placed, true) && $this->isShown($filter),
+        ));
     }
 
     public function isShown(Placeable $filter): bool

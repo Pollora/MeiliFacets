@@ -31,12 +31,15 @@ final class Drawer extends ListingComponent
         $this->heading = HeadingLevel::fromAttribute($heading);
     }
 
+    /** Blade resolves the view before the slot: the count waits for the view, once the slot has placed its filters. */
     public function render(): View
     {
+        $mark = $this->listing->placedFilterCount();
+
         return view('meilifacets::components.listing.drawer', [
             'drawerId' => $this->ids->drawer(),
             'titleId' => $this->ids->drawerTitle(),
-            'isSideSheet' => $this->listing->shownFilterCount() > $this->rowLimit,
+            'isSideSheet' => fn (): bool => $this->listing->shownFilterCountSince($mark) > $this->rowLimit,
         ]);
     }
 }

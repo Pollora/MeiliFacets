@@ -51,7 +51,19 @@ final class ShownFilterCountTest extends TestCase
             'facetStats' => $this->priceRange(12.0, 40.0),
         ]]);
 
-        $this->assertSame(3, $listing->shownFilterCount());
+        $this->assertSame(3, $this->countPlacing($listing, $this->brand, $this->size, $this->price));
+    }
+
+    #[Test]
+    public function it_counts_only_what_was_placed_since_the_mark(): void
+    {
+        $listing = $this->listing(new ListingState, [self::RESULTS => [
+            'facetDistribution' => [$this->brand->field() => ['acme' => 3], $this->size->field() => ['large' => 2]],
+            'facetStats' => $this->priceRange(12.0, 40.0),
+        ]]);
+        $listing->placeFacet($this->price, PriceFilter::class);
+
+        $this->assertSame(1, $this->countPlacing($listing, $this->brand));
     }
 
     #[Test]
@@ -62,7 +74,7 @@ final class ShownFilterCountTest extends TestCase
             'facetStats' => $this->priceRange(20.0, 20.0),
         ]]);
 
-        $this->assertSame(1, $listing->shownFilterCount());
+        $this->assertSame(1, $this->countPlacing($listing, $this->brand, $this->size, $this->price));
         $this->assertFalse($listing->isShown($this->size));
         $this->assertFalse($listing->isShown($this->price));
     }
@@ -77,7 +89,18 @@ final class ShownFilterCountTest extends TestCase
         ]);
 
         $this->assertTrue($listing->isShown($this->brand));
-        $this->assertSame(1, $listing->shownFilterCount());
+        $this->assertSame(1, $this->countPlacing($listing, $this->brand));
+    }
+
+    private function countPlacing(ResolvedListing $listing, Facet|PriceFilter ...$filters): int
+    {
+        $mark = $listing->placedFilterCount();
+
+        foreach ($filters as $filter) {
+            $listing->placeFacet($filter, $filter::class);
+        }
+
+        return $listing->shownFilterCountSince($mark);
     }
 
     /**

@@ -3445,13 +3445,37 @@ dans la rangée. Rien à changer dans le module.
 - *TS* : `#followHeightWhileOpen()`, appelée à un seul endroit, est intégrée dans `#resized()`.
 - *Commentaires* : aucun commentaire ajouté dans le code de production. Deux commentaires de test qui justifiaient un
   choix de conception ont été retirés.
-- *Gardé tel quel* : `Facet::hasReadableValues()`. Elle délègue désormais à `isShown()`, mais une vue copiée par un
-  thème l'appelle encore ; la renommer casserait cette vue.
+- *Gardé tel quel, puis renommé* : `Facet::hasReadableValues()`. Elle a d'abord été gardée pour ne pas casser une vue
+  copiée par un thème, puis renommée `isShown()` après la revue de la PR (constat 6).
 - *Vérifié* :
   - `composer check` vert (711 tests, client 971) ;
   - suite `Modules` : les 2 échecs antérieurs seulement ;
   - navigateur, desktop et mobile : ouverture, fond, verrouillage du défilement, hauteur suivie en mobile, fermeture
     par Échap.
+
+**Revue de code de la PR #14** (`/code-review medium`, 2026-10-09), 8 constats.
+- **Corrigés**
+  - *1. Le compte prenait tous les filtres du listing* : il ne compte plus que ceux placés **dans le tiroir**.
+    `Drawer::render()` note `placedFilterCount()` ; la vue évalue `$isSideSheet()` après le slot, avec
+    `shownFilterCountSince($mark)`. Blade résout la vue avant le slot : une valeur calculée dans `render()` ne verrait
+    rien. Un prix posé en colonne à part ou une facette jamais placée ne compte plus. Les tests
+    `it_counts_only_what_was_placed_since_the_mark` et `it_counts_no_filter_placed_outside_it` échouent sans la garde.
+  - *5. Écarts entre les deux sheets* : la marge du bas pour les écrans à encoche et le `flex: none` d'« Appliquer » à
+    côté de la poubelle sont repris dans le bloc latéral. Une comparaison règle à règle des deux blocs ne laisse plus
+    que la géométrie.
+  - *6. Un concept, trois noms* : `Facet::hasReadableValues()` devient `Facet::isShown()`, comme `Price` et le
+    listing ; la méthode privée du listing garde le nom de son cas. Le changement de nom est noté dans `upgrading.md`
+    pour une vue de facette copiée par un thème.
+- **Documentés, décision de Louis** : *2.* sans client (connexion non configurée, script absent ou en échec), le
+  desktop au-delà de la limite montre un ouvreur qui n'ouvre rien ; *4.* sans JavaScript, au-delà de la limite, les
+  facettes perdent leurs pastilles et s'empilent. Les deux sont décrits dans `drawer.md` (« Without JavaScript »,
+  « The client must start »).
+- **Refusés**
+  - *3. `media` déplacé* : c'est déjà documenté. Le corriger côté JS casserait le mobile des pages en panneau latéral.
+  - *7. Bornes du prix calculées deux fois* : deux lectures de tableau ; réutiliser `bounds()` referait une seconde
+    source pour la règle.
+  - *8. `default => false`* : un `Placeable` d'un autre type n'est déjà pas rendu (`Facets::componentFor()` le
+    confie à la facette, qui le refuse).
 
 **Limites écrites, non corrigées.**
 - *`media` personnalisé* : il faut aussi redéclarer le bloc du panneau (`drawer.md`, « Changing the breakpoint »).

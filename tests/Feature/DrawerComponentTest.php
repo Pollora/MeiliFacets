@@ -206,11 +206,23 @@ final class DrawerComponentTest extends TestCase
         $shown = $this->shownFilterCount();
 
         config(['meilifacets.drawer.row_limit' => $shown]);
-        $this->assertFalse($this->drawer($this->placed())->hasAttribute('data-side-sheet'));
+        $this->assertFalse($this->drawerHoldingTheFacets()->hasAttribute('data-side-sheet'));
 
         config(['meilifacets.drawer.row_limit' => $shown - 1]);
-        $this->assertTrue($this->drawer($this->placed())->hasAttribute('data-side-sheet'));
+        $this->assertTrue($this->drawerHoldingTheFacets()->hasAttribute('data-side-sheet'));
         $this->assertFalse($this->drawerLimitedTo($shown)->hasAttribute('data-side-sheet'));
+    }
+
+    #[Test]
+    public function it_counts_no_filter_placed_outside_it(): void
+    {
+        $empty = HTMLDocument::createFromString(
+            Blade::render('<x-meilifacets::listing.facets /><x-meilifacets::listing.drawer :row-limit="0">Facets</x-meilifacets::listing.drawer>'),
+            LIBXML_NOERROR
+        );
+
+        $this->assertGreaterThan(0, $this->shownFilterCount());
+        $this->assertFalse($this->drawer($empty)->hasAttribute('data-side-sheet'));
     }
 
     #[Test]
@@ -251,7 +263,8 @@ final class DrawerComponentTest extends TestCase
 
     private function shownFilterCount(): int
     {
-        $shown = $this->catalogue()->shownFilterCount();
+        $listing = $this->catalogue();
+        $shown = count(array_filter($listing->filters(), $listing->isShown(...)));
 
         if ($shown === 0) {
             $this->markTestSkipped('The catalogue shows no filter.');
@@ -262,8 +275,15 @@ final class DrawerComponentTest extends TestCase
 
     private function drawerLimitedTo(int $rowLimit): Element
     {
+        return $this->drawerHoldingTheFacets(' :row-limit="'.$rowLimit.'"');
+    }
+
+    private function drawerHoldingTheFacets(string $attributes = ''): Element
+    {
+        $this->app->forgetScopedInstances();
+
         return $this->drawer(HTMLDocument::createFromString(
-            Blade::render('<x-meilifacets::listing.drawer :row-limit="'.$rowLimit.'">Facets</x-meilifacets::listing.drawer>'),
+            Blade::render('<x-meilifacets::listing.drawer'.$attributes.'><x-meilifacets::listing.facets /></x-meilifacets::listing.drawer>'),
             LIBXML_NOERROR
         ));
     }

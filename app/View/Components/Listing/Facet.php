@@ -98,7 +98,7 @@ final class Facet extends ListingComponent
         return array_any($this->values, static fn (FacetValue $value): bool => $value->folded && $value->count > 0);
     }
 
-    public function hasReadableValues(): bool
+    public function isShown(): bool
     {
         return $this->listing->isShown($this->facet);
     }

@@ -312,7 +312,7 @@ filters shown, and stays inline otherwise.
 | `name` | `string` | `''` | |
 | `media` | `string` | `(width < 48em)` | a media query; the stylesheet's own breakpoints do not follow it |
 | `heading` | `HeadingLevel` or `string` | `h2` | `h2` to `h6`, for the “Filters” title |
-| `row-limit` | `int` | `meilifacets.drawer.row_limit`, else `5` | the number of filters shown at page load past which it opens as a side sheet |
+| `row-limit` | `int` | `meilifacets.drawer.row_limit`, else `5` | the number of filters it holds and shows at page load past which it opens as a side sheet |
 
 | Slots | Bag lands on | Hooks rendered |
 | --- | --- | --- |

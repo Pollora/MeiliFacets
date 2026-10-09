@@ -1499,7 +1499,7 @@ button[data-meili="drawer-close"]:active {
         align-items: center;
         justify-content: flex-end;
         gap: var(--meili-section-step);
-        padding: var(--meili-section-step) var(--meili-drawer-gutter);
+        padding: var(--meili-section-step) var(--meili-drawer-gutter) calc(var(--meili-section-step) + env(safe-area-inset-bottom));
         border-top: 1px solid var(--meili-rule);
     }
 
@@ -1514,6 +1514,7 @@ button[data-meili="drawer-close"]:active {
     }
 
     [data-side-sheet] [data-meili="drawer-footer"]:has(> [data-meili="reset"][data-shape="icon"]:not([hidden])) > [data-meili="apply"] {
+        flex: none;
         width: calc(100% - max(var(--meili-control), var(--meili-control-min)) - var(--meili-section-step));
     }
 

@@ -80,9 +80,9 @@ side.
 ## Past the row limit: a side sheet
 
 When a page loads with more filters shown than the drawer's `row-limit` (5 by default), the row gives way to the opener on
-wide screens too, and the drawer opens as a sheet fixed to the right of the page, full height. A filter counts when
-the visitor can see it: a facet with at least one value on screen, the price once it has a range. The search field
-and the sort do not count.
+wide screens too, and the drawer opens as a sheet fixed to the right of the page, full height. Only the filters inside
+the drawer count, and only those the visitor can see: a facet with at least one value on screen, the price once it has
+a range. A filter placed elsewhere on the page, the search field and the sort do not count.
 
 - The server decides when the page loads, so the page never shows the row and then removes it.
 - The decision holds while the visitor filters: a search that shows fewer filters keeps the side sheet, and one that
@@ -94,7 +94,8 @@ and the sort do not count.
 ## Without JavaScript
 
 The sheet styles only apply when scripting is enabled. Without JavaScript, nothing is hidden: the opener is not
-shown and the filters stay in the page, in line. They do not filter without the client (see
+shown and the filters stay in the page, in line. Past the row limit, they keep their place but lose their pills: they
+stack as in the sheet, their sections closed. They do not filter without the client (see
 [How a listing works](README.md#without-javascript)).
 
 ## The drawer
@@ -200,14 +201,13 @@ in [Accessibility and motion](../accessibility.md).
 - **An ancestor with `transform`, `filter`, `contain` or `container-type`** traps the sheet: `position: fixed` then
   attaches to that ancestor instead of the viewport, and the sheet opens inside its box. Keep the listing out of such
   an ancestor.
-- **The client must start.** The stylesheet hides the drawer below `48em` whenever scripting is enabled, whether or
-  not the client is loaded. If the browser connection is not configured, or the client is not published, the opener
-  shows and opens nothing, and the filters are out of reach on small screens. See [Installation](../installation.md).
+- **The client must start.** The stylesheet hides the drawer below `48em`, and on wide screens past the row limit,
+  whenever scripting is enabled, whether or not the client is loaded. If the browser connection is not configured,
+  the client is not published or its script fails, the opener shows and opens nothing, and the filters are out of
+  reach. See [Installation](../installation.md).
 - **Change the breakpoint in both places**: the `media` attribute and the stylesheet.
 - **A drawer view copied before `row-limit` existed** never turns into a side sheet: it does not carry
   `data-side-sheet`. Copy the view again.
-- **Without JavaScript, past the row limit**, the filters stay in the page but lose their pills: they stack as in
-  the sheet.
 - **One Apply per footer, none in the group**: pass `:with-apply="false"` to `listing.facets` when the footer holds
   one.
 

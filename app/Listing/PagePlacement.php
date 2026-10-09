@@ -50,6 +50,19 @@ final class PagePlacement
         $this->record(PlacedControl::Sort, $this->listing);
     }
 
+    public function placedFacetCount(): int
+    {
+        return count($this->rendered[PlacedControl::Facet->value] ?? []);
+    }
+
+    /**
+     * @return list<string> in the order the page placed them
+     */
+    public function facetsPlacedSince(int $mark): array
+    {
+        return array_slice(array_keys($this->rendered[PlacedControl::Facet->value] ?? []), $mark);
+    }
+
     /**
      * @param  list<Placeable>  $filters
      * @return list<Placeable>
