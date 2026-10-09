@@ -3315,6 +3315,19 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
+### R-225 · ⚪ · **fermé le 2026-10-09** · ouvert le 2026-10-09 — `DrawerFooterTest` lisait le reset du thème
+
+**Constat.** Deux cas de `DrawerFooterTest` attendaient « Tout effacer » et recevaient « Annuler » :
+`it_renders_the_text_reset_unchanged_without_a_shape` et `it_marks_the_pill_reset_and_only_it`. Le thème du projet de
+test surcharge `components/listing/reset.blade.php` avec `__('Cancel')` depuis `25e273f` (2026-10-08), ce que
+prévoit la décision C-2. Les tests `Feature` rendent avec la cascade de vues de l'hôte : ils lisaient la copie du
+thème, pas celle du module.
+
+**Correction** (Louis, 2026-10-09, dans la PR #14) : `DrawerFooterTest` utilise `RendersTheModuleViews`, comme
+`CardComponentTest`. Seul le test change.
+
+**Vérifié** : suite `Modules` verte (1138 tests).
+
 ### R-224 · 🟡 · **livré le 2026-10-09, en attente de validation** · ouvert le 2026-10-09 — trop de facettes : la rangée desktop repousse la grille, sans repli sur le tiroir
 
 **Constat.** Sur le projet de test, `/boutique` à 1512 px déclare 15 facettes (13 attributs ajoutés le 2026-10-09) :
