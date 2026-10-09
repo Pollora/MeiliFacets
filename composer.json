@@ -34,7 +34,7 @@
         "league/uri": "^7.5"
     },
     "conflict": {
-        "pollora/framework": "<13.35 || >=14.0"
+        "pollora/framework": "<13.35.3 || >=14.0"
     },
     "extra": {
         "laravel": {

@@ -3315,6 +3315,23 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
+### R-226 · ⚪ · **fermé le 2026-10-09** · ouvert le 2026-10-09 — plancher Pollora à 13.35.3, pour le signalement des mises à jour
+
+**Constat.** Pollora 13.35.3 (2026-10-09) signale qu'un module installé par Composer a une version plus récente. Il lit
+la version installée dans Composer, la dernière version là où le projet trouve le paquet (Packagist pour MeiliFacets,
+qui y publie `0.1.0`, `0.2.0` et `0.2.1` depuis ses tags), une fois par jour via WP-Cron. Cela s'affiche dans
+Extensions › Modules, Santé du site et `pollora:module:outdated`.
+
+Rien n'est à changer côté module :
+- aucune version n'est déclarée dans `composer.json`, `module.json` ou `package.json`, c'est le tag qui fait foi ;
+- `module.json` porte `priority`, dont l'absence masquait les modules dans Outils › Pollora avant ce correctif.
+
+**Décision** (Louis, 2026-10-09) : le plancher passe à 13.35.3 (`conflict` `<13.35.3 || >=14.0`), pour que tout
+projet à jour du module voie ses mises à jour. `illuminate/*` reste `^13.35`, et le verrou local du module ne contient
+pas Pollora : rien à régénérer.
+
+*Coût* : un projet en 13.35.0–13.35.2 met Pollora à jour avant le module (`docs/upgrading.md`).
+
 ### R-225 · ⚪ · **fermé le 2026-10-09** · ouvert le 2026-10-09 — `DrawerFooterTest` lisait le reset du thème
 
 **Constat.** Deux cas de `DrawerFooterTest` attendaient « Tout effacer » et recevaient « Annuler » :
