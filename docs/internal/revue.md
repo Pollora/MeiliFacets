@@ -3345,9 +3345,9 @@ thème, pas celle du module.
 
 **Vérifié** : suite `Modules` verte (1138 tests).
 
-### R-224 · 🟡 · **livré le 2026-10-09, en attente de validation** · ouvert le 2026-10-09 — trop de facettes : la rangée desktop repousse la grille, sans repli sur le tiroir
+### R-224 · 🟡 · **fermé le 2026-10-09** (PR #14, `b87e0b4`) · ouvert le 2026-10-09 — trop de facettes : la rangée desktop repousse la grille, sans repli sur le tiroir
 
-**Constat.** Sur le projet de test, `/boutique` à 1512 px déclare 15 facettes (13 attributs ajoutés le 2026-10-09) :
+**Constat.** Sur le projet de test, la page boutique à 1512 px déclare 15 facettes (13 attributs ajoutés le 2026-10-09) :
 avec la recherche et le tri, la rangée occupe quatre lignes, environ 215 px, et la grille passe sous la ligne de
 flottaison. Une page catégorie en affiche moins, les facettes sans valeur étant masquées. Le tiroir ne devient modal
 que sous `Drawer::MOBILE` (`(width < 48em)`), seuil écrit en dur dans le CSS (`Q-3`), et l'ouvreur est masqué au-delà.
@@ -3433,8 +3433,8 @@ Réponses de Louis le 2026-10-09, après la passe :
 
 **Révision du 2026-10-09** (Louis, après la livraison) : la décision se prend **au chargement de la page** et
 tient pendant le filtrage. Une recherche qui affiche moins de filtres garde le panneau latéral, une recherche qui en
-affiche plus garde la rangée. **Limite par défaut : 5.** Sur le projet de test, `/boutique` (15 filtres),
-`?categorie=maquillage` et `?q=baume` (8 chacun) passent tous en panneau latéral.
+affiche plus garde la rangée. **Limite par défaut : 5.** Sur le projet de test, la page boutique (15 filtres),
+une catégorie et une recherche à 8 filtres chacune passent toutes en panneau latéral.
 
 *Coût* : une page chargée avec des filtres dans son adresse se décide sur son propre compte, pas sur le parcours qui
 y a mené.
@@ -3454,11 +3454,11 @@ comptent pas la même chose » tombe aussi.
 *Vérifié* :
 - `composer check` vert (711 tests autonomes, client 971).
 - Suite `Modules` : 1136 tests, avec les 2 échecs antérieurs de `DrawerFooterTest`.
-- Navigateur : sur `/boutique`, « Maquillage » appliqué fait passer les filtres de 15 à 8. Le panneau latéral reste,
+- Navigateur : sur la page boutique, une catégorie appliquée fait passer les filtres de 15 à 8. Le panneau latéral reste,
   l'ouvreur aussi, et il rouvre le tiroir.
 
 *Thème du projet de test* (2026-10-09, signalé par Louis) : la poubelle du pied du tiroir était invisible dans le
-panneau latéral. `themes/pluralia/resources/assets/css/components/listing.css:136` la masque à partir de `48em`, parce
+panneau latéral. la feuille du listing du thème (`resources/assets/css/components/listing.css`) la masque à partir de `48em`, parce
 que dans la rangée c'est le reset texte de `.productListingActive` qui sert. La règle est restreinte à
 `[data-meili="drawer"]:not([data-side-sheet])`. Vérifié : la poubelle est visible dans le panneau, toujours masquée
 dans la rangée. Rien à changer dans le module.
@@ -3526,15 +3526,15 @@ dans la rangée. Rien à changer dans le module.
 - `composer check` vert (711 tests autonomes, client 978).
 - Suite `Modules` : 1136 tests, 2 échecs **antérieurs et étrangers** (`DrawerFooterTest`, « Annuler » au lieu de « Tout
   effacer »), rouges aussi sans ce changement.
-- Navigateur, `/boutique` à 1512 px :
+- Navigateur, la page boutique à 1512 px :
   - 15 filtres, l'ouvreur remplace la rangée et la grille remonte de 767 à 596 px ;
   - le panneau fait 416 px à droite, focus sur le titre, page inerte ; Échap rend le focus à l'ouvreur ;
-  - « Maquillage » appliqué : 8 filtres, la rangée revient, le focus passe à un toggle ; retirer la pastille rouvre le
+  - une catégorie appliquée : 8 filtres, la rangée revient, le focus passe à un toggle ; retirer la pastille rouvre le
     panneau latéral ;
-  - `?q=baume` (8 filtres) : effacer le mot garde la rangée tant que le champ a le focus, puis passe au panneau ;
+  - une recherche à 8 filtres : effacer le mot garde la rangée tant que le champ a le focus, puis passe au panneau ;
   - le panneau est à droite aussi avec `dir="rtl"`.
 - Mobile à 390 px : le sheet du bas est inchangé.
-- Rendu serveur : `?categorie=maquillage` garde la rangée (8 filtres), cheveux, corps et visage passent au panneau.
+- Rendu serveur : une catégorie à 8 filtres garde la rangée, les catégories à 10 filtres ou plus passent au panneau.
 
 ### R-223 · 🟡 · **fermé le 2026-10-08** · ouvert le 2026-10-08 — la découverte des listings s'enregistrait à la main, contre la documentation de Pollora
 
