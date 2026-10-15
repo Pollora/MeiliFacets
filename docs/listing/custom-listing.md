@@ -272,7 +272,7 @@ children of the current term instead (see [Facets](facets.md#sub-level-navigatio
 ## A default order
 
 While no sort is chosen, a listing shows its items in the engine's order: with no term searched, that is the order
-the documents were indexed in, the oldest first. A listing that wants its own order implements
+the documents were indexed in. A listing that wants its own order implements
 `Modules\MeiliFacets\Contracts\DefaultSortedListing`, which adds one method to `Listing`:
 
 ```php
@@ -285,7 +285,8 @@ public function defaultSort(): array
 - The expressions are Meilisearch sort expressions, on sortable attributes, as in a `Sort`.
 - They apply while no sort is chosen **and no term is searched**: a searched term is ranked by relevance, as
   WooCommerce does once a shop search is typed.
-- A chosen sort replaces them; « Relevance » in the sort control stands for this order while no term is searched.
+- A chosen sort replaces them, except a sort that only filters (« On sale »), which keeps them; « Relevance » in the
+  sort control stands for this order while no term is searched.
 - An empty list keeps the engine's order.
 - The URL is unchanged: the default order writes no `sort` parameter.
 
@@ -329,8 +330,8 @@ the card, see [PHP extension points](../customising/php.md).
 
 ## Two listings on one page
 
-Two listings can be placed on one page if each root names its listing, and every component outside a root names its own. Their element ids are prefixed with the
-listing's name, and each keeps its own state in the browser history.
+Two listings can be placed on one page if each root names its listing, and every component outside a root names its own.
+Their element ids are prefixed with the listing's name, and each keeps its own state in the browser history.
 
 They share the URL, though:
 

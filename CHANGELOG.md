@@ -45,8 +45,6 @@ the browser script changed, and the old one ignores the default order once the v
 
 - Reordering products by drag and drop (Products › Sorting) reindexes the products that moved: WooCommerce writes
   their `menu_order` straight to the table, which nothing reported to MeiliScout.
-- A theme component with a `listing` attribute, placed between a listing root and its components, no longer hides the
-  root's listing from them.
 
 ## [0.2.2](https://github.com/Pollora/MeiliFacets/releases/tag/0.2.2) - 2026-10-09
 

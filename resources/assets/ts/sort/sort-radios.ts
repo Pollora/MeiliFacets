@@ -1,7 +1,7 @@
 import { Contract } from '../shared/contract.ts'
 import type { ListingState } from '../listing/listing-state.ts'
 
-/** The engine's own order, the value the default choice carries. */
+/** No sort chosen: the listing's default order, or relevance under a searched term. */
 const DEFAULT_VALUE = ''
 const ROW = Contract.selector('sort-choice-row')
 const CHOICE_PLACEHOLDER = ':choice'
