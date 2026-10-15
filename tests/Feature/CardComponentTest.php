@@ -42,7 +42,7 @@ final class CardComponentTest extends TestCase
     #[Test]
     public function it_hands_an_override_the_binding_over_its_card(): void
     {
-        $binding = new Card(['brand' => '<b>Acme</b>', 'id' => 12])->binding;
+        $binding = new Card(CardBinding::of(['brand' => '<b>Acme</b>', 'id' => 12]))->binding;
         $brand = $binding->text('brand');
 
         $this->assertSame('', (string) $brand->attributes);
@@ -175,15 +175,18 @@ final class CardComponentTest extends TestCase
         $this->expectExceptionMessageMatches('/not a valid backing value/');
 
         Blade::render(
-            '<x-meilifacets::listing.card :card="[]" :heading="$heading" />',
-            ['heading' => 'script src=x']
+            '<x-meilifacets::listing.card :binding="$binding" :heading="$heading" />',
+            ['binding' => CardBinding::of([]), 'heading' => 'script src=x']
         );
     }
 
     #[Test]
     public function it_merges_the_classes_the_caller_adds(): void
     {
-        $html = Blade::render('<x-meilifacets::listing.card :card="[]" class="col-span-2" />');
+        $html = Blade::render(
+            '<x-meilifacets::listing.card :binding="$binding" class="col-span-2" />',
+            ['binding' => CardBinding::of([])]
+        );
 
         $this->assertStringContainsString('class="meilifacetsCard col-span-2"', $html);
     }
@@ -216,8 +219,8 @@ final class CardComponentTest extends TestCase
     private function render(array $card, array $props = []): string
     {
         return Blade::render(
-            '<x-meilifacets::listing.card :card="$card" :heading="$heading" :priority="$priority" />',
-            ['card' => $card, 'heading' => 'h3', 'priority' => ImagePriority::Lazy, ...$props]
+            '<x-meilifacets::listing.card :binding="$binding" :heading="$heading" :priority="$priority" />',
+            ['binding' => CardBinding::of($card), 'heading' => 'h3', 'priority' => ImagePriority::Lazy, ...$props]
         );
     }
 }

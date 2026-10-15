@@ -4,11 +4,16 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Tests\Feature;
 
+use Illuminate\Support\Facades\Blade;
+use Illuminate\View\DynamicComponent;
 use Modules\MeiliFacets\Enums\CardField;
 use Modules\MeiliFacets\Enums\Hook;
 use Modules\MeiliFacets\Enums\ImagePriority;
 use Modules\MeiliFacets\Listing\Pagination;
+use Modules\MeiliFacets\Listing\ResolvedListing;
 use Modules\MeiliFacets\Seo\ItemList;
+use Modules\MeiliFacets\Tests\Unit\Doubles\ProjectListingCard;
+use Modules\MeiliFacets\View\CardBinding;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -83,6 +88,20 @@ final class ResultsComponentTest extends TestCase
         $this->assertSame(2, substr_count($html, 'data-meili="card"'));
     }
 
+    #[Test]
+    public function a_listing_that_names_its_card_draws_it_on_the_server_and_in_the_template(): void
+    {
+        Blade::component(ProjectListingCard::class, ProjectListingCard::ALIAS);
+        // `<x-dynamic-component>` keeps the aliases known at its first use in the process.
+        (static fn (): null => self::$compiler = null)->bindTo(null, DynamicComponent::class)();
+
+        $html = $this->render(cards: [$this->card('First')], cardComponent: ProjectListingCard::ALIAS);
+
+        $this->assertStringContainsString('<p class="probeListingCard" data-priority="eager" data-meili="title">First</p>', $html);
+        $this->assertStringContainsString('<p class="probeListingCard" data-priority="lazy" data-meili="title" data-meili-text="title"></p>', $html);
+        $this->assertStringNotContainsString('meilifacetsCard', $html);
+    }
+
     /** No template on an outage: the contract fails and the client stays out. */
     #[Test]
     public function it_offers_nothing_to_clone_when_the_search_is_down(): void
@@ -130,8 +149,13 @@ final class ResultsComponentTest extends TestCase
     /**
      * @param  list<array<string, mixed>>  $cards
      */
-    private function render(bool $failed = false, array $cards = [], ?ItemList $items = null, bool $pastTheEnd = false): string
-    {
+    private function render(
+        bool $failed = false,
+        array $cards = [],
+        ?ItemList $items = null,
+        bool $pastTheEnd = false,
+        string $cardComponent = ResolvedListing::CARD,
+    ): string {
         $resolved = new readonly class($failed, $pastTheEnd)
         {
             public function __construct(private bool $failed, private bool $pastTheEnd) {}
@@ -155,7 +179,11 @@ final class ResultsComponentTest extends TestCase
             'cards' => $cards,
             'items' => $items,
             'hook' => fn (string $name) => Hook::from($name)->attribute(),
-            'priority' => fn (): ImagePriority => ImagePriority::Lazy,
+            'priority' => fn (): ImagePriority => ImagePriority::Eager,
+            'cardComponent' => $cardComponent,
+            'bindingOf' => CardBinding::of(...),
+            'templateBinding' => CardBinding::template(...),
+            'templatePriority' => fn (): ImagePriority => ImagePriority::Lazy,
         ])->render());
     }
 }

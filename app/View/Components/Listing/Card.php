@@ -14,10 +14,6 @@ use Modules\MeiliFacets\View\Components\ContractComponent;
 
 class Card extends ContractComponent
 {
-    public CardBinding $binding;
-
-    public ImagePriority $priority;
-
     public string $heading;
 
     public CardFieldElement $link;
@@ -28,33 +24,23 @@ class Card extends ContractComponent
 
     public CardFieldElement $price;
 
-    /**
-     * @param  array<string, mixed>  $card
-     */
     public function __construct(
-        array $card,
+        public CardBinding $binding,
         HeadingLevel|string $heading = HeadingLevel::H3,
-        ImagePriority $priority = ImagePriority::Lazy,
+        public ImagePriority $priority = ImagePriority::Lazy,
     ) {
-        $this->prepare(CardBinding::of($card), $heading, $priority);
-    }
-
-    public function render(): View
-    {
-        return view('meilifacets::components.listing.card');
-    }
-
-    protected function prepare(CardBinding $binding, HeadingLevel|string $heading, ImagePriority $priority): void
-    {
         $hooks = new CardHooks($binding);
 
-        $this->binding = $binding;
-        $this->priority = $priority;
         // Blade hands attributes over as strings; from() rejects anything else.
         $this->heading = HeadingLevel::fromAttribute($heading)->value;
         $this->link = $hooks->link();
         $this->image = $hooks->image($priority);
         $this->title = $hooks->title();
         $this->price = $hooks->price();
+    }
+
+    public function render(): View
+    {
+        return view('meilifacets::components.listing.card');
     }
 }

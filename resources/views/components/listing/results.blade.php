@@ -10,14 +10,22 @@
     <ul class="meilifacetsResults" @if ($cards === []) hidden @endif {{ $hook('results') }}>
         @foreach ($cards as $card)
             <li class="meilifacetsResultsItem" {{ $hook('card') }}>
-                <x-meilifacets::listing.card :card="$card" :priority="$priority($loop->index)" />
+                <x-dynamic-component
+                    :component="$cardComponent"
+                    :binding="$bindingOf($card)"
+                    :priority="$priority($loop->index)"
+                />
             </li>
         @endforeach
     </ul>
 
     <template {{ $hook('card-template') }}>
         <li class="meilifacetsResultsItem" {{ $hook('card') }}>
-            <x-meilifacets::listing.card-template />
+            <x-dynamic-component
+                :component="$cardComponent"
+                :binding="$templateBinding()"
+                :priority="$templatePriority()"
+            />
         </li>
     </template>
 
