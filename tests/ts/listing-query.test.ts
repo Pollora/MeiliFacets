@@ -192,7 +192,7 @@ describe('ListingQuery with a sort that filters', () => {
         assert.equal(queries[RESULTS].sort, undefined)
     })
 
-    it('leaves the order to the listing, as the server does', () => {
+    it('a sort that only filters keeps the listing order', () => {
         const ordered = { ...promoted, defaultSort: ['post_date:desc'] }
 
         assert.deepEqual(build({ sort: 'on_sale' }, ordered).sort, ['post_date:desc'])

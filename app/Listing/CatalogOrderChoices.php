@@ -7,7 +7,7 @@ namespace Modules\MeiliFacets\Listing;
 use Pollora\Attributes\Filter;
 
 /** The Customizer's « Default product sorting » offers only what the product listing can follow. */
-final readonly class DefaultSortChoices
+final readonly class CatalogOrderChoices
 {
     /**
      * @param  array<string, string>  $choices

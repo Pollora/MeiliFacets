@@ -3458,12 +3458,12 @@ l'ordre sous une facette de variation et sous un tri qui filtre (« En promotion
   supprimé et l'ordre par défaut s'applique sous une facette de variation (cas partagés mis à jour).
 - *Tri qui filtre* : il suit désormais l'ordre par défaut des deux côtés (`Sort::isOrdering()`,
   `QueryPlan::chosenSort()`, `ListingQuery.#sortIn()`). Les deux plans ont la même forme.
-- *Popularité et note* : retirées du Customizer (`DefaultSortChoices`) au lieu d'un rapport à chaque requête ;
+- *Popularité et note* : retirées du Customizer (`CatalogOrderChoices`) au lieu d'un rapport à chaque requête ;
   `CatalogOrderUnsupported` supprimé. La lecture du réglage passe dans `CatalogOrderSetting`, découpée comme
   WooCommerce la découpe. *Relecture du 2026-10-15* : la forme tableau qu'un filtre pourrait renvoyer n'est plus lue,
   car aucun site ne l'utilise ; `$field` devient `$orderBy`, le mot de WooCommerce (`field` désigne un champ de l'index
   dans le module) ; le verbe « suivre » de la doc remplace « reproduire » (`listingCanFollow()`,
-  `DefaultSortChoices::onlyFollowable()`).
+  `CatalogOrderChoices::onlyFollowable()`).
 - *Autres corrections* :
   - `ProductOrderingChanges` est déclaré en singleton ;
   - la clé de l'héritage du listing devient `meilifacetsListing`, pour qu'un composant anonyme du thème portant
@@ -3494,6 +3494,16 @@ module, Pluralia, n'en touche aucun : réglage `menu_order`, aucune copie de `re
   - les cas limites de lecture du réglage : seul un filtre de code y mène ;
   - l'enum des hooks MeiliScout : hors sujet.
   - Le délai du glisser-déposer reste suspendu (`R-232`).
+
+**Revue des six passes, le 2026-10-15.** Ni défaut de comportement, ni coût de performance nouveau. Retouches faites
+avant la fusion :
+- `DefaultSortChoices` devient `CatalogOrderChoices`, pour rejoindre `CatalogOrder` et ne plus se confondre avec
+  `View\SortChoices` ;
+- « aucun tri » s'écrit `[]` partout dans `QueryPlan` (l'aller-retour `null` ↔ `[]` est supprimé) ;
+- le test client du tri qui filtre porte le nom de son jumeau PHP.
+- *Plus tard* : `Results::bindingOf()` → `binding()`, `ResolvedListing::CARD`, le test du Customizer dans sa propre
+  classe, une seule source pour l'ordre par défaut, le format des expressions de tri hors de `SortDirection`,
+  `QueryPlan` instanciable (`R-01` / `T-28`).
 
 ### R-228 · 🟡 · **ouvert le 2026-10-09** — le listing ne range les produits en stock d'abord que sous un tri par prix filtré par variante
 

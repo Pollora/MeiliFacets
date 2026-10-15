@@ -75,7 +75,7 @@ final readonly class QueryPlan
 
         $sort = self::sortIn($listing, $state);
 
-        return $sort === null ? $query : [...$query, 'sort' => $sort];
+        return $sort === [] ? $query : [...$query, 'sort' => $sort];
     }
 
     /**
@@ -154,15 +154,15 @@ final readonly class QueryPlan
             ...self::searchedFields($scope),
         ];
 
-        $sort = self::variantSort(self::sortIn($listing, $state) ?? []);
+        $sort = self::variantSort(self::sortIn($listing, $state));
 
         return $sort === [] ? $query : [...$query, 'sort' => $sort];
     }
 
     /**
-     * @return list<string>|null
+     * @return list<string>
      */
-    private static function sortIn(Listing $listing, ListingState $state): ?array
+    private static function sortIn(Listing $listing, ListingState $state): array
     {
         $chosen = self::chosenSort($listing, $state);
 
@@ -183,17 +183,15 @@ final readonly class QueryPlan
     }
 
     /**
-     * @return list<string>|null
+     * @return list<string>
      */
-    private static function defaultSortIn(Listing $listing, ListingState $state): ?array
+    private static function defaultSortIn(Listing $listing, ListingState $state): array
     {
         if (self::sortsByDefault($listing, $state)) {
-            $expressions = array_values($listing->defaultSort());
-
-            return $expressions === [] ? null : $expressions;
+            return array_values($listing->defaultSort());
         }
 
-        return null;
+        return [];
     }
 
     /**
