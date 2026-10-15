@@ -19,8 +19,8 @@ final class DrawerComponentTest extends TestCase
     use HoldsCatalogueValues;
     use SwitchesTheSiteLocale;
 
-    private const string PLACED = '<x-meilifacets::listing.drawer-opener /><x-meilifacets::listing.drawer class="flex-1"><p id="inside">Facets</p>'
-        .'<x-slot:footer><x-meilifacets::listing.reset /></x-slot:footer></x-meilifacets::listing.drawer>';
+    private const string PLACED = '<x-meilifacets::listing.drawer-opener name="products" /><x-meilifacets::listing.drawer name="products" class="flex-1"><p id="inside">Facets</p>'
+        .'<x-slot:footer><x-meilifacets::listing.reset name="products" /></x-slot:footer></x-meilifacets::listing.drawer>';
 
     /** @var array<string, mixed>|null */
     private ?array $configuredDrawer = null;
@@ -172,7 +172,7 @@ final class DrawerComponentTest extends TestCase
     #[Test]
     public function it_renders_no_footer_unless_given_one(): void
     {
-        $document = HTMLDocument::createFromString(Blade::render('<x-meilifacets::listing.drawer>Facets</x-meilifacets::listing.drawer>'), LIBXML_NOERROR);
+        $document = HTMLDocument::createFromString(Blade::render('<x-meilifacets::listing.drawer name="products">Facets</x-meilifacets::listing.drawer>'), LIBXML_NOERROR);
 
         $this->assertNotNull($document->querySelector($this->hooked(Hook::DrawerSheet)));
         $this->assertNull($document->querySelector($this->hooked(Hook::DrawerFooter)));
@@ -183,7 +183,7 @@ final class DrawerComponentTest extends TestCase
     public function it_takes_another_threshold_and_another_heading_level(): void
     {
         $document = HTMLDocument::createFromString(
-            Blade::render('<x-meilifacets::listing.drawer media="(width < 64em)" heading="h3">Facets</x-meilifacets::listing.drawer>'),
+            Blade::render('<x-meilifacets::listing.drawer name="products" media="(width < 64em)" heading="h3">Facets</x-meilifacets::listing.drawer>'),
             LIBXML_NOERROR
         );
 
@@ -217,7 +217,7 @@ final class DrawerComponentTest extends TestCase
     public function it_counts_no_filter_placed_outside_it(): void
     {
         $empty = HTMLDocument::createFromString(
-            Blade::render('<x-meilifacets::listing.facets /><x-meilifacets::listing.drawer :row-limit="0">Facets</x-meilifacets::listing.drawer>'),
+            Blade::render('<x-meilifacets::listing.facets name="products" /><x-meilifacets::listing.drawer name="products" :row-limit="0">Facets</x-meilifacets::listing.drawer>'),
             LIBXML_NOERROR
         );
 
@@ -251,7 +251,7 @@ final class DrawerComponentTest extends TestCase
     private function opener(string $slot): Element
     {
         return HTMLDocument::createFromString(
-            Blade::render('<x-meilifacets::listing.drawer-opener>'.$slot.'</x-meilifacets::listing.drawer-opener>'),
+            Blade::render('<x-meilifacets::listing.drawer-opener name="products">'.$slot.'</x-meilifacets::listing.drawer-opener>'),
             LIBXML_NOERROR
         )->querySelector($this->hooked(Hook::DrawerOpen));
     }
@@ -283,7 +283,7 @@ final class DrawerComponentTest extends TestCase
         $this->app->forgetScopedInstances();
 
         return $this->drawer(HTMLDocument::createFromString(
-            Blade::render('<x-meilifacets::listing.drawer'.$attributes.'><x-meilifacets::listing.facets /></x-meilifacets::listing.drawer>'),
+            Blade::render('<x-meilifacets::listing.drawer name="products"'.$attributes.'><x-meilifacets::listing.facets name="products" /></x-meilifacets::listing.drawer>'),
             LIBXML_NOERROR
         ));
     }

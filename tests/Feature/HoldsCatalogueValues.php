@@ -7,6 +7,7 @@ namespace Modules\MeiliFacets\Tests\Feature;
 use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\Listing\Facet;
 use Modules\MeiliFacets\Listing\FacetValue;
+use Modules\MeiliFacets\Listing\ProductListing;
 use Modules\MeiliFacets\Listing\ResolvedListing;
 use Modules\MeiliFacets\Support\UrlParameters;
 
@@ -49,6 +50,6 @@ trait HoldsCatalogueValues
 
     private function catalogue(): ResolvedListing
     {
-        return $this->app->make(CurrentListing::class)->onlyOne();
+        return $this->app->make(CurrentListing::class)->named(ProductListing::NAME);
     }
 }

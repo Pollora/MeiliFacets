@@ -153,7 +153,7 @@ final class CollapsiblePriceTest extends TestCase
         $this->app->forgetScopedInstances();
 
         $markup = Blade::render(
-            '<x-meilifacets::listing.price :facet="$filter" '.$attributes.' />',
+            '<x-meilifacets::listing.price name="products" :facet="$filter" '.$attributes.' />',
             ['filter' => new PriceFilter(self::LABEL, [PricePart::Slider, PricePart::Fields], 'price-under-test')]
         );
 

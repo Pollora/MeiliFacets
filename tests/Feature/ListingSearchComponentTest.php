@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Blade;
 use Modules\MeiliFacets\Enums\Hook;
 use Modules\MeiliFacets\Enums\QueryParameter;
 use Modules\MeiliFacets\Listing\CurrentListing;
+use Modules\MeiliFacets\Listing\ProductListing;
 use Modules\MeiliFacets\Support\UrlParameters;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -111,7 +112,7 @@ final class ListingSearchComponentTest extends TestCase
 
         $typed = $this->onSearch(
             ['s' => 'creme', 'post_type' => 'product'],
-            fn (): string => $this->app->make(CurrentListing::class)->onlyOne()->typedTerm(),
+            fn (): string => $this->app->make(CurrentListing::class)->named(ProductListing::NAME)->typedTerm(),
         );
 
         $this->assertSame('', $typed);
@@ -165,7 +166,7 @@ final class ListingSearchComponentTest extends TestCase
     {
         $this->ask([$this->parameter() => 'ser']);
 
-        $this->assertDoesNotMatchRegularExpression('/ hidden /', Blade::render('<x-meilifacets::listing.reset />'));
+        $this->assertDoesNotMatchRegularExpression('/ hidden /', Blade::render('<x-meilifacets::listing.reset name="products" />'));
     }
 
     /** Named as a search landmark apart from the header's, in the language of the site; a theme may rename it. */
@@ -176,7 +177,7 @@ final class ListingSearchComponentTest extends TestCase
 
         $this->assertStringContainsString('role="search"', $html);
         $this->assertSame(3, substr_count($html, '"Search this list"'), 'the form, the field and its placeholder');
-        $this->assertStringContainsString('aria-label="Search the shop"', Blade::render('<x-meilifacets::listing.search label="Search the shop" />'));
+        $this->assertStringContainsString('aria-label="Search the shop"', Blade::render('<x-meilifacets::listing.search name="products" label="Search the shop" />'));
     }
 
     /** C-9: emptied on a search WordPress routed, the field would fall back on a term nothing can take off. */
@@ -189,7 +190,7 @@ final class ListingSearchComponentTest extends TestCase
     #[Test]
     public function it_keeps_the_classes_a_theme_adds(): void
     {
-        $this->assertStringContainsString('class="meilifacetsListingSearch grow"', Blade::render('<x-meilifacets::listing.search class="grow" />'));
+        $this->assertStringContainsString('class="meilifacetsListingSearch grow"', Blade::render('<x-meilifacets::listing.search name="products" class="grow" />'));
     }
 
     /**
@@ -197,7 +198,7 @@ final class ListingSearchComponentTest extends TestCase
      */
     private function aFacetAndASort(): array
     {
-        $listing = $this->app->make(CurrentListing::class)->onlyOne();
+        $listing = $this->app->make(CurrentListing::class)->named(ProductListing::NAME);
         $facets = $listing->facets();
         $sort = array_key_first($listing->sorts());
 
@@ -255,6 +256,6 @@ final class ListingSearchComponentTest extends TestCase
 
     private function rendered(): string
     {
-        return Blade::render('<x-meilifacets::listing.search />');
+        return Blade::render('<x-meilifacets::listing.search name="products" />');
     }
 }

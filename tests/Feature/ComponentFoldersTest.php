@@ -110,7 +110,7 @@ final class ComponentFoldersTest extends TestCase
     #[Test]
     public function it_renders_a_listing_brick_by_its_dotted_name(): void
     {
-        $this->assertStringContainsString(Hook::Facets->attribute()->toHtml(), Blade::render('<x-meilifacets::listing.facets />'));
+        $this->assertStringContainsString(Hook::Facets->attribute()->toHtml(), Blade::render('<x-meilifacets::listing.facets name="products" />'));
     }
 
     /**
@@ -139,7 +139,7 @@ final class ComponentFoldersTest extends TestCase
     {
         $this->overrideView('listing/search', '<form class="themedListingSearch"></form>');
 
-        $this->assertStringContainsString('themedListingSearch', Blade::render('<x-meilifacets::listing.search />'));
+        $this->assertStringContainsString('themedListingSearch', Blade::render('<x-meilifacets::listing.search name="products" />'));
     }
 
     private function overrideView(string $view, string $override): void

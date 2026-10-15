@@ -10,6 +10,7 @@ use Illuminate\View\ComponentAttributeBag;
 use Modules\MeiliFacets\Enums\Hook;
 use Modules\MeiliFacets\Enums\QueryParameter;
 use Modules\MeiliFacets\Listing\CurrentListing;
+use Modules\MeiliFacets\Listing\ProductListing;
 use Modules\MeiliFacets\Support\UrlParameters;
 use Modules\MeiliFacets\View\CountLabel;
 use PHPUnit\Framework\Attributes\Test;
@@ -41,7 +42,7 @@ final class TotalComponentTest extends TestCase
     #[Test]
     public function it_counts_what_the_listing_found(): void
     {
-        $total = $this->app->make(CurrentListing::class)->onlyOne()->total();
+        $total = $this->app->make(CurrentListing::class)->named(ProductListing::NAME)->total();
 
         $this->assertGreaterThan(1, $total);
         $this->assertStringContainsString('>'.$total.' items<', $this->underLocales('en', 'en_US', $this->renderComponent(...)));
@@ -86,7 +87,7 @@ final class TotalComponentTest extends TestCase
     {
         $this->assertStringContainsString(
             'class="meilifacetsTotal ml-auto"',
-            Blade::render('<x-meilifacets::listing.total class="ml-auto" />'),
+            Blade::render('<x-meilifacets::listing.total name="products" class="ml-auto" />'),
         );
     }
 
@@ -106,7 +107,7 @@ final class TotalComponentTest extends TestCase
 
     private function renderComponent(): string
     {
-        return Blade::render('<x-meilifacets::listing.total />');
+        return Blade::render('<x-meilifacets::listing.total name="products" />');
     }
 
     private function renderView(int $count): string

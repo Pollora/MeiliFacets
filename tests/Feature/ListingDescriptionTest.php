@@ -235,6 +235,6 @@ final class ListingDescriptionTest extends TestCase
 
     private function listing(): ResolvedListing
     {
-        return $this->app->make(CurrentListing::class)->onlyOne();
+        return $this->app->make(CurrentListing::class)->named(ProductListing::NAME);
     }
 }
