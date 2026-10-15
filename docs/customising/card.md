@@ -13,6 +13,7 @@ You want to…
 - [show the variant the filters point to](#card-variants);
 - [know what the markup contract asks of a card](#what-the-contract-asks-of-a-card);
 - [know the rules that apply to every field](#rules);
+- [give one listing a card of its own](#a-card-per-listing);
 - [give the site search its own card](#a-card-for-the-site-search).
 
 ## A complete example
@@ -477,6 +478,29 @@ field name, not the `id` attribute: bind it into a `data-*` attribute, as `data-
 
 **Everything in a card can be read by any visitor.** The browser searches with the public search key, which can read
 the `card` field of every document. Never project a field you would not print on the page.
+
+## A card per listing
+
+The override above serves every listing of the project. A listing that draws its results with another card names it,
+by implementing `Modules\MeiliFacets\Contracts\CardComponentListing`:
+
+```php
+public function cardComponent(): string
+{
+    return 'theme::event-card';
+}
+```
+
+- The component is named as written after `<x-`. It receives `binding` (a `CardBinding`) and `priority` (an
+  `ImagePriority`): the attributes of `<x-meilifacets::listing.card>`, which draws the results of every other listing.
+- It draws the cards rendered by the server and the `<template>` the browser clones: one component for both, as for
+  the override.
+- The results render it with `<x-dynamic-component>`, which only knows the components registered before it is first
+  used. A class in the theme's `View/Components` is found through the theme's component namespace; a component that
+  lives elsewhere is registered in a provider, never from a view.
+- Other listings keep the module's card, or the override.
+- A theme that copied `components/listing/results.blade.php` copies it again: the copy draws the module's card for
+  every listing.
 
 ## A card for the site search
 

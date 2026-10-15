@@ -5,6 +5,24 @@ changes is in the [changelog](../CHANGELOG.md).
 
 0.1.0 was the first release, a beta; 0.2.0 is the second; 0.2.1 is the third; 0.2.2 is the fourth.
 
+## Unreleased
+
+- **Run `wp meiliscout index` once.** The product listing now follows WooCommerce's « Default product sorting », and
+  `menu_order`, the default sorting's field, is sortable only once the index settings are written. Until then, every
+  product search fails with the listing's unavailable message.
+- **Run `php artisan module:publish MeiliFacets`.** The browser script changed: until it is published, a visitor who
+  changes page gets the engine's order instead of the default one. Clear the page cache too, for the same reason.
+- **The shop's first page changes order** when no sort is chosen: it was the indexing order, it is now the one
+  WooCommerce shows. A shop sorted by popularity or average rating keeps the indexing order, with a report in the log.
+- **A project that builds `ProductListing` by hand** passes a `WooCommerceDefaultSort` after `VariationTaxonomies`.
+- **A theme that copied `components/listing/results.blade.php`** copies it again to let a listing name its card.
+- **`<x-meilifacets::listing.card>` takes a `binding`, no longer a `card`**: write
+  `:binding="Modules\MeiliFacets\View\CardBinding::of($card)"` where `:card="$card"` was. A view override of
+  `listing/card.blade.php` changes nothing: it already read `$binding`. A class extending `Listing\Card` calls
+  `parent::__construct($binding, $heading, $priority)`: `prepare()` is gone.
+- **With several listings, the `name` of a component inside a named root can go**: it belongs to the root's listing.
+  Nothing breaks if it stays.
+
 ## 0.2.2
 
 - **Update Pollora to 13.35.3 or later first.** The module now declares a conflict with `pollora/framework` below

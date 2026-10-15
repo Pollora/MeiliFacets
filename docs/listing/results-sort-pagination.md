@@ -61,13 +61,14 @@ override `components/listing/results.blade.php` (see [Overriding views](../custo
 
 ## The card
 
-The results render each card with `<x-meilifacets::listing.card>`. The default card shows the image, the title as a
+The results render each card with `<x-meilifacets::listing.card>`, unless the listing names its own (see
+[A card per listing](../customising/card.md#a-card-per-listing)). The default card shows the image, the title as a
 link, and, for a WooCommerce product, the price as the shop formats it. Its data is the `card` field of the indexed
 document, written at indexing time: the browser never asks WordPress for anything.
 
 | Attribute | Type | Default | Effect |
 | --- | --- | --- | --- |
-| `card` | `array` | required | the card data of one document |
+| `binding` | `CardBinding` | required | `CardBinding::of($card)`, the card data of one document |
 | `heading` | `h2` to `h6`, or a `HeadingLevel` case | `h3` | the level of the title |
 | `priority` | `ImagePriority` | `ImagePriority::Lazy` | `Eager` loads the image at once with `fetchpriority="high"`, `Lazy` defers it |
 
@@ -98,7 +99,7 @@ sees yet.
 
 | Default sort | URL value | Order |
 | --- | --- | --- |
-| Relevance | none | the engine's own order. Always first, added by the module |
+| Relevance | none | the engine's own order under a searched term; otherwise [the default order](#the-default-order). Always first, added by the module |
 | Price, low to high | `price_asc` | by the lowest price of each product |
 | Price, high to low | `price_desc` | by the highest price of each product |
 | New arrivals | `newest` | by publication date, newest first |
@@ -112,6 +113,32 @@ in stock first.
   product is on sale, unless it is the sort in force.
 - Picking a sort searches at once, in both `apply_mode` values, with the pending changes in `submit` mode.
 - The control is not rendered when there is a single choice.
+
+### The default order
+
+While no sort is chosen and no term is searched, the product listing follows WooCommerce's « Default product
+sorting » (Appearance › Customize › WooCommerce › Product Catalog, or the `woocommerce_default_catalog_orderby`
+filter):
+
+| WooCommerce setting | Order |
+| --- | --- |
+| Default sorting (custom ordering + name) | `menu_order`, then title |
+| Sort by latest | publication date, newest first |
+| Sort by price: low to high | by the lowest price of each product |
+| Sort by price: high to low | by the highest price of each product |
+| Sort by popularity, Sort by average rating | the engine's own order, and a report in the log: the index holds neither as a sortable field |
+
+- A sorting a theme adds through the filter follows the same rule: `title`, `date-asc` and the other
+  `field-direction` values WooCommerce reads are reproduced; anything else keeps the engine's order and is reported.
+- Under a filter on a variation attribute (a size, for instance), the results are read from the variations, whose
+  `menu_order` is their rank among their product's variations: custom ordering is left out there, and the products
+  follow their title.
+- A sort that filters, such as « On sale », keeps the engine's order: the default order applies only while no sort is
+  chosen.
+- Reordering products by drag and drop in Products › Sorting reindexes the products that moved.
+- Changing the setting takes effect at once. `menu_order` becomes sortable when the index settings are written: run
+  `wp meiliscout index` once after updating the module.
+- A listing of your own picks its default order with [`DefaultSortedListing`](custom-listing.md#a-default-order).
 
 ### Changing the sorts
 

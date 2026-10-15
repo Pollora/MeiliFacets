@@ -70,21 +70,25 @@ Every attribute of every component is listed in the [Blade components reference]
 
 ## Which listing?
 
-Every listing component takes a `name` attribute: the listing it belongs to. Leave it out when the project declares a
-single listing, which is the case of a WooCommerce shop with no other listing.
+Every listing component takes a `name` attribute: the listing it belongs to. A component placed inside
+`<x-meilifacets::listing name="…">` belongs to that listing without its own `name`, however deep it sits: name the root
+only. Leave every `name` out when the project declares a single listing, which is the case of a WooCommerce shop with
+no other listing.
 
 ```blade
 <x-meilifacets::listing name="products">
-    <x-meilifacets::listing.results name="products" />
+    <x-meilifacets::listing.results />
 </x-meilifacets::listing>
 ```
+
+A component outside any root, or one that belongs to another listing than its root, keeps its own `name`.
 
 The module refuses to guess:
 
 | Situation | Error, raised at render |
 | --- | --- |
-| no `name`, and no listing declared | `Name the listing: none is declared.` |
-| no `name`, and two listings or more declared | `Name the listing: 2 are declared (products, events).` |
+| no `name` and no root around it, and no listing declared | `Name the listing: none is declared.` |
+| no `name` and no root around it, and two listings or more declared | `Name the listing: 2 are declared (products, events).` |
 | a `name` nobody declared | `No listing named "event". Declared: products, events.` |
 
 Without WooCommerce, the module declares no listing at all: the first message is what a template gets. A listing of
@@ -305,8 +309,8 @@ as a regular form. On small screens the [drawer](drawer.md#without-javascript) l
   `browser.key`, the page renders in full and no control answers. Nothing is logged. See
   [Installation](../installation.md).
 - **Renaming a URL parameter breaks every link already shared or indexed** with the old name.
-- **Declaring a second listing** makes every component without `name` fail with `Name the listing: …`. Name them all
-  before adding one.
+- **Declaring a second listing** makes every root without `name` fail with `Name the listing: …`, and every component
+  placed outside a root. Name the roots before adding one.
 - **A listing rendered after the `<head>`** is not covered by the `noindex` rule: declare its page with the
   `meilifacets/is_listing_page` filter ([What search engines see](#what-search-engines-see)).
 - **Some components take no attribute bag.** `listing.results`, `listing.facets`, `listing.sort`,

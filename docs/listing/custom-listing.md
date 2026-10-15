@@ -15,8 +15,9 @@ You want to…
 - [know what each method of the contract does](#implementing-listing);
 - [know how the module finds your listing](#discovery);
 - [filter on the term of a taxonomy archive](#filtering-on-the-archives-term);
+- [order the items while no sort is chosen](#a-default-order);
 - [narrow what a search term reads](#narrowing-what-a-search-reads);
-- [know what the cards show](#cards);
+- [know what the cards show](#cards), or [draw them with a card of your own](../customising/card.md#a-card-per-listing);
 - [run two listings on one page](#two-listings-on-one-page).
 
 ## Minimal example
@@ -87,7 +88,7 @@ final class EventListing implements Listing
 
     public function applyMode(): ApplyMode
     {
-        return ApplyMode::tryFrom($this->applyMode) ?? ApplyMode::DEFAULT;
+        return ApplyMode::fromSetting($this->applyMode);
     }
 }
 ```
@@ -98,14 +99,14 @@ Clear the discovery cache so that the module finds the new class:
 php artisan discovery:clear
 ```
 
-Then name the listing in the template of the event archive:
+Then name the listing on the root of the event archive's template; the components inside it belong to it:
 
 ```blade
 <x-meilifacets::listing name="events">
-    <x-meilifacets::listing.facets name="events" />
-    <x-meilifacets::listing.sort name="events" />
-    <x-meilifacets::listing.results name="events" />
-    <x-meilifacets::listing.pagination name="events" scroll />
+    <x-meilifacets::listing.facets />
+    <x-meilifacets::listing.sort />
+    <x-meilifacets::listing.results />
+    <x-meilifacets::listing.pagination scroll />
 </x-meilifacets::listing>
 ```
 
@@ -268,6 +269,29 @@ The index stores each taxonomy under `facets.<taxonomy>`, ancestors included for
 lists the content of its children. For a hierarchical taxonomy, a `ChildTermsFacet` keeps the facet and offers the
 children of the current term instead (see [Facets](facets.md#sub-level-navigation)).
 
+## A default order
+
+While no sort is chosen, a listing shows its items in the engine's order: with no term searched, that is the order
+the documents were indexed in, the oldest first. A listing that wants its own order implements
+`Modules\MeiliFacets\Contracts\DefaultSortedListing`, which adds one method to `Listing`:
+
+```php
+public function defaultSort(): array
+{
+    return ['post_date:desc'];
+}
+```
+
+- The expressions are Meilisearch sort expressions, on sortable attributes, as in a `Sort`.
+- They apply while no sort is chosen **and no term is searched**: a searched term is ranked by relevance, as
+  WooCommerce does once a shop search is typed.
+- A chosen sort replaces them; « Relevance » in the sort control stands for this order while no term is searched.
+- An empty list keeps the engine's order.
+- The URL is unchanged: the default order writes no `sort` parameter.
+
+The product listing implements it: its default order is WooCommerce's « Default product sorting », see
+[The default order](results-sort-pagination.md#the-default-order).
+
 ## Narrowing what a search reads
 
 When a term is searched, through the [search field](README.md#the-search-field) or a WordPress search your listing
@@ -305,7 +329,7 @@ the card, see [PHP extension points](../customising/php.md).
 
 ## Two listings on one page
 
-Two listings can be placed on one page if every component names its listing. Their element ids are prefixed with the
+Two listings can be placed on one page if each root names its listing, and every component outside a root names its own. Their element ids are prefixed with the
 listing's name, and each keeps its own state in the browser history.
 
 They share the URL, though:
@@ -325,6 +349,7 @@ otherwise.
 | --- | --- | --- |
 | `apply_mode` from the configuration | read | read only if your listing injects it, as in the [example](#minimal-example) |
 | page size | WooCommerce's `loop_shop_per_page` | what `perPage()` returns |
+| order while no sort is chosen | WooCommerce's « Default product sorting » | the engine's, unless the listing implements [`DefaultSortedListing`](#a-default-order) |
 | facets withdrawn on a term archive | automatic | yours to write in `facets()` ([above](#filtering-on-the-archives-term)) |
 | price filter and “On sale” sort | available | not available: the module indexes prices for WooCommerce products only |
 | price on the card | shown | none |
@@ -333,9 +358,9 @@ otherwise.
 
 ## Watch out
 
-- **A second listing changes every template.** Once two listings are declared, a component with no `name` fails with
-  `Name the listing: 2 are declared (products, events).` Name the listing on every component of every template,
-  product templates included.
+- **A second listing changes every template.** Once two listings are declared, a root with no `name` fails with
+  `Name the listing: 2 are declared (products, events).`, and so does a component placed outside a root. Name every
+  root of every template, product templates included.
 - **Run `php artisan discovery:clear`** after adding the class: a cached discovery does not see it.
 - **Index the post type first.** A post type MeiliScout does not index gives an empty listing, without error.
 - **Nothing in the constructor that depends on the request.**

@@ -34,6 +34,7 @@ WordPress and WooCommerce filters whose value the module uses. A project can hoo
 | `loop_shop_per_page` | render | WooCommerce's columns × rows | page size of the product listing | [Pagination](../listing/results-sort-pagination.md) |
 | `excerpt_length` | indexing | `55` | words in the `summary` of a non-product card | [What gets indexed](../indexing/README.md) |
 | `wp_img_tag_add_auto_sizes` | indexing | `true` | prefixes the card's `image_sizes` with `auto, ` | [What gets indexed](../indexing/README.md) |
+| `woocommerce_default_catalog_orderby` | render | the « Default product sorting » setting | the product listing's order while no sort is chosen | [The default order](../listing/results-sort-pagination.md#the-default-order) |
 | `query_vars` | `meilifacets:check-parameters` | WordPress's public query vars | the names a listing parameter must not take | [Commands](commands.md#meilifacetscheck-parameters) |
 
 ## Hooks the module attaches to
@@ -57,6 +58,8 @@ WordPress and WooCommerce filters whose value the module uses. A project can hoo
 | `woocommerce_new_product_variation`, `woocommerce_update_product_variation`, `woocommerce_before_delete_product_variation`, `woocommerce_trash_product_variation` | action | 10 | a variation is saved, deleted or trashed | remembers its product | [What gets indexed](../indexing/README.md#when-to-reindex) |
 | `added_post_meta`, `updated_post_meta`, `deleted_post_meta` | action | 10 | a meta is written | remembers the product of a variation whose meta changed | [What gets indexed](../indexing/README.md#every-meta-write-reindexes-the-post) |
 | `shutdown` | action | 20 | end of the request | fires `meiliscout/reindex_post` once per remembered product | [What gets indexed](../indexing/README.md#when-to-reindex) |
+| `clean_post_cache` | action | 10 | a post's cache is cleared | remembers the product, during WooCommerce's drag-and-drop ordering only | [What gets indexed](../indexing/README.md#when-to-reindex) |
+| `woocommerce_after_product_ordering` | action | 10 | the drag-and-drop ordering is written | fires `meiliscout/reindex_post` once per product it moved | [What gets indexed](../indexing/README.md#when-to-reindex) |
 | `edited_term` | action | 20 | after WooCommerce rewrote a renamed attribute term in SQL | clears the meta cache of the products and variations it rewrote | [What gets indexed](../indexing/README.md#when-to-reindex) |
 | `woocommerce_attribute_updated` | action | 10 | an attribute is saved | remembers a renamed attribute | [What gets indexed](../indexing/README.md#when-to-reindex) |
 | `shutdown` | action | 10 | end of the request, after an attribute rename | clears the meta cache of its variations, fires `meiliscout/schedule_indexation` | [What gets indexed](../indexing/README.md#when-to-reindex) |

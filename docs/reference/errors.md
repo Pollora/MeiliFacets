@@ -32,7 +32,7 @@ Thrown while the page renders: the page fails with the exception.
 | --- | --- | --- | --- |
 | `RuntimeException` | `No listing named "<name>". Declared: <names>.` | a component's `name` matches no declared listing | use a declared name; run `php artisan discovery:clear` after adding a `Listing` class |
 | `RuntimeException` | `Name the listing: none is declared.` | a component names no listing and none is declared: no WooCommerce for the product listing, or a listing whose constructor threw | activate WooCommerce or declare a `Listing`; read the log for a reported failure |
-| `RuntimeException` | `Name the listing: <n> are declared (<names>).` | a component names no listing and several are declared | give every component of the page its listing's `name` |
+| `RuntimeException` | `Name the listing: <n> are declared (<names>).` | a root, or a component outside a root, names no listing and several are declared | give each root its listing's `name`, and each component outside a root |
 | `RuntimeException` | `No search named "<name>". Declared: <names>.` | a search brick's `name` matches no `<x-meilifacets::search>` rendered before it | name the brick after its root, and place it inside |
 | `RuntimeException` | `Name the search: none is declared.` | a search brick renders with no root before it | place the brick inside `<x-meilifacets::search>` |
 | `RuntimeException` | `Name the search: <n> are declared (<names>).` | a search brick names no root and the page holds several | give the brick its root's `name` |
