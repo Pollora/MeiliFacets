@@ -13,10 +13,12 @@ use Modules\MeiliFacets\View\ElementId;
 
 abstract class ListingComponent extends ContractComponent
 {
-    /** The name of `$listing`: Laravel hands a component's public properties to the components it holds. */
-    private const string ENCLOSING = 'listing';
+    /** Laravel answers with the nearest enclosing component carrying the name, whatever it holds. */
+    private const string ENCLOSING = 'meilifacetsListing';
 
     public ResolvedListing $listing;
+
+    public ResolvedListing $meilifacetsListing;
 
     public ElementId $ids;
 
@@ -24,6 +26,7 @@ abstract class ListingComponent extends ContractComponent
     {
         $this->scroll = $scroll;
         $this->listing = $name === '' ? $this->enclosingOrOnly($listings) : $listings->named($name);
+        $this->meilifacetsListing = $this->listing;
         $this->ids = new ElementId($this->listing->name());
     }
 

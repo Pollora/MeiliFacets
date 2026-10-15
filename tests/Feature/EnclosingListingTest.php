@@ -60,6 +60,27 @@ final class EnclosingListingTest extends TestCase
     }
 
     #[Test]
+    public function a_theme_component_holding_a_listing_of_its_own_hides_nothing(): void
+    {
+        $components = sys_get_temp_dir().'/meilifacets-wrapper-'.bin2hex(random_bytes(4));
+        mkdir($components);
+        file_put_contents($components.'/wrapper.blade.php', '<div>{{ $slot }}</div>');
+        Blade::anonymousComponentPath($components, 'probe');
+
+        try {
+            Blade::render(
+                '<x-meilifacets::listing name="second"><x-probe::wrapper listing="first"><x-probe-listing-brick />'
+                .'</x-probe::wrapper></x-meilifacets::listing>'
+            );
+        } finally {
+            unlink($components.'/wrapper.blade.php');
+            rmdir($components);
+        }
+
+        $this->assertSame(['second'], ProbeListingBrick::$resolved);
+    }
+
+    #[Test]
     public function a_named_brick_keeps_its_own_listing_inside_another_root(): void
     {
         Blade::render(
