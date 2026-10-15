@@ -50,6 +50,7 @@
                 ]
             },
             "defaultSort": [
+                "menu_order:asc",
                 "post_title:asc"
             ]
         }
@@ -209,6 +210,7 @@
                     "facets": [],
                     "distinct": "parent_id",
                     "sort": [
+                        "menu_order:asc",
                         "post_title:asc"
                     ]
                 },
@@ -265,6 +267,7 @@
                     "facets": [],
                     "distinct": "parent_id",
                     "sort": [
+                        "menu_order:asc",
                         "post_title:asc"
                     ]
                 },

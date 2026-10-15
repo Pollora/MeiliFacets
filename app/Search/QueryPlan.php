@@ -133,23 +133,7 @@ final readonly class QueryPlan
      */
     public static function variantSort(array $expressions): array
     {
-        $itemOrder = self::withoutVariantRank($expressions);
-
-        return self::sortsOnPrice($itemOrder) ? [self::IN_STOCK_FIRST, ...$itemOrder] : $itemOrder;
-    }
-
-    /**
-     * A variant's `menu_order` is its rank among its item's variants, not the item's place in the catalogue.
-     *
-     * @param  list<string>  $expressions
-     * @return list<string>
-     */
-    private static function withoutVariantRank(array $expressions): array
-    {
-        $ranksAnItem = static fn (string $expression): bool => SortDirection::fieldOf($expression)
-            !== DocumentField::MenuOrder->value;
-
-        return array_values(array_filter($expressions, $ranksAnItem));
+        return self::sortsOnPrice($expressions) ? [self::IN_STOCK_FIRST, ...$expressions] : $expressions;
     }
 
     /**
