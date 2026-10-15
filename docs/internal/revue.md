@@ -3459,8 +3459,11 @@ l'ordre sous une facette de variation et sous un tri qui filtre (« En promotion
 - *Tri qui filtre* : il suit désormais l'ordre par défaut des deux côtés (`Sort::isOrdering()`,
   `QueryPlan::chosenSort()`, `ListingQuery.#sortIn()`). Les deux plans ont la même forme.
 - *Popularité et note* : retirées du Customizer (`DefaultSortChoices`) au lieu d'un rapport à chaque requête ;
-  `CatalogOrderUnsupported` supprimé. La lecture du réglage passe dans `CatalogOrderSetting`, qui accepte aussi la forme
-  tableau qu'un filtre peut renvoyer.
+  `CatalogOrderUnsupported` supprimé. La lecture du réglage passe dans `CatalogOrderSetting`, découpée comme
+  WooCommerce la découpe. *Relecture du 2026-10-15* : la forme tableau qu'un filtre pourrait renvoyer n'est plus lue,
+  car aucun site ne l'utilise ; `$field` devient `$orderBy`, le mot de WooCommerce (`field` désigne un champ de l'index
+  dans le module) ; le verbe « suivre » de la doc remplace « reproduire » (`listingCanFollow()`,
+  `DefaultSortChoices::onlyFollowable()`).
 - *Autres corrections* :
   - `ProductOrderingChanges` est déclaré en singleton ;
   - la clé de l'héritage du listing devient `meilifacetsListing`, pour qu'un composant anonyme du thème portant
@@ -3491,6 +3494,75 @@ module, Pluralia, n'en touche aucun : réglage `menu_order`, aucune copie de `re
   - les cas limites de lecture du réglage : seul un filtre de code y mène ;
   - l'enum des hooks MeiliScout : hors sujet.
   - Le délai du glisser-déposer reste suspendu (`R-232`).
+
+### R-228 · 🟡 · **ouvert le 2026-10-09** — le listing ne range les produits en stock d'abord que sous un tri par prix filtré par variante
+
+**Constat.** Le module ne met les produits en stock en tête que dans un cas : un tri par prix pendant qu'une facette
+d'attribut de variation est cochée (`QueryPlan::variantSort()`, `app/Search/QueryPlan.php:135`). Ce tri est là pour que
+la grille suive la carte (décision « Produits variables », amendement du 2026-10-05). Ailleurs, un produit en rupture
+garde sa place. Sans tri choisi, aucun `sort` n'est envoyé (`QueryPlan.php:79`) : l'ordre est celui de la pertinence ou
+de l'index. Sous « Nouveautés », ou sous un tri par prix sans facette de variation, la rupture n'a aucun effet.
+Exemple : sous « Prix croissant », un produit en rupture à 12 € passe avant un produit en stock à 15 €.
+
+**Ce que la plateforme offre.** WooCommerce n'a aucun ordre par stock. Ses ordres sont `menu_order`, `title`,
+`relevance`, `rand`, `date`, `price`, `popularity` et `rating` (`class-wc-query.php:729-758`). Il sait seulement
+masquer les ruptures (`woocommerce_hide_out_of_stock_items`, `:931`). L'index porte déjà `in_stock` (0/1) sur chaque
+document, et ce champ est déclaré triable (`WooCommerceIndexAttributes::sortable()`, `:40`) : il n'y a ni réindexation
+ni réglage d'index à prévoir.
+
+**Ce que ça touche.** La disponibilité est différée par `D-f` (`prix.md:504`), mais comme facette ; un ordre de tri
+n'en fait pas partie. Rouvrir `D-f` n'est donc pas nécessaire : il suffit de l'élargir, à valider.
+
+**Questions à trancher avant tout code.**
+1. *Portée* : chaque tri du listing, l'ordre par défaut compris (sans tri choisi), ou seulement les tris déclarés ? Un
+   tri « filtrant » (`on_sale`) n'a pas d'expression à préfixer.
+2. *Activation* : une règle fixe du module, ou un réglage (`meilifacets.in_stock_first`, avec sa valeur par défaut là
+   où il est lu) ? Une clé de config se décide avec l'utilisateur (`CLAUDE.md` § 6).
+3. *Pertinence* : sous une recherche texte, faut-il que le stock passe avant la pertinence ? Placé dans `sort`, il ne
+   le fait pas. *Mesuré le 2026-10-09* sur l'index local (Meilisearch 1.53.1). Ni le module ni MeiliScout ne règlent
+   `rankingRules`. L'index garde l'ordre par défaut : `words`, `typo`, `proximity`, `attributeRank`, `sort`,
+   `wordPosition`, `exactness`. Le stock ne départage donc que des résultats à égalité sur les quatre premières règles.
+   Sous `q=creme` avec `in_stock:desc`, le 121 (en rupture) passe après le 122 (en stock), mais seulement parce que
+   les deux sont à `attributeRank` 0,214. Les quatre produits à 1,0 restent devant, en stock ou non. Faire passer le
+   stock avant la pertinence demanderait de déplacer `sort` dans `rankingRules`, réglage de tout l'index, écarté.
+   Sans recherche texte, tous les documents sont à égalité et le stock range toute la liste.
+   *Mesuré aussi* : un document sans `in_stock` passe **après** les ruptures. Les cinq résidus de test `plutest-*` de
+   l'index local en sont la preuve. Un produit indexé avant l'ajout du champ serait donc rangé derrière les ruptures
+   jusqu'à sa réindexation.
+4. *Twin client* : vérifier que le navigateur reçoit les expressions de tri du serveur et ne les recompose pas.
+   Sinon, il faut une règle jumelle et un cas partagé.
+
+**Piste.** Généraliser `variantSort()` en une règle unique appliquée par `QueryPlan` à toute requête de résultats :
+`in_stock:desc` en tête des expressions, ou seul quand aucun tri n'est choisi. La règle se désactive par la réponse à
+la question 2. `Contract::VERSION` et les URL indexées restent inchangés. `dist/` est à republier si le client est
+touché.
+
+**À vérifier.** Un test du plan : rupture en fin de liste sous chaque tri, et sans tri ; réglage désactivé, ordre
+inchangé. Page boutique : un produit en rupture passe après les produits en stock.
+
+**En attente** : `R-227` est encore ouvert (`D-03`).
+
+### R-227 · 🟡 · **ouvert le 2026-10-09** — une carte rendue hors listing est signalée comme orpheline
+
+**Constat.** Sur la page catégorie Sérums du projet de test, la console affiche
+`[meilifacets] the client binds inside [data-listing] only. Move inside <x-meilifacets::listing> : image, url, price.`
+Le contenu de la catégorie contient un bloc de sélection de produits du projet de test, qui rend quatre cartes avec la vue de carte du
+thème, hors du listing. `CardHooks` pose toujours `data-meili="url|image|price"` (et `title`/`summary`) sur une carte,
+où qu'elle soit rendue. `Contract.orphans()` (`ts/shared/contract.ts:42-50`) nomme tout crochet du listing hors d'une
+racine `[data-listing]`. Le message n'empêche rien de fonctionner : c'est une fausse alerte.
+
+Une carte hors listing n'est pas une faute : le client ne relie jamais une carte rendue (`R-207`, `decisions.md:27`)
+et ces crochets servent d'ancres, jamais de source (`decisions.md:701-702`). `R-94` visait un composant égaré
+(`facet`, `configuration.md:1223`), pas une carte.
+
+**Correction proposée.** `Contract.orphans()` écarte les crochets de champ de carte, avec la liste portée par
+`RootComponent` et son pendant PHP dans `Hook`, tenus égaux par `ContractParityTest`. Tout autre crochet reste nommé.
+Rejeté : conditionner `CardHooks` au contexte, car le serveur ne sait pas qu'une carte est dans un listing (Blade
+évalue le `$slot` avant le composant, `R-94`), et `Search/Card.php` s'en sert aussi. Ni `Contract::VERSION` ni URL
+indexée touchés ; `dist/` à republier.
+
+**À vérifier.** Un test client : `facet` hors racine toujours nommé, une carte seule hors racine plus nommée. Page
+Sérums sans erreur console. `architecture.md:680` à compléter.
 
 ### R-226 · ⚪ · **fermé le 2026-10-09** · ouvert le 2026-10-09 — plancher Pollora à 13.35.3, pour le signalement des mises à jour
 
