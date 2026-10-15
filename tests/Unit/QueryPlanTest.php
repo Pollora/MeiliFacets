@@ -82,7 +82,7 @@ final class QueryPlanTest extends TestCase
             $this->assertStringContainsString('price.onsale = "true"', $query['filter']);
         }
 
-        $this->assertSame([], QueryPlan::results($listing, $state, [])['sort']);
+        $this->assertArrayNotHasKey('sort', QueryPlan::results($listing, $state, []));
     }
 
     #[Test]
@@ -156,6 +156,14 @@ final class QueryPlanTest extends TestCase
         $query = QueryPlan::results($this->newestFirst(), new ListingState(sort: 'price_asc'), []);
 
         $this->assertSame(['metas._price:asc'], $query['sort']);
+    }
+
+    #[Test]
+    public function a_sort_that_only_filters_keeps_the_listing_order(): void
+    {
+        $query = QueryPlan::results($this->newestFirst(), new ListingState(sort: 'on_sale'), []);
+
+        $this->assertSame(['post_date:desc'], $query['sort']);
     }
 
     #[Test]
@@ -357,7 +365,10 @@ final class QueryPlanTest extends TestCase
 
     private function newestFirst(string $baseQuery = ''): FakeDefaultSortedListing
     {
-        $sorts = ['price_asc' => new Sort('Price', ['metas._price:asc'])];
+        $sorts = [
+            'price_asc' => new Sort('Price', ['metas._price:asc']),
+            'on_sale' => Sort::filtering('On sale', SortFilter::whereTrue('price.onsale')),
+        ];
 
         return new FakeDefaultSortedListing(new FakeListing(baseQuery: $baseQuery, sorts: $sorts), ['post_date:desc']);
     }

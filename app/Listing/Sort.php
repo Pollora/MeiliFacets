@@ -20,6 +20,11 @@ final readonly class Sort
         return new self($label, [], $filter);
     }
 
+    public function isOrdering(): bool
+    {
+        return $this->expressions !== [];
+    }
+
     public function isFiltering(): bool
     {
         return $this->filter instanceof SortFilter;

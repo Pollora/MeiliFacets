@@ -110,8 +110,10 @@ export class ListingQuery {
     }
 
     #sortIn(sorts: Record<string, string[]>, defaultSort: string[] | undefined, state: ListingState) {
-        if (state.sort !== null && Object.hasOwn(sorts, state.sort)) {
-            return sorts[state.sort]
+        const chosen = state.sort !== null && Object.hasOwn(sorts, state.sort) ? sorts[state.sort] : undefined
+
+        if (chosen !== undefined && chosen.length > 0) {
+            return chosen
         }
 
         return this.#defaultSortIn(defaultSort, state)
