@@ -14,11 +14,11 @@ final readonly class DefaultSortChoices
      * @return array<string, string>
      */
     #[Filter('woocommerce_default_catalog_orderby_options')]
-    public function reproducible(array $choices): array
+    public function onlyFollowable(array $choices): array
     {
         return array_filter(
             $choices,
-            static fn (int|string $setting): bool => CatalogOrderSetting::of($setting)->isReproducible(),
+            static fn (int|string $setting): bool => CatalogOrderSetting::of((string) $setting)->listingCanFollow(),
             ARRAY_FILTER_USE_KEY,
         );
     }

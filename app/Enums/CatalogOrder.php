@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Enums;
 
 /**
- * The default product sortings WooCommerce offers that the engine can reproduce
+ * The default product sortings WooCommerce offers that the listing can follow
  * (`WC_Query::get_catalog_ordering_args()`).
  */
 enum CatalogOrder: string

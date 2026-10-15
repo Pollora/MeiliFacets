@@ -7,36 +7,27 @@ namespace Modules\MeiliFacets\Listing;
 use Modules\MeiliFacets\Enums\CatalogOrder;
 use Modules\MeiliFacets\Enums\SortDirection;
 
-/** A WooCommerce catalog sorting setting, read as `WC_Query::get_catalog_ordering_args()` reads it. */
+/** A WooCommerce catalog ordering setting, read as `WC_Query::get_catalog_ordering_args()` reads it. */
 final readonly class CatalogOrderSetting
 {
     private const string DIRECTION_SEPARATOR = '-';
 
-    private const int PARTS = 2;
-
-    private const int FIELD = 0;
-
-    private const int DIRECTION = 1;
-
-    private const string MISSING = '';
+    private const string NO_DIRECTION = '';
 
     private function __construct(
-        private string $field,
+        private string $orderBy,
         private string $direction,
     ) {}
 
-    /**
-     * WooCommerce writes `field-direction` (`price-desc`), the direction being optional; a filter may answer both
-     * parts as an array.
-     */
-    public static function of(mixed $value): self
+    /** WooCommerce writes `orderby-direction` (`price-desc`), the direction being optional. */
+    public static function of(string $value): self
     {
-        $parts = self::partsOf($value);
+        $parts = explode(self::DIRECTION_SEPARATOR, strtolower($value));
 
-        return new self(self::partAt($parts, self::FIELD), self::partAt($parts, self::DIRECTION));
+        return new self($parts[0], $parts[1] ?? self::NO_DIRECTION);
     }
 
-    public function isReproducible(): bool
+    public function listingCanFollow(): bool
     {
         return $this->order() instanceof CatalogOrder;
     }
@@ -57,32 +48,6 @@ final readonly class CatalogOrderSetting
 
     private function order(): ?CatalogOrder
     {
-        return CatalogOrder::tryFrom($this->field);
-    }
-
-    /**
-     * @return list<mixed>
-     */
-    private static function partsOf(mixed $value): array
-    {
-        if (is_array($value)) {
-            return array_values($value);
-        }
-
-        if (is_scalar($value)) {
-            return explode(self::DIRECTION_SEPARATOR, (string) $value, self::PARTS);
-        }
-
-        return [];
-    }
-
-    /**
-     * @param  list<mixed>  $parts
-     */
-    private static function partAt(array $parts, int $position): string
-    {
-        $part = $parts[$position] ?? self::MISSING;
-
-        return is_scalar($part) ? strtolower((string) $part) : self::MISSING;
+        return CatalogOrder::tryFrom($this->orderBy);
     }
 }

@@ -25,6 +25,6 @@ final class WooCommerceDefaultSort
     {
         $saved = get_option(self::SETTING, CatalogOrder::MenuOrder->value);
 
-        return CatalogOrderSetting::of(apply_filters(self::SETTING, $saved));
+        return CatalogOrderSetting::of((string) apply_filters(self::SETTING, $saved));
     }
 }

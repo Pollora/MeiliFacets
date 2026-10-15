@@ -14,7 +14,7 @@ final class WooCommerceDefaultSortTest extends TestCase
 {
     private const string SETTING = 'woocommerce_default_catalog_orderby';
 
-    /** @var list<callable(): mixed> */
+    /** @var list<callable(): string> */
     private array $answers = [];
 
     protected function tearDown(): void
@@ -27,7 +27,7 @@ final class WooCommerceDefaultSortTest extends TestCase
     /**
      * @return iterable<string, array{string, list<string>}>
      */
-    public static function reproducibleSortings(): iterable
+    public static function followableSortings(): iterable
     {
         yield 'custom ordering, then name' => ['menu_order', ['menu_order:asc', 'post_title:asc']];
         yield 'name' => ['title', ['post_title:asc']];
@@ -41,7 +41,7 @@ final class WooCommerceDefaultSortTest extends TestCase
     /**
      * @param  list<string>  $expressions
      */
-    #[DataProvider('reproducibleSortings')]
+    #[DataProvider('followableSortings')]
     #[Test]
     public function it_sorts_as_woocommerce_sorts_by_default(string $setting, array $expressions): void
     {
@@ -49,15 +49,9 @@ final class WooCommerceDefaultSortTest extends TestCase
     }
 
     #[Test]
-    public function a_sorting_the_engine_cannot_reproduce_keeps_its_order(): void
+    public function a_sorting_the_listing_cannot_follow_keeps_the_engine_order(): void
     {
         $this->assertSame([], $this->defaultSortFor('popularity'));
-    }
-
-    #[Test]
-    public function it_reads_a_setting_a_filter_answers_in_two_parts(): void
-    {
-        $this->assertSame(['price.max:desc'], $this->defaultSortFor(['price', 'desc']));
     }
 
     #[Test]
@@ -88,18 +82,17 @@ final class WooCommerceDefaultSortTest extends TestCase
     }
 
     /**
-     * @param  string|list<string>  $setting
      * @return list<string>
      */
-    private function defaultSortFor(string|array $setting): array
+    private function defaultSortFor(string $setting): array
     {
-        $this->answer(static fn (): string|array => $setting);
+        $this->answer(static fn (): string => $setting);
 
         return new WooCommerceDefaultSort()->expressions();
     }
 
     /**
-     * @param  callable(): mixed  $answer
+     * @param  callable(): string  $answer
      */
     private function answer(callable $answer): void
     {
