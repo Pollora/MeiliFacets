@@ -22,8 +22,6 @@ final readonly class QueryPlan
 {
     private const int NO_HIT = 0;
 
-    private const string IN_STOCK_FIRST = DocumentField::InStock->value.':desc';
-
     public const array RETRIEVED = [DocumentField::Id->value, DocumentField::Card->value];
 
     public const array VARIANT_RETRIEVED = [...self::RETRIEVED, DocumentField::ParentId->value];
@@ -133,7 +131,11 @@ final readonly class QueryPlan
      */
     public static function variantSort(array $expressions): array
     {
-        return self::sortsOnPrice($expressions) ? [self::IN_STOCK_FIRST, ...$expressions] : $expressions;
+        if (self::sortsOnPrice($expressions)) {
+            return [SortDirection::Descending->of(DocumentField::InStock->value), ...$expressions];
+        }
+
+        return $expressions;
     }
 
     /**

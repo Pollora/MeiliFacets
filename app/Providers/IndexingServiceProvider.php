@@ -20,6 +20,7 @@ use Modules\MeiliFacets\Indexing\EmptyVariantFields;
 use Modules\MeiliFacets\Indexing\FacetedPostIndexable;
 use Modules\MeiliFacets\Indexing\IndexedTaxonomies;
 use Modules\MeiliFacets\Indexing\PostText;
+use Modules\MeiliFacets\Indexing\ProductOrderingChanges;
 use Modules\MeiliFacets\Indexing\SummaryCardProjector;
 use Modules\MeiliFacets\Indexing\VariationChanges;
 use Modules\MeiliFacets\Indexing\VariationMetaRewrites;
@@ -46,6 +47,7 @@ final class IndexingServiceProvider extends ServiceProvider
         // Hooks discovered on them share what they remembered during the request.
         $this->app->singleton(VariationChanges::class);
         $this->app->singleton(VariationMetaRewrites::class);
+        $this->app->singleton(ProductOrderingChanges::class);
         $this->app->bind(
             WooCommerceProductFields::class,
             fn (): WooCommerceProductFields => new WooCommerceProductFields(WooCommerce::isActive(...))
