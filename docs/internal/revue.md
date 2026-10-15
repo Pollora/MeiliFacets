@@ -3473,6 +3473,25 @@ l'ordre sous une facette de variation et sous un tri qui filtre (« En promotion
   documentés.
 - *Contrat* : `Contract::VERSION` reste à 1. La description ne change pas de forme et `defaultSort` est lu avec repli.
 
+**Seconde revue de la PR #15, le 2026-10-15.** Douze constats, revérifiés un à un. Le seul site qui utilise le
+module, Pluralia, n'en touche aucun : réglage `menu_order`, aucune copie de `results.blade.php`, aucun filtre de tri.
+- *Corrigés* :
+  - `defaultSort()` est renvoyé sous forme de liste (`array_values()`, serveur et description) ;
+  - `ResultsComponentTest` remet en place les alias Blade qu'il ajoute ;
+  - `CardTemplate` est supprimé, le modèle étant `listing.card` avec `CardBinding::template()`.
+- *Doc* :
+  - une carte de listing déclare `binding` et `priority` ;
+  - une ancienne copie de `results.blade.php` échoue (rupture assumée en pré-version, sans code de compatibilité) ;
+  - « En promotion » suit l'ordre par défaut ;
+  - la clé `meilifacetsListing` ;
+  - une racine placée dans la vue d'un autre composant de listing nomme ses briques, car Laravel lit d'abord les
+    données de ce composant.
+- *Non retenu* :
+  - un réglage « popularité » déjà en base : aucun site ne l'a ;
+  - les cas limites de lecture du réglage : seul un filtre de code y mène ;
+  - l'enum des hooks MeiliScout : hors sujet.
+  - Le délai du glisser-déposer reste suspendu (`R-232`).
+
 ### R-226 · ⚪ · **fermé le 2026-10-09** · ouvert le 2026-10-09 — plancher Pollora à 13.35.3, pour le signalement des mises à jour
 
 **Constat.** Pollora 13.35.3 (2026-10-09) signale qu'un module installé par Composer a une version plus récente. Il lit

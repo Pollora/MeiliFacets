@@ -15,7 +15,7 @@ the browser script changed, and the old one ignores the default order once the v
 ### Added
 
 - `Contracts\CardComponentListing`: a listing draws its results with a Blade component of the project, on the server
-  and in the template the browser clones, given `binding` and `priority`.
+  and in the template the browser clones. The component declares `binding` and `priority`.
 - A listing component inside `<x-meilifacets::listing name="…">` belongs to that listing without a `name` of its own:
   with several listings declared, only the roots need one.
 - `ApplyMode::fromSetting()`: the apply mode a setting names, the default when it names none.
@@ -31,10 +31,15 @@ the browser script changed, and the old one ignores the default order once the v
 - « Popularity » and « Average rating » are no longer offered as the default product sorting: the listing cannot
   follow them yet.
 - A sort that only filters, such as « On sale », keeps the listing's default order instead of the engine's.
-- `components/listing/results.blade.php` draws the card a listing names: a copy of it in a theme draws the module's
-  card for every listing.
+- `components/listing/results.blade.php` draws the card a listing names. A copy of the old view fails: it passes
+  `card`, which the card no longer takes.
 - `<x-meilifacets::listing.card>` takes `binding` (a `CardBinding`) instead of `card`, like the card a listing names:
   `CardBinding::of($card)`. `Listing\Card::prepare()` is removed.
+
+### Removed
+
+- `<x-meilifacets::listing.card-template>`: the template is `<x-meilifacets::listing.card>` given
+  `CardBinding::template()`.
 
 ### Fixed
 

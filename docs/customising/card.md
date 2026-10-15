@@ -209,9 +209,8 @@ A listing renders its cards twice over:
 
 1. **On the server**, each card of the first page is rendered with its data (`CardBinding::of($card)`). An element
    with nothing to show is left out by its `@if`.
-2. **In a `<template>`**, the same view is rendered once with no data (`CardBinding::template()`, through
-   `<x-meilifacets::listing.card-template />`). Every element is there, empty, and carries attributes that name the
-   field it shows.
+2. **In a `<template>`**, the same view is rendered once with no data (`CardBinding::template()`). Every element is
+   there, empty, and carries attributes that name the field it shows.
 
 After each search, the browser clones the template's first element for every result, writes each field where the
 attributes say, removes what has nothing to show, writes the price, then inserts the card. Because every binding is
@@ -491,16 +490,16 @@ public function cardComponent(): string
 }
 ```
 
-- The component is named as written after `<x-`. It receives `binding` (a `CardBinding`) and `priority` (an
-  `ImagePriority`): the attributes of `<x-meilifacets::listing.card>`, which draws the results of every other listing.
+- The component is named as written after `<x-`. Its constructor declares `binding` (a `CardBinding`) and `priority`
+  (an `ImagePriority`), the attributes of `<x-meilifacets::listing.card>`, which draws the results of every other
+  listing. Both are always passed: a component that does not declare `priority` gets it in `$attributes`, and the page
+  fails when the attributes are printed.
 - It draws the cards rendered by the server and the `<template>` the browser clones: one component for both, as for
   the override.
 - The results render it with `<x-dynamic-component>`, which only knows the components registered before it is first
   used. A class in the theme's `View/Components` is found through the theme's component namespace; a component that
   lives elsewhere is registered in a provider, never from a view.
 - Other listings keep the module's card, or the override.
-- A theme that copied `components/listing/results.blade.php` copies it again: the copy draws the module's card for
-  every listing.
 
 ## A card for the site search
 

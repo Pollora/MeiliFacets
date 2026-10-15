@@ -137,13 +137,13 @@ final class CardComponentTest extends TestCase
     #[Test]
     public function it_defers_the_image_of_a_card_nobody_placed(): void
     {
-        $this->assertStringContainsString('loading="lazy"', Blade::render('<x-meilifacets::listing.card-template />'));
+        $this->assertStringContainsString('loading="lazy"', $this->renderTemplate());
     }
 
     #[Test]
     public function its_template_holds_every_hook_the_client_fills(): void
     {
-        $html = Blade::render('<x-meilifacets::listing.card-template />');
+        $html = $this->renderTemplate();
 
         foreach (['url', 'image', 'title', 'price'] as $hook) {
             $this->assertStringContainsString('data-meili="'.$hook.'"', $html);
@@ -222,5 +222,10 @@ final class CardComponentTest extends TestCase
             '<x-meilifacets::listing.card :binding="$binding" :heading="$heading" :priority="$priority" />',
             ['binding' => CardBinding::of($card), 'heading' => 'h3', 'priority' => ImagePriority::Lazy, ...$props]
         );
+    }
+
+    private function renderTemplate(): string
+    {
+        return Blade::render('<x-meilifacets::listing.card :binding="$binding" />', ['binding' => CardBinding::template()]);
     }
 }

@@ -439,7 +439,7 @@ final class ResolvedListing
      */
     public function defaultSort(): array
     {
-        return $this->listing instanceof DefaultSortedListing ? $this->listing->defaultSort() : [];
+        return $this->listing instanceof DefaultSortedListing ? array_values($this->listing->defaultSort()) : [];
     }
 
     public function currentSort(): ?string

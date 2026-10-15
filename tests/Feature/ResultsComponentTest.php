@@ -91,11 +91,16 @@ final class ResultsComponentTest extends TestCase
     #[Test]
     public function a_listing_that_names_its_card_draws_it_on_the_server_and_in_the_template(): void
     {
+        $aliases = Blade::getClassComponentAliases();
         Blade::component(ProjectListingCard::class, ProjectListingCard::ALIAS);
-        // `<x-dynamic-component>` keeps the aliases known at its first use in the process.
-        (static fn (): null => self::$compiler = null)->bindTo(null, DynamicComponent::class)();
+        $this->forgetDynamicComponentAliases();
 
-        $html = $this->render(cards: [$this->card('First')], cardComponent: ProjectListingCard::ALIAS);
+        try {
+            $html = $this->render(cards: [$this->card('First')], cardComponent: ProjectListingCard::ALIAS);
+        } finally {
+            (fn (): array => $this->classComponentAliases = $aliases)->call(Blade::getFacadeRoot());
+            $this->forgetDynamicComponentAliases();
+        }
 
         $this->assertStringContainsString('<p class="probeListingCard" data-priority="eager" data-meili="title">First</p>', $html);
         $this->assertStringContainsString('<p class="probeListingCard" data-priority="lazy" data-meili="title" data-meili-text="title"></p>', $html);
@@ -185,5 +190,14 @@ final class ResultsComponentTest extends TestCase
             'templateBinding' => CardBinding::template(...),
             'templatePriority' => fn (): ImagePriority => ImagePriority::Lazy,
         ])->render());
+    }
+
+    /** `<x-dynamic-component>` keeps the aliases known at its first use in the process. */
+    private function forgetDynamicComponentAliases(): void
+    {
+        (static function (): void {
+            self::$compiler = null;
+            self::$componentClasses = [];
+        })->bindTo(null, DynamicComponent::class)();
     }
 }

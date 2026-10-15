@@ -17,7 +17,10 @@ changes is in the [changelog](../CHANGELOG.md).
   « Average rating » are no longer offered there; a shop set on one of them keeps the indexing order until another
   sorting is picked.
 - **A project that builds `ProductListing` by hand** passes a `WooCommerceDefaultSort` after `VariationTaxonomies`.
-- **A theme that copied `components/listing/results.blade.php`** copies it again to let a listing name its card.
+- **A theme that copied `components/listing/results.blade.php`** copies it again: the old copy passes `card` to the
+  card, and the page fails.
+- **`<x-meilifacets::listing.card-template>` is removed**: write
+  `<x-meilifacets::listing.card :binding="Modules\MeiliFacets\View\CardBinding::template()" />`.
 - **`<x-meilifacets::listing.card>` takes a `binding`, no longer a `card`**: write
   `:binding="Modules\MeiliFacets\View\CardBinding::of($card)"` where `:card="$card"` was. A view override of
   `listing/card.blade.php` changes nothing: it already read `$binding`. A class extending `Listing\Card` calls

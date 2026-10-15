@@ -103,7 +103,7 @@ sees yet.
 | Price, low to high | `price_asc` | by the lowest price of each product |
 | Price, high to low | `price_desc` | by the highest price of each product |
 | New arrivals | `newest` | by publication date, newest first |
-| On sale | `on_sale` | products on sale only, in the engine's order |
+| On sale | `on_sale` | products on sale only, in [the default order](#the-default-order) |
 
 Once a variation attribute is checked, a price sort ranks each product by its matching variant's price, the variants
 in stock first.
@@ -183,7 +183,7 @@ a key breaks the links that carry it.
 | Constructor | Arguments |
 | --- | --- |
 | `new Sort($label, $expressions, $filter = null)` | a translated label, and a list of Meilisearch sort expressions such as `['post_date:desc']` |
-| `Sort::filtering($label, $filter)` | a translated label, and a `SortFilter`: the sort keeps only the documents matching it, in the engine's order |
+| `Sort::filtering($label, $filter)` | a translated label, and a `SortFilter`: the sort keeps only the documents matching it, in the listing's default order |
 | `new SortFilter($field, $value)` | the document field and the value it must equal |
 | `SortFilter::whereTrue($field)` | the document field, which must be `true` |
 

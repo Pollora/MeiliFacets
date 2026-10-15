@@ -177,6 +177,14 @@ final class QueryPlanTest extends TestCase
     }
 
     #[Test]
+    public function it_sends_the_listing_order_as_a_list_whatever_its_keys(): void
+    {
+        $listing = new FakeDefaultSortedListing($this->listing, [1 => 'post_date:desc']);
+
+        $this->assertSame(['post_date:desc'], QueryPlan::results($listing, new ListingState, [])['sort']);
+    }
+
+    #[Test]
     public function an_empty_listing_order_keeps_the_engine_order(): void
     {
         $listing = new FakeDefaultSortedListing($this->listing, []);

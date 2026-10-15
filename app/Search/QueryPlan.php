@@ -188,7 +188,7 @@ final readonly class QueryPlan
     private static function defaultSortIn(Listing $listing, ListingState $state): ?array
     {
         if (self::sortsByDefault($listing, $state)) {
-            $expressions = $listing->defaultSort();
+            $expressions = array_values($listing->defaultSort());
 
             return $expressions === [] ? null : $expressions;
         }
