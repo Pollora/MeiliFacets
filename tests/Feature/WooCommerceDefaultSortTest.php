@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Tests\Feature;
 
-use Illuminate\Support\Facades\Exceptions;
-use Modules\MeiliFacets\Listing\CatalogOrderUnsupported;
 use Modules\MeiliFacets\Listing\WooCommerceDefaultSort;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -16,7 +14,7 @@ final class WooCommerceDefaultSortTest extends TestCase
 {
     private const string SETTING = 'woocommerce_default_catalog_orderby';
 
-    /** @var list<callable(): string> */
+    /** @var list<callable(): mixed> */
     private array $answers = [];
 
     protected function tearDown(): void
@@ -51,15 +49,25 @@ final class WooCommerceDefaultSortTest extends TestCase
     }
 
     #[Test]
-    public function a_sorting_the_engine_cannot_reproduce_keeps_its_order_and_says_why(): void
+    public function a_sorting_the_engine_cannot_reproduce_keeps_its_order(): void
     {
-        Exceptions::fake();
-
         $this->assertSame([], $this->defaultSortFor('popularity'));
+    }
 
-        Exceptions::assertReported(
-            fn (CatalogOrderUnsupported $unsupported): bool => str_contains($unsupported->getMessage(), '"popularity"')
-        );
+    #[Test]
+    public function it_reads_a_setting_a_filter_answers_in_two_parts(): void
+    {
+        $this->assertSame(['price.max:desc'], $this->defaultSortFor(['price', 'desc']));
+    }
+
+    #[Test]
+    public function the_customizer_offers_only_the_sortings_the_listing_follows(): void
+    {
+        $choices = array_fill_keys(['menu_order', 'popularity', 'rating', 'date', 'price', 'price-desc'], '');
+
+        $offered = apply_filters('woocommerce_default_catalog_orderby_options', $choices);
+
+        $this->assertSame(['menu_order', 'date', 'price', 'price-desc'], array_keys($offered));
     }
 
     #[Test]
@@ -80,17 +88,18 @@ final class WooCommerceDefaultSortTest extends TestCase
     }
 
     /**
+     * @param  string|list<string>  $setting
      * @return list<string>
      */
-    private function defaultSortFor(string $setting): array
+    private function defaultSortFor(string|array $setting): array
     {
-        $this->answer(static fn (): string => $setting);
+        $this->answer(static fn (): string|array => $setting);
 
         return new WooCommerceDefaultSort()->expressions();
     }
 
     /**
-     * @param  callable(): string  $answer
+     * @param  callable(): mixed  $answer
      */
     private function answer(callable $answer): void
     {
