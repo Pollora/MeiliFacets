@@ -37,7 +37,7 @@ final readonly class ProductListing implements DefaultSortedListing, VariantScop
         private WooCommerceDefaultSort $defaultSort,
         #[Config('meilifacets.apply_mode', ApplyMode::DEFAULT->value)] string $applyMode = ApplyMode::DEFAULT->value,
     ) {
-        $this->applyMode = ApplyMode::tryFrom($applyMode) ?? ApplyMode::DEFAULT;
+        $this->applyMode = ApplyMode::fromSetting($applyMode);
 
         if (! WooCommerce::isActive()) {
             throw new ListingUnavailable('WooCommerce is not active: there are no products to list.');
