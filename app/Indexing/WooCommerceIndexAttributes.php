@@ -37,7 +37,12 @@ final readonly class WooCommerceIndexAttributes implements IndexAttributes
      */
     public function sortable(): array
     {
-        return [PriceField::Min->path(), PriceField::Max->path(), DocumentField::InStock->value];
+        return [
+            PriceField::Min->path(),
+            PriceField::Max->path(),
+            DocumentField::InStock->value,
+            DocumentField::MenuOrder->value,
+        ];
     }
 
     /**

@@ -133,7 +133,7 @@ The form is chosen by the plural rules of the site's language (CLDR, through PHP
 | `Highest price` | the accessible name of the upper price handle |
 | `Sort by` | the sort label |
 | `Sort by: :choice` | the sort trigger in its radio shape, with the sort in use |
-| `Relevance` | the engine's own order, first in the sort menu |
+| `Relevance` | no sort chosen: relevance under a searched term, otherwise the listing's default order; first in the sort menu |
 | `Price, low to high` | a default WooCommerce sort |
 | `Price, high to low` | a default WooCommerce sort |
 | `New arrivals` | a default WooCommerce sort |

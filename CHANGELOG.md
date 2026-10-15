@@ -9,6 +9,43 @@ What to change in a project when moving from one version to the next is in
 
 ## [Unreleased]
 
+Reindex once (`wp meiliscout index`): `menu_order` becomes sortable. Then run `php artisan module:publish MeiliFacets`:
+the browser script changed, and the old one ignores the default order once the visitor changes page.
+
+### Added
+
+- `Contracts\CardComponentListing`: a listing draws its results with a Blade component of the project, on the server
+  and in the template the browser clones. The component declares `binding` and `priority`.
+- A listing component inside `<x-meilifacets::listing name="…">` belongs to that listing without a `name` of its own:
+  with several listings declared, only the roots need one.
+- `ApplyMode::fromSetting()`: the apply mode a setting names, the default when it names none.
+- `Contracts\DefaultSortedListing`: a listing orders its items while no sort is chosen and no term is searched,
+  on the server and in the browser. Without it, the engine's order stands, which is the indexing order.
+
+### Changed
+
+- The product listing follows WooCommerce's « Default product sorting » (Appearance › Customize › WooCommerce ›
+  Product Catalog) while no sort is chosen and no term is searched, instead of the indexing order, under a filter on a
+  variation attribute too. `ProductListing` takes a `WooCommerceDefaultSort`: a project that builds it by hand passes
+  one.
+- « Popularity » and « Average rating » are no longer offered as the default product sorting: the listing cannot
+  follow them yet.
+- A sort that only filters, such as « On sale », keeps the listing's default order instead of the engine's.
+- `components/listing/results.blade.php` draws the card a listing names. A copy of the old view fails: it passes
+  `card`, which the card no longer takes.
+- `<x-meilifacets::listing.card>` takes `binding` (a `CardBinding`) instead of `card`, like the card a listing names:
+  `CardBinding::of($card)`. `Listing\Card::prepare()` is removed.
+
+### Removed
+
+- `<x-meilifacets::listing.card-template>`: the template is `<x-meilifacets::listing.card>` given
+  `CardBinding::template()`.
+
+### Fixed
+
+- Reordering products by drag and drop (Products › Sorting) reindexes the products that moved: WooCommerce writes
+  their `menu_order` straight to the table, which nothing reported to MeiliScout.
+
 ## [0.2.2](https://github.com/Pollora/MeiliFacets/releases/tag/0.2.2) - 2026-10-09
 
 Fourth beta. Past 5 filters in the drawer when the page loads, wide screens open the filters as a side sheet behind the

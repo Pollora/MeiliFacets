@@ -17,6 +17,10 @@
                 "post_date:desc"
             ]
         },
+        "defaultSort": [
+            "menu_order:asc",
+            "post_title:asc"
+        ],
         "priceFields": {
             "min": "price.min",
             "max": "price.max"
@@ -44,7 +48,11 @@
                 "newest": [
                     "post_date:desc"
                 ]
-            }
+            },
+            "defaultSort": [
+                "menu_order:asc",
+                "post_title:asc"
+            ]
         }
     },
     "cases": [
@@ -67,6 +75,10 @@
                         "facets.product_brand",
                         "price.min",
                         "price.max"
+                    ],
+                    "sort": [
+                        "menu_order:asc",
+                        "post_title:asc"
                     ]
                 },
                 "count:pa_size": {
@@ -100,6 +112,10 @@
                     "facets": [
                         "price.min",
                         "price.max"
+                    ],
+                    "sort": [
+                        "menu_order:asc",
+                        "post_title:asc"
                     ]
                 },
                 "count:pa_size": {
@@ -192,7 +208,11 @@
                     "q": "",
                     "filter": "(post_type = \"product\" OR post_type = \"product_variation\") AND post_status = \"publish\" AND NOT facets.product_visibility = \"exclude-from-catalog\" AND NOT document_kind = \"parent\" AND facets.product_brand = \"acme\" AND facets.pa_size = \"400ml\"",
                     "facets": [],
-                    "distinct": "parent_id"
+                    "distinct": "parent_id",
+                    "sort": [
+                        "menu_order:asc",
+                        "post_title:asc"
+                    ]
                 },
                 "measures": {
                     "q": "",
@@ -245,7 +265,11 @@
                     "q": "",
                     "filter": "(post_type = \"product\" OR post_type = \"product_variation\") AND post_status = \"publish\" AND NOT facets.product_visibility = \"exclude-from-catalog\" AND NOT document_kind = \"parent\" AND facets.pa_size = \"400ml\" AND price.min <= 35 AND price.max >= 30",
                     "facets": [],
-                    "distinct": "parent_id"
+                    "distinct": "parent_id",
+                    "sort": [
+                        "menu_order:asc",
+                        "post_title:asc"
+                    ]
                 },
                 "measures": {
                     "q": "",
@@ -289,6 +313,10 @@
                     "filter": "post_type = \"product\" AND post_status = \"publish\" AND NOT facets.product_visibility = \"exclude-from-catalog\" AND price.min <= 35 AND price.max >= 30",
                     "facets": [
                         "facets.product_brand"
+                    ],
+                    "sort": [
+                        "menu_order:asc",
+                        "post_title:asc"
                     ]
                 },
                 "count:pa_size": {

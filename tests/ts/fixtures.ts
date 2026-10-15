@@ -21,6 +21,7 @@ export const described = (partial: Partial<ListingDescription>) =>
         sortPattern: 'Sort by: :choice',
         reserved: { sort: 'sort', query: 'q', page: 'pg', minPrice: 'min_price', maxPrice: 'max_price' },
         sorts: {},
+        defaultSort: [],
         locale: 'en',
         pagePath: '/shop',
         pageQuery: '',

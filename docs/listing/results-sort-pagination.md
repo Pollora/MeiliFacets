@@ -61,13 +61,14 @@ override `components/listing/results.blade.php` (see [Overriding views](../custo
 
 ## The card
 
-The results render each card with `<x-meilifacets::listing.card>`. The default card shows the image, the title as a
+The results render each card with `<x-meilifacets::listing.card>`, unless the listing names its own (see
+[A card per listing](../customising/card.md#a-card-per-listing)). The default card shows the image, the title as a
 link, and, for a WooCommerce product, the price as the shop formats it. Its data is the `card` field of the indexed
 document, written at indexing time: the browser never asks WordPress for anything.
 
 | Attribute | Type | Default | Effect |
 | --- | --- | --- | --- |
-| `card` | `array` | required | the card data of one document |
+| `binding` | `CardBinding` | required | `CardBinding::of($card)`, the card data of one document |
 | `heading` | `h2` to `h6`, or a `HeadingLevel` case | `h3` | the level of the title |
 | `priority` | `ImagePriority` | `ImagePriority::Lazy` | `Eager` loads the image at once with `fetchpriority="high"`, `Lazy` defers it |
 
@@ -98,11 +99,11 @@ sees yet.
 
 | Default sort | URL value | Order |
 | --- | --- | --- |
-| Relevance | none | the engine's own order. Always first, added by the module |
+| Relevance | none | the engine's own order under a searched term; otherwise [the default order](#the-default-order). Always first, added by the module |
 | Price, low to high | `price_asc` | by the lowest price of each product |
 | Price, high to low | `price_desc` | by the highest price of each product |
 | New arrivals | `newest` | by publication date, newest first |
-| On sale | `on_sale` | products on sale only, in the engine's order |
+| On sale | `on_sale` | products on sale only, in [the default order](#the-default-order) |
 
 Once a variation attribute is checked, a price sort ranks each product by its matching variant's price, the variants
 in stock first.
@@ -112,6 +113,33 @@ in stock first.
   product is on sale, unless it is the sort in force.
 - Picking a sort searches at once, in both `apply_mode` values, with the pending changes in `submit` mode.
 - The control is not rendered when there is a single choice.
+
+### The default order
+
+The shop's order is chosen in WordPress, not in code: **Appearance › Customize › WooCommerce › Product Catalog ›
+Default product sorting**. While no sort is chosen and no term is searched, the product listing follows that setting,
+on the first page as on every page the visitor turns to:
+
+| Default product sorting | Order |
+| --- | --- |
+| Default sorting (custom ordering + name) | the order set by drag and drop in Products › Sorting, then title |
+| Sort by most recent | publication date, newest first |
+| Sort by price (asc) | by the lowest price of each product |
+| Sort by price (desc) | by the highest price of each product |
+
+- « Popularity (sales) » and « Average rating » are not offered: the module removes them from the list, since the
+  index holds neither sales nor ratings as a sortable field. They are not supported for now.
+- A theme can answer the setting in code with the `woocommerce_default_catalog_orderby` filter. `title`,
+  `date-asc` and the other `field-direction` values WooCommerce reads are followed; anything else (`popularity`,
+  `rating`, `rand`, `modified`, `id`) keeps the engine's order.
+- Products published in the same second are not ordered by ID, as WooCommerce orders them: their order among
+  themselves is the engine's.
+- Under a filter on a variation attribute (a size, for instance), the products keep the same order.
+- A sort that only filters, such as « On sale », keeps the default order.
+- Reordering products by drag and drop in Products › Sorting reindexes the products that moved.
+- Changing the setting takes effect at once. `menu_order` becomes sortable when the index settings are written: run
+  `wp meiliscout index` once after updating the module.
+- A listing of your own picks its default order with [`DefaultSortedListing`](custom-listing.md#a-default-order).
 
 ### Changing the sorts
 
@@ -155,7 +183,7 @@ a key breaks the links that carry it.
 | Constructor | Arguments |
 | --- | --- |
 | `new Sort($label, $expressions, $filter = null)` | a translated label, and a list of Meilisearch sort expressions such as `['post_date:desc']` |
-| `Sort::filtering($label, $filter)` | a translated label, and a `SortFilter`: the sort keeps only the documents matching it, in the engine's order |
+| `Sort::filtering($label, $filter)` | a translated label, and a `SortFilter`: the sort keeps only the documents matching it, in the listing's default order |
 | `new SortFilter($field, $value)` | the document field and the value it must equal |
 | `SortFilter::whereTrue($field)` | the document field, which must be `true` |
 

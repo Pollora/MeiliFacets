@@ -174,7 +174,7 @@ l'index (une page) l'ajoute elle-même.
 
 **Un élément qui n'a rien à montrer n'est pas dans le DOM.** Une carte rendue avec ses données l'omet ; le client,
 après avoir lié un clone, le retire. Le `<template>` fait exception : il porte tous les éléments, puisque c'est le
-squelette que le client clone (`CardBinding::template()`, rendu par `<x-meilifacets::listing.card-template />`).
+squelette que le client clone (la carte du listing rendue avec `CardBinding::template()`).
 
 **On n'écrit pas ces attributs à la main, ni dans la vue.** La classe du composant prépare chaque élément (un
 `CardFieldElement`) ; la vue ne contient que du Blade standard — la balise, un `@if` et l'élément :
@@ -264,7 +264,7 @@ de la paire (`onlyWith()` / `onlyWithout()`, puis `containing()`). Aucun texte n
 ### Surcharger la carte du listing
 
 `resources/views/modules/meilifacets/components/listing/card.blade.php` dans le thème. Le composant `listing.card`
-(et `listing.card-template` pour le modèle) lui passe `$binding`, `$priority`, `$heading`, et les éléments préparés
+(avec `CardBinding::template()` pour le modèle) lui passe `$binding`, `$priority`, `$heading`, et les éléments préparés
 `$link`, `$image`, `$title`, `$price`. Une carte du thème **partagée** avec d'autres pages — une carte produit rendue
 aussi sur l'accueil — prend `$binding` et `$priority` en paramètres d'un composant du thème qui prépare ses propres
 éléments : c'est ce que fait le thème du projet de test (son composant de carte produit), sans dupliquer son balisage.

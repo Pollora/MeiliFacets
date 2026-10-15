@@ -8,7 +8,7 @@ use Modules\MeiliFacets\Listing\Sort;
 
 final readonly class SortChoices
 {
-    /** The engine's own order, and the only way back to it once a sort is picked. */
+    /** No sort chosen: the listing's default order, or relevance under a searched term. */
     private const string DEFAULT_VALUE = '';
 
     private const string DEFAULT_ID = 'default';

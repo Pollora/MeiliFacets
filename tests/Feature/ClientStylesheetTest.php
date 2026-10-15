@@ -41,7 +41,7 @@ final class ClientStylesheetTest extends TestCase
     public function it_prints_the_stylesheet_in_the_head_of_a_layout_rendering_a_listing(): void
     {
         $page = $this->withFreshStyles(static fn (): string => Blade::render(<<<'BLADE'
-            @section('content')<x-meilifacets::listing />@endsection
+            @section('content')<x-meilifacets::listing name="products" />@endsection
             <head>@php do_action('wp_enqueue_scripts'); wp_print_styles(); @endphp</head>
             <body>@yield('content')</body>
             BLADE));

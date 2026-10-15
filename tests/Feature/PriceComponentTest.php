@@ -14,6 +14,7 @@ use Modules\MeiliFacets\Enums\Hook;
 use Modules\MeiliFacets\Enums\PricePart;
 use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\Listing\PriceFilter;
+use Modules\MeiliFacets\Listing\ProductListing;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeSearchEngine;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -144,7 +145,7 @@ final class PriceComponentTest extends TestCase
     {
         $this->expectExceptionMessageMatches('/place it with the component of its own kind/');
 
-        Blade::render('<x-meilifacets::listing.price facet="'.$this->aFacetName().'" />');
+        Blade::render('<x-meilifacets::listing.price name="products" facet="'.$this->aFacetName().'" />');
     }
 
     /**
@@ -161,7 +162,7 @@ final class PriceComponentTest extends TestCase
         $this->app->forgetScopedInstances();
 
         $markup = Blade::render(
-            '<x-meilifacets::listing.price :facet="$filter" />',
+            '<x-meilifacets::listing.price name="products" :facet="$filter" />',
             ['filter' => new PriceFilter('Price', $parts, 'price-under-test')]
         );
 
@@ -189,6 +190,6 @@ final class PriceComponentTest extends TestCase
 
     private function aFacetName(): string
     {
-        return $this->app->make(CurrentListing::class)->onlyOne()->facets()[0]->name;
+        return $this->app->make(CurrentListing::class)->named(ProductListing::NAME)->facets()[0]->name;
     }
 }

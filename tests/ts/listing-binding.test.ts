@@ -98,6 +98,7 @@ describe('ListingBinding', () => {
                 distinct: 'parent_id',
                 attributes: ['ID', 'card', 'parent_id'],
                 sorts: {},
+                defaultSort: [],
             },
         })
         ;({ window, root } = open(listingMarkup()))

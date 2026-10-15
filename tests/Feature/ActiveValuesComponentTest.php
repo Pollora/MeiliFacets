@@ -12,6 +12,7 @@ use Modules\MeiliFacets\Enums\Hook;
 use Modules\MeiliFacets\Enums\QueryParameter;
 use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\Listing\FacetValue;
+use Modules\MeiliFacets\Listing\ProductListing;
 use Modules\MeiliFacets\Support\UrlParameters;
 use Modules\MeiliFacets\View\ActiveValue;
 use PHPUnit\Framework\Attributes\Test;
@@ -128,7 +129,7 @@ final class ActiveValuesComponentTest extends TestCase
     {
         $this->assertStringContainsString(
             'class="meilifacetsActiveValues flex"',
-            Blade::render('<x-meilifacets::listing.active-values class="flex" />'),
+            Blade::render('<x-meilifacets::listing.active-values name="products" class="flex" />'),
         );
     }
 
@@ -153,7 +154,7 @@ final class ActiveValuesComponentTest extends TestCase
      */
     private function aValue(): array
     {
-        $listing = $this->app->make(CurrentListing::class)->onlyOne();
+        $listing = $this->app->make(CurrentListing::class)->named(ProductListing::NAME);
 
         foreach ($listing->facets() as $facet) {
             $values = $listing->valuesOf($facet);
@@ -184,6 +185,6 @@ final class ActiveValuesComponentTest extends TestCase
 
     private function renderComponent(): string
     {
-        return Blade::render('<x-meilifacets::listing.active-values />');
+        return Blade::render('<x-meilifacets::listing.active-values name="products" />');
     }
 }

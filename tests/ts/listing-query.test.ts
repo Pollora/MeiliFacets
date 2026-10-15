@@ -149,6 +149,21 @@ describe('ListingQuery', () => {
         assert.equal(build({}).sort, undefined)
     })
 
+    it('follows the listing\'s own order while no sort is chosen and no term is searched', () => {
+        const ordered = { defaultSort: ['post_date:desc'] }
+
+        assert.deepEqual(build({}, ordered).sort, ['post_date:desc'])
+        assert.deepEqual(build({ sort: 'price_asc' }, ordered).sort, ['metas._price:asc'])
+        assert.equal(build({ query: 'creme' }, ordered).sort, undefined)
+        assert.equal(build({}, { ...ordered, baseQuery: 'creme' }).sort, undefined)
+    })
+
+    it('keeps the engine\'s order on a page served before the default sort was described', () => {
+        const older = { defaultSort: undefined } as unknown as Partial<ListingDescription>
+
+        assert.equal(build({}, older).sort, undefined)
+    })
+
     it('restricts the retrieved attributes when the listing names them', () => {
         assert.deepEqual(build({}, { attributes: ['card'] }).attributesToRetrieve, ['card'])
 
@@ -174,7 +189,13 @@ describe('ListingQuery with a sort that filters', () => {
             assert.match(queries[key]?.filter ?? '', / AND price\.onsale = "true"/)
         }
 
-        assert.deepEqual(queries[RESULTS].sort, [])
+        assert.equal(queries[RESULTS].sort, undefined)
+    })
+
+    it('a sort that only filters keeps the listing order', () => {
+        const ordered = { ...promoted, defaultSort: ['post_date:desc'] }
+
+        assert.deepEqual(build({ sort: 'on_sale' }, ordered).sort, ['post_date:desc'])
     })
 
     it('asks the main search what it would keep', () => {
@@ -240,6 +261,7 @@ describe('ListingQuery reading variants', () => {
         distinct: 'parent_id',
         attributes: ['ID', 'card', 'parent_id'],
         sorts: { price_asc: ['in_stock:desc', 'metas._price:asc'] },
+        defaultSort: [],
     }
     const priced = { variantResults, priceFields: { min: 'price.min', max: 'price.max' } }
 
@@ -348,6 +370,12 @@ describe('ListingQuery reading variants', () => {
         assert.deepEqual(results.sort, ['metas._price:asc'])
     })
 
+    it('follows the listing\'s own order on the variants while no sort is chosen', () => {
+        const ordered = { ...priced, variantResults: { ...variantResults, defaultSort: ['menu_order:asc'] } }
+
+        assert.deepEqual(plan({ facets: { pa_size: ['400ml'] } }, ordered)[RESULTS].sort, ['menu_order:asc'])
+    })
+
     it('never reads variants of a listing without a document per variant', () => {
         const unvaried = { priceFields: priced.priceFields }
 
@@ -373,6 +401,7 @@ interface SharedPlanCases {
         filter: string
         searchScope: { filter: string, fields: string[] | null }
         sorts: Record<string, string[]>
+        defaultSort: string[]
         priceFields: { min: string, max: string }
         variantResults: NonNullable<ListingDescription['variantResults']>
     }

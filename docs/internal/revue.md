@@ -3315,6 +3315,265 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
+### R-232 · 🟡 · **fermé le 2026-10-15** · ouvert le 2026-10-15 — un réordonnancement par glisser-déposer ne réindexe pas les produits
+
+**Constat.** Relevé par la revue de `R-229`. `WC_AJAX::product_ordering()` écrit `menu_order` par `$wpdb->update()`
+(`class-wc-ajax.php:2371`, `:2392`) : ni `save_post`, ni écriture de méta, donc aucune réindexation par MeiliScout.
+Avec l'ordre par défaut de `R-229`, la boutique gardait l'ancien ordre jusqu'à la prochaine réindexation complète.
+`woocommerce_after_single_product_ordering` est déclenché pour **chaque** produit du catalogue, déplacé ou non :
+l'écouter réindexerait tout à chaque déplacement.
+
+**Ce qui est fait.** `Indexing\ProductOrderingChanges` : retient chaque article dont le cache est vidé
+(`clean_post_cache`) pendant `wp_ajax_woocommerce_product_ordering` — WooCommerce ne le vide que pour les positions
+modifiées — puis déclenche `meiliscout/reindex_post` pour chacun sur `woocommerce_after_product_ordering`. Même
+chemin que `VariationChanges`. Ligne « Réordonnancement par glisser-déposer » de `decisions.md`.
+
+**Passes.** *Nommage* : `rememberMoved`/`reindexMoved`, sur le modèle de `VariationChanges`. *Lisibilité* : rien.
+*Commentaires* : un, l'anomalie de WooCommerce. *Performance* : un produit réindexé par position modifiée ; le premier
+réordonnancement les modifie toutes (catalogue local : 65 produits, tous à 0). *Sécurité* : rien, la requête AJAX
+vérifie déjà nonce et droits. *Contexte* : sans WooCommerce, l'action AJAX n'existe pas et rien n'est retenu.
+
+**Vérifié** : `ProductOrderingChangesTest` (produits déplacés réindexés une fois l'ordre écrit ; un cache vidé hors
+réordonnancement ne réindexe rien), en échec quand la classe ne retient rien. Requête AJAX rejouée à la main, le
+gestionnaire de WooCommerce décroché le temps du test (il vérifie un nonce puis s'arrête).
+
+**En attente (revue de la PR #15, le 2026-10-15).** Chaque produit déplacé est réindexé un par un pendant la requête
+AJAX. Sur un catalogue encore tout à `menu_order` 0, le premier déplacement les renumérote tous, et la requête peut
+dépasser le délai. Suspendu jusqu'à la nouvelle version de MeiliScout, qui apporte les correctifs (décision de
+l'utilisateur).
+
+### R-231 · 🟠 · **fermé le 2026-10-14** · ouvert le 2026-10-14 — avec deux listings, chaque brique doit se nommer, et les tests du module dépendent de l'hôte
+
+**Constat.** Dès qu'un projet déclare un second listing, tout composant sans `name` lève « Name the listing » : chaque
+brique de chaque gabarit doit répéter le nom de sa racine. *Mesuré le 2026-10-14 sur le projet de test*, au premier
+listing d'articles : 134 tests du module en erreur dans la suite `Modules`, parce qu'ils rendent leurs composants sans
+nom, dans l'application hôte, et supposaient qu'elle ne déclare qu'un listing.
+
+**Ce que la plateforme offre.** Laravel transmet aux composants d'un slot les données du composant qui les entoure
+(`ManagesComponents::getConsumableComponentData()`, le ressort d'`@aware`) ; chaque `ListingComponent` expose déjà son
+`ResolvedListing` en propriété publique `listing`.
+
+**Ce qui est fait.** `ListingComponent` sans `name` lit le `listing` de la racine qui l'entoure, sinon le seul déclaré.
+Les tests du module nomment le listing produits (choix de l'utilisateur, plutôt qu'un trait qui isolerait le registre) ;
+`EnclosingListingTest` couvre la racine, une brique imbriquée, un nom explicite et une brique hors racine, sur un
+registre de deux listings factices remis en place après chaque test — vérifié rouge sans l'héritage. Doc :
+`listing/README.md`, `custom-listing.md`, `reference/components.md`, `errors.md`, `troubleshooting.md`.
+
+**Passes.** *Nommage* : `enclosingOrOnly()` voisine `onlyOne()` ; `ENCLOSING` nomme la propriété lue. *Lisibilité*,
+*sécurité* : rien. *Performance* : une lecture de pile par brique sans nom. *Contexte* : rien de propre à WooCommerce.
+
+**Vérifié** : suite `Modules` 1156 tests, suite du projet 1584 ; boutique, listing d'articles et archive de catégorie du projet de test rendus avec la seule
+racine nommée.
+
+### R-230 · 🟡 · **fermé le 2026-10-14** · ouvert le 2026-10-14 — un listing ne peut pas dessiner ses cartes autrement que les autres
+
+**Constat.** La surcharge de `listing/card.blade.php` sert tous les listings et ne sait pas lequel elle rend ; le
+`<template>` que clone le navigateur est rendu sans données, donc aucun champ ne permet d'aiguiller. Un projet qui liste
+des produits et des articles n'avait pas de moyen de donner à chacun sa carte.
+
+**Ce qui est fait.** Contrat optionnel `CardComponentListing::cardComponent()` ; `Results` rend ce composant, par
+`<x-dynamic-component>`, pour les cartes du serveur et pour le `<template>`, avec `binding` et `priority`
+(`bindingOf()`, `templateBinding()`, `templatePriority()`). Même vocabulaire que `SearchableType::withCard()`.
+Option retenue par l'utilisateur parmi trois (nom du listing transmis à la vue, contexte de page).
+
+**Passes.** *Nommage* : `cardComponent` est le nom validé ; la recherche dit `card` pour la même chose, écart noté sans
+renommage. *Lisibilité*, *sécurité*, *performance* : rien — le nom du composant vient du code du projet, jamais de
+l'URL. *Contexte* : rien.
+
+**Vérifié** : `ResultsComponentTest` (carte du projet au serveur, priorité de chargement comprise, et dans le
+`<template>`) ; listing d'articles du projet de test rendu avec sa carte, cliché à 1920 et 393 px.
+
+**Relecture du 2026-10-15, demandée par l'utilisateur.** `results.blade.php` aiguillait deux fois
+(`@if ($cardComponent === null)`, cartes et `<template>`). `<x-meilifacets::listing.card>` reçoit désormais `binding`
+au lieu de `card`, comme la carte qu'un listing nomme : `ResolvedListing::cardComponent()` rend toujours un nom
+(`ResolvedListing::CARD` par défaut) et la vue n'a plus qu'un `<x-dynamic-component>` par emplacement. Ferme le point
+de `R-203` mis de côté (« `Listing\Card::prepare()`, second constructeur appelé par `CardTemplate` ») : `prepare()`
+disparaît, `CardTemplate` appelle le constructeur parent. Rupture notée dans `upgrading.md` et le CHANGELOG. Au
+passage, `ApplyMode::fromSetting()` remplace le `tryFrom() ?? DEFAULT` que `ProductListing` et le listing d'articles
+du projet de test recopiaient (ce n'est pas une fabrique qui lit la configuration : la valeur arrive toujours par
+`#[Config]`). *Vérifié* : `CardComponentTest`, `ResultsComponentTest`, suite `Modules` 1156 tests, `composer check`
+(typage depuis l'hôte). `card.md` dit que la carte est rendue par `<x-dynamic-component>` et qu'un composant hors du thème
+s'enregistre dans un provider, comme `search/types.md` pour la recherche. *Mesuré le 2026-10-15* (1 000 rendus, carte
+d'article du projet de test) : 0,16 ms par carte en balise directe, 0,24 ms par `<x-dynamic-component>`, soit moins d'une milliseconde
+pour une page de 10 cartes et son `<template>`. Laravel garde déjà en mémoire la classe de chaque composant et écrit
+une seule fois sur disque la vue qu'il génère : aucun cache à ajouter.
+
+### R-229 · 🟠 · **fermé le 2026-10-14** · ouvert le 2026-10-14 — sans tri choisi, un listing sort dans l'ordre d'indexation
+
+**Constat.** Sans paramètre `sort`, ni le serveur (`QueryPlan.php:77-79`) ni le navigateur (`ListingQuery.#sortIn()`)
+n'envoient de tri : sans terme cherché, Meilisearch rend les documents dans leur ordre d'indexation, ID croissant.
+*Mesuré le 2026-10-14 sur le projet de test* : la boutique ouvrait sur les produits 116, 117, 118…, les plus anciens,
+alors que WooCommerce, réglé sur `menu_order`, les aurait montrés par ordre personnalisé puis par titre. Un listing
+d'articles ouvrait de même sur l'article le plus ancien, et aucun listing ne pouvait déclarer un ordre.
+
+**Ce que la plateforme offre.** WooCommerce lit `woocommerce_default_catalog_orderby` (option et filtre) dans
+`WC_Query::get_catalog_ordering_args()` (`class-wc-query.php:688-760`), sous la forme `champ-sens`, et passe à
+`relevance` dès qu'un terme est cherché (`:703`). L'appeler directement poserait des filtres `posts_clauses` sur les
+requêtes suivantes (prix, popularité, note) : la lecture est refaite, sans effet de bord. `menu_order` est déjà dans
+chaque document (`get_object_vars()` dans MeiliScout), mais n'était pas triable ; popularité et note ne sont pas
+triables.
+
+**Ce qui est fait.** Contrat optionnel `DefaultSortedListing::defaultSort()` ; `QueryPlan::sortIn()` et
+`ListingQuery.#sortIn()` l'appliquent sans tri choisi et sans terme cherché, variantes comprises (`variantSort()`) ;
+la description du listing porte `defaultSort` (et `variantResults.defaultSort`), lu avec repli sur une page en cache.
+`ProductListing` l'implémente par `WooCommerceDefaultSort` (`Enums\CatalogOrder`, `Enums\SortDirection`, lecture
+mémorisée) ; une valeur sans équivalent rapporte `CatalogOrderUnsupported`. `menu_order` rejoint les attributs
+triables de `WooCommerceIndexAttributes`. Décision écrite dans `decisions.md` (« Ordre par défaut d'un listing »).
+
+**Recouvrement.** Tranche la question 1 de `R-228` pour l'ordre par défaut : « en stock d'abord » viendra préfixer ces
+expressions. Ouvert alors que `R-227` et `R-228` l'étaient, avec l'accord de l'utilisateur (`D-03`).
+
+**Passes.** *Nommage* : `defaultSort`, `sortIn`, `defaultSortIn` identiques des deux côtés ; `CatalogOrder` reprend
+le terme de WooCommerce (« catalog ordering »), `WooCommerceDefaultSort` voisine `WooCommerceSorts` ; rien à
+renommer. Deux doublons relevés et corrigés : `QueryPlan::SORT_DIRECTION_SEPARATOR` répétait le `:` de
+`SortDirection` (remplacé par `SortDirection::fieldOf()`), et `WooCommerceSorts` écrivait ses expressions en dur. *Lisibilité* : rien. *Commentaires* : un sur le repli
+du client (page en cache), deux sur des règles de WooCommerce. *Performance* : le réglage est lu une fois par requête ;
+un attribut triable de plus, utilisé par toute boutique. *Sécurité* : la valeur lue ne sort que par un enum, jamais
+recopiée dans la requête. *Contexte* : seul `ProductListing`, qui se retire sans WooCommerce, lit le réglage ;
+message du rapport en anglais.
+
+**Vérifié** : `composer check` vert sauf le typage dans le conteneur (binaire TypeScript de l'hôte) — typage, ESLint,
+974 tests du client et `build:check` verts depuis l'hôte ; suite `Modules` 1151 tests ; réindexation (`menu_order`
+dans `sortableAttributes`) ; `/boutique` rendue par ordre personnalisé puis titre, identique à
+`wp post list --orderby=title` ; dans le navigateur, la page 2 envoie `sort: ["menu_order:asc","post_title:asc"]`,
+console vide.
+
+**Relecture du 2026-10-15, demandée par l'utilisateur.** `QueryPlan::defaultSortIn()` : la condition négative combinée
+devient `sortsByDefault()`. `WooCommerceDefaultSort` : le découpage `champ-sens` sort de `read()` (`orderByIn()`,
+`directionIn()`, `partsOf()`), et la valeur par défaut est lue sur `CatalogOrder::MenuOrder` au lieu d'une constante
+qui la recopiait. Lignes de plus de 120 caractères repliées (`CatalogOrder`, `WooCommerceSorts`). Comportement
+inchangé : `WooCommerceDefaultSortTest`, `QueryPlanTest` et les cas partagés passent sans modification.
+
+**Seconde revue du 2026-10-15.** Sous une facette de variation, l'ordre personnalisé lisait le `menu_order` des
+variations (leur rang parmi les variations du produit) : `QueryPlan::variantSort()` le retire, les produits suivent
+leur titre (option validée par l'utilisateur, sans champ indexé de plus). Cas partagés mis à jour (deux plans
+variante, `variantResults.defaultSort`) et `VariantPlanCasesTest` vérifie désormais l'ordre par défaut décrit. Doc :
+l'ordre sous une facette de variation et sous un tri qui filtre (« En promotion »), le filtre
+`woocommerce_default_catalog_orderby` dans `wordpress-hooks.md`. Le réordonnancement par glisser-déposer est traité
+à part (`R-232`).
+
+**Revue de la PR #15, le 2026-10-15.** Quinze constats, revérifiés un à un.
+- *Variantes* : le retrait de `menu_order` reposait sur une hypothèse fausse. Mesuré : `125-0` porte `menu_order: 0`
+  comme le produit 125, alors que ses variations 336 et 337 ont 1 et 2 dans WordPress. `withoutVariantRank()` est
+  supprimé et l'ordre par défaut s'applique sous une facette de variation (cas partagés mis à jour).
+- *Tri qui filtre* : il suit désormais l'ordre par défaut des deux côtés (`Sort::isOrdering()`,
+  `QueryPlan::chosenSort()`, `ListingQuery.#sortIn()`). Les deux plans ont la même forme.
+- *Popularité et note* : retirées du Customizer (`CatalogOrderChoices`) au lieu d'un rapport à chaque requête ;
+  `CatalogOrderUnsupported` supprimé. La lecture du réglage passe dans `CatalogOrderSetting`, découpée comme
+  WooCommerce la découpe. *Relecture du 2026-10-15* : la forme tableau qu'un filtre pourrait renvoyer n'est plus lue,
+  car aucun site ne l'utilise ; `$field` devient `$orderBy`, le mot de WooCommerce (`field` désigne un champ de l'index
+  dans le module) ; le verbe « suivre » de la doc remplace « reproduire » (`listingCanFollow()`,
+  `CatalogOrderChoices::onlyFollowable()`).
+- *Autres corrections* :
+  - `ProductOrderingChanges` est déclaré en singleton ;
+  - la clé de l'héritage du listing devient `meilifacetsListing`, pour qu'un composant anonyme du thème portant
+    `listing` ne masque plus la racine (`EnclosingListingTest`, rouge avec l'ancienne clé) ;
+  - `WooCommerceSorts` reprend les expressions de `CatalogOrder` ;
+  - `in_stock:desc` passe par `SortDirection` ;
+  - `defaultSort` devient optionnel dans `description.ts` ;
+  - un `null` n'est plus utilisé comme clé de tableau.
+- *Non retenu* : `modified` et `id` (champs non triables, sans demande) et le départage par ID des dates égales,
+  documentés.
+- *Contrat* : `Contract::VERSION` reste à 1. La description ne change pas de forme et `defaultSort` est lu avec repli.
+
+**Seconde revue de la PR #15, le 2026-10-15.** Douze constats, revérifiés un à un. Le seul site qui utilise le
+module, Pluralia, n'en touche aucun : réglage `menu_order`, aucune copie de `results.blade.php`, aucun filtre de tri.
+- *Corrigés* :
+  - `defaultSort()` est renvoyé sous forme de liste (`array_values()`, serveur et description) ;
+  - `ResultsComponentTest` remet en place les alias Blade qu'il ajoute ;
+  - `CardTemplate` est supprimé, le modèle étant `listing.card` avec `CardBinding::template()`.
+- *Doc* :
+  - une carte de listing déclare `binding` et `priority` ;
+  - une ancienne copie de `results.blade.php` échoue (rupture assumée en pré-version, sans code de compatibilité) ;
+  - « En promotion » suit l'ordre par défaut ;
+  - la clé `meilifacetsListing` ;
+  - une racine placée dans la vue d'un autre composant de listing nomme ses briques, car Laravel lit d'abord les
+    données de ce composant.
+- *Non retenu* :
+  - un réglage « popularité » déjà en base : aucun site ne l'a ;
+  - les cas limites de lecture du réglage : seul un filtre de code y mène ;
+  - l'enum des hooks MeiliScout : hors sujet.
+  - Le délai du glisser-déposer reste suspendu (`R-232`).
+
+**Revue des six passes, le 2026-10-15.** Ni défaut de comportement, ni coût de performance nouveau. Retouches faites
+avant la fusion :
+- `DefaultSortChoices` devient `CatalogOrderChoices`, pour rejoindre `CatalogOrder` et ne plus se confondre avec
+  `View\SortChoices` ;
+- « aucun tri » s'écrit `[]` partout dans `QueryPlan` (l'aller-retour `null` ↔ `[]` est supprimé) ;
+- le test client du tri qui filtre porte le nom de son jumeau PHP.
+- *Plus tard* : `Results::bindingOf()` → `binding()`, `ResolvedListing::CARD`, le test du Customizer dans sa propre
+  classe, une seule source pour l'ordre par défaut, le format des expressions de tri hors de `SortDirection`,
+  `QueryPlan` instanciable (`R-01` / `T-28`).
+
+### R-228 · 🟡 · **ouvert le 2026-10-09** — le listing ne range les produits en stock d'abord que sous un tri par prix filtré par variante
+
+**Constat.** Le module ne met les produits en stock en tête que dans un cas : un tri par prix pendant qu'une facette
+d'attribut de variation est cochée (`QueryPlan::variantSort()`, `app/Search/QueryPlan.php:135`). Ce tri est là pour que
+la grille suive la carte (décision « Produits variables », amendement du 2026-10-05). Ailleurs, un produit en rupture
+garde sa place. Sans tri choisi, aucun `sort` n'est envoyé (`QueryPlan.php:79`) : l'ordre est celui de la pertinence ou
+de l'index. Sous « Nouveautés », ou sous un tri par prix sans facette de variation, la rupture n'a aucun effet.
+Exemple : sous « Prix croissant », un produit en rupture à 12 € passe avant un produit en stock à 15 €.
+
+**Ce que la plateforme offre.** WooCommerce n'a aucun ordre par stock. Ses ordres sont `menu_order`, `title`,
+`relevance`, `rand`, `date`, `price`, `popularity` et `rating` (`class-wc-query.php:729-758`). Il sait seulement
+masquer les ruptures (`woocommerce_hide_out_of_stock_items`, `:931`). L'index porte déjà `in_stock` (0/1) sur chaque
+document, et ce champ est déclaré triable (`WooCommerceIndexAttributes::sortable()`, `:40`) : il n'y a ni réindexation
+ni réglage d'index à prévoir.
+
+**Ce que ça touche.** La disponibilité est différée par `D-f` (`prix.md:504`), mais comme facette ; un ordre de tri
+n'en fait pas partie. Rouvrir `D-f` n'est donc pas nécessaire : il suffit de l'élargir, à valider.
+
+**Questions à trancher avant tout code.**
+1. *Portée* : chaque tri du listing, l'ordre par défaut compris (sans tri choisi), ou seulement les tris déclarés ? Un
+   tri « filtrant » (`on_sale`) n'a pas d'expression à préfixer.
+2. *Activation* : une règle fixe du module, ou un réglage (`meilifacets.in_stock_first`, avec sa valeur par défaut là
+   où il est lu) ? Une clé de config se décide avec l'utilisateur (`CLAUDE.md` § 6).
+3. *Pertinence* : sous une recherche texte, faut-il que le stock passe avant la pertinence ? Placé dans `sort`, il ne
+   le fait pas. *Mesuré le 2026-10-09* sur l'index local (Meilisearch 1.53.1). Ni le module ni MeiliScout ne règlent
+   `rankingRules`. L'index garde l'ordre par défaut : `words`, `typo`, `proximity`, `attributeRank`, `sort`,
+   `wordPosition`, `exactness`. Le stock ne départage donc que des résultats à égalité sur les quatre premières règles.
+   Sous `q=creme` avec `in_stock:desc`, le 121 (en rupture) passe après le 122 (en stock), mais seulement parce que
+   les deux sont à `attributeRank` 0,214. Les quatre produits à 1,0 restent devant, en stock ou non. Faire passer le
+   stock avant la pertinence demanderait de déplacer `sort` dans `rankingRules`, réglage de tout l'index, écarté.
+   Sans recherche texte, tous les documents sont à égalité et le stock range toute la liste.
+   *Mesuré aussi* : un document sans `in_stock` passe **après** les ruptures. Les cinq résidus de test `plutest-*` de
+   l'index local en sont la preuve. Un produit indexé avant l'ajout du champ serait donc rangé derrière les ruptures
+   jusqu'à sa réindexation.
+4. *Twin client* : vérifier que le navigateur reçoit les expressions de tri du serveur et ne les recompose pas.
+   Sinon, il faut une règle jumelle et un cas partagé.
+
+**Piste.** Généraliser `variantSort()` en une règle unique appliquée par `QueryPlan` à toute requête de résultats :
+`in_stock:desc` en tête des expressions, ou seul quand aucun tri n'est choisi. La règle se désactive par la réponse à
+la question 2. `Contract::VERSION` et les URL indexées restent inchangés. `dist/` est à republier si le client est
+touché.
+
+**À vérifier.** Un test du plan : rupture en fin de liste sous chaque tri, et sans tri ; réglage désactivé, ordre
+inchangé. Page boutique : un produit en rupture passe après les produits en stock.
+
+**En attente** : `R-227` est encore ouvert (`D-03`).
+
+### R-227 · 🟡 · **ouvert le 2026-10-09** — une carte rendue hors listing est signalée comme orpheline
+
+**Constat.** Sur la page catégorie Sérums du projet de test, la console affiche
+`[meilifacets] the client binds inside [data-listing] only. Move inside <x-meilifacets::listing> : image, url, price.`
+Le contenu de la catégorie contient un bloc de sélection de produits du projet de test, qui rend quatre cartes avec la vue de carte du
+thème, hors du listing. `CardHooks` pose toujours `data-meili="url|image|price"` (et `title`/`summary`) sur une carte,
+où qu'elle soit rendue. `Contract.orphans()` (`ts/shared/contract.ts:42-50`) nomme tout crochet du listing hors d'une
+racine `[data-listing]`. Le message n'empêche rien de fonctionner : c'est une fausse alerte.
+
+Une carte hors listing n'est pas une faute : le client ne relie jamais une carte rendue (`R-207`, `decisions.md:27`)
+et ces crochets servent d'ancres, jamais de source (`decisions.md:701-702`). `R-94` visait un composant égaré
+(`facet`, `configuration.md:1223`), pas une carte.
+
+**Correction proposée.** `Contract.orphans()` écarte les crochets de champ de carte, avec la liste portée par
+`RootComponent` et son pendant PHP dans `Hook`, tenus égaux par `ContractParityTest`. Tout autre crochet reste nommé.
+Rejeté : conditionner `CardHooks` au contexte, car le serveur ne sait pas qu'une carte est dans un listing (Blade
+évalue le `$slot` avant le composant, `R-94`), et `Search/Card.php` s'en sert aussi. Ni `Contract::VERSION` ni URL
+indexée touchés ; `dist/` à republier.
+
+**À vérifier.** Un test client : `facet` hors racine toujours nommé, une carte seule hors racine plus nommée. Page
+Sérums sans erreur console. `architecture.md:680` à compléter.
+
 ### R-226 · ⚪ · **fermé le 2026-10-09** · ouvert le 2026-10-09 — plancher Pollora à 13.35.3, pour le signalement des mises à jour
 
 **Constat.** Pollora 13.35.3 (2026-10-09) signale qu'un module installé par Composer a une version plus récente. Il lit
@@ -4697,7 +4956,8 @@ de l'`alt` de la carte de listing par défaut fait lire le nom deux fois (image 
 amende la décision « Résultats de recherche hors de l'ordre de tabulation » (`R-196`).
 
 Mis de côté par Louis, à traiter ensemble : `Listing\Card::prepare()`, second constructeur appelé par `CardTemplate`
-(correction minimale : un constructeur `CardBinding|array`, gain de lisibilité seulement) ; le lien, l'image, le titre
+(correction minimale : un constructeur `CardBinding|array`, gain de lisibilité seulement ; *réglé le 2026-10-15 par
+`R-230`* : la carte prend `binding`, `prepare()` disparaît) ; le lien, l'image, le titre
 et le prix que la carte prépare alors qu'une vue surchargée les ignore (16 cartes sur une page de listing).
 
 Refusé : « un `<a>` sans `href` quand une carte n'a pas d'`url` ». Le projecteur par défaut pose toujours `url`
@@ -5347,7 +5607,7 @@ namespace. Crochets `data-meili` et `Contract::VERSION` inchangés.
 **Vérifié.** `ComponentFoldersTest` : résolution (classe de dossier, classe au nom réservé, vue anonyme), anciens noms et
 `search.empty` refusés, rendu par les nouveaux noms, surcharge du thème à `components/search/card.blade.php` prise (le
 crochet réel du provider, seul, sur un thème temporaire). HTML de `/`, `/boutique`, `/categorie-produit/visage`,
-`/journal`, `/?s=creme&post_type=product` identique avant/après, jetons Gravity Forms et `?ver=` de WP Rocket neutralisés.
+la page des articles, `/?s=creme&post_type=product` identique avant/après, jetons Gravity Forms et `?ver=` de WP Rocket neutralisés.
 Recette navigateur : recherche de l'en-tête à 1440 et 393, filtres, tri et tiroir de `/boutique`, console vide.
 
 ### R-193 · 🟡 · ouvert (en attente de commit) · ouvert le 2026-09-29 — les résultats clignotaient en bloc à chaque lettre
@@ -5545,7 +5805,7 @@ deux feuilles (+ aucun `display: contents`).
 **Vérifié dans Playwright** (Chromium, accueil, clé publique, caches vidés, `module:publish` sans orpheline, aucun
 `public/*.hot`). **1440 px** : loupe → panneau ouvert sous la barre (y = 80 = bas de l'en-tête, pleine largeur),
 focus dans le champ, `aria-expanded="true"`, `--meili-search-room` 820px ; « ser » → Produits 1 résultat, Articles
-1 résultat (le moteur n'en trouve pas plus : ≤ 4 tenu), liens `/boutique` et `/journal`, annonce « Produits : 1 résultat
+1 résultat (le moteur n'en trouve pas plus : ≤ 4 tenu), liens `/boutique` et la page des articles, annonce « Produits : 1 résultat
 et Articles : 1 résultat » ; « zzzz » → « Aucun élément ne correspond à votre recherche » ; Échap → fermé, focus sur la
 loupe, terme gardé ; clic extérieur → fermé ; Entrée sans option → URL inchangée ; ↓ + Entrée →
 `/produit/serum-visage` ; page non verrouillée. **393 px** : panneau y = 72, 393 × 780 (toute la hauteur
@@ -5864,9 +6124,9 @@ S-19, S-21) ; suit `R-187`. Rien n'est commité, réindexé ni écrit en base ou
 `CurrentListing` passe dans `named()` (message désormais « Declared: a, b. »). `Preconnect` ne recopie plus
 l'expression « configurée ? origine : '' ». Thème et plugin d'expéditions du projet : aucune référence (`grep`).
 
-**Vérifié.** Avant toute modification, `/`, `/boutique`, `/journal`, `/?s=creme&post_type=product` et
+**Vérifié.** Avant toute modification, `/`, `/boutique`, la page des articles, `/?s=creme&post_type=product` et
 `/categorie-produit/visage` capturés ; après (`discovery:clear`, `view:clear`), les trois pages de listing sont
-**identiques à l'octet**, `/` et `/journal` ne diffèrent que par les jetons chiffrés de Gravity Forms (aléatoires
+**identiques à l'octet**, `/` et la page des articles ne diffèrent que par les jetons chiffrés de Gravity Forms (aléatoires
 à chaque requête, 4 lignes chacun) ; tous en 200. `rocket_delay_js_exclusions` identique :
 `["modules/meilifacets/dist/listing.js"]`.
 
@@ -5962,8 +6222,8 @@ quatre tests qui l'instancient passent la dépendance. `DefaultSearchableAttribu
 `post, product` ; **`page` n'est pas indexée** (publique, non `exclude_from_search`) : elle n'entre pas, elle
 entrerait dès que MeiliScout l'indexerait. Types acceptés : `product` → « Produits », « Tous les produits »,
 `/boutique`, `post_title, labels.product_brand, labels.product_cat, metas._sku`, filtre `exclude-from-search` ;
-`post` → « Articles », « Tous les articles », `/journal`, `post_title, labels.category, labels.post_tag,
-labels.post_format, labels.post_kind, excerpt`. `/`, `/boutique`, `/journal`, `/?s=creme&post_type=product` : 200.
+`post` → « Articles », « Tous les articles », la page des articles, `post_title, labels.category, labels.post_tag,
+labels.post_format, labels.post_kind, excerpt`. `/`, `/boutique`, la page des articles, `/?s=creme&post_type=product` : 200.
 
 **Tests.** Feature `SearchableTypesTest` (17) : défaut WordPress sans `product` même indexé ; `withSearchOn(['url'])`
 d'un décorateur refusé en nommant `post` et `url` ; liaison par défaut ; CPT indexé, public et cherchable déclaré sans

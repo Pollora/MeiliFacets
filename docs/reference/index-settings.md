@@ -27,7 +27,7 @@ own. Settings are named by `Enums\IndexSetting`, `Enums\FacetingSetting`, `Enums
 | Setting | Value written | Comes from | Explained in |
 | --- | --- | --- | --- |
 | `filterableAttributes` | MeiliScout's own, plus `facets.<taxonomy>` for every taxonomy of an indexed post type, plus `ID` and `parent_id`, plus `IndexAttributes::filterable()`: `metas._price`, `metas._stock_status`, `price.min`, `price.max`, `price.onsale`, `document_kind` with WooCommerce | MeiliScout, `IndexAttributes` | [What gets indexed](../indexing/README.md) |
-| `sortableAttributes` | MeiliScout's own, plus `IndexAttributes::sortable()`: `price.min`, `price.max`, `in_stock` with WooCommerce | MeiliScout, `IndexAttributes` | [Sorting](../listing/results-sort-pagination.md) |
+| `sortableAttributes` | MeiliScout's own, plus `IndexAttributes::sortable()`: `price.min`, `price.max`, `in_stock` and `menu_order` with WooCommerce | MeiliScout, `IndexAttributes` | [Sorting](../listing/results-sort-pagination.md) |
 | `displayedAttributes` | `ID`, `card` and `parent_id`, plus `IndexAttributes::displayed()` and `displayed_attributes`; `["*"]` when either holds `*` | `IndexAttributes`, configuration | [What gets indexed](../indexing/README.md) |
 | `faceting.sortFacetValuesBy` | `{"*": "count"}` | fixed | [Facets](../listing/facets.md) |
 | `faceting.maxValuesPerFacet` | `engine.max_facet_values` (`1000`) | configuration | [Facets](../listing/facets.md) |

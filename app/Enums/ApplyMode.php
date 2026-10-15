@@ -14,6 +14,11 @@ enum ApplyMode: string
 
     public const self DEFAULT = self::OnSubmit;
 
+    public static function fromSetting(string $setting): self
+    {
+        return self::tryFrom($setting) ?? self::DEFAULT;
+    }
+
     public function needsButton(): bool
     {
         return $this === self::OnSubmit;

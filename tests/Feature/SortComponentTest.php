@@ -9,6 +9,7 @@ use Dom\HTMLDocument;
 use Illuminate\Support\Facades\Blade;
 use Modules\MeiliFacets\Contracts\SearchEngine;
 use Modules\MeiliFacets\Listing\CurrentListing;
+use Modules\MeiliFacets\Listing\ProductListing;
 use Modules\MeiliFacets\Listing\ResolvedListing;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeSearchEngine;
 use PHPUnit\Framework\Attributes\Test;
@@ -69,7 +70,7 @@ final class SortComponentTest extends TestCase
     {
         $this->expectExceptionMessageMatches('/The sort of listing "[^"]+" is rendered twice/');
 
-        Blade::render('<x-meilifacets::listing.sort /><x-meilifacets::listing.sort />');
+        Blade::render('<x-meilifacets::listing.sort name="products" /><x-meilifacets::listing.sort name="products" />');
     }
 
     private function promotions(int $onSale): Element
@@ -79,7 +80,7 @@ final class SortComponentTest extends TestCase
         ]));
         $this->app->forgetScopedInstances();
 
-        $markup = Blade::render('<x-meilifacets::listing.sort />');
+        $markup = Blade::render('<x-meilifacets::listing.sort name="products" />');
         $option = HTMLDocument::createFromString('<div>'.$markup.'</div>', LIBXML_NOERROR)
             ->querySelector('[data-value="'.self::PROMOTIONS.'"]');
 
@@ -90,6 +91,6 @@ final class SortComponentTest extends TestCase
 
     private function listing(): ResolvedListing
     {
-        return $this->app->make(CurrentListing::class)->onlyOne();
+        return $this->app->make(CurrentListing::class)->named(ProductListing::NAME);
     }
 }

@@ -7,6 +7,7 @@ namespace Modules\MeiliFacets\Tests\Feature;
 use Closure;
 use Modules\MeiliFacets\Enums\ScriptModule;
 use Modules\MeiliFacets\Listing\CurrentListing;
+use Modules\MeiliFacets\Listing\ProductListing;
 use Modules\MeiliFacets\Search\BrowserConnection;
 use Modules\MeiliFacets\View\ClientScript;
 use Modules\MeiliFacets\View\ListingDescription;
@@ -66,7 +67,7 @@ final class ClientScriptTest extends TestCase
     #[Test]
     public function it_publishes_the_listing_exactly_as_before_the_extraction(): void
     {
-        $listing = $this->app->make(CurrentListing::class)->onlyOne();
+        $listing = $this->app->make(CurrentListing::class)->named(ProductListing::NAME);
 
         $this->printedModules($this->requireTheListing(...));
 
@@ -172,7 +173,7 @@ final class ClientScriptTest extends TestCase
 
     private function requireTheListing(): void
     {
-        $listing = $this->app->make(CurrentListing::class)->onlyOne();
+        $listing = $this->app->make(CurrentListing::class)->named(ProductListing::NAME);
         $description = $this->app->make(ListingDescription::class);
 
         $this->script()->require(ScriptModule::Listing, $listing->name(), fn (): array => $description->of($listing));

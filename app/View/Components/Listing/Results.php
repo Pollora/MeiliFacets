@@ -9,6 +9,7 @@ use Modules\MeiliFacets\Enums\ImagePriority;
 use Modules\MeiliFacets\Http\IndexingPolicy;
 use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\Seo\ItemList;
+use Modules\MeiliFacets\View\CardBinding;
 use Modules\MeiliFacets\View\CardSettings;
 use Modules\MeiliFacets\View\Components\ListingComponent;
 
@@ -20,6 +21,8 @@ final class Results extends ListingComponent
     /** Null on a page search engines are told to skip: nothing structured to publish. */
     public ?ItemList $items;
 
+    public string $cardComponent;
+
     public function __construct(
         CurrentListing $listings,
         IndexingPolicy $indexing,
@@ -29,6 +32,7 @@ final class Results extends ListingComponent
         parent::__construct($listings, $name);
 
         $this->cards = $this->listing->cards();
+        $this->cardComponent = $this->listing->cardComponent();
         $this->items = $indexing->isSecondaryView()
             ? null
             : new ItemList($this->listing->projectedCards(), $this->listing->offset());
@@ -37,6 +41,24 @@ final class Results extends ListingComponent
     public function priority(int $rank): ImagePriority
     {
         return ImagePriority::forRank($rank, $this->cardSettings->eager);
+    }
+
+    /**
+     * @param  array<string, mixed>  $card
+     */
+    public function bindingOf(array $card): CardBinding
+    {
+        return CardBinding::of($card);
+    }
+
+    public function templateBinding(): CardBinding
+    {
+        return CardBinding::template();
+    }
+
+    public function templatePriority(): ImagePriority
+    {
+        return ImagePriority::Lazy;
     }
 
     public function render(): View

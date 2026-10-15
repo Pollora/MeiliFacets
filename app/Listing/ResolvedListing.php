@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Listing;
 
+use Modules\MeiliFacets\Contracts\CardComponentListing;
+use Modules\MeiliFacets\Contracts\DefaultSortedListing;
 use Modules\MeiliFacets\Contracts\Listing;
 use Modules\MeiliFacets\Contracts\Placeable;
 use Modules\MeiliFacets\Contracts\VariantScopedListing;
@@ -21,6 +23,8 @@ use RuntimeException;
 
 final class ResolvedListing
 {
+    public const string CARD = 'meilifacets::listing.card';
+
     private ?ListingResults $results = null;
 
     /** @var list<array<string, mixed>>|null */
@@ -423,6 +427,19 @@ final class ResolvedListing
     public function sorts(): array
     {
         return $this->sorts ??= $this->listing->sorts();
+    }
+
+    public function cardComponent(): string
+    {
+        return $this->listing instanceof CardComponentListing ? $this->listing->cardComponent() : self::CARD;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function defaultSort(): array
+    {
+        return $this->listing instanceof DefaultSortedListing ? array_values($this->listing->defaultSort()) : [];
     }
 
     public function currentSort(): ?string

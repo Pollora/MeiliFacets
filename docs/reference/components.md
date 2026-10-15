@@ -31,7 +31,6 @@ overridden from `<theme>/resources/views/modules/meilifacets/` under the same pa
 | `<x-meilifacets::listing>` | `Listing` | `components/listing.blade.php` | [How a listing works](../listing/README.md) |
 | `<x-meilifacets::listing.results>` | `Listing\Results` | `components/listing/results.blade.php` | [Results](../listing/results-sort-pagination.md) |
 | `<x-meilifacets::listing.card>` | `Listing\Card` | `components/listing/card.blade.php` | [Results](../listing/results-sort-pagination.md) |
-| `<x-meilifacets::listing.card-template>` | `Listing\CardTemplate` | `components/listing/card.blade.php` | [Results](../listing/results-sort-pagination.md) |
 | `<x-meilifacets::listing.facets>` | `Listing\Facets` | `components/listing/facets.blade.php` | [Facets](../listing/facets.md) |
 | `<x-meilifacets::listing.facet>` | `Listing\Facet` | `components/listing/facet.blade.php` | [Facets](../listing/facets.md) |
 | `<x-meilifacets::listing.price>` | `Listing\Price` | `components/listing/price.blade.php` | [Price filter](../listing/price.md) |
@@ -63,7 +62,7 @@ overridden from `<theme>/resources/views/modules/meilifacets/` under the same pa
 
 | Rule | Applies to | Detail |
 | --- | --- | --- |
-| `name` | every listing component except `listing.card`, `listing.card-template` and `listing.unavailable` | `string`, default `''`: the only listing declared on the site. With none or several declared, an empty `name` throws (see [errors](errors.md#listing-and-search-names)). |
+| `name` | every listing component except `listing.card` and `listing.unavailable` | `string`, default `''`: the listing of the `<x-meilifacets::listing>` root around the component, else the only listing declared on the site. Outside a root, with none or several declared, an empty `name` throws (see [errors](errors.md#listing-and-search-names)). A root written inside the view of another listing component (a copied `listing/drawer.blade.php`, say) names its components: Laravel answers with the enclosing component's own data first. |
 | `name` | `search.toggle`, `search.panel`, `search.input`, `search.section` | `string`, default `''`: the only `<x-meilifacets::search>` rendered so far on the page. |
 | `scroll` | `listing.facets`, `listing.facet`, `listing.price`, `listing.sort`, `listing.pagination`, `listing.reset` | `bool`, default `false`. Renders `data-meili-scroll`: a pointer click on a control inside brings the top of the listing back into view. See [hooks](hooks.md#version-and-scroll-attributes). |
 | Attribute bag | per component, column “Bag lands on” | Attributes the class does not declare (`class`, `id`, `data-*`…) are merged on that element. “Nowhere” means they are dropped without a message. |
@@ -107,7 +106,7 @@ One result card, rendered on the server. The same view serves the card template.
 
 | Attribute | Type | Default | Values |
 | --- | --- | --- | --- |
-| `card` | `array<string, mixed>` | required | the `card` field of a document (see [index settings](index-settings.md#card-fields)) |
+| `binding` | `CardBinding` | required | `CardBinding::of($card)`, `$card` being the `card` field of a document (see [index settings](index-settings.md#card-fields)) |
 | `heading` | `HeadingLevel` or `string` | `h3` | `h2`, `h3`, `h4`, `h5`, `h6` |
 | `priority` | `ImagePriority` | `ImagePriority::Lazy` | `ImagePriority::Eager`, `ImagePriority::Lazy`; bind it (`:priority`), no string form |
 
@@ -118,21 +117,6 @@ One result card, rendered on the server. The same view serves the card template.
 The view receives `$binding` (a `CardBinding`: `text()`, `price()`, `attributes()`, `classes()`, `classList()`,
 `onlyWith()`, `onlyWithout()`), `$link`, `$image`, `$title`, `$price`, `$heading` and `$priority`. An image, title or
 price the card does not hold is not rendered. See [Overriding views](../customising/views.md).
-
-### `<x-meilifacets::listing.card-template>`
-
-The card written with binding attributes (`data-meili-text`, `data-meili-attr`, `data-meili-class`,
-`data-meili-class-list`, `data-meili-if`) and no values, which the client copies for every hit. A card the server
-renders with its values carries none of them. `<x-meilifacets::listing.results>` renders it inside its `<template>`. It
-renders `listing/card.blade.php`: overriding the card overrides both.
-
-| Attribute | Type | Default | Values |
-| --- | --- | --- | --- |
-| `heading` | `HeadingLevel` or `string` | `h3` | `h2` to `h6` |
-
-| Slots | Bag lands on | Hooks rendered |
-| --- | --- | --- |
-| none | `<article>` | `url`, `image`, `title`, `price` |
 
 ### `<x-meilifacets::listing.facets>`
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Listing;
 
 use Illuminate\Container\Attributes\Config;
+use Modules\MeiliFacets\Contracts\DefaultSortedListing;
 use Modules\MeiliFacets\Contracts\Placeable;
 use Modules\MeiliFacets\Contracts\ProductFacets;
 use Modules\MeiliFacets\Contracts\ProductSorts;
@@ -19,7 +20,7 @@ use Modules\MeiliFacets\SiteSearch\SearchableType;
 use Modules\MeiliFacets\Support\WooCommerce;
 use WP_Term;
 
-final readonly class ProductListing implements VariantScopedListing
+final readonly class ProductListing implements DefaultSortedListing, VariantScopedListing
 {
     public const string NAME = 'products';
 
@@ -33,9 +34,10 @@ final readonly class ProductListing implements VariantScopedListing
         private ProductSorts $sorts,
         private SearchableTypes $searchableTypes,
         private VariationTaxonomies $variationTaxonomies,
+        private WooCommerceDefaultSort $defaultSort,
         #[Config('meilifacets.apply_mode', ApplyMode::DEFAULT->value)] string $applyMode = ApplyMode::DEFAULT->value,
     ) {
-        $this->applyMode = ApplyMode::tryFrom($applyMode) ?? ApplyMode::DEFAULT;
+        $this->applyMode = ApplyMode::fromSetting($applyMode);
 
         if (! WooCommerce::isActive()) {
             throw new ListingUnavailable('WooCommerce is not active: there are no products to list.');
@@ -76,6 +78,11 @@ final readonly class ProductListing implements VariantScopedListing
     private function isOfferedWithoutPrice(Sort $sort): bool
     {
         return ! $sort->filtersOn(PriceField::OnSale->path());
+    }
+
+    public function defaultSort(): array
+    {
+        return $this->defaultSort->expressions();
     }
 
     public function baseFilter(): array

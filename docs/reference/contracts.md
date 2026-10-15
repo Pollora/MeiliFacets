@@ -60,6 +60,8 @@ final class SearchServiceProvider extends ServiceProvider
 | `SearchableTypes` | `SiteSearch\WooCommerceSearchableTypes`: products first when WooCommerce is active and products are searchable, then `WordPressSearchableTypes` | `scopedIf` | `scoped`, decorating the default | [Searchable types](../search/types.md) |
 | `Listing` | `Listing\ProductListing`, named `products`; refuses itself without WooCommerce | discovered | implement it in a class Pollora discovers (`app/`, or a module's `app/`) | [Listing other content](../listing/custom-listing.md) |
 | `SearchScopedListing` | — | discovered | implement it instead of `Listing` | [Listing other content](../listing/custom-listing.md) |
+| `CardComponentListing` | — | discovered | implement it alongside your listing's contract to draw its results with a card of your own | [The card](../customising/card.md#a-card-per-listing) |
+| `DefaultSortedListing` | `Listing\ProductListing` | discovered | implement it alongside your listing's contract to order its items while no sort is chosen | [Listing other content](../listing/custom-listing.md#a-default-order) |
 | `VariantScopedListing` | `Listing\ProductListing` | discovered | implement it instead of `SearchScopedListing` for items with a document per variant | [Card variants](../customising/card.md#card-variants) |
 | `ValueOrder` | none bound; `Listing\NameOrder` is provided (bound `scoped`, collates by the site language) | pass it to a `Facet` | implement it | [Facets](../listing/facets.md) |
 | `ValuePresentation` | `Enums\Presentation` (`control`, `pill`) | pass it to a `Facet` or a component | implement it, as an enum | [Facets](../listing/facets.md) |
@@ -84,6 +86,8 @@ final class SearchServiceProvider extends ServiceProvider
 | `SearchableTypes` | `all(): array<string, SearchableType>`, keyed by post type |
 | `Listing` | `name(): string`, `facets(): list<Facet>`, `filters(): list<Placeable>`, `sorts(): array<string, Sort>`, `baseFilter(): list<string>`, `baseQuery(): string`, `perPage(): int`, `applyMode(): ApplyMode` |
 | `SearchScopedListing` | the `Listing` methods, plus `searchScope(): SearchScope`: filter and fields used once a term is typed |
+| `CardComponentListing` | the `Listing` methods, plus `cardComponent(): string`: the Blade component that draws the listing's cards, given `binding` and `priority` |
+| `DefaultSortedListing` | the `Listing` methods, plus `defaultSort(): list<string>`: the sort expressions used while no sort is chosen and no term is searched; an empty list keeps the engine's order |
 | `VariantScopedListing` | the `SearchScopedListing` methods, plus `variantTaxonomies(): list<string>`, `variantFilter(): list<string>` and `variantSearchScope(): SearchScope`: what a filter on a variation attribute reads on the variant documents |
 | `ValueOrder` | `compare(FacetValue $first, FacetValue $second): int` |
 | `ValuePresentation` | `slug(): string` (the `data-presentation` value), `allowsSingleSelection(): bool` |

@@ -134,8 +134,8 @@ Each gesture is a request from the browser to the engine; nothing is submitted t
 is a real form, so it works without JavaScript.
 
 **Can I have two listings on one page?**
-Yes, if each one is declared with its own name and every component names its listing. See
-[Listing other content](listing/custom-listing.md#two-listings-on-one-page).
+Yes, if each one is declared with its own name and each root names its listing; a component outside a root names its
+own. See [Listing other content](listing/custom-listing.md#two-listings-on-one-page).
 
 **Can I change the `48em` breakpoint?**
 Yes, but the stylesheets write it in their media queries: redeclare the rules concerned in the theme, and pass the

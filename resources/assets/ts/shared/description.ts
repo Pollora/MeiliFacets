@@ -67,6 +67,8 @@ export interface VariantResultsDescription {
     attributes: string[]
     /** key to engine sort expressions, the stock first under a price sort */
     sorts: Record<string, string[]>
+    /** the listing's order while no sort is chosen and no term is searched; empty keeps the engine's */
+    defaultSort?: string[]
 }
 
 export interface ListingDescription {
@@ -87,6 +89,8 @@ export interface ListingDescription {
     variantResults: VariantResultsDescription | null
     /** key to engine sort expressions */
     sorts: Record<string, string[]>
+    /** the listing's order while no sort is chosen and no term is searched; empty keeps the engine's */
+    defaultSort?: string[]
     /** sort key to the filter it carries */
     sortFilters: Readonly<Record<string, SortFilterDescription>>
     /** taxonomy to URL parameter */

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Tests\Unit\Doubles;
 
+use Modules\MeiliFacets\Contracts\DefaultSortedListing;
 use Modules\MeiliFacets\Contracts\VariantScopedListing;
 use Modules\MeiliFacets\Enums\ApplyMode;
 use Modules\MeiliFacets\Listing\Facet;
@@ -12,8 +13,8 @@ use Modules\MeiliFacets\Listing\SearchScope;
 use Modules\MeiliFacets\Listing\Sort;
 use Modules\MeiliFacets\Search\VisibleProducts;
 
-/** Products filtered by brand, size and price, whose sizes have a document each. */
-final readonly class FakeVariantScopedListing implements VariantScopedListing
+/** Products filtered by brand, size and price, whose sizes have a document each, in a shop's own order. */
+final readonly class FakeVariantScopedListing implements DefaultSortedListing, VariantScopedListing
 {
     public const string SIZE = 'pa_size';
 
@@ -29,6 +30,11 @@ final readonly class FakeVariantScopedListing implements VariantScopedListing
                 'newest' => new Sort('Newest', ['post_date:desc']),
             ],
         );
+    }
+
+    public function defaultSort(): array
+    {
+        return ['menu_order:asc', 'post_title:asc'];
     }
 
     public function variantTaxonomies(): array

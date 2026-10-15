@@ -44,9 +44,9 @@ final class IndexAttributesTest extends TestCase
 
     /** Ascending reads the low end, descending the high one — see `WooCommerceSorts`. */
     #[Test]
-    public function it_sorts_on_both_ends_of_the_price_interval_and_on_the_stock(): void
+    public function it_sorts_on_both_ends_of_the_price_interval_on_the_stock_and_on_the_shop_order(): void
     {
-        $this->assertSame(['price.min', 'price.max', 'in_stock'], (new WooCommerceIndexAttributes)->sortable());
+        $this->assertSame(['price.min', 'price.max', 'in_stock', 'menu_order'], (new WooCommerceIndexAttributes)->sortable());
     }
 
     #[Test]

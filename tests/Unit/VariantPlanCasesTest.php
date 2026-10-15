@@ -10,6 +10,7 @@ use Modules\MeiliFacets\Listing\Range;
 use Modules\MeiliFacets\Search\DisjunctiveFacetCounter;
 use Modules\MeiliFacets\Search\FilterExpression;
 use Modules\MeiliFacets\Search\ListingSearch;
+use Modules\MeiliFacets\Search\QueryPlan;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeSearchEngine;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeVariantScopedListing;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -72,6 +73,8 @@ final class VariantPlanCasesTest extends TestCase
         $this->assertSame($described['filter'], FilterExpression::all($listing->baseFilter()));
         $this->assertSame($described['variantResults']['filter'], FilterExpression::all($listing->variantFilter()));
         $this->assertSame($described['variantResults']['taxonomies'], $listing->variantTaxonomies());
+        $this->assertSame($described['defaultSort'], $listing->defaultSort());
+        $this->assertSame($described['variantResults']['defaultSort'], QueryPlan::variantSort($listing->defaultSort()));
     }
 
     /**
