@@ -11,6 +11,7 @@ use Modules\MeiliFacets\Listing\ProductListing;
 use Modules\MeiliFacets\Listing\SearchScope;
 use Modules\MeiliFacets\Listing\StateReader;
 use Modules\MeiliFacets\Listing\VariationTaxonomies;
+use Modules\MeiliFacets\Listing\WooCommerceDefaultSort;
 use Modules\MeiliFacets\Listing\WooCommerceFacets;
 use Modules\MeiliFacets\Listing\WooCommerceSorts;
 use Modules\MeiliFacets\Search\VisibleProducts;
@@ -184,6 +185,7 @@ final class ProductSearchTest extends TestCase
                 new WooCommerceSorts,
                 $this->app->make(SearchableTypes::class),
                 new VariationTaxonomies,
+                new WooCommerceDefaultSort,
             ));
         } finally {
             $wp_query = $current;

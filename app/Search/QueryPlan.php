@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Search;
 
+use Modules\MeiliFacets\Contracts\DefaultSortedListing;
 use Modules\MeiliFacets\Contracts\Listing;
 use Modules\MeiliFacets\Contracts\VariantScopedListing;
 use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Enums\PriceField;
+use Modules\MeiliFacets\Enums\SortDirection;
 use Modules\MeiliFacets\Listing\Facet;
 use Modules\MeiliFacets\Listing\ListingState;
 use Modules\MeiliFacets\Listing\PriceFilter;
 use Modules\MeiliFacets\Listing\SearchScope;
+use Modules\MeiliFacets\Listing\Sort;
 use Modules\MeiliFacets\Listing\SortFilter;
 use Modules\MeiliFacets\Listing\StateReader;
 
@@ -20,8 +23,6 @@ final readonly class QueryPlan
     private const int NO_HIT = 0;
 
     private const string IN_STOCK_FIRST = DocumentField::InStock->value.':desc';
-
-    private const string SORT_DIRECTION_SEPARATOR = ':';
 
     public const array RETRIEVED = [DocumentField::Id->value, DocumentField::Card->value];
 
@@ -74,9 +75,9 @@ final readonly class QueryPlan
             ...self::searchedFields($scope),
         ];
 
-        $sort = $listing->sorts()[$state->sort] ?? null;
+        $sort = self::sortIn($listing, $state);
 
-        return $sort === null ? $query : [...$query, 'sort' => $sort->expressions];
+        return $sort === null ? $query : [...$query, 'sort' => $sort];
     }
 
     /**
@@ -132,7 +133,23 @@ final readonly class QueryPlan
      */
     public static function variantSort(array $expressions): array
     {
-        return self::sortsOnPrice($expressions) ? [self::IN_STOCK_FIRST, ...$expressions] : $expressions;
+        $itemOrder = self::withoutVariantRank($expressions);
+
+        return self::sortsOnPrice($itemOrder) ? [self::IN_STOCK_FIRST, ...$itemOrder] : $itemOrder;
+    }
+
+    /**
+     * A variant's `menu_order` is its rank among its item's variants, not the item's place in the catalogue.
+     *
+     * @param  list<string>  $expressions
+     * @return list<string>
+     */
+    private static function withoutVariantRank(array $expressions): array
+    {
+        $ranksAnItem = static fn (string $expression): bool => SortDirection::fieldOf($expression)
+            !== DocumentField::MenuOrder->value;
+
+        return array_values(array_filter($expressions, $ranksAnItem));
     }
 
     /**
@@ -151,9 +168,45 @@ final readonly class QueryPlan
             ...self::searchedFields($scope),
         ];
 
-        $sort = $listing->sorts()[$state->sort] ?? null;
+        $sort = self::variantSort(self::sortIn($listing, $state) ?? []);
 
-        return $sort === null ? $query : [...$query, 'sort' => self::variantSort($sort->expressions)];
+        return $sort === [] ? $query : [...$query, 'sort' => $sort];
+    }
+
+    /**
+     * @return list<string>|null
+     */
+    private static function sortIn(Listing $listing, ListingState $state): ?array
+    {
+        $chosen = $listing->sorts()[$state->sort] ?? null;
+
+        if ($chosen instanceof Sort) {
+            return $chosen->expressions;
+        }
+
+        return self::defaultSortIn($listing, $state);
+    }
+
+    /**
+     * @return list<string>|null
+     */
+    private static function defaultSortIn(Listing $listing, ListingState $state): ?array
+    {
+        if (self::sortsByDefault($listing, $state)) {
+            $expressions = $listing->defaultSort();
+
+            return $expressions === [] ? null : $expressions;
+        }
+
+        return null;
+    }
+
+    /**
+     * @phpstan-assert-if-true DefaultSortedListing $listing
+     */
+    private static function sortsByDefault(Listing $listing, ListingState $state): bool
+    {
+        return $listing instanceof DefaultSortedListing && self::searchTerm($listing, $state) === '';
     }
 
     private static function variantScope(VariantScopedListing $listing, ListingState $state): SearchScope
@@ -170,10 +223,7 @@ final readonly class QueryPlan
      */
     private static function sortsOnPrice(array $expressions): bool
     {
-        $fields = array_map(
-            static fn (string $expression): string => explode(self::SORT_DIRECTION_SEPARATOR, $expression)[0],
-            $expressions
-        );
+        $fields = array_map(SortDirection::fieldOf(...), $expressions);
 
         return array_intersect($fields, PriceField::paths()) !== [];
     }

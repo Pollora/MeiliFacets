@@ -15,6 +15,7 @@ use Modules\MeiliFacets\Listing\ProductListing;
 use Modules\MeiliFacets\Listing\Sort;
 use Modules\MeiliFacets\Listing\StateReader;
 use Modules\MeiliFacets\Listing\VariationTaxonomies;
+use Modules\MeiliFacets\Listing\WooCommerceDefaultSort;
 use Modules\MeiliFacets\Listing\WooCommerceFacets;
 use Modules\MeiliFacets\Listing\WooCommerceSorts;
 use Modules\MeiliFacets\Support\UrlParameters;
@@ -44,7 +45,7 @@ final class ProductFacetsTest extends TestCase
     #[Test]
     public function it_shows_the_facets_it_was_given(): void
     {
-        $listing = new ProductListing($this->facets('pa_couleur'), new WooCommerceSorts, $this->app->make(SearchableTypes::class), new VariationTaxonomies);
+        $listing = new ProductListing($this->facets('pa_couleur'), new WooCommerceSorts, $this->app->make(SearchableTypes::class), new VariationTaxonomies, new WooCommerceDefaultSort);
 
         $this->assertSame(['pa_couleur'], array_map(
             static fn (Facet $facet): string => $facet->taxonomy,
@@ -55,7 +56,7 @@ final class ProductFacetsTest extends TestCase
     #[Test]
     public function it_takes_its_facets_and_its_sorts_from_two_places(): void
     {
-        $listing = new ProductListing(new WooCommerceFacets(new NameOrder), $this->sorts('rating'), $this->app->make(SearchableTypes::class), new VariationTaxonomies);
+        $listing = new ProductListing(new WooCommerceFacets(new NameOrder), $this->sorts('rating'), $this->app->make(SearchableTypes::class), new VariationTaxonomies, new WooCommerceDefaultSort);
 
         $this->assertSame(['rating'], array_keys($listing->sorts()));
         $this->assertCount(2, $listing->facets());
@@ -85,8 +86,8 @@ final class ProductFacetsTest extends TestCase
     #[Test]
     public function it_offers_promotions_only_on_a_listing_that_declares_a_price(): void
     {
-        $withoutPrice = new ProductListing(new WooCommerceFacets(new NameOrder), new WooCommerceSorts, $this->app->make(SearchableTypes::class), new VariationTaxonomies);
-        $withPrice = new ProductListing($this->facetsWithPrice(), new WooCommerceSorts, $this->app->make(SearchableTypes::class), new VariationTaxonomies);
+        $withoutPrice = new ProductListing(new WooCommerceFacets(new NameOrder), new WooCommerceSorts, $this->app->make(SearchableTypes::class), new VariationTaxonomies, new WooCommerceDefaultSort);
+        $withPrice = new ProductListing($this->facetsWithPrice(), new WooCommerceSorts, $this->app->make(SearchableTypes::class), new VariationTaxonomies, new WooCommerceDefaultSort);
 
         $this->assertArrayNotHasKey('on_sale', $withoutPrice->sorts());
         $this->assertArrayHasKey('on_sale', $withPrice->sorts());

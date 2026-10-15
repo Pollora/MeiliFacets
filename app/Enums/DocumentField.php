@@ -10,6 +10,8 @@ enum DocumentField: string
     case PostType = 'post_type';
     case Status = 'post_status';
     case Title = 'post_title';
+    case Date = 'post_date';
+    case MenuOrder = 'menu_order';
     case Excerpt = 'excerpt';
     case Terms = 'terms';
     case Facets = 'facets';

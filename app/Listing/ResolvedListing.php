@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Listing;
 
+use Modules\MeiliFacets\Contracts\DefaultSortedListing;
 use Modules\MeiliFacets\Contracts\Listing;
 use Modules\MeiliFacets\Contracts\Placeable;
 use Modules\MeiliFacets\Contracts\VariantScopedListing;
@@ -423,6 +424,14 @@ final class ResolvedListing
     public function sorts(): array
     {
         return $this->sorts ??= $this->listing->sorts();
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function defaultSort(): array
+    {
+        return $this->listing instanceof DefaultSortedListing ? $this->listing->defaultSort() : [];
     }
 
     public function currentSort(): ?string

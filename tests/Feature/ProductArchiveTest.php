@@ -13,6 +13,7 @@ use Modules\MeiliFacets\Listing\Facet;
 use Modules\MeiliFacets\Listing\NameOrder;
 use Modules\MeiliFacets\Listing\ProductListing;
 use Modules\MeiliFacets\Listing\VariationTaxonomies;
+use Modules\MeiliFacets\Listing\WooCommerceDefaultSort;
 use Modules\MeiliFacets\Listing\WooCommerceFacets;
 use Modules\MeiliFacets\Listing\WooCommerceSorts;
 use Modules\MeiliFacets\Search\FilterExpression;
@@ -265,6 +266,7 @@ final class ProductArchiveTest extends TestCase
                 new WooCommerceSorts,
                 $this->app->make(SearchableTypes::class),
                 new VariationTaxonomies,
+                new WooCommerceDefaultSort,
             ));
         } finally {
             $wp_query = $current;

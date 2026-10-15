@@ -20,6 +20,7 @@ use Modules\MeiliFacets\Search\FilterQuery;
 use Modules\MeiliFacets\Search\PriceQuery;
 use Modules\MeiliFacets\Search\QueryPlan;
 use Modules\MeiliFacets\Support\UrlParameters;
+use Modules\MeiliFacets\Tests\Unit\Doubles\FakeDefaultSortedListing;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeListing;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeSearchScopedListing;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -139,6 +140,40 @@ final class QueryPlanTest extends TestCase
 
         $this->assertSame(['metas._price:asc'], $known['sort']);
         $this->assertArrayNotHasKey('sort', $unknown);
+    }
+
+    #[Test]
+    public function it_follows_the_listing_order_while_no_sort_is_chosen(): void
+    {
+        $query = QueryPlan::results($this->newestFirst(), new ListingState, []);
+
+        $this->assertSame(['post_date:desc'], $query['sort']);
+    }
+
+    #[Test]
+    public function a_chosen_sort_replaces_the_listing_order(): void
+    {
+        $query = QueryPlan::results($this->newestFirst(), new ListingState(sort: 'price_asc'), []);
+
+        $this->assertSame(['metas._price:asc'], $query['sort']);
+    }
+
+    #[Test]
+    public function a_searched_term_keeps_the_engine_order(): void
+    {
+        $typed = QueryPlan::results($this->newestFirst(), new ListingState(query: 'creme'), []);
+        $routed = QueryPlan::results($this->newestFirst('creme'), new ListingState, []);
+
+        $this->assertArrayNotHasKey('sort', $typed);
+        $this->assertArrayNotHasKey('sort', $routed);
+    }
+
+    #[Test]
+    public function an_empty_listing_order_keeps_the_engine_order(): void
+    {
+        $listing = new FakeDefaultSortedListing($this->listing, []);
+
+        $this->assertArrayNotHasKey('sort', QueryPlan::results($listing, new ListingState, []));
     }
 
     #[Test]
@@ -318,6 +353,13 @@ final class QueryPlanTest extends TestCase
         $listing = new FakeListing([new Facet('product_brand', 'Brand')], $shared['baseFilter'], baseQuery: $baseQuery);
 
         return new FakeSearchScopedListing($listing, new SearchScope($shared['searchScope']['filter'], $shared['searchScope']['fields']));
+    }
+
+    private function newestFirst(string $baseQuery = ''): FakeDefaultSortedListing
+    {
+        $sorts = ['price_asc' => new Sort('Price', ['metas._price:asc'])];
+
+        return new FakeDefaultSortedListing(new FakeListing(baseQuery: $baseQuery, sorts: $sorts), ['post_date:desc']);
     }
 
     private function priceOf(FakeListing $listing): PriceQuery

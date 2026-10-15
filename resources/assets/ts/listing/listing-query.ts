@@ -58,8 +58,8 @@ export class ListingQuery {
     }
 
     #results(state: ListingState): FacetedQuery {
-        const { perPage, attributes, sorts } = this.#listing
-        const sort = ListingQuery.#sortIn(sorts, state)
+        const { perPage, attributes, sorts, defaultSort } = this.#listing
+        const sort = this.#sortIn(sorts, defaultSort, state)
         const scope = this.#scope(state)
 
         return {
@@ -79,7 +79,7 @@ export class ListingQuery {
     }
 
     #variantResults(variants: VariantResultsDescription, state: ListingState): FacetedQuery {
-        const sort = ListingQuery.#sortIn(variants.sorts, state)
+        const sort = this.#sortIn(variants.sorts, variants.defaultSort, state)
         const scope = this.#variantScope(variants, state)
 
         return {
@@ -109,8 +109,19 @@ export class ListingQuery {
         return this.#searchTerm(state) === '' ? { filter: variants.filter, fields: null } : variants.searchScope
     }
 
-    static #sortIn(sorts: Record<string, string[]>, state: ListingState) {
-        return state.sort !== null && Object.hasOwn(sorts, state.sort) ? sorts[state.sort] : undefined
+    #sortIn(sorts: Record<string, string[]>, defaultSort: string[] | undefined, state: ListingState) {
+        if (state.sort !== null && Object.hasOwn(sorts, state.sort)) {
+            return sorts[state.sort]
+        }
+
+        return this.#defaultSortIn(defaultSort, state)
+    }
+
+    /** A page cached before the listing described its default sort describes none. */
+    #defaultSortIn(defaultSort: string[] | undefined, state: ListingState) {
+        const expressions = defaultSort ?? []
+
+        return this.#searchTerm(state) === '' && expressions.length > 0 ? expressions : undefined
     }
 
     #searchTerm(state: ListingState) {

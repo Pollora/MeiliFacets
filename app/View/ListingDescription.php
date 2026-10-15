@@ -63,6 +63,7 @@ final readonly class ListingDescription
             'priceFields' => $this->priceFields($listing),
             'money' => $this->money->describe(),
             'sorts' => $this->sorts($listing->sorts()),
+            'defaultSort' => $listing->defaultSort(),
             'sortFilters' => (object) $this->sortFilters($listing->sorts()),
             'countPattern' => __(':count result|:count results'),
             'filterPattern' => __(':count active filter|:count active filters'),
@@ -109,6 +110,7 @@ final readonly class ListingDescription
             'distinct' => DocumentField::ParentId->value,
             'attributes' => QueryPlan::VARIANT_RETRIEVED,
             'sorts' => $this->variantSorts($listing->sorts()),
+            'defaultSort' => QueryPlan::variantSort($listing->defaultSort()),
         ];
     }
 
