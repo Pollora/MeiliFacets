@@ -24,11 +24,13 @@ the browser script changed, and the old one ignores the default order once the v
 
 ### Changed
 
-- The product listing follows WooCommerce's « Default product sorting » while no sort is chosen and no term is
-  searched, instead of the indexing order. Popularity and average rating keep the engine's order and are reported in
-  the log. `ProductListing` takes a `WooCommerceDefaultSort`: a project that builds it by hand passes one.
-- Under a filter on a variation attribute, the results no longer sort on the variations' own `menu_order`, their rank
-  among their product's variations: custom ordering is left out there, and the products follow their title.
+- The product listing follows WooCommerce's « Default product sorting » (Appearance › Customize › WooCommerce ›
+  Product Catalog) while no sort is chosen and no term is searched, instead of the indexing order, under a filter on a
+  variation attribute too. `ProductListing` takes a `WooCommerceDefaultSort`: a project that builds it by hand passes
+  one.
+- « Popularity » and « Average rating » are no longer offered as the default product sorting: the listing cannot
+  follow them yet.
+- A sort that only filters, such as « On sale », keeps the listing's default order instead of the engine's.
 - `components/listing/results.blade.php` draws the card a listing names: a copy of it in a theme draws the module's
   card for every listing.
 - `<x-meilifacets::listing.card>` takes `binding` (a `CardBinding`) instead of `card`, like the card a listing names:
@@ -38,6 +40,8 @@ the browser script changed, and the old one ignores the default order once the v
 
 - Reordering products by drag and drop (Products › Sorting) reindexes the products that moved: WooCommerce writes
   their `menu_order` straight to the table, which nothing reported to MeiliScout.
+- A theme component with a `listing` attribute, placed between a listing root and its components, no longer hides the
+  root's listing from them.
 
 ## [0.2.2](https://github.com/Pollora/MeiliFacets/releases/tag/0.2.2) - 2026-10-09
 

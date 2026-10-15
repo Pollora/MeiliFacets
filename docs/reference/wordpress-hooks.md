@@ -50,6 +50,7 @@ WordPress and WooCommerce filters whose value the module uses. A project can hoo
 | `wpseo_canonical` | filter | 20 | same views | points Yoast's canonical to the bare path, page number kept | [How a listing works](../listing/README.md) |
 | `wpseo_next_rel_link` | filter | 10 | listing pages | removes Yoast's `rel="next"` | [How a listing works](../listing/README.md) |
 | `wpseo_prev_rel_link` | filter | 10 | listing pages | removes Yoast's `rel="prev"` | [How a listing works](../listing/README.md) |
+| `woocommerce_default_catalog_orderby_options` | filter | 10 | the Customizer lists the default product sortings | keeps only those the product listing can follow | [The default order](../listing/results-sort-pagination.md#the-default-order) |
 | `woocommerce_enable_post_clause_filtering` | filter | 10 | every request | returns `false`: WooCommerce no longer narrows a product archive's main query from the URL | [Indexed prices](../indexing/prices.md) |
 | `woocommerce_get_tax_location` | filter | 10 | added while a document is indexed, removed right after | taxes at the shop's base address | [Indexed prices](../indexing/prices.md) |
 | `rocket_delay_js_exclusions` | filter | 10 | when WP Rocket asks | excludes the published bundles from Delay JS | [Going to production](../production.md) |

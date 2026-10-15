@@ -13,7 +13,9 @@ changes is in the [changelog](../CHANGELOG.md).
 - **Run `php artisan module:publish MeiliFacets`.** The browser script changed: until it is published, a visitor who
   changes page gets the engine's order instead of the default one. Clear the page cache too, for the same reason.
 - **The shop's first page changes order** when no sort is chosen: it was the indexing order, it is now the one
-  WooCommerce shows. A shop sorted by popularity or average rating keeps the indexing order, with a report in the log.
+  chosen under Appearance › Customize › WooCommerce › Product Catalog › Default product sorting. « Popularity » and
+  « Average rating » are no longer offered there; a shop set on one of them keeps the indexing order until another
+  sorting is picked.
 - **A project that builds `ProductListing` by hand** passes a `WooCommerceDefaultSort` after `VariationTaxonomies`.
 - **A theme that copied `components/listing/results.blade.php`** copies it again to let a listing name its card.
 - **`<x-meilifacets::listing.card>` takes a `binding`, no longer a `card`**: write

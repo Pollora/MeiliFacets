@@ -3337,6 +3337,11 @@ vérifie déjà nonce et droits. *Contexte* : sans WooCommerce, l'action AJAX n'
 réordonnancement ne réindexe rien), en échec quand la classe ne retient rien. Requête AJAX rejouée à la main, le
 gestionnaire de WooCommerce décroché le temps du test (il vérifie un nonce puis s'arrête).
 
+**En attente (revue de la PR #15, le 2026-10-15).** Chaque produit déplacé est réindexé un par un pendant la requête
+AJAX. Sur un catalogue encore tout à `menu_order` 0, le premier déplacement les renumérote tous, et la requête peut
+dépasser le délai. Suspendu jusqu'à la nouvelle version de MeiliScout, qui apporte les correctifs (décision de
+l'utilisateur).
+
 ### R-231 · 🟠 · **fermé le 2026-10-14** · ouvert le 2026-10-14 — avec deux listings, chaque brique doit se nommer, et les tests du module dépendent de l'hôte
 
 **Constat.** Dès qu'un projet déclare un second listing, tout composant sans `name` lève « Name the listing » : chaque
@@ -3446,6 +3451,27 @@ variante, `variantResults.defaultSort`) et `VariantPlanCasesTest` vérifie déso
 l'ordre sous une facette de variation et sous un tri qui filtre (« En promotion »), le filtre
 `woocommerce_default_catalog_orderby` dans `wordpress-hooks.md`. Le réordonnancement par glisser-déposer est traité
 à part (`R-232`).
+
+**Revue de la PR #15, le 2026-10-15.** Quinze constats, revérifiés un à un.
+- *Variantes* : le retrait de `menu_order` reposait sur une hypothèse fausse. Mesuré : `125-0` porte `menu_order: 0`
+  comme le produit 125, alors que ses variations 336 et 337 ont 1 et 2 dans WordPress. `withoutVariantRank()` est
+  supprimé et l'ordre par défaut s'applique sous une facette de variation (cas partagés mis à jour).
+- *Tri qui filtre* : il suit désormais l'ordre par défaut des deux côtés (`Sort::isOrdering()`,
+  `QueryPlan::chosenSort()`, `ListingQuery.#sortIn()`). Les deux plans ont la même forme.
+- *Popularité et note* : retirées du Customizer (`DefaultSortChoices`) au lieu d'un rapport à chaque requête ;
+  `CatalogOrderUnsupported` supprimé. La lecture du réglage passe dans `CatalogOrderSetting`, qui accepte aussi la forme
+  tableau qu'un filtre peut renvoyer.
+- *Autres corrections* :
+  - `ProductOrderingChanges` est déclaré en singleton ;
+  - la clé de l'héritage du listing devient `meilifacetsListing`, pour qu'un composant anonyme du thème portant
+    `listing` ne masque plus la racine (`EnclosingListingTest`, rouge avec l'ancienne clé) ;
+  - `WooCommerceSorts` reprend les expressions de `CatalogOrder` ;
+  - `in_stock:desc` passe par `SortDirection` ;
+  - `defaultSort` devient optionnel dans `description.ts` ;
+  - un `null` n'est plus utilisé comme clé de tableau.
+- *Non retenu* : `modified` et `id` (champs non triables, sans demande) et le départage par ID des dates égales,
+  documentés.
+- *Contrat* : `Contract::VERSION` reste à 1. La description ne change pas de forme et `defaultSort` est lu avec repli.
 
 ### R-226 · ⚪ · **fermé le 2026-10-09** · ouvert le 2026-10-09 — plancher Pollora à 13.35.3, pour le signalement des mises à jour
 

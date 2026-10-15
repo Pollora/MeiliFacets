@@ -116,25 +116,26 @@ in stock first.
 
 ### The default order
 
-While no sort is chosen and no term is searched, the product listing follows WooCommerce's « Default product
-sorting » (Appearance › Customize › WooCommerce › Product Catalog, or the `woocommerce_default_catalog_orderby`
-filter):
+The shop's order is chosen in WordPress, not in code: **Appearance › Customize › WooCommerce › Product Catalog ›
+Default product sorting**. While no sort is chosen and no term is searched, the product listing follows that setting,
+on the first page as on every page the visitor turns to:
 
-| WooCommerce setting | Order |
+| Default product sorting | Order |
 | --- | --- |
-| Default sorting (custom ordering + name) | `menu_order`, then title |
-| Sort by latest | publication date, newest first |
-| Sort by price: low to high | by the lowest price of each product |
-| Sort by price: high to low | by the highest price of each product |
-| Sort by popularity, Sort by average rating | the engine's own order, and a report in the log: the index holds neither as a sortable field |
+| Default sorting (custom ordering + name) | the order set by drag and drop in Products › Sorting, then title |
+| Sort by most recent | publication date, newest first |
+| Sort by price (asc) | by the lowest price of each product |
+| Sort by price (desc) | by the highest price of each product |
 
-- A sorting a theme adds through the filter follows the same rule: `title`, `date-asc` and the other
-  `field-direction` values WooCommerce reads are reproduced; anything else keeps the engine's order and is reported.
-- Under a filter on a variation attribute (a size, for instance), the results are read from the variations, whose
-  `menu_order` is their rank among their product's variations: custom ordering is left out there, and the products
-  follow their title.
-- A sort that filters, such as « On sale », keeps the engine's order: the default order applies only while no sort is
-  chosen.
+- « Popularity (sales) » and « Average rating » are not offered: the module removes them from the list, since the
+  index holds neither sales nor ratings as a sortable field. They are not supported for now.
+- A theme can answer the setting in code with the `woocommerce_default_catalog_orderby` filter. `title`,
+  `date-asc` and the other `field-direction` values WooCommerce reads are followed; anything else (`popularity`,
+  `rating`, `rand`, `modified`, `id`) keeps the engine's order.
+- Products published in the same second are not ordered by ID, as WooCommerce orders them: their order among
+  themselves is the engine's.
+- Under a filter on a variation attribute (a size, for instance), the products keep the same order.
+- A sort that only filters, such as « On sale », keeps the default order.
 - Reordering products by drag and drop in Products › Sorting reindexes the products that moved.
 - Changing the setting takes effect at once. `menu_order` becomes sortable when the index settings are written: run
   `wp meiliscout index` once after updating the module.
