@@ -29,6 +29,9 @@ changes is in the [changelog](../CHANGELOG.md).
   Nothing breaks if it stays.
 - **`meilifacets.drawer.row_limit` becomes `meilifacets.drawer.row.limit`**, with no alias: a published config that
   keeps the old key falls back to the default limit, 5. Move the value under `'drawer' => ['row' => ['limit' => …]]`.
+- **`data-apply` moves to the listing root.** A theme rule on `.meilifacetsFacets[data-apply]` names the root instead:
+  `[data-listing][data-apply="submit"] …`. A copied `components/listing/facets.blade.php` no longer receives `$applyMode`:
+  copy it again.
 - **A theme that copied `components/listing/drawer.blade.php`** copies it again: the old copy calls `$isSideSheet()`,
   which is gone, and the page fails. The drawer now carries `data-overflow` from the server; `data-side-sheet` is set
   by the client, so a theme rule on `[data-side-sheet]` keeps working with JavaScript. A copied

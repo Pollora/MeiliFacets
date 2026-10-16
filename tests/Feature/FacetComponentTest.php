@@ -202,6 +202,20 @@ final class FacetComponentTest extends TestCase
     }
 
     #[Test]
+    public function the_listing_root_carries_the_apply_mode_and_the_group_does_not(): void
+    {
+        foreach (['submit', 'immediate'] as $mode) {
+            $this->useApplyMode($mode);
+            $this->app->forgetScopedInstances();
+
+            $document = HTMLDocument::createFromString(Blade::render('<x-meilifacets::listing name="products"><x-meilifacets::listing.facets /></x-meilifacets::listing>'), LIBXML_NOERROR);
+
+            $this->assertSame($mode, $document->querySelector('[data-listing]')->getAttribute('data-apply'));
+            $this->assertFalse($document->querySelector($this->hooked(Hook::Facets))->hasAttribute('data-apply'));
+        }
+    }
+
+    #[Test]
     public function it_renders_the_filters_and_the_apply_button_without_their_container_when_unwrapped(): void
     {
         $this->useApplyMode('submit');

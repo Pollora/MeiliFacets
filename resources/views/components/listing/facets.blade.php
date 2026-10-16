@@ -1,5 +1,5 @@
 @unless ($unwrapped)
-<div class="meilifacetsFacets" data-apply="{{ $applyMode }}" {{ $hook('facets') }} {{ $scrollMark() }}>
+<div class="meilifacetsFacets" {{ $hook('facets') }} {{ $scrollMark() }}>
 @endunless
     @foreach ($listing->remainingFacets() as $filter)
         <x-dynamic-component :component="$componentFor($filter)" :facet="$filter" :name="$name"

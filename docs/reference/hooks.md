@@ -167,7 +167,7 @@ The client also relies on these, which an override must keep.
 | `data-presentation` | `facet` | the presentation's slug, absent for `control` | no |
 | `data-shape` | `apply`, `reset` | `pill` on both, `icon` on `reset`; absent for the default shapes | no |
 | `data-only` | `apply` | `sheet`, in `immediate` mode | no |
-| `data-apply` | `facets` | `submit`, `immediate` | no |
+| `data-apply` | the `data-listing` root | `submit`, `immediate` | no |
 | `data-taxonomy` | `facet` (term facet) | the taxonomy | no |
 | `data-filter` | `facet` (price) | the filter's name | no |
 | `data-kind` | `active-value` | `search`, `term`, `price` | yes |

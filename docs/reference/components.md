@@ -74,7 +74,7 @@ overridden from `<theme>/resources/views/modules/meilifacets/` under the same pa
 
 ### `<x-meilifacets::listing>`
 
-The root. It renders `data-listing` and `data-meili-contract`, asks for the `meilifacets` stylesheet and the
+The root. It renders `data-listing`, `data-apply` (the apply mode, `submit` or `immediate`) and `data-meili-contract`, asks for the `meilifacets` stylesheet and the
 `@meilifacets/listing` script module, and runs the one search every brick inside reads. When the engine fails, it
 renders `<x-meilifacets::listing.unavailable>` instead of its slot.
 
@@ -134,7 +134,7 @@ and no Apply button is due.
 
 | Slots | Bag lands on | Hooks rendered |
 | --- | --- | --- |
-| none | nowhere | `facets` (not with `unwrapped`), plus those of each child; `data-apply` carries the apply mode on the group |
+| none | nowhere | `facets` (not with `unwrapped`), plus those of each child |
 
 ### `<x-meilifacets::listing.facet>`
 

@@ -70,10 +70,10 @@ from the listing's name). Those that belong to a search receive `$root` and `$id
 
 | View | Also receives |
 | --- | --- |
-| `listing` | `$contract` (the contract version attribute) |
+| `listing` | `$contract` (the contract version attribute), `$applyMode` |
 | `listing/results` | `$cards`, `$items`, `$priority($rank)` |
 | `listing/card` | `$binding`, `$priority`, `$heading`, `$link`, `$image`, `$title`, `$price` |
-| `listing/facets` | `$applyMode`, `$needsApplyButton`, `$collapsible`, `$withApply`, `$unwrapped`, `$componentFor($filter)` |
+| `listing/facets` | `$needsApplyButton`, `$collapsible`, `$withApply`, `$unwrapped`, `$componentFor($filter)` |
 | `listing/facet` | `$facet`, `$values`, `$presentation`, `$collapsible`, `$inputType()`, `$inputName()`, `$panelId()`, `$labelId($value)`, `$countId($value)`, `$countLabel($value)`, `$disclosure()`, `$hasFoldedValues()`, `$isShown()`, `$isBeyondRow()`, `$marksPresentation()` |
 | `listing/price` | `$filter`, `$money`, `$collapsible`, `$bounds()`, `$handles()`, `$fill()`, `$readout()`, `$showsSlider()`, `$showsFields()`, `$isShown()`, `$isBeyondRow()`, `$panelId()`, `$disclosure()` |
 | `listing/sort`, `listing/sort-radios` | `$choices`, `$selected`, `$caption`, `$widget`, `$collapsible`, `$disclosure()`, `$panelId()`, `$choiceName()` |

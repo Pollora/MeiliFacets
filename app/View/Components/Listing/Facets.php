@@ -40,7 +40,6 @@ final class Facets extends ListingComponent
     public function render(): View
     {
         return view('meilifacets::components.listing.facets', [
-            'applyMode' => $this->listing->applyMode()->value,
             'needsApplyButton' => $this->rendersApply(),
         ]);
     }

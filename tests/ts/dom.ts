@@ -218,9 +218,9 @@ export const listingMarkup = ({ scroll = [], collapsible = false, priced = false
     const folding = collapsible ? COLLAPSIBLE : OPEN
 
     return `
-<div data-listing="products" data-meili-contract="${CONTRACT}">
+<div data-listing="products" data-apply="submit" data-meili-contract="${CONTRACT}">
 ${search === null ? '' : listingSearchForm(search)}
-    <div class="meilifacetsFacets" data-apply="submit" data-meili="facets" ${mark('facets')}>
+    <div class="meilifacetsFacets" data-meili="facets" ${mark('facets')}>
 ${facetBlock('product_brand', 'brand', 'Brand', `${facetValue('brand', 'acme', 'Acme')}${facetValue('brand', 'globex', 'Globex')}`, folding)}
 ${facetBlock('product_cat', 'category', 'Category', facetValue('categorie', 'coats', 'Coats'), folding)}
 ${priced ? priceBlock(folding) : ''}

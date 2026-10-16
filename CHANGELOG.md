@@ -45,6 +45,7 @@ the browser script changed, and the old one ignores the default order once the v
   `CardBinding::of($card)`. `Listing\Card::prepare()` is removed.
 - `meilifacets.drawer.row_limit` becomes `meilifacets.drawer.row.limit`, beside `meilifacets.drawer.row.overflow`. The
   old key is no longer read.
+- `data-apply` moves from `listing.facets` to the `<x-meilifacets::listing>` root, where it holds for every brick.
 - The drawer carries `data-overflow` (`side-sheet`, `show-more`) past its row limit; `data-side-sheet` is now set by
   the client. A copied `components/listing/drawer.blade.php` fails: it calls `$isSideSheet()`, which is gone.
 
