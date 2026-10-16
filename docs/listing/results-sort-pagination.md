@@ -281,6 +281,8 @@ has no label for gets no pill, so that nobody can write on the page through the 
 
 `<x-meilifacets::listing.reset />` renders a “Clear all” button, hidden while there is nothing to clear. It clears
 every facet value, the price range, the search term, the sort and the page, and searches at once, in both modes.
+In `immediate` mode it appears and disappears with the pills, once the engine answers; in `submit` mode it follows what
+the visitor ticks, so that a selection not applied yet can already be cleared.
 
 | Attribute | Default | Effect |
 | --- | --- | --- |

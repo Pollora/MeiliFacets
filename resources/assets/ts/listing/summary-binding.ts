@@ -1,6 +1,7 @@
 import { ActiveCountView } from './active-count-view.ts'
 import { ActiveValuesView } from './active-values-view.ts'
 import { FilterSummaryView } from './filter-summary-view.ts'
+import { ResetView } from './reset-view.ts'
 import { ToggleBadgeView } from '../collapsible/toggle-badge-view.ts'
 import { TotalView } from './total-view.ts'
 
@@ -23,9 +24,13 @@ export class SummaryBinding {
     #toggleBadges: ToggleBadgeView
     #total: TotalView
     #activeValues: ActiveValuesView
+    #resets: ResetView
+    #listing: Listing
 
     constructor(contract: Contract, description: ListingDescription, { listing, holders }: SummarySources) {
+        this.#listing = listing
         this.#summary = new FilterSummaryView(contract, description)
+        this.#resets = new ResetView(contract)
         this.#activeCount = new ActiveCountView(contract)
         this.#toggleBadges = new ToggleBadgeView(contract, holders)
         this.#total = new TotalView(contract, description)
@@ -43,16 +48,30 @@ export class SummaryBinding {
         this.#summary.show(state)
         this.#activeCount.show(state)
         this.#toggleBadges.show(state)
+
+        // A selection held for « Apply » has no pill yet, but can already be cleared.
+        if (!this.#listing.appliesImmediately) {
+            this.#resets.show(state)
+        }
     }
 
     /** What the engine answered: painted once the search is back. */
     showAnswered(totalHits: number, state: ListingState) {
         this.#total.show(totalHits)
-        this.#activeValues.show(state)
+        this.#showActiveValues(state)
     }
 
     showAnsweredToTyping(totalHits: number, state: ListingState) {
         this.#total.showWhileTyping(totalHits)
+        this.#showActiveValues(state)
+    }
+
+    /** With the pills, so a reset beside them does not come first and get pushed aside when they arrive. */
+    #showActiveValues(state: ListingState) {
         this.#activeValues.show(state)
+
+        if (this.#listing.appliesImmediately) {
+            this.#resets.show(state)
+        }
     }
 }

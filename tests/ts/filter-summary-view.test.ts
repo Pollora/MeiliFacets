@@ -14,22 +14,19 @@ describe('FilterSummaryView', () => {
 
     beforeEach(() => {
         const { root } = open(listingMarkup())
-        // The bar and the foot of a drawer may both hold them: every copy has to follow.
-        root.insertAdjacentHTML('beforeend', `
-            <button type="button" hidden data-meili="reset">Clear all</button>
-            <span hidden data-meili="active-filters">0 active filters</span>`)
+        // The bar and the foot of a drawer may both hold one: every copy has to follow.
+        root.insertAdjacentHTML('beforeend', '<span hidden data-meili="active-filters">0 active filters</span>')
         contract = new Contract(root)
     })
 
     const copies = (hook: string) => contract.all(hook) as HTMLElement[]
     const hidden = (hook: string) => copies(hook).map((node) => node.hidden)
 
-    it('paints every badge and every reset the theme placed', () => {
+    it('paints every badge the theme placed', () => {
         new FilterSummaryView(contract, description).show(new ListingState({ facets: { product_brand: ['acme', 'globex'] } }))
 
         assert.deepEqual(copies('active-filters').map((badge) => badge.textContent), ['2 active filters', '2 active filters'])
         assert.deepEqual(hidden('active-filters'), [false, false])
-        assert.deepEqual(hidden('reset'), [false, false])
     })
 
     it('hides every copy again once nothing is left', () => {
@@ -39,6 +36,5 @@ describe('FilterSummaryView', () => {
         view.show(new ListingState())
 
         assert.deepEqual(hidden('active-filters'), [true, true])
-        assert.deepEqual(hidden('reset'), [true, true])
     })
 })

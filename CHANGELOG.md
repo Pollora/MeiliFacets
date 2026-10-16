@@ -43,6 +43,8 @@ the browser script changed, and the old one ignores the default order once the v
 
 ### Fixed
 
+- In `immediate` mode, « Clear all » appears with the active-value pills, once the engine answers, instead of on the
+  tick: it no longer shows alone and then jumps aside when the first pill comes in.
 - Reordering products by drag and drop (Products › Sorting) reindexes the products that moved: WooCommerce writes
   their `menu_order` straight to the table, which nothing reported to MeiliScout.
 

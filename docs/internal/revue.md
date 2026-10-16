@@ -3315,6 +3315,32 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
+### R-234 · 🟡 · **fermé le 2026-10-16** · ouvert le 2026-10-16 — en `immediate`, « Tout effacer » apparaît avant la pastille, puis se fait pousser
+
+**Constat** (Louis, 2026-10-16 : « l'apparition de meilifacetsActiveValue est bizarre »). Mesuré image par image sur
+`/boutique` à 1440 px : au clic, « Tout effacer » s'affiche seul à x = 175 et la grille descend de 22 px ; à la réponse
+du moteur (44 à 267 ms plus tard), la pastille entre à sa place, le reset saute de 150 px à droite sans transition et
+la grille redescend de 22 px. Le reset suivait la sélection (`showSelected`), les pastilles la réponse (`showAnswered`).
+L'entrée de la pastille elle-même (`R-179`, ANIM-9 : `scale(0.95)`, 150 ms, `--meili-ease`) n'était pas en cause.
+
+**Ce qui est fait.** `ResetView` (`listing/reset-view.ts`) sort le reset de `FilterSummaryView`, qui ne garde que le
+badge `active-filters`. `SummaryBinding` le peint avec les pastilles quand le listing cherche à chaque geste, à la
+sélection sinon : en `submit`, une sélection pas encore appliquée n'a pas de pastille mais doit pouvoir s'effacer.
+Aucune décision prise (Louis : « pas besoin de décision pour le moment ») ; coût : en `immediate`, le reset du pied du
+tiroir attend lui aussi la réponse.
+
+**Passes.** *Nommage* : `ResetView` rejoint `TotalView`, `ActiveValuesView`, `ActiveCountView` ; `#showActiveValues`
+dit ce qu'elle peint d'abord ; rien à renommer. *Lisibilité* : méthodes sous 15 lignes, pas de paramètre booléen.
+*Commentaires* : deux lignes, chacune un constat (pourquoi le reset suit la sélection en `submit`, pourquoi il suit les
+pastilles en `immediate`). *Performance* : une boucle sur les copies du reset, déplacée, pas ajoutée. *Sécurité* : rien,
+aucune valeur lue de l'URL. *Contexte et i18n* : rien, aucune chaîne.
+
+**Vérifié** : `summary-binding.test.ts` (reset caché au geste puis montré à la réponse en `immediate`, caché avec la
+dernière pastille ; montré à la sélection en `submit`), `reset-view.test.ts` ; `composer check` vert (client 999 tests),
+suite `Modules` 1177 tests. Navigateur, `/boutique` à 1440 px : premier filtre, reset et pastille dans la même image,
+grille 632 → 676 en un seul pas ; second filtre, le reset glisse de la largeur de la nouvelle pastille dans l'image où
+elle entre ; « Tout effacer » retire reset et pastilles ensemble.
+
 ### R-232 · 🟡 · **fermé le 2026-10-15** · ouvert le 2026-10-15 — un réordonnancement par glisser-déposer ne réindexe pas les produits
 
 **Constat.** Relevé par la revue de `R-229`. `WC_AJAX::product_ordering()` écrit `menu_order` par `$wpdb->update()`
