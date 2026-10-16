@@ -43,6 +43,11 @@ Below `48em`, and from `48em` past the drawer's row limit, with JavaScript, the 
 modal dialog: a bottom sheet on small screens, a side sheet on wide ones:
 
 - the opener is a button with `aria-expanded` and `aria-controls`; the count of held values describes it;
+- with `row-overflow="show-more"`, « Show more » is a second opener of the same dialog, with `aria-expanded` and
+  `aria-controls`, named « Show more filters » so that it is not mistaken for the « Show more » of a facet's values.
+  The dialog holds the filters past the row; what stays in the row remains in sight, inert, and the focus goes back
+  to « Show more » on close. Crossed below the breakpoint while open, it becomes the bottom sheet with every filter,
+  and the focus goes back to the opener on close;
 - open, the drawer takes `role="dialog"`, `aria-modal="true"` and `aria-labelledby` pointing at its title;
 - everything around it, up to `<body>`, is made `inert`, and the page stops scrolling;
 - the close button is named « Close the filters »; the drag handle is hidden from screen readers;

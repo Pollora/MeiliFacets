@@ -1,5 +1,6 @@
-import { EXPANDED, INSTANT, OPEN } from '../shared/attributes.ts'
+import { EXPANDED, OPEN } from '../shared/attributes.ts'
 import { InputSource } from '../shared/input-source.ts'
+import { InstantChange } from '../shared/instant-change.ts'
 import { LightDismiss } from '../shared/light-dismiss.ts'
 import { PanelTransitions } from '../shared/panel-transitions.ts'
 import { PanelAvailableHeight } from './panel-available-height.ts'
@@ -20,16 +21,18 @@ export class SearchPanel {
     #input: HTMLElement | null
     #availableHeight: PanelAvailableHeight | null
     #transitions: PanelTransitions | null
+    #instantChange: InstantChange
     #intent: () => void
     #intended = false
 
     constructor(contract: Contract, intent: () => void) {
         this.#contract = contract
-        this.#toggle = this.#element('search-toggle')
-        this.#panel = this.#element('search-panel')
-        this.#input = this.#element('search-input')
+        this.#toggle = this.#contract.element('search-toggle')
+        this.#panel = this.#contract.element('search-panel')
+        this.#input = this.#contract.element('search-input')
         this.#availableHeight = this.#panel === null ? null : new PanelAvailableHeight(this.#panel)
         this.#transitions = this.#panel === null ? null : new PanelTransitions(this.#panel)
+        this.#instantChange = new InstantChange(contract.root)
         this.#intent = intent
     }
 
@@ -48,7 +51,7 @@ export class SearchPanel {
 
     /** The client never arrived: the panel says so rather than stay silent. */
     unavailable() {
-        const unavailable = this.#element('search-unavailable')
+        const unavailable = this.#contract.element('search-unavailable')
 
         if (unavailable !== null) {
             unavailable.hidden = false
@@ -74,19 +77,8 @@ export class SearchPanel {
         }
     }
 
-    /** `getAnimations()` flushes the style while the stylesheet cuts the transitions: none starts once the attribute goes. */
     #instantly(change: () => void) {
-        const root = this.#contract.root
-
-        root.setAttribute(INSTANT, '')
-
-        try {
-            change()
-            root.getAnimations()
-        } finally {
-            root.removeAttribute(INSTANT)
-        }
-
+        this.#instantChange.apply(change)
         this.#panel?.getAnimations().forEach((animation) => animation.finish())
     }
 
@@ -141,11 +133,5 @@ export class SearchPanel {
             this.#intended = true
             this.#intent()
         }
-    }
-
-    #element(hook: string) {
-        const element = this.#contract.one(hook)
-
-        return element instanceof HTMLElement ? element : null
     }
 }

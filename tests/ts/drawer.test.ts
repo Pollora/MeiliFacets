@@ -17,6 +17,15 @@ import { connection, described, FakeClient, FakeHistory } from './fixtures.ts'
 import type { TestWindow } from './dom.ts'
 
 const SIDE_SHEET = 'data-side-sheet'
+const BODY_END = '            </div>\n            <div class="meilifacetsDrawerFooter"'
+const SHOW_MORE = '<button type="button" class="meilifacetsDrawerShowMore" aria-expanded="false" aria-controls="drawer" data-meili="drawer-show-more">Show more</button>'
+const pastTheRow = (markup: string) => markup.replace('data-taxonomy="product_cat" data-meili="facet"', 'data-taxonomy="product_cat" data-beyond-row data-meili="facet"')
+
+const overflowing = (overflow: 'side-sheet' | 'show-more', markup = drawerMarkup()) => {
+    const marked = markup.replace('data-meili="drawer"', `data-overflow="${overflow}" data-meili="drawer"`)
+
+    return overflow === 'show-more' ? pastTheRow(marked).replace(BODY_END, `${SHOW_MORE}\n${BODY_END}`) : marked
+}
 const FACETS = '    <div class="meilifacetsFacets"'
 /** The theme renders its facets `:with-apply="false"`: « Apply » lives in the drawer's foot. */
 const FACETS_APPLY = '        <button type="button" class="meilifacetsApply" data-meili="apply">Apply filters</button>\n    </div>'
@@ -348,6 +357,15 @@ describe('Drawer', () => {
         assert.equal(window.document.activeElement === box, true)
     })
 
+    it('leaves a focus the row hides where it is when no « Show more » can take it', () => {
+        click(window, opener())
+        title().checkVisibility = () => false
+
+        media.cross(false)
+
+        assert.ok(window.document.activeElement === title())
+    })
+
     describe('its inline height', () => {
         const sheet = () => find(drawer(), Contract.selector('drawer-sheet'))
 
@@ -403,7 +421,11 @@ describe('Drawer', () => {
     describe('as a side sheet', () => {
         const sheet = () => find(drawer(), Contract.selector('drawer-sheet'))
 
-        beforeEach(() => drawer().setAttribute(SIDE_SHEET, ''))
+        beforeEach(() => start(overflowing('side-sheet')))
+
+        it('takes the shape of a side sheet as soon as it starts, the server having decided', () => {
+            assert.equal(drawer().hasAttribute(SIDE_SHEET), true)
+        })
 
         it('opens as a modal dialog above the threshold', () => {
             media.matches = false
@@ -430,6 +452,181 @@ describe('Drawer', () => {
             media.cross(true)
 
             assert.notEqual(sheet().style.height, '')
+        })
+    })
+
+    describe('with « Show more »', () => {
+        const showMore = () => find(root, Contract.selector('drawer-show-more'))
+        const row = () => drawer().previousElementSibling as HTMLElement
+        const pastRow = () => find(root, '[data-beyond-row]')
+        const bodyOrder = () => [...find(drawer(), Contract.selector('drawer-body')).querySelectorAll('[data-meili]')]
+            .map((node) => node.getAttribute('data-meili'))
+
+        beforeEach(() => {
+            start(overflowing('show-more'))
+            media.matches = false
+        })
+
+        it('stays a row until « Show more » is pressed', () => {
+            assert.equal(drawer().hasAttribute(SIDE_SHEET), false)
+            assert.equal(isModal(), false)
+        })
+
+        it('opens the drawer itself as a side sheet dialog from « Show more » above the threshold', () => {
+            click(window, showMore())
+
+            assert.equal(drawer().hasAttribute(SIDE_SHEET), true)
+            assert.equal(isModal(), true)
+            assert.equal(showMore().getAttribute('aria-expanded'), 'true')
+            assert.ok(inert().includes('header'))
+            assert.ok(window.document.activeElement === title())
+        })
+
+        it('lifts what stays in the row out of the drawer, before it and inert, and leaves it the filters past the row', () => {
+            click(window, showMore())
+
+            assert.ok(row().contains(showMore()))
+            assert.ok(row().querySelector(Contract.selector('facet')) !== null)
+            assert.ok(drawer().contains(pastRow()))
+            assert.equal(row().hasAttribute('inert'), true)
+        })
+
+        it('flushes the style of the sheet, already a side sheet, before it slides in', () => {
+            const sheet = find(drawer(), Contract.selector('drawer-sheet'))
+            const read: boolean[] = []
+            const computed = window.getComputedStyle.bind(window)
+            window.getComputedStyle = ((node: Element) => {
+                if (node === sheet) {
+                    read.push(drawer().hasAttribute(SIDE_SHEET) && !isModal())
+                }
+
+                return computed(node)
+            })
+
+            click(window, showMore())
+
+            assert.deepEqual(read, [true])
+        })
+
+        it('keeps the lifted row as wide as the body was beside the foot, so that its pills wrap where they did', () => {
+            const body = find(drawer(), Contract.selector('drawer-body'))
+
+            body.getBoundingClientRect = () => ({ width: 640.5 }) as DOMRect
+            click(window, showMore())
+
+            assert.equal(row().style.maxWidth, '640.5px')
+        })
+
+        it('lifts the facets a theme renders without their container one by one, and puts them back in their order', async () => {
+            const facets = find(drawer(), Contract.selector('facets'))
+
+            facets.replaceWith(...facets.children)
+            const order = bodyOrder()
+
+            click(window, showMore())
+
+            assert.ok(row().querySelector(Contract.selector('facet')) !== null)
+            assert.equal(row().querySelector('[data-beyond-row]'), null)
+            assert.ok(drawer().contains(pastRow()))
+
+            press(window, title(), 'Escape')
+            await settle()
+
+            assert.deepEqual(bodyOrder(), order)
+        })
+
+        it('puts the row back in the drawer, in its order, once closed, and hands the focus back to « Show more »', async () => {
+            const order = bodyOrder()
+
+            click(window, showMore())
+            press(window, title(), 'Escape')
+            await settle()
+
+            assert.equal(isModal(), false)
+            assert.equal(drawer().hasAttribute(SIDE_SHEET), false)
+            assert.ok(row() === opener())
+            assert.deepEqual(bodyOrder(), order)
+            assert.equal(showMore().getAttribute('aria-expanded'), 'false')
+            assert.ok(window.document.activeElement === showMore())
+        })
+
+        it('keeps the side sheet and the lifted row until its way out has played', async () => {
+            click(window, showMore())
+            const out = holdExit()
+
+            click(window, find(drawer(), 'button' + Contract.selector('drawer-close')))
+            await settle()
+            assert.equal(drawer().hasAttribute(SIDE_SHEET), true)
+            assert.ok(row().contains(showMore()))
+
+            out()
+            await settle()
+            assert.equal(drawer().hasAttribute(SIDE_SHEET), false)
+            assert.ok(drawer().contains(showMore()))
+        })
+
+        it('leaves the focus where the visitor put it while the sheet was leaving', async () => {
+            click(window, showMore())
+            const out = holdExit()
+
+            click(window, find(drawer(), 'button' + Contract.selector('drawer-close')))
+            find<HTMLAnchorElement>(window.document, '#header a').focus()
+            out()
+            await settle()
+
+            assert.ok(window.document.activeElement === find(window.document, '#header a'))
+        })
+
+        it('turns into the bottom sheet, row back in, when the threshold is crossed open, and hands the focus to the opener', async () => {
+            const order = bodyOrder()
+
+            click(window, showMore())
+            media.cross(true)
+
+            assert.equal(isModal(), true)
+            assert.equal(drawer().hasAttribute(SIDE_SHEET), false)
+            assert.deepEqual(bodyOrder(), order)
+
+            press(window, title(), 'Escape')
+            await settle()
+
+            assert.ok(window.document.activeElement === opener())
+        })
+
+        it('hands the focus to « Show more » when the window grows past the threshold with the focus on what the row hides', () => {
+            media.matches = true
+            click(window, opener())
+            title().checkVisibility = () => false
+
+            media.cross(false)
+
+            assert.equal(isModal(), false)
+            assert.ok(window.document.activeElement === showMore())
+        })
+
+        it('leaves the focus on a filter the row still shows when the window grows past the threshold', () => {
+            media.matches = true
+            click(window, opener())
+            const box = find<HTMLInputElement>(drawer(), 'input')
+            box.focus()
+
+            media.cross(false)
+
+            assert.ok(window.document.activeElement === box)
+        })
+
+        it('opens as a bottom sheet from the opener below the threshold, leaving the row alone', async () => {
+            media.matches = true
+
+            click(window, opener())
+
+            assert.equal(isModal(), true)
+            assert.equal(drawer().hasAttribute(SIDE_SHEET), false)
+
+            press(window, title(), 'Escape')
+            await settle()
+
+            assert.ok(window.document.activeElement === opener())
         })
     })
 
@@ -712,7 +909,7 @@ describe('the foot of the drawer', () => {
 
 describe('a side sheet over a listing that searches', () => {
     it('stays a side sheet once an answer shows fewer filters', async () => {
-        const markup = drawerMarkup({ apply: 'immediate' }).replace('data-meili="drawer"', 'data-side-sheet data-meili="drawer"')
+        const markup = overflowing('side-sheet', drawerMarkup({ apply: 'immediate' }))
         const { window, root } = open(markup)
         window.matchMedia = (() => Object.assign(new EventTarget(), { matches: false })) as unknown as typeof window.matchMedia
         const client = new FakeClient()

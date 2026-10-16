@@ -315,6 +315,27 @@ describe('the entrance of an active value', () => {
         assert.deepEqual(entered.map(({ label }) => label), ['globex', 'coats'])
     })
 
+    it('reads the timing of every new pill before it plays any', async () => {
+        const steps: string[] = []
+        const computed = window.getComputedStyle.bind(window)
+        window.getComputedStyle = ((node: Element) => {
+            if (node.matches(Contract.selector('active-value'))) {
+                steps.push('read')
+            }
+
+            return computed(node)
+        })
+        window.HTMLElement.prototype.animate = function () {
+            steps.push('play')
+
+            return {} as Animation
+        }
+
+        await start().toggle('product_brand', 'acme').toggle('product_brand', 'globex').apply()
+
+        assert.deepEqual(steps, ['read', 'read', 'read', 'read', 'play', 'play'])
+    })
+
     it('leaves a pill the server rendered still when the client redraws it', async () => {
         list().hidden = false
         list().insertAdjacentHTML('afterbegin', '<li><button type="button" name="brand" value="acme" data-kind="term" data-meili="active-value">Acme</button></li>')

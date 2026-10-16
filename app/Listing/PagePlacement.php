@@ -16,6 +16,8 @@ final class PagePlacement
     /** @var array<string, true> facet names a template placed on their own */
     private array $placedOnTheirOwn = [];
 
+    private ?FilterRow $row = null;
+
     public function __construct(private readonly string $listing) {}
 
     public function place(Placeable $facet): void
@@ -53,6 +55,21 @@ final class PagePlacement
     public function placedFacetCount(): int
     {
         return count($this->rendered[PlacedControl::Facet->value] ?? []);
+    }
+
+    public function startRow(int $limit): void
+    {
+        $this->row = new FilterRow($this->placedFacetCount(), $limit);
+    }
+
+    public function endRow(): void
+    {
+        $this->row = null;
+    }
+
+    public function row(): ?FilterRow
+    {
+        return $this->row;
     }
 
     /**

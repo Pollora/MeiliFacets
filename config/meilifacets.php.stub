@@ -26,10 +26,12 @@ return [
         // 'q' => 'search',
     ],
 
-    // Past this many filters on screen when the page loads, the desktop row gives way to a side sheet behind the
-    // "Filters" button, kept while the visitor filters.
+    // Past `limit` filters, `side-sheet` moves them all to a side sheet, `show-more` keeps the first ones in the row.
     'drawer' => [
-        'row_limit' => 5,
+        'row' => [
+            'limit' => 5,
+            'overflow' => 'side-sheet',
+        ],
     ],
 
     'card' => [

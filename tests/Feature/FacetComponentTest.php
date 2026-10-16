@@ -201,6 +201,42 @@ final class FacetComponentTest extends TestCase
         $this->assertStringContainsString('data-meili="apply"', $rendered);
     }
 
+    #[Test]
+    public function the_listing_root_carries_the_apply_mode_and_the_group_does_not(): void
+    {
+        foreach (['submit', 'immediate'] as $mode) {
+            $this->useApplyMode($mode);
+            $this->app->forgetScopedInstances();
+
+            $document = HTMLDocument::createFromString(Blade::render('<x-meilifacets::listing name="products"><x-meilifacets::listing.facets /></x-meilifacets::listing>'), LIBXML_NOERROR);
+
+            $this->assertSame($mode, $document->querySelector('[data-listing]')->getAttribute('data-apply'));
+            $this->assertFalse($document->querySelector($this->hooked(Hook::Facets))->hasAttribute('data-apply'));
+        }
+    }
+
+    #[Test]
+    public function it_renders_the_filters_and_the_apply_button_without_their_container_when_unwrapped(): void
+    {
+        $this->useApplyMode('submit');
+
+        $document = HTMLDocument::createFromString(Blade::render('<x-meilifacets::listing.facets name="products" unwrapped scroll />'), LIBXML_NOERROR);
+        $placed = $document->querySelectorAll($this->hooked(Hook::Facet).', '.$this->hooked(Hook::Apply));
+
+        $this->assertNull($document->querySelector($this->hooked(Hook::Facets)));
+        $this->assertGreaterThan(1, $placed->length);
+        $this->assertCount($placed->length, $document->querySelectorAll('['.Contract::ScrollAttribute->value.']'));
+    }
+
+    #[Test]
+    public function it_marks_the_container_alone_when_it_keeps_it(): void
+    {
+        $document = HTMLDocument::createFromString(Blade::render('<x-meilifacets::listing.facets name="products" scroll />'), LIBXML_NOERROR);
+
+        $this->assertCount(1, $document->querySelectorAll('['.Contract::ScrollAttribute->value.']'));
+        $this->assertTrue($document->querySelector($this->hooked(Hook::Facets))->hasAttribute(Contract::ScrollAttribute->value));
+    }
+
     /** Naming a box with a count would rename it under the cursor at every filtering. */
     #[Test]
     public function it_counts_a_value_in_the_language_wordpress_translates_in(): void

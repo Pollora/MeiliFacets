@@ -20,6 +20,7 @@
 [data-meili="toggle"],
 [data-meili="active-value"],
 [data-meili="drawer-open"],
+[data-meili="drawer-show-more"],
 button[data-meili="drawer-close"],
 [data-meili="listing-search-clear"],
 [data-meili="sort-choice"] {
@@ -91,7 +92,8 @@ button[data-meili="drawer-close"],
 [data-meili="active-values"],
 [data-meili="sort-choices"],
 [data-meili="drawer"],
-[data-meili="drawer-open"] {
+[data-meili="drawer-open"],
+[data-meili="drawer-show-more"] {
     font-size: var(--meili-ui);
 }
 
@@ -100,7 +102,8 @@ button[data-meili="drawer-close"],
     font-variant-numeric: tabular-nums;
 }
 
-[data-meili="facets"] {
+[data-meili="facets"],
+[data-meili="drawer-body"] > [data-meili="facet"]:not(:has(~ [data-meili="facet"]:not([hidden]))) {
     padding-bottom: var(--meili-section-gap);
 }
 
@@ -204,6 +207,7 @@ button[data-meili="drawer-close"],
 [data-meili="sort-choice"]:focus-visible,
 [data-meili="toggle"]:focus-visible,
 [data-meili="drawer-open"]:focus-visible,
+[data-meili="drawer-show-more"]:focus-visible,
 button[data-meili="drawer-close"]:focus-visible,
 [data-meili="apply"]:focus-visible,
 [data-meili="reset"]:focus-visible,
@@ -228,7 +232,7 @@ button[data-meili="drawer-close"]:focus-visible,
     accent-color: currentColor;
 }
 
-[data-meili="facets"] [data-meili="facet"]:not(:has(~ [data-meili="facet"]:not([hidden]))) {
+:is([data-meili="facets"], [data-meili="drawer-body"]) > [data-meili="facet"]:not(:has(~ [data-meili="facet"]:not([hidden]))) {
     margin-bottom: 1em;
 }
 
@@ -317,7 +321,8 @@ button[data-meili="drawer-close"]:focus-visible,
     padding-bottom: 0;
 }
 
-[data-meili="facets"]:has([data-meili="toggle"]) > [data-meili="apply"] {
+[data-meili="facets"]:has([data-meili="toggle"]) > [data-meili="apply"],
+[data-meili="drawer-body"] > [data-meili="facet"]:has([data-meili="toggle"]) ~ [data-meili="apply"] {
     margin-top: var(--meili-section-gap);
 }
 
@@ -330,17 +335,18 @@ button[data-meili="drawer-close"]:focus-visible,
     padding: var(--meili-section-gap) 0;
 }
 
-[data-meili="facets"] :is([data-meili="facet"], [data-meili="sort-choices"]):has([data-meili="toggle"]):not(:is([data-meili="facet"], [data-meili="sort-choices"]):not([hidden]) ~ *),
+:is([data-meili="facets"] > :is([data-meili="facet"], [data-meili="sort-choices"]), [data-meili="drawer-body"] > [data-meili="facet"]):has([data-meili="toggle"]):not(:is([data-meili="facet"], [data-meili="sort-choices"]):not([hidden]) ~ *),
 [data-meili="sort-choices"]:has([data-meili="toggle"]):first-child {
     padding-top: 0;
 }
 
-[data-meili="sort-choices"]:has([data-meili="toggle"]) + [data-meili="facets"] {
+[data-meili="sort-choices"]:has([data-meili="toggle"]) + [data-meili="facets"],
+[data-meili="sort-choices"]:has([data-meili="toggle"]) ~ [data-meili="facet"]:has([data-meili="toggle"]) {
     padding-top: var(--meili-section-gap);
     border-top: 1px solid var(--meili-rule);
 }
 
-[data-meili="facets"] :is([data-meili="facet"], [data-meili="sort-choices"]):has([data-meili="toggle"]):not(:has(~ :is([data-meili="facet"], [data-meili="sort-choices"]):not([hidden]))) {
+:is([data-meili="facets"] > :is([data-meili="facet"], [data-meili="sort-choices"]), [data-meili="drawer-body"] > [data-meili="facet"]):has([data-meili="toggle"]):not(:has(~ :is([data-meili="facet"], [data-meili="sort-choices"]):not([hidden]))) {
     margin-bottom: 0;
     padding-bottom: 0;
 }
@@ -378,7 +384,8 @@ button[data-meili="drawer-close"]:focus-visible,
         border-color var(--meili-duration-hover) var(--meili-ease);
 }
 
-[data-meili="drawer-open"] {
+[data-meili="drawer-open"],
+[data-meili="drawer-show-more"] {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
@@ -419,6 +426,7 @@ button[data-meili="drawer-close"]:focus-visible,
 }
 
 [data-meili="drawer-open"],
+[data-meili="drawer-show-more"],
 .meilifacetsDrawerHead,
 .meilifacetsDrawerHandle {
     display: none;
@@ -525,7 +533,8 @@ button[data-meili="drawer-close"]:active {
         row-gap: var(--meili-bar-gap);
     }
 
-    [data-meili="facets"]:has([data-meili="toggle"]) > [data-meili="apply"]:where(:not([data-side-sheet] *)) {
+    [data-meili="facets"]:has([data-meili="toggle"]) > [data-meili="apply"]:where(:not([data-side-sheet] *)),
+    [data-meili="drawer-body"] > [data-meili="facet"]:has([data-meili="toggle"]) ~ [data-meili="apply"]:where(:not([data-side-sheet] *)) {
         width: auto;
         margin-top: 0;
     }
@@ -540,7 +549,8 @@ button[data-meili="drawer-close"]:active {
         border-top: 0;
     }
 
-    [data-meili="sort-choices"]:has([data-meili="toggle"]) + [data-meili="facets"]:where(:not([data-side-sheet] *)) {
+    [data-meili="sort-choices"]:has([data-meili="toggle"]) + [data-meili="facets"]:where(:not([data-side-sheet] *)),
+    [data-meili="sort-choices"]:has([data-meili="toggle"]) ~ [data-meili="facet"]:has([data-meili="toggle"]):where(:not([data-side-sheet] *)) {
         padding-top: 0;
         border-top: 0;
     }
@@ -627,14 +637,15 @@ button[data-meili="drawer-close"]:active {
     }
 
     [data-meili="drawer-body"]:where(:not([data-side-sheet] *)),
-    [data-meili="drawer-footer"]:where(:not([data-side-sheet] *)) {
+    [data-meili="drawer-footer"]:where(:not([data-side-sheet] *)),
+    .meilifacetsDrawerRow {
         display: flex;
         flex-wrap: wrap;
         align-items: center;
         gap: var(--meili-bar-gap);
     }
 
-    [data-meili="drawer-body"] > [data-meili="listing-search"]:where(:not([data-side-sheet] *)) {
+    :is([data-meili="drawer-body"], .meilifacetsDrawerRow) > [data-meili="listing-search"]:where(:not([data-side-sheet] *)) {
         flex: 1 1 var(--meili-listing-search-min);
         width: var(--meili-listing-search-width);
         max-width: var(--meili-listing-search-width);
@@ -905,6 +916,7 @@ button[data-meili="drawer-close"]:active {
     [data-meili="sort-option"]:hover,
     [data-meili="more"]:hover,
     [data-meili="drawer-open"]:hover,
+    [data-meili="drawer-show-more"]:hover,
     button[data-meili="drawer-close"]:hover,
     [data-meili="listing-search-clear"]:hover {
         background: var(--meili-tint);
@@ -949,11 +961,13 @@ button[data-meili="drawer-close"]:active {
 [data-meili="more"]:active,
 [data-meili="active-value"]:active,
 [data-meili="drawer-open"]:active,
+[data-meili="drawer-show-more"]:active,
 button[data-meili="drawer-close"]:active {
     background: var(--meili-press);
 }
 
-[data-meili="drawer-open"]:active {
+[data-meili="drawer-open"]:active,
+[data-meili="drawer-show-more"]:active {
     transform: scale(0.97);
 }
 
@@ -1041,6 +1055,7 @@ button[data-meili="drawer-close"]:active {
     [data-meili="more"],
     [data-meili="active-value"],
     [data-meili="drawer-open"],
+    [data-meili="drawer-show-more"],
     button[data-meili="drawer-close"] {
         -webkit-tap-highlight-color: var(--meili-press);
     }
@@ -1281,6 +1296,7 @@ button[data-meili="drawer-close"]:active {
     [data-meili="apply"][data-shape="pill"]:active,
     [data-meili="reset"][data-shape="icon"]:active,
     [data-meili="drawer-open"]:active,
+    [data-meili="drawer-show-more"]:active,
     [data-meili="facet"][data-presentation="pill"]:has([data-meili="toggle"]) [data-meili="facet-value"] label:active {
         transform: none;
     }
@@ -1435,11 +1451,19 @@ button[data-meili="drawer-close"]:active {
 }
 
 @media (scripting: enabled) and (width >= 48em) {
-    :where([data-listing]:has([data-meili="drawer"][data-side-sheet])) [data-meili="drawer-open"] {
+    :where([data-listing]:has([data-meili="drawer"][data-overflow="side-sheet"])) [data-meili="drawer-open"] {
         display: inline-flex;
     }
 
-    [data-meili="drawer"][data-side-sheet] {
+    :is([data-overflow="show-more"]:not([data-side-sheet]), .meilifacetsDrawerRow) [data-meili="drawer-show-more"] {
+        display: inline-flex;
+    }
+
+    [data-overflow="show-more"]:not([data-side-sheet]) [data-beyond-row] {
+        display: none;
+    }
+
+    [data-meili="drawer"]:is([data-overflow="side-sheet"], [data-side-sheet]) {
         position: fixed;
         z-index: var(--meili-layer-drawer);
         inset: 0;
@@ -1449,7 +1473,7 @@ button[data-meili="drawer-close"]:active {
         visibility: hidden;
     }
 
-    [data-meili="drawer"][data-side-sheet]::before {
+    [data-meili="drawer"]:is([data-overflow="side-sheet"], [data-side-sheet])::before {
         content: '';
         position: absolute;
         inset: 0;

@@ -70,12 +70,12 @@ from the listing's name). Those that belong to a search receive `$root` and `$id
 
 | View | Also receives |
 | --- | --- |
-| `listing` | `$contract` (the contract version attribute) |
+| `listing` | `$contract` (the contract version attribute), `$applyMode` |
 | `listing/results` | `$cards`, `$items`, `$priority($rank)` |
 | `listing/card` | `$binding`, `$priority`, `$heading`, `$link`, `$image`, `$title`, `$price` |
-| `listing/facets` | `$applyMode`, `$needsApplyButton`, `$collapsible`, `$withApply`, `$componentFor($filter)` |
-| `listing/facet` | `$facet`, `$values`, `$presentation`, `$collapsible`, `$inputType()`, `$inputName()`, `$panelId()`, `$labelId($value)`, `$countId($value)`, `$countLabel($value)`, `$disclosure()`, `$hasFoldedValues()`, `$isShown()`, `$marksPresentation()` |
-| `listing/price` | `$filter`, `$money`, `$collapsible`, `$bounds()`, `$handles()`, `$fill()`, `$readout()`, `$showsSlider()`, `$showsFields()`, `$isShown()`, `$panelId()`, `$disclosure()` |
+| `listing/facets` | `$needsApplyButton`, `$collapsible`, `$withApply`, `$unwrapped`, `$componentFor($filter)` |
+| `listing/facet` | `$facet`, `$values`, `$presentation`, `$collapsible`, `$inputType()`, `$inputName()`, `$panelId()`, `$labelId($value)`, `$countId($value)`, `$countLabel($value)`, `$disclosure()`, `$hasFoldedValues()`, `$isShown()`, `$isBeyondRow()`, `$marksPresentation()` |
+| `listing/price` | `$filter`, `$money`, `$collapsible`, `$bounds()`, `$handles()`, `$fill()`, `$readout()`, `$showsSlider()`, `$showsFields()`, `$isShown()`, `$isBeyondRow()`, `$panelId()`, `$disclosure()` |
 | `listing/sort`, `listing/sort-radios` | `$choices`, `$selected`, `$caption`, `$widget`, `$collapsible`, `$disclosure()`, `$panelId()`, `$choiceName()` |
 | `listing/pagination` | `$pagination` |
 | `listing/total` | `$label` |
@@ -83,7 +83,7 @@ from the listing's name). Those that belong to a search receive `$root` and `$id
 | `listing/active-values` | `$values` |
 | `listing/apply` | `$shape`, `$visibleInDrawer`, `$badge`, `$label()`, `$onlyInDrawer()` |
 | `listing/reset`, `listing/reset-icon` | `$shape`, `$hasNothingToClear()`, `$defaultIconUrl()` |
-| `listing/drawer` | `$drawerId`, `$titleId`, `$media`, `$heading`, `$isSideSheet()`, slot `$footer` |
+| `listing/drawer` | `$drawerId`, `$titleId`, `$media`, `$heading`, `$rowLimit`, `$overflow()`, `$showsMore()`, slots `$footer`, `$showMore` |
 | `listing/drawer-opener` | `$drawerId`, `$badge`, `$defaultIconUrl()`, slot `$icon` |
 | `listing/search` | `$action`, `$kept`, `$parameter`, `$term`, `$inputId`, `$maxLength`, `$label()` |
 | `search` | `$contract`, `$sectionTypes()`, slot `$icon` |

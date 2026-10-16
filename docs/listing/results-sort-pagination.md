@@ -204,6 +204,7 @@ The list applies to the product listing as a whole, on every page that shows it.
 | `widget` | `listbox` | `listbox`: a button that opens a list of choices (the ARIA combobox pattern, with the full keyboard support it promises). `radios`: a `<fieldset>` of radio buttons |
 | `collapsible` | `false` | with `widget="radios"` only: the fieldset folds like a [collapsible facet](facets.md#collapsible-facets) |
 | `scroll` | `false` | with `listbox`: picking a choice brings the top of the listing back into view |
+| `label` | none | names the sort in place of “Sort by” (see below) |
 
 ```blade
 <x-meilifacets::listing.sort widget="radios" collapsible />
@@ -212,6 +213,19 @@ The list applies to the product listing as a whole, on every page that shows it.
 The collapsible radios show the sort in force in their toggle: “Sort by: Relevance”. The sentence comes from the
 translatable key `Sort by: :choice`, so a language can put the choice anywhere in it. A sort is an order, not a
 filter: its toggle never shows a count.
+
+A theme gives its own wording with `label`, as on the listing search, the module's keys not being overridable from a
+theme's catalogue:
+
+- `label="Sort"`, with no `:choice`, names the sort alone everywhere: the listbox label, the radios' legend and
+  their toggle, in the row as in the sheet. The order in force is not repeated in the toggle;
+- `label="Order: :choice"` replaces the sentence of the collapsible radios, the only widget that shows one; their
+  section is still named “Sort by”. The listbox label and the legend of plain radios read “Sort by”, and the sentence
+  appears nowhere.
+
+```blade
+<x-meilifacets::listing.sort widget="radios" collapsible :label="__('Sort')" />
+```
 
 Render the sort once per page, whatever its widget. A second one fails:
 
@@ -281,6 +295,8 @@ has no label for gets no pill, so that nobody can write on the page through the 
 
 `<x-meilifacets::listing.reset />` renders a “Clear all” button, hidden while there is nothing to clear. It clears
 every facet value, the price range, the search term, the sort and the page, and searches at once, in both modes.
+In `immediate` mode it appears and disappears with the pills, once the engine answers; in `submit` mode it follows what
+the visitor ticks, so that a selection not applied yet can already be cleared.
 
 | Attribute | Default | Effect |
 | --- | --- | --- |
@@ -313,6 +329,7 @@ to the listing itself: never to the top of the document.
 | --- | --- | --- |
 | `shape` | `pill` | `pill`: “Apply”, with the number of active filters in a badge. `block`: “Apply filters”, full width, no count |
 | `visible-in-drawer` | `false` | renders the button in `immediate` mode too, visible only inside the mobile drawer, where it closes the drawer |
+| `scroll` | `false` | the search it runs brings the top of the listing back into view |
 | `name` | the only listing | the listing it belongs to |
 
 - In `submit` mode, the button is rendered and visible everywhere.

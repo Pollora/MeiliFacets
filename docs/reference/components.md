@@ -74,7 +74,7 @@ overridden from `<theme>/resources/views/modules/meilifacets/` under the same pa
 
 ### `<x-meilifacets::listing>`
 
-The root. It renders `data-listing` and `data-meili-contract`, asks for the `meilifacets` stylesheet and the
+The root. It renders `data-listing`, `data-apply` (the apply mode, `submit` or `immediate`) and `data-meili-contract`, asks for the `meilifacets` stylesheet and the
 `@meilifacets/listing` script module, and runs the one search every brick inside reads. When the engine fails, it
 renders `<x-meilifacets::listing.unavailable>` instead of its slot.
 
@@ -127,13 +127,14 @@ and no Apply button is due.
 | Attribute | Type | Default | Effect |
 | --- | --- | --- | --- |
 | `name` | `string` | `''` | passed to every child |
-| `scroll` | `bool` | `false` | on the group |
+| `scroll` | `bool` | `false` | on the group; with `unwrapped`, on every child |
 | `collapsible` | `bool` | `false` | passed to every child |
 | `with-apply` | `bool` | `true` | `false` drops the block Apply button of `submit` mode |
+| `unwrapped` | `bool` | `false` | renders the children without the group `<div>`, straight in the parent: in the drawer, each filter then wraps on its own in the row |
 
 | Slots | Bag lands on | Hooks rendered |
 | --- | --- | --- |
-| none | nowhere | `facets`, plus those of each child; `data-apply` carries the apply mode |
+| none | nowhere | `facets` (not with `unwrapped`), plus those of each child |
 
 ### `<x-meilifacets::listing.facet>`
 
@@ -183,10 +184,11 @@ The sort control. Not rendered when one order or none is offered. Rendered once 
 | `scroll` | `bool` | `false` | |
 | `widget` | `SortWidget` or `string` | `listbox` | `listbox` (button and list), `radios` (a fieldset of radios) |
 | `collapsible` | `bool` | `false` | `radios` only; ignored by `listbox` |
+| `label` | `?string` | `null` | names the sort, in place of `Sort by`, and no `sort-chosen` is rendered; holding `:choice`, it replaces the sentence `Sort by: :choice` of the collapsible radios instead, the only widget that shows it: the name stays `Sort by`, and the listbox label and the legend of plain radios read `Sort by` |
 
 | Slots | Bag lands on | Hooks rendered |
 | --- | --- | --- |
-| none | nowhere | `listbox`: `sort`, `sort-trigger`, `sort-list`, `sort-option`. `radios`: `sort-choices`, `sort-choice-row`, `sort-choice`; with `collapsible`: `toggle`, `sort-chosen`, `panel` |
+| none | nowhere | `listbox`: `sort`, `sort-trigger`, `sort-list`, `sort-option`. `radios`: `sort-choices`, `sort-choice-row`, `sort-choice`; with `collapsible`: `toggle`, `sort-chosen` (unless `label` holds no `:choice`), `panel` |
 
 ### `<x-meilifacets::listing.pagination>`
 
@@ -263,6 +265,7 @@ rendered in `immediate` mode too, where it only closes the drawer and is shown o
 | `name` | `string` | `''` | |
 | `visible-in-drawer` | `bool` | `false` | |
 | `shape` | `ApplyShape` or `string` | `pill` | `pill` (“Apply” and a count badge), `block` (“Apply filters”) |
+| `scroll` | `bool` | `false` | a search it runs brings the listing back into view |
 
 | Slots | Bag lands on | Hooks rendered |
 | --- | --- | --- |
@@ -288,19 +291,21 @@ keeps at most 200 characters.
 
 ### `<x-meilifacets::listing.drawer>`
 
-A container that becomes a modal bottom sheet while `media` matches, a modal side sheet from `48em` past `row-limit`
-filters shown, and stays inline otherwise.
+A container that becomes a modal bottom sheet while `media` matches, and from `48em` past `row-limit` filters shown
+either a modal side sheet (`row-overflow="side-sheet"`) or a row of its first filters ending with « Show more »
+(`row-overflow="show-more"`), and stays inline otherwise.
 
 | Attribute | Type | Default | Values |
 | --- | --- | --- | --- |
 | `name` | `string` | `''` | |
 | `media` | `string` | `(width < 48em)` | a media query; the stylesheet's own breakpoints do not follow it |
 | `heading` | `HeadingLevel` or `string` | `h2` | `h2` to `h6`, for the “Filters” title |
-| `row-limit` | `int` | `meilifacets.drawer.row_limit`, else `5` | the number of filters it holds and shows at page load past which it opens as a side sheet |
+| `row-limit` | `int` | `meilifacets.drawer.row.limit`, else `5` | the number of filters shown at page load that its row holds from `48em` |
+| `row-overflow` | `RowOverflow` or `string` | `meilifacets.drawer.row.overflow`, else `side-sheet` | past the limit: `side-sheet` (every filter in a side sheet behind the opener), `show-more` (the first filters stay in the row, « Show more » opens the drawer as the side sheet with the filters past them) |
 
 | Slots | Bag lands on | Hooks rendered |
 | --- | --- | --- |
-| default (the body), `footer` (its own attributes land on the footer `<div>`) | the drawer `<div>` | `drawer`, `drawer-sheet`, `drawer-title`, `drawer-close` (button and drag handle), `drawer-body`, `drawer-footer` (with the slot); `data-media`, `data-side-sheet` past the limit |
+| default (the body), `footer` (its own attributes land on the footer `<div>`), `show-more` (the icon of « Show more », hidden from screen readers) | the drawer `<div>` | `drawer`, `drawer-sheet`, `drawer-title`, `drawer-close` (button and drag handle), `drawer-body`, `drawer-footer` (with the slot), `drawer-show-more` (past the limit with `show-more`, last in the body); `data-media`, `data-overflow` (`side-sheet` or `show-more`) past the limit. The client sets `data-side-sheet` while the drawer is a side sheet; with `show-more`, it lifts what stays in the row into a `div.meilifacetsDrawerRow` before the drawer while the sheet is open. `listing.facet` and `listing.price` carry `data-beyond-row` past the limit with `show-more` |
 
 ### `<x-meilifacets::listing.drawer-opener>`
 

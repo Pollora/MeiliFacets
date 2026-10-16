@@ -29,10 +29,10 @@ export class SortCombobox {
     constructor(contract: Contract, choose: Choose) {
         this.#contract = contract
         this.#choose = choose
-        this.#root = this.#element('sort')
-        this.#trigger = this.#element('sort-trigger')
-        this.#list = this.#element('sort-list')
-        this.#options = contract.all('sort-option').filter((node) => node instanceof HTMLElement)
+        this.#root = this.#contract.element('sort')
+        this.#trigger = this.#contract.element('sort-trigger')
+        this.#list = this.#contract.element('sort-list')
+        this.#options = contract.elements('sort-option')
 
         // `aria-activedescendant` points at an id; an overridden view may carry none.
         this.#options.forEach((option, rank) => {
@@ -214,11 +214,5 @@ export class SortCombobox {
         if (this.#isOpen && event.target instanceof Node && this.#root?.contains(event.target) === false) {
             this.#close()
         }
-    }
-
-    #element(hook: string): HTMLElement | null {
-        const node = this.#contract.one(hook)
-
-        return node instanceof HTMLElement ? node : null
     }
 }

@@ -34,6 +34,9 @@ final class Listing extends ListingComponent
 
     public function render(): View
     {
-        return view('meilifacets::components.listing', ['contract' => Contract::version()]);
+        return view('meilifacets::components.listing', [
+            'contract' => Contract::version(),
+            'applyMode' => $this->listing->applyMode()->value,
+        ]);
     }
 }

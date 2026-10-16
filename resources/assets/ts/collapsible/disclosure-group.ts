@@ -1,6 +1,7 @@
-import { CONTROLS, EXPANDED, INSTANT } from '../shared/attributes.ts'
+import { CONTROLS, EXPANDED } from '../shared/attributes.ts'
 import { Contract } from '../shared/contract.ts'
 import { InputSource } from '../shared/input-source.ts'
+import { InstantChange } from '../shared/instant-change.ts'
 import { LightDismiss } from '../shared/light-dismiss.ts'
 import { PanelMotion } from './panel-motion.ts'
 
@@ -124,7 +125,7 @@ export class DisclosureGroup {
         }
 
         toggle.setAttribute(EXPANDED, 'true')
-        this.#instantly(panel, () => panel.hidden = false)
+        new InstantChange(panel).apply(() => panel.hidden = false)
         this.#align(panel)
     }
 
@@ -144,17 +145,9 @@ export class DisclosureGroup {
         const panel = this.#panelOf(toggle)
 
         if (panel !== null && !panel.hidden) {
-            this.#instantly(panel, () => this.#motion.hideInstantly(panel))
+            new InstantChange(panel).apply(() => this.#motion.hideInstantly(panel))
             this.#closed()
         }
-    }
-
-    /** `getAnimations()` flushes the style while the stylesheet cuts the transition: none starts once the attribute goes. */
-    #instantly(panel: HTMLElement, change: () => void) {
-        panel.setAttribute(INSTANT, '')
-        change()
-        panel.getAnimations()
-        panel.removeAttribute(INSTANT)
     }
 
     /** Measured open and aligned on its start: where it would fall past the viewport, it hangs from its trigger's end. */
@@ -178,7 +171,7 @@ export class DisclosureGroup {
     }
 
     #toggles() {
-        return this.#contract.all('toggle').filter((toggle): toggle is HTMLElement => toggle instanceof HTMLElement)
+        return this.#contract.elements('toggle')
     }
 
     #isOpen(toggle: Element) {

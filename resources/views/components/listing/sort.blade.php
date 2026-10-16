@@ -1,6 +1,6 @@
 <div class="meilifacetsSort" {{ $hook('sort') }} {{ $scrollMark() }}>
     <label class="meilifacetsSortLabel" id="{{ $ids->sortLabel() }}" for="{{ $ids->sortTrigger() }}">
-        {{ __('Sort by') }}
+        {{ $caption->label }}
     </label>
     {{-- Labelled by both, so the name read out is "Sort by, Price, low to high". --}}
     <button type="button" class="meilifacetsSortTrigger" id="{{ $ids->sortTrigger() }}"

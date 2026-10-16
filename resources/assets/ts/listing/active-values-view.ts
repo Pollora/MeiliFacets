@@ -129,7 +129,13 @@ export class ActiveValuesView {
         shown.forEach((pill) => this.#itemOf(pill, host).remove())
         template.before(...values.flatMap((value) => this.#activeValue(template, value)))
         host.hidden = values.length === 0
-        newActiveValues.among(this.#contract.all('active-value', host)).forEach((pill) => this.#entrance.play(pill))
+        this.#enter(newActiveValues.among(this.#contract.all('active-value', host)))
+    }
+
+    #enter(pills: HTMLElement[]) {
+        const timings = pills.map((pill) => this.#entrance.timingOf(pill))
+
+        pills.forEach((pill, rank) => this.#entrance.play(pill, timings[rank]))
     }
 
     #activeValue(template: HTMLTemplateElement, value: ActiveValue) {

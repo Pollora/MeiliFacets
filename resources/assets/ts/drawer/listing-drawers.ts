@@ -10,9 +10,8 @@ export class ListingDrawers {
     #deferredRepaint: DeferredRepaint
 
     constructor(contract: Contract, disclosures: DisclosureGroup) {
-        this.#deferredRepaint = new DeferredRepaint(contract.window, () => this.#coverThePage())
-        this.#drawers = contract.all('drawer')
-            .filter((drawer): drawer is HTMLElement => drawer instanceof HTMLElement)
+        this.#deferredRepaint = new DeferredRepaint(contract.window, () => this.#coversThePage())
+        this.#drawers = contract.elements('drawer')
             .map((drawer) => new Drawer(contract, drawer, {
                 hidden: (left) => disclosures.collapseWithin(left),
                 uncovered: () => this.#deferredRepaint.release(),
@@ -29,7 +28,7 @@ export class ListingDrawers {
         this.#deferredRepaint.paint(paint)
     }
 
-    #coverThePage() {
+    #coversThePage() {
         return this.#drawers.some((drawer) => drawer.coversThePage())
     }
 }

@@ -140,6 +140,67 @@ final class SortRadiosTest extends TestCase
         $this->assertSame('true', $toggle->querySelector('.meilifacetsFacetToggleLabel')->getAttribute('aria-hidden'));
     }
 
+    #[Test]
+    public function it_names_the_section_by_a_label_alone_and_shows_no_order(): void
+    {
+        $toggle = $this->rendered('<x-meilifacets::listing.sort name="products" widget="radios" collapsible label="Sort" />')
+            ->querySelector($this->hooked(Hook::Toggle));
+        $label = $toggle->querySelector('.meilifacetsFacetToggleLabel');
+
+        $this->assertNull($toggle->querySelector($this->hooked(Hook::SortChosen)));
+        $this->assertNull($toggle->querySelector('.meilifacetsSortCaption'));
+        $this->assertSame('Sort', $label->textContent);
+        $this->assertFalse($label->hasAttribute('aria-hidden'));
+        $this->assertSame('Sort', $this->nameOf($toggle));
+    }
+
+    #[Test]
+    public function it_names_a_plain_group_by_its_label(): void
+    {
+        $legend = $this->rendered('<x-meilifacets::listing.sort name="products" widget="radios" label="Sort" />')
+            ->querySelector($this->hooked(Hook::SortChoices).' > legend');
+
+        $this->assertSame('Sort', trim($legend->textContent));
+    }
+
+    #[Test]
+    public function it_writes_the_order_where_a_label_puts_it(): void
+    {
+        $toggle = $this->underLocales('en', 'en_US', fn (): HTMLDocument => $this->rendered(
+            '<x-meilifacets::listing.sort name="products" widget="radios" collapsible label="Order — :choice" />'
+        ))->querySelector($this->hooked(Hook::Toggle));
+
+        $this->assertSame('Relevance', $toggle->querySelector($this->hooked(Hook::SortChosen))->textContent);
+        $this->assertSame('Order — Relevance', $this->nameOf($toggle));
+    }
+
+    #[Test]
+    public function it_names_the_listbox_by_its_label(): void
+    {
+        $label = $this->rendered('<x-meilifacets::listing.sort name="products" label="Sort" />')
+            ->querySelector($this->hooked(Hook::Sort).' > label');
+
+        $this->assertSame('Sort', trim($label->textContent));
+    }
+
+    #[Test]
+    public function it_names_a_plain_group_sort_by_when_its_label_holds_the_order(): void
+    {
+        $document = $this->rendered('<x-meilifacets::listing.sort name="products" widget="radios" label="Order: :choice" />');
+
+        $this->assertSame(__('Sort by'), trim($document->querySelector($this->hooked(Hook::SortChoices).' > legend')->textContent));
+        $this->assertStringNotContainsString('Order:', $document->saveHtml());
+    }
+
+    #[Test]
+    public function it_names_the_listbox_sort_by_when_its_label_holds_the_order(): void
+    {
+        $document = $this->rendered('<x-meilifacets::listing.sort name="products" label="Order: :choice" />');
+
+        $this->assertSame(__('Sort by'), trim($document->querySelector($this->hooked(Hook::Sort).' > label')->textContent));
+        $this->assertStringNotContainsString('Order:', $document->saveHtml());
+    }
+
     /** A sort is an order: its trigger has no count, and nothing it could be described by. */
     #[Test]
     public function it_gives_its_trigger_no_badge(): void

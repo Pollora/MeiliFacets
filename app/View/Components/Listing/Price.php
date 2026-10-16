@@ -55,6 +55,11 @@ final class Price extends ListingComponent
         return $this->listing->isShown($this->filter);
     }
 
+    public function isBeyondRow(): bool
+    {
+        return $this->listing->isBeyondRow($this->filter);
+    }
+
     public function panelId(): string
     {
         return $this->ids->facetPanel($this->filter->name);

@@ -24,7 +24,7 @@ export class StatusView {
         this.#description = description
         this.#countLabel = new CountLabel(description.locale)
         this.#sections = new Intl.ListFormat(description.locale, { type: 'conjunction' })
-        this.#announcer = new DebouncedAnnouncer(this.#element('search-status'))
+        this.#announcer = new DebouncedAnnouncer(this.#contract.element('search-status'))
     }
 
     typing() {
@@ -36,11 +36,11 @@ export class StatusView {
     }
 
     searching() {
-        this.#element('search-panel')?.setAttribute(BUSY, 'true')
+        this.#contract.element('search-panel')?.setAttribute(BUSY, 'true')
     }
 
     settled() {
-        this.#element('search-panel')?.removeAttribute(BUSY)
+        this.#contract.element('search-panel')?.removeAttribute(BUSY)
     }
 
     answered(counts: SectionCount[]) {
@@ -71,7 +71,7 @@ export class StatusView {
 
     #reveal(message: 'search-empty' | 'search-unavailable' | null) {
         for (const hook of ['search-empty', 'search-unavailable'] as const) {
-            const element = this.#element(hook)
+            const element = this.#contract.element(hook)
 
             if (element !== null) {
                 element.hidden = hook !== message
@@ -80,12 +80,6 @@ export class StatusView {
     }
 
     #textOf(hook: string) {
-        return (this.#element(hook)?.textContent ?? '').replace(/\s+/g, ' ').trim()
-    }
-
-    #element(hook: string) {
-        const element = this.#contract.one(hook)
-
-        return element instanceof HTMLElement ? element : null
+        return (this.#contract.element(hook)?.textContent ?? '').replace(/\s+/g, ' ').trim()
     }
 }

@@ -1,13 +1,14 @@
 # Mobile drawer and filter bar
 
 This page covers the drawer: the filters in a bottom sheet on small screens, and the same filters in a row of pills
-on larger ones, or in a side sheet when they are too many for a row.
+on larger ones; when they are too many for a row, in a side sheet, or in a shorter row ending with « Show more ».
 
 You want to…
 
 - [put the filters in a bottom sheet on mobile and in a row on desktop](#minimal-example);
 - [know how the sheet behaves](#below-48em-a-bottom-sheet);
 - [know how the row behaves](#from-48em-a-row-of-pills);
+- [choose what happens past the row limit](#past-the-row-limit);
 - [put Clear all and Apply in the drawer footer](#the-footer);
 - [change the opener's icon](#the-opener);
 - [change the breakpoint](#changing-the-breakpoint);
@@ -38,7 +39,7 @@ You want to…
 
 The pattern has four parts, each a component of its own:
 
-- **the opener**, a “Filters” button shown on small screens, and on larger ones past the row limit;
+- **the opener**, a “Filters” button shown on small screens, and on larger ones past the row limit with a side sheet;
 - **the drawer**, an ordinary container whose slot holds any listing component;
 - **collapsible facets and sort**, which fold into accordion sections in the sheet and into pills in the row (see
   [Collapsible facets](facets.md#collapsible-facets));
@@ -67,7 +68,7 @@ describes the button without being part of its name.
 
 ## From 48em: a row of pills
 
-Within the [row limit](#past-the-row-limit-a-side-sheet), the opener is hidden and the drawer is a plain row: its header and handle are hidden, its body and footer sit side by
+Within the [row limit](#past-the-row-limit), the opener is hidden and the drawer is a plain row: its header and handle are hidden, its body and footer sit side by
 side.
 
 - Each collapsible facet, price filter or sort is a pill; its panel floats under it. One
@@ -77,25 +78,63 @@ side.
 - The body shrinks before the footer wraps under it: Apply stays at the end of the row, aligned with the last line of
   pills when they wrap.
 
-## Past the row limit: a side sheet
+## Past the row limit
 
-When a page loads with more filters shown than the drawer's `row-limit` (5 by default), the row gives way to the opener on
-wide screens too, and the drawer opens as a sheet fixed to the right of the page, full height. Only the filters inside
-the drawer count, and only those the visitor can see: a facet with at least one value on screen, the price once it has
-a range. A filter placed elsewhere on the page, the search field and the sort do not count.
+When a page loads with more filters shown than the drawer's `row-limit` (5 by default), the row does not hold them
+all on wide screens. Only the filters inside the drawer count, and only those the visitor can see: a facet with at
+least one value on screen, the price once it has a range. A filter placed elsewhere on the page, the search field and
+the sort do not count.
 
-- The server decides when the page loads, so the page never shows the row and then removes it.
-- The decision holds while the visitor filters: a search that shows fewer filters keeps the side sheet, and one that
-  shows more keeps the row. A page loaded with filters in its address is decided on its own count.
-- Inside the side sheet, sections open as an accordion, as in the bottom sheet. The sheet does not follow the
-  finger and keeps the full height.
-- Below the drawer's `media` (`48em` by default), nothing changes: the bottom sheet serves, whatever the count.
+What happens then is the drawer's `row-overflow`, `side-sheet` by default:
+
+```blade
+<x-meilifacets::listing.drawer :row-limit="4" row-overflow="show-more">
+    …
+    <x-slot:show-more><svg viewBox="0 0 16 16" width="14" height="14">…</svg></x-slot:show-more>
+</x-meilifacets::listing.drawer>
+```
+
+Either way:
+
+- the server decides when the page loads, so the page never shows the row and then removes it;
+- the decision holds while the visitor filters: a search that shows fewer filters keeps the overflow, and one that
+  shows more keeps the row. A page loaded with filters in its address is decided on its own count;
+- the side sheet is fixed to the right of the page, full height. Its sections open as an accordion, as in the bottom
+  sheet; it does not follow the finger;
+- below the drawer's `media` (`48em` by default), nothing changes: the bottom sheet serves, whatever the count.
+
+### `side-sheet`: every filter in a side sheet
+
+The row gives way to the opener on wide screens too, and the opener opens the drawer as the side sheet.
+
+### `show-more`: the first filters, then « Show more »
+
+The row keeps its first `row-limit` filters shown, in the order the drawer's slot places them, with the search field
+and the sort. The filters after them are hidden from the row, and a « Show more » button closes it. The button opens
+the drawer itself as the side sheet — its head, its footer, its animation — holding the filters past the row only.
+
+- Declare first the facets that must stay in the row. A facet with no value on a page lets the next one move up.
+- Render the group `unwrapped` (`<x-meilifacets::listing.facets collapsible unwrapped />`): each filter then wraps
+  on its own when the row runs out of width, as it does while the side sheet is open. Kept in its group, the facets
+  drop to the next line all together, and the row changes when the sheet opens.
+- While the side sheet is open, what stays in the row is lifted out of the drawer into a `div.meilifacetsDrawerRow`
+  placed just before it, which carries the drawer's classes and, inline, the width the body had beside the drawer's
+  foot: the row stays where it was, its pills wrapping where they did, inert behind the scrim, and the same nodes
+  move — no copy. On close, once the sheet has left, they go back in their order and the focus to
+  « Show more ».
+- A theme rule that styles the row through the drawer (`[data-meili="drawer"]:not([data-side-sheet]) …`) also names
+  `.meilifacetsDrawerRow`, or the row changes look while the sheet is open.
+- The `show-more` slot sets an icon before the label, hidden from screen readers. The label reads “Show more”,
+  and the button is named “Show more filters” (`aria-label`), both translatable.
+- Below the drawer's `media` while the side sheet is open, the row goes back into the drawer, which becomes the
+  bottom sheet with every filter; on close, the focus goes to the opener.
+- The opener stays hidden on wide screens.
 
 ## Without JavaScript
 
 The sheet styles only apply when scripting is enabled. Without JavaScript, nothing is hidden: the opener is not
-shown and the filters stay in the page, in line. Past the row limit, they keep their place but lose their pills: they
-stack as in the sheet, their sections closed. They do not filter without the client (see
+shown and the filters stay in the page, in line. Past the row limit, whatever `row-overflow` says, every filter stays
+in the row and « Show more » is not shown. They do not filter without the client (see
 [How a listing works](README.md#without-javascript)).
 
 ## The drawer
@@ -104,7 +143,8 @@ stack as in the sheet, their sections closed. They do not filter without the cli
 | --- | --- | --- |
 | `heading` | `h2` | the level of the sheet's title, `h2` to `h6` |
 | `media` | `(width < 48em)` | the media query under which the opener opens the sheet. See [Changing the breakpoint](#changing-the-breakpoint) |
-| `row-limit` | `meilifacets.drawer.row_limit`, else `5` | the number of filters it holds and shows at page load past which the drawer opens as a [side sheet](#past-the-row-limit-a-side-sheet) |
+| `row-limit` | `meilifacets.drawer.row.limit`, else `5` | the number of filters shown at page load that its row holds from `48em`. See [Past the row limit](#past-the-row-limit) |
+| `row-overflow` | `meilifacets.drawer.row.overflow`, else `side-sheet` | past the limit, `side-sheet` or `show-more`. See [Past the row limit](#past-the-row-limit) |
 | `name` | the only listing | the listing it belongs to |
 
 The attribute bag lands on the drawer's container. The title reads “Filters”, translatable.
@@ -201,13 +241,16 @@ in [Accessibility and motion](../accessibility.md).
 - **An ancestor with `transform`, `filter`, `contain` or `container-type`** traps the sheet: `position: fixed` then
   attaches to that ancestor instead of the viewport, and the sheet opens inside its box. Keep the listing out of such
   an ancestor.
-- **The client must start.** The stylesheet hides the drawer below `48em`, and on wide screens past the row limit,
-  whenever scripting is enabled, whether or not the client is loaded. If the browser connection is not configured,
+- **The client must start.** The stylesheet hides the drawer below `48em`, and on wide screens past the row limit
+  with `side-sheet`, whenever scripting is enabled, whether or not the client is loaded. If the browser connection is not configured,
   the client is not published or its script fails, the opener shows and opens nothing, and the filters are out of
   reach. See [Installation](../installation.md).
 - **Change the breakpoint in both places**: the `media` attribute and the stylesheet.
-- **A drawer view copied before `row-limit` existed** never turns into a side sheet: it does not carry
-  `data-side-sheet`. Copy the view again.
+- **A drawer view copied before `row-overflow` existed** fails: it calls `$isSideSheet()`. Copy the view again. A
+  facet or price view copied before it keeps its filters in the row with `show-more`: it does not carry
+  `data-beyond-row`.
+- **`data-side-sheet` is the client's**: the server marks `data-overflow`. Style the side sheet on `[data-side-sheet]`,
+  and the decision on `[data-overflow]`.
 - **One Apply per footer, none in the group**: pass `:with-apply="false"` to `listing.facets` when the footer holds
   one.
 
