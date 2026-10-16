@@ -141,7 +141,7 @@ final class CardComponentTest extends TestCase
     }
 
     #[Test]
-    public function its_template_holds_every_hook_the_client_fills(): void
+    public function its_template_holds_every_hook_the_client_fills_outside_a_listing_too(): void
     {
         $html = $this->renderTemplate();
 
@@ -158,6 +158,22 @@ final class CardComponentTest extends TestCase
         foreach (['image', 'title', 'price'] as $hook) {
             $this->assertNull($card->querySelector('[data-meili="'.$hook.'"]'), $hook);
         }
+    }
+
+    #[Test]
+    public function it_writes_no_hook_outside_a_listing_where_no_client_reads_them(): void
+    {
+        $fields = [
+            CardField::Url->value => 'https://example.test/serum',
+            CardField::ImageUrl->value => 'https://example.test/photo.jpg',
+            CardField::Title->value => 'Serum',
+            CardField::Price->value => '42,00',
+        ];
+
+        $card = $this->document($this->render($fields, ['binding' => CardBinding::of($fields)]));
+
+        $this->assertSame('Serum', $card->querySelector('.meilifacetsCardTitle')?->textContent);
+        $this->assertNull($card->querySelector('[data-meili]'));
     }
 
     #[Test]
@@ -220,7 +236,7 @@ final class CardComponentTest extends TestCase
     {
         return Blade::render(
             '<x-meilifacets::listing.card :binding="$binding" :heading="$heading" :priority="$priority" />',
-            ['binding' => CardBinding::of($card), 'heading' => 'h3', 'priority' => ImagePriority::Lazy, ...$props]
+            ['binding' => CardBinding::listed($card), 'heading' => 'h3', 'priority' => ImagePriority::Lazy, ...$props]
         );
     }
 

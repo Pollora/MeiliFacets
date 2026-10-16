@@ -186,7 +186,7 @@ final class ResultsComponentTest extends TestCase
             'hook' => fn (string $name) => Hook::from($name)->attribute(),
             'priority' => fn (): ImagePriority => ImagePriority::Eager,
             'cardComponent' => $cardComponent,
-            'bindingOf' => CardBinding::of(...),
+            'bindingOf' => CardBinding::listed(...),
             'templateBinding' => CardBinding::template(...),
             'templatePriority' => fn (): ImagePriority => ImagePriority::Lazy,
         ])->render());

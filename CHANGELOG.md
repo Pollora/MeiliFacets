@@ -56,6 +56,8 @@ the browser script changed, and the old one ignores the default order once the v
 
 ### Fixed
 
+- A card rendered outside a listing, such as a carousel's, no longer carries the listing's `data-meili` hooks, which
+  the browser script reported as misplaced. `CardBinding::listed()` is the binding of the cards a listing renders.
 - In `immediate` mode, « Clear all » appears with the active-value pills, once the engine answers, instead of on the
   tick: it no longer shows alone and then jumps aside when the first pill comes in.
 - Past the row limit without JavaScript, the filters keep their row of pills instead of stacking as in the sheet.

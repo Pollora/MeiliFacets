@@ -3315,7 +3315,7 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
-### R-235 · 🟡 · ouvert · 2026-10-16 — des cartes rendues hors listing portent les crochets du listing
+### R-235 · 🟡 · **fermé le 2026-10-16, doublon de `R-227`** · ouvert le 2026-10-16 — des cartes rendues hors listing portent les crochets du listing
 
 **Constat** (Louis, 2026-10-16). Sur une page de catégorie du projet de test, la console affiche « the client binds
 inside [data-listing] only. Move inside <x-meilifacets::listing> : image, url, price ». Les cartes produit des blocs
@@ -3872,7 +3872,7 @@ inchangé. Page boutique : un produit en rupture passe après les produits en st
 
 **En attente** : `R-227` est encore ouvert (`D-03`).
 
-### R-227 · 🟡 · **ouvert le 2026-10-09** — une carte rendue hors listing est signalée comme orpheline
+### R-227 · 🟡 · **fermé le 2026-10-16** · ouvert le 2026-10-09 — une carte rendue hors listing est signalée comme orpheline
 
 **Constat.** Sur la page catégorie Sérums du projet de test, la console affiche
 `[meilifacets] the client binds inside [data-listing] only. Move inside <x-meilifacets::listing> : image, url, price.`
@@ -3893,6 +3893,21 @@ indexée touchés ; `dist/` à republier.
 
 **À vérifier.** Un test client : `facet` hors racine toujours nommé, une carte seule hors racine plus nommée. Page
 Sérums sans erreur console. `architecture.md:680` à compléter.
+
+**Repris et fermé le 2026-10-16** (Louis, après `R-235`, son doublon). La correction proposée ci-dessus restreignait
+« Racines du contrat » (`decisions.md:109`) et laissait dans la page des crochets que personne ne lit : écartée. Le
+serveur sait où il rend une carte, par la liaison qu'elle reçoit : seul `Results::bindingOf()` rend les cartes d'un
+listing. **Retenu** : `CardBinding::listed()` pour les cartes du listing, `template()` pour les gabarits (listing et
+recherche) ; `CardHooks` n'ajoute ses crochets qu'à ces deux liaisons (`CardBinding::isHooked()`). `CardBinding::of()`,
+celle que le thème construit pour une carte hors listing, n'en porte plus. Le rapport d'orphelins reste strict, et
+`architecture.md` n'a rien à compléter. Une première version lisait la pile de composants Blade depuis `CardHooks`
+(lecture `meilifacetsListing` de `ListingComponent`) : elle déduisait indirectement ce que la liaison dit, et obligeait
+les tests de carte à simuler un listing ; abandonnée. *Coût* : une règle de thème sur `[data-meili="price"]` d'une carte
+hors listing ne s'applique plus (note dans `upgrading.md`) ; la phrase de `R-207` (« ses crochets, qu'un thème peut
+cibler en CSS ») ne vaut plus que pour les cartes du listing. *Observé* : accueil du projet de test, 170 crochets de
+carte hors gabarit avant, 0 après ; catégorie Visage, les 8 cartes du listing gardent `price` ; aucun avertissement
+console. Tests : carte hors listing sans aucun `data-meili`, gabarit et cartes du listing inchangés. `composer check`
+vert, suite `Modules` verte (1182). `Contract::VERSION` inchangé, aucun client modifié.
 
 ### R-226 · ⚪ · **fermé le 2026-10-09** · ouvert le 2026-10-09 — plancher Pollora à 13.35.3, pour le signalement des mises à jour
 

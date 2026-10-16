@@ -24,19 +24,32 @@ final readonly class CardBinding
     /**
      * @param  array<string, mixed>|null  $card  `null` for the template
      */
-    private function __construct(private ?array $card) {}
+    private function __construct(private ?array $card, private bool $isHooked) {}
 
     /**
      * @param  array<string, mixed>  $card
      */
     public static function of(array $card): self
     {
-        return new self($card);
+        return new self($card, false);
+    }
+
+    /**
+     * @param  array<string, mixed>  $card
+     */
+    public static function listed(array $card): self
+    {
+        return new self($card, true);
     }
 
     public static function template(): self
     {
-        return new self(null);
+        return new self(null, true);
+    }
+
+    public function isHooked(): bool
+    {
+        return $this->isHooked;
     }
 
     public function text(BackedEnum|string $field): CardFieldElement
