@@ -277,6 +277,7 @@ Each element is a `CardFieldElement`, prepared by the component class from a `Ca
 | `$binding->attributes(['href' => $field, 'alt' => [$a, $b]])` | a `ComponentAttributeBag` holding the values and `data-meili-attr` |
 | `$binding->classes(['is-new md:hidden' => $field])` | a `ComponentAttributeBag` holding `class` and `data-meili-class` |
 | `$binding->classList($field)` | a `ComponentAttributeBag` holding the field's classes and `data-meili-class-list` |
+| `$binding->hook(Hook $hook)` | the hook's `data-meili` attribute, for `->with()`; empty on a standalone binding |
 | `$element->with($bag, [...])` | the element with more attributes, merged as Laravel's `merge()` merges them |
 | `$element->containing($text)` | the element holding a fixed text, escaped |
 
