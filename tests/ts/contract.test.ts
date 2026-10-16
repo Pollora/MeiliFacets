@@ -205,6 +205,29 @@ describe('Contract', () => {
         assert.equal(contract.all('title', card).length, 1)
         assert.equal(contract.all('card').length, 1)
     })
+
+    it('gives only the HTML elements a hook marks, an SVG one left aside', () => {
+        const icon = window.document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+        icon.setAttribute('data-meili', 'total')
+        const counter = node('total')
+        const root = node(null, [icon, counter])
+        const contract = new Contract(root)
+
+        assert.deepEqual(contract.elements('total'), [counter])
+        assert.equal(contract.element('total'), null)
+        assert.equal(contract.element('total', counter), null)
+        assert.equal(contract.element('reset'), null)
+    })
+
+    it('gives the first HTML element a hook marks, under an explicit scope too', () => {
+        const counter = node('total')
+        const card = node('card', [counter])
+        const contract = new Contract(node(null, [card]))
+
+        assert.equal(contract.element('total'), counter)
+        assert.equal(contract.element('total', node()), null)
+        assert.deepEqual(contract.elements('total', card), [counter])
+    })
 })
 
 describe('a hook left outside every listing', () => {

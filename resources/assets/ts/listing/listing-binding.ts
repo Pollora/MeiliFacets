@@ -180,7 +180,6 @@ export class ListingBinding {
         const asked = event.target instanceof Element && event.target.closest(Contract.SCROLL) !== null
 
         if (asked && !InputSource.isKeyboard(event as MouseEvent)) {
-            // No `behavior`: the theme's `scroll-behavior` decides, reduced-motion guard included.
             this.#contract.root.scrollIntoView({ block: 'start' })
         }
     }

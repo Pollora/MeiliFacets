@@ -60,4 +60,22 @@ describe('Entrance', () => {
 
         assert.deepEqual(played[0]?.keyframes, [{ opacity: 0 }, { opacity: 1 }])
     })
+
+    it('asks for the reduced-motion query once, and follows the preference as it changes', () => {
+        const preference = { matches: false }
+        let queried = 0
+        window.matchMedia = (() => {
+            queried++
+
+            return preference
+        }) as unknown as typeof window.matchMedia
+        const entrance = new Entrance(window.document, badge)
+
+        entrance.play(counter)
+        preference.matches = true
+        entrance.play(counter)
+
+        assert.equal(queried, 1)
+        assert.deepEqual(played[1]?.keyframes, [{ opacity: 0 }, { opacity: 1 }])
+    })
 })

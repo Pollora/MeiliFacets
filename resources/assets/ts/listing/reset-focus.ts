@@ -26,15 +26,11 @@ export class ResetFocus {
     /** « Apply » from the same drawer, or from the listing when the reset sits in none. */
     #applyBeside(reset: Element) {
         const within = reset.closest(Contract.selector('drawer')) ?? this.#contract.root
-        const shown = this.#contract.all('apply', within).find((apply) => apply instanceof HTMLElement && apply.checkVisibility())
-
-        return shown instanceof HTMLElement ? shown : null
+        return this.#contract.elements('apply', within).find((apply) => apply.checkVisibility()) ?? null
     }
 
     #sheetTitleOver(reset: Element) {
         const drawer = reset.closest(Contract.selector('drawer'))
-        const title = drawer?.getAttribute('aria-modal') === 'true' ? this.#contract.one('drawer-title', drawer) : null
-
-        return title instanceof HTMLElement ? title : null
+        return drawer?.getAttribute('aria-modal') === 'true' ? this.#contract.element('drawer-title', drawer) : null
     }
 }

@@ -22,22 +22,12 @@ export class ActiveCountView {
 
     show(state: ListingState) {
         const count = state.activeFilterCount()
+        const counters = this.#contract.elements('active-count')
+        const entering = new Map(counters
+            .filter((counter) => new Badge(counter).appearsWith(count))
+            .map((counter) => [counter, this.#entrance.timingOf(counter)]))
 
-        for (const counter of this.#contract.all('active-count')) {
-            if (counter instanceof HTMLElement) {
-                this.#write(counter, count)
-            }
-        }
-    }
-
-    #write(counter: HTMLElement, count: number) {
-        const badge = new Badge(counter)
-        const appears = badge.appearsWith(count)
-
-        badge.show(count)
-
-        if (appears) {
-            this.#entrance.play(counter)
-        }
+        counters.forEach((counter) => new Badge(counter).show(count))
+        entering.forEach((timing, counter) => this.#entrance.play(counter, timing))
     }
 }

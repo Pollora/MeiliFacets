@@ -13,16 +13,12 @@ export class TotalView {
     constructor(contract: Contract, description: ListingDescription) {
         this.#pattern = description.totalPattern
         this.#countLabel = new CountLabel(description.locale)
-        this.#counters = TotalView.#elementsOf(contract, 'total')
+        this.#counters = contract.elements('total')
 
         const served = this.#counters[0]?.textContent ?? ''
 
-        this.#announcers = TotalView.#elementsOf(contract, 'total-status')
+        this.#announcers = contract.elements('total-status')
             .map((region) => new DebouncedAnnouncer(region, served))
-    }
-
-    static #elementsOf(contract: Contract, hook: string) {
-        return contract.all(hook).filter((element) => element instanceof HTMLElement)
     }
 
     show(total: number) {

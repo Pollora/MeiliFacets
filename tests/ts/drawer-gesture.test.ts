@@ -90,6 +90,15 @@ describe('DrawerGesture', () => {
         assert.equal(sheet().style.transform, 'translateY(60px)')
     })
 
+    it('picks the sheet up where a 3D transform has it', () => {
+        const computed = window.getComputedStyle.bind(window)
+        window.getComputedStyle = ((node: Element) => (node === sheet() ? { transform: 'matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 40, 0, 1)' } : computed(node))) as typeof window.getComputedStyle
+
+        drag(find(window.document, '#head'), 10, 20)
+
+        assert.equal(sheet().style.transform, 'translateY(60px)')
+    })
+
     /** The drawer closes or outgrows the sheet mid-drag: nothing the finger wrote stays behind. */
     it('takes back all it wrote inline when cancelled mid-drag', () => {
         drag(find(window.document, '#head'), 10, HEIGHT / 2)

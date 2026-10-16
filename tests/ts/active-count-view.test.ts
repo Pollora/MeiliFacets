@@ -104,4 +104,26 @@ describe('ActiveCountView', () => {
         view.show(new ListingState())
         assert.equal(played.length, 2)
     })
+
+    it('reads every counter\'s timing before it writes any of them', () => {
+        const { window, contract } = withCounters()
+        const steps: string[] = []
+        const computed = window.getComputedStyle.bind(window)
+        window.getComputedStyle = ((node: HTMLElement) => {
+            steps.push(node.hidden ? 'read' : 'read after a write')
+
+            return computed(node)
+        }) as typeof window.getComputedStyle
+        contract.all('active-count').forEach((counter) => {
+            counter.animate = (() => {
+                steps.push('play')
+
+                return {} as Animation
+            })
+        })
+
+        new ActiveCountView(contract).show(new ListingState({ facets: { product_brand: ['acme'] } }))
+
+        assert.deepEqual(steps, ['read', 'read', 'read', 'read', 'play', 'play'])
+    })
 })

@@ -78,6 +78,16 @@ export class Contract {
         return [...this.#scope(within).querySelectorAll(Contract.selector(hook))]
     }
 
+    element(hook: string, within: Element = this.#root) {
+        const node = this.one(hook, within)
+
+        return node instanceof HTMLElement ? node : null
+    }
+
+    elements(hook: string, within: Element = this.#root) {
+        return this.all(hook, within).filter((node) => node instanceof HTMLElement)
+    }
+
     // Every host, not just the first: a second one breaching would go unseen.
     #breachesOf({ host, hooks, whenHolding }: Rule) {
         const scopes = host === null ? [this.#root] : this.all(host)

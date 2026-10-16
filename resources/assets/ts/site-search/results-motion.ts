@@ -4,13 +4,13 @@ import { Entrance } from '../shared/entrance.ts'
 import { SUBPIXEL } from '../shared/subpixel.ts'
 import { ExitFade } from './exit-fade.ts'
 import { HEIGHT_UNREAD, PanelHeight } from './panel-height.ts'
+import { ResultsInPlace } from './results-in-place.ts'
 
 import type { Contract } from '../shared/contract.ts'
 import type { AnimationTiming } from '../shared/entrance.ts'
 import type { ExitFadeStart } from './exit-fade.ts'
 import type { HeightBefore } from './panel-height.ts'
 
-const MESSAGES = ['search-empty', 'search-unavailable'] as const
 const SETTLE = '--meili-duration-settle'
 const LEAVE = '--meili-duration-leave'
 const MOVE = '--meili-duration-move'
@@ -64,6 +64,7 @@ export class ResultsMotion {
     #timings: Timings | null = null
     #before = NOTHING_BEFORE
     #after = new Map<Element, DOMRect>()
+    #inPlace = ResultsInPlace.NOTHING
 
     constructor(contract: Contract, panel: HTMLElement) {
         const document = panel.ownerDocument
@@ -84,15 +85,17 @@ export class ResultsMotion {
         this.#play(timings)
         this.#before = NOTHING_BEFORE
         this.#after.clear()
+        this.#inPlace = ResultsInPlace.NOTHING
     }
 
     #measure() {
         const timings = (this.#timings ??= this.#readTimings())
 
+        this.#inPlace = ResultsInPlace.read(this.#contract)
         this.#before = {
             starts: new Map(this.#shown().map((node) => [node, this.#startOf(node)])),
-            counts: new Map(this.#sections().map((section) => [section, this.#countOf(section)?.textContent ?? ''])),
-            shownMessages: this.#messages().filter((message) => !this.#isHidden(message)),
+            counts: new Map(this.#inPlace.sections.map((section) => [section, this.#countOf(section)?.textContent ?? ''])),
+            shownMessages: this.#inPlace.messages.filter((message) => !this.#isHidden(message)),
             height: this.#height.before(),
         }
 
@@ -100,6 +103,8 @@ export class ResultsMotion {
     }
 
     #play(timings: Timings) {
+        this.#inPlace = ResultsInPlace.read(this.#contract)
+
         const shown = this.#shown()
         const crossfading = this.#messagesChanged()
         const { layout, resize } = this.#readAfter(shown)
@@ -158,7 +163,7 @@ export class ResultsMotion {
     /** A card moves by what its box moved less what its section moved: the section's glide carries it the rest. */
     #offset(node: Element, rect: DOMRect): Offset {
         const own = this.#shift(node, rect)
-        const section = this.#sectionOf(node)
+        const section = this.#inPlace.sectionOf(node)
         const carried = section === null ? STAYED : this.#shift(section, this.#after.get(section))
 
         return { x: own.x - carried.x, y: own.y - carried.y }
@@ -172,7 +177,7 @@ export class ResultsMotion {
 
     /** One entrance per container: the cards of a section coming in arrive with it. */
     #enter(node: Element, block: AnimationTiming, row: AnimationTiming) {
-        const section = this.#sectionOf(node)
+        const section = this.#inPlace.sectionOf(node)
 
         if (this.#before.starts.has(node) || !(node instanceof HTMLElement)) {
             return
@@ -199,19 +204,19 @@ export class ResultsMotion {
     }
 
     #messagesChanged() {
-        return this.#messages().some((message) => this.#before.shownMessages.includes(message) === this.#isHidden(message))
+        return this.#inPlace.messages.some((message) => this.#before.shownMessages.includes(message) === this.#isHidden(message))
     }
 
     /** What the visitor sees: shown sections, the cards of their lists, and shown messages. */
     #shown() {
-        const sections = this.#sections().filter((section) => !this.#isHidden(section))
-        const rows = sections.flatMap((section) => [...(this.#contract.one('search-results', section)?.children ?? [])])
+        const sections = this.#inPlace.sections.filter((section) => !this.#isHidden(section))
+        const rows = sections.flatMap((section) => this.#inPlace.rowsOf(section))
 
-        return [...sections, ...rows.filter((row) => !row.hasAttribute(LEAVING)), ...this.#messages().filter((message) => !this.#isHidden(message))]
+        return [...sections, ...rows.filter((row) => !row.hasAttribute(LEAVING)), ...this.#inPlace.messages.filter((message) => !this.#isHidden(message))]
     }
 
     #startOf(node: Element): ExitFadeStart {
-        const parent = this.#sectionOf(node) === null ? null : node.parentElement
+        const parent = this.#inPlace.sectionOf(node) === null ? null : node.parentElement
 
         return { rect: node.getBoundingClientRect(), opacity: this.#opacityOf(node), parent }
     }
@@ -238,19 +243,6 @@ export class ResultsMotion {
             crossfade: timing(CROSSFADE, FADE_EASE),
             resize: timing(RESIZE, RESIZE_EASE),
         }
-    }
-
-    /** The section a card sits in; `null` for anything that is not a card. */
-    #sectionOf(node: Element) {
-        return this.#sections().find((section) => this.#contract.one('search-results', section) === node.parentElement) ?? null
-    }
-
-    #sections() {
-        return this.#contract.all('search-section').filter((section) => !section.hasAttribute(LEAVING))
-    }
-
-    #messages() {
-        return MESSAGES.flatMap((hook) => this.#contract.all(hook).filter((message) => !message.hasAttribute(LEAVING)))
     }
 
     #countOf(section: Element) {

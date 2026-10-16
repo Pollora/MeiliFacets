@@ -148,11 +148,11 @@ export class DrawerGesture {
         this.#drawer.style.setProperty(SCRIM, String(1 - Math.min(Math.max(at, 0) / drag.height, 1)))
     }
 
-    /** Where the stylesheet's transition has the sheet right now: a matrix, or `none` at rest. */
+    /** Where the stylesheet's transition has the sheet right now: a 2D or 3D matrix, or `none` at rest. */
     #shownAt(sheet: HTMLElement) {
-        const matrix = /matrix\(([^)]*)\)/.exec(this.#drawer.ownerDocument.defaultView?.getComputedStyle(sheet).transform ?? '')
+        const view = this.#drawer.ownerDocument.defaultView
 
-        return Number(matrix?.[1]?.split(',')[5] ?? 0) || 0
+        return view === null ? 0 : new view.DOMMatrixReadOnly(view.getComputedStyle(sheet).transform).m42
     }
 
     #resisted(offset: number) {
