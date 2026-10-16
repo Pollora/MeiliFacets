@@ -289,7 +289,11 @@ A pill reads the value's label (`Acme`, `“cream”` for a search term, `€20.
 name is `Remove the Acme filter`. Clicking it removes the value and searches at once. A value in the URL that the page
 has no label for gets no pill, so that nobody can write on the page through the URL.
 
-`active-values` takes an attribute bag, which lands on its `<ul>`. `active-filters` takes none.
+`active-values` takes an attribute bag, which lands on its `<div>`. `active-filters` takes none.
+
+The `<div>` holds a visually hidden « Active filters », then the `<ul>` of pills, styled by `[data-meili="active-values"] > ul`.
+The client draws each pill where the `<template>` sits and removes it as the child of the template's parent: an
+override keeps the `<template>` inside the element that holds the pills.
 
 ## Clear all
 

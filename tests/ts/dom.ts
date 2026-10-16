@@ -231,11 +231,14 @@ ${priced ? priceBlock(folding) : ''}
     <span class="meilifacetsActiveFilters" hidden data-meili="active-filters">0 active filters</span>
     <p class="meilifacetsTotal" data-meili="total">0 items</p>
     <p class="meilifacetsTotalStatus" aria-live="polite" aria-atomic="true" data-meili="total-status"></p>
-    <ul class="meilifacetsActiveValues" aria-label="Active filters" hidden data-meili="active-values">
-        <template data-meili="active-value-template">
-            <li class="meilifacetsActiveValue"><button type="button" data-meili="active-value"><span aria-hidden="true">✕</span></button></li>
-        </template>
-    </ul>
+    <div class="meilifacetsActiveValues" hidden data-meili="active-values">
+        <span class="meilifacetsHidden">Active filters</span>
+        <ul class="meilifacetsActiveValueList">
+            <template data-meili="active-value-template">
+                <li class="meilifacetsActiveValue"><button type="button" data-meili="active-value"><span aria-hidden="true">✕</span></button></li>
+            </template>
+        </ul>
+    </div>
 
     <div class="meilifacetsSort" data-meili="sort" ${mark('sort')}>
         <label class="meilifacetsSortLabel" id="sort-label" for="sort-trigger">Sort by</label>

@@ -109,7 +109,7 @@ Owned by `<x-meilifacets::listing>`. “Styled”: `listing` = `meilifacets.css`
 | `active-count` | badge in `listing.apply` and `listing.drawer-opener` | read when present | number of active filters | listing | [Mobile drawer](../listing/drawer.md) |
 | `total` | `listing.total`, `<p>` | read when present | result count in words | listing | [Total](../listing/results-sort-pagination.md) |
 | `total-status` | `<p aria-live="polite">` | read when present | announces the count | listing | [Total](../listing/results-sort-pagination.md) |
-| `active-values` | `listing.active-values`, `<ul>` | host of a rule | pills rewritten | listing | [Active filters](../listing/results-sort-pagination.md) |
+| `active-values` | `listing.active-values`, `<div>` | host of a rule | pills rewritten | listing | [Active filters](../listing/results-sort-pagination.md) |
 | `active-value-template` | `<template>` | required inside `active-values`; host of a rule | its first element is copied per pill | — | [Active filters](../listing/results-sort-pagination.md) |
 | `active-value` | pill `<button data-kind>` | required inside `active-value-template` | removes its value | listing | [Active filters](../listing/results-sort-pagination.md) |
 | `drawer` | `listing.drawer`, `<div data-media>` | host of a rule | modal sheet while `data-media` matches | listing | [Mobile drawer](../listing/drawer.md) |

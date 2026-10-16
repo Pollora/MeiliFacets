@@ -31,9 +31,9 @@ You want to…
 | Price slider | two `<button role="slider">` handles, named « Lowest price » and « Highest price », with `aria-valuemin`, `aria-valuemax`, `aria-valuenow` and `aria-valuetext` (the amount with its currency) |
 | Price fields | two `<input type="number">` labelled « From » and « To »; the currency symbol and the dash are hidden from screen readers |
 | Pagination | a `<nav>` named « Pagination »; the page shown carries `aria-current="page"`. Pages are buttons, not links: nothing navigates |
-| Active filters | a list named « Active filters »; each filter is a button named « Remove the … filter » |
+| Active filters | a visually hidden « Active filters », read just before a list of pills, and hidden with them when none is left; each filter is a button named « Remove the … filter » |
 | Clear all | a button; in its icon shape, named by `aria-label` |
-| Listing search | a `<form role="search">` with a labelled `type="search"` field and a « Clear the search » button |
+| Listing search | a `<form role="search">` named by `aria-label`; its `type="search"` field is named by a visually hidden `<label>`, not by `aria-label`; a « Clear the search » button |
 | Results | a list that carries `aria-busy="true"` while a search is out |
 | Engine unavailable | a message with `role="alert"` in place of the listing |
 

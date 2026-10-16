@@ -164,7 +164,7 @@ describe('ActiveValuesView', () => {
     it('reads a pill the server rendered like one it drew itself', async () => {
         const description = { ...base, state: served({ facets: { product_brand: ['acme'] } }) }
         list().hidden = false
-        list().insertAdjacentHTML('afterbegin', '<li><button type="button" name="brand" value="acme" data-kind="term" data-meili="active-value">Acme</button></li>')
+        list().querySelector('ul')?.insertAdjacentHTML('afterbegin', '<li><button type="button" name="brand" value="acme" data-kind="term" data-meili="active-value">Acme</button></li>')
         const listing = start(description)
 
         click(window, pill(0))
@@ -338,7 +338,7 @@ describe('the entrance of an active value', () => {
 
     it('leaves a pill the server rendered still when the client redraws it', async () => {
         list().hidden = false
-        list().insertAdjacentHTML('afterbegin', '<li><button type="button" name="brand" value="acme" data-kind="term" data-meili="active-value">Acme</button></li>')
+        list().querySelector('ul')?.insertAdjacentHTML('afterbegin', '<li><button type="button" name="brand" value="acme" data-kind="term" data-meili="active-value">Acme</button></li>')
         const listing = start({ ...base, state: served({ facets: { product_brand: ['acme'] } }) })
 
         await listing.toggle('product_brand', 'globex').apply()

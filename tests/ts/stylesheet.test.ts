@@ -22,7 +22,7 @@ describe('the module stylesheet', () => {
 
     /** The rule is a list of hooks: one forgotten there is a control that reads as text. */
     it('leaves no command without it', () => {
-        find(root, Contract.selector('active-values')).insertAdjacentHTML('afterbegin', '<li><button data-meili="active-value">Acme</button></li>')
+        find(root, '.meilifacetsActiveValueList').insertAdjacentHTML('afterbegin', '<li><button data-meili="active-value">Acme</button></li>')
         find(root, 'legend').insertAdjacentHTML('afterbegin', '<button data-meili="toggle">Brand</button>')
         const commands = ['page', 'previous', 'next', 'reset', 'apply', 'sort-trigger', 'sort-option', 'input', 'more', 'toggle', 'active-value']
 
@@ -184,7 +184,7 @@ describe('the module stylesheet', () => {
         })
 
         it('draws each value like the pill of an active filter, at the height of a command', () => {
-            find(root, Contract.selector('active-values')).insertAdjacentHTML('afterbegin', '<li><button data-meili="active-value">Acme</button></li>')
+            find(root, '.meilifacetsActiveValueList').insertAdjacentHTML('afterbegin', '<li><button data-meili="active-value">Acme</button></li>')
             const pill = computed(find(pills(), `${Contract.selector('facet-value')} label`))
 
             assert.equal(pill.borderRadius, style('active-value').borderRadius)
@@ -291,7 +291,7 @@ describe('the height of the controls', () => {
     /** Without a variant, the column is drawn as it was at 25a5aa3, the height of the controls aside: `0.25em` and `0.85em` at 14px. */
     it('keeps the design of the column for the controls without a variant', () => {
         const { window, root } = open(listingMarkup(), { styled: true })
-        find(root, Contract.selector('active-values')).insertAdjacentHTML('afterbegin', '<li><button data-meili="active-value">Acme</button></li>')
+        find(root, '.meilifacetsActiveValueList').insertAdjacentHTML('afterbegin', '<li><button data-meili="active-value">Acme</button></li>')
         const computed = (hook: string) => window.getComputedStyle(find(root, Contract.selector(hook)))
 
         assert.equal(computed('reset').borderRadius, '3.5px')

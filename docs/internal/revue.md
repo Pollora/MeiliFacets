@@ -3315,6 +3315,35 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
+### R-236 · 🟡 · **fermé le 2026-10-16** · ouvert le 2026-10-16 — le champ de recherche et la liste des filtres actifs sont nommés par `aria-label`
+
+**Constat** (Louis, 2026-10-16). Le champ de `<x-meilifacets::listing.search>` n'a pas de `<label>`, seulement un
+`aria-label` ; la liste `.meilifacetsActiveValues` est nommée par `aria-label` lui aussi. Demande : un vrai libellé
+masqué visuellement pour le champ, un texte masqué lu avant les pastilles pour la liste.
+
+**Ce qui est fait.** Le champ est nommé par un `<label for>` en `.meilifacetsHidden` (le formulaire garde son
+`aria-label` de repère `search`). Un `<span>` ne pouvant pas être enfant d'un `<ul>`, l'hôte `active-values` devient
+une `<div>` qui tient le `<span class="meilifacetsHidden">Active filters</span>` puis le `<ul class="meilifacetsActiveValueList">` :
+`hidden` sur l'hôte masque les deux d'un coup, sans changement côté client pour l'affichage. Écartés : le `<span>` dans
+le `<ul>` (HTML invalide) ; le `<span>` frère du `<ul>` (resterait lu sans pastille, ou un crochet de plus pour le
+masquer) ; `aria-labelledby` sur le `<ul>` (« Filtres actifs » lu deux fois en lecture linéaire). Coût, accepté par
+Louis : en navigation par liste, la liste n'a plus de nom (NVDA n'annonçait déjà pas celui d'un `aria-label`).
+`.meilifacetsHidden` plutôt que `.screen-reader-text` : la classe du module, qui ne dépend pas du thème. La disposition
+des pastilles passe sur `[data-meili="active-values"] > ul` (choix de Louis, plutôt que la classe : survit à une
+surcharge qui l'oublie). `ActiveValuesView#itemOf()` remontait jusqu'à l'enfant de l'hôte et aurait retiré le `<ul>`
+entier : il remonte désormais jusqu'à l'enfant du parent du `<template>`. `Contract::VERSION` inchangé, aucun crochet ajouté.
+
+**Passes.** *Nommage* : `meilifacetsActiveValueList` rejoint `meilifacetsSortList` ; paramètre `host` → `list` dans
+`#itemOf()` ; rien d'autre à renommer. *Lisibilité* : `#paint()` à 12 lignes. *Commentaires* : aucun ajouté.
+*Performance* : rien, un `parentElement` lu une fois par peinture. *Sécurité* : libellés écrits par `{{ }}`.
+*Contexte et i18n* : « Active filters » déjà au catalogue, libellé du champ inchangé (`$label()`).
+
+**Vérifié** : avec l'ancien client et le nouveau balisage, deux tests de `active-values-view.test.ts` échouent ; avec la
+correction, `composer check` vert (client 1013 tests), suite `Modules` 1185 tests. Les assertions Feature des deux
+composants lisent désormais le DOM (`Dom\HTMLDocument`) plutôt que des sous-chaînes, pour survivre au reformatage
+des vues. Navigateur, `/boutique` : pastille ajoutée puis retirée, `<ul>` et `<template>` restent, hôte remasqué ;
+arbre d'accessibilité « Filtres actifs » puis la liste, champ `searchbox "Rechercher"` ; rendu inchangé.
+
 ### R-235 · 🟡 · **fermé le 2026-10-16, doublon de `R-227`** · ouvert le 2026-10-16 — des cartes rendues hors listing portent les crochets du listing
 
 **Constat** (Louis, 2026-10-16). Sur une page de catégorie du projet de test, la console affiche « the client binds

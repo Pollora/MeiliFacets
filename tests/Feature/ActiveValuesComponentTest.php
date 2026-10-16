@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Tests\Feature;
 
+use Dom\Element;
+use Dom\HTMLDocument;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\HtmlString;
 use Illuminate\View\ComponentAttributeBag;
@@ -21,6 +23,7 @@ use Tests\TestCase;
 /** One pill per filter the URL holds, drawn by the server so the page reads right before the client starts. */
 final class ActiveValuesComponentTest extends TestCase
 {
+    use FindsHooks;
     use SwitchesTheSiteLocale;
 
     /** The suite shares one application: a listing resolved here would reach a later class. */
@@ -47,13 +50,28 @@ final class ActiveValuesComponentTest extends TestCase
         $this->ask([$parameter => $value->slug]);
 
         $html = $this->underLocales('en', 'en_US', $this->renderComponent(...));
+        [$pill] = $this->pills($html);
 
-        $this->assertStringContainsString(
-            'name="'.$parameter.'" value="'.e($value->slug).'" data-kind="term" aria-label="'.e('Remove the '.$value->label.' filter').'"',
-            $html,
-        );
-        $this->assertStringContainsString('>'.e($value->label).'<span aria-hidden="true">', $html);
-        $this->assertStringNotContainsString(' hidden ', explode('>', $html)[0]);
+        $this->assertSame($parameter, $pill->getAttribute('name'));
+        $this->assertSame($value->slug, $pill->getAttribute('value'));
+        $this->assertSame('term', $pill->getAttribute('data-kind'));
+        $this->assertSame('Remove the '.$value->label.' filter', $pill->getAttribute('aria-label'));
+        $this->assertSame($value->label, $this->labelOf($pill));
+        $this->assertFalse($this->host($html)->hasAttribute('hidden'));
+    }
+
+    /** Named by a visually hidden text read before the pills, which hides with the list when nothing is held. */
+    #[Test]
+    public function it_names_the_list_by_a_text_read_before_its_pills(): void
+    {
+        $host = $this->host($this->underLocales('en', 'en_US', $this->renderComponent(...)));
+        $name = $host->firstElementChild;
+
+        $this->assertFalse($host->hasAttribute('aria-label'));
+        $this->assertSame('SPAN', $name?->tagName);
+        $this->assertSame('meilifacetsHidden', $name->getAttribute('class'));
+        $this->assertSame('Active filters', $name->textContent);
+        $this->assertSame('UL', $name->nextElementSibling?->tagName);
     }
 
     #[Test]
@@ -68,7 +86,9 @@ final class ActiveValuesComponentTest extends TestCase
 
         $this->assertMatchesRegularExpression($expected, $html);
         $this->assertStringContainsString('10,00', $html);
-        $this->assertSame(1, substr_count($html, 'name="'.$this->parameters()->reserved(QueryParameter::MinPrice).'" value="" data-kind="price"'));
+        $prices = array_filter($this->pills($html), fn (Element $pill): bool => $pill->getAttribute('data-kind') === 'price');
+        $this->assertCount(1, $prices);
+        $this->assertSame($this->parameters()->reserved(QueryParameter::MinPrice), array_values($prices)[0]->getAttribute('name'));
     }
 
     /** Read from the catalogue, so a translation reworded there does not break the test. */
@@ -91,13 +111,13 @@ final class ActiveValuesComponentTest extends TestCase
         $query = $this->parameters()->reserved(QueryParameter::Query);
         $this->ask([$query => 'se"r', $this->parameters()->reserved(QueryParameter::MinPrice) => '10']);
 
-        $html = $this->underLocales('en', 'en_US', $this->renderComponent(...));
+        $pills = $this->pills($this->underLocales('en', 'en_US', $this->renderComponent(...)));
 
-        $this->assertMatchesRegularExpression(
-            '/<button type="button" name="'.$query.'" value="" data-kind="search" aria-label="'.preg_quote(e('Remove the “se"r” filter'), '/').'"[^>]*>'.preg_quote(e('“se"r”'), '/').'<span/',
-            $html,
-        );
-        $this->assertLessThan(strpos($html, 'data-kind="price"'), strpos($html, 'data-kind="search"'));
+        $this->assertSame(['search', 'price'], array_map(fn (Element $pill): string => $pill->getAttribute('data-kind'), $pills));
+        $this->assertSame($query, $pills[0]->getAttribute('name'));
+        $this->assertSame('', $pills[0]->getAttribute('value'));
+        $this->assertSame('Remove the “se"r” filter', $pills[0]->getAttribute('aria-label'));
+        $this->assertSame('“se"r”', $this->labelOf($pills[0]));
     }
 
     #[Test]
@@ -147,6 +167,29 @@ final class ActiveValuesComponentTest extends TestCase
 
         $this->assertStringNotContainsString('<script>', $html);
         $this->assertSame(3, substr_count($html, '&quot;&gt;&lt;script&gt;'));
+    }
+
+    private function host(string $html): Element
+    {
+        $host = HTMLDocument::createFromString($html, LIBXML_NOERROR)->querySelector($this->hooked(Hook::ActiveValues));
+        $this->assertNotNull($host, 'The component renders no list.');
+
+        return $host;
+    }
+
+    /**
+     * The pills the server drew, the template's left out.
+     *
+     * @return list<Element>
+     */
+    private function pills(string $html): array
+    {
+        return iterator_to_array($this->host($html)->querySelectorAll('ul > li > '.$this->hooked(Hook::ActiveValue)), false);
+    }
+
+    private function labelOf(Element $pill): string
+    {
+        return trim((string) $pill->firstChild?->textContent);
     }
 
     /**

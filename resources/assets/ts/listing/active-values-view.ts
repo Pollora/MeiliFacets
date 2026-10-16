@@ -123,10 +123,11 @@ export class ActiveValuesView {
             return
         }
 
+        const list = template.parentElement ?? host
         const shown = this.#contract.all('active-value', host)
         const newActiveValues = new NewActiveValues(shown)
 
-        shown.forEach((pill) => this.#itemOf(pill, host).remove())
+        shown.forEach((pill) => this.#itemOf(pill, list).remove())
         template.before(...values.flatMap((value) => this.#activeValue(template, value)))
         host.hidden = values.length === 0
         this.#enter(newActiveValues.among(this.#contract.all('active-value', host)))
@@ -158,10 +159,10 @@ export class ActiveValuesView {
     }
 
     /** What the template cloned around the pill, so the whole item leaves with it. */
-    #itemOf(pill: Element, host: Element) {
+    #itemOf(pill: Element, list: Element) {
         let item = pill
 
-        while (item.parentElement !== null && item.parentElement !== host) {
+        while (item.parentElement !== null && item.parentElement !== list) {
             item = item.parentElement
         }
 

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Tests\Feature;
 
 use Closure;
+use Dom\Element;
+use Dom\HTMLDocument;
 use Illuminate\Support\Facades\Blade;
 use Modules\MeiliFacets\Enums\Hook;
 use Modules\MeiliFacets\Enums\QueryParameter;
@@ -19,6 +21,7 @@ use WP_Query;
 /** The listing's search field, rendered by the server: a GET form that works before the client starts, and without it. */
 final class ListingSearchComponentTest extends TestCase
 {
+    use FindsHooks;
     use RequestsAnAddress;
     use SwitchesTheSiteLocale;
 
@@ -51,7 +54,10 @@ final class ListingSearchComponentTest extends TestCase
         $html = $this->rendered();
 
         $this->assertMatchesRegularExpression('/<form class="meilifacetsListingSearch" role="search" method="get" action="\/boutique"/', $html);
-        $this->assertStringContainsString('type="search" name="'.$this->parameter().'" value=""', $html);
+        $field = $this->field($html);
+        $this->assertSame('search', $field->getAttribute('type'));
+        $this->assertSame($this->parameter(), $field->getAttribute('name'));
+        $this->assertSame('', $field->getAttribute('value'));
         $this->assertStringContainsString(Hook::ListingSearch->attribute()->toHtml(), $html);
         $this->assertStringContainsString(Hook::ListingSearchInput->attribute()->toHtml(), $html);
     }
@@ -124,7 +130,7 @@ final class ListingSearchComponentTest extends TestCase
     {
         $this->ask([$this->parameter() => '?(']);
 
-        $this->assertStringContainsString('name="'.$this->parameter().'" value=""', $this->rendered());
+        $this->assertSame('', $this->field($this->rendered())->getAttribute('value'));
     }
 
     /** The name follows the project's own name for the parameter. */
@@ -174,10 +180,23 @@ final class ListingSearchComponentTest extends TestCase
     public function it_names_the_landmark_and_the_field(): void
     {
         $html = $this->underLocales('en', 'en_US', $this->rendered(...));
+        $form = $this->document($html)->querySelector($this->hooked(Hook::ListingSearch));
 
-        $this->assertStringContainsString('role="search"', $html);
-        $this->assertSame(3, substr_count($html, '"Search this list"'), 'the form, the field and its placeholder');
-        $this->assertStringContainsString('aria-label="Search the shop"', Blade::render('<x-meilifacets::listing.search name="products" label="Search the shop" />'));
+        $this->assertSame('search', $form?->getAttribute('role'));
+        $this->assertSame('Search this list', $form?->getAttribute('aria-label'));
+        $this->assertSame('Search this list', $this->field($html)->getAttribute('placeholder'));
+        $this->assertSame('Search this list', $this->labelOf($html)->textContent);
+        $this->assertSame('Search the shop', $this->labelOf(Blade::render('<x-meilifacets::listing.search name="products" label="Search the shop" />'))->textContent);
+    }
+
+    /** A `<label>` names the field rather than an `aria-label`: hidden from sight, still read and still a click target. */
+    #[Test]
+    public function it_names_the_field_by_a_visually_hidden_label(): void
+    {
+        $html = $this->rendered();
+
+        $this->assertFalse($this->field($html)->hasAttribute('aria-label'));
+        $this->assertSame('meilifacetsHidden', $this->labelOf($html)->getAttribute('class'));
     }
 
     /** C-9: emptied on a search WordPress routed, the field would fall back on a term nothing can take off. */
@@ -206,6 +225,27 @@ final class ListingSearchComponentTest extends TestCase
         $this->assertIsString($sort);
 
         return [$this->app->make(UrlParameters::class)->for($facets[0]->taxonomy), $sort];
+    }
+
+    private function document(string $html): HTMLDocument
+    {
+        return HTMLDocument::createFromString($html, LIBXML_NOERROR);
+    }
+
+    private function field(string $html): Element
+    {
+        $field = $this->document($html)->querySelector($this->hooked(Hook::ListingSearchInput));
+        $this->assertNotNull($field, 'The listing search renders no field.');
+
+        return $field;
+    }
+
+    private function labelOf(string $html): Element
+    {
+        $label = $this->document($html)->querySelector('label[for="'.$this->field($html)->getAttribute('id').'"]');
+        $this->assertNotNull($label, 'No label points at the field.');
+
+        return $label;
     }
 
     private function hidden(string $name, string $escapedValue): string

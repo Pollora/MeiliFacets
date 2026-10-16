@@ -239,7 +239,7 @@ One removable pill per active value: search term, term or price range. Hidden wh
 
 | Slots | Bag lands on | Hooks rendered |
 | --- | --- | --- |
-| none | `<ul>` | `active-values`, `active-value`, `active-value-template`; each pill carries `data-kind` (`search`, `term`, `price`) |
+| none | `<div>` | `active-values`, `active-value`, `active-value-template`; each pill carries `data-kind` (`search`, `term`, `price`) |
 
 ### `<x-meilifacets::listing.reset>`
 

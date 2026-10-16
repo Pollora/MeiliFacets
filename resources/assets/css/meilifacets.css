@@ -670,7 +670,7 @@ button[data-meili="drawer-close"]:active {
     line-height: 1;
 }
 
-[data-meili="active-values"] {
+[data-meili="active-values"] > ul {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5em;
