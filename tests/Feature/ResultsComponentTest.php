@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Tests\Feature;
 
+use Dom\Element;
+use Dom\HTMLDocument;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\View\DynamicComponent;
 use Modules\MeiliFacets\Enums\CardField;
 use Modules\MeiliFacets\Enums\Hook;
 use Modules\MeiliFacets\Enums\ImagePriority;
+use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\Listing\Pagination;
+use Modules\MeiliFacets\Listing\ProductListing;
 use Modules\MeiliFacets\Listing\ResolvedListing;
 use Modules\MeiliFacets\Seo\ItemList;
 use Modules\MeiliFacets\Tests\Unit\Doubles\ProjectListingCard;
@@ -20,6 +24,32 @@ use Tests\TestCase;
 /** `$items` is null on a page robots are told to skip — the state the view must not assume. */
 final class ResultsComponentTest extends TestCase
 {
+    use RendersTheModuleViews;
+
+    #[Test]
+    public function the_cards_it_renders_on_the_server_carry_their_hooks(): void
+    {
+        $this->renderTheModuleViews();
+        $this->app->forgetScopedInstances();
+
+        try {
+            if ($this->app->make(CurrentListing::class)->named(ProductListing::NAME)->cards() === []) {
+                $this->markTestSkipped('The catalogue lists no card.');
+            }
+
+            $html = Blade::render('<x-meilifacets::listing.results :name="$name" />', ['name' => ProductListing::NAME]);
+        } finally {
+            $this->restoreTheThemeViews();
+            $this->app->forgetScopedInstances();
+        }
+
+        $card = HTMLDocument::createFromString('<!doctype html><body>'.$html, LIBXML_NOERROR)
+            ->querySelector('[data-meili="results"] > [data-meili="card"]');
+
+        $this->assertInstanceOf(Element::class, $card);
+        $this->assertNotNull($card->querySelector('[data-meili="url"]'));
+    }
+
     #[Test]
     public function it_announces_the_outage_instead_of_an_empty_list(): void
     {

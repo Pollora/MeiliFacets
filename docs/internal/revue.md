@@ -3315,7 +3315,7 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
-### R-235 · 🟡 · ouvert · 2026-10-16 — des cartes rendues hors listing portent les crochets du listing
+### R-235 · 🟡 · **fermé le 2026-10-16, doublon de `R-227`** · ouvert le 2026-10-16 — des cartes rendues hors listing portent les crochets du listing
 
 **Constat** (Louis, 2026-10-16). Sur une page de catégorie du projet de test, la console affiche « the client binds
 inside [data-listing] only. Move inside <x-meilifacets::listing> : image, url, price ». Les cartes produit des blocs
@@ -3797,7 +3797,7 @@ l'ordre sous une facette de variation et sous un tri qui filtre (« En promotion
 - *Contrat* : `Contract::VERSION` reste à 1. La description ne change pas de forme et `defaultSort` est lu avec repli.
 
 **Seconde revue de la PR #15, le 2026-10-15.** Douze constats, revérifiés un à un. Le seul site qui utilise le
-module, Pluralia, n'en touche aucun : réglage `menu_order`, aucune copie de `results.blade.php`, aucun filtre de tri.
+module, le projet de test, n'en touche aucun : réglage `menu_order`, aucune copie de `results.blade.php`, aucun filtre de tri.
 - *Corrigés* :
   - `defaultSort()` est renvoyé sous forme de liste (`array_values()`, serveur et description) ;
   - `ResultsComponentTest` remet en place les alias Blade qu'il ajoute ;
@@ -3872,7 +3872,7 @@ inchangé. Page boutique : un produit en rupture passe après les produits en st
 
 **En attente** : `R-227` est encore ouvert (`D-03`).
 
-### R-227 · 🟡 · **ouvert le 2026-10-09** — une carte rendue hors listing est signalée comme orpheline
+### R-227 · 🟡 · **fermé le 2026-10-16** · ouvert le 2026-10-09 — une carte rendue hors listing est signalée comme orpheline
 
 **Constat.** Sur la page catégorie Sérums du projet de test, la console affiche
 `[meilifacets] the client binds inside [data-listing] only. Move inside <x-meilifacets::listing> : image, url, price.`
@@ -3893,6 +3893,31 @@ indexée touchés ; `dist/` à republier.
 
 **À vérifier.** Un test client : `facet` hors racine toujours nommé, une carte seule hors racine plus nommée. Page
 Sérums sans erreur console. `architecture.md:680` à compléter.
+
+**Repris et fermé le 2026-10-16** (Louis, après `R-235`, son doublon). La correction proposée ci-dessus restreignait
+« Racines du contrat » (`decisions.md:109`) et laissait dans la page des crochets que personne ne lit : écartée. La
+liaison d'une carte dit où elle est rendue : **retenu**, `CardBinding::standalone()` pour une carte hors listing, sans
+crochet ; `of()` (cartes du listing, `Results::bindingOf()`) et `template()` inchangés. La sorte de liaison est un enum
+(`BindingKind` : `Listed`, `Standalone`, `Template`) que `CardBinding` lit seul, par `hook()` à côté de `marker()`. Le
+thème du projet de test passe ses deux cartes hors listing (`ProductCard`, `JournalCard`) à `standalone()`. Le rapport
+d'orphelins reste strict.
+
+Deux versions écartées en chemin. La première lisait la pile de composants Blade depuis `CardHooks` : déduction
+indirecte, tests de carte obligés de simuler un listing. La seconde (PR #18, premier jet) changeait le sens de `of()`
+et ajoutait `listed()` : revue du 2026-10-16 (Louis), onze constats, dont deux tests du projet de test rouges (prix lu
+par `[data-meili="price"]` sur une carte `of()`), une liaison oubliée qui perdait ses crochets en silence au lieu d'être
+signalée, des tests du projet qui ne vérifiaient plus rien, un booléen de constructeur à quatre états pour trois cas,
+un getter public de plus, la doc de mise à jour qui prescrivait encore `of()` pour la carte du listing. Tous levés par
+le retour de `of()` à son sens et l'enum, sauf deux, levés le même jour : `Results::bindingOf()` n'était couvert que
+côté projet (`ResultsComponentTest` construit ses données à la main), un test rend désormais le vrai composant ;
+`hook()` manquait au tableau des méthodes de `card.md`.
+
+*Coût* : une carte `standalone()` n'a plus de sélecteur stable par crochet ; un thème la style par ses classes
+(`card.md`, `upgrading.md`). La phrase de `R-207` (« ses crochets, qu'un thème peut cibler en CSS ») ne vaut plus pour
+elle. *Observé* : accueil du projet de test, 170 crochets de carte hors gabarit avant, 0 après ; catégorie Visage, les
+8 cartes du listing gardent `price` ; aucun avertissement console. `composer check` vert, suite `Modules` verte,
+`ProductCardProjectionTest`, `JournalCardTest`, `ProductArchiveFiltersTest` verts côté projet. `Contract::VERSION`
+inchangé, aucun client modifié.
 
 ### R-226 · ⚪ · **fermé le 2026-10-09** · ouvert le 2026-10-09 — plancher Pollora à 13.35.3, pour le signalement des mises à jour
 

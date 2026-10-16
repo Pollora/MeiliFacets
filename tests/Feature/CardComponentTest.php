@@ -161,6 +161,22 @@ final class CardComponentTest extends TestCase
     }
 
     #[Test]
+    public function a_standalone_card_writes_no_hook(): void
+    {
+        $html = Blade::render('<x-meilifacets::listing.card :binding="$binding" />', ['binding' => CardBinding::standalone([
+            CardField::Url->value => 'https://example.test/serum',
+            CardField::ImageUrl->value => 'https://example.test/photo.jpg',
+            CardField::Title->value => 'Serum',
+            CardField::Price->value => '42,00',
+        ])]);
+
+        $card = $this->document($html);
+
+        $this->assertSame('Serum', $card->querySelector('.meilifacetsCardTitle')?->textContent);
+        $this->assertNull($card->querySelector('[data-meili]'));
+    }
+
+    #[Test]
     public function it_takes_the_heading_level_its_context_needs(): void
     {
         $card = $this->document($this->render([CardField::Title->value => 'Serum'], ['heading' => 'h4']));

@@ -14,6 +14,8 @@ the browser script changed, and the old one ignores the default order once the v
 
 ### Added
 
+- `CardBinding::standalone()`: the binding of a card rendered outside a listing, such as a carousel's. Its elements
+  carry no `data-meili` hook, which no client reads there and which the listing's script reported as misplaced.
 - `Contracts\CardComponentListing`: a listing draws its results with a Blade component of the project, on the server
   and in the template the browser clones. The component declares `binding` and `priority`.
 - A listing component inside `<x-meilifacets::listing name="…">` belongs to that listing without a `name` of its own:

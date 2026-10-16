@@ -8,7 +8,9 @@ use BackedEnum;
 use Illuminate\Support\Arr;
 use Illuminate\View\ComponentAttributeBag;
 use Modules\MeiliFacets\Enums\BindingAttribute;
+use Modules\MeiliFacets\Enums\BindingKind;
 use Modules\MeiliFacets\Enums\CardField;
+use Modules\MeiliFacets\Enums\Hook;
 
 /**
  * @phpstan-type Fields BackedEnum|string|list<BackedEnum|string>
@@ -22,21 +24,37 @@ final readonly class CardBinding
     private const string CLASS_ATTRIBUTE = 'class';
 
     /**
-     * @param  array<string, mixed>|null  $card  `null` for the template
+     * @param  array<string, mixed>  $card
      */
-    private function __construct(private ?array $card) {}
+    private function __construct(private BindingKind $kind, private array $card = []) {}
 
     /**
      * @param  array<string, mixed>  $card
      */
     public static function of(array $card): self
     {
-        return new self($card);
+        return new self(BindingKind::Listed, $card);
+    }
+
+    /**
+     * @param  array<string, mixed>  $card
+     */
+    public static function standalone(array $card): self
+    {
+        return new self(BindingKind::Standalone, $card);
     }
 
     public static function template(): self
     {
-        return new self(null);
+        return new self(BindingKind::Template);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function hook(Hook $hook): array
+    {
+        return $this->kind === BindingKind::Standalone ? [] : $hook->asAttributes();
     }
 
     public function text(BackedEnum|string $field): CardFieldElement
@@ -157,7 +175,7 @@ final readonly class CardBinding
 
     private function isTemplate(): bool
     {
-        return $this->card === null;
+        return $this->kind === BindingKind::Template;
     }
 
     /**
