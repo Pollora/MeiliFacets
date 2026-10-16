@@ -3797,7 +3797,7 @@ l'ordre sous une facette de variation et sous un tri qui filtre (« En promotion
 - *Contrat* : `Contract::VERSION` reste à 1. La description ne change pas de forme et `defaultSort` est lu avec repli.
 
 **Seconde revue de la PR #15, le 2026-10-15.** Douze constats, revérifiés un à un. Le seul site qui utilise le
-module, Pluralia, n'en touche aucun : réglage `menu_order`, aucune copie de `results.blade.php`, aucun filtre de tri.
+module, le projet de test, n'en touche aucun : réglage `menu_order`, aucune copie de `results.blade.php`, aucun filtre de tri.
 - *Corrigés* :
   - `defaultSort()` est renvoyé sous forme de liste (`array_values()`, serveur et description) ;
   - `ResultsComponentTest` remet en place les alias Blade qu'il ajoute ;
@@ -3908,7 +3908,9 @@ et ajoutait `listed()` : revue du 2026-10-16 (Louis), onze constats, dont deux t
 par `[data-meili="price"]` sur une carte `of()`), une liaison oubliée qui perdait ses crochets en silence au lieu d'être
 signalée, des tests du projet qui ne vérifiaient plus rien, un booléen de constructeur à quatre états pour trois cas,
 un getter public de plus, la doc de mise à jour qui prescrivait encore `of()` pour la carte du listing. Tous levés par
-le retour de `of()` à son sens et l'enum.
+le retour de `of()` à son sens et l'enum, sauf deux, levés le même jour : `Results::bindingOf()` n'était couvert que
+côté projet (`ResultsComponentTest` construit ses données à la main), un test rend désormais le vrai composant ;
+`hook()` manquait au tableau des méthodes de `card.md`.
 
 *Coût* : une carte `standalone()` n'a plus de sélecteur stable par crochet ; un thème la style par ses classes
 (`card.md`, `upgrading.md`). La phrase de `R-207` (« ses crochets, qu'un thème peut cibler en CSS ») ne vaut plus pour
