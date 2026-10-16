@@ -29,13 +29,7 @@ final readonly class PriceFilter implements Placeable
      */
     public static function among(array $filters): ?self
     {
-        foreach ($filters as $filter) {
-            if ($filter instanceof self) {
-                return $filter;
-            }
-        }
-
-        return null;
+        return array_find($filters, static fn (Placeable $filter): bool => $filter instanceof self);
     }
 
     /**
