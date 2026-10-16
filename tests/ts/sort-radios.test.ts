@@ -156,6 +156,30 @@ describe('SortRadios', () => {
             assert.equal(nameOf(root), 'Sort by: Price, low to high')
         })
 
+        /** Mirrors `listing/sort-radios.blade.php` given a `label` with no `:choice`. */
+        const CAPTIONED = {
+            legend: `<button type="button" class="meilifacetsFacetToggle" aria-expanded="false" aria-controls="sort-panel" data-meili="toggle">
+            <span class="meilifacetsFacetToggleName"><span class="meilifacetsFacetToggleLabel">Sort</span></span>
+        </button>`,
+            panel: COLLAPSIBLE.panel,
+        }
+
+        it('keeps a label that names no order as it is, whatever is picked', () => {
+            const { window, root, listing } = bound('submit', CAPTIONED)
+
+            tick(window, find<HTMLInputElement>(root, 'input[value="price_asc"]'))
+
+            assert.equal(listing.state.sort, 'price_asc')
+            assert.equal(nameOf(root), 'Sort')
+        })
+
+        it('shows a label that names no order in the pill too', () => {
+            const { window, root } = open(radiosMarkup(CAPTIONED), { styled: true })
+            window.happyDOM.setViewport({ width: 1440, height: 800 })
+
+            assert.notEqual(window.getComputedStyle(find(root, '.meilifacetsFacetToggleLabel')).display, 'none')
+        })
+
         /** Mobile first: the section reads its label alone, the pill the sentence holding the order in force. */
         const styledAt = (width: number) => {
             const { window, root } = open(radiosMarkup(COLLAPSIBLE), { styled: true })

@@ -33,6 +33,7 @@ final class Sort extends ListingComponent
         bool $scroll = false,
         SortWidget|string $widget = SortWidget::Listbox,
         public bool $collapsible = false,
+        ?string $label = null,
     ) {
         parent::__construct($listings, $name, $scroll);
 
@@ -46,7 +47,7 @@ final class Sort extends ListingComponent
             $this->listing->sortMatches(),
         );
         $this->selected = $this->currentChoice();
-        $this->caption = $this->captionOf($this->selected->label);
+        $this->caption = $this->captionOf($this->selected->label, $label);
     }
 
     /** A single order leaves nothing to choose. */
@@ -65,7 +66,11 @@ final class Sort extends ListingComponent
 
     public function disclosure(): Disclosure
     {
-        return Disclosure::withSilentLabel($this->caption->label, $this->ids->sortPanel());
+        if ($this->caption->holdsChoice()) {
+            return Disclosure::withSilentLabel($this->caption->label, $this->ids->sortPanel());
+        }
+
+        return new Disclosure($this->caption->label, $this->ids->sortPanel());
     }
 
     public function panelId(): string
@@ -78,12 +83,17 @@ final class Sort extends ListingComponent
         return $this->ids->sortChoiceName();
     }
 
-    private function captionOf(string $choice): SortCaption
+    private function captionOf(string $choice, ?string $given): SortCaption
     {
-        $sentence = __('Sort by: :choice');
-        [$lead, $trail] = explode(self::CHOICE_PLACEHOLDER, $sentence, 2) + [1 => ''];
+        $sentence = $given ?? __('Sort by: :choice');
 
-        return new SortCaption(__('Sort by'), $lead, $choice, $trail);
+        if (str_contains($sentence, self::CHOICE_PLACEHOLDER)) {
+            [$lead, $trail] = explode(self::CHOICE_PLACEHOLDER, $sentence, 2);
+
+            return new SortCaption(__('Sort by'), $lead, $choice, $trail);
+        }
+
+        return SortCaption::withoutChoice($sentence);
     }
 
     private function currentChoice(): SortChoice

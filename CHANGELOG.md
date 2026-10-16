@@ -21,6 +21,8 @@ the browser script changed, and the old one ignores the default order once the v
 - `ApplyMode::fromSetting()`: the apply mode a setting names, the default when it names none.
 - `Contracts\DefaultSortedListing`: a listing orders its items while no sort is chosen and no term is searched,
   on the server and in the browser. Without it, the engine's order stands, which is the indexing order.
+- `<x-meilifacets::listing.sort label="…">` names the sort, as `label` names the listing search, and the order in
+  force is no longer repeated. Holding `:choice`, it replaces the sentence of the collapsible radios instead.
 
 ### Changed
 

@@ -183,10 +183,11 @@ The sort control. Not rendered when one order or none is offered. Rendered once 
 | `scroll` | `bool` | `false` | |
 | `widget` | `SortWidget` or `string` | `listbox` | `listbox` (button and list), `radios` (a fieldset of radios) |
 | `collapsible` | `bool` | `false` | `radios` only; ignored by `listbox` |
+| `label` | `?string` | `null` | names the sort, in place of `Sort by`, and no `sort-chosen` is rendered; holding `:choice`, it replaces the sentence `Sort by: :choice` of the collapsible radios instead, the only widget that shows it: the name stays `Sort by`, and the listbox label and the legend of plain radios read `Sort by` |
 
 | Slots | Bag lands on | Hooks rendered |
 | --- | --- | --- |
-| none | nowhere | `listbox`: `sort`, `sort-trigger`, `sort-list`, `sort-option`. `radios`: `sort-choices`, `sort-choice-row`, `sort-choice`; with `collapsible`: `toggle`, `sort-chosen`, `panel` |
+| none | nowhere | `listbox`: `sort`, `sort-trigger`, `sort-list`, `sort-option`. `radios`: `sort-choices`, `sort-choice-row`, `sort-choice`; with `collapsible`: `toggle`, `sort-chosen` (unless `label` holds no `:choice`), `panel` |
 
 ### `<x-meilifacets::listing.pagination>`
 

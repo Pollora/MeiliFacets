@@ -204,6 +204,7 @@ The list applies to the product listing as a whole, on every page that shows it.
 | `widget` | `listbox` | `listbox`: a button that opens a list of choices (the ARIA combobox pattern, with the full keyboard support it promises). `radios`: a `<fieldset>` of radio buttons |
 | `collapsible` | `false` | with `widget="radios"` only: the fieldset folds like a [collapsible facet](facets.md#collapsible-facets) |
 | `scroll` | `false` | with `listbox`: picking a choice brings the top of the listing back into view |
+| `label` | none | names the sort in place of “Sort by” (see below) |
 
 ```blade
 <x-meilifacets::listing.sort widget="radios" collapsible />
@@ -212,6 +213,19 @@ The list applies to the product listing as a whole, on every page that shows it.
 The collapsible radios show the sort in force in their toggle: “Sort by: Relevance”. The sentence comes from the
 translatable key `Sort by: :choice`, so a language can put the choice anywhere in it. A sort is an order, not a
 filter: its toggle never shows a count.
+
+A theme gives its own wording with `label`, as on the listing search, the module's keys not being overridable from a
+theme's catalogue:
+
+- `label="Sort"`, with no `:choice`, names the sort alone everywhere: the listbox label, the radios' legend and
+  their toggle, in the row as in the sheet. The order in force is not repeated in the toggle;
+- `label="Order: :choice"` replaces the sentence of the collapsible radios, the only widget that shows one; their
+  section is still named “Sort by”. The listbox label and the legend of plain radios read “Sort by”, and the sentence
+  appears nowhere.
+
+```blade
+<x-meilifacets::listing.sort widget="radios" collapsible :label="__('Sort')" />
+```
 
 Render the sort once per page, whatever its widget. A second one fails:
 
