@@ -3315,6 +3315,18 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
+### R-235 · 🟡 · ouvert · 2026-10-16 — des cartes rendues hors listing portent les crochets du listing
+
+**Constat** (Louis, 2026-10-16). Sur une page de catégorie du projet de test, la console affiche « the client binds
+inside [data-listing] only. Move inside <x-meilifacets::listing> : image, url, price ». Les cartes produit des blocs
+du thème hors listing (sélection, carrousel, essentiels, panier, wishlist) passent par un composant qui hérite de la
+carte du listing et prépare ses éléments avec `CardHooks` : `link()`, `image()`, `price()` posent chacun leur crochet
+`data-meili`. Hors listing, le client n'en fait rien, et `PageRoots::#reportOrphans()` les signale.
+
+**Pistes, non tranchées.** (a) Le module offre de préparer les mêmes éléments sans crochet, pour une carte rendue hors
+listing ; (b) le client ne signale plus les crochets de carte hors listing ; (c) le thème retire l'attribut des
+éléments préparés. Passe de conformité à faire avant de choisir (`docs/customising/card.md`, `CardHooks`).
+
 ### R-234 · 🟡 · **fermé le 2026-10-16** · ouvert le 2026-10-16 — en `immediate`, « Tout effacer » apparaît avant la pastille, puis se fait pousser
 
 **Constat** (Louis, 2026-10-16 : « l'apparition de meilifacetsActiveValue est bizarre »). Mesuré image par image sur
@@ -3341,7 +3353,7 @@ suite `Modules` 1177 tests. Navigateur, `/boutique` à 1440 px : premier filtre,
 grille 632 → 676 en un seul pas ; second filtre, le reset glisse de la largeur de la nouvelle pastille dans l'image où
 elle entre ; « Tout effacer » retire reset et pastilles ensemble.
 
-### R-233 · 🟡 · ouvert · 2026-10-15 — au-delà de la limite de rangée, garder les premiers filtres et ouvrir le reste par « Voir plus »
+### R-233 · 🟡 · **fermé le 2026-10-16** · ouvert le 2026-10-15 — au-delà de la limite de rangée, garder les premiers filtres et ouvrir le reste par « Voir plus »
 
 **Constat.** Le seul repli au-delà de `row-limit` (`R-224`) vide la rangée desktop : tout passe dans le panneau
 latéral, derrière le bouton « Filtres ». La nouvelle maquette du projet de test garde en rangée le tri et les
@@ -3592,7 +3604,8 @@ tiroir, qui partage sa ligne avec le pied (écart réservé même pied vide, plu
 **Décision** (Louis) : `DrawerRow` mesure le corps avant d'en sortir les filtres et en donne la largeur à la rangée
 sortie (`max-width` en ligne, retirée avec elle à la fermeture). Balayage navigateur 800 → 1920 px par pas de 6 sur
 la boutique : 24 largeurs où la rangée changeait sans la mesure, aucune avec. Test client sur la largeur posée.
-Le diagnostic « rétrécissement au clic » d'avant était faux ; ce retrait reste en place, à confirmer par Louis.
+Le diagnostic « rétrécissement au clic » d'avant était faux : le rétrécissement de « Voir plus » est remis (Louis,
+2026-10-16), comme sur « Filtres ».
 
 **Revue du TS et contrôle, 2026-10-16 (Louis).** Revue du client (lecture seule) puis corrections validées :
 focus gardé visible quand le tiroir redevient rangée (vers « Voir plus ») ; départ du geste lu par
@@ -3610,8 +3623,12 @@ tiroir mobile identiques, rangée à 1920 à l'anticrénelage près) ; tests du 
 et disparaissait avec `unwrapped` ; le mode vaut pour tout le listing. Aucun lecteur CSS ni client ; note de mise à
 jour pour une règle de thème sur `.meilifacetsFacets[data-apply]` ou une vue `facets` copiée (`$applyMode` retiré).
 
-**Restent** : les six passes sur le code de la voie A et d'`unwrapped` ; en `submit` à 1512, « Appliquer » fait passer
-« Voir plus » à la ligne (projet de test).
+**Fermé le 2026-10-16.** Les six passes ont tourné (revue du client puis contrôle des noms, du code mort, de la
+lisibilité et des commentaires, ci-dessus), `composer check` vert, suite `Modules` verte (1181), recette navigateur
+desktop et mobile dans les deux `apply_mode`. Commits du module : `1db38a4` (« Voir plus »), `dab8db6` (`label` du
+tri), `b849184` (`unwrapped`), `4e42e03` (`data-apply` sur la racine), `e28d2f7` (revue du client), `2c3197b`
+(pression sur « Voir plus »). Laissé hors de ce point : en `submit` à 1512, « Appliquer » fait passer « Voir plus » à
+la ligne dans la rangée du projet de test (place de la rangée, côté thème).
 
 ### R-232 · 🟡 · **fermé le 2026-10-15** · ouvert le 2026-10-15 — un réordonnancement par glisser-déposer ne réindexe pas les produits
 
