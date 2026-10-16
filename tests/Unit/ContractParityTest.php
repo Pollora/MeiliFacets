@@ -12,6 +12,7 @@ use Modules\MeiliFacets\Enums\CardField;
 use Modules\MeiliFacets\Enums\Contract;
 use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Enums\Hook;
+use Modules\MeiliFacets\Enums\RowOverflow;
 use Modules\MeiliFacets\Enums\ScriptModule;
 use Modules\MeiliFacets\Enums\VariantField;
 use Modules\MeiliFacets\Listing\ListingState;
@@ -63,6 +64,14 @@ final class ContractParityTest extends TestCase
 
         foreach ($this->hooksAddressedByTheClient() as $hook) {
             $this->assertContains($hook, $declared, "The client addresses \"{$hook}\", which Hook does not declare.");
+        }
+    }
+
+    #[Test]
+    public function the_client_reads_every_row_overflow_the_server_marks(): void
+    {
+        foreach (RowOverflow::cases() as $overflow) {
+            $this->assertStringContainsString("'{$overflow->slug()}'", $this->read('drawer/drawer-side-sheet.ts'), $overflow->name);
         }
     }
 

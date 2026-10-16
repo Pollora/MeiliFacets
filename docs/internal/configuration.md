@@ -47,7 +47,8 @@ Sept le sont ; trois pas encore — `apply_mode` (`ApplyMode::fromConfig()`), `u
 | `card.image_size` | `medium` | `DefaultCardProjector` | à l'indexation |
 | `displayed_attributes` | `[]` | `ConfiguredIndexAttributes` | à l'indexation |
 | `apply_mode` | `submit` | `ProductListing` | au rendu |
-| `drawer.row_limit` | `5` | `Drawer` (`#[Config]`, `R-224`) — surchargé par l'attribut `row-limit` | au rendu |
+| `drawer.row.limit` | `5` | `Drawer` (`#[Config]`, `R-224`, regroupée par `R-233`) — surchargé par l'attribut `row-limit` | au rendu |
+| `drawer.row.overflow` | `side_sheet` | `Drawer` (`#[Config]`, `R-233`, enum `RowOverflow`) — surchargé par l'attribut `row-overflow` | au rendu |
 | `card.eager` | `4` | `CardSettings` | au rendu |
 | `engine.reachable_hits` | `1000` | `EngineLimits` | à l'indexation et au rendu |
 | `engine.max_facet_values` | `1000` | `EngineLimits` | à l'indexation et au rendu (`FacetTruncated`) |

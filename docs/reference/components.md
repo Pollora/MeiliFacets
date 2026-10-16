@@ -289,19 +289,21 @@ keeps at most 200 characters.
 
 ### `<x-meilifacets::listing.drawer>`
 
-A container that becomes a modal bottom sheet while `media` matches, a modal side sheet from `48em` past `row-limit`
-filters shown, and stays inline otherwise.
+A container that becomes a modal bottom sheet while `media` matches, and from `48em` past `row-limit` filters shown
+either a modal side sheet (`row-overflow="side_sheet"`) or a row of its first filters ending with « Show more »
+(`row-overflow="show_more"`), and stays inline otherwise.
 
 | Attribute | Type | Default | Values |
 | --- | --- | --- | --- |
 | `name` | `string` | `''` | |
 | `media` | `string` | `(width < 48em)` | a media query; the stylesheet's own breakpoints do not follow it |
 | `heading` | `HeadingLevel` or `string` | `h2` | `h2` to `h6`, for the “Filters” title |
-| `row-limit` | `int` | `meilifacets.drawer.row_limit`, else `5` | the number of filters it holds and shows at page load past which it opens as a side sheet |
+| `row-limit` | `int` | `meilifacets.drawer.row.limit`, else `5` | the number of filters shown at page load that its row holds from `48em` |
+| `row-overflow` | `RowOverflow` or `string` | `meilifacets.drawer.row.overflow`, else `side_sheet` | past the limit: `side_sheet` (every filter in a side sheet behind the opener), `show_more` (the first filters stay in the row, « Show more » opens the drawer as the side sheet with the filters past them); `side-sheet` and `show-more` are accepted too |
 
 | Slots | Bag lands on | Hooks rendered |
 | --- | --- | --- |
-| default (the body), `footer` (its own attributes land on the footer `<div>`) | the drawer `<div>` | `drawer`, `drawer-sheet`, `drawer-title`, `drawer-close` (button and drag handle), `drawer-body`, `drawer-footer` (with the slot); `data-media`, `data-side-sheet` past the limit |
+| default (the body), `footer` (its own attributes land on the footer `<div>`), `show-more` (the icon of « Show more », hidden from screen readers) | the drawer `<div>` | `drawer`, `drawer-sheet`, `drawer-title`, `drawer-close` (button and drag handle), `drawer-body`, `drawer-footer` (with the slot), `drawer-show-more` (past the limit with `show_more`, last in the body); `data-media`, `data-overflow` (`side-sheet` or `show-more`) past the limit. The client sets `data-side-sheet` while the drawer is a side sheet; with `show_more`, it lifts what stays in the row into a `div.meilifacetsDrawerRow` before the drawer while the sheet is open. `listing.facet` and `listing.price` carry `data-beyond-row` past the limit with `show_more` |
 
 ### `<x-meilifacets::listing.drawer-opener>`
 

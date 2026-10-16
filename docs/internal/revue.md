@@ -3341,6 +3341,278 @@ suite `Modules` 1177 tests. Navigateur, `/boutique` à 1440 px : premier filtre,
 grille 632 → 676 en un seul pas ; second filtre, le reset glisse de la largeur de la nouvelle pastille dans l'image où
 elle entre ; « Tout effacer » retire reset et pastilles ensemble.
 
+### R-233 · 🟡 · ouvert · 2026-10-15 — au-delà de la limite de rangée, garder les premiers filtres et ouvrir le reste par « Voir plus »
+
+**Constat.** Le seul repli au-delà de `row-limit` (`R-224`) vide la rangée desktop : tout passe dans le panneau
+latéral, derrière le bouton « Filtres ». La nouvelle maquette du projet de test garde en rangée le tri et les
+premières facettes, puis un bouton « Voir plus » (icône curseurs, même pilule que les autres) qui ouvre le panneau
+latéral. Elle affiche aussi le tri par son seul libellé (« Trier »), sans le choix actif, et ne montre pas la
+recherche du listing.
+
+**Demande** (Louis, 2026-10-15) : proposer ce second repli à côté du premier, configurable.
+
+**Réponses de Louis le 2026-10-15.**
+- *Contenu du panneau ouvert par « Voir plus »* : **tous les filtres**, recherche et tri compris : le même tiroir
+  que le mobile et que le panneau de `R-224`, sans second exemplaire DOM (`R-95`).
+- *Choix du repli* : clé de configuration et attribut du tiroir, comme `row-limit`. La configuration actuelle est
+  à revoir pour que les deux réglages ne se marchent pas dessus et restent lisibles par un humain.
+- *Tri* : la légende peut afficher le seul libellé, à la place de « Trier par : Pertinence », partout (rangée,
+  panneau, mobile).
+
+**Passe de conformité** (2026-10-15).
+- *Décision renversée* : aucune. Deux lignes de « Validées » à préciser : « Disposition des filtres » (un second
+  repli, toujours choisi par le thème) et « Tiroir mobile » (promu en dialogue aussi par « Voir plus »).
+- *Registre* : prolonge `R-224`, dont le point écrit non tranché (rendu sans JS au-delà de la limite) se tranche
+  ici pour les deux replis.
+- *Plateforme* : rien de natif. Le CSS seul ne masque pas « les filtres au-delà du N-ième » avec un N venu de la
+  configuration (`:nth-child()` n'accepte pas de variable) : écarté pour la même raison que dans `R-224`.
+- *Point en cours* : aucun (`D-03`).
+
+**Proposition (à valider).**
+
+*Configuration* — une seule notion, « la rangée desktop tient au plus N filtres », et ce qui arrive au-delà.
+Regroupée sous `drawer.row` (Louis, 2026-10-15, plutôt qu'une clé ajoutée à côté de `drawer.row_limit`) :
+
+```php
+'drawer' => [
+    'row' => [
+        'limit' => 5,               // filtres affichés en rangée desktop
+        'overflow' => 'side_sheet', // au-delà : 'side_sheet' (tout passe dans le panneau) | 'show_more'
+    ],
+],
+```
+
+Enum `RowOverflow` (`SideSheet`, `ShowMore`), défaut `SideSheet` : le comportement de `R-224` ne change pas.
+Attributs du tiroir `row-limit` et `row-overflow`, la configuration n'en étant que le défaut. Ce qui compte reste ce
+que `R-224` a fixé : facettes affichées et prix, recherche et tri exclus. **Coût** : `drawer.row_limit` est
+renommée, sans alias — config publiée des projets, stub, `ConfigStubTest`, docs publiques et `CHANGELOG`
+(rupture notée).
+
+*Quels filtres restent en rangée* : les N premiers affichés, dans l'ordre du slot (Louis, 2026-10-15, plutôt que
+des facettes nommées). Un projet qui veut des facettes précises en rangée les déclare en tête ; une facette vide
+sur une page laisse monter la suivante, et l'ordre vaut aussi pour le panneau et le mobile.
+
+*Serveur* — `Drawer` pose `data-overflow="show-more"` quand le compte dépasse la limite, et `ResolvedListing`
+désigne les filtres au-delà du N-ième (dans l'ordre du slot), que la vue marque d'un crochet. Décision prise au
+chargement et tenue pendant le filtrage, comme `data-side-sheet`.
+
+*Rendu* — le tiroir rend en fin de corps un bouton `data-meili="drawer-show-more"` (`aria-controls`,
+`aria-expanded`), libellé `__('Show more')` (clé déjà au catalogue), surchargeable par un slot `show-more` pour
+l'icône. En rangée desktop, les filtres marqués sont masqués et le bouton visible ; en dialogue, tout est visible
+et le bouton masqué. Sans JS : tous les filtres en rangée, pas de bouton (pour les deux replis).
+
+*Client* — `Drawer` traite le bouton comme un ouvreur ; `#opensAsDialog()` devient vrai à son clic en desktop.
+La rangée se vide quand son contenu passe dans le panneau : sa hauteur est retenue pendant l'ouverture, sans quoi
+la page saute derrière le voile.
+
+*Tri* — attribut `caption` sur `listing.sort`, symétrique du `label` de `listing.search` : une légende fournie
+par le thème remplace `Sort by: :choice`. Sans `:choice`, le crochet `sort-chosen` n'est pas rendu et
+`sort-radios.ts` doit le tolérer.
+
+**Côté projet de test (hors module).** Libellés de la recherche (`label`) et du tri (`caption`) passés par le
+gabarit, une clé du module ne se surchargeant pas depuis le catalogue du thème ; largeur de la recherche réduite
+en rangée par son jeton, le panneau gardant sa pleine largeur ; bouton « Voir plus » habillé ; limite à 4 en
+`show_more`, facettes réordonnées en tête : catégorie, marque, prix, besoin.
+
+**Vérifications prévues.** Feature : bascule, marquage des filtres au-delà de N, attribut prioritaire sur la
+configuration, `caption` avec et sans `:choice`. Client : ouverture depuis « Voir plus », fermeture, focus rendu
+au bouton, hauteur retenue, `sort-radios` sans `sort-chosen`. Navigateur : desktop et mobile, les deux
+`apply_mode`, une page sous la limite et une au-delà. Docs : `listing/drawer.md`, `reference/components.md`,
+`reference/configuration.md`, stub, `configuration.md`, `decisions.md`.
+
+**Ce qui est fait** (2026-10-15, proposition validée par Louis).
+- *Configuration* : `drawer.row.limit` (défaut `Drawer::ROW_LIMIT`, 5) et `drawer.row.overflow` (enum `RowOverflow`,
+  `side_sheet` | `show_more`, `RowOverflow::DEFAULT` = `SideSheet`), lues par `#[Config]` sur `Drawer` ; attributs
+  `row-limit` et `row-overflow` (variante : chaîne ou cas, valeur inconnue = `ValueError`). Aucun alias de
+  `drawer.row_limit`. Stub, `ConfigStubTest`.
+- *Serveur* : le tiroir pose `data-overflow` (`RowOverflow::slug()` : `side-sheet` | `show-more`) au-delà de la
+  limite. En `show_more`, `Drawer::render()` ouvre une rangée (`ResolvedListing::startRow()`, `PagePlacement` tient un
+  `FilterRow` : marque de placement et limite), que la vue referme en évaluant le compte ;
+  `ResolvedListing::isBeyondRow()` désigne tout filtre placé dans la rangée après ses `limit` premiers affichés, dans
+  l'ordre de placement, affiché ou non (une valeur peut le faire apparaître pendant le filtrage). `Facet` et `Price`
+  exposent `isBeyondRow()`, leurs vues posent `data-beyond-row`. Le bouton `drawer-show-more` (nouveau crochet,
+  additif, `Contract::VERSION` inchangé) ferme le corps, `aria-controls` = le tiroir, `aria-expanded="false"`,
+  libellé `__('Show more')`, slot `show-more` pour l'icône (masquée aux lecteurs d'écran, aucune icône par défaut).
+- *Sans JS, aligné pour les deux replis* : constaté avant changement, `side_sheet` sans JS empilait les filtres comme
+  dans le sheet (règles de rangée exclues par `[data-side-sheet]`, panneau réservé à `scripting: enabled` ; c'était
+  un « Known issue » de 0.2.2). Le serveur ne pose plus `data-side-sheet` : c'est le client qui le pose (au démarrage
+  en `side-sheet`, au clic sur « Voir plus » en `show-more`, retiré à la fin de la fermeture). Le repos fixe et masqué
+  du panneau lit `data-overflow="side-sheet"` sous `(scripting: enabled)` : pas de flash avant le démarrage du client.
+  Masquage des filtres marqués et affichage du bouton : `(scripting: enabled) and (width >= 48em)`, sous
+  `[data-overflow="show-more"]:not([data-side-sheet])`. Coût : une vue `drawer` copiée échoue (`$isSideSheet()`
+  retirée), noté dans `CHANGELOG` et `upgrading.md`.
+- *Client* (bloc réservé remplacé le soir même par la voie A, ci-dessous) : `drawer/row-overflow.ts` (`RowOverflow` :
+  `start()`, `liftRow()`, `putBackRow()`) et `drawer/row-placeholder.ts` (`RowPlaceholder` : un bloc `aria-hidden` à la taille et aux marges du tiroir, posé
+  avant lui pendant l'ouverture). `Drawer` traite « Voir plus » comme un ouvreur ; en desktop il emprunte le panneau
+  latéral avant d'ouvrir (style relu pour que la translation parte de l'extérieur). Le focus revient au bouton une
+  fois le panneau rendu à la rangée, sauf si le visiteur l'a posé ailleurs pendant la sortie. Mobile inchangé.
+- *Tri* : attribut `caption` sur `listing.sort`. Sans `:choice`, `SortCaption::alone()` : la légende remplace le
+  libellé et la phrase partout (listbox, légende des radios, déclencheur, rangée, panneau, mobile), le libellé est lu
+  à voix haute (`Disclosure` ordinaire) et ni la phrase ni `sort-chosen` ne sont rendus. Avec `:choice`, la légende
+  remplace la phrase seule ; le libellé reste `Sort by`. `sort-radios.ts` tolérait déjà l'absence de `sort-chosen`
+  (retour anticipé) : rien à changer.
+- *Docs* : `listing/drawer.md` (section « Past the row limit » réécrite, « Without JavaScript », « Watch out »),
+  `listing/results-sort-pagination.md`, `reference/components.md`, `reference/configuration.md`, `reference/hooks.md`,
+  `customising/views.md`, `upgrading.md`, `CHANGELOG.md` ; `configuration.md`, `decisions.md` (trois lignes
+  précisées). `dist/listing.js` reconstruit.
+
+**Points laissés à Louis.**
+- *Légende avec `:choice`* : après un changement de tri, `SortRadios` réécrit la phrase avec le `sortPattern` global
+  de la description (`Sort by: :choice`), pas avec la légende : une légende comme `Order: :choice` redevient « Sort by:
+  … » côté client. Sans effet pour `caption="Trier"`. Correction hors périmètre (`ListingDescription.php`,
+  `description.ts`, `listing-binding.ts`) : soit retirer la réécriture (le serveur rend déjà la même phrase) et
+  `sortPattern`, soit publier le motif dans la vue. Non tranché.
+- *Libellé sous une légende avec `:choice`* : gardé à `Sort by` (choix fait, à valider).
+- *Copie publiée* : `PublishedAssetsTest` échoue tant que `php artisan module:publish MeiliFacets` n'a pas été lancé
+  (copie sous `public/modules/`, hors du module). Republiée le 2026-10-15, suite verte depuis.
+
+**Passes** (2026-10-15).
+- *Nommage* : `RowOverflow::mark()` → `slug()` (`mark` désigne déjà la marque de placement de `Drawer`/`FilterRow`,
+  `Presentation::slug()` fait le même travail) ; vue `$overflowMark()` → `$overflowSlug()`. Nommés dans le vocabulaire
+  en place : `row-limit`/`row-overflow`, `data-overflow`, `data-beyond-row` (comme `isShown`/`isBeyondRow`),
+  `drawer-show-more` (famille `drawer-*`), `.meilifacetsDrawerShowMore` (comme `.meilifacetsDrawerOpen`). Les jumeaux
+  PHP/TS `RowOverflow` s'écrivent pareil ; un test de parité vérifie que chaque `slug()` est lu par `drawer-side-sheet.ts`.
+- *Lisibilité* : `drawer.ts` dépassait 200 lignes (lint) : le repli extrait dans `DrawerSideSheet`. `captionOf()` réduit à
+  une branche. `Drawer::overflowSince()` mémoïse et referme la rangée : couplage temporel assumé, la vue l'appelle deux
+  fois.
+- *Commentaires* : 2 supprimés (`Sort`, ils justifiaient un choix). Ajoutés et gardés : la mise à jour de style forcée
+  (contournement), le focus tombé sur `body` (anomalie), les docblocks de types.
+- *Performance* : `isBeyondRow()` recompte les filtres déjà placés pour chaque filtre (quadratique sur une quinzaine,
+  `isShown()` mis en cache) ; le compte du tiroir est mémoïsé. Aucune requête moteur ni lecture de plus.
+- *Sécurité* : `caption` passe par `{{ }}` ; `data-overflow` vient de l'enum. Rien.
+- *Contexte et i18n* : `Show more` déjà au catalogue ; la légende vient du thème. Marges du bloc réservé lues
+  physiquement, le panneau reste à droite en RTL comme avant. Rien qui dépende de WooCommerce.
+
+**Vérifié** (2026-10-15).
+- `composer check` vert : 719 tests autonomes, client 989.
+- Suite `Modules` : 1175 tests, 1 échec, `PublishedAssetsTest` (copie à republier, ci-dessus). Rouge puis vert :
+  sans le code, 6 des 9 nouveaux tests Feature du tiroir échouent (les 3 qui vérifient une absence passent), les 4 du
+  tri aussi ; côté client, 4 des 7 tests « Show more » et les 4 du panneau latéral (posé désormais par le client).
+  Les 2 tests client de la légende passent avant comme après (tolérance existante).
+- Page boutique du projet de test : 200, `data-overflow="side-sheet"` (la config du projet porte encore `row_limit`,
+  donc la limite par défaut).
+- Recette navigateur à faire : desktop et mobile, les deux `apply_mode`, une page sous la limite et une au-delà, sans
+  JS.
+
+**Revu le 2026-10-15 en fin de journée (Louis).** Livré tel quel, « Voir plus » fait passer toute la rangée dans
+le panneau : la rangée se vide derrière le voile, défaut introduit par cette entrée. Une copie visuelle de la rangée a
+été essayée puis retirée : rendue hors de son contexte, elle n'affichait pas la même rangée, et ses crochets devaient
+être écartés des requêtes du client. **Décision** : le panneau ouvert par « Voir plus » n'affiche que les filtres
+au-delà de la rangée (`data-beyond-row`) ; recherche, tri et premiers filtres restent en place et utilisables. Le
+mobile garde tous les filtres dans son tiroir. Renverse la réponse « tous les filtres » du matin. Le tiroir reste
+un seul composant (voir le plan ci-dessous).
+
+**Écart à la demande (2026-10-15).** La demande a toujours été **un seul et même composant tiroir**, ouvert par
+« Voir plus » (desktop), par « Filtres » (desktop) et par « Filtres » (mobile) : une tête, un pied, une animation, un
+jeu de règles — accessible, performant, modulaire. L'implémentation s'en est écartée deux fois, chaque fois par une
+décision prise sans l'accord de Louis :
+- une copie visuelle de la rangée laissée dans la page (retirée) ;
+- un conteneur `drawer-more` autour des filtres au-delà de la rangée, promu seul en panneau, avec sa propre tête
+  (second titre, second bouton fermer) et des transitions recopiées de `drawer-sheet` — **à retirer**.
+
+**Plan (à valider par Louis avant tout code).**
+1. *Un seul panneau* : `drawer-sheet`, sa tête, son pied et ses transitions servent les trois déclencheurs. `drawer-more`,
+   sa tête, ses règles et ses transitions sont supprimés.
+2. *Ouvert par « Voir plus »* : le panneau n'affiche que les filtres au-delà de la rangée (`data-beyond-row`, décision de
+   Louis du 2026-10-15) ; recherche, tri et premiers filtres restent visibles et utilisables dans la page.
+3. *Le point à trancher* : la rangée est dans `drawer-sheet`, et un nœud ne peut pas être à deux endroits. Deux voies :
+   - **A** — le client sort de `drawer-sheet` ce qui reste en rangée le temps de l'ouverture, et l'y remet à la
+     fermeture. Le CSS de la rangée qui dépend de sa position (`[data-meili="drawer-body"] > …`) est réécrit sur un
+     crochet de rangée ;
+   - **B** — le serveur rend la rangée hors de `drawer-sheet`, dans le tiroir ; c'est l'ouverture mobile (et `side_sheet`)
+     qui l'y fait entrer, puis ressortir. Mêmes conséquences CSS, côté inverse.
+4. *Accessibilité* : un seul dialogue (`role`, `aria-modal`, titre), `inert` sur le reste de la page **et** sur la rangée
+   restée visible, retour du focus au déclencheur.
+5. *Vérifications* : tests Feature et client réécrits sur le panneau unique, animation d'entrée et de sortie vérifiée dans
+   le navigateur, recette desktop et mobile dans les deux `apply_mode`.
+
+**Voie A retenue (Louis, 2026-10-15).** Fait : `drawer-more` retiré (vue, crochet, méthode serveur, règles et
+transitions recopiées). `DrawerRow` (`ts/drawer/drawer-row.ts`, du nom de la classe `meilifacetsDrawerRow` qu'il pose ; `RowStand` renommé
+le 2026-10-16, Louis) sort de `drawer-body`, au clic sur « Voir plus » en desktop, ce qui reste en rangée — enfants du corps et blocs de facettes sans `data-beyond-row` — dans une
+`div.meilifacetsDrawerRow` posée juste avant le tiroir et portant ses classes, puis les remet dans leur ordre une fois
+la sortie jouée. Hors du tiroir, la rangée n'est pas sous `[data-side-sheet]` et garde ses styles ; `InertPage`, qui
+rend inerte l'entourage du tiroir, la couvre. Le tiroir garde sa tête, son pied, son animation et son seul titre.
+Règles de rangée étendues à `.meilifacetsDrawerRow` dans les sélecteurs existants (corps en ligne, largeur de la
+recherche, bouton « Voir plus »), sans copie. Les boutons « Voir plus » sont cherchés dans le listing par
+`aria-controls`, puisqu'ils quittent le tiroir pendant l'ouverture.
+
+**Vérifié (2026-10-15)** : `composer check` vert (989 tests client) ; suite `Modules` verte. Navigateur, 1920 :
+rangée identique au pixel avant et après ouverture (7 éléments), résultats immobiles, animation `transform` de
+`drawer-sheet` jouée, 11 filtres dans le panneau, rangée inerte, focus sur le titre du tiroir ; fermeture : ordre
+de `drawer-body` rétabli, focus sur « Voir plus » ; filtrage depuis le panneau (345 → 4 articles), case conservée.
+393 : tiroir mobile inchangé (15 filtres, recherche, tri, ni rangée sortie ni « Voir plus »). `submit` : la case reste
+en attente jusqu'à « Appliquer 1 », puis 4 articles ; config du projet restaurée à l'identique (`cmp`).
+
+**Doc relue le 2026-10-16** : formulations de `row-limit` réécrites (`listing/drawer.md`, `reference/components.md`,
+`reference/configuration.md`), `drawer.row.overflow` disait encore que « Show more » ouvre tous les filtres ;
+`accessibility.md` décrit « Show more » comme second ouvreur du même dialogue ; ligne « Tiroir mobile » de
+`decisions.md` précisée.
+
+**Check d'accessibilité le 2026-10-16** (navigateur, axe-core 4.10 WCAG 2.2 AA + bonnes pratiques, clavier).
+Constaté : aucune violation, rangée et panneau ouverts ; dialogue nommé « Filtres », `aria-modal`, rangée inerte,
+focus au titre, Tab ne rejoint jamais la page (il passe par l'interface du navigateur, comme tout dialogue
+fondé sur `inert`), Échap et le bouton fermer rendent le focus à « Voir plus », Espace ouvre.
+Deux défauts, corrigés sur décision de Louis :
+- *Nom ambigu* : « Voir plus » nommait à la fois le bouton du tiroir et les 13 « Voir plus » des valeurs de facettes.
+  Le bouton du tiroir est nommé « Show more filters » (`aria-label`, comme « Close the filters ») ; le libellé visible,
+  contenu dans le nom (WCAG 2.5.3), ne change pas.
+- *Passage sous `48em` panneau ouvert* : le panneau restait latéral avec les seuls filtres au-delà, la rangée restée
+  hors du tiroir, et la fermeture perdait le focus (« Voir plus » masqué en mobile, focus sur `body`). Désormais
+  `Drawer` rend la rangée au tiroir (`DrawerSideSheet::putBackRow()`) qui devient le bottom sheet avec tous les
+  filtres, et le focus revient à « Filtres » à la fermeture. Test client rouge sans le correctif, vert avec ; constaté
+  à 393 : 17 filtres, recherche comprise, focus sur `drawer-open` après Échap.
+Hors périmètre : `heading-order` sur la carte produit du thème (titre de carte).
+
+**Rangée trop étroite, 2026-10-16 (Louis).** Entre `48em` et ~1400 px, la rangée ne tient plus sur une ligne : le
+bloc `listing.facets` passait à la ligne d'un tenant (Rechercher et Trier seuls en première ligne), alors qu'ouverte,
+`DrawerRow` sort les facettes une à une et la rangée change de disposition sous le voile. Étude : CSS seul écarté
+(bloc sur deux lignes, voisins centrés en hauteur, mesuré à 1153) — un flex imbriqué ne coule pas dans les lignes de
+son parent sans `display: contents`. **Décision** (Louis) : attribut `unwrapped` sur `listing.facets`, qui rend les
+filtres et le bouton Appliquer sans le `<div>` du groupe ; `scroll` passe alors à chaque enfant, `listing.apply`
+prend `scroll` (aucun lecteur client de `data-apply`, qui reste sur le groupe). Les règles CSS du groupe ont leur
+jumelle pour des facettes posées directement dans `drawer-body` (séparateurs, première et dernière sections, marge
+de fin, Appliquer). Le défaut ne change pas. Le projet de test rend `unwrapped`.
+Vérifié : captures avant/après au pixel identiques sur la zone des filtres — rangée à 1920, panneau « Voir plus »,
+tiroir mobile 393, panneau `side_sheet` en `submit` (config restaurée, `cmp`) ; à 1153, Rechercher, Trier,
+Catégorie, Marque, Prix puis Besoin, Voir plus, rangée identique fermée et ouverte. Tests : Feature (sans bloc,
+`scroll` sur chaque enfant ; groupe seul marqué sinon), feuille de style (règles jumelles), client (`DrawerRow` sur
+des facettes sans bloc), projet (aucun groupe dans `drawer-body`).
+
+**Pression sur « Voir plus », 2026-10-16 (Louis).** « Voir plus » rétrécissait à 97 % sur `:active`, comme
+« Filtres », alors que les pilules de la rangée ne bougent pas. Retiré pour « Voir plus » seul (fond de pression
+gardé, comme les pilules) ; « Filtres » garde son effet. Test de la feuille de style rouge avant, vert après.
+
+**Nommage, 2026-10-16 (Louis).** L'attribut `caption` de `listing.sort` devient `label`, comme sur `listing.search` :
+un seul mot pour le nom visible d'un contrôle. Relevé : aucun autre composant ne prend de texte par attribut (les
+autres libellés se changent par la vue). La classe `SortCaption` garde son nom (ce que lit le déclencheur).
+
+**« Voir plus » remonte à l'ouverture, 2026-10-16 (Louis, capture page Sérums).** Fermée, la rangée est le corps du
+tiroir, qui partage sa ligne avec le pied (écart réservé même pied vide, plus Appliquer en `submit`) ; ouverte,
+`div.meilifacetsDrawerRow` prenait toute la largeur du tiroir : la dernière pilule pouvait remonter d'une ligne.
+**Décision** (Louis) : `DrawerRow` mesure le corps avant d'en sortir les filtres et en donne la largeur à la rangée
+sortie (`max-width` en ligne, retirée avec elle à la fermeture). Balayage navigateur 800 → 1920 px par pas de 6 sur
+la boutique : 24 largeurs où la rangée changeait sans la mesure, aucune avec. Test client sur la largeur posée.
+Le diagnostic « rétrécissement au clic » d'avant était faux ; ce retrait reste en place, à confirmer par Louis.
+
+**Revue du TS et contrôle, 2026-10-16 (Louis).** Revue du client (lecture seule) puis corrections validées :
+focus gardé visible quand le tiroir redevient rangée (vers « Voir plus ») ; départ du geste lu par
+`DOMMatrixReadOnly` (`matrix3d`) ; sections de la recherche lues une fois par phase (`ResultsInPlace`) ;
+`matchMedia` du mouvement réduit créé une fois ; temps d'entrée lus avant les écritures ; une seule paire
+`liftRow()`/`putBackRow()` (+ `isRowLifted()`), retour du focus dans `Drawer` ; `#markExpanded`/`#markCollapsed`,
+`#coversThePage` ; `Contract.element()`/`elements()` et `InstantChange` à la place des copies. Contrôle des noms
+et du code mort ensuite : la classe TS `RowOverflow` devient `DrawerSideSheet` (l'enum PHP garde le nom du réglage :
+les « jumeaux » des passes du 15 ne le sont plus), `overflowSince()` → `decidedOverflow()` (+ `closeRow()`),
+`SortCaption::alone()` → `withoutChoice()`, `#focusWasDropped`, `#putBackRowBelowThreshold` ; icône
+`parts/icons/filters.blade.php` du thème supprimée (plus référencée) ; les variantes de composant acceptent aussi
+le tiret (`show-more`) ; règles CSS d'`unwrapped` fusionnées en `:is(...) >` (rendu comparé au pixel : panneau et
+tiroir mobile identiques, rangée à 1920 à l'anticrénelage près) ; tests du tri avec `:choice` hors radios repliables.
+**`data-apply` sur la racine** (Louis) : il était sur le seul groupe de facettes depuis le premier rendu du listing,
+et disparaissait avec `unwrapped` ; le mode vaut pour tout le listing. Aucun lecteur CSS ni client ; note de mise à
+jour pour une règle de thème sur `.meilifacetsFacets[data-apply]` ou une vue `facets` copiée (`$applyMode` retiré).
+
+**Restent** : les six passes sur le code de la voie A et d'`unwrapped` ; en `submit` à 1512, « Appliquer » fait passer
+« Voir plus » à la ligne (projet de test).
+
 ### R-232 · 🟡 · **fermé le 2026-10-15** · ouvert le 2026-10-15 — un réordonnancement par glisser-déposer ne réindexe pas les produits
 
 **Constat.** Relevé par la revue de `R-229`. `WC_AJAX::product_ordering()` écrit `menu_order` par `$wpdb->update()`

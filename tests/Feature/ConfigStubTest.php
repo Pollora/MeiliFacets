@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Tests\Feature;
 
 use Modules\MeiliFacets\Enums\ApplyMode;
+use Modules\MeiliFacets\Enums\RowOverflow;
 use Modules\MeiliFacets\Search\EngineLimits;
 use Modules\MeiliFacets\View\CardSettings;
 use Modules\MeiliFacets\View\Components\Listing\Drawer;
@@ -32,9 +33,12 @@ final class ConfigStubTest extends TestCase
     }
 
     #[Test]
-    public function it_publishes_the_row_limit_the_drawer_defaults_to(): void
+    public function it_publishes_the_row_settings_the_drawer_defaults_to(): void
     {
-        $this->assertSame(['row_limit' => Drawer::ROW_LIMIT], $this->stub()['drawer']);
+        $this->assertSame(
+            ['row' => ['limit' => Drawer::ROW_LIMIT, 'overflow' => RowOverflow::DEFAULT->value]],
+            $this->stub()['drawer']
+        );
     }
 
     #[Test]

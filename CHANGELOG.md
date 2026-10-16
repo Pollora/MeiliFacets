@@ -21,6 +21,10 @@ the browser script changed, and the old one ignores the default order once the v
 - `ApplyMode::fromSetting()`: the apply mode a setting names, the default when it names none.
 - `Contracts\DefaultSortedListing`: a listing orders its items while no sort is chosen and no term is searched,
   on the server and in the browser. Without it, the engine's order stands, which is the indexing order.
+- A second way past the drawer's row limit: `row-overflow="show_more"` (or `meilifacets.drawer.row.overflow`) keeps
+  the first filters in the desktop row and ends it with a « Show more » button that opens the drawer as the side
+  sheet with the filters past them; the row stays in the page meanwhile. Its icon goes in the drawer's `show-more`
+  slot. The default, `side_sheet`, is the side sheet of 0.2.2.
 - `<x-meilifacets::listing.sort label="…">` names the sort, as `label` names the listing search, and the order in
   force is no longer repeated. Holding `:choice`, it replaces the sentence of the collapsible radios instead.
 
@@ -37,6 +41,10 @@ the browser script changed, and the old one ignores the default order once the v
   `card`, which the card no longer takes.
 - `<x-meilifacets::listing.card>` takes `binding` (a `CardBinding`) instead of `card`, like the card a listing names:
   `CardBinding::of($card)`. `Listing\Card::prepare()` is removed.
+- `meilifacets.drawer.row_limit` becomes `meilifacets.drawer.row.limit`, beside `meilifacets.drawer.row.overflow`. The
+  old key is no longer read.
+- The drawer carries `data-overflow` (`side-sheet`, `show-more`) past its row limit; `data-side-sheet` is now set by
+  the client. A copied `components/listing/drawer.blade.php` fails: it calls `$isSideSheet()`, which is gone.
 
 ### Removed
 
@@ -47,6 +55,7 @@ the browser script changed, and the old one ignores the default order once the v
 
 - In `immediate` mode, « Clear all » appears with the active-value pills, once the engine answers, instead of on the
   tick: it no longer shows alone and then jumps aside when the first pill comes in.
+- Past the row limit without JavaScript, the filters keep their row of pills instead of stacking as in the sheet.
 - Reordering products by drag and drop (Products › Sorting) reindexes the products that moved: WooCommerce writes
   their `menu_order` straight to the table, which nothing reported to MeiliScout.
 

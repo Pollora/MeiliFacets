@@ -116,6 +116,7 @@ Owned by `<x-meilifacets::listing>`. “Styled”: `listing` = `meilifacets.css`
 | `drawer-title` | heading | required inside `drawer` | focused on open | listing | [Mobile drawer](../listing/drawer.md) |
 | `drawer-close` | close `<button>` and drag handle | required inside `drawer` | closes; the handle is dragged | listing | [Mobile drawer](../listing/drawer.md) |
 | `drawer-open` | `listing.drawer-opener`, `<button>` | read when present | opens; `aria-expanded` | listing | [Mobile drawer](../listing/drawer.md) |
+| `drawer-show-more` | « Show more » `<button>`, last in `drawer-body`, past the row limit with `show_more` | read when present | opens the drawer as a side sheet; `aria-expanded` | listing | [Mobile drawer](../listing/drawer.md#past-the-row-limit) |
 | `drawer-sheet` | sheet `<div>` | read when present | slides and is dragged | listing | [Mobile drawer](../listing/drawer.md) |
 | `drawer-body` | body `<div>` | none | not read | listing | [Mobile drawer](../listing/drawer.md) |
 | `drawer-footer` | footer `<div>` | none | not read | listing | [Mobile drawer](../listing/drawer.md) |
@@ -154,7 +155,7 @@ The client also relies on these, which an override must keep.
 | `value` on `page`, `previous` and `next` `<button>`s | `pagination.blade.php` | the page number is read from it |
 | `data-value` on `sort-option`, `value` and `data-label` on `sort-choice` | the sort views | the sort key and the label shown |
 | `name` on `price-min` and `price-max` | the price sub-views | the URL parameter of each bound |
-| `aria-controls` on `toggle`, `sort-trigger`, `drawer-open`, `search-toggle` | the views | names the element they open |
+| `aria-controls` on `toggle`, `sort-trigger`, `drawer-open`, `drawer-show-more`, `search-toggle` | the views | names the element they open |
 | `data-type` on `search-section` | `section.blade.php` | must name a type the search describes |
 | `data-bound` on `price-handle` | `price/range.blade.php` | `min` or `max` |
 | `data-media` on `drawer` | `drawer.blade.php` | the media query under which it is a sheet |
@@ -172,6 +173,9 @@ The client also relies on these, which an override must keep.
 | `data-kind` | `active-value` | `search`, `term`, `price` | yes |
 | `data-bound` | `price-handle` | `min`, `max` | yes |
 | `data-media` | `drawer` | a media query | yes |
+| `data-overflow` | `drawer`, past its row limit | `side-sheet`, `show-more` | yes |
+| `data-side-sheet` | `drawer`, set by the client while it is a side sheet | present or absent | written |
+| `data-beyond-row` | `facet`, past the row limit with `show_more` | present or absent | no |
 | `data-type`, `data-limit` | `search-section` | post type, number of results | yes |
 
 ## State attributes written by the client
@@ -186,7 +190,7 @@ The client also relies on these, which an override must keep.
 | `data-leaving` | search sections and rows | a node fading out, no longer counted |
 | `data-align-end` | `panel` | a floating panel aligned to the end of its toggle |
 | `aria-busy` | `results`, `search-panel` | a search is running |
-| `aria-expanded` | `toggle`, `more`, `sort-trigger`, `drawer-open`, `search-toggle`, `search-input` | open or closed |
+| `aria-expanded` | `toggle`, `more`, `sort-trigger`, `drawer-open`, `drawer-show-more`, `search-toggle`, `search-input` | open or closed |
 | `aria-current` | `page` | the current page |
 | `aria-selected` | `sort-option` | the current sort |
 | `aria-modal` | `drawer` | the drawer is a modal sheet |
@@ -215,9 +219,11 @@ Attributes that can be bound: `href`, `src`, `srcset`, `sizes`, `alt`, `title`, 
   breaks the rules above.
 - A theme stylesheet that selects on classes survives an override only if the override keeps them. The module's
   sheets select on hooks, plus a few classes: `meilifacetsDrawerHandle`, `meilifacetsDrawerHead`,
-  `meilifacetsDrawerIcon`, `meilifacetsFacetToggleLabel`, `meilifacetsHidden`, `meilifacetsPriceDash`,
-  `meilifacetsPriceField`, `meilifacetsPriceFields`, `meilifacetsPriceInput`, `meilifacetsRangeBounds`,
-  `meilifacetsRangeHead`, `meilifacetsResetIcon`.
+  `meilifacetsDrawerIcon`, `meilifacetsDrawerRow`, `meilifacetsFacetToggleLabel`, `meilifacetsHidden`,
+  `meilifacetsPriceDash`, `meilifacetsPriceField`, `meilifacetsPriceFields`, `meilifacetsPriceInput`,
+  `meilifacetsRangeBounds`, `meilifacetsRangeHead`, `meilifacetsResetIcon`.
+- `meilifacetsDrawerRow` is set by the client, not by a view: the row lifted out of the drawer while « Show more »
+  holds the side sheet open.
 
 ## See also
 

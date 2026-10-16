@@ -72,6 +72,7 @@ enum Hook: string
     case DrawerTitle = 'drawer-title';
     case DrawerClose = 'drawer-close';
     case DrawerOpen = 'drawer-open';
+    case DrawerShowMore = 'drawer-show-more';
     case DrawerSheet = 'drawer-sheet';
     case DrawerBody = 'drawer-body';
     case DrawerFooter = 'drawer-footer';

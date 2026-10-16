@@ -103,6 +103,11 @@ final class Facet extends ListingComponent
         return $this->listing->isShown($this->facet);
     }
 
+    public function isBeyondRow(): bool
+    {
+        return $this->listing->isBeyondRow($this->facet);
+    }
+
     /** A plain attribute can only name the module's presentations; a theme's arrives bound (`:presentation`). */
     private function presentationOf(ValuePresentation|string|null $override): ValuePresentation
     {

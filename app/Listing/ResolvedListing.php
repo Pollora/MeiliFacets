@@ -209,11 +209,41 @@ final class ResolvedListing
 
     public function shownFilterCountSince(int $mark): int
     {
-        $placed = $this->placement->facetsPlacedSince($mark);
+        return $this->shownAmong($this->placement->facetsPlacedSince($mark));
+    }
 
+    public function startRow(int $limit): void
+    {
+        $this->placement->startRow($limit);
+    }
+
+    public function endRow(): void
+    {
+        $this->placement->endRow();
+    }
+
+    public function isBeyondRow(Placeable $filter): bool
+    {
+        $row = $this->placement->row();
+
+        if (! $row instanceof FilterRow) {
+            return false;
+        }
+
+        $placed = $this->placement->facetsPlacedSince($row->mark);
+        $rank = array_search($filter->name, $placed, true);
+
+        return $rank !== false && $this->shownAmong(array_slice($placed, 0, $rank)) >= $row->limit;
+    }
+
+    /**
+     * @param  list<string>  $names
+     */
+    private function shownAmong(array $names): int
+    {
         return count(array_filter(
             $this->filters(),
-            fn (Placeable $filter): bool => in_array($filter->name, $placed, true) && $this->isShown($filter),
+            fn (Placeable $filter): bool => in_array($filter->name, $names, true) && $this->isShown($filter),
         ));
     }
 

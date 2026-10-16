@@ -27,6 +27,13 @@ changes is in the [changelog](../CHANGELOG.md).
   `parent::__construct($binding, $heading, $priority)`: `prepare()` is gone.
 - **With several listings, the `name` of a component inside a named root can go**: it belongs to the root's listing.
   Nothing breaks if it stays.
+- **`meilifacets.drawer.row_limit` becomes `meilifacets.drawer.row.limit`**, with no alias: a published config that
+  keeps the old key falls back to the default limit, 5. Move the value under `'drawer' => ['row' => ['limit' => …]]`.
+- **A theme that copied `components/listing/drawer.blade.php`** copies it again: the old copy calls `$isSideSheet()`,
+  which is gone, and the page fails. The drawer now carries `data-overflow` from the server; `data-side-sheet` is set
+  by the client, so a theme rule on `[data-side-sheet]` keeps working with JavaScript. A copied
+  `components/listing/facet.blade.php` or `price.blade.php` keeps working, but its filters are never put behind
+  « Show more »: copy it again to use `row-overflow="show_more"`.
 
 ## 0.2.2
 
@@ -36,7 +43,7 @@ changes is in the [changelog](../CHANGELOG.md).
   MeiliFacets is available.
 - **Past 5 filters, the desktop row becomes a side sheet.** A page that loads with more filters in its drawer shows
   the « Filters » button on wide screens too. To keep the row, raise `meilifacets.drawer.row_limit`, or the drawer's
-  `row-limit` on one template ([Mobile drawer and filter bar](listing/drawer.md#past-the-row-limit-a-side-sheet)).
+  `row-limit` on one template ([Mobile drawer and filter bar](listing/drawer.md#past-the-row-limit)).
 - **A copied `components/listing/facet.blade.php` calls `$isShown()`** in place of `$hasReadableValues()`, which is
   gone: the old call fails the page. A copied `components/listing/price.blade.php` keeps working; `$isShown()` is
   there too.
