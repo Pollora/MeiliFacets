@@ -612,9 +612,8 @@ describe('the row past its limit with « Show more »', () => {
         assert.match(source, /\[data-meili="drawer-show-more"\],\n\.meilifacetsDrawerHead,\n\.meilifacetsDrawerHandle \{\n {4}display: none;/)
     })
 
-    it('presses « Show more » as its neighbours in the row, without the shrink of the opener', () => {
-        assert.match(declared(source, `${Contract.selector('drawer-open')}:active`), /transform: scale\(0\.97\);/)
-        assert.doesNotMatch(source, /drawer-show-more"\]:active[^{]*\{\s+transform/)
+    it('presses « Show more » as the opener is pressed', () => {
+        assert.match(declared(source, `${Contract.selector('drawer-open')}:active,\n${Contract.selector('drawer-show-more')}:active`), /transform: scale\(0\.97\);/)
     })
 
     it('draws « Show more » as the opener is drawn', () => {

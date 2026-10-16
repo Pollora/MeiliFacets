@@ -966,7 +966,8 @@ button[data-meili="drawer-close"]:active {
     background: var(--meili-press);
 }
 
-[data-meili="drawer-open"]:active {
+[data-meili="drawer-open"]:active,
+[data-meili="drawer-show-more"]:active {
     transform: scale(0.97);
 }
 
@@ -1295,6 +1296,7 @@ button[data-meili="drawer-close"]:active {
     [data-meili="apply"][data-shape="pill"]:active,
     [data-meili="reset"][data-shape="icon"]:active,
     [data-meili="drawer-open"]:active,
+    [data-meili="drawer-show-more"]:active,
     [data-meili="facet"][data-presentation="pill"]:has([data-meili="toggle"]) [data-meili="facet-value"] label:active {
         transform: none;
     }
