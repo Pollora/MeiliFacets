@@ -18,7 +18,7 @@ final readonly class CardHooks
 
     public function link(): CardFieldElement
     {
-        return CardFieldElement::of($this->binding->attributes(['href' => CardField::Url]))->with($this->hook(Hook::Url));
+        return CardFieldElement::of($this->binding->attributes(['href' => CardField::Url]))->with($this->binding->hook(Hook::Url));
     }
 
     public function image(ImagePriority $priority): CardFieldElement
@@ -33,7 +33,7 @@ final readonly class CardHooks
                 'height' => CardField::ImageHeight,
             ]),
             [self::LOADING => $priority->loading(), self::FETCH_PRIORITY => $priority->fetchPriority()],
-            $this->hook(Hook::Image),
+            $this->binding->hook(Hook::Image),
         );
     }
 
@@ -45,30 +45,22 @@ final readonly class CardHooks
                 'width' => CardField::ImageWidth,
                 'height' => CardField::ImageHeight,
             ]),
-            $this->hook(Hook::Image),
+            $this->binding->hook(Hook::Image),
         );
     }
 
     public function title(): CardFieldElement
     {
-        return $this->binding->text(CardField::Title)->with($this->hook(Hook::Title));
+        return $this->binding->text(CardField::Title)->with($this->binding->hook(Hook::Title));
     }
 
     public function summary(): CardFieldElement
     {
-        return $this->binding->text(CardField::Summary)->with($this->hook(Hook::Summary));
+        return $this->binding->text(CardField::Summary)->with($this->binding->hook(Hook::Summary));
     }
 
     public function price(): CardFieldElement
     {
-        return $this->binding->price()->with($this->hook(Hook::Price));
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    private function hook(Hook $hook): array
-    {
-        return $this->binding->isHooked() ? $hook->asAttributes() : [];
+        return $this->binding->price()->with($this->binding->hook(Hook::Price));
     }
 }

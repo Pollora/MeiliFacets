@@ -48,7 +48,7 @@ final class Results extends ListingComponent
      */
     public function bindingOf(array $card): CardBinding
     {
-        return CardBinding::listed($card);
+        return CardBinding::of($card);
     }
 
     public function templateBinding(): CardBinding

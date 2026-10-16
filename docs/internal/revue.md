@@ -3895,19 +3895,27 @@ indexée touchés ; `dist/` à republier.
 Sérums sans erreur console. `architecture.md:680` à compléter.
 
 **Repris et fermé le 2026-10-16** (Louis, après `R-235`, son doublon). La correction proposée ci-dessus restreignait
-« Racines du contrat » (`decisions.md:109`) et laissait dans la page des crochets que personne ne lit : écartée. Le
-serveur sait où il rend une carte, par la liaison qu'elle reçoit : seul `Results::bindingOf()` rend les cartes d'un
-listing. **Retenu** : `CardBinding::listed()` pour les cartes du listing, `template()` pour les gabarits (listing et
-recherche) ; `CardHooks` n'ajoute ses crochets qu'à ces deux liaisons (`CardBinding::isHooked()`). `CardBinding::of()`,
-celle que le thème construit pour une carte hors listing, n'en porte plus. Le rapport d'orphelins reste strict, et
-`architecture.md` n'a rien à compléter. Une première version lisait la pile de composants Blade depuis `CardHooks`
-(lecture `meilifacetsListing` de `ListingComponent`) : elle déduisait indirectement ce que la liaison dit, et obligeait
-les tests de carte à simuler un listing ; abandonnée. *Coût* : une règle de thème sur `[data-meili="price"]` d'une carte
-hors listing ne s'applique plus (note dans `upgrading.md`) ; la phrase de `R-207` (« ses crochets, qu'un thème peut
-cibler en CSS ») ne vaut plus que pour les cartes du listing. *Observé* : accueil du projet de test, 170 crochets de
-carte hors gabarit avant, 0 après ; catégorie Visage, les 8 cartes du listing gardent `price` ; aucun avertissement
-console. Tests : carte hors listing sans aucun `data-meili`, gabarit et cartes du listing inchangés. `composer check`
-vert, suite `Modules` verte (1182). `Contract::VERSION` inchangé, aucun client modifié.
+« Racines du contrat » (`decisions.md:109`) et laissait dans la page des crochets que personne ne lit : écartée. La
+liaison d'une carte dit où elle est rendue : **retenu**, `CardBinding::standalone()` pour une carte hors listing, sans
+crochet ; `of()` (cartes du listing, `Results::bindingOf()`) et `template()` inchangés. La sorte de liaison est un enum
+(`BindingKind` : `Listed`, `Standalone`, `Template`) que `CardBinding` lit seul, par `hook()` à côté de `marker()`. Le
+thème du projet de test passe ses deux cartes hors listing (`ProductCard`, `JournalCard`) à `standalone()`. Le rapport
+d'orphelins reste strict.
+
+Deux versions écartées en chemin. La première lisait la pile de composants Blade depuis `CardHooks` : déduction
+indirecte, tests de carte obligés de simuler un listing. La seconde (PR #18, premier jet) changeait le sens de `of()`
+et ajoutait `listed()` : revue du 2026-10-16 (Louis), onze constats, dont deux tests du projet de test rouges (prix lu
+par `[data-meili="price"]` sur une carte `of()`), une liaison oubliée qui perdait ses crochets en silence au lieu d'être
+signalée, des tests du projet qui ne vérifiaient plus rien, un booléen de constructeur à quatre états pour trois cas,
+un getter public de plus, la doc de mise à jour qui prescrivait encore `of()` pour la carte du listing. Tous levés par
+le retour de `of()` à son sens et l'enum.
+
+*Coût* : une carte `standalone()` n'a plus de sélecteur stable par crochet ; un thème la style par ses classes
+(`card.md`, `upgrading.md`). La phrase de `R-207` (« ses crochets, qu'un thème peut cibler en CSS ») ne vaut plus pour
+elle. *Observé* : accueil du projet de test, 170 crochets de carte hors gabarit avant, 0 après ; catégorie Visage, les
+8 cartes du listing gardent `price` ; aucun avertissement console. `composer check` vert, suite `Modules` verte,
+`ProductCardProjectionTest`, `JournalCardTest`, `ProductArchiveFiltersTest` verts côté projet. `Contract::VERSION`
+inchangé, aucun client modifié.
 
 ### R-226 · ⚪ · **fermé le 2026-10-09** · ouvert le 2026-10-09 — plancher Pollora à 13.35.3, pour le signalement des mises à jour
 

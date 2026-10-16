@@ -704,8 +704,8 @@ n'imprime plus chaque champ par un composant.*
 - **Remplissage.** Une carte se remplit par ses cinq attributs de liaison (`data-meili-class-list` depuis `R-206`), et
   par rien d'autre ; le prix seul passe par son crochet, parce qu'il est en HTML. Les crochets que `CardHooks` pose
   encore servent d'ancres (contrat, surlignage, tabulation), jamais de source. *Précisé le 2026-10-16 (`R-227`,
-  Louis)* : ils ne sont posés que sur une carte du listing (`CardBinding::listed()`) ou un gabarit, là où un client
-  les lit ; une carte rendue hors listing (`CardBinding::of()`) n'en porte aucun.
+  Louis)* : une carte rendue hors listing prend `CardBinding::standalone()` et n'en porte aucun ; `of()` (listing) et
+  `template()` les gardent (enum `BindingKind`).
 - **Rendu.** La vue écrit la balise et un `@if ($element->isPresent())` ; l'élément préparé (`CardFieldElement`)
   apporte ses attributs (`->attributes`, un `ComponentAttributeBag`) et son contenu. `<x-meilifacets::bound>`
   rendait une vue par champ, soit une dizaine par carte. Mesuré sur une page de cartes du projet de test (`hrtime`,

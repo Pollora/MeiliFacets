@@ -7,9 +7,9 @@ changes is in the [changelog](../CHANGELOG.md).
 
 ## Unreleased
 
-- **A card built with `CardBinding::of()` no longer carries `data-meili` hooks** (`url`, `image`, `title`, `summary`,
-  `price`). The listing's own cards keep them. A theme rule on one of these hooks for a card outside a listing targets
-  a class of its own instead.
+- **A card rendered outside a listing** builds its binding with `CardBinding::standalone($card)` instead of `of()`:
+  the browser console stops naming its `url`, `image` and `price` as misplaced. Its parts lose their `data-meili`
+  hooks: a theme rule on one of them targets a class of the theme's own.
 - **Run `wp meiliscout index` once.** The product listing now follows WooCommerce's « Default product sorting », and
   `menu_order`, the default sorting's field, is sortable only once the index settings are written. Until then, every
   product search fails with the listing's unavailable message.

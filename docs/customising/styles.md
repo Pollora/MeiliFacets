@@ -209,7 +209,8 @@ Do not set these: the client writes them, and anything you set is overwritten.
 ## Styling by hooks and states
 
 Style by hooks and by the attributes that state what a component shows. The module's classes
-(`meilifacetsFacet`…) are there, but a theme override can drop them; hooks stay.
+(`meilifacetsFacet`…) are there, but a theme override can drop them; hooks stay. A card rendered outside a listing
+(`CardBinding::standalone()`) carries no hook: style it by your own classes.
 
 | Attribute | On | Means |
 | --- | --- | --- |

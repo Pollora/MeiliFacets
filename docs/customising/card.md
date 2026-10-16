@@ -201,14 +201,15 @@ component received:
 
 This one view serves both the cards rendered by the server and the `<template>` the browser clones: the same
 component renders both, with a different `CardBinding`. A card shared with other pages, such as a home page carousel,
-takes a `CardBinding::of($card)` built from whatever array that page holds: outside a listing, no client reads the
-`data-meili` hooks, so `CardHooks` leaves them out.
+takes a `CardBinding::standalone($card)` built from whatever array that page holds: no client reads a card outside a
+listing, so it carries no `data-meili` hook, and the listing's script does not report it as misplaced. Style its parts
+by your own classes.
 
 ## How a card is filled
 
 A listing renders its cards twice over:
 
-1. **On the server**, each card of the first page is rendered with its data (`CardBinding::listed($card)`). An element
+1. **On the server**, each card of the first page is rendered with its data (`CardBinding::of($card)`). An element
    with nothing to show is left out by its `@if`.
 2. **In a `<template>`**, the same view is rendered once with no data (`CardBinding::template()`). Every element is
    there, empty, and carries attributes that name the field it shows.
@@ -266,8 +267,8 @@ Each element is a `CardFieldElement`, prepared by the component class from a `Ca
 
 | Call | Returns |
 | --- | --- |
-| `CardBinding::of(array $card)` | a binding over one card's fields, for a card rendered outside a listing |
-| `CardBinding::listed(array $card)` | the same, for a card the listing renders: `CardHooks` adds its hooks |
+| `CardBinding::of(array $card)` | a binding over one card's fields, for a card the listing renders |
+| `CardBinding::standalone(array $card)` | the same, for a card rendered outside a listing: no `data-meili` hook |
 | `CardBinding::template()` | a binding with no data, for the `<template>` |
 | `$binding->text($field)` | the field as escaped text, with `data-meili-text`; absent when empty |
 | `$binding->price()` | the price as HTML; absent when empty |
@@ -285,8 +286,8 @@ A field is named by an enum case or a string. `CardField` names the module's fie
 `ImageUrl`, `ImageSrcset`, `ImageSizes`, `ImageAlt`, `ImageWidth`, `ImageHeight`, `Price`, `Summary`, `Variants`,
 `SeveralVariants` and `OutOfStock` (see [Card variants](#card-variants)).
 
-`CardHooks` prepares the module's own elements and adds the `data-meili` hook each one carries, on a listed or a
-template binding only:
+`CardHooks` prepares the module's own elements and adds the `data-meili` hook each one carries, except on a
+standalone binding:
 
 | Method | Element |
 | --- | --- |
