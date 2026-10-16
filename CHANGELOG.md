@@ -9,8 +9,13 @@ What to change in a project when moving from one version to the next is in
 
 ## [Unreleased]
 
-Reindex once (`wp meiliscout index`): `menu_order` becomes sortable. Then run `php artisan module:publish MeiliFacets`:
-the browser script changed, and the old one ignores the default order once the visitor changes page.
+## [0.2.3](https://github.com/Pollora/MeiliFacets/releases/tag/0.2.3) - 2026-10-16
+
+Fifth beta. The product listing follows WooCommerce's default product sorting; past the drawer's row limit, a theme can
+keep the first filters in the row and open the others from « Show more »; a listing draws its results with a card
+component of the project. Reindex once (`wp meiliscout index`): `menu_order` becomes sortable. Then run
+`php artisan module:publish MeiliFacets`: the browser script changed, and the old one ignores the default order once
+the visitor changes page. A renamed setting and several copied views to update: see [docs/upgrading.md](docs/upgrading.md).
 
 ### Added
 
@@ -63,6 +68,23 @@ the browser script changed, and the old one ignores the default order once the v
 - Past the row limit without JavaScript, the filters keep their row of pills instead of stacking as in the sheet.
 - Reordering products by drag and drop (Products › Sorting) reindexes the products that moved: WooCommerce writes
   their `menu_order` straight to the table, which nothing reported to MeiliScout.
+
+### Known issues
+
+- A facet declared with `SelectionMode::Single` hides its other values once one is picked
+  ([#4](https://github.com/Pollora/MeiliFacets/issues/4)).
+- A failed search in the browser shows no message, and the URL and controls keep the filter that was not applied
+  ([#5](https://github.com/Pollora/MeiliFacets/issues/5)).
+- Saving a product re-indexes it once per meta WooCommerce writes, and each pass resends the index settings: a bulk
+  edit or a catalogue import can leave the engine's queue hours behind. The fix belongs in MeiliScout.
+- On a WooCommerce attribute archive (`/pa_volume/400ml/`), the card does not show the variant of the term browsed.
+  Attribute archives are outside the module's scope: leave « Enable archives? » unchecked.
+- A product whose variants share a term counts once per variant under that term.
+- Past the row limit on a wide screen, the side sheet needs the browser client: when it does not start, the
+  « Filters » or « Show more » button opens nothing.
+- A theme that moves the drawer's `media` past `48em` also redeclares the side sheet block, or the drawer is drawn as a
+  side sheet and driven as a bottom sheet between the two widths.
+- « Popularity » and « Average rating » cannot be the listing's default order yet.
 
 ## [0.2.2](https://github.com/Pollora/MeiliFacets/releases/tag/0.2.2) - 2026-10-09
 

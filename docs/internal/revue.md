@@ -3825,7 +3825,7 @@ avant la fusion :
   classe, une seule source pour l'ordre par défaut, le format des expressions de tri hors de `SortDirection`,
   `QueryPlan` instanciable (`R-01` / `T-28`).
 
-### R-228 · 🟡 · **ouvert le 2026-10-09** — le listing ne range les produits en stock d'abord que sous un tri par prix filtré par variante
+### R-228 · 🟡 · **fermé le 2026-10-16, sans changement** · ouvert le 2026-10-09 — le listing ne range les produits en stock d'abord que sous un tri par prix filtré par variante
 
 **Constat.** Le module ne met les produits en stock en tête que dans un cas : un tri par prix pendant qu'une facette
 d'attribut de variation est cochée (`QueryPlan::variantSort()`, `app/Search/QueryPlan.php:135`). Ce tri est là pour que
@@ -3871,6 +3871,12 @@ touché.
 inchangé. Page boutique : un produit en rupture passe après les produits en stock.
 
 **En attente** : `R-227` est encore ouvert (`D-03`).
+
+**Fermé le 2026-10-16, sans changement** (Louis). Le comportement actuel est la bonne pratique : un produit en rupture
+garde sa place sous le tri choisi, et le stock ne passe en tête que là où la grille doit suivre la carte, sous un tri
+par prix filtré par variante (`QueryPlan::variantSort()`). Constaté la veille de la décision sur la boutique du projet
+de test, « Prix décroissant » filtré par contenance : l'ordre suit la variante montrée, ruptures après. Aucune
+question ci-dessus n'est à trancher ; `D-f` reste tel quel.
 
 ### R-227 · 🟡 · **fermé le 2026-10-16** · ouvert le 2026-10-09 — une carte rendue hors listing est signalée comme orpheline
 

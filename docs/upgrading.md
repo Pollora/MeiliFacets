@@ -3,13 +3,10 @@
 This page lists, for each release, what a project has to change when it updates MeiliFacets. The full list of
 changes is in the [changelog](../CHANGELOG.md).
 
-0.1.0 was the first release, a beta; 0.2.0 is the second; 0.2.1 is the third; 0.2.2 is the fourth.
+0.1.0 was the first release, a beta; 0.2.0 is the second; 0.2.1 is the third; 0.2.2 is the fourth; 0.2.3 is the fifth.
 
-## Unreleased
+## 0.2.3
 
-- **A card rendered outside a listing** builds its binding with `CardBinding::standalone($card)` instead of `of()`:
-  the browser console stops naming its `url`, `image` and `price` as misplaced. Its parts lose their `data-meili`
-  hooks: a theme rule on one of them targets a class of the theme's own.
 - **Run `wp meiliscout index` once.** The product listing now follows WooCommerce's « Default product sorting », and
   `menu_order`, the default sorting's field, is sortable only once the index settings are written. Until then, every
   product search fails with the listing's unavailable message.
@@ -40,6 +37,9 @@ changes is in the [changelog](../CHANGELOG.md).
   by the client, so a theme rule on `[data-side-sheet]` keeps working with JavaScript. A copied
   `components/listing/facet.blade.php` or `price.blade.php` keeps working, but its filters are never put behind
   « Show more »: copy it again to use `row-overflow="show-more"`.
+- **A card rendered outside a listing** builds its binding with `CardBinding::standalone($card)` instead of `of()`:
+  the browser console stops naming its `url`, `image` and `price` as misplaced. Its parts lose their `data-meili`
+  hooks: a theme rule on one of them targets a class of the theme's own.
 
 ## 0.2.2
 
