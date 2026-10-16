@@ -127,13 +127,14 @@ and no Apply button is due.
 | Attribute | Type | Default | Effect |
 | --- | --- | --- | --- |
 | `name` | `string` | `''` | passed to every child |
-| `scroll` | `bool` | `false` | on the group |
+| `scroll` | `bool` | `false` | on the group; with `unwrapped`, on every child |
 | `collapsible` | `bool` | `false` | passed to every child |
 | `with-apply` | `bool` | `true` | `false` drops the block Apply button of `submit` mode |
+| `unwrapped` | `bool` | `false` | renders the children without the group `<div>`, straight in the parent: in the drawer, each filter then wraps on its own in the row |
 
 | Slots | Bag lands on | Hooks rendered |
 | --- | --- | --- |
-| none | nowhere | `facets`, plus those of each child; `data-apply` carries the apply mode |
+| none | nowhere | `facets` (not with `unwrapped`), plus those of each child; `data-apply` carries the apply mode on the group |
 
 ### `<x-meilifacets::listing.facet>`
 
@@ -264,6 +265,7 @@ rendered in `immediate` mode too, where it only closes the drawer and is shown o
 | `name` | `string` | `''` | |
 | `visible-in-drawer` | `bool` | `false` | |
 | `shape` | `ApplyShape` or `string` | `pill` | `pill` (“Apply” and a count badge), `block` (“Apply filters”) |
+| `scroll` | `bool` | `false` | a search it runs brings the listing back into view |
 
 | Slots | Bag lands on | Hooks rendered |
 | --- | --- | --- |

@@ -517,6 +517,24 @@ describe('Drawer', () => {
             assert.equal(row().style.maxWidth, '640.5px')
         })
 
+        it('lifts the facets a theme renders without their container one by one, and puts them back in their order', async () => {
+            const facets = find(drawer(), Contract.selector('facets'))
+
+            facets.replaceWith(...facets.children)
+            const order = bodyOrder()
+
+            click(window, showMore())
+
+            assert.ok(row().querySelector(Contract.selector('facet')) !== null)
+            assert.equal(row().querySelector('[data-beyond-row]'), null)
+            assert.ok(drawer().contains(pastRow()))
+
+            press(window, title(), 'Escape')
+            await settle()
+
+            assert.deepEqual(bodyOrder(), order)
+        })
+
         it('puts the row back in the drawer, in its order, once closed, and hands the focus back to « Show more »', async () => {
             const order = bodyOrder()
 

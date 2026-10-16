@@ -329,6 +329,7 @@ to the listing itself: never to the top of the document.
 | --- | --- | --- |
 | `shape` | `pill` | `pill`: “Apply”, with the number of active filters in a badge. `block`: “Apply filters”, full width, no count |
 | `visible-in-drawer` | `false` | renders the button in `immediate` mode too, visible only inside the mobile drawer, where it closes the drawer |
+| `scroll` | `false` | the search it runs brings the top of the listing back into view |
 | `name` | the only listing | the listing it belongs to |
 
 - In `submit` mode, the button is rendered and visible everywhere.

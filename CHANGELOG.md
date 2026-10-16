@@ -25,6 +25,8 @@ the browser script changed, and the old one ignores the default order once the v
   the first filters in the desktop row and ends it with a « Show more » button that opens the drawer as the side
   sheet with the filters past them; the row stays in the page meanwhile. Its icon goes in the drawer's `show-more`
   slot. The default, `side_sheet`, is the side sheet of 0.2.2.
+- `<x-meilifacets::listing.facets unwrapped>` renders the filters without their group `<div>`, so that each one wraps
+  on its own in the drawer's row; `scroll` then lands on every filter, and `listing.apply` takes `scroll` too.
 - `<x-meilifacets::listing.sort label="…">` names the sort, as `label` names the listing search, and the order in
   force is no longer repeated. Holding `:choice`, it replaces the sentence of the collapsible radios instead.
 

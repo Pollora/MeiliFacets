@@ -239,6 +239,7 @@ Two components place term facets:
 | `collapsible` | `false` | passed to every facet it renders |
 | `with-apply` | `true` | renders the Apply button in `submit` mode. `:with-apply="false"` leaves it to an Apply placed elsewhere, typically in the [drawer footer](drawer.md) |
 | `scroll` | `false` | its Apply button brings the top of the listing back into view |
+| `unwrapped` | `false` | renders the facets and the Apply button without the group `<div>`, straight in the parent: in the [drawer's row](drawer.md#past-the-row-limit), each filter then wraps on its own. `scroll` then lands on every one of them |
 
 The attribute bag of `listing.facet` lands on its `<fieldset>`, merged with the module's class. `listing.facets` takes
 no attribute bag. A group with nothing left to render and no Apply button renders no markup at all.

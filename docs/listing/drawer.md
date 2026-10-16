@@ -114,6 +114,9 @@ and the sort. The filters after them are hidden from the row, and a « Show more
 the drawer itself as the side sheet — its head, its footer, its animation — holding the filters past the row only.
 
 - Declare first the facets that must stay in the row. A facet with no value on a page lets the next one move up.
+- Render the group `unwrapped` (`<x-meilifacets::listing.facets collapsible unwrapped />`): each filter then wraps
+  on its own when the row runs out of width, as it does while the side sheet is open. Kept in its group, the facets
+  drop to the next line all together, and the row changes when the sheet opens.
 - While the side sheet is open, what stays in the row is lifted out of the drawer into a `div.meilifacetsDrawerRow`
   placed just before it, which carries the drawer's classes and, inline, the width the body had beside the drawer's
   foot: the row stays where it was, its pills wrapping where they did, inert behind the scrim, and the same nodes

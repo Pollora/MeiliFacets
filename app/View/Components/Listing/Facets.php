@@ -18,6 +18,7 @@ final class Facets extends ListingComponent
         bool $scroll = false,
         public bool $collapsible = false,
         public bool $withApply = true,
+        public bool $unwrapped = false,
     ) {
         parent::__construct($listings, $name, $scroll);
     }

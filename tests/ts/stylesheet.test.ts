@@ -367,19 +367,32 @@ describe('the stack of sections in the sheet', () => {
     const source = readFileSync(new URL('../../resources/assets/css/meilifacets.css', import.meta.url), 'utf8')
     const SECTION = `:is(${Contract.selector('facet')}, ${Contract.selector('sort-choices')})`
     const SHOWN = `${SECTION}:not([hidden])`
-    const STACKED = `${Contract.selector('facets')} ${SECTION}:has(${Contract.selector('toggle')})`
+    const TOGGLE = `:has(${Contract.selector('toggle')})`
+    /** Facets rendered `unwrapped` sit straight in the body: each rule on the container's sections reaches them there too. */
+    const STACKED = `:is(${Contract.selector('facets')} > ${SECTION}, ${Contract.selector('drawer-body')} > ${Contract.selector('facet')})${TOGGLE}`
 
     it('opens the stack on the first section shown, not on the first one written', () => {
-        assert.match(declared(source, `${STACKED}:not(${SHOWN} ~ *),\n${Contract.selector('sort-choices')}:has(${Contract.selector('toggle')}):first-child`), /padding-top: 0;/)
+        assert.match(declared(source, `${STACKED}:not(${SHOWN} ~ *),\n${Contract.selector('sort-choices')}${TOGGLE}:first-child`), /padding-top: 0;/)
     })
 
     it('closes the stack on the last section shown', () => {
+        const lastFacet = `${Contract.selector('facet')}:not(:has(~ ${Contract.selector('facet')}:not([hidden])))`
+
         assert.match(declared(source, `${STACKED}:not(:has(~ ${SHOWN}))`), /padding-bottom: 0;/)
-        assert.match(declared(source, `${Contract.selector('facets')} ${Contract.selector('facet')}:not(:has(~ ${Contract.selector('facet')}:not([hidden])))`), /margin-bottom: 1em;/)
+        assert.match(declared(source, `:is(${Contract.selector('facets')}, ${Contract.selector('drawer-body')}) > ${lastFacet}`), /margin-bottom: 1em;/)
+        assert.match(declared(source, `${Contract.selector('facets')},\n${Contract.selector('drawer-body')} > ${lastFacet}`), /padding-bottom: var\(--meili-section-gap\);/)
+    })
+
+    it('rules the stack off the sort, the container or its first facet alike', () => {
+        const afterSort = [`${Contract.selector('sort-choices')}${TOGGLE} + ${Contract.selector('facets')}`, `${Contract.selector('sort-choices')}${TOGGLE} ~ ${Contract.selector('facet')}${TOGGLE}`]
+        const bar = source.slice(source.indexOf('@media (width >= 48em)'))
+
+        assert.match(declared(source, afterSort.join(',\n')), /border-top: 1px solid var\(--meili-rule\);/)
+        assert.match(declared(bar, afterSort.map((selector) => `    ${selector}${IN_ROW}`).join(',\n')), /border-top: 0;/)
     })
 
     it('draws a rule above a section only after a facet shown', () => {
-        const ruled = `${Contract.selector('facet')}:not([hidden]) ~ ${SECTION}:has(${Contract.selector('toggle')})`
+        const ruled = `${Contract.selector('facet')}:not([hidden]) ~ ${SECTION}${TOGGLE}`
 
         assert.match(declared(source, ruled), /border-top: 1px solid var\(--meili-rule\);/)
         assert.match(declared(source.slice(source.indexOf('@media (width >= 48em)')), `    ${ruled}${IN_ROW}`), /border-top: 0;/)

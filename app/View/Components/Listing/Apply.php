@@ -24,8 +24,9 @@ final class Apply extends ListingComponent
         string $name = '',
         public bool $visibleInDrawer = false,
         ApplyShape|string $shape = ApplyShape::Pill,
+        bool $scroll = false,
     ) {
-        parent::__construct($listings, $name);
+        parent::__construct($listings, $name, $scroll);
 
         $this->shape = ApplyShape::fromAttribute($shape);
     }
