@@ -36,7 +36,7 @@ changes is in the [changelog](../CHANGELOG.md).
   which is gone, and the page fails. The drawer now carries `data-overflow` from the server; `data-side-sheet` is set
   by the client, so a theme rule on `[data-side-sheet]` keeps working with JavaScript. A copied
   `components/listing/facet.blade.php` or `price.blade.php` keeps working, but its filters are never put behind
-  « Show more »: copy it again to use `row-overflow="show_more"`.
+  « Show more »: copy it again to use `row-overflow="show-more"`.
 
 ## 0.2.2
 

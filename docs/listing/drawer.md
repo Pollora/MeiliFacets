@@ -85,10 +85,10 @@ all on wide screens. Only the filters inside the drawer count, and only those th
 least one value on screen, the price once it has a range. A filter placed elsewhere on the page, the search field and
 the sort do not count.
 
-What happens then is the drawer's `row-overflow`, `side_sheet` by default:
+What happens then is the drawer's `row-overflow`, `side-sheet` by default:
 
 ```blade
-<x-meilifacets::listing.drawer :row-limit="4" row-overflow="show_more">
+<x-meilifacets::listing.drawer :row-limit="4" row-overflow="show-more">
     …
     <x-slot:show-more><svg viewBox="0 0 16 16" width="14" height="14">…</svg></x-slot:show-more>
 </x-meilifacets::listing.drawer>
@@ -103,11 +103,11 @@ Either way:
   sheet; it does not follow the finger;
 - below the drawer's `media` (`48em` by default), nothing changes: the bottom sheet serves, whatever the count.
 
-### `side_sheet`: every filter in a side sheet
+### `side-sheet`: every filter in a side sheet
 
 The row gives way to the opener on wide screens too, and the opener opens the drawer as the side sheet.
 
-### `show_more`: the first filters, then « Show more »
+### `show-more`: the first filters, then « Show more »
 
 The row keeps its first `row-limit` filters shown, in the order the drawer's slot places them, with the search field
 and the sort. The filters after them are hidden from the row, and a « Show more » button closes it. The button opens
@@ -144,7 +144,7 @@ in the row and « Show more » is not shown. They do not filter without the clie
 | `heading` | `h2` | the level of the sheet's title, `h2` to `h6` |
 | `media` | `(width < 48em)` | the media query under which the opener opens the sheet. See [Changing the breakpoint](#changing-the-breakpoint) |
 | `row-limit` | `meilifacets.drawer.row.limit`, else `5` | the number of filters shown at page load that its row holds from `48em`. See [Past the row limit](#past-the-row-limit) |
-| `row-overflow` | `meilifacets.drawer.row.overflow`, else `side_sheet` | past the limit, `side_sheet` or `show_more` (`side-sheet` and `show-more` work too). See [Past the row limit](#past-the-row-limit) |
+| `row-overflow` | `meilifacets.drawer.row.overflow`, else `side-sheet` | past the limit, `side-sheet` or `show-more`. See [Past the row limit](#past-the-row-limit) |
 | `name` | the only listing | the listing it belongs to |
 
 The attribute bag lands on the drawer's container. The title reads “Filters”, translatable.
@@ -242,12 +242,12 @@ in [Accessibility and motion](../accessibility.md).
   attaches to that ancestor instead of the viewport, and the sheet opens inside its box. Keep the listing out of such
   an ancestor.
 - **The client must start.** The stylesheet hides the drawer below `48em`, and on wide screens past the row limit
-  with `side_sheet`, whenever scripting is enabled, whether or not the client is loaded. If the browser connection is not configured,
+  with `side-sheet`, whenever scripting is enabled, whether or not the client is loaded. If the browser connection is not configured,
   the client is not published or its script fails, the opener shows and opens nothing, and the filters are out of
   reach. See [Installation](../installation.md).
 - **Change the breakpoint in both places**: the `media` attribute and the stylesheet.
 - **A drawer view copied before `row-overflow` existed** fails: it calls `$isSideSheet()`. Copy the view again. A
-  facet or price view copied before it keeps its filters in the row with `show_more`: it does not carry
+  facet or price view copied before it keeps its filters in the row with `show-more`: it does not carry
   `data-beyond-row`.
 - **`data-side-sheet` is the client's**: the server marks `data-overflow`. Style the side sheet on `[data-side-sheet]`,
   and the decision on `[data-overflow]`.

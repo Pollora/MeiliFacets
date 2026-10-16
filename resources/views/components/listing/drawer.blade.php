@@ -1,4 +1,4 @@
-<div {{ $attributes->class('meilifacetsDrawer') }} id="{{ $drawerId }}" data-media="{{ $media }}" @if ($overflowSlug() !== null) data-overflow="{{ $overflowSlug() }}" @endif {{ $hook('drawer') }}>
+<div {{ $attributes->class('meilifacetsDrawer') }} id="{{ $drawerId }}" data-media="{{ $media }}" @if ($overflow() !== null) data-overflow="{{ $overflow() }}" @endif {{ $hook('drawer') }}>
     <div class="meilifacetsDrawerSheet" {{ $hook('drawer-sheet') }}>
         <div class="meilifacetsDrawerHead">
             <{{ $heading->value }} class="meilifacetsDrawerTitle" id="{{ $titleId }}" tabindex="-1" {{ $hook('drawer-title') }}>{{ __('Filters') }}</{{ $heading->value }}>

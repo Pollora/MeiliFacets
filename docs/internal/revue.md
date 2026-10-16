@@ -3630,6 +3630,11 @@ tri), `b849184` (`unwrapped`), `4e42e03` (`data-apply` sur la racine), `e28d2f7`
 (pression sur « Voir plus »). Laissé hors de ce point : en `submit` à 1512, « Appliquer » fait passer « Voir plus » à
 la ligne dans la rangée du projet de test (place de la rangée, côté thème).
 
+*Repris le 2026-10-16* (Louis) : `RowOverflow` était la seule variante à deux mots, écrite `side_sheet` en config et
+`side-sheet` dans `data-overflow`. Ses valeurs passent en kebab-case, les mêmes en config, en attribut et dans le DOM :
+`slug()`, la tolérance du tiret de `ComponentVariant::fromAttribute()` et la double orthographe de la doc disparaissent ;
+vue `$overflowSlug()` → `$overflow()`. Aucune version publiée ne portait `RowOverflow` (0.2.2).
+
 ### R-232 · 🟡 · **fermé le 2026-10-15** · ouvert le 2026-10-15 — un réordonnancement par glisser-déposer ne réindexe pas les produits
 
 **Constat.** Relevé par la revue de `R-229`. `WC_AJAX::product_ordering()` écrit `menu_order` par `$wpdb->update()`

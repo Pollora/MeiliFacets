@@ -21,10 +21,10 @@ the browser script changed, and the old one ignores the default order once the v
 - `ApplyMode::fromSetting()`: the apply mode a setting names, the default when it names none.
 - `Contracts\DefaultSortedListing`: a listing orders its items while no sort is chosen and no term is searched,
   on the server and in the browser. Without it, the engine's order stands, which is the indexing order.
-- A second way past the drawer's row limit: `row-overflow="show_more"` (or `meilifacets.drawer.row.overflow`) keeps
+- A second way past the drawer's row limit: `row-overflow="show-more"` (or `meilifacets.drawer.row.overflow`) keeps
   the first filters in the desktop row and ends it with a « Show more » button that opens the drawer as the side
   sheet with the filters past them; the row stays in the page meanwhile. Its icon goes in the drawer's `show-more`
-  slot. The default, `side_sheet`, is the side sheet of 0.2.2.
+  slot. The default, `side-sheet`, is the side sheet of 0.2.2.
 - `<x-meilifacets::listing.facets unwrapped>` renders the filters without their group `<div>`, so that each one wraps
   on its own in the drawer's row; `scroll` then lands on every filter, and `listing.apply` takes `scroll` too.
 - `<x-meilifacets::listing.sort label="…">` names the sort, as `label` names the listing search, and the order in

@@ -9,6 +9,6 @@ trait ComponentVariant
 {
     public static function fromAttribute(self|string $given): self
     {
-        return is_string($given) ? self::from(str_replace('-', '_', $given)) : $given;
+        return is_string($given) ? self::from($given) : $given;
     }
 }

@@ -83,7 +83,7 @@ from the listing's name). Those that belong to a search receive `$root` and `$id
 | `listing/active-values` | `$values` |
 | `listing/apply` | `$shape`, `$visibleInDrawer`, `$badge`, `$label()`, `$onlyInDrawer()` |
 | `listing/reset`, `listing/reset-icon` | `$shape`, `$hasNothingToClear()`, `$defaultIconUrl()` |
-| `listing/drawer` | `$drawerId`, `$titleId`, `$media`, `$heading`, `$rowLimit`, `$overflowSlug()`, `$showsMore()`, slots `$footer`, `$showMore` |
+| `listing/drawer` | `$drawerId`, `$titleId`, `$media`, `$heading`, `$rowLimit`, `$overflow()`, `$showsMore()`, slots `$footer`, `$showMore` |
 | `listing/drawer-opener` | `$drawerId`, `$badge`, `$defaultIconUrl()`, slot `$icon` |
 | `listing/search` | `$action`, `$kept`, `$parameter`, `$term`, `$inputId`, `$maxLength`, `$label()` |
 | `search` | `$contract`, `$sectionTypes()`, slot `$icon` |

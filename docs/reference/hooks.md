@@ -116,7 +116,7 @@ Owned by `<x-meilifacets::listing>`. “Styled”: `listing` = `meilifacets.css`
 | `drawer-title` | heading | required inside `drawer` | focused on open | listing | [Mobile drawer](../listing/drawer.md) |
 | `drawer-close` | close `<button>` and drag handle | required inside `drawer` | closes; the handle is dragged | listing | [Mobile drawer](../listing/drawer.md) |
 | `drawer-open` | `listing.drawer-opener`, `<button>` | read when present | opens; `aria-expanded` | listing | [Mobile drawer](../listing/drawer.md) |
-| `drawer-show-more` | « Show more » `<button>`, last in `drawer-body`, past the row limit with `show_more` | read when present | opens the drawer as a side sheet; `aria-expanded` | listing | [Mobile drawer](../listing/drawer.md#past-the-row-limit) |
+| `drawer-show-more` | « Show more » `<button>`, last in `drawer-body`, past the row limit with `show-more` | read when present | opens the drawer as a side sheet; `aria-expanded` | listing | [Mobile drawer](../listing/drawer.md#past-the-row-limit) |
 | `drawer-sheet` | sheet `<div>` | read when present | slides and is dragged | listing | [Mobile drawer](../listing/drawer.md) |
 | `drawer-body` | body `<div>` | none | not read | listing | [Mobile drawer](../listing/drawer.md) |
 | `drawer-footer` | footer `<div>` | none | not read | listing | [Mobile drawer](../listing/drawer.md) |
@@ -175,7 +175,7 @@ The client also relies on these, which an override must keep.
 | `data-media` | `drawer` | a media query | yes |
 | `data-overflow` | `drawer`, past its row limit | `side-sheet`, `show-more` | yes |
 | `data-side-sheet` | `drawer`, set by the client while it is a side sheet | present or absent | written |
-| `data-beyond-row` | `facet`, past the row limit with `show_more` | present or absent | no |
+| `data-beyond-row` | `facet`, past the row limit with `show-more` | present or absent | no |
 | `data-type`, `data-limit` | `search-section` | post type, number of results | yes |
 
 ## State attributes written by the client

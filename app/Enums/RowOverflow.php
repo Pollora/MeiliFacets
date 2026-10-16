@@ -8,16 +8,8 @@ enum RowOverflow: string
 {
     use ComponentVariant;
 
-    case SideSheet = 'side_sheet';
-    case ShowMore = 'show_more';
+    case SideSheet = 'side-sheet';
+    case ShowMore = 'show-more';
 
     public const self DEFAULT = self::SideSheet;
-
-    public function slug(): string
-    {
-        return match ($this) {
-            self::SideSheet => 'side-sheet',
-            self::ShowMore => 'show-more',
-        };
-    }
 }

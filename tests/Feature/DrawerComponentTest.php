@@ -198,7 +198,7 @@ final class DrawerComponentTest extends TestCase
     {
         $shown = $this->shownFilterCount();
 
-        $this->assertSame(RowOverflow::SideSheet->slug(), $this->drawerLimitedTo($shown - 1)->getAttribute('data-overflow'));
+        $this->assertSame(RowOverflow::SideSheet->value, $this->drawerLimitedTo($shown - 1)->getAttribute('data-overflow'));
         $this->assertFalse($this->drawerLimitedTo($shown - 1)->hasAttribute('data-side-sheet'));
         $this->assertFalse($this->drawerLimitedTo($shown)->hasAttribute('data-overflow'));
     }
@@ -222,10 +222,10 @@ final class DrawerComponentTest extends TestCase
         $limited = ' :row-limit="'.($this->shownFilterCount() - 1).'"';
 
         config(['meilifacets.drawer.row.overflow' => RowOverflow::ShowMore->value]);
-        $this->assertSame(RowOverflow::ShowMore->slug(), $this->drawerHoldingTheFacets($limited)->getAttribute('data-overflow'));
+        $this->assertSame(RowOverflow::ShowMore->value, $this->drawerHoldingTheFacets($limited)->getAttribute('data-overflow'));
 
         $sideSheet = $this->drawerHoldingTheFacets($limited.' row-overflow="'.RowOverflow::SideSheet->value.'"');
-        $this->assertSame(RowOverflow::SideSheet->slug(), $sideSheet->getAttribute('data-overflow'));
+        $this->assertSame(RowOverflow::SideSheet->value, $sideSheet->getAttribute('data-overflow'));
     }
 
     #[Test]
@@ -233,7 +233,7 @@ final class DrawerComponentTest extends TestCase
     {
         $drawer = $this->drawerHoldingTheFacets(' :row-limit="'.($this->shownFilterCount() - 1).'" row-overflow="show-more"');
 
-        $this->assertSame(RowOverflow::ShowMore->slug(), $drawer->getAttribute('data-overflow'));
+        $this->assertSame(RowOverflow::ShowMore->value, $drawer->getAttribute('data-overflow'));
         $this->assertNotNull($drawer->querySelector($this->hooked(Hook::DrawerShowMore)));
     }
 
@@ -245,7 +245,7 @@ final class DrawerComponentTest extends TestCase
         $shown = $drawer->querySelectorAll($this->hooked(Hook::Facet).':not([hidden])');
         $kept = array_slice(iterator_to_array($shown), 0, $limit);
 
-        $this->assertSame(RowOverflow::ShowMore->slug(), $drawer->getAttribute('data-overflow'));
+        $this->assertSame(RowOverflow::ShowMore->value, $drawer->getAttribute('data-overflow'));
         $this->assertSame([], array_filter($kept, static fn (Element $filter): bool => $filter->hasAttribute('data-beyond-row')));
         $this->assertTrue($shown[$limit]->hasAttribute('data-beyond-row'));
         $this->assertSame(0, $drawer->querySelectorAll($this->hooked(Hook::Facet).'[data-beyond-row] ~ '.$this->hooked(Hook::Facet).':not([data-beyond-row])')->length);
@@ -271,7 +271,7 @@ final class DrawerComponentTest extends TestCase
     public function it_sets_the_icon_a_theme_gives_before_show_more(): void
     {
         $drawer = $this->drawerHoldingTheFacets(
-            ' :row-limit="'.($this->shownFilterCount() - 1).'" row-overflow="show_more"',
+            ' :row-limit="'.($this->shownFilterCount() - 1).'" row-overflow="show-more"',
             '<x-slot:show-more><svg id="sliders"></svg></x-slot:show-more>',
         );
         $icon = $drawer->querySelector($this->hooked(Hook::DrawerShowMore))->firstElementChild;
@@ -304,7 +304,7 @@ final class DrawerComponentTest extends TestCase
     {
         $this->app->forgetScopedInstances();
         $document = HTMLDocument::createFromString(
-            Blade::render('<x-meilifacets::listing.drawer name="products" :row-limit="0" row-overflow="show_more">Facets</x-meilifacets::listing.drawer>'
+            Blade::render('<x-meilifacets::listing.drawer name="products" :row-limit="0" row-overflow="show-more">Facets</x-meilifacets::listing.drawer>'
                 .'<x-meilifacets::listing.facets name="products" />'),
             LIBXML_NOERROR
         );

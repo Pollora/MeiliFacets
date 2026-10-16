@@ -71,7 +71,7 @@ final class ContractParityTest extends TestCase
     public function the_client_reads_every_row_overflow_the_server_marks(): void
     {
         foreach (RowOverflow::cases() as $overflow) {
-            $this->assertStringContainsString("'{$overflow->slug()}'", $this->read('drawer/drawer-side-sheet.ts'), $overflow->name);
+            $this->assertStringContainsString("'{$overflow->value}'", $this->read('drawer/drawer-side-sheet.ts'), $overflow->name);
         }
     }
 

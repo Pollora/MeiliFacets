@@ -52,7 +52,7 @@ final class Drawer extends ListingComponent
         return view('meilifacets::components.listing.drawer', [
             'drawerId' => $this->ids->drawer(),
             'titleId' => $this->ids->drawerTitle(),
-            'overflowSlug' => fn (): ?string => $this->decidedOverflow($mark)?->slug(),
+            'overflow' => fn (): ?string => $this->decidedOverflow($mark)?->value,
             'showsMore' => fn (): bool => $this->decidedOverflow($mark) === RowOverflow::ShowMore,
         ]);
     }
