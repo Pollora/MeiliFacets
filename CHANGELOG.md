@@ -9,6 +9,14 @@ What to change in a project when moving from one version to the next is in
 
 ## [Unreleased]
 
+## [0.2.4](https://github.com/Pollora/MeiliFacets/releases/tag/0.2.4) - 2026-10-19
+
+Sixth beta, on accessibility. The drawer's title and the site search sections no longer add headings to the page; the
+active filters and the listing search field are named by visually hidden text; every list styled without bullets
+keeps its list role. A page no longer fails on Yoast's empty canonical. Run `php artisan module:publish MeiliFacets`:
+the stylesheets and the browser script changed. A removed attribute and copied views to update: see
+[docs/upgrading.md](docs/upgrading.md).
+
 ### Changed
 
 - The drawer's « Filters » and the site search section's label are `<p>` elements, no longer headings: they sat

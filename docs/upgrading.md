@@ -3,9 +3,10 @@
 This page lists, for each release, what a project has to change when it updates MeiliFacets. The full list of
 changes is in the [changelog](../CHANGELOG.md).
 
-0.1.0 was the first release, a beta; 0.2.0 is the second; 0.2.1 is the third; 0.2.2 is the fourth; 0.2.3 is the fifth.
+0.1.0 was the first release, a beta; 0.2.0 is the second; 0.2.1 is the third; 0.2.2 is the fourth; 0.2.3 is the fifth;
+0.2.4 is the sixth.
 
-## Unreleased
+## 0.2.4
 
 - **The drawer's « Filters » and the site search section's label are no longer headings**, but `<p>` elements: they
   sat outside the page's outline, the search sections even before its `<h1>`. A theme stylesheet that selected them
