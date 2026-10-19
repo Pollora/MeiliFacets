@@ -80,6 +80,15 @@ describe('the module stylesheet', () => {
         assert.equal(style('count').fontVariantNumeric, 'tabular-nums')
     })
 
+    /** Tracking follows each glyph, so a lone digit inheriting the button's would sit off the badge's centre. */
+    it('draws the badge of a spaced-out button without its tracking', () => {
+        const toggle = find(root, 'legend')
+        toggle.setAttribute('style', 'letter-spacing: 2px')
+        toggle.insertAdjacentHTML('beforeend', '<span data-meili="selected-count">6</span>')
+
+        assert.equal(style('selected-count').letterSpacing, '0px')
+    })
+
     it('gives every command the same height and the same scale', () => {
         const controls = ['apply', 'reset', 'page', 'previous', 'next', 'sort-trigger'].map((hook) => style(hook))
 

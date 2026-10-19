@@ -3315,6 +3315,24 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
+### R-237 · 🟡 · **fermé le 2026-10-19** · ouvert le 2026-10-19 — le chiffre des badges n'est pas centré dans un bouton espacé
+
+**Constat** (Louis, 2026-10-19, capture « Marque 6 », « Besoin 3 » : « c'est pas centré »). Mesuré sur `/boutique`
+au zoom 8 : le « 6 » laisse 54 px à gauche et 69 px à droite, le « 3 » 55 et 71 ; verticalement 52 et 50, centré.
+Le badge hérite du `letter-spacing` du bouton (1,95 px, interlettrage de 15 % du texte bouton du thème), ajouté
+après chaque glyphe : un chiffre seul est décalé d'une demi-valeur vers la gauche.
+
+**Ce qui est fait.** `letter-spacing: 0` dans la règle commune des badges (`selected-count`, `active-count` du bouton
+du tiroir et d'« Appliquer ») : un compteur ne porte l'interlettrage d'aucun bouton, quel que soit le thème.
+
+**Passes.** *Nommage* : un test, `draws the badge of a spaced-out button without its tracking` ; rien à renommer.
+*Lisibilité*, *Performance*, *Sécurité*, *Contexte et i18n* : rien, une déclaration CSS. *Commentaires* : aucun en
+CSS ; une ligne sur le test (pourquoi l'héritage décentre).
+
+**Vérifié** : le test échoue sans la déclaration ; `composer check` vert (client 1014 tests), suite `Modules`
+1185 tests. Navigateur, `/boutique` : « 6 » à 62 / 62 px. La page gardait l'ancienne feuille, servie avec un cache
+d'un an sous le même `?ver=` après `module:publish` : rechargement forcé nécessaire.
+
 ### R-236 · 🟡 · **fermé le 2026-10-16** · ouvert le 2026-10-16 — le champ de recherche et la liste des filtres actifs sont nommés par `aria-label`
 
 **Constat** (Louis, 2026-10-16). Le champ de `<x-meilifacets::listing.search>` n'a pas de `<label>`, seulement un

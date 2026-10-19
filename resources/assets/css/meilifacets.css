@@ -488,6 +488,7 @@ button[data-meili="drawer-close"]:active {
     color: Canvas;
     font-size: 0.85em;
     font-variant-numeric: tabular-nums;
+    letter-spacing: 0;
 }
 
 [data-meili="panel"] {
