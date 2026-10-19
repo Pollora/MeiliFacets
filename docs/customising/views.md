@@ -38,7 +38,7 @@ An example: the listing card, with the price above the title.
             <p {{ $price->attributes->class('meilifacetsCardPrice') }}>{{ $price }}</p>
         @endif
         @if ($title->isPresent())
-            <p {{ $title->attributes->class('meilifacetsCardTitle') }}>{{ $title }}</p>
+            <{{ $heading }} {{ $title->attributes->class('meilifacetsCardTitle') }}>{{ $title }}</{{ $heading }}>
         @endif
     </a>
 </article>
@@ -72,7 +72,7 @@ from the listing's name). Those that belong to a search receive `$root` and `$id
 | --- | --- |
 | `listing` | `$contract` (the contract version attribute), `$applyMode` |
 | `listing/results` | `$cards`, `$items`, `$priority($rank)` |
-| `listing/card` | `$binding`, `$priority`, `$link`, `$image`, `$title`, `$price` |
+| `listing/card` | `$binding`, `$priority`, `$heading`, `$link`, `$image`, `$title`, `$price` |
 | `listing/facets` | `$needsApplyButton`, `$collapsible`, `$withApply`, `$unwrapped`, `$componentFor($filter)` |
 | `listing/facet` | `$facet`, `$values`, `$presentation`, `$collapsible`, `$inputType()`, `$inputName()`, `$panelId()`, `$labelId($value)`, `$countId($value)`, `$countLabel($value)`, `$disclosure()`, `$hasFoldedValues()`, `$isShown()`, `$isBeyondRow()`, `$marksPresentation()` |
 | `listing/price` | `$filter`, `$money`, `$collapsible`, `$bounds()`, `$handles()`, `$fill()`, `$readout()`, `$showsSlider()`, `$showsFields()`, `$isShown()`, `$isBeyondRow()`, `$panelId()`, `$disclosure()` |

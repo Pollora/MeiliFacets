@@ -66,7 +66,7 @@ overridden from `<theme>/resources/views/modules/meilifacets/` under the same pa
 | `name` | `search.toggle`, `search.panel`, `search.input`, `search.section` | `string`, default `''`: the only `<x-meilifacets::search>` rendered so far on the page. |
 | `scroll` | `listing.facets`, `listing.facet`, `listing.price`, `listing.sort`, `listing.pagination`, `listing.reset` | `bool`, default `false`. Renders `data-meili-scroll`: a pointer click on a control inside brings the top of the listing back into view. See [hooks](hooks.md#version-and-scroll-attributes). |
 | Attribute bag | per component, column “Bag lands on” | Attributes the class does not declare (`class`, `id`, `data-*`…) are merged on that element. “Nowhere” means they are dropped without a message. |
-| Variant attributes | `shape`, `widget`, `presentation` | Accept the string value, or the enum case when bound (`:shape="ResetShape::Icon"`). An unknown string throws a `ValueError`. |
+| Variant attributes | `heading`, `shape`, `widget`, `presentation` | Accept the string value, or the enum case when bound (`:shape="ResetShape::Icon"`). An unknown string throws a `ValueError`. |
 | Boolean attributes | `scroll`, `collapsible`, `with-apply`, `visible-in-drawer` | Write the bare attribute for `true`; bind (`:with-apply="false"`) for `false`. |
 | Inside the root | every listing brick, every search brick | A brick must sit inside its root element (`<x-meilifacets::listing>` or `<x-meilifacets::search>`): outside it, it renders but the client never binds it. |
 
@@ -107,6 +107,7 @@ One result card, rendered on the server. The same view serves the card template.
 | Attribute | Type | Default | Values |
 | --- | --- | --- | --- |
 | `binding` | `CardBinding` | required | `CardBinding::of($card)`, `$card` being the `card` field of a document (see [index settings](index-settings.md#card-fields)) |
+| `heading` | `HeadingLevel` or `string` | `h3` | `h2`, `h3`, `h4`, `h5`, `h6`: one level below the title the listing sits under |
 | `priority` | `ImagePriority` | `ImagePriority::Lazy` | `ImagePriority::Eager`, `ImagePriority::Lazy`; bind it (`:priority`), no string form |
 
 | Slots | Bag lands on | Hooks rendered |
@@ -114,8 +115,7 @@ One result card, rendered on the server. The same view serves the card template.
 | none | `<article>` | `url` (on the `<a>`), `image`, `title`, `price` |
 
 The view receives `$binding` (a `CardBinding`: `text()`, `price()`, `attributes()`, `classes()`, `classList()`,
-`onlyWith()`, `onlyWithout()`), `$link`, `$image`, `$title`, `$price` and `$priority`. The title is a
-`<p>`, not a heading: a list of cards adds nothing to the page's outline. An image, title or
+`onlyWith()`, `onlyWithout()`), `$link`, `$image`, `$title`, `$price`, `$heading` and `$priority`. An image, title or
 price the card does not hold is not rendered. See [Overriding views](../customising/views.md).
 
 ### `<x-meilifacets::listing.facets>`

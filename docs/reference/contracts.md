@@ -139,6 +139,7 @@ All under `Modules\MeiliFacets\`.
 | `Enums\Presentation` | enum | `Control` (`control`), `Pill` (`pill`) | [Facets](../listing/facets.md) |
 | `Enums\PricePart` | enum | `Fields` (`fields`), `Slider` (`slider`) | [Price filter](../listing/price.md) |
 | `Enums\ApplyMode` | enum | `OnSubmit` (`submit`), `Immediate` (`immediate`); `ApplyMode::DEFAULT` (`OnSubmit`) | [How a listing works](../listing/README.md) |
+| `Enums\HeadingLevel` | enum | `h2` to `h6` | [Blade components](components.md) |
 | `Enums\ImagePriority` | enum | `Eager`, `Lazy` | [Blade components](components.md) |
 | `Enums\SortWidget`, `Enums\ApplyShape`, `Enums\ResetShape` | enums | component variants | [Blade components](components.md) |
 | `Enums\CardField` | enum | card field names | [Index settings](index-settings.md#card-fields) |

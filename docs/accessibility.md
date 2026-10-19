@@ -203,8 +203,9 @@ a view (see [Overriding views](/docs/customising/views.md)), keep:
 - **Without JavaScript, the listing is readable but inert.** The page is complete as the server renders it, but
   facets, sort and pagination are buttons and boxes that do nothing. The listing search field is a real form and still
   works. The site search magnifier does nothing without its client.
-- **Your own card is yours to make accessible.** The module's card is a link around the image and the title, which is
-  not a heading: the module's components add no heading to the page, its outline stays the theme's. A card
+- **Your own card is yours to make accessible.** The module's card is a link around the image and the title, a heading
+  whose level (`heading`, `h3` by default) follows the title above the listing: `h2` under the page's `<h1>`. No
+  other component of the module renders a heading. A card
   with a second link (add to cart) needs a name that says which product it acts on.
 - **A theme that sets `display` on a hooked element** can show what the client hid. Keep
   `[data-meili][hidden] { display: none !important; }` if you drop the stylesheet.

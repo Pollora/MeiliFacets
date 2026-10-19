@@ -11,16 +11,15 @@ What to change in a project when moving from one version to the next is in
 
 ### Changed
 
-- The module's components render no heading: the card's title, the drawer's « Filters » and the site search
-  section's label are `<p>` elements, so the page's outline stays the theme's.
+- The drawer's « Filters » and the site search section's label are `<p>` elements, no longer headings: they sat
+  outside the page's outline, the search sections even before its `<h1>`.
 - `<x-meilifacets::listing.active-values>` renders a `<div>` holding a visually hidden « Active filters » and the
   `<ul>` of pills, instead of a `<ul>` named by `aria-label`.
 - The listing search field is named by a visually hidden `<label>` instead of an `aria-label`.
 
 ### Removed
 
-- The `heading` attribute of `<x-meilifacets::listing.card>` and `<x-meilifacets::listing.drawer>`, and
-  `Enums\HeadingLevel`.
+- The `heading` attribute of `<x-meilifacets::listing.drawer>`.
 
 ### Fixed
 

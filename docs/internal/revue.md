@@ -3315,6 +3315,20 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
+### R-240 · 🟡 · **fermé le 2026-10-19** · ouvert le 2026-10-19 — la carte rend de nouveau un titre, à un niveau qui suit le plan
+
+**Constat** (Louis, 2026-10-19, le jour même de `R-239` : « je ne suis finalement pas convaincu qu'enlever les titres
+des cards était une bonne idée, il faut juste bien respecter l'arborescence »). Le défaut relevé n'était pas le titre
+de la carte, mais son niveau : un `H3` par produit directement sous le `H1` de la boutique.
+
+**Ce qui est fait.** Retour, pour la carte seulement, à l'état d'avant `R-239` : attribut `heading` (`h3` par défaut),
+`Enums\HeadingLevel`, vue et tests rétablis. Le tiroir et les sections de recherche restent des `<p>`. Décision
+« Titres dans les composants » amendée ; changelog, `upgrading.md`, référence des composants, surcharge de vues et
+accessibilité corrigés en conséquence. Le niveau juste est posé par le thème (`h2` dans les listings de Pluralia).
+
+**Passes.** *Nommage* : rien de neuf, les noms d'avant `R-239` reviennent. *Lisibilité*, *Performance*, *Sécurité*,
+*Contexte et i18n* : rien. *Commentaires* : le commentaire sur `from()` et les chaînes de Blade revient avec le code.
+
 ### R-239 · 🟡 · **fermé le 2026-10-19** · ouvert le 2026-10-19 — les composants du module ajoutent des titres au plan de la page
 
 **Constat** (Louis, 2026-10-19, plan d'une page de catégorie : « H2: Produits, H2: Articles, H1: Visage, H2: Filtres,

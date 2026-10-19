@@ -4,7 +4,7 @@
             <img {{ $image->attributes->class('meilifacetsCardImage') }} decoding="async">
         @endif
         @if ($title->isPresent())
-            <p {{ $title->attributes->class('meilifacetsCardTitle') }}>{{ $title }}</p>
+            <{{ $heading }} {{ $title->attributes->class('meilifacetsCardTitle') }}>{{ $title }}</{{ $heading }}>
         @endif
     </a>
     @if ($price->isPresent())
