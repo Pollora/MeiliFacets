@@ -3,6 +3,12 @@
 This page covers the accessibility patterns the module's components follow, what they announce to screen readers,
 where they put the focus, and how they move, so you can keep all of it in an override.
 
+The module follows these patterns as closely as it can, but it is not certified, nor reviewed by certified experts. It
+is distributed under the [GPL-2.0-or-later](/LICENSE), as is and without warranty: using it does not by itself make a
+site compliant with the European Accessibility Act, the WCAG or the RGAA, and compliance remains the responsibility of
+each site. [Issues](https://github.com/Pollora/MeiliFacets/issues) and contributions that improve how screen readers
+handle the components are welcome.
+
 You want to…
 
 - [know which pattern each component follows](#patterns);
