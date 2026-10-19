@@ -36,6 +36,8 @@ final class ContractParityTest extends TestCase
 
     private const string SEARCH_STYLESHEET = __DIR__.'/../../resources/assets/css/site-search.css';
 
+    private const string BROWSER_TEST_HOOKS = __DIR__.'/../playwright/hooks.ts';
+
     private const string VIEWS = __DIR__.'/../../resources/views/components';
 
     #[Test]
@@ -64,6 +66,20 @@ final class ContractParityTest extends TestCase
 
         foreach ($this->hooksAddressedByTheClient() as $hook) {
             $this->assertContains($hook, $declared, "The client addresses \"{$hook}\", which Hook does not declare.");
+        }
+    }
+
+    #[Test]
+    public function every_hook_the_browser_tests_address_is_declared_in_php(): void
+    {
+        $declared = array_column(Hook::cases(), 'value');
+
+        preg_match_all("/^\s+\w+: '([a-z-]+)',$/m", (string) file_get_contents(self::BROWSER_TEST_HOOKS), $hooks);
+
+        $this->assertNotEmpty($hooks[1]);
+
+        foreach ($hooks[1] as $hook) {
+            $this->assertContains($hook, $declared, "The browser tests address \"{$hook}\", which Hook does not declare.");
         }
     }
 

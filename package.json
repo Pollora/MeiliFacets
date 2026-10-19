@@ -7,14 +7,16 @@
         "node": ">=24.12"
     },
     "scripts": {
-        "lint": "eslint bundle.ts resources/assets/ts tests/ts",
-        "typecheck": "node node_modules/@typescript/native/bin/tsc --noEmit -p tsconfig.json && node node_modules/@typescript/native/bin/tsc --noEmit -p tests/ts/tsconfig.json",
+        "lint": "eslint bundle.ts playwright.config.ts resources/assets/ts tests/ts tests/playwright",
+        "typecheck": "node node_modules/@typescript/native/bin/tsc --noEmit -p tsconfig.json && node node_modules/@typescript/native/bin/tsc --noEmit -p tests/ts/tsconfig.json && node node_modules/@typescript/native/bin/tsc --noEmit -p tests/playwright/tsconfig.json",
         "test": "node --test --test-timeout=10000 --experimental-test-coverage --test-coverage-include=\"resources/assets/ts/**\" --test-coverage-lines=94 --test-coverage-branches=90 --test-coverage-functions=90 \"tests/ts/*.test.ts\"",
         "build": "node bundle.ts",
-        "build:check": "node bundle.ts --check"
+        "build:check": "node bundle.ts --check",
+        "test:playwright": "playwright test"
     },
     "devDependencies": {
         "@eslint/js": "^10.0.1",
+        "@playwright/test": "1.63.0",
         "@types/node": "^24.13.5",
         "@typescript/native": "npm:typescript@~7.0.2",
         "esbuild": "0.28.2",

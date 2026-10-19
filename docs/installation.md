@@ -19,7 +19,7 @@ You want to…
 The whole sequence, once `composer.json` is prepared:
 
 ```bash
-composer require pollora/meilifacets:^0.2 amphibee/meiliscout:dev-feat/meilifacets -W
+composer require pollora/meilifacets:^0.2 -W
 echo '{"MeiliFacets": true}' > modules_statuses.json   # or add the key to the existing file
 wp plugin activate meiliscout
 php artisan vendor:publish --tag=meilifacets-config
@@ -36,7 +36,7 @@ php artisan meilifacets:check-assets
 | --- | --- | --- |
 | PHP | 8.4 or later | |
 | Pollora | 13.x from 13.35.3 (`pollora/framework` `>=13.35.3 <14`), on Laravel 13 | Laravel modules (`nwidart/laravel-modules`) ship with Pollora: nothing to install. Plugins › Modules shows when a newer MeiliFacets is available |
-| MeiliScout | `amphibee/meiliscout`, branch `dev-feat/meilifacets` | a WordPress plugin; it builds and pushes the documents |
+| MeiliScout | `amphibee/meiliscout` 2.5.1 or later | a WordPress plugin; it builds and pushes the documents |
 | Meilisearch | a server reachable from PHP and from the browser | see [Engine version](production.md#engine-version) |
 | WooCommerce | for the product listing | 9.8 for grouped product prices, 9.9 to switch off WooCommerce's own filtering of the shop query. The site search runs without WooCommerce |
 | `ext-intl` | suggested | without it, facet values ordered by name fall back to a byte comparison that misplaces accented labels |
@@ -77,12 +77,10 @@ until then, add them by hand. Keep the WordPress rules already under `installer-
 ## Install the module
 
 ```bash
-composer require pollora/meilifacets:^0.2 amphibee/meiliscout:dev-feat/meilifacets -W
+composer require pollora/meilifacets:^0.2 -W
 ```
 
-MeiliScout has no tagged release yet. While the module depends on a development branch, the project has to require
-that branch itself: Composer only accepts a `dev-` version from a dependency of a dependency when the root package
-asks for it, because of `minimum-stability`. MeiliScout declares `type: wordpress-plugin`, so it is installed with
+MeiliScout comes with the module, at 2.5.1 or later. It declares `type: wordpress-plugin`, so it is installed with
 the other plugins (`public/content/plugins/meiliscout`), not in `vendor/`.
 
 Then enable the module in `modules_statuses.json`, at the project root. Create the file if it does not exist, or add
@@ -133,8 +131,6 @@ MEILI_PUBLIC_URL=https://projet.ddev.site:7701
 | `MEILI_KEY` | MeiliScout | key used to index; never sent to the browser |
 | `MEILI_SEARCH_KEY` | MeiliScout for the first render, the configuration file for the browser | search-only key; how to create one is in [Going to production](production.md#the-search-key) |
 | `MEILI_PUBLIC_URL` | the configuration file | engine address reached by the browser, scheme included |
-
-The index is always called `posts`: it is MeiliScout's post index, and its name is not configurable.
 
 ## Publish the configuration file
 

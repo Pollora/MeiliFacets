@@ -173,7 +173,8 @@ re-check the listing and the search after upgrading the engine.
 ### The search key
 
 The browser queries Meilisearch directly, so `browser.key` is printed in every page that holds a listing or a search.
-It must be a **search-only key**, restricted to the `search` action on the `posts` index. **Never the master key**,
+It must be a **search-only key**, restricted to the `search` action on the site's prefixed indexes (`<prefix>*`, see
+[Upgrading](upgrading.md#unreleased)), which differ from one environment to the next. **Never the master key**,
 and never `MEILI_KEY`, which can write to the index.
 
 Create it once with the master key:
@@ -186,7 +187,7 @@ curl -X POST 'http://meilisearch:7700/keys' \
     "name": "Browser search",
     "description": "Search-only key for MeiliFacets",
     "actions": ["search"],
-    "indexes": ["posts"],
+    "indexes": ["<prefix>*"],
     "expiresAt": null,
     "uid": "<a fixed UUID>"
   }'
@@ -237,12 +238,12 @@ Do not cap it with Meilisearch's own payload limit, which applies to indexing to
 
 ### What the index may hold
 
-Only published content. The search key can search the whole `posts` index, so anything indexed can be found by
+Only published content. The search key can search the whole post index, so anything indexed can be found by
 anyone holding the key.
 
 - MeiliScout indexes only public statuses (`publish` by default, through its `meiliscout/indexable_post_statuses`
-  filter) and never sends a post's password or the text of a password-protected post. This is the behaviour of the
-  current `feat/meilifacets` branch.
+  filter) and never sends a post's password or the text of a password-protected post. This is the behaviour of
+  MeiliScout 2.5.
 - Do not widen `meiliscout/indexable_post_statuses` to drafts, private or pending posts.
 - A projector adding fields to the card makes them public: see [What gets indexed](indexing/README.md#the-card).
 - The client writes the card's price as HTML. Whoever can write to the index can therefore put markup in front of

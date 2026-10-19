@@ -101,7 +101,7 @@ changes behaviour the rest of the module relies on.
 | Contract | Default implementation | Module binding | Used for |
 | --- | --- | --- | --- |
 | `FacetCounter` | `Search\DisjunctiveFacetCounter` | `bindIf` | the extra queries that count a multi-value facet on the first render; facets on a variation attribute are counted by the module on the variant documents, whatever the binding; the browser counts on its own |
-| `SearchEngine` | `Search\MeilisearchEngine` (MeiliScout's search client, index `posts`) | `scoped` | sends the server's searches; throws `EngineUnavailable` |
+| `SearchEngine` | `Search\MeilisearchEngine` (MeiliScout's search client, the post index MeiliScout searches) | `scoped` | sends the server's searches; throws `EngineUnavailable` |
 | `TermHierarchy` | `Indexing\WordPressTermHierarchy` | `bind` | ancestors of a term at indexing; children for `ChildTermsFacet` |
 | `TermLabels` | `Listing\WordPressTermLabels` | `bind` | the names of a facet's values, in the taxonomy's order |
 | `TermScope` | `Listing\WordPressTermScope` | `scoped` | the terms under the one the page is on |

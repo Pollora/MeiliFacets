@@ -15,8 +15,8 @@ You want to…
 
 ## Who does what
 
-**MeiliScout** builds a document for each post of the post types it indexes, and pushes it to an index called
-`posts`. The document carries the post's own fields (`ID`, `post_title`, `post_type`, `post_status`…), its `terms` and
+**MeiliScout** builds a document for each post of the post types it indexes, and pushes it to its post index,
+`<prefix>posts` since MeiliScout 2.0. The document carries the post's own fields (`ID`, `post_title`, `post_type`, `post_status`…), its `terms` and
 its `metas`. Which post types are indexed is a MeiliScout setting, stored in the database and set from its
 administration screen: set it on every environment.
 

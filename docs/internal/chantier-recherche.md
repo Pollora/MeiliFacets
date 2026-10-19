@@ -138,7 +138,7 @@ seule, clé d'administration du `.env` hôte — jamais recopiée).
 - **Change** : ajoute au module une recherche multi-types dans un panneau sous l'en-tête (types déclarés par le projet, un lien « voir tous » par type vers son archive), et fixe la pertinence de l'index.
 - **Ferme** : `R-27` (fuite par `searchableAttributes`), `R-160` (`exclude-from-search`), `R-159` (terme sans mot, côté panneau et listing), et la décision en attente « `card.title` dans `searchableAttributes` ». **Hors chantier** : `R-44`/`Q-09` (`q` inchangé), `R-161` (aucune page de recherche touchée), `R-19` (le panneau ne passe pas par PHP), `R-45`/`Q-10`.
 - **Contredit** : plus aucune décision validée sur le fond. Restent **deux amendements de lettre, validés par Louis le 2026-09-25**, à écrire dans `decisions.md` : « Livraison du client — un seul module empaqueté » (un second paquet pour le panneau) et « la feuille du module ne se charge que sous un listing » (une seconde feuille, `site-search.css`, chargée par le panneau).
-- **La plateforme offre déjà** : `get_post_type_archive_link()` (qui rend la Boutique pour `product` et la page des articles pour `post` quand l'accueil est une page — mesuré : `/boutique`, `/journal`), le `/multi-search` de Meilisearch (une sous-requête par type, `hitsPerPage` et total par sous-requête), `_formatted`/`attributesToHighlight`, `attributesToSearchOn` (≥ 1.3, la prod est en 1.10.3), `rankingScoreThreshold` (≥ 1.9), `searchableAttributes` ordonnés, `typoTolerance.disableOnAttributes` ; le motif APG disclosure + combobox ; l'API Popover (écartée, voir « Principe »).
+- **La plateforme offre déjà** : `get_post_type_archive_link()` (qui rend la Boutique pour `product` et la page des articles pour `post` quand l'accueil est une page — mesuré : `/boutique`, `/journal`), le `/multi-search` de Meilisearch (une sous-requête par type, `hitsPerPage` et total par sous-requête), `_formatted`/`attributesToHighlight`, `attributesToSearchOn` (≥ 1.3), `rankingScoreThreshold` (≥ 1.9), `searchableAttributes` ordonnés, `typoTolerance.disableOnAttributes` ; le motif APG disclosure + combobox ; l'API Popover (écartée, voir « Principe »).
 
 **Déjà décidé, et touché** (`decisions.md` « Validées ») :
 
@@ -432,7 +432,7 @@ par attribut : `min-chars` et `delay` sur la racine, `limit` sur la section.
   des produits ; ni `content` ni
   extrait pour un article protégé par mot de passe.
 - **Tolérance** : défauts de Meilisearch (D-8) ; `typoTolerance.disableOnAttributes: ["metas._sku"]`. Pas de
-  `stopWords` (proposé) ; `rankingRules` non écrits (la liste diffère entre 1.10 et 1.53).
+  `stopWords` (proposé) ; `rankingRules` : l'ordre par défaut de Meilisearch, écrit par le module (`R-242`).
 - **Exclusions** : `exclude-from-search` sur toute recherche produit (`R-160`) ; publié seulement.
 
 ### 7. Arborescence
@@ -511,8 +511,6 @@ sont extraits en place plutôt que doublés (§ 4, § 7) ; aucun fichier ni doss
 - **Poids du document** : `content` double le contenu (67 documents, 311 Ko bruts aujourd'hui) ; à mesurer.
 - **Données de script d'un module chargé dynamiquement** : la description est attachée au chargeur (inscrit),
   pas au client ; à vérifier avec `wp_register_script_module` à l'étape 4.
-- **Écart de version** : `attributesToSearchOn` (1.3) et `rankingScoreThreshold` (1.9) existent en 1.10.3 ;
-  le reste du chantier n'emploie rien de plus récent.
 
 ---
 

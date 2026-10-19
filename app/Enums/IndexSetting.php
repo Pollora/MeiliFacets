@@ -13,4 +13,5 @@ enum IndexSetting: string
     case Faceting = 'faceting';
     case Pagination = 'pagination';
     case TypoTolerance = 'typoTolerance';
+    case RankingRules = 'rankingRules';
 }

@@ -10,7 +10,7 @@ export default defineConfig(
         languageOptions: {
             parserOptions: {
                 projectService: {
-                    allowDefaultProject: ['bundle.ts'],
+                    allowDefaultProject: ['bundle.ts', 'playwright.config.ts'],
                     defaultProject: 'tests/ts/tsconfig.json',
                 },
                 tsconfigRootDir: import.meta.dirname,
@@ -39,13 +39,16 @@ export default defineConfig(
         },
     },
     {
-        files: ['bundle.ts', 'tests/ts/**/*.ts'],
+        files: ['bundle.ts', 'playwright.config.ts', 'tests/ts/**/*.ts', 'tests/playwright/**/*.ts'],
         languageOptions: {
             globals: globals.node,
         },
         rules: {
             '@typescript-eslint/no-floating-promises': ['error', {
-                allowForKnownSafeCalls: [{ from: 'package', package: 'node:test', name: ['describe', 'it'] }],
+                allowForKnownSafeCalls: [
+                    { from: 'package', package: 'node:test', name: ['describe', 'it'] },
+                    { from: 'package', package: '@playwright/test', name: ['test', 'describe'] },
+                ],
             }],
         },
     },

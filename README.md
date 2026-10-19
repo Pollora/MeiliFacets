@@ -29,10 +29,10 @@ You want to…
 ## Installation
 
 ```bash
-composer require pollora/meilifacets:^0.2 amphibee/meiliscout:dev-feat/meilifacets -W
+composer require pollora/meilifacets:^0.2 -W
 ```
 
-MeiliScout has no tagged release yet, so the project requires its branch itself. The project's `composer.json` needs
+MeiliScout 2.5.1 or later comes with the module. The project's `composer.json` needs
 an `installer-paths` rule and `merge-dev: false` first, and the module is then enabled in `modules_statuses.json`: the
 whole sequence is in [Installation](docs/installation.md).
 
@@ -42,7 +42,7 @@ whole sequence is in [Installation](docs/installation.md).
 | --- | --- |
 | PHP | 8.4 or later |
 | Framework | Pollora 13.x from 13.35.3 (`pollora/framework` `>=13.35.3 <14`), on Laravel 13. Laravel modules (`nwidart/laravel-modules`) ship with Pollora |
-| Indexing | MeiliScout (`amphibee/meiliscout`), a WordPress plugin, currently its `dev-feat/meilifacets` branch |
+| Indexing | MeiliScout (`amphibee/meiliscout`), a WordPress plugin, 2.5.1 or later |
 | Engine | a Meilisearch server |
 | Products | WooCommerce, for the product listing and its prices. The site search works without it |
 | Optional | `ext-intl`, so that facet values ordered by name follow the site's language |

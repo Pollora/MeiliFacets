@@ -1086,7 +1086,7 @@ livré ».
 **Au 2026-09-22** (passe documentaire, `R-153`) : toujours vrai. Le décompte de commits non poussés
 écrit plus haut est périmé : la branche suit désormais `origin`.
 
-### R-39 · 🟠 · ouvert · 2026-09-06 — `amphibee/meiliscout` pointe une branche non mergée
+### R-39 · 🟠 · **fermé le 2026-10-19** (`R-242`) · ouvert le 2026-09-06 — `amphibee/meiliscout` pointe une branche non mergée
 
 `dev-feat/meilifacets`, commit `1c59a05`. Rappel : sans le correctif `resolveIndexable()`, les
 facettes cassent à la première sauvegarde de contenu.
@@ -1094,6 +1094,8 @@ facettes cassent à la première sauvegarde de contenu.
 **Au 2026-09-22** (passe documentaire, `R-153`) : toujours vrai. Le lock est à `a83fa4b` (depuis `R-112`),
 ni `1c59a05` ni `2acf53a` cités plus haut ; le module exige toujours `dev-feat/meilifacets`
 (`composer.json`). Le merge amont n'est pas vérifiable d'ici.
+
+*Fermé le 2026-10-19 avec `R-242`* : la branche est dans MeiliScout 2.x ; le module exige le tag `^2.5.1`.
 
 ### R-40 · 🟠 · **fermé le 2026-10-05** (`R-217`) · ouvert le 2026-09-06 — le `503` ne sort pas
 
@@ -1115,10 +1117,13 @@ amont**. Tant qu'il ne l'est pas, `Unavailable::announce()` produit un `200` ave
 c'est-à-dire hors de l'objet réponse Laravel. Même une fois Pollora corrigé, c'est un contournement
 à réexaminer.
 
-### R-41 · 🟠 · ouvert · 2026-09-06 — l'écart de version du moteur n'est pas refermé
+### R-41 · 🟠 · **fermé le 2026-10-19** (`R-242`) · ouvert le 2026-09-06 — l'écart de version du moteur n'est pas refermé
 
 **Vérifié** : local en 1.53.1, `pagination.maxTotalHits = 1000`,
 `faceting.maxValuesPerFacet = 100`, `searchCutoffMs` non posé. La production est en 1.10.3.
+
+*Fermé le 2026-10-19 (Louis, pendant `R-242`)* : il n'y a pas de production, et la préproduction est en 1.53 comme le
+local. L'écart n'existe pas : la 1.10.3 citée plus haut n'était pas une production.
 
 Rien de ce qui est validé en local ne vaut engagement tant que la montée n'est pas faite. Les
 `filterableAttributes` posés aujourd'hui sont explicites (pas de motif `facets.*`), donc a priori
@@ -3315,9 +3320,131 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
+### R-243 · 🟡 · ouvert · ouvert le 2026-10-19 — la suite `Feature` sous MeiliScout 1 noyait le Meilisearch local
+
+**Constat** (mesuré le 2026-10-19, pendant `R-242`). Le Meilisearch local avait **165 283 tâches en attente**, la plus
+ancienne du 2026-10-15 à 14:53 UTC, traitées à environ 1,6 par seconde (environ 28 h de retard) ; base de 4,4 Go.
+Répartition : 124 522 tâches enregistrées entre 14 h et 15 h le 2026-10-15, 89 421 entre 15 h et 18 h, 28 235 ensuite,
+29 048 le 2026-10-19 à 08:50 UTC. Ces dernières portent sur des posts de test (identifiants autour de 68 715) créés puis
+supprimés : une exécution de PHPUnit (`.phpunit.result.cache` daté de 10:58 heure locale). Sous MeiliScout 1, chaque
+sauvegarde partait aussitôt : une exécution de la suite envoyait environ 29 000 écritures.
+
+**Effet.** L'index local avait des semaines de retard (423 documents, dont environ 350 produits de test déjà supprimés
+de WordPress ; la boutique affichait « 417 articles » pour 66 produits publiés), et toute mesure du temps réel était
+fausse tant que la file n'était pas vide.
+
+**Fait le 2026-10-19, accord de Louis** : file annulée (`POST /tasks/cancel?statuses=enqueued`, 164 723 tâches, 7 s),
+puis `wp meiliscout index --clear` (4 s) : 75 documents (66 produits, 2 variantes, 7 articles).
+
+**Mesuré ensuite sous MeiliScout 2.5** : la suite `Modules` complète (1 194 tests, avant le retrait du test du plafond) envoie **0** tâche. MeiliScout 2
+regroupe les écritures en fin de requête (`shutdown`) ; les produits de test sont supprimés avant. Reste à vérifier sur
+plusieurs exécutions, et à décider si `KeepsTheIndexOut` doit couvrir toute la suite plutôt que onze classes. Ne bloque
+pas `R-242`.
+
+### R-242 · 🟠 · ouvert · ouvert le 2026-10-08 (PR #13, d'abord sous `R-224`, numéro déjà pris sur main) — MeiliScout 2.5.1 : dépendance sur un tag stable, le module cherche dans l'index actif
+
+**Constat.** Le module dépendait de la branche `feat/meilifacets` de MeiliScout (commit `ef2bd18`, du 2026-10-06), 175
+commits derrière le tag 2.5.0 (2026-10-15), qui la contient. Mesuré le 2026-10-19 sur le projet de test (Meilisearch 1.53.1,
+index encore nommés comme en 1.x) : toutes les classes et tous les hooks MeiliScout du module existent encore, mais
+cinq points changent.
+
+1. **Index préfixés.** `PostIndexable::getIndexName()` rend l'index **cible** (`<préfixe>posts`), où MeiliScout
+   écrit ; il cherche dans l'index **actif**, l'ancien `posts` tant que la migration n'a pas eu lieu. Sans correctif, la
+   boutique répond `503` pendant cette fenêtre (mesuré, et les 5 scénarios Playwright échouent en 2–3 s).
+2. **Clé de recherche.** PHP et le navigateur cherchent tous deux avec `MEILI_SEARCH_KEY`. La clé de recherche du projet de test,
+   limitée à `posts`, reçoit `403` sur l'index préfixé : boutique en `503` après l'indexation. Une clé Meilisearch ne
+   change pas d'index : nouvelle clé « search » sur `<préfixe>*`, `.env` local mis à jour (sauvegardé).
+3. **Ordre de classement.** MeiliScout 2 met `sort` en tête de `rankingRules`, contre le choix de `R-228` (question 3).
+4. **Réindexation perdue.** MeiliScout 2.5 vide sa file de réindexation sur `shutdown` à la priorité 0 ; `VariationChanges`
+   déclenche `meiliscout/reindex_post` à la priorité 20, après la synchronisation du parent par WooCommerce (`shutdown`,
+   10, `class-wc-post-data.php:43`). Ce déclenchement est perdu : mesuré 3 fois sur 3, le document `125-0` reste
+   `in_stock: 0` quand sa variation repasse en stock, aucune tâche n'est envoyée. Même appel pendant la requête :
+   2 tâches. Aucun contournement possible côté module.
+5. **Erreur console.** Pollora instancie chaque classe à hooks au démarrage, y compris dans une commande sans WordPress ;
+   `IndexNames::active()` y appelle `get_option()` : une erreur par classe (`ClientScript`, `Preconnect`) à chaque
+   `composer` ou `artisan package:discover`.
+
+**Correction.**
+- `SearchServiceProvider::searchedIndex()` : `IndexNames::active(POST_INDEX_KEY)` pour le moteur et le navigateur ;
+  `BrowserConnection` créée par `lazy()` (objet paresseux de PHP 8.4) : l'index n'est lu qu'au premier usage.
+- `MeiliScoutBridge::rankByRelevanceFirst()`, sur le filtre `meiliscout/post/ranking_rules` : `words`, `typo`,
+  `proximity`, `attributeRank`, `sort`, `wordPosition`, `exactness` (`RankingRule`) : l'ordre par défaut de Meilisearch,
+  donc le classement d'avant la montée. Pas de production ; préproduction en 1.53 (Louis, 2026-10-19).
+  Un projet peut reprendre la main à une priorité plus haute.
+- `Preconnect` teste la page de listing avant de lire la connexion.
+- `amphibee/meiliscout` : `^2.5.1`. Trois dépendances de plus : `symfony/http-client` 7.4 et `nyholm/psr7` 1.8 (par MeiliScout),
+  `illuminate/reflection` ^13.35, que le module déclare pour `lazy()` (accord de Louis, 2026-10-19).
+- MeiliScout, point 4 : AmphiBee/MeiliScout#75 — une tâche mise en file pendant `shutdown`, après le passage de la
+  file, s'accroche à `PHP_INT_MAX`. Test Pest rouge puis vert, 474 tests, PHPStan propre. Fusionnée et publiée en
+  **2.5.1** le 2026-10-19 (#76, tag annoté, release GitHub). Installée sur le projet de test : 2 tâches depuis `shutdown` à 20
+  (0 sous 2.5.0), le document suit `0 → 1 → 0`.
+
+**Écarté, sur décision de Louis (2026-10-19).** Un filtre `meiliscout/max_total_hits` alignait le plafond de MeiliScout
+sur `reachable_hits` ; global, il neutralisait le réglage d'admin de MeiliScout et plafonnait l'index des taxonomies à
+1 000. Retiré : enregistrer les réglages de MeiliScout pousse sa valeur (10 000) sur l'index jusqu'à la prochaine
+indexation complète ; le module continue de demander au plus `reachable_hits`, rien ne change à l'écran.
+
+**Hors de ce point, relevé.** La liste parente fusionnée apporte environ 20 champs filtrables et 9 triables de plus
+(58 et 14 sur l'index local, contre 44 et 6), que le moteur entretient sans que le module les lise : à trancher, ils
+servent la requête `WP_Query` de MeiliScout si un projet l'active. MeiliScout 2.5 ajoute environ 1 s au démarrage de
+`wp` (3,8 s contre 2,9 s sans lui). La suggestion de MeiliScout ne lit pas les champs que le module affiche
+(`upgrading.md`). `R-186` (réglages repoussés à chaque sauvegarde) : MeiliScout ne pousse plus que si l'empreinte change,
+à mesurer avant de fermer.
+
+**Mesures.** Indexation complète `--clear` : 4 s, 75 documents (66 produits, 2 variantes, 7 articles), schéma 6, index
+actifs basculés ; réglages poussés conformes (classement, `maxTotalHits` 1 000, champs affichés et cherchés).
+
+**Tests.** `SearchedIndexTest` (index actif), `BrowserConnectionBindingTest` (aucune lecture à la résolution, rouge sans
+le correctif), `IndexRankingTest` (rouge sans le filtre). Suite navigateur Playwright (`tests/playwright`,
+`npm run test:playwright`, 5 scénarios : facette cochée puis décochée, lien filtré rendu par le serveur, tri par prix,
+page 2 et retour arrière, recherche du site) : verte avant la montée, pendant la migration et après, 4,8 à 9,8 s par
+passage, aucune étape au-delà de 4 s. `composer check` vert ; suite `Modules` 1 196 tests verts (avec `PreconnectTest` et la parité des crochets de la suite navigateur).
+
+**Six passes** (agent `module-review`, puis reprises) :
+- *Nommage* : `ListingPage` et `SiteSearch` déjà pris par le client et `app/Http` → `VisitedListing`,
+  `VisitedSiteSearch` ; `POSTS_INDEX` → `POST_INDEX_KEY` (la clé de l'index des contenus chez MeiliScout, pas son nom réel, préfixé ; choix de Louis) ; `connect()` supprimée avec `lazy()` ;
+  `ACTIVE_INDEXES_OPTION` → `ACTIVE_INDEXES_PRE_OPTION` ; dossier `tests/e2e` → `tests/playwright` (choix de Louis).
+- *Lisibilité* : objet paresseux écrit à la main → `lazy()` de Laravel ; vocabulaire des crochets partagé (`hooks.ts`,
+  `Contract.selector()`) ; `expectHealthySearches()` ne renvoie plus rien ; `isAscending()` nommée. Refusé :
+  `SearchedIndexTest` lit une propriété privée par réflexion, faute d'accesseur public.
+- *Commentaires* : 11 supprimés (paraphrases, justification de conception).
+- *Performance* : `Preconnect` lisait l'index sur chaque page ; corrigé. Deux lectures d'option par requête de listing,
+  laissées.
+- *Sécurité* : rien de nouveau vers le navigateur ; la clé doit couvrir les index préfixés, pas davantage.
+- *Contexte* : la suite Playwright supposait une boutique en français ; chemin et terme obligatoires dans
+  l'environnement, prix lus quel que soit le séparateur. Filtre de classement plutôt qu'écrasement.
+
+**Seconde relecture (2026-10-19, cohérence code et doc).** Corrigé : commandes d'installation et de mise à jour qui
+exigeaient encore `dev-feat/meilifacets` (README, `installation.md`, `upgrading.md`, ligne de dépannage supprimée) ;
+exemple de clé de `production.md` limité à `posts` ; mentions de la branche et de l'index `posts` en dur
+(`production.md`, `indexing/README.md`, doc interne) ; mentions d'une production en 1.10.3 retirées (`decisions.md`,
+`installation.md`, `architecture.md`, `chantier-recherche.md`), `R-41` et `Q-12` fermés ; troisième dépendance consignée ; variables Playwright
+toutes citées. Ajouté : `PreconnectTest` (rouge sans la garde). Renommé : `SearchedIndexTest` (`POST_INDEX_KEY`,
+`LEGACY_INDEX`), `VisitedSiteSearch::answerStatusFor()` ; utilitaires Playwright passés en classes (`Hooks`, `Engine`,
+`Environment`, `VisitedListing::pricesAscend()`). Laissé : `IndexSetting::RankingRules`, lu par le seul test.
+
+**Suite navigateur élargie et comparaison avant/après (2026-10-19, demande de Louis : « être sûr qu'il n'y a pas de
+casse »).** 18 scénarios (ordinateur et téléphone) : facettes, pastilles et « Tout effacer », curseur de prix, facette de
+variante (derrière « Voir plus de filtres »), « Voir plus », les quatre tris, recherche du listing et résultat vide, page
+de catégorie, lien filtré, pagination, recherche du site (sections, « Voir tout », clavier, moteur injoignable), tiroir
+et « Appliquer » sur téléphone. Variables obligatoires : `MEILIFACETS_PLAYWRIGHT_URL`, `_LISTING`, `_TERM`,
+`_VARIANT_TAXONOMY`, `_CATEGORY`. Trois navigateurs au plus en parallèle : au-delà, le moteur local répond trop tard.
+`ContractParityTest` vérifie que les crochets de la suite sont déclarés dans `Hook` (rouge avec un nom inconnu).
+Jouée sur l'ancienne version (`main`, MeiliScout 1.0.0, index `posts` reconstruit, 75 documents) puis sur la nouvelle
+(MeiliScout 2.5.1, index préfixé, 75 documents) : 18/18 deux fois de chaque côté. Total et ordre des produits rendus
+par le serveur sur 15 adresses (boutique, page 2, quatre tris, facettes, prix, recherches avec et sans tri, catégorie,
+filtres combinés) : identiques. La page `/?s=` n'a pas été comparée. Temps de réponse serveur de la nouvelle version :
+médiane 409 à 595 ms selon la page ; non mesuré sur l'ancienne. Incident : `composer install` refuse le verrou à
+alias de l'hôte, site local en `500` quelques minutes ; rétabli par `composer update amphibee/meiliscout`.
+
+**Reste avant fermeture.** Feu vert de Louis pour committer et pousser la PR #13 rebasée ; dans le projet de test, après une
+version du module, `amphibee/meiliscout` passe à `^2.5.1` (alias local `2.5.1 as dev-feat/meilifacets` en attendant,
+non commité), nouvelle clé de recherche par environnement, `wp meiliscout index --clear`, puis
+`wp meiliscout delete-legacy-indexes`.
+
 ### R-241 · 🟠 · **fermé le 2026-10-19** · ouvert le 2026-10-19 — un canonique `null` de Yoast fait tomber la page
 
-**Constat** (2026-10-19, suite `Feature` de Pluralia). Un test qui rend le layout complet échoue dans la suite entière :
+**Constat** (2026-10-19, suite `Feature` du projet de test). Un test qui rend le layout complet échoue dans la suite entière :
 `IndexingPolicy::canonicalizeSecondaryViews(): Argument #1 ($canonical) must be of type string, null given`. Yoast
 passe au filtre `wpseo_canonical` la valeur de sa présentation, et celle de la page des articles renvoie `$this->permalink`,
 `null` tant que l'indexable n'a pas d'URL (`indexable-static-posts-page-presentation.php:39`). Yoast, lui, convertit le
@@ -3334,7 +3461,7 @@ un garde de plus, méthode à 7 lignes. *Commentaires* : une ligne (anomalie amo
 rien, aucune valeur nouvelle écrite. *Contexte et i18n* : rien.
 
 **Vérifié** : le test échoue sans le garde (`TypeError`) ; `composer check` vert (client 1014 tests), suite `Modules`
-1189 tests, suite `Feature` de Pluralia verte, le test du layout compris.
+1189 tests, suite `Feature` du projet de test verte, le test du layout compris.
 
 ### R-240 · 🟡 · **fermé le 2026-10-19** · ouvert le 2026-10-19 — la carte rend de nouveau un titre, à un niveau qui suit le plan
 
@@ -3345,7 +3472,7 @@ de la carte, mais son niveau : un `H3` par produit directement sous le `H1` de l
 **Ce qui est fait.** Retour, pour la carte seulement, à l'état d'avant `R-239` : attribut `heading` (`h3` par défaut),
 `Enums\HeadingLevel`, vue et tests rétablis. Le tiroir et les sections de recherche restent des `<p>`. Décision
 « Titres dans les composants » amendée ; changelog, `upgrading.md`, référence des composants, surcharge de vues et
-accessibilité corrigés en conséquence. Le niveau juste est posé par le thème (`h2` dans les listings de Pluralia).
+accessibilité corrigés en conséquence. Le niveau juste est posé par le thème (`h2` dans les listings du projet de test).
 
 **Passes.** *Nommage* : rien de neuf, les noms d'avant `R-239` reviennent. *Lisibilité*, *Performance*, *Sécurité*,
 *Contexte et i18n* : rien. *Commentaires* : le commentaire sur `from()` et les chaînes de Blade revient avec le code.
@@ -3370,7 +3497,7 @@ supprimée. La règle du libellé de recherche passe de `[data-meili="search-sec
 *Contexte et i18n* : rien.
 
 **Vérifié** : `composer check` vert (client 1014 tests), suite `Modules` 1187 tests. `/boutique` : plus de titre
-« Produits », « Articles » ni « Filtres » ; le libellé garde son style. Le thème de Pluralia importait `HeadingLevel`
+« Produits », « Articles » ni « Filtres » ; le libellé garde son style. Le thème du projet de test importait `HeadingLevel`
 (cartes du Journal) : accueil et `/journal` en 500 jusqu'à son commit, qui suit.
 
 ### R-238 · 🟡 · **fermé le 2026-10-19** · ouvert le 2026-10-19 — les listes sans puces perdent leur rôle dans Safari
@@ -11102,7 +11229,7 @@ La wishlist a disparu de l'archive produit et la doc annonce l'inverse. *Cite : 
 La décision est argumentée et je ne la conteste pas ; il faut soit la confirmer et purger la doc
 contradictoire, soit poser le seuil auquel on refiltre. *Cite : R-26.*
 
-**Q-12 · Combien de temps garde-t-on le module en 1.53.1 en local contre 1.10.3 en production ?**
+**Q-12 · ~~Combien de temps garde-t-on le module en 1.53.1 en local contre 1.10.3 en production ?~~** — **sans objet le 2026-10-19** (Louis) : il n'y a pas de production ; la préproduction est en 1.53.
 Tant que l'écart dure, chaque recette locale est une hypothèse. Qui porte la montée de version, et
 selon quel calendrier ? *Cite : R-41.*
 
@@ -11275,7 +11402,7 @@ parallèle : il ne touche pas au rendu.
 | T-01 | Cadrage : rôle du module, dépôt, méthode | R-38 (partiel) | **fait** — D-01, D-02, D-03 |
 | T-02 | Trancher Q-05, Q-06, Q-10 (forme du listing) | R-10, R-11, R-45 | fait — Q-05 et Q-06 réglées par D-07, Q-10 par `R-203` (2026-09-30) |
 | T-03 | Trancher Q-03 et Q-11 (modèle de sécurité) | R-26, R-27, R-28 | à faire — Q-11 tranchée dans `decisions.md`, non marquée (R-26) |
-| T-04 | Fixer le calendrier de montée de version du moteur (Q-12) | R-41 | à faire |
+| T-04 | Fixer le calendrier de montée de version du moteur (Q-12) | R-41 | **sans objet** — pas de production (Louis, 2026-10-19) |
 | T-31 | Fixer la ligne fonctionnement / apparence de la feuille de style (Q-28) | R-53 | **fait** — Q-28 répondue, R-53 fermé |
 | T-32 | Fixer le critère de recette du socle (Q-04b) | — | à faire |
 | T-33 | Mesurer le coût WordPress d'une URL de listing (Q-29, Q-30) | R-54 | partiel — mesure locale de D-08 ; catalogue réel attendu |

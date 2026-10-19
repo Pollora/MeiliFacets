@@ -29,7 +29,6 @@ not are listed in [Errors and console messages](reference/errors.md#silent-failu
 | --- | --- | --- |
 | The package is installed in `libraries/MeiliFacets/`, and `module:list` does not show it | the project's `composer.json` has no `installer-paths` rule for the `pollora` vendor | add `"Modules/{$name}/": ["vendor:pollora"]` as the last rule under `extra.installer-paths`, then `composer remove` and `composer require` the package again. See [Installation](installation.md#prepare-composerjson) |
 | WordPress core (`public/cms`) disappears after a `composer install` | the merge plugin merges the module's `require-dev` | set `"merge-dev": false` under `extra.merge-plugin`, then `composer install` again |
-| `composer require` fails with « does not match your minimum-stability » on `amphibee/meiliscout` | MeiliScout is required at a development branch by the module only | require it in the project too: `composer require pollora/meilifacets:^0.2 amphibee/meiliscout:dev-feat/meilifacets -W` |
 | `php artisan module:list` does not show MeiliFacets, or shows it disabled | `modules_statuses.json` is missing or does not enable it | write `{"MeiliFacets": true}` in `modules_statuses.json` at the project root |
 | `php artisan list` shows no `meilifacets:` command | the module is not loaded | same as the two rows above; then `composer dump-autoload` |
 | `Unable to locate a class or view for component [meilifacets::listing]` | the module is not loaded | same |
@@ -47,7 +46,7 @@ The page renders, the boxes can be checked, and nothing happens.
 | an overridden view lost a `data-meili` hook, or the root's contract version differs | `[meilifacets] the markup does not meet the contract: …` in the console, naming each breach | restore the hooks named. See [Overriding views](customising/views.md#when-the-contract-is-not-met) |
 | the page never calls `wp_footer()` | `[meilifacets] no data was published under @meilifacets/listing.` | call `wp_footer()` in the layout |
 | the page is opened over `http` while WordPress declares `https` | the browser refuses the scripts as another origin, the theme's too | open the site over the scheme of `home` and `siteurl` |
-| the engine refuses the browser's key | `403` or `401` from the engine in the network panel | use a search-only key that can search `posts`. See [Going to production](production.md#the-search-key) |
+| the engine refuses the browser's key | `403` or `401` from the engine in the network panel | use a search-only key that can search the prefixed post index (`<prefix>posts`). See [Going to production](production.md#the-search-key) |
 
 When the client does not start, **mobile filters are out of reach**. Below `48em`, the stylesheet hides the drawer as
 soon as scripting is enabled, whether the client loaded or not. The « Filters » button then opens nothing. Fix the
@@ -125,7 +124,7 @@ The panel shows « Search unavailable » when the engine refuses or does not ans
 Yes. The site search works on any indexed public post type. Without WooCommerce there is no product listing:
 declare your own by implementing `Listing`. See [Listing other content](listing/custom-listing.md).
 
-**Does the search key leak data?** It can read `ID`, `card` and `parent_id` from every document of the `posts` index,
+**Does the search key leak data?** It can read `ID`, `card` and `parent_id` from every document of the post index,
 and can rewrite a listing's base filter. Keep only published content in the index and use a search-only key. See [Going
 to production](production.md#security).
 

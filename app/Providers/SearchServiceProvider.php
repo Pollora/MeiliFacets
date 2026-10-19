@@ -17,7 +17,7 @@ use Pollora\MeiliScout\Services\IndexNames;
 /** How a search is sent, and to which of the engine's two addresses. */
 final class SearchServiceProvider extends ServiceProvider
 {
-    private const string POSTS_INDEX = 'posts';
+    private const string POST_INDEX_KEY = 'posts';
 
     public function register(): void
     {
@@ -39,18 +39,19 @@ final class SearchServiceProvider extends ServiceProvider
         );
     }
 
+    /** Pollora builds every hooked class at boot, before WordPress loads in a console command. */
     private function browser(): BrowserConnection
     {
-        return new BrowserConnection(
+        return lazy(BrowserConnection::class, fn (): array => [
             (string) config('meilifacets.browser.url', ''),
             (string) config('meilifacets.browser.key', ''),
             $this->searchedIndex(),
-        );
+        ]);
     }
 
     /** MeiliScout writes to a target index and searches the active one: they differ while a migration is pending. */
     private function searchedIndex(): string
     {
-        return IndexNames::active(self::POSTS_INDEX);
+        return IndexNames::active(self::POST_INDEX_KEY);
     }
 }

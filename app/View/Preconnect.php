@@ -24,9 +24,13 @@ final readonly class Preconnect
     #[Action('wp_head', priority: 2)]
     public function warmTheEngineOrigin(): void
     {
+        if (! $this->page->isCurrent()) {
+            return;
+        }
+
         $origin = $this->origin();
 
-        if ($origin === '' || ! $this->page->isCurrent()) {
+        if ($origin === '') {
             return;
         }
 

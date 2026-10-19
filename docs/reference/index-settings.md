@@ -1,6 +1,6 @@
 # Index settings and document fields
 
-The Meilisearch settings the module writes on the `posts` index, and the fields it adds to each document.
+The Meilisearch settings the module writes on MeiliScout's post index (`<prefix>posts`), and the fields it adds to each document.
 
 You want to…
 
@@ -34,6 +34,7 @@ own. Settings are named by `Enums\IndexSetting`, `Enums\FacetingSetting`, `Enums
 | `pagination.maxTotalHits` | `engine.reachable_hits` (`1000`) | configuration | [Pagination](../listing/results-sort-pagination.md) |
 | `searchableAttributes` | `SearchableAttributes::all()`: `post_title`, then `labels.product_brand`, `labels.product_cat`, `metas._sku` with WooCommerce, then `labels.<taxonomy>` for the other indexed taxonomies, then `excerpt`, `content` | `SearchableAttributes` | [Search relevance](../indexing/relevance.md) |
 | `typoTolerance.disableOnAttributes` | `IndexAttributes::exactlyMatched()`: `metas._sku` with WooCommerce | `IndexAttributes` | [Search relevance](../indexing/relevance.md) |
+| `rankingRules` | `words`, `typo`, `proximity`, `attributeRank`, `sort`, `wordPosition`, `exactness`, Meilisearch's default: a chosen sort breaks ties between equally relevant results, it does not rank before relevance | `meiliscout/post/ranking_rules`, which a project can filter later | [Search relevance](../indexing/relevance.md) |
 
 MeiliScout's own lists: `filterableAttributes` holds `post_type`, `post_status`, `terms.term_id`, `terms.slug`,
 `terms.name`, `terms.taxonomy`, `terms.term_taxonomy_id` and `metas.<key>` for its indexed meta keys;

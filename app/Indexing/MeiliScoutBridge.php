@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Indexing;
 
+use Modules\MeiliFacets\Enums\RankingRule;
 use Pollora\Attributes\Filter;
 use Pollora\MeiliScout\Contracts\Indexable;
 use Pollora\MeiliScout\Indexables\PostIndexable;
@@ -43,6 +44,15 @@ final readonly class MeiliScoutBridge
                 : $indexable,
             $indexables
         );
+    }
+
+    /**
+     * @return list<string>
+     */
+    #[Filter('meiliscout/post/ranking_rules')]
+    public function rankByRelevanceFirst(): array
+    {
+        return RankingRule::relevanceFirst();
     }
 
     private function needsFacetAttributes(Indexable $indexable): bool

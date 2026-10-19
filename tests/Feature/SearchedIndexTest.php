@@ -16,24 +16,24 @@ use Tests\TestCase;
 /** Until the first full indexation after an update, MeiliScout still searches the index it built before. */
 final class SearchedIndexTest extends TestCase
 {
-    private const string ACTIVE_INDEXES_OPTION = 'pre_option_meiliscout/active_indexes';
+    private const string ACTIVE_INDEXES_PRE_OPTION = 'pre_option_meiliscout/active_indexes';
 
-    private const string POSTS = 'posts';
+    private const string POST_INDEX_KEY = 'posts';
 
     /** The name MeiliScout gave the index before it prefixed them. */
-    private const string INDEX_BUILT_BEFORE = 'posts';
+    private const string LEGACY_INDEX = 'posts';
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        add_filter(self::ACTIVE_INDEXES_OPTION, $this->indexesBuiltBefore(...));
+        add_filter(self::ACTIVE_INDEXES_PRE_OPTION, $this->legacyIndexes(...));
         new SearchServiceProvider($this->app)->register();
     }
 
     protected function tearDown(): void
     {
-        remove_all_filters(self::ACTIVE_INDEXES_OPTION);
+        remove_all_filters(self::ACTIVE_INDEXES_PRE_OPTION);
 
         parent::tearDown();
     }
@@ -41,22 +41,22 @@ final class SearchedIndexTest extends TestCase
     #[Test]
     public function it_searches_the_index_meiliscout_searches_rather_than_the_one_it_writes_to(): void
     {
-        $this->assertNotSame(self::INDEX_BUILT_BEFORE, IndexNames::target(self::POSTS));
-        $this->assertSame(self::INDEX_BUILT_BEFORE, $this->engineIndex());
+        $this->assertNotSame(self::LEGACY_INDEX, IndexNames::target(self::POST_INDEX_KEY));
+        $this->assertSame(self::LEGACY_INDEX, $this->engineIndex());
     }
 
     #[Test]
     public function it_hands_the_browser_the_index_meiliscout_searches(): void
     {
-        $this->assertSame(self::INDEX_BUILT_BEFORE, $this->app->make(BrowserConnection::class)->index);
+        $this->assertSame(self::LEGACY_INDEX, $this->app->make(BrowserConnection::class)->index);
     }
 
     /**
      * @return array<string, string>
      */
-    private function indexesBuiltBefore(): array
+    private function legacyIndexes(): array
     {
-        return [self::POSTS => self::INDEX_BUILT_BEFORE];
+        return [self::POST_INDEX_KEY => self::LEGACY_INDEX];
     }
 
     private function engineIndex(): string

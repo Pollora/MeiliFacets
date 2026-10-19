@@ -6,6 +6,29 @@ changes is in the [changelog](../CHANGELOG.md).
 0.1.0 was the first release, a beta; 0.2.0 is the second; 0.2.1 is the third; 0.2.2 is the fourth; 0.2.3 is the fifth;
 0.2.4 is the sixth.
 
+## Unreleased
+
+- **Update MeiliScout to 2.5.1 first.** A project that requires `amphibee/meiliscout:dev-feat/meilifacets` itself, as
+  the installation of earlier versions asked, replaces that constraint: `composer require amphibee/meiliscout:^2.5.1 -W`,
+  or removes it and runs `composer update pollora/meilifacets -W`. MeiliScout 2.5.1 adds `symfony/http-client` and
+  `nyholm/psr7` to the project.
+- **Give the search key access to the prefixed indexes before indexing.** Since MeiliScout 2.0, an index name
+  starts with a prefix, `MEILI_INDEX_PREFIX` or the site's domain: on `shop.example.com`, `shop_example_com_posts`. The key in
+  `MEILI_SEARCH_KEY` searches for PHP and for the browser alike; a key restricted to `posts` gets a `403` on the new
+  index, and the listing answers `503`. A key's indexes cannot be changed: create a search-only key on
+  `<prefix>*` (and on `posts` while the migration is pending), then replace `MEILI_SEARCH_KEY`. The prefix differs
+  from one environment to the next.
+- **Then run a full indexation**, `wp meiliscout index --clear`. Until it is done, MeiliScout and the module keep
+  searching the index built by MeiliScout 1. Once done, `wp meiliscout delete-legacy-indexes` removes it.
+- MeiliScout serves `WP_Query` and `get_terms()` from the same index when its query integration is on (off by
+  default). With the module's narrowed `displayedAttributes`, `get_terms()` with `object_ids` and `WP_Query` with
+  `fields => 'id=>parent'` run on MySQL, as do `search_columns` on the excerpt or the content. To have them served by
+  Meilisearch, add `taxonomies` and `post_parent` to `meilifacets.displayed_attributes`, knowing the search key can
+  then read them.
+- MeiliScout's suggestion field (2.5, off until a field is declared) reads `post_title` and `thumbnail`, which the
+  module does not display: its suggestions would come back without a title or an image. It is not supported alongside
+  the module; the module's site search covers the same need.
+
 ## 0.2.4
 
 - **The drawer's « Filters » and the site search section's label are no longer headings**, but `<p>` elements: they
@@ -69,17 +92,6 @@ changes is in the [changelog](../CHANGELOG.md).
   gone: the old call fails the page. A copied `components/listing/price.blade.php` keeps working; `$isShown()` is
   there too.
 - **A copied `components/listing/drawer.blade.php`** never turns into a side sheet: copy it again.
-
-## Unreleased
-
-- **Update MeiliScout to `main` (2.0) first**: `composer update amphibee/meiliscout`. Its indexes are now prefixed with
-  `MEILI_INDEX_PREFIX`, or the site's domain: give the search key (`MEILI_SEARCH_KEY`) and the admin key access to
-  `<prefix>_posts` and `<prefix>_taxonomies`, as well as to `posts` while the migration is pending. Then run a full
-  indexation, `wp meiliscout index`: until it is done, searches keep reading the index built before.
-- MeiliScout 2.0 serves `WP_Query` and `get_terms()` from the same index. With the module's narrowed
-  `displayedAttributes`, `get_terms()` with `object_ids` and `WP_Query` with `fields => 'id=>parent'` run on MySQL, as
-  do `search_columns` on the excerpt or the content. To have them served by Meilisearch, add `taxonomies` and
-  `post_parent` to `meilifacets.displayed_attributes`, knowing the search key can then read them.
 
 ## 0.2.1
 
