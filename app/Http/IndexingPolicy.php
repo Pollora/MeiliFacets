@@ -36,7 +36,6 @@ final readonly class IndexingPolicy
         return [...$robots, 'noindex' => true, 'follow' => true];
     }
 
-    /** Yoast passes `null` for the posts page while it holds no permalink for it: there is nothing to correct then. */
     #[Filter('wpseo_canonical', priority: self::AFTER_YOAST_WOOCOMMERCE)]
     public function canonicalizeSecondaryViews(?string $canonical): ?string
     {

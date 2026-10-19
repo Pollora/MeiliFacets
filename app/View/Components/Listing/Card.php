@@ -31,7 +31,6 @@ class Card extends ContractComponent
     ) {
         $hooks = new CardHooks($binding);
 
-        // Blade hands attributes over as strings; from() rejects anything else.
         $this->heading = HeadingLevel::fromAttribute($heading)->value;
         $this->link = $hooks->link();
         $this->image = $hooks->image($priority);

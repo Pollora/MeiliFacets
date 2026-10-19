@@ -122,7 +122,7 @@ final class IndexingPolicyTest extends TestCase
         $this->assertSame('', $this->policy->canonicalFor('', ['pg' => '2']));
     }
 
-    /** Yoast's posts page has no canonical until its permalink is indexed; typed `string`, the filter broke the page. */
+    /** Yoast's posts page has no canonical until its permalink is indexed. */
     #[Test]
     public function it_hands_back_a_canonical_yoast_could_not_build(): void
     {
