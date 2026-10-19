@@ -104,7 +104,7 @@ Stored by MeiliScout in WordPress options, set from its admin screen.
 
 | What | Why it is fixed |
 | --- | --- |
-| The index name | MeiliScout's post index (`posts`). |
+| The index searched | The post index MeiliScout searches, `<prefix>posts` since MeiliScout 2.0: its prefix is set in MeiliScout (`MEILI_INDEX_PREFIX`, the `meiliscout/index_prefix` filter, or the site's domain by default), not in the module. |
 | Document field names (`facets`, `labels`, `card`, `price`…) | The client and the index settings read them. See [index settings](index-settings.md). |
 | `faceting.sortFacetValuesBy` | Always `count`, so the most frequent values survive the ceiling. |
 | The `48em` breakpoint of the stylesheets | Written in their media queries. |

@@ -11,12 +11,14 @@ use Modules\MeiliFacets\Search\BrowserConnection;
 use Modules\MeiliFacets\Search\DisjunctiveFacetCounter;
 use Modules\MeiliFacets\Search\EngineLimits;
 use Modules\MeiliFacets\Search\MeilisearchEngine;
-use Pollora\MeiliScout\Indexables\PostIndexable;
 use Pollora\MeiliScout\Services\ClientFactory;
+use Pollora\MeiliScout\Services\IndexNames;
 
 /** How a search is sent, and to which of the engine's two addresses. */
 final class SearchServiceProvider extends ServiceProvider
 {
+    private const string POST_INDEX_KEY = 'posts';
+
     public function register(): void
     {
         $this->app->bindIf(FacetCounter::class, DisjunctiveFacetCounter::class);
@@ -33,16 +35,23 @@ final class SearchServiceProvider extends ServiceProvider
     {
         return new MeilisearchEngine(
             ClientFactory::getSearchClient(),
-            new PostIndexable()->getIndexName(),
+            $this->searchedIndex(),
         );
     }
 
+    /** Pollora builds every hooked class at boot, before WordPress loads in a console command. */
     private function browser(): BrowserConnection
     {
-        return new BrowserConnection(
+        return lazy(BrowserConnection::class, fn (): array => [
             (string) config('meilifacets.browser.url', ''),
             (string) config('meilifacets.browser.key', ''),
-            new PostIndexable()->getIndexName(),
-        );
+            $this->searchedIndex(),
+        ]);
+    }
+
+    /** MeiliScout writes to a target index and searches the active one: they differ while a migration is pending. */
+    private function searchedIndex(): string
+    {
+        return IndexNames::active(self::POST_INDEX_KEY);
     }
 }

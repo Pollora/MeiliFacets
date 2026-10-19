@@ -25,10 +25,11 @@
     ],
     "require": {
         "php": "^8.4",
-        "amphibee/meiliscout": "dev-feat/meilifacets",
+        "amphibee/meiliscout": "^2.5.1",
         "composer/installers": "^2.0",
         "illuminate/console": "^13.35",
         "illuminate/contracts": "^13.35",
+        "illuminate/reflection": "^13.35",
         "illuminate/support": "^13.35",
         "illuminate/view": "^13.35",
         "league/uri": "^7.5"

@@ -9,6 +9,34 @@ What to change in a project when moving from one version to the next is in
 
 ## [Unreleased]
 
+Requires MeiliScout 2.5.1. Give the search key access to the prefixed indexes, then run `wp meiliscout index --clear`:
+see [docs/upgrading.md](docs/upgrading.md).
+
+### Changed
+
+- Requires MeiliScout `^2.5.1` instead of its `feat/meilifacets` branch: 2.5.0 loses the reindex of a product whose
+  variation changed (AmphiBee/MeiliScout#75). MeiliScout 2.5.1 brings `symfony/http-client` and `nyholm/psr7`. Since
+  MeiliScout 2.0, index names start with a prefix (`MEILI_INDEX_PREFIX`, or the site's domain). The project no longer
+  requires MeiliScout itself.
+- The posts index ranks by relevance before the chosen sort (`rankingRules`), as it did under MeiliScout 1:
+  since 2.0, MeiliScout ranks by the sort first.
+
+### Fixed
+
+- Listings search the index MeiliScout searches, its active one, and not the one it writes to: the two differ while a
+  migration is pending, as on a site updated from MeiliScout 1 until its first full indexation, and listings answered
+  `503` meanwhile. The browser is handed the same index.
+- A console command run without WordPress, such as `composer install`, no longer logs an error per hooked class of the
+  module: the browser connection reads the searched index when it is first used.
+
+### Added
+
+- Browser tests with Playwright, `npm run test:playwright`: facets, active values, price range, variant facet, sorts,
+  listing search, pagination, site search, on a desktop and on a phone. They run against the site in
+  `MEILIFACETS_PLAYWRIGHT_URL`, on the listing at `MEILIFACETS_PLAYWRIGHT_LISTING` and the category page at
+  `MEILIFACETS_PLAYWRIGHT_CATEGORY`, searching `MEILIFACETS_PLAYWRIGHT_TERM` and filtering on the variant taxonomy
+  `MEILIFACETS_PLAYWRIGHT_VARIANT_TAXONOMY`.
+
 ## [0.2.4](https://github.com/Pollora/MeiliFacets/releases/tag/0.2.4) - 2026-10-19
 
 Sixth beta, on accessibility. The drawer's title and the site search sections no longer add headings to the page; the

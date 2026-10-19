@@ -182,8 +182,9 @@ index does not search yet is refused by the engine, and the panel shows « Searc
 - **Adding a technical taxonomy to the order gives an empty field.** Documents carry no `labels` for
   `product_visibility`, `product_type`, `product_shipping_class` or `pos_product_visibility`, and that list is fixed in
   the module.
-- **Ranking is by field, then by Meilisearch's ranking rules.** The module changes neither the ranking rules nor the
-  matching strategy.
+- **Ranking is by field, then by Meilisearch's ranking rules.** The module ranks by relevance before a chosen sort:
+  it writes Meilisearch's default order (`words`, `typo`, `proximity`, `attributeRank`, `sort`, `wordPosition`,
+  `exactness`) through `meiliscout/post/ranking_rules`. It does not change the matching strategy.
 
 ## See also
 

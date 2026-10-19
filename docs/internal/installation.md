@@ -8,8 +8,8 @@ Voir aussi : [architecture.md](architecture.md) · [configuration.md](configurat
 ddev add-on get kevinquillen/ddev-meilisearch
 ```
 
-**La version n'est pas épinglée** : le local suit `latest` (`decisions.md`, « Version du moteur ») ; c'est
-la production, en 1.10.3, qui doit monter. Pour figer une version malgré tout :
+**La version n'est pas épinglée** : le local suit `latest` (`decisions.md`, « Version du moteur ») ; la
+préproduction est en 1.53. Pour figer une version malgré tout :
 
 ```bash
 ddev dotenv set .ddev/.env.meilisearch --meilisearch-tag vX.Y.Z
@@ -67,8 +67,8 @@ MEILI_SEARCH_KEY=
 Ces noms sont ceux déjà en place sur les autres projets AmphiBee : les reprendre tels quels,
 sans préfixe propre au module. MeiliScout lit `MEILI_HOST`, `MEILI_KEY` et `MEILI_SEARCH_KEY` par `getenv()`
 (`Config::get()`) ; la troisième sert aussi au **premier rendu**, côté PHP (`ClientFactory::getSearchClient()`).
-`MEILI_INDEX_NAME` et `MEILI_MATCHING_STRATEGY` ne sont lues par personne : l'index s'appelle toujours `posts`,
-en dur dans `PostIndexable::getIndexName()`.
+`MEILI_INDEX_NAME` et `MEILI_MATCHING_STRATEGY` ne sont lues par personne. L'index est nommé par MeiliScout 2,
+préfixé par `MEILI_INDEX_PREFIX` ou le domaine du site ; le module cherche dans l'index actif (`R-242`).
 
 ⚠️ **Le module ne lit pas l'environnement.** Il ne connaît que
 `config('meilifacets.browser.url')` et `.key` : c'est le `config/meilifacets.php` du projet qui
@@ -95,19 +95,17 @@ redémarrage. Recréée avec le même uid, elle retrouve exactement la même val
 
 ## 4. MeiliScout
 
-MeiliScout ne se requiert pas dans le projet : le `composer.json` du module le demande
-(`dev-feat/meilifacets`) et le `merge-plugin` du projet le fait remonter — y ajouter une autre branche, `dev-main`
-par exemple, rendrait la contrainte insatisfiable. Reste à l'activer :
+MeiliScout ne se requiert pas dans le projet : le `composer.json` du module le demande (`^2.5.1`, `R-242`) et le
+`merge-plugin` du projet le fait remonter. Une contrainte du projet qui l'exclut (l'ancienne `dev-feat/meilifacets`
+par exemple) rend l'installation insatisfiable. Reste à l'activer :
 
 ```bash
 ddev wp plugin activate meiliscout
 ```
 
 Le paquet déclare `"type": "wordpress-plugin"` : il s'installe dans `public/content/plugins`,
-pas dans `vendor/`. La branche `feat/meilifacets` n'est pas optionnelle : elle porte le correctif
-d'extensibilité (`R-39`) ; repasser à `dev-main` une fois la PR amont fusionnée (`decisions.md`, « Dépendance MeiliScout »).
-Le paquet ne publie aucune version taguée : committer `composer.lock` et relire la référence verrouillée avant
-toute mise à jour.
+pas dans `vendor/`. La 2.5.1 est la première version taguée qui porte tout ce dont le module a besoin : le correctif
+d'extensibilité (`R-39`) et la réindexation demandée pendant `shutdown` (AmphiBee/MeiliScout#75).
 
 ## 5. Sélection des contenus
 
@@ -191,13 +189,10 @@ le reste.
 | --- | --- |
 | Add-on ddev installé, service démarré et répondant | fait |
 | Variables d'environnement | fait |
-| Version épinglée sur celle de production | **non épinglé, décision assumée** — le local tourne en 1.53.1, la production en 1.10.3 |
+| Version épinglée | **non épinglé, décision assumée** — le local tourne en 1.53.1, la préproduction en 1.53 |
 | Fichiers de l'add-on versionnés | fait — `.ddev/docker-compose.meilisearch.yaml` et `.ddev/addon-metadata/meilisearch/` suivis |
 | MeiliScout installé | fait — via la dépendance du module, pas du projet |
 | Sélection des contenus | fait |
 | Première indexation | fait — 102 documents dans `posts`, dont 76 produits publiés |
 | Clé de recherche | créée, uid `37d11b08-9f5e-4529-b006-7666b4e4537e` — à conserver pour la recréer à l'identique |
 
-Conséquences de l'écart de version, tant qu'il dure : tout comportement validé en local reste à reconfirmer
-sur une instance 1.10.3 avant qu'on s'appuie dessus. Les attributs filtrables sont déjà déclarés un par un, et
-les facettes demandées par leur nom, sans motif `facets.*` — a priori compatibles, a priori seulement (`R-41`).

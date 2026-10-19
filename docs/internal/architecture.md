@@ -98,8 +98,7 @@ champs passent par le filtre, ses réglages par `getIndexSettings()`.
 
 Deux points à l'implémentation : le filtre `meiliscout/indexables` reçoit un tableau non
 associatif, donc la substitution se fait par `instanceof` et non par position ; et les motifs
-type `facets.*` dans les attributs filtrables datent de la 1.12, donc la liste doit être
-explicite tant que la production tourne en 1.10.3.
+type `facets.*` dans les attributs filtrables datent de la 1.12 ; la liste reste explicite.
 
 ### Quelles taxonomies sont projetées
 
