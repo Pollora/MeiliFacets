@@ -23,6 +23,8 @@ What to change in a project when moving from one version to the next is in
 
 ### Fixed
 
+- A page no longer fails while Yoast holds no permalink for the posts page: its `wpseo_canonical` filter passes `null`
+  there, which the module's canonical filter, typed `string`, refused.
 - The lists styled without bullets (results, facet values, sort radios, active filters) carry `role="list"`: Safari
   dropped their list role for VoiceOver.
 - A badge's count no longer inherits the letter spacing of its button, which set a lone digit off its centre.

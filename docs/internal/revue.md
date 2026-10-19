@@ -3315,6 +3315,27 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
+### R-241 · 🟠 · **fermé le 2026-10-19** · ouvert le 2026-10-19 — un canonique `null` de Yoast fait tomber la page
+
+**Constat** (2026-10-19, suite `Feature` de Pluralia). Un test qui rend le layout complet échoue dans la suite entière :
+`IndexingPolicy::canonicalizeSecondaryViews(): Argument #1 ($canonical) must be of type string, null given`. Yoast
+passe au filtre `wpseo_canonical` la valeur de sa présentation, et celle de la page des articles renvoie `$this->permalink`,
+`null` tant que l'indexable n'a pas d'URL (`indexable-static-posts-page-presentation.php:39`). Yoast, lui, convertit le
+résultat en chaîne à la sortie (`canonical-presenter.php:49`) : seul le filtre du module, typé, lève l'erreur, dans
+`wp_head()`, donc page en 500. En production : seulement tant que les indexables de Yoast n'ont pas l'URL de la page
+(base migrée, indexables pas encore construits).
+
+**Ce qui est fait.** Le filtre accepte et rend `?string` ; un canonique absent est rendu tel quel, avant tout calcul.
+`canonicalFor()` reste typée `string`. Les filtres `wpseo_next_rel_link`/`wpseo_prev_rel_link` reçoivent la balise déjà
+construite, toujours une chaîne : inchangés.
+
+**Passes.** *Nommage* : un test, `it_hands_back_a_canonical_yoast_could_not_build` ; rien à renommer. *Lisibilité* :
+un garde de plus, méthode à 7 lignes. *Commentaires* : une ligne (anomalie amont). *Performance* : rien. *Sécurité* :
+rien, aucune valeur nouvelle écrite. *Contexte et i18n* : rien.
+
+**Vérifié** : le test échoue sans le garde (`TypeError`) ; `composer check` vert (client 1014 tests), suite `Modules`
+1189 tests, suite `Feature` de Pluralia verte, le test du layout compris.
+
 ### R-240 · 🟡 · **fermé le 2026-10-19** · ouvert le 2026-10-19 — la carte rend de nouveau un titre, à un niveau qui suit le plan
 
 **Constat** (Louis, 2026-10-19, le jour même de `R-239` : « je ne suis finalement pas convaincu qu'enlever les titres
