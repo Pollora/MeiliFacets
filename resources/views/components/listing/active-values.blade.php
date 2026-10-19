@@ -1,7 +1,7 @@
 {{-- The client writes a pill's label before the button's own content: the mark after it is the theme's. --}}
 <div {{ $attributes->class('meilifacetsActiveValues') }} @if ($values === []) hidden @endif {{ $hook('active-values') }}>
     <span class="meilifacetsHidden">{{ __('Active filters') }}</span>
-    <ul class="meilifacetsActiveValueList">
+    <ul class="meilifacetsActiveValueList" role="list">
         @foreach ($values as $value)
             <li class="meilifacetsActiveValue">
                 <button type="button"

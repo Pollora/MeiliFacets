@@ -39,6 +39,15 @@ final class SortRadiosTest extends TestCase
         parent::tearDown();
     }
 
+    /** Styled without bullets, a list loses its role in Safari with VoiceOver: `role="list"` gives it back. */
+    #[Test]
+    public function it_keeps_the_sorts_a_list_without_their_bullets(): void
+    {
+        $sorts = $this->rendered('<x-meilifacets::listing.sort name="products" widget="radios" />')->querySelector('.meilifacetsFacetValues');
+
+        $this->assertSame('list', $sorts?->getAttribute('role'));
+    }
+
     #[Test]
     public function it_draws_one_radio_per_sort_with_the_one_in_force_checked(): void
     {

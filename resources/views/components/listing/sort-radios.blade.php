@@ -5,7 +5,7 @@
     <legend class="meilifacetsFacetLabel">{{ $caption->label }}</legend>
 @endif
     <div class="meilifacetsFacetPanel" id="{{ $panelId() }}"@if ($collapsible) hidden {{ $hook('panel') }}@endif>
-        <ul class="meilifacetsFacetValues">
+        <ul class="meilifacetsFacetValues" role="list">
             @foreach ($choices as $choice)
                 <li class="meilifacetsFacetValue" @if ($choice->hidden) hidden @endif {{ $hook('sort-choice-row') }}>
                     <label>

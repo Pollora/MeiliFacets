@@ -50,6 +50,13 @@ final class ResultsComponentTest extends TestCase
         $this->assertNotNull($card->querySelector('[data-meili="url"]'));
     }
 
+    /** Styled without bullets, a list loses its role in Safari with VoiceOver: `role="list"` gives it back. */
+    #[Test]
+    public function it_keeps_the_results_a_list_without_their_bullets(): void
+    {
+        $this->assertStringContainsString('<ul class="meilifacetsResults" role="list"', $this->render());
+    }
+
     #[Test]
     public function it_announces_the_outage_instead_of_an_empty_list(): void
     {
@@ -65,7 +72,7 @@ final class ResultsComponentTest extends TestCase
     {
         $html = $this->render(cards: []);
 
-        $this->assertStringContainsString('<ul class="meilifacetsResults" hidden', $html);
+        $this->assertStringContainsString('<ul class="meilifacetsResults" role="list" hidden', $html);
         $this->assertStringNotContainsString('class="meilifacetsResultsEmpty" hidden', $html);
     }
 

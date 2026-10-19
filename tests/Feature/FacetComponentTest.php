@@ -88,6 +88,15 @@ final class FacetComponentTest extends TestCase
         );
     }
 
+    /** Styled without bullets, a list loses its role in Safari with VoiceOver: `role="list"` gives it back. */
+    #[Test]
+    public function it_keeps_the_values_a_list_without_their_bullets(): void
+    {
+        $values = HTMLDocument::createFromString($this->renderOne(), LIBXML_NOERROR)->querySelector('.meilifacetsFacetValues');
+
+        $this->assertSame('list', $values?->getAttribute('role'));
+    }
+
     /** The fold button belongs to the panel: collapsing the facet must take it along. */
     #[Test]
     public function it_keeps_the_fold_button_inside_the_panel(): void

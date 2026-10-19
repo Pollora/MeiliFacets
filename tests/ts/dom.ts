@@ -155,7 +155,7 @@ const facetBlock = (taxonomy: string, name: string, label: string, values: strin
             <legend class="meilifacetsFacetLabel">${folding.legend(name, label)}</legend>
             <div class="meilifacetsFacetPanel" id="panel-${name}"${folding.panel}>
                 <div class="meilifacetsFacetPanelInner">
-                    <ul class="meilifacetsFacetValues">${values}</ul>
+                    <ul class="meilifacetsFacetValues" role="list">${values}</ul>
                     <button type="button" class="meilifacetsFacetMore" aria-expanded="false"
                             hidden data-meili="more">
                         <span data-meili="more-label">Show more</span>
@@ -233,7 +233,7 @@ ${priced ? priceBlock(folding) : ''}
     <p class="meilifacetsTotalStatus" aria-live="polite" aria-atomic="true" data-meili="total-status"></p>
     <div class="meilifacetsActiveValues" hidden data-meili="active-values">
         <span class="meilifacetsHidden">Active filters</span>
-        <ul class="meilifacetsActiveValueList">
+        <ul class="meilifacetsActiveValueList" role="list">
             <template data-meili="active-value-template">
                 <li class="meilifacetsActiveValue"><button type="button" data-meili="active-value"><span aria-hidden="true">✕</span></button></li>
             </template>
@@ -253,7 +253,7 @@ ${priced ? priceBlock(folding) : ''}
         </ul>
     </div>
 
-    <ul class="meilifacetsResults" data-meili="results"></ul>
+    <ul class="meilifacetsResults" role="list" data-meili="results"></ul>
     <p class="meilifacetsResultsEmpty" hidden data-meili="empty">
         <span data-meili="no-results">Nothing found</span>
         <span hidden data-meili="past-the-end">Nothing on this page</span>

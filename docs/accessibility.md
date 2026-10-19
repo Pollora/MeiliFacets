@@ -20,21 +20,21 @@ You want to…
 
 | Component | Pattern |
 | --- | --- |
-| Facet | a `<fieldset>` named by its `<legend>`; one native checkbox per value (a radio for a single-choice facet). Each box is named by the value's label (`aria-labelledby`) and described by its count (`aria-describedby`) |
+| Facet | a `<fieldset>` named by its `<legend>`; its values in a `role="list"`, one native checkbox per value (a radio for a single-choice facet). Each box is named by the value's label (`aria-labelledby`) and described by its count (`aria-describedby`) |
 | Facet count | written in words (« 14 results »), never a bare number. It describes the box rather than naming it: when it changes after a search, the name the screen reader is reading does not change under it |
 | Pill values (`data-presentation="pill"`) | the same boxes and counts, visually hidden by the stylesheet but still read: the pill is the box's label |
 | Value without results | hidden, unless its panel is open and the value is on screen: then it stays in place, marked `aria-disabled="true"` |
 | « Show more » | a button with `aria-expanded`; both its labels are rendered, the client shows the one that applies |
 | Collapsible section | the disclosure pattern: a `<button>` in the `<legend>`, with `aria-expanded` and `aria-controls` pointing at its panel. The number of values held is a badge that describes the button (`aria-describedby`) and is hidden from the reading order |
 | Sort, default | a select-only combobox: a `<button role="combobox" aria-haspopup="listbox">` named by the « Sort by » label and its own text (« Sort by, Price, low to high »), and a `role="listbox"` of `role="option"` items with `aria-selected`. The stylesheet hides the label visually; it still names the button |
-| Sort, `widget="radios"` | a `<fieldset>` of native radios |
+| Sort, `widget="radios"` | a `<fieldset>` of native radios, in a `role="list"` |
 | Price slider | two `<button role="slider">` handles, named « Lowest price » and « Highest price », with `aria-valuemin`, `aria-valuemax`, `aria-valuenow` and `aria-valuetext` (the amount with its currency) |
 | Price fields | two `<input type="number">` labelled « From » and « To »; the currency symbol and the dash are hidden from screen readers |
 | Pagination | a `<nav>` named « Pagination »; the page shown carries `aria-current="page"`. Pages are buttons, not links: nothing navigates |
-| Active filters | a visually hidden « Active filters », read just before a list of pills, and hidden with them when none is left; each filter is a button named « Remove the … filter » |
+| Active filters | a visually hidden « Active filters », read just before a `role="list"` of pills, and hidden with them when none is left; each filter is a button named « Remove the … filter » |
 | Clear all | a button; in its icon shape, named by `aria-label` |
 | Listing search | a `<form role="search">` named by `aria-label`; its `type="search"` field is named by a visually hidden `<label>`, not by `aria-label`; a « Clear the search » button |
-| Results | a list that carries `aria-busy="true"` while a search is out |
+| Results | a `role="list"` that carries `aria-busy="true"` while a search is out |
 | Engine unavailable | a message with `role="alert"` in place of the listing |
 
 ### Drawer
@@ -185,7 +185,8 @@ a view (see [Overriding views](/docs/customising/views.md)), keep:
 
 - every `id`, `for`, `aria-labelledby`, `aria-describedby`, `aria-controls` and `aria-label` the module's view
   writes, and the elements they point at;
-- the roles: `combobox`, `listbox`, `option`, `slider`, `search`, `alert`;
+- the roles: `combobox`, `listbox`, `option`, `slider`, `search`, `alert`, and `list` on every `<ul>` styled without
+  bullets — Safari drops the list role of such a list for VoiceOver, and the attribute gives it back;
 - `aria-expanded="false"`, `aria-selected` and `aria-current="page"` as rendered: the client updates them, it does
   not add them;
 - `<fieldset>` and `<legend>` around a facet's values, or another grouping with an accessible name;

@@ -7,7 +7,7 @@
         <span @unless ($pastTheEnd) hidden @endunless {{ $hook('past-the-end') }}>{{ __('There is nothing on this page.') }}</span>
     </p>
 
-    <ul class="meilifacetsResults" @if ($cards === []) hidden @endif {{ $hook('results') }}>
+    <ul class="meilifacetsResults" role="list" @if ($cards === []) hidden @endif {{ $hook('results') }}>
         @foreach ($cards as $card)
             <li class="meilifacetsResultsItem" {{ $hook('card') }}>
                 <x-dynamic-component

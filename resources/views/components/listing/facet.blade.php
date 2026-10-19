@@ -7,7 +7,7 @@
 @endif
     <div class="meilifacetsFacetPanel" id="{{ $panelId() }}"@if ($collapsible) hidden {{ $hook('panel') }}@endif>
         <div class="meilifacetsFacetPanelInner">
-            <ul class="meilifacetsFacetValues">
+            <ul class="meilifacetsFacetValues" role="list">
                 @foreach ($values as $value)
                     <li class="meilifacetsFacetValue" @if ($value->folded) hidden @endif {{ $hook('facet-value') }}>
                         <label>

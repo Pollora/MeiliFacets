@@ -72,6 +72,7 @@ final class ActiveValuesComponentTest extends TestCase
         $this->assertSame('meilifacetsHidden', $name->getAttribute('class'));
         $this->assertSame('Active filters', $name->textContent);
         $this->assertSame('UL', $name->nextElementSibling?->tagName);
+        $this->assertSame('list', $name->nextElementSibling->getAttribute('role'), 'styled without bullets, a list loses its role in Safari');
     }
 
     #[Test]

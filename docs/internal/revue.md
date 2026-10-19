@@ -3315,6 +3315,25 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
+### R-238 · 🟡 · **fermé le 2026-10-19** · ouvert le 2026-10-19 — les listes sans puces perdent leur rôle dans Safari
+
+**Constat** (audit d'accessibilité de `/journal`, relayé par Louis le 2026-10-19 : « la liste d'articles devrait
+utiliser des attributs role=list/listitem »). Les résultats sont déjà un `<ul>` de `<li>`, mais le module leur retire
+les puces (`list-style: none`) ; WebKit ne transmet alors plus le rôle de liste à VoiceOver. Même cas pour trois autres
+listes du module : valeurs d'une facette, tri en radios, pastilles des filtres actifs (`R-236`). Les deux autres `<ul>`
+(liste du tri, résultats de la recherche du site) portent déjà `role="listbox"`.
+
+**Ce qui est fait.** `role="list"` sur ces quatre `<ul>` ; `role="listitem"` non ajouté sur les `<li>`, qui le gardent
+dès que leur parent a retrouvé son rôle. Ajouté à « What to keep in an override » (`docs/accessibility.md`).
+
+**Passes.** *Nommage* : quatre tests, `it_keeps_the_… a_list_without_their_bullets` ; rien à renommer. *Lisibilité*,
+*Performance*, *Sécurité*, *Contexte et i18n* : rien, un attribut statique. *Commentaires* : une ligne de docblock sur
+chaque test (pourquoi l'attribut).
+
+**Vérifié** : `composer check` vert (client 1014 tests), suite `Modules` 1188 tests. Pages : `/journal` rend la liste des
+résultats en `role="list"`, `/boutique` les quatre (le thème ne surcharge aucune de ces vues). Non vérifié sur Safari
+avec VoiceOver.
+
 ### R-237 · 🟡 · **fermé le 2026-10-19** · ouvert le 2026-10-19 — le chiffre des badges n'est pas centré dans un bouton espacé
 
 **Constat** (Louis, 2026-10-19, capture « Marque 6 », « Besoin 3 » : « c'est pas centré »). Mesuré sur `/boutique`
