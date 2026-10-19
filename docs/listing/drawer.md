@@ -141,7 +141,6 @@ in the row and « Show more » is not shown. They do not filter without the clie
 
 | Attribute | Default | Effect |
 | --- | --- | --- |
-| `heading` | `h2` | the level of the sheet's title, `h2` to `h6` |
 | `media` | `(width < 48em)` | the media query under which the opener opens the sheet. See [Changing the breakpoint](#changing-the-breakpoint) |
 | `row-limit` | `meilifacets.drawer.row.limit`, else `5` | the number of filters shown at page load that its row holds from `48em`. See [Past the row limit](#past-the-row-limit) |
 | `row-overflow` | `meilifacets.drawer.row.overflow`, else `side-sheet` | past the limit, `side-sheet` or `show-more`. See [Past the row limit](#past-the-row-limit) |

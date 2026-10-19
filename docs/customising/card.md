@@ -171,7 +171,7 @@ final class ShopCard extends Component
             <p {{ $brand->attributes->class('shopCardBrand') }}>{{ $brand }}</p>
         @endif
         @if ($title->isPresent())
-            <h3 {{ $title->attributes->class('shopCardTitle') }}>{{ $title }}</h3>
+            <p {{ $title->attributes->class('shopCardTitle') }}>{{ $title }}</p>
         @endif
     </a>
     @if ($volume->isPresent())

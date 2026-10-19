@@ -38,7 +38,7 @@ An example: the listing card, with the price above the title.
             <p {{ $price->attributes->class('meilifacetsCardPrice') }}>{{ $price }}</p>
         @endif
         @if ($title->isPresent())
-            <{{ $heading }} {{ $title->attributes->class('meilifacetsCardTitle') }}>{{ $title }}</{{ $heading }}>
+            <p {{ $title->attributes->class('meilifacetsCardTitle') }}>{{ $title }}</p>
         @endif
     </a>
 </article>
@@ -72,7 +72,7 @@ from the listing's name). Those that belong to a search receive `$root` and `$id
 | --- | --- |
 | `listing` | `$contract` (the contract version attribute), `$applyMode` |
 | `listing/results` | `$cards`, `$items`, `$priority($rank)` |
-| `listing/card` | `$binding`, `$priority`, `$heading`, `$link`, `$image`, `$title`, `$price` |
+| `listing/card` | `$binding`, `$priority`, `$link`, `$image`, `$title`, `$price` |
 | `listing/facets` | `$needsApplyButton`, `$collapsible`, `$withApply`, `$unwrapped`, `$componentFor($filter)` |
 | `listing/facet` | `$facet`, `$values`, `$presentation`, `$collapsible`, `$inputType()`, `$inputName()`, `$panelId()`, `$labelId($value)`, `$countId($value)`, `$countLabel($value)`, `$disclosure()`, `$hasFoldedValues()`, `$isShown()`, `$isBeyondRow()`, `$marksPresentation()` |
 | `listing/price` | `$filter`, `$money`, `$collapsible`, `$bounds()`, `$handles()`, `$fill()`, `$readout()`, `$showsSlider()`, `$showsFields()`, `$isShown()`, `$isBeyondRow()`, `$panelId()`, `$disclosure()` |
@@ -83,7 +83,7 @@ from the listing's name). Those that belong to a search receive `$root` and `$id
 | `listing/active-values` | `$values` |
 | `listing/apply` | `$shape`, `$visibleInDrawer`, `$badge`, `$label()`, `$onlyInDrawer()` |
 | `listing/reset`, `listing/reset-icon` | `$shape`, `$hasNothingToClear()`, `$defaultIconUrl()` |
-| `listing/drawer` | `$drawerId`, `$titleId`, `$media`, `$heading`, `$rowLimit`, `$overflow()`, `$showsMore()`, slots `$footer`, `$showMore` |
+| `listing/drawer` | `$drawerId`, `$titleId`, `$media`, `$rowLimit`, `$overflow()`, `$showsMore()`, slots `$footer`, `$showMore` |
 | `listing/drawer-opener` | `$drawerId`, `$badge`, `$defaultIconUrl()`, slot `$icon` |
 | `listing/search` | `$action`, `$kept`, `$parameter`, `$term`, `$inputId`, `$maxLength`, `$label()` |
 | `search` | `$contract`, `$sectionTypes()`, slot `$icon` |

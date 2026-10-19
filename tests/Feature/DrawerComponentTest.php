@@ -69,7 +69,7 @@ final class DrawerComponentTest extends TestCase
         $close = $drawer->querySelector($this->hooked(Hook::DrawerClose));
 
         $this->assertInstanceOf(Element::class, $title);
-        $this->assertSame('h2', strtolower($title->localName));
+        $this->assertSame('p', strtolower($title->localName), 'the title names the sheet without adding a heading to the page');
         $this->assertSame('-1', $title->getAttribute('tabindex'));
         $this->assertNotSame('', $title->getAttribute('id'));
         $this->assertInstanceOf(Element::class, $close);
@@ -182,15 +182,14 @@ final class DrawerComponentTest extends TestCase
 
     /** Q-3: a theme with another threshold passes it, and restates the stylesheet block. */
     #[Test]
-    public function it_takes_another_threshold_and_another_heading_level(): void
+    public function it_takes_another_threshold(): void
     {
         $document = HTMLDocument::createFromString(
-            Blade::render('<x-meilifacets::listing.drawer name="products" media="(width < 64em)" heading="h3">Facets</x-meilifacets::listing.drawer>'),
+            Blade::render('<x-meilifacets::listing.drawer name="products" media="(width < 64em)">Facets</x-meilifacets::listing.drawer>'),
             LIBXML_NOERROR
         );
 
         $this->assertSame('(width < 64em)', $this->drawer($document)->getAttribute('data-media'));
-        $this->assertNotNull($document->querySelector('h3'.$this->hooked(Hook::DrawerTitle)));
     }
 
     #[Test]

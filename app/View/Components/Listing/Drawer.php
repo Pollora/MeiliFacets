@@ -6,7 +6,6 @@ namespace Modules\MeiliFacets\View\Components\Listing;
 
 use Illuminate\Container\Attributes\Config;
 use Illuminate\Contracts\View\View;
-use Modules\MeiliFacets\Enums\HeadingLevel;
 use Modules\MeiliFacets\Enums\RowOverflow;
 use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\View\Components\ListingComponent;
@@ -17,8 +16,6 @@ final class Drawer extends ListingComponent
     public const string MOBILE = '(width < 48em)';
 
     public const int ROW_LIMIT = 5;
-
-    public HeadingLevel $heading;
 
     private readonly RowOverflow $rowOverflow;
 
@@ -32,11 +29,9 @@ final class Drawer extends ListingComponent
         #[Config('meilifacets.drawer.row.overflow', RowOverflow::DEFAULT->value)] RowOverflow|string $rowOverflow,
         string $name = '',
         public string $media = self::MOBILE,
-        HeadingLevel|string $heading = HeadingLevel::H2,
     ) {
         parent::__construct($listings, $name);
 
-        $this->heading = HeadingLevel::fromAttribute($heading);
         $this->rowOverflow = RowOverflow::fromAttribute($rowOverflow);
     }
 

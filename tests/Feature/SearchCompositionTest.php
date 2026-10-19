@@ -127,7 +127,7 @@ final class SearchCompositionTest extends TestCase
             array_values(array_filter(iterator_to_array($section->childNodes), static fn ($node): bool => $node instanceof DOMElement)),
         );
 
-        $this->assertSame(['h2', 'search-see-all', 'search-results', 'search-card-template'], $order);
+        $this->assertSame(['p', 'search-see-all', 'search-results', 'search-card-template'], $order);
     }
 
     #[Test]
@@ -135,10 +135,11 @@ final class SearchCompositionTest extends TestCase
     {
         $section = $this->section($this->rendered('<x-meilifacets::search />'), 'post');
         $results = $this->hooked($section, 'search-results')[0];
-        $heading = $section->getElementsByTagName('h2')->item(0);
+        $heading = $section->getElementsByTagName('p')->item(0);
 
         $this->assertSame('listbox', $results->getAttribute('role'));
         $this->assertSame($heading?->getAttribute('id'), $results->getAttribute('aria-labelledby'));
+        $this->assertSame(0, new DOMXPath($section->ownerDocument)->query('.//h1|.//h2|.//h3|.//h4|.//h5|.//h6', $section)->length, 'a section names its list without adding a heading to the page');
         $this->assertCount(1, $this->hooked($section, 'search-count'));
     }
 

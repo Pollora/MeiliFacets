@@ -1,7 +1,7 @@
 <div {{ $attributes->class('meilifacetsDrawer') }} id="{{ $drawerId }}" data-media="{{ $media }}" @if ($overflow() !== null) data-overflow="{{ $overflow() }}" @endif {{ $hook('drawer') }}>
     <div class="meilifacetsDrawerSheet" {{ $hook('drawer-sheet') }}>
         <div class="meilifacetsDrawerHead">
-            <{{ $heading->value }} class="meilifacetsDrawerTitle" id="{{ $titleId }}" tabindex="-1" {{ $hook('drawer-title') }}>{{ __('Filters') }}</{{ $heading->value }}>
+            <p class="meilifacetsDrawerTitle" id="{{ $titleId }}" tabindex="-1" {{ $hook('drawer-title') }}>{{ __('Filters') }}</p>
             <button type="button" class="meilifacetsDrawerClose" aria-label="{{ __('Close the filters') }}" {{ $hook('drawer-close') }}>
                 <span aria-hidden="true">✕</span>
             </button>

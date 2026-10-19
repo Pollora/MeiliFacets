@@ -5,6 +5,21 @@ changes is in the [changelog](../CHANGELOG.md).
 
 0.1.0 was the first release, a beta; 0.2.0 is the second; 0.2.1 is the third; 0.2.2 is the fourth; 0.2.3 is the fifth.
 
+## Unreleased
+
+- **The module's components render no heading any more.** The card's title, the drawer's « Filters » and the site
+  search section's label are `<p>` elements. A theme stylesheet that selected them as `h2`/`h3` selects them by their
+  class (`meilifacetsCardTitle`, `meilifacetsDrawerTitle`, `meilifacetsSearchHeading`) or their hook.
+- **The `heading` attribute of `<x-meilifacets::listing.card>` and `<x-meilifacets::listing.drawer>` is removed, with
+  `Enums\HeadingLevel`.** Drop the attribute: left in place, it lands in the attribute bag and is written as is on
+  the `<article>` or the drawer's `<div>`; a class extending `Listing\Card` calls
+  `parent::__construct($binding, $priority)`. A view override of `listing/card` or `listing/drawer` that wrote
+  `$heading` copies the view again.
+- **`<x-meilifacets::listing.active-values>` renders a `<div>`**, holding a visually hidden « Active filters » and the
+  `<ul>` of pills: an attribute bag lands on the `<div>`. A view override keeps the `<template>` inside the element
+  that holds the pills.
+- **Run `php artisan module:publish MeiliFacets`**: the stylesheets and the browser script changed.
+
 ## 0.2.3
 
 - **Run `wp meiliscout index` once.** The product listing now follows WooCommerce's « Default product sorting », and

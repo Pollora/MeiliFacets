@@ -48,7 +48,8 @@ modal dialog: a bottom sheet on small screens, a side sheet on wide ones:
   The dialog holds the filters past the row; what stays in the row remains in sight, inert, and the focus goes back
   to « Show more » on close. Crossed below the breakpoint while open, it becomes the bottom sheet with every filter,
   and the focus goes back to the opener on close;
-- open, the drawer takes `role="dialog"`, `aria-modal="true"` and `aria-labelledby` pointing at its title;
+- open, the drawer takes `role="dialog"`, `aria-modal="true"` and `aria-labelledby` pointing at its title, a `<p>`:
+  it names the sheet without adding « Filters » to the page's headings;
 - everything around it, up to `<body>`, is made `inert`, and the page stops scrolling;
 - the close button is named « Close the filters »; the drag handle is hidden from screen readers;
 - crossing the breakpoint while it is open turns it back into ordinary content, without the dialog role; a side sheet
@@ -64,7 +65,7 @@ From `48em` within the row limit, or without JavaScript, the drawer is ordinary 
 - The field is an editable combobox: `<input type="search" role="combobox" aria-autocomplete="list">`. The client
   writes `aria-controls` (the result lists of the sections placed), `aria-expanded` (true while results are shown)
   and `aria-activedescendant` (the result the arrows reached).
-- Each section is a heading and a `role="listbox"` named by that heading. Each result is a `role="option"` holding
+- Each section is a label (a `<p>`, not a heading) and a `role="listbox"` named by that label. Each result is a `role="option"` holding
   one link.
 - The matched words are wrapped in `<mark>`. A result's thumbnail is decorative (`alt=""`): the link already reads
   the title. A listing card keeps its image's text alternative.
@@ -202,7 +203,8 @@ a view (see [Overriding views](/docs/customising/views.md)), keep:
 - **Without JavaScript, the listing is readable but inert.** The page is complete as the server renders it, but
   facets, sort and pagination are buttons and boxes that do nothing. The listing search field is a real form and still
   works. The site search magnifier does nothing without its client.
-- **Your own card is yours to make accessible.** The module's card is a link around the image and the title. A card
+- **Your own card is yours to make accessible.** The module's card is a link around the image and the title, which is
+  not a heading: the module's components add no heading to the page, its outline stays the theme's. A card
   with a second link (add to cart) needs a name that says which product it acts on.
 - **A theme that sets `display` on a hooked element** can show what the client hid. Keep
   `[data-meili][hidden] { display: none !important; }` if you drop the stylesheet.

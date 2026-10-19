@@ -7,7 +7,6 @@ namespace Modules\MeiliFacets\Tests\Feature;
 use Dom\Element;
 use Dom\HTMLDocument;
 use Illuminate\Support\Facades\Blade;
-use Illuminate\View\ViewException;
 use Modules\MeiliFacets\Enums\CardField;
 use Modules\MeiliFacets\Enums\ImagePriority;
 use Modules\MeiliFacets\View\CardBinding;
@@ -176,24 +175,14 @@ final class CardComponentTest extends TestCase
         $this->assertNull($card->querySelector('[data-meili]'));
     }
 
+    /** A list of cards is not an outline: the page's headings stay the sections that hold them. */
     #[Test]
-    public function it_takes_the_heading_level_its_context_needs(): void
+    public function it_titles_the_card_without_a_heading(): void
     {
-        $card = $this->document($this->render([CardField::Title->value => 'Serum'], ['heading' => 'h4']));
+        $card = $this->document($this->render([CardField::Title->value => 'Serum']));
 
-        $this->assertSame('Serum', $card->querySelector('h4.meilifacetsCardTitle[data-meili="title"]')?->textContent);
-    }
-
-    #[Test]
-    public function it_refuses_a_heading_that_would_open_any_other_tag(): void
-    {
-        $this->expectException(ViewException::class);
-        $this->expectExceptionMessageMatches('/not a valid backing value/');
-
-        Blade::render(
-            '<x-meilifacets::listing.card :binding="$binding" :heading="$heading" />',
-            ['binding' => CardBinding::of([]), 'heading' => 'script src=x']
-        );
+        $this->assertSame('Serum', $card->querySelector('p.meilifacetsCardTitle[data-meili="title"]')?->textContent);
+        $this->assertNull($card->querySelector('h1, h2, h3, h4, h5, h6'));
     }
 
     #[Test]
@@ -235,8 +224,8 @@ final class CardComponentTest extends TestCase
     private function render(array $card, array $props = []): string
     {
         return Blade::render(
-            '<x-meilifacets::listing.card :binding="$binding" :heading="$heading" :priority="$priority" />',
-            ['binding' => CardBinding::of($card), 'heading' => 'h3', 'priority' => ImagePriority::Lazy, ...$props]
+            '<x-meilifacets::listing.card :binding="$binding" :priority="$priority" />',
+            ['binding' => CardBinding::of($card), 'priority' => ImagePriority::Lazy, ...$props]
         );
     }
 

@@ -9,6 +9,25 @@ What to change in a project when moving from one version to the next is in
 
 ## [Unreleased]
 
+### Changed
+
+- The module's components render no heading: the card's title, the drawer's « Filters » and the site search
+  section's label are `<p>` elements, so the page's outline stays the theme's.
+- `<x-meilifacets::listing.active-values>` renders a `<div>` holding a visually hidden « Active filters » and the
+  `<ul>` of pills, instead of a `<ul>` named by `aria-label`.
+- The listing search field is named by a visually hidden `<label>` instead of an `aria-label`.
+
+### Removed
+
+- The `heading` attribute of `<x-meilifacets::listing.card>` and `<x-meilifacets::listing.drawer>`, and
+  `Enums\HeadingLevel`.
+
+### Fixed
+
+- The lists styled without bullets (results, facet values, sort radios, active filters) carry `role="list"`: Safari
+  dropped their list role for VoiceOver.
+- A badge's count no longer inherits the letter spacing of its button, which set a lone digit off its centre.
+
 ## [0.2.3](https://github.com/Pollora/MeiliFacets/releases/tag/0.2.3) - 2026-10-16
 
 Fifth beta. The product listing follows WooCommerce's default product sorting; past the drawer's row limit, a theme can

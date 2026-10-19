@@ -19,7 +19,7 @@ You want to…
 - The field is a combobox. Each pause in typing sends one request from the browser to Meilisearch, with one
   sub-query per section: no WordPress request is involved.
 - The panel shows one section per content type: products, posts, pages, any custom post type that is indexed. Each
-  section has its heading, a result count, its results and a « see all » link.
+  section has its label, a result count, its results and a « see all » link.
 - The « see all » link points at the type's archive with the typed term in `?q=`. For products, it leads to the shop
   listing with the search already applied: `https://projet.ddev.site/shop/?q=creme`.
 - ↓ and ↑ move through the results of every section, in the order the sections are placed. Enter follows the

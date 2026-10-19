@@ -46,7 +46,7 @@ Every brick accepts an attribute bag: `class` and other HTML attributes land on 
 | `<x-meilifacets::search.toggle>` | `name`, slot `icon` | the magnifier: a `<button>` with `aria-expanded` and `aria-controls` pointing at the panel |
 | `<x-meilifacets::search.panel>` | `name` | a `<div role="search" hidden>` holding its slot, then a visually hidden live region that announces the results |
 | `<x-meilifacets::search.input>` | `name`; the attribute bag goes on the `<input>` | a wrapper that carries the field's magnifier and stays stuck at the top of the scrolling panel, around an `<input type="search" role="combobox">` |
-| `<x-meilifacets::search.section>` | `type` (required), `limit`, `name` | the type's heading and count, the « see all » link to its archive (absent when the type has none), a `role="listbox"` list named by the heading, and the `<template>` of its result card |
+| `<x-meilifacets::search.section>` | `type` (required), `limit`, `name` | the type's label (a `<p>`, not a heading) and count, the « see all » link to its archive (absent when the type has none), a `role="listbox"` list named by the heading, and the `<template>` of its result card |
 | `<x-meilifacets::search.empty-state>` | — | « Nothing matches your search », shown when no section found anything |
 | `<x-meilifacets::search.unavailable>` | — | « Search unavailable », shown when the engine or the client cannot be reached |
 | `<x-meilifacets::search.card>` | — | the result card, rendered empty inside each section's `<template>`; the client fills one per result |

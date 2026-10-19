@@ -66,7 +66,7 @@ overridden from `<theme>/resources/views/modules/meilifacets/` under the same pa
 | `name` | `search.toggle`, `search.panel`, `search.input`, `search.section` | `string`, default `''`: the only `<x-meilifacets::search>` rendered so far on the page. |
 | `scroll` | `listing.facets`, `listing.facet`, `listing.price`, `listing.sort`, `listing.pagination`, `listing.reset` | `bool`, default `false`. Renders `data-meili-scroll`: a pointer click on a control inside brings the top of the listing back into view. See [hooks](hooks.md#version-and-scroll-attributes). |
 | Attribute bag | per component, column “Bag lands on” | Attributes the class does not declare (`class`, `id`, `data-*`…) are merged on that element. “Nowhere” means they are dropped without a message. |
-| Variant attributes | `heading`, `shape`, `widget`, `presentation` | Accept the string value, or the enum case when bound (`:shape="ResetShape::Icon"`). An unknown string throws a `ValueError`. |
+| Variant attributes | `shape`, `widget`, `presentation` | Accept the string value, or the enum case when bound (`:shape="ResetShape::Icon"`). An unknown string throws a `ValueError`. |
 | Boolean attributes | `scroll`, `collapsible`, `with-apply`, `visible-in-drawer` | Write the bare attribute for `true`; bind (`:with-apply="false"`) for `false`. |
 | Inside the root | every listing brick, every search brick | A brick must sit inside its root element (`<x-meilifacets::listing>` or `<x-meilifacets::search>`): outside it, it renders but the client never binds it. |
 
@@ -107,7 +107,6 @@ One result card, rendered on the server. The same view serves the card template.
 | Attribute | Type | Default | Values |
 | --- | --- | --- | --- |
 | `binding` | `CardBinding` | required | `CardBinding::of($card)`, `$card` being the `card` field of a document (see [index settings](index-settings.md#card-fields)) |
-| `heading` | `HeadingLevel` or `string` | `h3` | `h2`, `h3`, `h4`, `h5`, `h6` |
 | `priority` | `ImagePriority` | `ImagePriority::Lazy` | `ImagePriority::Eager`, `ImagePriority::Lazy`; bind it (`:priority`), no string form |
 
 | Slots | Bag lands on | Hooks rendered |
@@ -115,7 +114,8 @@ One result card, rendered on the server. The same view serves the card template.
 | none | `<article>` | `url` (on the `<a>`), `image`, `title`, `price` |
 
 The view receives `$binding` (a `CardBinding`: `text()`, `price()`, `attributes()`, `classes()`, `classList()`,
-`onlyWith()`, `onlyWithout()`), `$link`, `$image`, `$title`, `$price`, `$heading` and `$priority`. An image, title or
+`onlyWith()`, `onlyWithout()`), `$link`, `$image`, `$title`, `$price` and `$priority`. The title is a
+`<p>`, not a heading: a list of cards adds nothing to the page's outline. An image, title or
 price the card does not hold is not rendered. See [Overriding views](../customising/views.md).
 
 ### `<x-meilifacets::listing.facets>`
@@ -299,7 +299,6 @@ either a modal side sheet (`row-overflow="side-sheet"`) or a row of its first fi
 | --- | --- | --- | --- |
 | `name` | `string` | `''` | |
 | `media` | `string` | `(width < 48em)` | a media query; the stylesheet's own breakpoints do not follow it |
-| `heading` | `HeadingLevel` or `string` | `h2` | `h2` to `h6`, for the “Filters” title |
 | `row-limit` | `int` | `meilifacets.drawer.row.limit`, else `5` | the number of filters shown at page load that its row holds from `48em` |
 | `row-overflow` | `RowOverflow` or `string` | `meilifacets.drawer.row.overflow`, else `side-sheet` | past the limit: `side-sheet` (every filter in a side sheet behind the opener), `show-more` (the first filters stay in the row, « Show more » opens the drawer as the side sheet with the filters past them) |
 
@@ -385,7 +384,7 @@ The search field, a combobox, inside a wrapper.
 
 ### `<x-meilifacets::search.section>`
 
-The results of one content type: heading with count, “See all” link when the type has an archive, result list
+The results of one content type: its label (a `<p>`, not a heading) with count, “See all” link when the type has an archive, result list
 and card template. One section per type per root.
 
 | Attribute | Type | Default | Values |

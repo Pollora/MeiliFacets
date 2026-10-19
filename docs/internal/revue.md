@@ -3315,6 +3315,29 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
+### R-239 · 🟡 · **fermé le 2026-10-19** · ouvert le 2026-10-19 — les composants du module ajoutent des titres au plan de la page
+
+**Constat** (Louis, 2026-10-19, plan d'une page de catégorie : « H2: Produits, H2: Articles, H1: Visage, H2: Filtres,
+H3: Contour des Yeux Liftant… » ; « les cards ne doivent pas avoir de heading »). Les sections du panneau de recherche
+(`h2` en dur), rendues dans le header, précèdent le `H1` ; le titre du tiroir est un `h2` par défaut ; la carte du
+module un `h3`. Le module ne peut pas connaître le niveau juste : il dépend de l'endroit où le thème le pose.
+
+**Ce qui est fait.** Décision « Titres dans les composants » (`decisions.md`) : les trois deviennent des `<p>`, avec
+leurs classes, ids et crochets. Attribut `heading` retiré de `Listing\Card` et `Listing\Drawer`, `HeadingLevel`
+supprimée. La règle du libellé de recherche passe de `[data-meili="search-section"] h2` à
+`[data-meili="search-section"] > p` (seul `<p>` enfant de la section). Changelog et `upgrading.md` (section
+« Unreleased »), qui reprennent aussi `R-236`/`R-237`/`R-238`, livrés sans entrée.
+
+**Passes.** *Nommage* : rien renommé ; `meilifacetsSearchHeading`, `$headingId`, `SearchableType::heading` gardent
+« heading » au sens du texte qui intitule la section, qui nomme toujours sa liste. Tests : `it_titles_the_card_without_a_heading`,
+`it_takes_another_threshold` (ex-`…_and_another_heading_level`). *Lisibilité* : deux constructeurs raccourcis.
+*Commentaires* : un commentaire retiré (`from()` et les chaînes de Blade, devenu sans objet). *Performance*, *Sécurité*,
+*Contexte et i18n* : rien.
+
+**Vérifié** : `composer check` vert (client 1014 tests), suite `Modules` 1187 tests. `/boutique` : plus de titre
+« Produits », « Articles » ni « Filtres » ; le libellé garde son style. Le thème de Pluralia importait `HeadingLevel`
+(cartes du Journal) : accueil et `/journal` en 500 jusqu'à son commit, qui suit.
+
 ### R-238 · 🟡 · **fermé le 2026-10-19** · ouvert le 2026-10-19 — les listes sans puces perdent leur rôle dans Safari
 
 **Constat** (audit d'accessibilité de `/journal`, relayé par Louis le 2026-10-19 : « la liste d'articles devrait

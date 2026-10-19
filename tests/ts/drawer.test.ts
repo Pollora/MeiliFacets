@@ -57,7 +57,7 @@ const drawerMarkup = ({ close = true, apply = 'submit' }: { close?: boolean, app
     <div class="meilifacetsDrawer" id="drawer" data-media="(width < 48em)" data-meili="drawer">
         <div class="meilifacetsDrawerSheet" data-meili="drawer-sheet">
             <div class="meilifacetsDrawerHead">
-                <h2 class="meilifacetsDrawerTitle" id="drawer-title" tabindex="-1" data-meili="drawer-title">Filters</h2>
+                <p class="meilifacetsDrawerTitle" id="drawer-title" tabindex="-1" data-meili="drawer-title">Filters</p>
                 ${close ? '<button type="button" class="meilifacetsDrawerClose" aria-label="Close the filters" data-meili="drawer-close"><span aria-hidden="true">✕</span></button>' : ''}
             </div>
             ${close ? '<div class="meilifacetsDrawerHandle" aria-hidden="true" data-meili="drawer-close"></div>' : ''}

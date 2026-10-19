@@ -69,7 +69,6 @@ document, written at indexing time: the browser never asks WordPress for anythin
 | Attribute | Type | Default | Effect |
 | --- | --- | --- | --- |
 | `binding` | `CardBinding` | required | `CardBinding::of($card)`, the card data of one document |
-| `heading` | `h2` to `h6`, or a `HeadingLevel` case | `h3` | the level of the title |
 | `priority` | `ImagePriority` | `ImagePriority::Lazy` | `Eager` loads the image at once with `fetchpriority="high"`, `Lazy` defers it |
 
 The attribute bag lands on the `<article>`.

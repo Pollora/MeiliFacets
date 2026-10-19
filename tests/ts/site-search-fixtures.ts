@@ -34,7 +34,7 @@ export const searchDescribed = (partial: Partial<SiteSearchDescription> = {}): S
 
 export const searchSection = (postType: string, limit: number | null = null) => `
         <div data-meili="search-section" data-type="${postType}"${limit === null ? '' : ` data-limit="${limit}"`} hidden>
-            <h2 id="heading-${postType}">${postType} <span data-meili="search-count"></span></h2>
+            <p id="heading-${postType}">${postType} <span data-meili="search-count"></span></p>
             <a href="https://example.test/${postType}" data-meili="search-see-all">All</a>
             <ul id="results-${postType}" role="listbox" aria-labelledby="heading-${postType}" data-meili="search-results"></ul>
             <template data-meili="search-card-template">
@@ -141,7 +141,7 @@ const rearrangedSection = (postType: string, limit: number) => `
             <ul id="results-${postType}" role="listbox" aria-labelledby="heading-${postType}" data-meili="search-results"></ul>
             <footer>
                 <a href="https://example.test/${postType}" data-meili="search-see-all">All</a>
-                <h3 id="heading-${postType}"><span data-meili="search-count"></span> ${postType}</h3>
+                <p id="heading-${postType}"><span data-meili="search-count"></span> ${postType}</p>
             </footer>
             <template data-meili="search-card-template">
                 <li role="option" data-meili="card">
