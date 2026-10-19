@@ -4,14 +4,14 @@ This page lists, for each release, what a project has to change when it updates 
 changes is in the [changelog](../CHANGELOG.md).
 
 0.1.0 was the first release, a beta; 0.2.0 is the second; 0.2.1 is the third; 0.2.2 is the fourth; 0.2.3 is the fifth;
-0.2.4 is the sixth.
+0.2.4 is the sixth; 0.3.0 is the seventh.
 
-## Unreleased
+## 0.3.0
 
-- **Update MeiliScout to 2.5.1 first.** A project that requires `amphibee/meiliscout:dev-feat/meilifacets` itself, as
-  the installation of earlier versions asked, replaces that constraint: `composer require amphibee/meiliscout:^2.5.1 -W`,
-  or removes it and runs `composer update pollora/meilifacets -W`. MeiliScout 2.5.1 adds `symfony/http-client` and
-  `nyholm/psr7` to the project.
+- **Require `pollora/meilifacets:^0.3`, which brings MeiliScout 2.5.1.** Below 1.0, `^0.2` does not reach 0.3. A
+  project that requires `amphibee/meiliscout:dev-feat/meilifacets` itself, as the installation of earlier versions
+  asked, removes that constraint from its `composer.json` first, then runs `composer require pollora/meilifacets:^0.3 -W`.
+  MeiliScout 2.5.1 adds `symfony/http-client` and `nyholm/psr7` to the project.
 - **Give the search key access to the prefixed indexes before indexing.** Since MeiliScout 2.0, an index name
   starts with a prefix, `MEILI_INDEX_PREFIX` or the site's domain: on `shop.example.com`, `shop_example_com_posts`. The key in
   `MEILI_SEARCH_KEY` searches for PHP and for the browser alike; a key restricted to `posts` gets a `403` on the new

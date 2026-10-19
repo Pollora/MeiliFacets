@@ -9,8 +9,13 @@ What to change in a project when moving from one version to the next is in
 
 ## [Unreleased]
 
-Requires MeiliScout 2.5.1. Give the search key access to the prefixed indexes, then run `wp meiliscout index --clear`:
-see [docs/upgrading.md](docs/upgrading.md).
+## [0.3.0](https://github.com/Pollora/MeiliFacets/releases/tag/0.3.0) - 2026-10-19
+
+Seventh beta, on MeiliScout 2.5.1, the first tagged release of MeiliScout the module can require: a project no longer
+requires a MeiliScout branch itself. MeiliScout 2 names its indexes with a prefix, so every environment needs a new
+search key on the prefixed indexes and a full indexation, `wp meiliscout index --clear`: see
+[docs/upgrading.md](docs/upgrading.md). Listings render and rank as before; browser tests with Playwright come with the
+module.
 
 ### Changed
 
@@ -36,6 +41,25 @@ see [docs/upgrading.md](docs/upgrading.md).
   `MEILIFACETS_PLAYWRIGHT_URL`, on the listing at `MEILIFACETS_PLAYWRIGHT_LISTING` and the category page at
   `MEILIFACETS_PLAYWRIGHT_CATEGORY`, searching `MEILIFACETS_PLAYWRIGHT_TERM` and filtering on the variant taxonomy
   `MEILIFACETS_PLAYWRIGHT_VARIANT_TAXONOMY`.
+
+### Known issues
+
+- A facet declared with `SelectionMode::Single` hides its other values once one is picked
+  ([#4](https://github.com/Pollora/MeiliFacets/issues/4)).
+- A failed search in the browser shows no message, and the URL and controls keep the filter that was not applied
+  ([#5](https://github.com/Pollora/MeiliFacets/issues/5)).
+- Saving a product used to re-index it once per meta WooCommerce writes, each pass resending the index settings.
+  MeiliScout 2.5 sends the writes of a request once, at its end, and resends the settings only when they change; this
+  has not been measured with the module yet.
+- MeiliScout's *Relevance* screen has no effect: the module writes its own searched fields at every indexation.
+- MeiliScout's suggestion field is not supported alongside the module: it reads fields the module does not display.
+- On a WooCommerce attribute archive (`/pa_volume/400ml/`), the card does not show the variant of the term browsed.
+  Attribute archives are outside the module's scope: leave « Enable archives? » unchecked.
+- A product whose variants share a term counts once per variant under that term.
+- Past the row limit on a wide screen, the side sheet needs the browser client: when it does not start, the
+  « Filters » or « Show more » button opens nothing.
+- A theme that moves the drawer's `media` past `48em` also redeclares the side sheet block.
+- « Popularity » and « Average rating » cannot be the listing's default order yet.
 
 ## [0.2.4](https://github.com/Pollora/MeiliFacets/releases/tag/0.2.4) - 2026-10-19
 

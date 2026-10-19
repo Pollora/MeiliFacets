@@ -3320,7 +3320,7 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
-### R-243 · 🟡 · ouvert · ouvert le 2026-10-19 — la suite `Feature` sous MeiliScout 1 noyait le Meilisearch local
+### R-243 · 🟡 · ouvert, **reporté après la 0.3.0** · ouvert le 2026-10-19 — la suite `Feature` sous MeiliScout 1 noyait le Meilisearch local
 
 **Constat** (mesuré le 2026-10-19, pendant `R-242`). Le Meilisearch local avait **165 283 tâches en attente**, la plus
 ancienne du 2026-10-15 à 14:53 UTC, traitées à environ 1,6 par seconde (environ 28 h de retard) ; base de 4,4 Go.
@@ -3340,6 +3340,9 @@ puis `wp meiliscout index --clear` (4 s) : 75 documents (66 produits, 2 variante
 regroupe les écritures en fin de requête (`shutdown`) ; les produits de test sont supprimés avant. Reste à vérifier sur
 plusieurs exécutions, et à décider si `KeepsTheIndexOut` doit couvrir toute la suite plutôt que onze classes. Ne bloque
 pas `R-242`.
+
+*Décidé le 2026-10-19 (Louis)* : reporté après la 0.3.0. Sous MeiliScout 2.5, la suite `Modules` a envoyé 0 tâche ;
+reste à le confirmer sur plusieurs exécutions, puis à fermer ou à étendre `KeepsTheIndexOut`.
 
 ### R-242 · 🟠 · ouvert · ouvert le 2026-10-08 (PR #13, d'abord sous `R-224`, numéro déjà pris sur main) — MeiliScout 2.5.1 : dépendance sur un tag stable, le module cherche dans l'index actif
 

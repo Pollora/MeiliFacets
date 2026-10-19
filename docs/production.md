@@ -174,7 +174,7 @@ re-check the listing and the search after upgrading the engine.
 
 The browser queries Meilisearch directly, so `browser.key` is printed in every page that holds a listing or a search.
 It must be a **search-only key**, restricted to the `search` action on the site's prefixed indexes (`<prefix>*`, see
-[Upgrading](upgrading.md#unreleased)), which differ from one environment to the next. **Never the master key**,
+[Upgrading](upgrading.md#030)), which differ from one environment to the next. **Never the master key**,
 and never `MEILI_KEY`, which can write to the index.
 
 Create it once with the master key:

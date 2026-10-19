@@ -29,7 +29,7 @@ You want to…
 ## Installation
 
 ```bash
-composer require pollora/meilifacets:^0.2 -W
+composer require pollora/meilifacets:^0.3 -W
 ```
 
 MeiliScout 2.5.1 or later comes with the module. The project's `composer.json` needs
@@ -184,7 +184,7 @@ The `Feature` tests render Blade views and need a host application. Run them fro
 is installed, with a PHPUnit suite that includes `Modules/MeiliFacets/tests/Feature`.
 
 Commits follow [Conventional Commits](https://www.conventionalcommits.org/). Before opening a pull request,
-`composer check` and the `Feature` tests should both pass. The current release is 0.2.4, a beta: see the
+`composer check` and the `Feature` tests should both pass. The current release is 0.3.0, a beta: see the
 [changelog](CHANGELOG.md).
 
 ## Contributing
