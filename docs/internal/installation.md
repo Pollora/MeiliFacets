@@ -194,5 +194,5 @@ le reste.
 | MeiliScout installé | fait — via la dépendance du module, pas du projet |
 | Sélection des contenus | fait |
 | Première indexation | fait — 102 documents dans `posts`, dont 76 produits publiés |
-| Clé de recherche | créée, uid `37d11b08-9f5e-4529-b006-7666b4e4537e` — à conserver pour la recréer à l'identique |
+| Clé de recherche | recréée le 2026-10-19 sur les index préfixés (`<préfixe>*`, `R-242`) ; l'ancienne, limitée à `posts`, est supprimée |
 

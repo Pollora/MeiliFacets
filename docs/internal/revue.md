@@ -3344,7 +3344,7 @@ pas `R-242`.
 *Décidé le 2026-10-19 (Louis)* : reporté après la 0.3.0. Sous MeiliScout 2.5, la suite `Modules` a envoyé 0 tâche ;
 reste à le confirmer sur plusieurs exécutions, puis à fermer ou à étendre `KeepsTheIndexOut`.
 
-### R-242 · 🟠 · ouvert · ouvert le 2026-10-08 (PR #13, d'abord sous `R-224`, numéro déjà pris sur main) — MeiliScout 2.5.1 : dépendance sur un tag stable, le module cherche dans l'index actif
+### R-242 · 🟠 · **fermé le 2026-10-19** · ouvert le 2026-10-08 (PR #13, d'abord sous `R-224`, numéro déjà pris sur main) — MeiliScout 2.5.1 : dépendance sur un tag stable, le module cherche dans l'index actif
 
 **Constat.** Le module dépendait de la branche `feat/meilifacets` de MeiliScout (commit `ef2bd18`, du 2026-10-06), 175
 commits derrière le tag 2.5.0 (2026-10-15), qui la contient. Mesuré le 2026-10-19 sur le projet de test (Meilisearch 1.53.1,
@@ -3440,10 +3440,17 @@ filtres combinés) : identiques. La page `/?s=` n'a pas été comparée. Temps d
 médiane 409 à 595 ms selon la page ; non mesuré sur l'ancienne. Incident : `composer install` refuse le verrou à
 alias de l'hôte, site local en `500` quelques minutes ; rétabli par `composer update amphibee/meiliscout`.
 
-**Reste avant fermeture.** Feu vert de Louis pour committer et pousser la PR #13 rebasée ; dans le projet de test, après une
-version du module, `amphibee/meiliscout` passe à `^2.5.1` (alias local `2.5.1 as dev-feat/meilifacets` en attendant,
-non commité), nouvelle clé de recherche par environnement, `wp meiliscout index --clear`, puis
-`wp meiliscout delete-legacy-indexes`.
+*Fermé le 2026-10-19.* Préproduction (Meilisearch 1.53.1) : réindexée et anciens index supprimés par Louis
+(`wp meiliscout index --clear`, `delete-legacy-indexes`) ; nouvelle clé de recherche sur `<préfixe>*`, mise dans
+`MEILI_SEARCH_KEY` (`clever env set`), application redémarrée ; ancienne clé (accès à tous les index) supprimée. Pages en
+`200`, recherche du navigateur en `200` avec la nouvelle clé, Playwright 16/18 contre la préproduction : « Tout effacer »
+recouvert par la barre d'outils et l'en-tête collant du thème (à vérifier à l'œil, propre au thème de la préproduction),
+et le scénario « Voir plus » qui ne trouve pas de facette sur les données de la préproduction (test à reprendre).
+
+*Au 2026-10-19* : fusionné (PR #13), publié en 0.3.0. Le projet de test est passé en local sur la 0.3.0 (contraintes
+`^0.3`, plus de contrainte MeiliScout propre, commit sur sa branche `develop`) ; index reconstruit, anciens index
+supprimés, ancienne clé supprimée ; pages en `200`, suite `Modules` 1 196, Playwright 18/18, temps réel d'une variation
+vérifié.
 
 ### R-241 · 🟠 · **fermé le 2026-10-19** · ouvert le 2026-10-19 — un canonique `null` de Yoast fait tomber la page
 
