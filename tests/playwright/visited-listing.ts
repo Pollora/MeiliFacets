@@ -55,12 +55,7 @@ export class VisitedListing {
 
     async revealFacetWithMore(): Promise<void> {
         for (const more of await this.#page.locator(Hooks.selector(Hook.more)).all()) {
-            const panelId = await more.locator(Hooks.nearestAncestor(Hook.panel)).getAttribute('id')
-            const opener = this.#page.locator(`[aria-controls="${panelId}"]`).first()
-
-            if (await more.isHidden() && await opener.isVisible()) {
-                await opener.click()
-            }
+            await this.#reveal(more.locator(Hooks.nearestAncestor(Hook.facet)).locator(Hooks.selector(Hook.facetValue)).first())
 
             if (await more.isVisible()) {
                 return
@@ -116,13 +111,13 @@ export class VisitedListing {
     }
 
     async removeActiveValue(value: Locator): Promise<void> {
-        await this.#afterSearch(() => value.click())
+        await this.#afterSearch(() => this.#clickInView(value))
     }
 
     async resetAll(): Promise<void> {
         const reset = this.#page.locator(Hooks.selector(Hook.reset)).filter({ visible: true }).first()
 
-        await this.#afterSearch(() => reset.click())
+        await this.#afterSearch(() => this.#clickInView(reset))
     }
 
     emptyState(): Locator {
@@ -242,6 +237,12 @@ export class VisitedListing {
 
         await expect(opener).toHaveAttribute('aria-expanded', 'true')
         await expect(control).toBeVisible()
+    }
+
+    /** Scrolled to the top edge, a control can sit under a theme's sticky header: a visitor brings it into the middle. */
+    async #clickInView(control: Locator): Promise<void> {
+        await control.evaluate((element) => element.scrollIntoView({ block: 'center' }))
+        await control.click()
     }
 
     async #afterSearch(action: () => Promise<void>): Promise<void> {
