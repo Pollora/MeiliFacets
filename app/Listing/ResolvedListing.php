@@ -116,7 +116,7 @@ final class ResolvedListing
 
     private function sortFilter(): ?SortFilter
     {
-        return ($this->listing->sorts()[$this->state->sort ?? ''] ?? null)?->filter;
+        return $this->state->chosenSort($this->sorts())?->filter;
     }
 
     /**

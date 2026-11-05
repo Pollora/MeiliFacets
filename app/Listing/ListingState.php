@@ -35,6 +35,14 @@ final readonly class ListingState
         return in_array($value, $this->selected($taxonomy), true);
     }
 
+    /**
+     * @param  array<string, Sort>  $sorts
+     */
+    public function chosenSort(array $sorts): ?Sort
+    {
+        return $this->sort === null ? null : $sorts[$this->sort] ?? null;
+    }
+
     public function activeFilterCount(): int
     {
         return array_sum(array_map(count(...), $this->facets)) + $this->priceFilterCount();

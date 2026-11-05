@@ -165,22 +165,13 @@ final readonly class QueryPlan
      */
     private static function sortIn(Listing $listing, ListingState $state): array
     {
-        $chosen = self::chosenSort($listing, $state);
+        $chosen = $state->chosenSort($listing->sorts());
 
         if ($chosen instanceof Sort && $chosen->isOrdering()) {
             return $chosen->expressions;
         }
 
         return self::defaultSortIn($listing, $state);
-    }
-
-    private static function chosenSort(Listing $listing, ListingState $state): ?Sort
-    {
-        if ($state->sort === null) {
-            return null;
-        }
-
-        return $listing->sorts()[$state->sort] ?? null;
     }
 
     /**
