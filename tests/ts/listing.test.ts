@@ -281,19 +281,24 @@ describe('a listing with searches under way', () => {
         end(rank: number) {
             return this.#ends[rank] as { answer: () => void, fail: (failure: Error) => void }
         }
+
+        get asked() {
+            return this.#ends.length
+        }
     }
 
     const heldBuild = (overrides: Partial<ListingDescription> = {}) => {
         const listed = described({ ...description, state: served(), ...overrides })
         const client = new HeldClient()
-        const listing = new Listing(listed, connection, { filterQueries: filterQueriesOf(listed), client, history: new FakeHistory() })
+        const history = new FakeHistory()
+        const listing = new Listing(listed, connection, { filterQueries: filterQueriesOf(listed), client, history })
         const heard: string[] = []
 
         for (const name of ['searching', 'results', 'failed', 'settled']) {
             listing.addEventListener(name, () => heard.push(name))
         }
 
-        return { listing, client, heard }
+        return { listing, client, history, heard }
     }
     const turn = () => new Promise((resolve) => setTimeout(resolve, 0))
 
@@ -306,6 +311,20 @@ describe('a listing with searches under way', () => {
         client.end(0).answer()
         await turn()
         assert.deepEqual(heard, ['searching', 'results', 'settled'])
+    })
+
+    it('searches again when the visitor goes back to the state it shows while a newer search is out', async () => {
+        const { listing, client, history } = heldBuild()
+
+        void listing.apply()
+        client.end(0).answer()
+        await turn()
+        listing.listenToHistory()
+        listing.goToPage(2)
+        history.goBackTo('products', served())
+        await turn()
+
+        assert.equal(client.asked, 3)
     })
 
     it('settles on a refusal too', async () => {

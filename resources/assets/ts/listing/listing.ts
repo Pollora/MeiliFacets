@@ -43,6 +43,7 @@ export class Listing extends EventTarget {
     #history: ListingHistory
     #state: ListingState
     #searchedFor: string | null = null
+    #askedFor: string | null = null
     #pendingSearches = new PendingSearches({
         searching: () => this.#dispatch('searching', null),
         settled: () => this.#dispatch('settled', null),
@@ -139,9 +140,14 @@ export class Listing extends EventTarget {
     #restore(shown: StateDescription) {
         this.#setState(new ListingState(shown))
 
-        if (JSON.stringify(this.#state.toDescription()) !== this.#searchedFor) {
+        if (!this.#isShowing(JSON.stringify(this.#state.toDescription()))) {
             void this.#search()
         }
+    }
+
+    /** An answer still on its way would paint over the grid that already shows this state. */
+    #isShowing(state: string) {
+        return state === this.#searchedFor && state === this.#askedFor
     }
 
     /** A search the visitor overtook is not a failure and says nothing. */
@@ -150,9 +156,12 @@ export class Listing extends EventTarget {
 
         try {
             const state = this.#state
+            const asked = JSON.stringify(state.toDescription())
+
+            this.#askedFor = asked
             const answers = await this.#client.search(this.#query.plan(state))
 
-            this.#searchedFor = JSON.stringify(state.toDescription())
+            this.#searchedFor = asked
             this.#dispatch('results', { answers, state })
         } catch (failure) {
             if (!(failure instanceof SearchSuperseded)) {
