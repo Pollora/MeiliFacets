@@ -12,5 +12,5 @@ interface TermScope
      *
      * @return list<string>
      */
-    public function childrenOf(string $taxonomy): array;
+    public function childrenOfCurrentTerm(string $taxonomy): array;
 }

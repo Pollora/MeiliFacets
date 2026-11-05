@@ -56,7 +56,7 @@ final class WordPressTermScopeTest extends TestCase
     {
         $this->showing($this->term(self::FACE_CARE, self::CATEGORIES));
 
-        $this->assertSame(['creams', 'serums'], $this->scope()->childrenOf(self::CATEGORIES));
+        $this->assertSame(['creams', 'serums'], $this->scope()->childrenOfCurrentTerm(self::CATEGORIES));
     }
 
     #[Test]
@@ -64,7 +64,7 @@ final class WordPressTermScopeTest extends TestCase
     {
         $this->showing($this->term(self::FACE_CARE, self::CATEGORIES));
 
-        $this->assertSame(['acme'], $this->scope()->childrenOf(self::BRANDS));
+        $this->assertSame(['acme'], $this->scope()->childrenOfCurrentTerm(self::BRANDS));
     }
 
     #[Test]
@@ -72,13 +72,13 @@ final class WordPressTermScopeTest extends TestCase
     {
         $this->showing(new WP_Post((object) ['ID' => self::FACE_CARE, 'post_type' => 'page', 'post_name' => 'face-care']));
 
-        $this->assertSame(['care', 'home'], $this->scope()->childrenOf(self::CATEGORIES));
+        $this->assertSame(['care', 'home'], $this->scope()->childrenOfCurrentTerm(self::CATEGORIES));
     }
 
     #[Test]
     public function it_scopes_to_the_top_level_when_nothing_is_queried(): void
     {
-        $this->assertSame(['care', 'home'], $this->scope()->childrenOf(self::CATEGORIES));
+        $this->assertSame(['care', 'home'], $this->scope()->childrenOfCurrentTerm(self::CATEGORIES));
     }
 
     #[Test]
@@ -86,9 +86,9 @@ final class WordPressTermScopeTest extends TestCase
     {
         $scope = $this->scope();
 
-        $scope->childrenOf(self::CATEGORIES);
-        $scope->childrenOf(self::CATEGORIES);
-        $scope->childrenOf(self::BRANDS);
+        $scope->childrenOfCurrentTerm(self::CATEGORIES);
+        $scope->childrenOfCurrentTerm(self::CATEGORIES);
+        $scope->childrenOfCurrentTerm(self::BRANDS);
 
         $this->assertSame(
             [self::CATEGORIES => 1, self::BRANDS => 1],
