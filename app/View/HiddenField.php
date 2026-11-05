@@ -10,4 +10,11 @@ final readonly class HiddenField
         public string $name,
         public string $value,
     ) {}
+
+    public static function fromQueryPair(string $pair): self
+    {
+        [$name, $value] = [...explode('=', $pair, 2), ''];
+
+        return new self(urldecode($name), urldecode($value));
+    }
 }

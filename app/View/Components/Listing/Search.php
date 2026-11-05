@@ -11,6 +11,7 @@ use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\Listing\StateReader;
 use Modules\MeiliFacets\Support\UrlParameters;
 use Modules\MeiliFacets\View\Components\ListingComponent;
+use Modules\MeiliFacets\View\HiddenField;
 use Modules\MeiliFacets\View\StateFields;
 
 final class Search extends ListingComponent
@@ -41,7 +42,7 @@ final class Search extends ListingComponent
         return view('meilifacets::components.listing.search', [
             'action' => $this->page->path(),
             'kept' => [
-                ...$this->page->fieldsWithout($this->parameters->all()),
+                ...array_map(HiddenField::fromQueryPair(...), $this->page->pairsWithout($this->parameters->all())),
                 ...$this->stateFields->of($this->listing),
             ],
             'parameter' => $this->listing->parameterForReserved(QueryParameter::Query),
