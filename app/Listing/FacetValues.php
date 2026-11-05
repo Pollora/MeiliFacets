@@ -42,7 +42,7 @@ final readonly class FacetValues
             );
         }
 
-        return $this->folded($this->displayed($values, $facet, array_keys($labels)), $facet);
+        return $this->folded($this->displayed($values, $facet, $this->slugsOf($labels)), $facet);
     }
 
     /**
@@ -67,8 +67,8 @@ final readonly class FacetValues
         );
 
         return array_values(array_unique([
-            ...array_slice(array_keys($offered), 0, $facet->cap),
-            ...array_slice(array_keys($counts), 0, $facet->cap),
+            ...array_slice($this->slugsOf($offered), 0, $facet->cap),
+            ...array_slice($this->slugsOf($counts), 0, $facet->cap),
             ...$held,
         ]));
     }
@@ -146,5 +146,16 @@ final readonly class FacetValues
 
         // A slug the taxonomy no longer lists has no place in it: it waits at the end.
         return static fn (FacetValue $a, FacetValue $b): int => ($rank[$a->slug] ?? PHP_INT_MAX) <=> ($rank[$b->slug] ?? PHP_INT_MAX);
+    }
+
+    /**
+     * PHP turns an all-digit key such as `100` into an integer.
+     *
+     * @param  array<array-key, mixed>  $bySlug
+     * @return list<string>
+     */
+    private function slugsOf(array $bySlug): array
+    {
+        return array_map(strval(...), array_keys($bySlug));
     }
 }
