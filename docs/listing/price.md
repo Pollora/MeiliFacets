@@ -179,7 +179,7 @@ What they receive:
 | `readout` | `string` | the selected range, formatted: `€20.00 – €80.00` |
 | `fill` | `Fill` | `from` and `to`, two ratios from 0 to 1: the selected part of the track |
 | `handles` | `list<RangeHandle>` | the low handle, then the high one |
-| `bounds` | `Range` | `min` and `max` of the track, `null` when there is no price |
+| `bounds` | `Range` | `min` and `max` of the track, `null` when there is no price; `bound($handle->bound)` reads the end a handle stands for |
 | `money` | `Money` | `of(?float)` formats an amount as the shop does, `symbol()` returns the currency symbol |
 
 A `RangeHandle` carries `bound` (a `PriceBound` case: `value` is `min` or `max`, `label()` reads From or To,

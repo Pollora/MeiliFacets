@@ -10,6 +10,9 @@ use Modules\MeiliFacets\Listing\Facet;
 use Modules\MeiliFacets\Listing\ResolvedListing;
 use Modules\MeiliFacets\Support\Money;
 
+/**
+ * @phpstan-import-type Patterns from ActiveValuePatterns
+ */
 final readonly class ActiveValueList
 {
     public function __construct(private Money $money) {}
@@ -29,7 +32,11 @@ final readonly class ActiveValueList
         ];
     }
 
-    /** Written once here and read by the client, which fills the placeholders itself. */
+    /**
+     * Written once here and read by the client, which fills the placeholders itself.
+     *
+     * @return Patterns
+     */
     public function patterns(): array
     {
         return ActiveValuePatterns::translated()->toArray();

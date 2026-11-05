@@ -62,6 +62,7 @@ Owned by `<x-meilifacets::listing>`. “Styled”: `listing` = `meilifacets.css`
 | `empty` | `listing.results`, `<p>` | required on the root | shown when no card is shown | — | [Results](../listing/results-sort-pagination.md) |
 | `no-results` | `<span>` inside `empty` | read when present, with `past-the-end` | shown when nothing matches | — | [Results](../listing/results-sort-pagination.md) |
 | `past-the-end` | `<span>` inside `empty` | read when present, with `no-results` | shown when the page asked is past the last one | — | [Results](../listing/results-sort-pagination.md) |
+| `unavailable` | `listing.unavailable` inside `listing.results`, rendered hidden | read when present | shown when a search fails in the browser, hidden by the next answer | listing | [When the engine is down](../listing/README.md#when-the-engine-is-down) |
 | `card` | `<li>` around each listing card; `<li role="option">` around each search card | none | not read | search | [Results](../listing/results-sort-pagination.md) |
 | `url` | the `<a>` of `listing.card` and `search.card` | required inside `search-card-template` | search: followed on Enter, taken out of the tab order; listing: not read | search | [Searchable types](../search/types.md) |
 | `image` | the `<img>` of a card | none | not read | search | [Results](../listing/results-sort-pagination.md) |

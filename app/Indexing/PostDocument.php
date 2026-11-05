@@ -6,6 +6,7 @@ namespace Modules\MeiliFacets\Indexing;
 
 use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Enums\TermField;
+use Modules\MeiliFacets\Indexing\WooCommerce\ShopFields;
 use WP_Post;
 
 /** The fields the module adds to the document MeiliScout builds for a post. */

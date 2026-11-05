@@ -14,6 +14,7 @@ enum Hook: string
     case Empty = 'empty';
     case NoResults = 'no-results';
     case PastTheEnd = 'past-the-end';
+    case Unavailable = 'unavailable';
 
     case Card = 'card';
     case Url = 'url';

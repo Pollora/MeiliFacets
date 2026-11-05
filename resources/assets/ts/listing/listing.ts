@@ -42,7 +42,9 @@ export class Listing extends EventTarget {
     #client: Searcher
     #history: ListingHistory
     #state: ListingState
+    #answered: ListingState
     #searchedFor: string | null = null
+    #askedFor: string | null = null
     #pendingSearches = new PendingSearches({
         searching: () => this.#dispatch('searching', null),
         settled: () => this.#dispatch('settled', null),
@@ -64,6 +66,7 @@ export class Listing extends EventTarget {
         this.#client = client
         this.#history = history
         this.#state = new ListingState(description.state)
+        this.#answered = this.#state
     }
 
     get state() {
@@ -139,9 +142,14 @@ export class Listing extends EventTarget {
     #restore(shown: StateDescription) {
         this.#setState(new ListingState(shown))
 
-        if (JSON.stringify(this.#state.toDescription()) !== this.#searchedFor) {
+        if (!this.#isShowing(JSON.stringify(this.#state.toDescription()))) {
             void this.#search()
         }
+    }
+
+    /** An answer still on its way would paint over the grid that already shows this state. */
+    #isShowing(state: string) {
+        return state === this.#searchedFor && state === this.#askedFor
     }
 
     /** A search the visitor overtook is not a failure and says nothing. */
@@ -150,17 +158,30 @@ export class Listing extends EventTarget {
 
         try {
             const state = this.#state
+            const asked = JSON.stringify(state.toDescription())
+
+            this.#askedFor = asked
             const answers = await this.#client.search(this.#query.plan(state))
 
-            this.#searchedFor = JSON.stringify(state.toDescription())
+            this.#searchedFor = asked
+            this.#answered = state
             this.#dispatch('results', { answers, state })
         } catch (failure) {
             if (!(failure instanceof SearchSuperseded)) {
+                console.error('[meilifacets] the search failed:', failure)
+                this.#rollBack()
                 this.#dispatch('failed', { failure })
             }
         } finally {
             this.#pendingSearches.finish()
         }
+    }
+
+    /** The page claims no state the engine did not answer: the controls and the URL go back to the last one it did. */
+    #rollBack() {
+        this.#setState(this.#answered)
+        this.#askedFor = this.#searchedFor
+        this.#writeUrl()
     }
 
     #applyIfImmediate(state: ListingState) {

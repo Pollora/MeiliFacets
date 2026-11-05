@@ -8,33 +8,21 @@ use Modules\MeiliFacets\Contracts\IndexAttributes;
 
 final readonly class EmptyIndexAttributes implements IndexAttributes
 {
-    /**
-     * @return list<string>
-     */
     public function exactlyMatched(): array
     {
         return [];
     }
 
-    /**
-     * @return list<string>
-     */
     public function filterable(): array
     {
         return [];
     }
 
-    /**
-     * @return list<string>
-     */
     public function sortable(): array
     {
         return [];
     }
 
-    /**
-     * @return list<string>
-     */
     public function displayed(): array
     {
         return [];

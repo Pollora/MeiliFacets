@@ -6,6 +6,7 @@ namespace Modules\MeiliFacets\Tests\Feature;
 
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\HtmlString;
+use Modules\MeiliFacets\Tests\Feature\Concerns\SwitchesTheSiteLocale;
 use Modules\MeiliFacets\View\CountLabel;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;

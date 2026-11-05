@@ -7,6 +7,7 @@ namespace Modules\MeiliFacets\Tests\Unit;
 use Generator;
 use InvalidArgumentException;
 use Modules\MeiliFacets\Listing\CardVariant;
+use Modules\MeiliFacets\Listing\ListingState;
 use Modules\MeiliFacets\Listing\Range;
 use Modules\MeiliFacets\Listing\SortFilter;
 use Modules\MeiliFacets\Listing\VariantChoice;
@@ -52,9 +53,9 @@ final class VariantChoiceTest extends TestCase
     #[Test]
     public function it_shows_the_card_through_the_matching_variant_or_as_projected(array $case, array $variantTaxonomies): void
     {
-        $price = new Range($this->bound($case['price']['min']), $this->bound($case['price']['max']));
+        $state = new ListingState($case['selected'], price: new Range($this->bound($case['price']['min']), $this->bound($case['price']['max'])));
         $sortFilter = isset($case['sortFilter']) ? new SortFilter($case['sortFilter']['field'], $case['sortFilter']['value']) : null;
-        $choice = new VariantChoice($case['selected'], $price, $variantTaxonomies, $sortFilter);
+        $choice = new VariantChoice($state, $variantTaxonomies, $sortFilter);
 
         $this->assertSame($case['expected'], $choice->shown($case['card']));
     }

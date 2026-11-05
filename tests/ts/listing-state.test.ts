@@ -26,6 +26,15 @@ describe('ListingState', () => {
     })
 
     /** One state must have one URL, or a cache holds it twice. */
+    it('selects any of the taxonomies one of its facets names', () => {
+        assert.equal(new ListingState({ facets: { pa_volume: ['400ml'] } }).selectsAnyOf(['pa_scent', 'pa_volume']), true)
+    })
+
+    it('selects none of the taxonomies no facet names', () => {
+        assert.equal(new ListingState({ facets: { product_brand: ['acme'] } }).selectsAnyOf(['pa_volume']), false)
+        assert.equal(new ListingState().selectsAnyOf(['pa_volume']), false)
+    })
+
     it('sorts and deduplicates', () => {
         assert.deepEqual(new ListingState({ facets: { brand: ['b', 'a', 'b'] } }).selected('brand'), ['a', 'b'])
     })

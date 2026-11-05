@@ -6,6 +6,7 @@ namespace Modules\MeiliFacets\Search;
 
 use Modules\MeiliFacets\Contracts\DefaultSortedListing;
 use Modules\MeiliFacets\Contracts\Listing;
+use Modules\MeiliFacets\Contracts\SearchScopedListing;
 use Modules\MeiliFacets\Contracts\VariantScopedListing;
 use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Enums\PriceField;
@@ -87,7 +88,7 @@ final readonly class QueryPlan
             return false;
         }
 
-        return array_intersect(array_keys($state->facets), $listing->variantTaxonomies()) !== [];
+        return $state->selectsAnyOf($listing->variantTaxonomies());
     }
 
     /**
@@ -164,22 +165,13 @@ final readonly class QueryPlan
      */
     private static function sortIn(Listing $listing, ListingState $state): array
     {
-        $chosen = self::chosenSort($listing, $state);
+        $chosen = $state->chosenSort($listing->sorts());
 
         if ($chosen instanceof Sort && $chosen->isOrdering()) {
             return $chosen->expressions;
         }
 
         return self::defaultSortIn($listing, $state);
-    }
-
-    private static function chosenSort(Listing $listing, ListingState $state): ?Sort
-    {
-        if ($state->sort === null) {
-            return null;
-        }
-
-        return $listing->sorts()[$state->sort] ?? null;
     }
 
     /**
@@ -316,7 +308,21 @@ final readonly class QueryPlan
     {
         $searchTerm = self::searchTerm($listing, $state);
 
-        return $searchTerm === '' ? SearchScope::browsing($listing) : SearchScope::searching($listing);
+        return $searchTerm === '' ? self::browsingScope($listing) : self::searchScope($listing);
+    }
+
+    public static function searchScope(Listing $listing): SearchScope
+    {
+        if ($listing instanceof SearchScopedListing) {
+            return $listing->searchScope();
+        }
+
+        return self::browsingScope($listing);
+    }
+
+    private static function browsingScope(Listing $listing): SearchScope
+    {
+        return new SearchScope($listing->baseFilter());
     }
 
     /**

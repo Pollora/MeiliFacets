@@ -11,6 +11,8 @@ use Modules\MeiliFacets\Enums\Contract;
 use Modules\MeiliFacets\Enums\Hook;
 use Modules\MeiliFacets\Enums\QueryParameter;
 use Modules\MeiliFacets\Support\UrlParameters;
+use Modules\MeiliFacets\Tests\Feature\Concerns\FindsHooks;
+use Modules\MeiliFacets\Tests\Feature\Concerns\HoldsCatalogueValues;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 

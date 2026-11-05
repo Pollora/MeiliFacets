@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Contracts;
 
+use Modules\MeiliFacets\Search\EngineUnavailable;
+
 interface SearchEngine
 {
     /**
@@ -11,6 +13,8 @@ interface SearchEngine
      *
      * @param  array<string, array<string, mixed>>  $queries
      * @return array<string, array<string, mixed>>
+     *
+     * @throws EngineUnavailable when the engine is unconfigured, unreachable or answers fewer searches than it was sent
      */
     public function multiSearch(array $queries): array;
 }

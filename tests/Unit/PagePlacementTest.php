@@ -7,9 +7,9 @@ namespace Modules\MeiliFacets\Tests\Unit;
 use Modules\MeiliFacets\Contracts\Placeable;
 use Modules\MeiliFacets\Listing\Facet;
 use Modules\MeiliFacets\Listing\PagePlacement;
+use Modules\MeiliFacets\Listing\PlacementRefused;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use RuntimeException;
 
 final class PagePlacementTest extends TestCase
 {
@@ -19,7 +19,7 @@ final class PagePlacementTest extends TestCase
         $placement = new PagePlacement('products');
         $placement->place($this->facet('brand'));
 
-        $this->expectException(RuntimeException::class);
+        $this->expectException(PlacementRefused::class);
         $this->expectExceptionMessageMatches('/Facet "brand" is rendered twice/');
 
         $placement->place($this->facet('brand'));
@@ -31,7 +31,7 @@ final class PagePlacementTest extends TestCase
         $placement = new PagePlacement('products');
         $placement->placeSort();
 
-        $this->expectException(RuntimeException::class);
+        $this->expectException(PlacementRefused::class);
         $this->expectExceptionMessage(
             'The sort of listing "products" is rendered twice on this page: its list and ids '
             .'would be duplicated. Render <x-meilifacets::listing.sort> once per page.'

@@ -29,6 +29,6 @@ final readonly class ChildTermsFacet extends Facet
      */
     public function within(array $distribution, TermScope $scope): array
     {
-        return array_intersect_key($distribution, array_flip($scope->childrenOf($this->taxonomy)));
+        return array_intersect_key($distribution, array_flip($scope->childrenOfCurrentTerm($this->taxonomy)));
     }
 }

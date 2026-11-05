@@ -75,7 +75,7 @@ export class ListingQuery {
     }
 
     #readsVariants(variants: VariantResultsDescription, state: ListingState) {
-        return Object.keys(state.facets).some((taxonomy) => variants.taxonomies.includes(taxonomy))
+        return state.selectsAnyOf(variants.taxonomies)
     }
 
     #variantResults(variants: VariantResultsDescription, state: ListingState): FacetedQuery {

@@ -113,7 +113,7 @@ The module writes to three live regions, and to no other:
 | --- | --- | --- |
 | `total-status`, next to the listing total | the total in words, « 24 items » | after each search; while the visitor types in the listing search field, once typing has paused for a second |
 | `search-status`, in the search panel | one sentence per section that found something (« Products: 3 results and Posts: 1 result »), or the empty or unavailable message | once a second has passed with no keystroke and no new answer |
-| the engine unavailable message | « Search is temporarily unavailable… » | when the listing renders without the engine (`role="alert"`) |
+| the engine unavailable message | « Search is temporarily unavailable… » | when the listing renders without the engine, or when a search fails in the browser (`role="alert"`) |
 
 - Both `polite` regions are visually hidden, and empty when the page loads, so nothing is read on arrival.
 - A region never says the same sentence twice in a row.

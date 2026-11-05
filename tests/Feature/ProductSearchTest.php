@@ -15,6 +15,7 @@ use Modules\MeiliFacets\Listing\WooCommerceDefaultSort;
 use Modules\MeiliFacets\Listing\WooCommerceFacets;
 use Modules\MeiliFacets\Listing\WooCommerceSorts;
 use Modules\MeiliFacets\Search\VisibleProducts;
+use Modules\MeiliFacets\Tests\Feature\Concerns\PinsIndexedPostTypes;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 use WooCommerce;

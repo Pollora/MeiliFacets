@@ -6,6 +6,9 @@ namespace Modules\MeiliFacets\View;
 
 use Modules\MeiliFacets\Listing\Range;
 
+/**
+ * @phpstan-type Patterns array{remove: string, query: string, between: string, from: string, upTo: string}
+ */
 final readonly class ActiveValuePatterns
 {
     private function __construct(
@@ -53,7 +56,7 @@ final readonly class ActiveValuePatterns
     }
 
     /**
-     * @return array{remove: string, query: string, between: string, from: string, upTo: string}
+     * @return Patterns
      */
     public function toArray(): array
     {

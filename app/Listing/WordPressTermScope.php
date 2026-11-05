@@ -20,7 +20,7 @@ final class WordPressTermScope implements TermScope
     /**
      * @return list<string>
      */
-    public function childrenOf(string $taxonomy): array
+    public function childrenOfCurrentTerm(string $taxonomy): array
     {
         // One query per taxonomy, however many facets and values read it.
         return $this->children[$taxonomy] ??= $this->hierarchy->childrenOf(

@@ -10,9 +10,9 @@ use Modules\MeiliFacets\SiteSearch\SearchRegistry;
 use Modules\MeiliFacets\SiteSearch\SearchRoot;
 use Modules\MeiliFacets\SiteSearch\SearchSettings;
 use Modules\MeiliFacets\SiteSearch\SearchTypeRefused;
+use Modules\MeiliFacets\Support\NameRefused;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use RuntimeException;
 
 final class SearchRegistryTest extends TestCase
 {
@@ -56,7 +56,7 @@ final class SearchRegistryTest extends TestCase
         $registry->add($this->root('header'));
         $registry->add($this->root('footer'));
 
-        $this->expectException(RuntimeException::class);
+        $this->expectException(NameRefused::class);
         $this->expectExceptionMessage('Name the search: 2 are declared (header, footer)');
 
         $registry->onlyOne();
@@ -68,7 +68,7 @@ final class SearchRegistryTest extends TestCase
         $registry = new SearchRegistry;
         $registry->add($this->root('header'));
 
-        $this->expectException(RuntimeException::class);
+        $this->expectException(NameRefused::class);
         $this->expectExceptionMessage('No search named "footer". Declared: header.');
 
         $registry->named('footer');

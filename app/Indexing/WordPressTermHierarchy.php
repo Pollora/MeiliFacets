@@ -8,13 +8,13 @@ use Modules\MeiliFacets\Contracts\TermHierarchy;
 use Modules\MeiliFacets\Enums\TermField;
 use WP_Term;
 
+/**
+ * @phpstan-import-type Term from TermHierarchy
+ */
 final readonly class WordPressTermHierarchy implements TermHierarchy
 {
     private const string RESOURCE_TYPE = 'taxonomy';
 
-    /**
-     * @return list<array<string, mixed>>
-     */
     public function ancestorsOf(int $termId, string $taxonomy): array
     {
         $ancestors = [];
@@ -30,9 +30,6 @@ final readonly class WordPressTermHierarchy implements TermHierarchy
         return $ancestors;
     }
 
-    /**
-     * @return list<string>
-     */
     public function childrenOf(int $termId, string $taxonomy): array
     {
         $terms = get_terms([
@@ -48,7 +45,7 @@ final readonly class WordPressTermHierarchy implements TermHierarchy
     }
 
     /**
-     * @return array<string, mixed>
+     * @return Term
      */
     private function describe(WP_Term $term): array
     {

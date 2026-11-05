@@ -13,7 +13,8 @@ interface Listing
     public function name(): string;
 
     /**
-     * Term facets only: what the engine can count by value.
+     * Term facets only: what the engine can count by value. May hold fewer than
+     * `filters()`: a flat facet of the taxonomy the page pins has stopped narrowing.
      *
      * @return list<Facet>
      */

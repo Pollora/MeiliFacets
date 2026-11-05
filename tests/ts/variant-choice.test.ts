@@ -3,8 +3,8 @@ import { readFileSync } from 'node:fs'
 import { describe, it } from 'node:test'
 
 import { VariantChoice } from '../../resources/assets/ts/results/variant-choice.ts'
+import { ListingState } from '../../resources/assets/ts/listing/listing-state.ts'
 import { CardView } from '../../resources/assets/ts/results/card-view.ts'
-import { Range } from '../../resources/assets/ts/shared/range.ts'
 
 interface VariantCase {
     case: string
@@ -21,7 +21,7 @@ const { variantTaxonomies, cases } = JSON.parse(readFileSync(new URL('../card-va
 describe('VariantChoice', () => {
     for (const { case: name, card, selected, price, expected, sortFilter } of cases) {
         it(name, () => {
-            const choice = new VariantChoice({ selected, price: new Range(price.min, price.max), variantTaxonomies, sortFilter })
+            const choice = new VariantChoice({ state: new ListingState({ facets: selected, price }), variantTaxonomies, sortFilter })
 
             assert.deepEqual(choice.shown(card), expected)
         })
@@ -39,7 +39,7 @@ describe('VariantChoice', () => {
             },
         }
 
-        const choice = new VariantChoice({ selected: { pa_volume: ['400ml'] }, variantTaxonomies: ['pa_volume'] })
+        const choice = new VariantChoice({ state: new ListingState({ facets: { pa_volume: ['400ml'] } }), variantTaxonomies: ['pa_volume'] })
 
         assert.deepEqual(CardView.fieldsOf(hit, choice), { id: 125, volume: '400ml' })
         assert.deepEqual(CardView.fieldsOf(hit), { id: 125, volume: '400ml, 15ml' })

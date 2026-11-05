@@ -6,8 +6,11 @@ namespace Modules\MeiliFacets\Tests\Feature;
 
 use Automattic\WooCommerce\Internal\ProductAttributesLookup\LookupDataStore;
 use Closure;
+use Illuminate\Contracts\Debug\ExceptionHandler;
+use Illuminate\Support\Facades\Exceptions;
 use Modules\MeiliFacets\Listing\VariationTaxonomies;
 use PHPUnit\Framework\Attributes\Test;
+use RuntimeException;
 use stdClass;
 use Tests\TestCase;
 use WC_Cache_Helper;
@@ -27,6 +30,8 @@ final class VariationTaxonomiesTest extends TestCase
 
     private const string ATTRIBUTE_CACHE = 'woocommerce-attributes';
 
+    private const string BROKEN = 'broken';
+
     /** Far above any real post: the rows are told apart from the shop's by it. */
     private const int PRODUCT_ID = 2_000_000_001;
 
@@ -43,6 +48,8 @@ final class VariationTaxonomiesTest extends TestCase
 
     private string $regenerating = 'no';
 
+    private ?ExceptionHandler $hostHandler = null;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -52,7 +59,9 @@ final class VariationTaxonomiesTest extends TestCase
         }
 
         $this->attributes = $this->withTestAttributes(...);
-        $this->lookupEnabledAnswer = fn (): string => $this->lookupEnabled;
+        $this->lookupEnabledAnswer = fn (): string => $this->lookupEnabled === self::BROKEN
+            ? throw new RuntimeException('WooCommerce changed its internal lookup classes.')
+            : $this->lookupEnabled;
         $this->regeneratingAnswer = fn (): string => $this->regenerating;
         add_filter(self::ATTRIBUTES, $this->attributes);
         add_filter(self::LOOKUP_ENABLED, $this->lookupEnabledAnswer);
@@ -72,6 +81,10 @@ final class VariationTaxonomiesTest extends TestCase
             remove_filter(self::REGENERATING, $this->regeneratingAnswer);
             WC_Cache_Helper::invalidate_cache_group(self::ATTRIBUTE_CACHE);
             $wpdb->delete($this->lookupTable(), ['product_or_parent_id' => self::PRODUCT_ID]);
+        }
+
+        if ($this->hostHandler instanceof ExceptionHandler) {
+            $this->app->instance(ExceptionHandler::class, $this->hostHandler);
         }
 
         parent::tearDown();
@@ -103,6 +116,17 @@ final class VariationTaxonomiesTest extends TestCase
         $this->regenerating = 'yes';
 
         $this->assertContains('pa_'.self::SKIN, new VariationTaxonomies()->all());
+    }
+
+    #[Test]
+    public function it_reports_a_lookup_table_it_cannot_read_and_names_every_attribute(): void
+    {
+        $this->hostHandler = $this->app->make(ExceptionHandler::class);
+        Exceptions::fake();
+        $this->lookupEnabled = self::BROKEN;
+
+        $this->assertSame(array_values(wc_get_attribute_taxonomy_names()), new VariationTaxonomies()->all());
+        Exceptions::assertReported(RuntimeException::class);
     }
 
     /**

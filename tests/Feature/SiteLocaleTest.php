@@ -10,6 +10,7 @@ use Modules\MeiliFacets\Listing\FacetValue;
 use Modules\MeiliFacets\Listing\NameOrder;
 use Modules\MeiliFacets\Support\SiteCollator;
 use Modules\MeiliFacets\Support\SiteLocale;
+use Modules\MeiliFacets\Tests\Feature\Concerns\SwitchesTheSiteLocale;
 use Modules\MeiliFacets\View\CountLabel;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;

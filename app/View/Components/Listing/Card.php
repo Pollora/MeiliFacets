@@ -12,7 +12,7 @@ use Modules\MeiliFacets\View\CardFieldElement;
 use Modules\MeiliFacets\View\CardHooks;
 use Modules\MeiliFacets\View\Components\ContractComponent;
 
-class Card extends ContractComponent
+final class Card extends ContractComponent
 {
     public string $heading;
 

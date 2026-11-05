@@ -24,7 +24,26 @@ use Modules\MeiliFacets\SiteSearch\SearchSettings;
 use Modules\MeiliFacets\Support\Money;
 use Modules\MeiliFacets\Support\UrlParameters;
 
-/** The shape is the PHP/JavaScript contract, written once here and once in `description.ts`. */
+/**
+ * The shape is the PHP/JavaScript contract, written once here and once in `description.ts`.
+ *
+ * @phpstan-import-type Format from Money
+ * @phpstan-import-type Patterns from ActiveValuePatterns
+ *
+ * @phpstan-type Scope array{filter: string, fields: list<string>|null}
+ * @phpstan-type FacetShape array{taxonomy: string, multiple: bool, cap: int, visible: int, counts: object, labels: object}
+ * @phpstan-type State array{facets: object, query: string, sort: ?string, page: int, price: array{min: ?float, max: ?float}}
+ * @phpstan-type VariantResults array{taxonomies: list<string>, filter: string, searchScope: Scope, distinct: string, attributes: list<string>, sorts: array<string, list<string>>, defaultSort: list<string>}
+ * @phpstan-type Description array{
+ *     name: string, filter: string, baseQuery: string, searchScope: Scope, minChars: int, delay: int,
+ *     perPage: int, reachableHits: int, attributes: list<string>, variantResults: VariantResults|null,
+ *     apply: string, facets: list<FacetShape>, params: array<string, string>, reserved: array<string, string>,
+ *     priceFields: array{min: string, max: string}|null, money: Format|null, sorts: array<string, list<string>>,
+ *     defaultSort: list<string>, sortFilters: object, countPattern: string, filterPattern: string,
+ *     totalPattern: string, sortPattern: string, activeValuePatterns: Patterns, locale: string, state: State,
+ *     pagePath: string, pageQuery: string
+ * }
+ */
 final readonly class ListingDescription
 {
     public function __construct(
@@ -38,7 +57,7 @@ final readonly class ListingDescription
     ) {}
 
     /**
-     * @return array<string, mixed>
+     * @return Description
      */
     public function of(ResolvedListing $listing): array
     {
@@ -47,7 +66,7 @@ final readonly class ListingDescription
 
         return [
             'name' => $listing->name(),
-            'filter' => $listing->baseFilter(),
+            'filter' => $listing->baseFilterExpression(),
             'baseQuery' => $listing->baseQuery(),
             'searchScope' => $this->searchScope($listing),
             'minChars' => $this->searchSettings->minChars,
@@ -78,7 +97,7 @@ final readonly class ListingDescription
     }
 
     /**
-     * @return array{facets: object, query: string, sort: ?string, page: int, price: array{min: ?float, max: ?float}}
+     * @return State
      */
     private function state(ListingState $state): array
     {
@@ -93,7 +112,7 @@ final readonly class ListingDescription
     }
 
     /**
-     * @return array<string, mixed>|null
+     * @return VariantResults|null
      */
     private function variantResults(ResolvedListing $listing): ?array
     {
@@ -124,7 +143,7 @@ final readonly class ListingDescription
     }
 
     /**
-     * @return array{filter: string, fields: list<string>|null}
+     * @return Scope
      */
     private function searchScope(ResolvedListing $listing): array
     {
@@ -132,7 +151,7 @@ final readonly class ListingDescription
     }
 
     /**
-     * @return array{filter: string, fields: list<string>|null}
+     * @return Scope
      */
     private function scope(SearchScope $scope): array
     {
@@ -140,7 +159,7 @@ final readonly class ListingDescription
     }
 
     /**
-     * @return list<array<string, mixed>>
+     * @return list<FacetShape>
      */
     private function facets(ResolvedListing $listing): array
     {
@@ -186,7 +205,7 @@ final readonly class ListingDescription
      * The fields a range filters on, or nothing when no listing declares one: the
      * client builds no clause it was not told about.
      *
-     * @return array<string, string>|null
+     * @return array{min: string, max: string}|null
      */
     private function priceFields(ResolvedListing $listing): ?array
     {

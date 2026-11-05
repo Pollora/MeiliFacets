@@ -5,6 +5,7 @@ import { filterQueriesOf } from '../../resources/assets/ts/filter-queries.ts'
 import { ListingBinding } from '../../resources/assets/ts/listing/listing-binding.ts'
 import { Listing } from '../../resources/assets/ts/listing/listing.ts'
 import { Contract } from '../../resources/assets/ts/shared/contract.ts'
+import { SearchError } from '../../resources/assets/ts/shared/search-client.ts'
 import { click, clickFromKeyboard, closestHook, find, listingMarkup, nth, open, tick, watchScrolling } from './dom.ts'
 import { connection, described, FakeClient, FakeHistory, served } from './fixtures.ts'
 
@@ -129,6 +130,25 @@ describe('ListingBinding', () => {
         assert.deepEqual(cards(), [])
         assert.equal(one('results').hidden, true)
         assert.equal(one('empty').hidden, false)
+    })
+
+    it('shows the unavailable message over the last answered grid, and unticks the value it could not apply', async (t) => {
+        const errors = t.mock.method(console, 'error', () => undefined)
+        client.answer = { results: { hits: [hit('Lotion')], totalHits: 1 } }
+        await listing.apply()
+        client.failure = new SearchError('The engine did not answer in time.')
+        tick(window, box('acme'))
+        await listing.apply()
+
+        assert.deepEqual([one('unavailable').hidden, one('results').hidden, box('acme').checked], [false, false, false])
+        assert.deepEqual(cards(), ['Lotion'])
+        assert.equal(errors.mock.callCount(), 1)
+
+        client.failure = null
+        tick(window, box('acme'))
+        await listing.apply()
+
+        assert.deepEqual([one('unavailable').hidden, box('acme').checked], [true, true])
     })
 
     it('tells a page past the end from a search that found nothing', async () => {

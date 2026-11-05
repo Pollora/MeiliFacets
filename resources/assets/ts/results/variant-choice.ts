@@ -1,7 +1,7 @@
 import { CardVariant } from './card-variant.ts'
-import { Range } from '../shared/range.ts'
+import { ListingState } from '../listing/listing-state.ts'
 
-import type { Card, Selection, SortFilterDescription } from '../shared/description.ts'
+import type { Card, SortFilterDescription } from '../shared/description.ts'
 
 export const ID_FIELD = 'id'
 const VARIANTS_FIELD = 'variants'
@@ -12,22 +12,19 @@ const FIELDS_SET_BY_THE_MODULE: readonly string[] = [ID_FIELD, VARIANTS_FIELD, .
 
 /** What a listing knows when it shows its cards. */
 export interface ChoiceContext {
-    selected?: Selection
-    price?: Range
+    state?: ListingState
     variantTaxonomies?: readonly string[]
     sortFilter?: SortFilterDescription | null | undefined
 }
 
 /** The browser's copy of `Listing\VariantChoice`. */
 export class VariantChoice {
-    #selected: Selection
-    #price: Range
+    #state: ListingState
     #variantTaxonomies: readonly string[]
     #sortFilter: SortFilterDescription | null
 
-    constructor({ selected = {}, price = new Range(), variantTaxonomies = [], sortFilter = null }: ChoiceContext = {}) {
-        this.#selected = selected
-        this.#price = price
+    constructor({ state = new ListingState(), variantTaxonomies = [], sortFilter = null }: ChoiceContext = {}) {
+        this.#state = state
         this.#variantTaxonomies = variantTaxonomies
         this.#sortFilter = sortFilter
     }
@@ -77,11 +74,11 @@ export class VariantChoice {
     }
 
     #readsVariants() {
-        return Object.keys(this.#selected).some((taxonomy) => this.#variantTaxonomies.includes(taxonomy))
+        return this.#state.selectsAnyOf(this.#variantTaxonomies)
     }
 
     #matching(variants: CardVariant[]) {
-        return variants.filter((variant) => variant.matches(this.#selected, this.#price) && variant.meetsSortFilter(this.#sortFilter))
+        return variants.filter((variant) => variant.matches(this.#state.facets, this.#state.price) && variant.meetsSortFilter(this.#sortFilter))
     }
 
     static #offered(matching: CardVariant[]) {

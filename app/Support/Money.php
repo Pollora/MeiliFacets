@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Support;
 
+/**
+ * @phpstan-type Format array{format: string, symbol: string, decimals: int, decimal: string, thousand: string}
+ */
 final readonly class Money
 {
     public function of(?float $value): string
@@ -25,7 +28,7 @@ final readonly class Money
     }
 
     /**
-     * @return array<string, mixed>|null
+     * @return Format|null
      */
     public function describe(): ?array
     {

@@ -9,6 +9,76 @@ What to change in a project when moving from one version to the next is in
 
 ## [Unreleased]
 
+## [0.4.0](https://github.com/Pollora/MeiliFacets/releases/tag/0.4.0) - 2026-11-05
+
+Eighth beta, on MeiliScout 2.6.1 and after a code-health pass. Listings no longer fail on an all-digit facet value,
+no longer show another page's results after going back, and say so when a search fails in the browser. Several PHP
+classes moved or were renamed, and the browser script changed: publish the assets, and read
+[docs/upgrading.md](docs/upgrading.md) if the project calls the module's classes or copies its views.
+
+### Changed
+
+- Requires MeiliScout `^2.6.1`: a full indexation no longer leaves the taxonomies index empty when one selected
+  taxonomy is not registered on the request (AmphiBee/MeiliScout#84). `illuminate/translation` and
+  `meilisearch/meilisearch-php`, both already used, are now declared.
+- The WooCommerce indexing classes moved to `Modules\MeiliFacets\Indexing\WooCommerce` (`ProductStock`,
+  `ProductVariants`, `ShopFields`, `WooCommerceCardProjector`… fourteen classes); their names are unchanged.
+- Misusing a component in a template raises `Listing\PlacementRefused` or `Support\NameRefused`, both
+  `LogicException`, instead of a bare `RuntimeException`. The messages are unchanged.
+- A second listing declared under a name already taken is refused and reported; the first one is kept. It used to
+  replace the first one silently.
+- In the browser, an engine answering fewer searches than it was sent, an unreachable engine or an unreadable answer
+  are failures, as on the server: the browser used to fill the missing answers with empty ones.
+- `Facet::presentedAs()` is `acceptedPresentation()`; `TermScope::childrenOf()` is `childrenOfCurrentTerm()`;
+  `PriceBound::of($range)` is `$range->bound($bound)`. `ResolvedListing::baseFilter()` returns the list of clauses, as
+  `Listing::baseFilter()` does; the joined expression is `baseFilterExpression()`.
+- `VariantChoice` takes the listing state: `new VariantChoice($state, $variantTaxonomies, $sortFilter)` in PHP,
+  `{ state, variantTaxonomies, sortFilter }` in the browser.
+- `Listing\Card` is final, as every other component.
+- The French outage message reads « Le système de recherche a rencontré un problème. Merci de réessayer dans quelques
+  instants. ».
+- Development tooling: PHPUnit 13, Playwright 1.64, Node 26. The module's test helpers moved to
+  `Modules\MeiliFacets\Tests\Feature\Concerns`.
+
+### Removed
+
+- `SearchScope::browsing()` and `SearchScope::searching()`: `QueryPlan::searchScope()` picks a listing's search scope.
+- `PageAddress::fieldsWithout()`: `pairsWithout()` gives the query pairs, `HiddenField::fromQueryPair()` builds a field.
+
+### Fixed
+
+- A facet value whose slug is all digits, such as `100`, no longer fails the page.
+- Going back while a newer search is still out no longer leaves that search's results under the address and controls
+  of the page gone back to.
+- Data published for the browser that is not JSON is reported once, by name, instead of throwing.
+- A WooCommerce variation lookup table that cannot be read is reported; the listing still offers every attribute.
+- A search that fails in the browser no longer leaves the address and the controls on a filter that was not applied:
+  they go back to the last state the engine answered, and the console logs `[meilifacets] the search failed`
+  ([#5](https://github.com/Pollora/MeiliFacets/issues/5)).
+
+### Added
+
+- When a search fails in the browser, the outage message shows above the results, and is announced; the next answer
+  takes it back. The results view renders it hidden, on the new optional `unavailable` hook.
+
+### Known issues
+
+- A facet declared with `SelectionMode::Single` hides its other values once one is picked
+  ([#4](https://github.com/Pollora/MeiliFacets/issues/4)).
+- Saving a product used to re-index it once per meta WooCommerce writes, each pass resending the index settings.
+  MeiliScout 2.5 sends the writes of a request once, at its end, and resends the settings only when they change; this
+  has not been measured with the module yet.
+- MeiliScout's *Search weights* screen (*Relevance* before 2.6) has no effect: the module writes its own searched
+  fields at every indexation.
+- MeiliScout's suggestion field is not supported alongside the module: it reads fields the module does not display.
+- On a WooCommerce attribute archive (`/pa_volume/400ml/`), the card does not show the variant of the term browsed.
+  Attribute archives are outside the module's scope: leave « Enable archives? » unchecked.
+- A product whose variants share a term counts once per variant under that term.
+- Past the row limit on a wide screen, the side sheet needs the browser client: when it does not start, the
+  « Filters » or « Show more » button opens nothing.
+- A theme that moves the drawer's `media` past `48em` also redeclares the side sheet block.
+- « Popularity » and « Average rating » cannot be the listing's default order yet.
+
 ## [0.3.0](https://github.com/Pollora/MeiliFacets/releases/tag/0.3.0) - 2026-10-19
 
 Seventh beta, on MeiliScout 2.5.1, the first tagged release of MeiliScout the module can require: a project no longer

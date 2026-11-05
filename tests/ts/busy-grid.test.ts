@@ -69,7 +69,8 @@ describe('BusyGrid', () => {
         assert.equal(find(root, Contract.selector('results')).children.length, 1)
     })
 
-    it('is not busy any more when the engine refuses', async () => {
+    it('is not busy any more when the engine refuses', async (t) => {
+        t.mock.method(console, 'error', () => undefined)
         const listing = bind('submit')
 
         void listing.apply()

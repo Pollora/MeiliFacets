@@ -3320,6 +3320,46 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
+### R-244 · 🟢 · **fermé le 2026-11-05** · ouvert le 2026-11-05 — passe de qualité outillée (desloppify), livrée en 0.4.0
+
+**Demande** (Louis, 2026-11-05). Lancer `desloppify` sur le module et suivre sa boucle sur une branche dédiée,
+`desloppify/code-health`, en ne commitant que du code du module (ses fichiers d'état restent hors de git, par
+`.git/info/exclude`).
+
+**Mesuré.** Score strict de l'outil : 23,7 → 85,4 (cible 85). L'essentiel vient des vingt dimensions subjectives,
+notées 74 à 91 par vingt relectures à l'aveugle, sans lecture de `decisions.md`. Volet mécanique : environ 130
+constats écartés comme faux positifs, chacun vérifié — le détecteur PHP prend les `use` de trait pour des imports, ne
+suit ni les références d'un même namespace, ni la découverte par attribut Pollora, ni les composants rendus par alias.
+
+**Corrigé** (commits de la branche, tous testés, mutation comprise) :
+- deux bugs visibles : un slug de facette tout en chiffres faisait tomber la page ; un retour arrière pendant une
+  recherche plus récente laissait ses résultats sous l'URL de la page revenue ;
+- trois échecs silencieux désormais signalés : liaison de listing cassée, table de lookup des variations illisible,
+  données publiées non JSON ;
+- côté navigateur, une réponse incomplète du moteur est une panne comme côté serveur ; un échec affiche le message
+  d'indisponibilité au-dessus des résultats, remet les contrôles et l'URL sur le dernier état servi par le moteur, et
+  l'écrit dans la console (issue #5 fermée) ;
+- un second listing sous un nom déjà pris est refusé et rapporté, le premier gardé ;
+- environ 230 tests directs ajoutés sur des classes qui n'en avaient pas ;
+- nettoyages : formes de tableau écrites une fois sur l'interface, cycle `SearchScopedListing`/`SearchScope` et
+  `Http`→`View` cassés, tri choisi et règle « variation sélectionnée » écrits une fois par côté, exceptions nommées
+  (`PlacementRefused`, `NameRefused`), renommages (`acceptedPresentation`, `childrenOfCurrentTerm`, `Range::bound`) ;
+- rangement : `Indexing/WooCommerce/` (quatorze classes), `tests/Feature/Concerns/` (dix traits) ;
+- MeiliScout : `^2.6.1` requis, après le correctif amont AmphiBee/MeiliScout#84 (une taxonomie absente sous WP-CLI
+  vidait l'index des taxonomies).
+
+**Décisions** écrites dans `decisions.md` le même jour : « Échec d'une recherche du navigateur », « Deux listings du
+même nom », « Exceptions d'usage dans un gabarit », « Changements d'API publique », « Rangement des dossiers »,
+« Relais de `ResolvedListing` », « Aiguillage des projecteurs de carte », et l'amendement de « Dépendance MeiliScout ».
+
+**Choisi avec Louis, non fait** : `app/Enums` reste à plat (convention Laravel) ; les relais de `ResolvedListing` restent
+(loi de Déméter, `R-167`) ; `DeferredCardProjector` reste (le projet de test s'en sert) ; cycle `Listing`↔`Search`,
+`app/View/Card/` et `Seo/` laissés en l'état faute de gain. Les constats de la revue qui recoupent des entrées ouvertes y
+restent rattachés : `R-01`, `R-02`, `R-05`, `R-28`/`Q-03`, `R-145`, `R-190`, `R-201`, `Q-19`.
+
+**Observé au passage** (`R-243`) : la base de développement gardait 214 termes et 5 produits de test des suites du
+projet, dont des produits publiés visibles en boutique ; supprimés avec l'accord de Louis, index reconstruit.
+
 ### R-243 · 🟡 · ouvert, **reporté après la 0.3.0** · ouvert le 2026-10-19 — la suite `Feature` sous MeiliScout 1 noyait le Meilisearch local
 
 **Constat** (mesuré le 2026-10-19, pendant `R-242`). Le Meilisearch local avait **165 283 tâches en attente**, la plus
@@ -11843,3 +11883,7 @@ continuer à décider sur 76 produits sans variations.
   décisif revérifié dans la source. Le prix, le passage au TypeScript et `resolveIndexable()` n'avaient
   pas atteint `architecture.md` ; `decisions.md` portait des décisions que le code ne tient plus, annotées
   sans être réécrites ; le registre avait fermé `R-05` à tort et laissé répondues cinq questions ouvertes.
+- **2026-11-05** — **Passe de qualité outillée (`R-244`)**, à la demande de Louis : `desloppify` sur une branche
+  dédiée, vingt relectures à l'aveugle, puis tri des constats contre `decisions.md` et le registre. Deux bugs visibles
+  corrigés, l'échec d'une recherche dans le navigateur signalé et annulé (#5), environ 230 tests, un correctif amont
+  dans MeiliScout (2.6.1). Livré en 0.4.0.

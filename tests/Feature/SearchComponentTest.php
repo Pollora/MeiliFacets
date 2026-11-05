@@ -11,6 +11,7 @@ use Modules\MeiliFacets\SiteSearch\AcceptedSearchTypes;
 use Modules\MeiliFacets\SiteSearch\SearchRegistry;
 use Modules\MeiliFacets\SiteSearch\SearchRoot;
 use Modules\MeiliFacets\SiteSearch\SearchSettings;
+use Modules\MeiliFacets\Tests\Feature\Concerns\PinsIndexedPostTypes;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 

@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Blade;
 use Modules\MeiliFacets\Enums\Hook;
 use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\Listing\ProductListing;
+use Modules\MeiliFacets\Tests\Feature\Concerns\FindsHooks;
+use Modules\MeiliFacets\Tests\Feature\Concerns\SwitchesTheSiteLocale;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 

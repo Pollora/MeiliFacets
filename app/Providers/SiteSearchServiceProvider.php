@@ -6,7 +6,7 @@ namespace Modules\MeiliFacets\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Modules\MeiliFacets\Contracts\SearchableTypes;
-use Modules\MeiliFacets\Indexing\WooCommerceProductFields;
+use Modules\MeiliFacets\Indexing\WooCommerce\WooCommerceProductFields;
 use Modules\MeiliFacets\SiteSearch\AcceptedSearchTypes;
 use Modules\MeiliFacets\SiteSearch\SearchablePostTypes;
 use Modules\MeiliFacets\SiteSearch\SearchableTypeFactory;

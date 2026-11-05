@@ -13,6 +13,8 @@ use Modules\MeiliFacets\Search\FilterExpression;
 use Modules\MeiliFacets\Search\VisibleProducts;
 use Modules\MeiliFacets\SiteSearch\SearchSettings;
 use Modules\MeiliFacets\Support\UrlParameters;
+use Modules\MeiliFacets\Tests\Feature\Concerns\RequestsAnAddress;
+use Modules\MeiliFacets\Tests\Feature\Concerns\SwitchesTheSiteLocale;
 use Modules\MeiliFacets\View\ListingDescription;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;

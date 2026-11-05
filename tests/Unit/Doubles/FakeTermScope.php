@@ -16,7 +16,7 @@ final readonly class FakeTermScope implements TermScope
     /**
      * @return list<string>
      */
-    public function childrenOf(string $taxonomy): array
+    public function childrenOfCurrentTerm(string $taxonomy): array
     {
         return $this->children[$taxonomy] ?? [];
     }

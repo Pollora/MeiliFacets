@@ -7,7 +7,7 @@
                 <input type="number" inputmode="numeric" step="any"
                        name="{{ $handle->parameter }}" value="{{ $handle->shown }}"
                        min="{{ $bounds->min }}" max="{{ $bounds->max }}"
-                       placeholder="{{ $handle->bound->of($bounds) }}"
+                       placeholder="{{ $bounds->bound($handle->bound) }}"
                        {{ $handle->bound->hook()->attribute() }}>
                 <span aria-hidden="true">{{ $money->symbol() }}</span>
             </span>

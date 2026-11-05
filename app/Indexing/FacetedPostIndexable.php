@@ -12,6 +12,7 @@ use Modules\MeiliFacets\Enums\FacetingSetting;
 use Modules\MeiliFacets\Enums\IndexSetting;
 use Modules\MeiliFacets\Enums\PaginationSetting;
 use Modules\MeiliFacets\Enums\TypoToleranceSetting;
+use Modules\MeiliFacets\Indexing\WooCommerce\VariantDocuments;
 use Modules\MeiliFacets\Search\EngineLimits;
 use Modules\MeiliFacets\Search\QueryPlan;
 use Modules\MeiliFacets\Search\VisibleProducts;

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Tests\Feature;
 
 use Modules\MeiliFacets\Http\PageAddress;
+use Modules\MeiliFacets\Tests\Feature\Concerns\RequestsAnAddress;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 

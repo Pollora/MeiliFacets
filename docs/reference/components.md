@@ -98,7 +98,7 @@ Renders `<x-meilifacets::listing.unavailable>` when the engine failed. The first
 
 | Slots | Bag lands on | Hooks rendered |
 | --- | --- | --- |
-| none | nowhere | `empty`, `no-results`, `past-the-end`, `results`, `card`, `card-template` |
+| none | nowhere | `unavailable`, `empty`, `no-results`, `past-the-end`, `results`, `card`, `card-template` |
 
 ### `<x-meilifacets::listing.card>`
 

@@ -12,6 +12,7 @@ use Illuminate\View\Compilers\ComponentTagCompiler;
 use InvalidArgumentException;
 use Modules\MeiliFacets\Enums\Hook;
 use Modules\MeiliFacets\Providers\MeiliFacetsServiceProvider;
+use Modules\MeiliFacets\Tests\Feature\Concerns\PinsIndexedPostTypes;
 use Modules\MeiliFacets\View\Components\Listing\Facets;
 use Modules\MeiliFacets\View\Components\Listing\Search as ListingSearch;
 use Modules\MeiliFacets\View\Components\Search;

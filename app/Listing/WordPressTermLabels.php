@@ -10,10 +10,6 @@ use WP_Term;
 
 final readonly class WordPressTermLabels implements TermLabels
 {
-    /**
-     * @param  list<string>  $slugs
-     * @return array<string, string>
-     */
     public function of(string $taxonomy, array $slugs): array
     {
         if ($slugs === []) {

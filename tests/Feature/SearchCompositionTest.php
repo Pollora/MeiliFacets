@@ -14,6 +14,7 @@ use Modules\MeiliFacets\Contracts\SearchableTypes;
 use Modules\MeiliFacets\SiteSearch\AcceptedSearchTypes;
 use Modules\MeiliFacets\SiteSearch\SearchSettings;
 use Modules\MeiliFacets\SiteSearch\WooCommerceSearchableTypes;
+use Modules\MeiliFacets\Tests\Feature\Concerns\PinsIndexedPostTypes;
 use Modules\MeiliFacets\Tests\Unit\Doubles\ProjectSearchCard;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;

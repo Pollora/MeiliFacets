@@ -67,6 +67,7 @@ export class ListingBinding {
         this.#contract.root.addEventListener('click', (event) => this.#clicked(event))
         this.#listing.addEventListener('change', (event) => this.#moved((event as CustomEvent<ChangeDetail>).detail))
         this.#listing.addEventListener('results', (event) => this.#repaint((event as CustomEvent<ResultsDetail>).detail))
+        this.#listing.addEventListener('failed', () => this.#results.failed())
         this.#listing.listenToHistory()
         new BusyGrid(this.#contract).watch(this.#listing)
         this.#sort.start()
@@ -226,7 +227,7 @@ export class ListingBinding {
         const pageWindow = this.#pageWindowOf(state, results.totalHits ?? 0)
         const variantTaxonomies = this.#description.variantResults?.taxonomies ?? []
         const sortFilter = state.sort === null ? null : this.#description.sortFilters[state.sort] ?? null
-        const choice = new VariantChoice({ selected: state.facets, price: state.price, variantTaxonomies, sortFilter })
+        const choice = new VariantChoice({ state, variantTaxonomies, sortFilter })
 
         this.#results.show((results.hits ?? []).map((hit) => CardView.fieldsOf(hit, choice)), pageWindow)
         this.#pagination.show(pageWindow)

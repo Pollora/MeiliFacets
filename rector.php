@@ -30,7 +30,7 @@ return RectorConfig::configure()
         // Reorders named arguments, which reads as a change where nothing changed.
         SortCallLikeNamedArgsRector::class,
         // `get_pagenum_link()` reads `$_SERVER` itself; the facade reads Laravel's copy.
-        ServerVariableToRequestFacadeRector::class => [__DIR__.'/tests/Feature/RequestsAnAddress.php'],
+        ServerVariableToRequestFacadeRector::class => [__DIR__.'/tests/Feature/Concerns/RequestsAnAddress.php'],
     ])
     // Rector writes fully qualified names in inferred types; the codebase imports everything.
     ->withImportNames(importShortClasses: false)

@@ -32,8 +32,10 @@ final class VariationTaxonomies
             return $this->isLookupTableInUse()
                 ? array_values(array_intersect($attributes, $this->markedInLookupTable()))
                 : $attributes;
-        } catch (Throwable) {
+        } catch (Throwable $failure) {
             // The lookup table is reached through WooCommerce's internal classes, which carry no compatibility promise.
+            rescue(static fn () => report($failure), report: false);
+
             return $attributes;
         }
     }

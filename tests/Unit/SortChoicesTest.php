@@ -68,6 +68,18 @@ final class SortChoicesTest extends TestCase
         $this->assertTrue(array_column($choices, 'hidden', 'value')['on_sale']);
     }
 
+    /** Hidden, not removed: the client shows it again, under its own words and identifier, once it keeps something. */
+    #[Test]
+    public function it_keeps_the_words_and_identifier_of_a_hidden_choice(): void
+    {
+        $choices = $this->choices->of($this->withPromotions(), null, ['on_sale' => 0]);
+        $hidden = array_column($choices, null, 'value')['on_sale'];
+
+        $this->assertSame('On sale', $hidden->label);
+        $this->assertSame(new ElementId('products')->sortOption('on_sale'), $hidden->id);
+        $this->assertFalse($hidden->selected);
+    }
+
     #[Test]
     public function it_shows_a_filtering_sort_that_keeps_something(): void
     {

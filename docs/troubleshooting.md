@@ -109,11 +109,10 @@ The panel shows « Search unavailable » when the engine refuses or does not ans
 
 ## Known limitations
 
-- **A failed search in the browser shows no message.** When the engine refuses a listing query sent by the browser,
-  or does not answer within 5 seconds, the grid keeps its previous results while the URL and the controls already show
-  the requested filter, and nothing is announced. The console logs nothing for the listing either. The first render,
-  served by PHP, does show the « unavailable » message. [Issue #5](https://github.com/Pollora/MeiliFacets/issues/5)
-  tracks the fix.
+- **A failed search in the browser is not retried.** When the engine refuses a listing query sent by the browser, or
+  does not answer within 5 seconds, the listing shows its unavailable message above the results it had, puts its
+  controls and its address back on that state, and logs `[meilifacets] the search failed` in the console. The visitor
+  applies the filter again once the engine is back.
 - **Without JavaScript, only the first render and the listing search field work.** Facets, sorting and pagination
   are buttons and need the client.
 - **The browser client's timeout** (5 seconds) is not configurable.

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Tests\Unit;
 
-use Modules\MeiliFacets\Indexing\ShopTaxLocation;
+use Modules\MeiliFacets\Indexing\WooCommerce\ShopTaxLocation;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 

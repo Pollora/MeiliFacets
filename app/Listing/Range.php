@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Listing;
 
+use Modules\MeiliFacets\Enums\PriceBound;
+
 final readonly class Range
 {
     public function __construct(
@@ -15,6 +17,14 @@ final readonly class Range
     public static function formatBound(float $bound): string
     {
         return rtrim(rtrim(sprintf('%.4F', $bound), '0'), '.');
+    }
+
+    public function bound(PriceBound $bound): ?float
+    {
+        return match ($bound) {
+            PriceBound::Min => $this->min,
+            PriceBound::Max => $this->max,
+        };
     }
 
     public function isEmpty(): bool

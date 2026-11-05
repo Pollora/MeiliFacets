@@ -29,10 +29,10 @@ You want to…
 ## Installation
 
 ```bash
-composer require pollora/meilifacets:^0.3 -W
+composer require pollora/meilifacets:^0.4 -W
 ```
 
-MeiliScout 2.5.1 or later comes with the module. The project's `composer.json` needs
+MeiliScout 2.6.1 or later comes with the module. The project's `composer.json` needs
 an `installer-paths` rule and `merge-dev: false` first, and the module is then enabled in `modules_statuses.json`: the
 whole sequence is in [Installation](docs/installation.md).
 
@@ -42,7 +42,7 @@ whole sequence is in [Installation](docs/installation.md).
 | --- | --- |
 | PHP | 8.4 or later |
 | Framework | Pollora 13.x from 13.35.3 (`pollora/framework` `>=13.35.3 <14`), on Laravel 13. Laravel modules (`nwidart/laravel-modules`) ship with Pollora |
-| Indexing | MeiliScout (`amphibee/meiliscout`), a WordPress plugin, 2.5.1 or later |
+| Indexing | MeiliScout (`amphibee/meiliscout`), a WordPress plugin, 2.6.1 or later |
 | Engine | a Meilisearch server |
 | Products | WooCommerce, for the product listing and its prices. The site search works without it |
 | Optional | `ext-intl`, so that facet values ordered by name follow the site's language |
@@ -184,7 +184,7 @@ The `Feature` tests render Blade views and need a host application. Run them fro
 is installed, with a PHPUnit suite that includes `Modules/MeiliFacets/tests/Feature`.
 
 Commits follow [Conventional Commits](https://www.conventionalcommits.org/). Before opening a pull request,
-`composer check` and the `Feature` tests should both pass. The current release is 0.3.0, a beta: see the
+`composer check` and the `Feature` tests should both pass. The current release is 0.4.0, a beta: see the
 [changelog](CHANGELOG.md).
 
 ## Contributing

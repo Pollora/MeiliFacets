@@ -65,7 +65,7 @@ final readonly class StateFields
         $fields = [];
 
         foreach (PriceBound::cases() as $bound) {
-            $asked = $bound->of($listing->askedPrice());
+            $asked = $listing->askedPrice()->bound($bound);
 
             if ($asked !== null) {
                 $fields[] = new HiddenField($listing->parameterForReserved($bound->parameter()), Range::formatBound($asked));

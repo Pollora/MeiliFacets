@@ -188,6 +188,28 @@ final class FacetValuesTest extends TestCase
         $this->assertSame(['50ml', '5ml', '4g'], array_map(static fn (FacetValue $v): string => $v->slug, $values));
     }
 
+    /** PHP turns an all-digit array key into an integer: a slug such as `100` must come back as text. */
+    #[Test]
+    public function it_keeps_an_all_digit_slug_as_text_in_the_declared_order(): void
+    {
+        $labels = new FakeTermLabels(['200' => '200 ml', '100' => '100 ml', 'xl' => 'XL']);
+        $facet = new Facet('pa_size', 'Size', order: DisplayOrder::Declared);
+
+        $values = new FacetValues($labels, new FakeTermScope, new FakeDefaultTerms)
+            ->of($facet, ['100' => 9, 'xl' => 5, '200' => 1], new ListingState(['pa_size' => ['100']]));
+
+        $this->assertSame(['200', '100', 'xl'], array_map(static fn (FacetValue $v): string => $v->slug, $values));
+        $this->assertSame([false, true, false], array_map(static fn (FacetValue $v): bool => $v->selected, $values));
+    }
+
+    #[Test]
+    public function it_keeps_an_all_digit_slug_as_text_in_the_engine_order(): void
+    {
+        $values = $this->values()->of(new Facet('pa_size', 'Size'), ['100' => 9, '200' => 1], new ListingState);
+
+        $this->assertSame(['100', '200'], array_map(static fn (FacetValue $v): string => $v->slug, $values));
+    }
+
     /** A slug the taxonomy no longer lists still has a count: it waits at the end. */
     #[Test]
     public function it_sends_a_value_the_taxonomy_does_not_list_to_the_end(): void

@@ -253,6 +253,7 @@ ${priced ? priceBlock(folding) : ''}
         </ul>
     </div>
 
+    <div class="meilifacetsUnavailable" role="alert" hidden data-meili="unavailable"><p>Search is unavailable</p></div>
     <ul class="meilifacetsResults" role="list" data-meili="results"></ul>
     <p class="meilifacetsResultsEmpty" hidden data-meili="empty">
         <span data-meili="no-results">Nothing found</span>

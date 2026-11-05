@@ -86,7 +86,7 @@ final class Price extends ListingComponent
 
     private function shown(PriceBound $bound, ?float $effective): ?float
     {
-        return $this->showsSlider() ? $effective : $bound->of($this->asked());
+        return $this->showsSlider() ? $effective : $this->asked()->bound($bound);
     }
 
     /**
@@ -143,7 +143,7 @@ final class Price extends ListingComponent
     /** A facet can narrow the reachable prices under what was asked. */
     private function effective(PriceBound $bound): ?float
     {
-        $asked = $bound->of($this->asked()) ?? $bound->of($this->bounds());
+        $asked = $this->asked()->bound($bound) ?? $this->bounds()->bound($bound);
 
         return $asked === null ? null : $this->bounds()->clamp($asked);
     }
