@@ -8,6 +8,9 @@ use Modules\MeiliFacets\Contracts\TermHierarchy;
 use Modules\MeiliFacets\Enums\TermField;
 use WP_Term;
 
+/**
+ * @phpstan-import-type Term from TermHierarchy
+ */
 final readonly class WordPressTermHierarchy implements TermHierarchy
 {
     private const string RESOURCE_TYPE = 'taxonomy';
@@ -42,7 +45,7 @@ final readonly class WordPressTermHierarchy implements TermHierarchy
     }
 
     /**
-     * @return array<string, mixed>
+     * @return Term
      */
     private function describe(WP_Term $term): array
     {
