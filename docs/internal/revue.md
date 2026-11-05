@@ -3348,6 +3348,10 @@ suit ni les références d'un même namespace, ni la découverte par attribut Po
 - MeiliScout : `^2.6.1` requis, après le correctif amont AmphiBee/MeiliScout#84 (une taxonomie absente sous WP-CLI
   vidait l'index des taxonomies).
 
+**Décisions** écrites dans `decisions.md` le même jour : « Échec d'une recherche du navigateur », « Deux listings du
+même nom », « Exceptions d'usage dans un gabarit », « Changements d'API publique », « Rangement des dossiers »,
+« Relais de `ResolvedListing` », « Aiguillage des projecteurs de carte », et l'amendement de « Dépendance MeiliScout ».
+
 **Choisi avec Louis, non fait** : `app/Enums` reste à plat (convention Laravel) ; les relais de `ResolvedListing` restent
 (loi de Déméter, `R-167`) ; `DeferredCardProjector` reste (le projet de test s'en sert) ; cycle `Listing`↔`Search`,
 `app/View/Card/` et `Seo/` laissés en l'état faute de gain. Les constats de la revue qui recoupent des entrées ouvertes y
