@@ -31,8 +31,10 @@
         "illuminate/contracts": "^13.35",
         "illuminate/reflection": "^13.35",
         "illuminate/support": "^13.35",
+        "illuminate/translation": "^13.35",
         "illuminate/view": "^13.35",
-        "league/uri": "^7.5"
+        "league/uri": "^7.5",
+        "meilisearch/meilisearch-php": "^1.12"
     },
     "conflict": {
         "pollora/framework": "<13.35.3 || >=14.0"
