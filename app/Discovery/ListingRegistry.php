@@ -59,19 +59,8 @@ final class ListingRegistry extends NamedRegistry
         } catch (ListingUnavailable) {
             return;
         } catch (Throwable $failure) {
-            $this->report($failure);
-        }
-    }
-
-    /**
-     * Unreported, a project binding that throws surfaces as "no listing is
-     * declared". A handler that throws in turn must not take the page down.
-     */
-    private function report(Throwable $failure): void
-    {
-        try {
-            report($failure);
-        } catch (Throwable) {
+            // Unreported, a throwing project binding reads as "no listing is declared"; a throwing handler must not take the page down.
+            rescue(static fn () => report($failure), report: false);
         }
     }
 
