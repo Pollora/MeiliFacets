@@ -134,16 +134,25 @@ export class SearchClient {
 
         const { results = [] } = (await response.json()) as { results?: SearchAnswer[] }
 
+        if (results.length < keys.length) {
+            throw new SearchError(`Meilisearch answered ${results.length} of ${keys.length} searches sent together.`)
+        }
+
         // Answers come back in order: the caller's keys are put back on them.
-        return Object.fromEntries(keys.map((key, rank) => [key, results[rank] ?? {}]))
+        return Object.fromEntries(keys.map((key, rank) => [key, results[rank] as SearchAnswer]))
     }
 
+    /** A network failure or an unreadable body is the engine being unavailable, as it is to the server. */
     #reasonFor(error: unknown) {
+        if (error instanceof SearchError) {
+            return error
+        }
+
         if (!(error instanceof Error)) {
             return new SearchError(String(error))
         }
 
-        return REASONS[error.name]?.() ?? error
+        return REASONS[error.name]?.() ?? new SearchError(error.message)
     }
 
     async #refusal(response: Response) {
