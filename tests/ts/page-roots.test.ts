@@ -83,6 +83,15 @@ describe('PageRoots', () => {
         })
     })
 
+    it('binds nothing and names the module when what it published is not JSON', (t) => {
+        const markup = listing('products') + `<script type="application/json" id="wp-script-module-data-${LISTING.id}">{"connection":</script>`
+
+        assert.deepEqual(started(t, markup, RootComponent.LISTING, LISTING), {
+            bound: [],
+            errors: ['[meilifacets] the data published under @meilifacets/listing is not JSON.'],
+        })
+    })
+
     it('names a root the page does not describe, and binds the others', (t) => {
         const markup = search('header') + search('footer') + published(SEARCH, { header: { label: 'Header' } })
 

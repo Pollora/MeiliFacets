@@ -56,10 +56,7 @@ export class PageRoots<Description> {
         const data = this.#document.getElementById(`wp-script-module-data-${this.#module.id}`)?.textContent
 
         if (data) {
-            const published = JSON.parse(data) as { connection: Connection } & Record<string, unknown>
-            const descriptions = (published[this.#module.roots] ?? {}) as Partial<Record<string, Description>>
-
-            return { connection: published.connection, descriptions }
+            return this.#read(data)
         }
 
         // The module id is written on both sides of the boundary: a mismatch
@@ -69,6 +66,22 @@ export class PageRoots<Description> {
         }
 
         return null
+    }
+
+    #read(data: string): Published<Description> | null {
+        let published: { connection: Connection } & Record<string, unknown>
+
+        try {
+            published = JSON.parse(data) as { connection: Connection } & Record<string, unknown>
+        } catch {
+            console.error(`[meilifacets] the data published under ${this.#module.id} is not JSON.`)
+
+            return null
+        }
+
+        const descriptions = (published[this.#module.roots] ?? {}) as Partial<Record<string, Description>>
+
+        return { connection: published.connection, descriptions }
     }
 
     #reportOrphans() {
