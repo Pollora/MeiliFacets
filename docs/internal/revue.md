@@ -3336,8 +3336,9 @@ suit ni les références d'un même namespace, ni la découverte par attribut Po
   recherche plus récente laissait ses résultats sous l'URL de la page revenue ;
 - trois échecs silencieux désormais signalés : liaison de listing cassée, table de lookup des variations illisible,
   données publiées non JSON ;
-- côté navigateur, une réponse incomplète du moteur est une panne comme côté serveur, et le message d'indisponibilité
-  s'affiche dans le listing (issue #5 en partie : l'URL garde encore le filtre non appliqué) ;
+- côté navigateur, une réponse incomplète du moteur est une panne comme côté serveur ; un échec affiche le message
+  d'indisponibilité au-dessus des résultats, remet les contrôles et l'URL sur le dernier état servi par le moteur, et
+  l'écrit dans la console (issue #5 fermée) ;
 - un second listing sous un nom déjà pris est refusé et rapporté, le premier gardé ;
 - environ 230 tests directs ajoutés sur des classes qui n'en avaient pas ;
 - nettoyages : formes de tableau écrites une fois sur l'interface, cycle `SearchScopedListing`/`SearchScope` et
@@ -11880,5 +11881,5 @@ continuer à décider sur 76 produits sans variations.
   sans être réécrites ; le registre avait fermé `R-05` à tort et laissé répondues cinq questions ouvertes.
 - **2026-11-05** — **Passe de qualité outillée (`R-244`)**, à la demande de Louis : `desloppify` sur une branche
   dédiée, vingt relectures à l'aveugle, puis tri des constats contre `decisions.md` et le registre. Deux bugs visibles
-  corrigés, le message d'indisponibilité dans le listing, environ 230 tests, un correctif amont dans MeiliScout
-  (2.6.1). Livré en 0.4.0.
+  corrigés, l'échec d'une recherche dans le navigateur signalé et annulé (#5), environ 230 tests, un correctif amont
+  dans MeiliScout (2.6.1). Livré en 0.4.0.

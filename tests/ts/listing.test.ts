@@ -201,13 +201,14 @@ describe('Listing', () => {
         assert.deepEqual(heard.map(([name]) => name), ['change'])
     })
 
-    it('announces a refusal of the engine', async () => {
+    it('announces a refusal of the engine', async (t) => {
+        t.mock.method(console, 'error', () => undefined)
         const { listing, heard } = build({}, {}, new SearchError('nope', { code: 'invalid_search_filter' }))
 
         await listing.apply()
 
-        assert.deepEqual(heard.map(([name]) => name), ['failed'])
-        assert.equal(((heard[0]?.[1] as FailedDetail).failure as SearchError).code, 'invalid_search_filter')
+        assert.deepEqual(heard.map(([name]) => name), ['change', 'failed'])
+        assert.equal(((heard[1]?.[1] as FailedDetail).failure as SearchError).code, 'invalid_search_filter')
     })
 
     it('records the state it was served with as soon as it listens', () => {
@@ -257,6 +258,20 @@ describe('Listing', () => {
 
         assert.equal(client.plans.length, 1)
         assert.equal(heard.at(-1)?.[0], 'change')
+    })
+
+    it('goes back to the last state the engine answered, address included, when a search fails', async (t) => {
+        const errors = t.mock.method(console, 'error', () => undefined)
+        const { listing, history, client, heard } = build()
+
+        await listing.toggle('product_brand', 'acme').apply()
+        client.failure = new SearchError('The engine did not answer in time.')
+        await listing.toggle('product_brand', 'globex').apply()
+
+        assert.deepEqual(listing.state.selected('product_brand'), ['acme'])
+        assert.equal(history.replaced.at(-1), '/shop?brand=acme')
+        assert.deepEqual(heard.slice(-2).map(([name]) => name), ['change', 'failed'])
+        assert.match(String(errors.mock.calls[0]?.arguments[0]), /^\[meilifacets\] the search failed/)
     })
 
     it('clears everything on reset', () => {
@@ -327,7 +342,8 @@ describe('a listing with searches under way', () => {
         assert.equal(client.asked, 3)
     })
 
-    it('settles on a refusal too', async () => {
+    it('settles on a refusal too', async (t) => {
+        t.mock.method(console, 'error', () => undefined)
         const { listing, client, heard } = heldBuild()
 
         void listing.apply()

@@ -132,19 +132,23 @@ describe('ListingBinding', () => {
         assert.equal(one('empty').hidden, false)
     })
 
-    it('puts the unavailable message in place of the grid when a search fails, and takes it back once one answers', async () => {
+    it('shows the unavailable message over the last answered grid, and unticks the value it could not apply', async (t) => {
+        const errors = t.mock.method(console, 'error', () => undefined)
         client.answer = { results: { hits: [hit('Lotion')], totalHits: 1 } }
         await listing.apply()
         client.failure = new SearchError('The engine did not answer in time.')
+        tick(window, box('acme'))
         await listing.apply()
 
-        assert.deepEqual([one('unavailable').hidden, one('results').hidden, one('empty').hidden], [false, true, true])
+        assert.deepEqual([one('unavailable').hidden, one('results').hidden, box('acme').checked], [false, false, false])
+        assert.deepEqual(cards(), ['Lotion'])
+        assert.equal(errors.mock.callCount(), 1)
 
         client.failure = null
+        tick(window, box('acme'))
         await listing.apply()
 
-        assert.deepEqual([one('unavailable').hidden, one('results').hidden], [true, false])
-        assert.deepEqual(cards(), ['Lotion'])
+        assert.deepEqual([one('unavailable').hidden, box('acme').checked], [true, true])
     })
 
     it('tells a page past the end from a search that found nothing', async () => {

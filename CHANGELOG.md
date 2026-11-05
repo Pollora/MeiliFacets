@@ -12,8 +12,8 @@ What to change in a project when moving from one version to the next is in
 ## [0.4.0](https://github.com/Pollora/MeiliFacets/releases/tag/0.4.0) - 2026-11-05
 
 Eighth beta, on MeiliScout 2.6.1 and after a code-health pass. Listings no longer fail on an all-digit facet value,
-no longer show another page's results after going back, and show the outage message when a search fails in the
-browser. Several PHP classes moved or were renamed, and the browser script changed: publish the assets, and read
+no longer show another page's results after going back, and say so when a search fails in the browser. Several PHP
+classes moved or were renamed, and the browser script changed: publish the assets, and read
 [docs/upgrading.md](docs/upgrading.md) if the project calls the module's classes or copies its views.
 
 ### Changed
@@ -52,19 +52,19 @@ browser. Several PHP classes moved or were renamed, and the browser script chang
   of the page gone back to.
 - Data published for the browser that is not JSON is reported once, by name, instead of throwing.
 - A WooCommerce variation lookup table that cannot be read is reported; the listing still offers every attribute.
+- A search that fails in the browser no longer leaves the address and the controls on a filter that was not applied:
+  they go back to the last state the engine answered, and the console logs `[meilifacets] the search failed`
+  ([#5](https://github.com/Pollora/MeiliFacets/issues/5)).
 
 ### Added
 
-- When a search fails in the browser, the outage message takes the place of the results, and is announced; the next
-  answer takes it back. The results view renders it hidden, on the new optional `unavailable` hook.
+- When a search fails in the browser, the outage message shows above the results, and is announced; the next answer
+  takes it back. The results view renders it hidden, on the new optional `unavailable` hook.
 
 ### Known issues
 
 - A facet declared with `SelectionMode::Single` hides its other values once one is picked
   ([#4](https://github.com/Pollora/MeiliFacets/issues/4)).
-- A failed search in the browser shows the outage message, but the URL and controls keep the filter that was not
-  applied ([#5](https://github.com/Pollora/MeiliFacets/issues/5)). Meanwhile, the total and the pagination keep the
-  last answer's.
 - Saving a product used to re-index it once per meta WooCommerce writes, each pass resending the index settings.
   MeiliScout 2.5 sends the writes of a request once, at its end, and resends the settings only when they change; this
   has not been measured with the module yet.
