@@ -13,6 +13,15 @@ trait SwitchesApplyMode
     private function useApplyMode(?string $mode): void
     {
         config(['meilifacets.apply_mode' => $mode]);
-        $this->app->make(ListingRegistry::class)->add($this->app->make(ProductListing::class));
+        $current = $this->app->make(ListingRegistry::class);
+        $registry = new ListingRegistry($this->app);
+        $registry->add($this->app->make(ProductListing::class));
+
+        foreach (array_diff($current->names(), [ProductListing::NAME]) as $name) {
+            $registry->add($current->named($name));
+        }
+
+        $this->app->instance(ListingRegistry::class, $registry);
+        $this->app->forgetScopedInstances();
     }
 }

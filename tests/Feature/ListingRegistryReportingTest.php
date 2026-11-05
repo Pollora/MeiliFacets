@@ -9,7 +9,10 @@ use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Support\Facades\Exceptions;
 use LogicException;
 use Modules\MeiliFacets\Discovery\ListingRegistry;
+use Modules\MeiliFacets\Listing\SearchScope;
+use Modules\MeiliFacets\Support\NameRefused;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeListing;
+use Modules\MeiliFacets\Tests\Unit\Doubles\FakeSearchScopedListing;
 use Modules\MeiliFacets\Tests\Unit\Doubles\ThrowingExceptionHandler;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -49,6 +52,22 @@ final class ListingRegistryReportingTest extends TestCase
         $this->app->instance(ExceptionHandler::class, new ThrowingExceptionHandler);
 
         $this->assertSame([], $this->registryWithABrokenBinding()->names());
+    }
+
+    #[Test]
+    public function it_reports_a_second_listing_declared_under_a_taken_name_and_keeps_the_first(): void
+    {
+        Exceptions::fake();
+        $first = FakeListing::named('products');
+        $container = new Container;
+        $container->instance(FakeListing::class, $first);
+        $container->bind(FakeSearchScopedListing::class, static fn (): FakeSearchScopedListing => new FakeSearchScopedListing(FakeListing::named('products'), new SearchScope([])));
+        $registry = new ListingRegistry($container);
+        $registry->addDeclaration(FakeListing::class);
+        $registry->addDeclaration(FakeSearchScopedListing::class);
+
+        $this->assertSame($first, $registry->onlyOne());
+        Exceptions::assertReported(NameRefused::class);
     }
 
     private function registryWithABrokenBinding(): ListingRegistry

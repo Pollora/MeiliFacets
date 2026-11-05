@@ -46,6 +46,24 @@ final class ListingRegistryTest extends TestCase
         $registry->onlyOne();
     }
 
+    /** A second listing under the same name would silently replace the catalogue a template shows. */
+    #[Test]
+    public function it_keeps_the_first_listing_declared_under_a_name(): void
+    {
+        $registry = new ListingRegistry(new Container);
+        $first = FakeListing::named('products');
+        $registry->add($first);
+
+        try {
+            $registry->add(FakeListing::named('products'));
+            $this->fail('A second listing named "products" was accepted.');
+        } catch (NameRefused $refused) {
+            $this->assertStringContainsString('"products" is already declared', $refused->getMessage());
+        }
+
+        $this->assertSame($first, $registry->named('products'));
+    }
+
     #[Test]
     public function it_leaves_out_a_listing_whose_dependency_is_not_loaded(): void
     {

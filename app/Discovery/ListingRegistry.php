@@ -8,6 +8,7 @@ use Illuminate\Contracts\Container\Container;
 use Modules\MeiliFacets\Contracts\Listing;
 use Modules\MeiliFacets\Listing\ListingUnavailable;
 use Modules\MeiliFacets\Support\NamedRegistry;
+use Modules\MeiliFacets\Support\NameRefused;
 use Throwable;
 
 /**
@@ -22,6 +23,10 @@ final class ListingRegistry extends NamedRegistry
 
     public function add(Listing $listing): void
     {
+        if (array_key_exists($listing->name(), $this->entries)) {
+            throw NameRefused::taken($this->kind(), $listing->name());
+        }
+
         $this->entries[$listing->name()] = $listing;
     }
 
