@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Support;
 
-use RuntimeException;
-
 /**
  * @template TEntry of object
  */
@@ -24,9 +22,7 @@ abstract class NamedRegistry
     {
         $this->beforeLookup();
 
-        return $this->entries[$name] ?? throw new RuntimeException(
-            "No {$this->kind()} named \"{$name}\". Declared: {$this->listed()}."
-        );
+        return $this->entries[$name] ?? throw NameRefused::unknown($this->kind(), $name, $this->listed());
     }
 
     /**
@@ -43,7 +39,7 @@ abstract class NamedRegistry
             return reset($this->entries);
         }
 
-        throw new RuntimeException("Name the {$this->kind()}: {$this->declared()}.");
+        throw NameRefused::unnamed($this->kind(), $this->declared());
     }
 
     /**

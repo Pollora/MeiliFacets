@@ -9,6 +9,7 @@ use Modules\MeiliFacets\Http\ServiceUnavailable;
 use Modules\MeiliFacets\Listing\Facet;
 use Modules\MeiliFacets\Listing\FacetValues;
 use Modules\MeiliFacets\Listing\ListingState;
+use Modules\MeiliFacets\Listing\PlacementRefused;
 use Modules\MeiliFacets\Listing\ResolvedListing;
 use Modules\MeiliFacets\Search\DisjunctiveFacetCounter;
 use Modules\MeiliFacets\Search\EngineLimits;
@@ -21,7 +22,6 @@ use Modules\MeiliFacets\Tests\Unit\Doubles\FakeTermLabels;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeTermScope;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use RuntimeException;
 
 /**
  * The rules a template plays by, on facets the test declares itself — the host
@@ -54,7 +54,7 @@ final class FacetPlacementTest extends TestCase
 
         $listing->placeFacet($brand, Facet::class);
 
-        $this->expectException(RuntimeException::class);
+        $this->expectException(PlacementRefused::class);
         $this->expectExceptionMessageMatches('/Facet "brand" is rendered twice/');
 
         $listing->placeFacet($brand, Facet::class);
@@ -68,7 +68,7 @@ final class FacetPlacementTest extends TestCase
 
         $listing->placeSort();
 
-        $this->expectException(RuntimeException::class);
+        $this->expectException(PlacementRefused::class);
         $this->expectExceptionMessageMatches('/The sort of listing "fake" is rendered twice.*Render <x-meilifacets::listing.sort> once per page\\./');
 
         $listing->placeSort();
@@ -84,7 +84,7 @@ final class FacetPlacementTest extends TestCase
             $listing->placeFacet($facet, Facet::class);
         }
 
-        $this->expectException(RuntimeException::class);
+        $this->expectException(PlacementRefused::class);
 
         $listing->placeFacet('brand', Facet::class);
     }
@@ -92,7 +92,7 @@ final class FacetPlacementTest extends TestCase
     #[Test]
     public function it_names_the_facets_it_knows_when_asked_for_one_it_does_not(): void
     {
-        $this->expectException(RuntimeException::class);
+        $this->expectException(PlacementRefused::class);
         $this->expectExceptionMessageMatches('/No facet named "colour".*brand, size/');
 
         $this->listing()->placeFacet('colour', Facet::class);
@@ -110,7 +110,7 @@ final class FacetPlacementTest extends TestCase
     #[Test]
     public function it_refuses_two_facets_answering_to_the_same_name(): void
     {
-        $this->expectException(RuntimeException::class);
+        $this->expectException(PlacementRefused::class);
         $this->expectExceptionMessageMatches('/Facets "Aisles" and "Shelves" answer to the same name "product_cat"/');
 
         $this->listing([

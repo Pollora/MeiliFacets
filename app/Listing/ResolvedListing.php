@@ -20,7 +20,6 @@ use Modules\MeiliFacets\Search\ListingResults;
 use Modules\MeiliFacets\Search\ListingSearch;
 use Modules\MeiliFacets\Search\QueryPlan;
 use Modules\MeiliFacets\Support\UrlParameters;
-use RuntimeException;
 
 final class ResolvedListing
 {
@@ -171,10 +170,7 @@ final class ResolvedListing
 
         foreach ($filters as $filter) {
             if (isset($labels[$filter->name])) {
-                throw new RuntimeException(sprintf(
-                    'Facets "%s" and "%s" answer to the same name "%s" in listing "%s". Declare `name:` on all but one of them.',
-                    $labels[$filter->name], $filter->label, $filter->name, $this->name(),
-                ));
+                throw PlacementRefused::sharedName($labels[$filter->name], $filter->label, $filter->name, $this->name());
             }
 
             $labels[$filter->name] = $filter->label;
@@ -186,9 +182,10 @@ final class ResolvedListing
     private function facetNamed(string $name): Placeable
     {
         return array_find($this->filters(), static fn (Placeable $filter): bool => $filter->name === $name)
-            ?? throw new RuntimeException(
-                "No facet named \"{$name}\" in listing \"{$this->name()}\". Declared: ".
-                implode(', ', array_map(static fn (Placeable $filter): string => $filter->name, $this->filters())).'.'
+            ?? throw PlacementRefused::unknownFacet(
+                $name,
+                $this->name(),
+                array_map(static fn (Placeable $filter): string => $filter->name, $this->filters()),
             );
     }
 
@@ -300,12 +297,7 @@ final class ResolvedListing
     private function ofKind(Placeable $facet, string $kind): Placeable
     {
         if (! $facet instanceof $kind) {
-            throw new RuntimeException(sprintf(
-                '"%s" in listing "%s" is a %s: place it with the component of its own kind.',
-                $facet->name,
-                $this->name(),
-                class_basename($facet)
-            ));
+            throw PlacementRefused::otherKind($facet->name, $this->name(), class_basename($facet));
         }
 
         return $facet;

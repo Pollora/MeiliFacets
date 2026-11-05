@@ -7,10 +7,10 @@ namespace Modules\MeiliFacets\Tests\Unit;
 use Illuminate\Container\Container;
 use Modules\MeiliFacets\Discovery\ListingRegistry;
 use Modules\MeiliFacets\Listing\ListingUnavailable;
+use Modules\MeiliFacets\Support\NameRefused;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeListing;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use RuntimeException;
 
 final class ListingRegistryTest extends TestCase
 {
@@ -26,7 +26,7 @@ final class ListingRegistryTest extends TestCase
     #[Test]
     public function it_refuses_to_guess_when_nothing_is_declared(): void
     {
-        $this->expectException(RuntimeException::class);
+        $this->expectException(NameRefused::class);
         $this->expectExceptionMessage('none is declared');
 
         new ListingRegistry(new Container)->onlyOne();
@@ -40,7 +40,7 @@ final class ListingRegistryTest extends TestCase
         $registry->add(FakeListing::named('products'));
         $registry->add(FakeListing::named('articles'));
 
-        $this->expectException(RuntimeException::class);
+        $this->expectException(NameRefused::class);
         $this->expectExceptionMessage('2 are declared (products, articles)');
 
         $registry->onlyOne();
@@ -54,7 +54,7 @@ final class ListingRegistryTest extends TestCase
         $registry = new ListingRegistry($container);
         $registry->addDeclaration(FakeListing::class);
 
-        $this->expectException(RuntimeException::class);
+        $this->expectException(NameRefused::class);
         $this->expectExceptionMessage('none is declared');
 
         $registry->onlyOne();

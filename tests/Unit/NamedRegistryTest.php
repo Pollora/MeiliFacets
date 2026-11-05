@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Tests\Unit;
 
+use Modules\MeiliFacets\Support\NameRefused;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeRegistry;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use RuntimeException;
 use stdClass;
 
 final class NamedRegistryTest extends TestCase
@@ -26,7 +26,7 @@ final class NamedRegistryTest extends TestCase
     {
         $registry = new FakeRegistry(['hats' => new stdClass, 'shoes' => new stdClass]);
 
-        $this->expectException(RuntimeException::class);
+        $this->expectException(NameRefused::class);
         $this->expectExceptionMessage('No shelf named "coats". Declared: hats, shoes.');
 
         $registry->named('coats');
@@ -35,7 +35,7 @@ final class NamedRegistryTest extends TestCase
     #[Test]
     public function it_says_none_is_declared_when_asked_for_a_name_in_an_empty_registry(): void
     {
-        $this->expectException(RuntimeException::class);
+        $this->expectException(NameRefused::class);
         $this->expectExceptionMessage('No shelf named "hats". Declared: none.');
 
         new FakeRegistry()->named('hats');
@@ -44,7 +44,7 @@ final class NamedRegistryTest extends TestCase
     #[Test]
     public function it_does_not_match_a_name_written_in_another_case(): void
     {
-        $this->expectException(RuntimeException::class);
+        $this->expectException(NameRefused::class);
 
         new FakeRegistry(['hats' => new stdClass])->named('Hats');
     }
@@ -62,7 +62,7 @@ final class NamedRegistryTest extends TestCase
     {
         $registry = new FakeRegistry(['hats' => new stdClass, 'shoes' => new stdClass]);
 
-        $this->expectException(RuntimeException::class);
+        $this->expectException(NameRefused::class);
         $this->expectExceptionMessage('Name the shelf: 2 are declared (hats, shoes).');
 
         $registry->onlyOne();
@@ -71,7 +71,7 @@ final class NamedRegistryTest extends TestCase
     #[Test]
     public function it_refuses_to_pick_one_entry_out_of_none(): void
     {
-        $this->expectException(RuntimeException::class);
+        $this->expectException(NameRefused::class);
         $this->expectExceptionMessage('Name the shelf: none is declared.');
 
         new FakeRegistry()->onlyOne();

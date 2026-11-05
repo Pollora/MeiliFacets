@@ -6,7 +6,6 @@ namespace Modules\MeiliFacets\Listing;
 
 use Modules\MeiliFacets\Contracts\Placeable;
 use Modules\MeiliFacets\Enums\PlacedControl;
-use RuntimeException;
 
 final class PagePlacement
 {
@@ -23,10 +22,7 @@ final class PagePlacement
     public function place(Placeable $facet): void
     {
         if ($this->isRendered(PlacedControl::Facet, $facet->name)) {
-            throw new RuntimeException(
-                "Facet \"{$facet->name}\" is rendered twice on this page: its inputs and ids "
-                .'would be duplicated. Place it on its own before <x-meilifacets::listing.facets>, which shows what is left.'
-            );
+            throw PlacementRefused::facetRenderedTwice($facet->name);
         }
 
         $this->record(PlacedControl::Facet, $facet->name);
@@ -43,10 +39,7 @@ final class PagePlacement
     public function placeSort(): void
     {
         if ($this->isRendered(PlacedControl::Sort, $this->listing)) {
-            throw new RuntimeException(
-                "The sort of listing \"{$this->listing}\" is rendered twice on this page: its list and ids "
-                .'would be duplicated. Render <x-meilifacets::listing.sort> once per page.'
-            );
+            throw PlacementRefused::sortRenderedTwice($this->listing);
         }
 
         $this->record(PlacedControl::Sort, $this->listing);
