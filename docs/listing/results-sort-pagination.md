@@ -53,7 +53,8 @@ listing (see [How a listing works](README.md#which-listing)).
 While a search is under way, the list carries `aria-busy="true"`. The stylesheet dims it only if the answer takes
 longer than a short delay, so a quick answer never flickers.
 
-When the engine is down on first render, the component renders the unavailable message instead (see
+When the engine is down on first render, the component renders the unavailable message instead. Otherwise it renders
+that message hidden, on the `unavailable` hook, for the client to show when a later search fails (see
 [How a listing works](README.md#when-the-engine-is-down)).
 
 `listing.results` takes no attribute bag: a `class` given to it is lost. Style the list through its parent, or

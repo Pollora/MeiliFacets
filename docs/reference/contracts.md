@@ -54,7 +54,7 @@ final class SearchServiceProvider extends ServiceProvider
 | `ProductFacets` | `Listing\WooCommerceFacets`: category as a `ChildTermsFacet`, then brand, both ordered by `NameOrder` | `scopedIf` | `scoped` | [Facets](../listing/facets.md) |
 | `ProductSorts` | `Listing\WooCommerceSorts`: `price_asc`, `price_desc`, `newest`, `on_sale` | `scopedIf` | `scoped` | [Sorting](../listing/results-sort-pagination.md) |
 | `CardProjector` | `Indexing\DeferredCardProjector`: with WooCommerce, `WooCommerceCardProjector` (products: default card plus `price`; other posts: summary card); without, `SummaryCardProjector`. Both wrap `DefaultCardProjector` (title, URL, image) | `bindIf` | `extend` to add fields; `bind` to replace | [What gets indexed](../indexing/README.md) |
-| `VariantFields` | `Indexing\EmptyVariantFields`: no field | `bindIf` | `bind` | [Card variants](../customising/card.md#card-variants) |
+| `VariantFields` | `Indexing\WooCommerce\EmptyVariantFields`: no field | `bindIf` | `bind` | [Card variants](../customising/card.md#card-variants) |
 | `IndexAttributes` | `Indexing\ConfiguredIndexAttributes` (adds `displayed_attributes`) around `DeferredIndexAttributes`: `WooCommerceIndexAttributes` with WooCommerce, `EmptyIndexAttributes` without | `bind` | `extend` | [What gets indexed](../indexing/README.md) |
 | `SearchableAttributes` | `Indexing\DefaultSearchableAttributes`: title, then brand, category and SKU (WooCommerce), other labels, excerpt, content | `scopedIf` | `scoped` or `bind`, decorating the default | [Search relevance](../indexing/relevance.md) |
 | `SearchableTypes` | `SiteSearch\WooCommerceSearchableTypes`: products first when WooCommerce is active and products are searchable, then `WordPressSearchableTypes` | `scopedIf` | `scoped`, decorating the default | [Searchable types](../search/types.md) |
@@ -84,7 +84,7 @@ final class SearchServiceProvider extends ServiceProvider
 | `IndexAttributes` | `exactlyMatched(): list<string>`, `filterable(): list<string>`, `sortable(): list<string>`, `displayed(): list<string>` |
 | `SearchableAttributes` | `all(): list<string>`, most important first |
 | `SearchableTypes` | `all(): array<string, SearchableType>`, keyed by post type |
-| `Listing` | `name(): string`, `facets(): list<Facet>`, `filters(): list<Placeable>`, `sorts(): array<string, Sort>`, `baseFilter(): list<string>`, `baseQuery(): string`, `perPage(): int`, `applyMode(): ApplyMode` |
+| `Listing` | `name(): string`, `facets(): list<Facet>`, `filters(): list<Placeable>`, `sorts(): array<string, Sort>`, `baseFilter(): list<string>`, `baseQuery(): string`, `perPage(): int`, `applyMode(): ApplyMode`. `facets()` may hold fewer than `filters()`: a flat facet of the taxonomy the page pins is left out |
 | `SearchScopedListing` | the `Listing` methods, plus `searchScope(): SearchScope`: filter and fields used once a term is typed |
 | `CardComponentListing` | the `Listing` methods, plus `cardComponent(): string`: the Blade component that draws the listing's cards, given `binding` and `priority` |
 | `DefaultSortedListing` | the `Listing` methods, plus `defaultSort(): list<string>`: the sort expressions used while no sort is chosen and no term is searched; an empty list keeps the engine's order |
@@ -110,10 +110,10 @@ changes behaviour the rest of the module relies on.
 | Contract | Methods |
 | --- | --- |
 | `FacetCounter` | `queries(Listing $listing, ListingState $state): array<string, array<string, mixed>>` |
-| `SearchEngine` | `multiSearch(array $queries): array`, answers under the caller's keys |
-| `TermHierarchy` | `ancestorsOf(int $termId, string $taxonomy): list<array<string, mixed>>`, `childrenOf(int $termId, string $taxonomy): list<string>` |
+| `SearchEngine` | `multiSearch(array $queries): array`, answers under the caller's keys; throws `EngineUnavailable` when the engine is unconfigured, unreachable or answers short |
+| `TermHierarchy` | `ancestorsOf(int $termId, string $taxonomy): list<Term>` (`term_id`, `name`, `slug`, `taxonomy`, `term_taxonomy_id`, `parent`), `childrenOf(int $termId, string $taxonomy): list<string>` |
 | `TermLabels` | `of(string $taxonomy, list<string> $slugs): array<string, string>` |
-| `TermScope` | `childrenOf(string $taxonomy): list<string>` |
+| `TermScope` | `childrenOfCurrentTerm(string $taxonomy): list<string>`: the terms under the one the request is on, or under the root |
 | `DefaultTerms` | `slugOf(string $taxonomy): ?string` |
 
 ## Value classes, enums and helpers

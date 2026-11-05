@@ -263,7 +263,15 @@ When the first render cannot reach Meilisearch, or the engine refuses the query:
   the failure as temporary and no cache keeps it;
 - the failure is reported to the application's exception handler.
 
-When a search from the browser fails, the client keeps what the page shows. Nothing is announced.
+When a search from the browser fails — the engine refuses it, does not answer within 5 seconds, or answers fewer
+searches than it was sent:
+
+- the same message shows above the results, announced (`role="alert"`); `listing.results` renders it hidden for that;
+- the controls and the address go back to the last state the engine answered, which the results still show: a value
+  just ticked unticks itself, and the history gets no new entry;
+- the console logs `[meilifacets] the search failed: <error>`.
+
+The next answer hides the message. Nothing retries the search: the visitor applies the filter again.
 
 An attribute that is not filterable or sortable in the index makes the engine refuse the query, which shows as the
 same message: see [Going to production](../production.md).

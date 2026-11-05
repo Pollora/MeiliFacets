@@ -145,7 +145,7 @@ The form is chosen by the plural rules of the site's language (CLDR, through PHP
 | `Pagination` | the accessible name of the pagination |
 | `No results found.` | the listing, when nothing matches |
 | `There is nothing on this page.` | the listing, on a page past the last one |
-| `Search is temporarily unavailable. Please try again in a moment.` | the listing, when the engine cannot be reached |
+| `Search is temporarily unavailable. Please try again in a moment.` | the listing, when the engine cannot be reached, on the first render or for a search from the browser |
 | `Search this list` | the listing search field's label and placeholder |
 | `Clear the search` | the accessible name of the listing search field's clear button |
 | `Search` | the site search toggle and field's accessible name |

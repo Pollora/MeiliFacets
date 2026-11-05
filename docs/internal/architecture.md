@@ -226,7 +226,8 @@ Modules/MeiliFacets/
 │   ├── Discovery/   découverte des classes portant le contrat Listing
 │   ├── Enums/       contrats figés : champs de document, clés de réglage, crochets
 │   ├── Http/        indexabilité, adresse de la page publiée au client, page d'indisponibilité
-│   ├── Indexing/    projection des facettes, de la carte et du prix, branchement sur MeiliScout
+│   ├── Indexing/    projection des facettes et de la carte, branchement sur MeiliScout ;
+│   │                WooCommerce/ : prix, stock, variantes et carte des produits
 │   ├── Listing/     le domaine : état, facettes, pagination, tri
 │   ├── Providers/
 │   ├── Search/      connexion, plan de requête, lecture des réponses
@@ -244,7 +245,8 @@ Modules/MeiliFacets/
 │   └── views/       vues Blade, toutes surchargeables par le thème
 ├── lang/            catalogue JSON, chargé par le provider
 ├── tests/Unit/      suite `Unit`, autonome : ni WordPress ni moteur
-├── tests/Feature/   suite `Feature`, rend des vues, ne passe que depuis le projet
+├── tests/Feature/   suite `Feature`, rend des vues, ne passe que depuis le projet ;
+│                    Concerns/ : les traits d'aide qu'elle partage
 ├── tests/ts/        lanceur intégré de Node, happy-dom pour la couche DOM
 ├── config/config.php
 ├── config/meilifacets.php.stub  configuration de départ, publiée dans le projet
