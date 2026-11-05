@@ -7,7 +7,7 @@ namespace Modules\MeiliFacets\Tests\Feature;
 use Modules\MeiliFacets\Contracts\VariantFields;
 use Modules\MeiliFacets\Enums\CardField;
 use Modules\MeiliFacets\Enums\VariantField;
-use Modules\MeiliFacets\Indexing\ProductVariants;
+use Modules\MeiliFacets\Indexing\WooCommerce\ProductVariants;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 use WC_Product;

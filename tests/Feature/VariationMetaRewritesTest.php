@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Tests\Feature;
 
 use Closure;
-use Modules\MeiliFacets\Indexing\VariationChanges;
-use Modules\MeiliFacets\Indexing\VariationMetaRewrites;
+use Modules\MeiliFacets\Indexing\WooCommerce\VariationChanges;
+use Modules\MeiliFacets\Indexing\WooCommerce\VariationMetaRewrites;
 use PHPUnit\Framework\Attributes\Test;
 use Pollora\MeiliScout\Providers\SingleIndexingServiceProvider;
 use Tests\TestCase;

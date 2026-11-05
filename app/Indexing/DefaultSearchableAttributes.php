@@ -6,6 +6,7 @@ namespace Modules\MeiliFacets\Indexing;
 
 use Modules\MeiliFacets\Contracts\SearchableAttributes;
 use Modules\MeiliFacets\Enums\DocumentField;
+use Modules\MeiliFacets\Indexing\WooCommerce\WooCommerceProductFields;
 use Modules\MeiliFacets\Support\UniqueList;
 
 /** Title, then what names a product, then every other label, then the prose. */

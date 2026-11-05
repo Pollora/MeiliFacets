@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Modules\MeiliFacets\Indexing;
+namespace Modules\MeiliFacets\Indexing\WooCommerce;
 
 use Illuminate\Container\Attributes\Config;
 use Modules\MeiliFacets\Contracts\TermHierarchy;
@@ -10,6 +10,7 @@ use Modules\MeiliFacets\Contracts\VariantFields;
 use Modules\MeiliFacets\Enums\CardField;
 use Modules\MeiliFacets\Enums\TermField;
 use Modules\MeiliFacets\Enums\VariationPrices;
+use Modules\MeiliFacets\Indexing\ImageFields;
 use Modules\MeiliFacets\Listing\CardVariant;
 use Modules\MeiliFacets\Support\WooCommerce;
 use WC_Product_Variable;

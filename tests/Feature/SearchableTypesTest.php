@@ -8,7 +8,7 @@ use Closure;
 use Modules\MeiliFacets\Contracts\SearchableAttributes;
 use Modules\MeiliFacets\Contracts\SearchableTypes;
 use Modules\MeiliFacets\Indexing\IndexedPostTypes;
-use Modules\MeiliFacets\Indexing\WooCommerceProductFields;
+use Modules\MeiliFacets\Indexing\WooCommerce\WooCommerceProductFields;
 use Modules\MeiliFacets\SiteSearch\AcceptedSearchTypes;
 use Modules\MeiliFacets\SiteSearch\AttributesToSearchOn;
 use Modules\MeiliFacets\SiteSearch\NoFieldToSearch;

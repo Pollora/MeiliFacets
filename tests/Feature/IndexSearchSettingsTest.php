@@ -14,7 +14,7 @@ use Modules\MeiliFacets\Indexing\FacetedPostIndexable;
 use Modules\MeiliFacets\Indexing\IndexedPostTypes;
 use Modules\MeiliFacets\Indexing\IndexedTaxonomies;
 use Modules\MeiliFacets\Indexing\MeiliScoutBridge;
-use Modules\MeiliFacets\Indexing\WooCommerceIndexAttributes;
+use Modules\MeiliFacets\Indexing\WooCommerce\WooCommerceIndexAttributes;
 use Modules\MeiliFacets\Search\EngineLimits;
 use Modules\MeiliFacets\Search\QueryPlan;
 use Modules\MeiliFacets\Tests\Unit\Doubles\ExcerptFirstSearchableAttributes;

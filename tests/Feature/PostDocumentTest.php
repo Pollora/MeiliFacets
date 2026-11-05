@@ -8,7 +8,7 @@ use Modules\MeiliFacets\Contracts\CardProjector;
 use Modules\MeiliFacets\Enums\CardField;
 use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Indexing\PostDocument;
-use Modules\MeiliFacets\Indexing\ShopFields;
+use Modules\MeiliFacets\Indexing\WooCommerce\ShopFields;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 use WP_Post;

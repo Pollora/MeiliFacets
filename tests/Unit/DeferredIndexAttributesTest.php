@@ -6,7 +6,7 @@ namespace Modules\MeiliFacets\Tests\Unit;
 
 use Modules\MeiliFacets\Indexing\DeferredIndexAttributes;
 use Modules\MeiliFacets\Indexing\EmptyIndexAttributes;
-use Modules\MeiliFacets\Indexing\WooCommerceIndexAttributes;
+use Modules\MeiliFacets\Indexing\WooCommerce\WooCommerceIndexAttributes;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 

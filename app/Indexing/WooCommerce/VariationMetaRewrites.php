@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Modules\MeiliFacets\Indexing;
+namespace Modules\MeiliFacets\Indexing\WooCommerce;
 
 use Modules\MeiliFacets\Search\VisibleProducts;
 use Modules\MeiliFacets\Support\WooCommerce;

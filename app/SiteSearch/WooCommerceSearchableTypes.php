@@ -7,7 +7,7 @@ namespace Modules\MeiliFacets\SiteSearch;
 use Closure;
 use Modules\MeiliFacets\Contracts\SearchableTypes;
 use Modules\MeiliFacets\Enums\DocumentField;
-use Modules\MeiliFacets\Indexing\WooCommerceProductFields;
+use Modules\MeiliFacets\Indexing\WooCommerce\WooCommerceProductFields;
 use Modules\MeiliFacets\Search\VisibleProducts;
 
 final class WooCommerceSearchableTypes implements SearchableTypes

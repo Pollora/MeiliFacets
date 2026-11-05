@@ -8,7 +8,7 @@ use Modules\MeiliFacets\Contracts\CardProjector;
 use Modules\MeiliFacets\Enums\CardField;
 use Modules\MeiliFacets\Indexing\PostText;
 use Modules\MeiliFacets\Indexing\SummaryCardProjector;
-use Modules\MeiliFacets\Indexing\WooCommerceCardProjector;
+use Modules\MeiliFacets\Indexing\WooCommerce\WooCommerceCardProjector;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 use WC_Product;

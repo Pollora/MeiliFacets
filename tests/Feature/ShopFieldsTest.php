@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Tests\Feature;
 
-use Modules\MeiliFacets\Indexing\ShopFields;
+use Modules\MeiliFacets\Indexing\WooCommerce\ShopFields;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 use WC_Product;
