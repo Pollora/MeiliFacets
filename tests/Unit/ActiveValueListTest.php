@@ -144,6 +144,19 @@ final class ActiveValueListTest extends TestCase
         $this->assertSame('“:label :query”', $values[0]->label);
     }
 
+    /** The client fills the placeholders itself, under the keys `ActiveValuePatterns` declares in `description.ts`. */
+    #[Test]
+    public function it_publishes_each_pattern_under_the_key_the_client_reads(): void
+    {
+        $this->assertSame([
+            'remove' => 'Remove the :label filter',
+            'query' => '“:query”',
+            'between' => ':min – :max',
+            'from' => 'From :min',
+            'upTo' => 'Up to :max',
+        ], new ActiveValueList(new Money)->patterns());
+    }
+
     /**
      * @param  array<string, string>  $extraLabels
      * @return list<ActiveValue>
