@@ -20,7 +20,7 @@ final class ListingDiscoveryRegistrationTest extends TestCase
         $engine = clone $this->app->make(DiscoveryEngineInterface::class);
         $engine->getDiscoveries()->forget($identifier);
 
-        $this->app->make(DiscoveryRegistrar::class)->registerFromContainer($engine);
+        $this->app->make(DiscoveryRegistrar::class)->registerInto($engine);
 
         $this->assertInstanceOf(ListingDiscovery::class, $engine->getDiscovery($identifier));
     }
