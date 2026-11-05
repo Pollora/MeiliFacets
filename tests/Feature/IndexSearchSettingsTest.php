@@ -17,6 +17,7 @@ use Modules\MeiliFacets\Indexing\MeiliScoutBridge;
 use Modules\MeiliFacets\Indexing\WooCommerce\WooCommerceIndexAttributes;
 use Modules\MeiliFacets\Search\EngineLimits;
 use Modules\MeiliFacets\Search\QueryPlan;
+use Modules\MeiliFacets\Tests\Feature\Concerns\PinsIndexedPostTypes;
 use Modules\MeiliFacets\Tests\Unit\Doubles\ExcerptFirstSearchableAttributes;
 use PHPUnit\Framework\Attributes\Test;
 use Pollora\MeiliScout\Indexables\PostIndexable;

@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Blade;
 use Illuminate\View\ViewException;
 use Modules\MeiliFacets\Enums\CardField;
 use Modules\MeiliFacets\Enums\ImagePriority;
+use Modules\MeiliFacets\Tests\Feature\Concerns\RendersTheModuleViews;
 use Modules\MeiliFacets\View\CardBinding;
 use Modules\MeiliFacets\View\Components\Listing\Card;
 use PHPUnit\Framework\Attributes\Test;

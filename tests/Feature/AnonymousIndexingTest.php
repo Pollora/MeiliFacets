@@ -9,6 +9,7 @@ use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Enums\PriceField;
 use Modules\MeiliFacets\Indexing\PostDocument;
 use Modules\MeiliFacets\Indexing\WooCommerce\AnonymousVisitor;
+use Modules\MeiliFacets\Tests\Feature\Concerns\KeepsTheIndexOut;
 use PHPUnit\Framework\Attributes\Test;
 use RuntimeException;
 use Tests\TestCase;

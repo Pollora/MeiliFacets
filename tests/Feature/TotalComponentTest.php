@@ -12,6 +12,7 @@ use Modules\MeiliFacets\Enums\QueryParameter;
 use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\Listing\ProductListing;
 use Modules\MeiliFacets\Support\UrlParameters;
+use Modules\MeiliFacets\Tests\Feature\Concerns\SwitchesTheSiteLocale;
 use Modules\MeiliFacets\View\CountLabel;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Tests\Feature;
 
 use Modules\MeiliFacets\Providers\RenderingServiceProvider;
+use Modules\MeiliFacets\Tests\Feature\Concerns\RegistersAProvider;
 use Modules\MeiliFacets\View\CardSettings;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;

@@ -6,6 +6,7 @@ namespace Modules\MeiliFacets\Tests\Feature;
 
 use Modules\MeiliFacets\Enums\CardField;
 use Modules\MeiliFacets\Indexing\WooCommerce\ProductStock;
+use Modules\MeiliFacets\Tests\Feature\Concerns\KeepsTheIndexOut;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 use WC_Product;

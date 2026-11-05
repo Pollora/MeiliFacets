@@ -8,6 +8,7 @@ use Modules\MeiliFacets\Contracts\VariantFields;
 use Modules\MeiliFacets\Enums\CardField;
 use Modules\MeiliFacets\Enums\VariantField;
 use Modules\MeiliFacets\Indexing\WooCommerce\ProductVariants;
+use Modules\MeiliFacets\Tests\Feature\Concerns\KeepsTheIndexOut;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 use WC_Product;

@@ -16,6 +16,8 @@ use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\Listing\FacetValue;
 use Modules\MeiliFacets\Listing\ProductListing;
 use Modules\MeiliFacets\Support\UrlParameters;
+use Modules\MeiliFacets\Tests\Feature\Concerns\FindsHooks;
+use Modules\MeiliFacets\Tests\Feature\Concerns\SwitchesTheSiteLocale;
 use Modules\MeiliFacets\View\ActiveValue;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;

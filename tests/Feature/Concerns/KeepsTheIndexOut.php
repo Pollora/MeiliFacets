@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Modules\MeiliFacets\Tests\Feature;
+namespace Modules\MeiliFacets\Tests\Feature\Concerns;
 
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;

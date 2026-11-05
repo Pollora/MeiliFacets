@@ -9,6 +9,7 @@ use Dom\HTMLDocument;
 use Modules\MeiliFacets\Enums\PriceField;
 use Modules\MeiliFacets\Enums\ProductMeta;
 use Modules\MeiliFacets\Indexing\WooCommerce\ProductPriceProjector;
+use Modules\MeiliFacets\Tests\Feature\Concerns\KeepsTheIndexOut;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 use WC_Data_Store;

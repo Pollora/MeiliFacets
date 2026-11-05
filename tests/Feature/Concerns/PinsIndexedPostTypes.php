@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Modules\MeiliFacets\Tests\Feature;
+namespace Modules\MeiliFacets\Tests\Feature\Concerns;
 
 /**
  * The labelled taxonomies follow the post types MeiliScout indexes, an option of the local database.

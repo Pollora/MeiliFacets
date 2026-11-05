@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Modules\MeiliFacets\Tests\Feature;
+namespace Modules\MeiliFacets\Tests\Feature\Concerns;
 
 use Illuminate\Support\Facades\View;
 
@@ -14,7 +14,7 @@ trait RendersTheModuleViews
 {
     private const string VIEW_NAMESPACE = 'meilifacets';
 
-    private const string MODULE_VIEWS = __DIR__.'/../../resources/views';
+    private const string MODULE_VIEWS = __DIR__.'/../../../resources/views';
 
     /** @var list<string> */
     private array $viewPaths = [];

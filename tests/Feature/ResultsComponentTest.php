@@ -16,6 +16,7 @@ use Modules\MeiliFacets\Listing\Pagination;
 use Modules\MeiliFacets\Listing\ProductListing;
 use Modules\MeiliFacets\Listing\ResolvedListing;
 use Modules\MeiliFacets\Seo\ItemList;
+use Modules\MeiliFacets\Tests\Feature\Concerns\RendersTheModuleViews;
 use Modules\MeiliFacets\Tests\Unit\Doubles\ProjectListingCard;
 use Modules\MeiliFacets\View\CardBinding;
 use PHPUnit\Framework\Attributes\Test;

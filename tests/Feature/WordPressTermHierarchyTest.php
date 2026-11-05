@@ -6,6 +6,7 @@ namespace Modules\MeiliFacets\Tests\Feature;
 
 use Modules\MeiliFacets\Enums\TermField;
 use Modules\MeiliFacets\Indexing\WordPressTermHierarchy;
+use Modules\MeiliFacets\Tests\Feature\Concerns\HoldsProbeTerms;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 use WP_Term;

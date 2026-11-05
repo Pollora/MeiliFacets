@@ -13,6 +13,7 @@ use Modules\MeiliFacets\Indexing\DefaultSearchableAttributes;
 use Modules\MeiliFacets\Indexing\DeferredCardProjector;
 use Modules\MeiliFacets\Indexing\WordPressTermHierarchy;
 use Modules\MeiliFacets\Providers\IndexingServiceProvider;
+use Modules\MeiliFacets\Tests\Feature\Concerns\RegistersAProvider;
 use Modules\MeiliFacets\Tests\Unit\Doubles\ExcerptFirstSearchableAttributes;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;

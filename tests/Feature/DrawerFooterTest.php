@@ -7,6 +7,10 @@ namespace Modules\MeiliFacets\Tests\Feature;
 use Dom\HTMLDocument;
 use Illuminate\Support\Facades\Blade;
 use Modules\MeiliFacets\Enums\Hook;
+use Modules\MeiliFacets\Tests\Feature\Concerns\FindsHooks;
+use Modules\MeiliFacets\Tests\Feature\Concerns\HoldsCatalogueValues;
+use Modules\MeiliFacets\Tests\Feature\Concerns\RendersTheModuleViews;
+use Modules\MeiliFacets\Tests\Feature\Concerns\SwitchesApplyMode;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 

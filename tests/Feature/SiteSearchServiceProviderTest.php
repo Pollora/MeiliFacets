@@ -8,6 +8,7 @@ use Illuminate\Container\Container;
 use Modules\MeiliFacets\Contracts\SearchableTypes;
 use Modules\MeiliFacets\Providers\SiteSearchServiceProvider;
 use Modules\MeiliFacets\SiteSearch\SearchSettings;
+use Modules\MeiliFacets\Tests\Feature\Concerns\RegistersAProvider;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 

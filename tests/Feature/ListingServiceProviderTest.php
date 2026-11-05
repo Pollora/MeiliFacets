@@ -16,6 +16,7 @@ use Modules\MeiliFacets\Listing\WooCommerceSorts;
 use Modules\MeiliFacets\Listing\WordPressTermLabels;
 use Modules\MeiliFacets\Listing\WordPressTermScope;
 use Modules\MeiliFacets\Providers\ListingServiceProvider;
+use Modules\MeiliFacets\Tests\Feature\Concerns\RegistersAProvider;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeTermHierarchy;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;

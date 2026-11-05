@@ -7,6 +7,7 @@ namespace Modules\MeiliFacets\Tests\Feature;
 use Closure;
 use Modules\MeiliFacets\Indexing\WooCommerce\VariationChanges;
 use Modules\MeiliFacets\Indexing\WooCommerce\VariationMetaRewrites;
+use Modules\MeiliFacets\Tests\Feature\Concerns\KeepsTheIndexOut;
 use PHPUnit\Framework\Attributes\Test;
 use Pollora\MeiliScout\Providers\SingleIndexingServiceProvider;
 use Tests\TestCase;

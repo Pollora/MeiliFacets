@@ -21,6 +21,7 @@ use Modules\MeiliFacets\SiteSearch\SearchTypeRefused;
 use Modules\MeiliFacets\SiteSearch\UnsearchableFields;
 use Modules\MeiliFacets\SiteSearch\WooCommerceSearchableTypes;
 use Modules\MeiliFacets\SiteSearch\WordPressSearchableTypes;
+use Modules\MeiliFacets\Tests\Feature\Concerns\PinsIndexedPostTypes;
 use Modules\MeiliFacets\Tests\Unit\Doubles\RetitledSearchableTypes;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;

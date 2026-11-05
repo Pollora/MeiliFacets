@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Tests\Feature;
 
 use Modules\MeiliFacets\Listing\WordPressTermLabels;
+use Modules\MeiliFacets\Tests\Feature\Concerns\HoldsProbeTerms;
 use PHPUnit\Framework\Attributes\Test;
 use stdClass;
 use Tests\TestCase;

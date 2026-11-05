@@ -11,6 +11,7 @@ use Modules\MeiliFacets\Enums\PriceField;
 use Modules\MeiliFacets\Indexing\PostDocument;
 use Modules\MeiliFacets\Indexing\WooCommerce\ProductPriceProjector;
 use Modules\MeiliFacets\Indexing\WooCommerce\ShopTaxLocation;
+use Modules\MeiliFacets\Tests\Feature\Concerns\KeepsTheIndexOut;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 use WC_Customer;
