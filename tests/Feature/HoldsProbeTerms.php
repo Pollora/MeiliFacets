@@ -22,6 +22,7 @@ trait HoldsProbeTerms
 
     private function registerProbeTaxonomy(): void
     {
+        // Not KeepsTheIndexOut: it guards from after `setUp()`, and the probe terms are inserted during it.
         add_filter(self::SKIP_INDEXING, '__return_true');
         register_taxonomy(self::PROBE_TAXONOMY, [], ['hierarchical' => true, 'public' => false]);
     }
