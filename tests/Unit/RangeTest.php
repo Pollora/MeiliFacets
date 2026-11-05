@@ -4,12 +4,22 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Tests\Unit;
 
+use Modules\MeiliFacets\Enums\PriceBound;
 use Modules\MeiliFacets\Listing\Range;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 final class RangeTest extends TestCase
 {
+    #[Test]
+    public function it_hands_back_the_bound_asked_for_and_null_for_an_open_end(): void
+    {
+        $range = new Range(max: 40.0);
+
+        $this->assertNull($range->bound(PriceBound::Min));
+        $this->assertEqualsWithDelta(40.0, $range->bound(PriceBound::Max), PHP_FLOAT_EPSILON);
+    }
+
     #[Test]
     public function it_holds_nothing_until_a_bound_is_given(): void
     {

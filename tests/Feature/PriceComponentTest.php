@@ -74,6 +74,18 @@ final class PriceComponentTest extends TestCase
     }
 
     #[Test]
+    public function it_hints_each_field_with_the_end_of_the_catalogue_it_stands_for(): void
+    {
+        $document = $this->render([PricePart::Fields]);
+        $min = $this->one($document, Hook::PriceMin);
+        $max = $this->one($document, Hook::PriceMax);
+
+        $this->assertSame($min->getAttribute('min'), $min->getAttribute('placeholder'));
+        $this->assertSame($max->getAttribute('max'), $max->getAttribute('placeholder'));
+        $this->assertNotSame($min->getAttribute('placeholder'), $max->getAttribute('placeholder'));
+    }
+
+    #[Test]
     public function it_shows_back_what_the_url_asked_for(): void
     {
         $document = $this->render([PricePart::Fields], ['min_price' => '40', 'max_price' => '70']);

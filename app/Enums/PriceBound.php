@@ -4,20 +4,10 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Enums;
 
-use Modules\MeiliFacets\Listing\Range;
-
 enum PriceBound: string
 {
     case Min = 'min';
     case Max = 'max';
-
-    public function of(Range $range): ?float
-    {
-        return match ($this) {
-            self::Min => $range->min,
-            self::Max => $range->max,
-        };
-    }
 
     public function parameter(): QueryParameter
     {
