@@ -88,7 +88,7 @@ final readonly class QueryPlan
             return false;
         }
 
-        return array_intersect(array_keys($state->facets), $listing->variantTaxonomies()) !== [];
+        return $state->selectsAnyOf($listing->variantTaxonomies());
     }
 
     /**

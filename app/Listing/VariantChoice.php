@@ -8,8 +8,6 @@ use Modules\MeiliFacets\Enums\CardField;
 
 /**
  * Shows a card through the variant the active filters point to once a variation attribute is checked, as projected otherwise.
- *
- * @phpstan-import-type Selection from ListingState
  */
 final readonly class VariantChoice
 {
@@ -25,12 +23,10 @@ final readonly class VariantChoice
     ];
 
     /**
-     * @param  Selection  $selected
      * @param  list<string>  $variantTaxonomies
      */
     public function __construct(
-        private array $selected,
-        private Range $price,
+        private ListingState $state,
         private array $variantTaxonomies,
         private ?SortFilter $sortFilter,
     ) {}
@@ -106,7 +102,7 @@ final readonly class VariantChoice
 
     private function readsVariants(): bool
     {
-        return array_intersect(array_keys($this->selected), $this->variantTaxonomies) !== [];
+        return $this->state->selectsAnyOf($this->variantTaxonomies);
     }
 
     /**
@@ -117,7 +113,7 @@ final readonly class VariantChoice
     {
         return array_values(array_filter(
             $variants,
-            fn (CardVariant $variant): bool => $variant->matches($this->selected, $this->price)
+            fn (CardVariant $variant): bool => $variant->matches($this->state->facets, $this->state->price)
                 && $variant->meetsSortFilter($this->sortFilter),
         ));
     }

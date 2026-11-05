@@ -36,6 +36,14 @@ final readonly class ListingState
     }
 
     /**
+     * @param  list<string>  $taxonomies
+     */
+    public function selectsAnyOf(array $taxonomies): bool
+    {
+        return array_intersect(array_keys($this->facets), $taxonomies) !== [];
+    }
+
+    /**
      * @param  array<string, Sort>  $sorts
      */
     public function chosenSort(array $sorts): ?Sort

@@ -72,6 +72,10 @@ export class ListingState {
         return this.#facets[taxonomy] ?? []
     }
 
+    selectsAnyOf(taxonomies: readonly string[]) {
+        return Object.keys(this.#facets).some((taxonomy) => taxonomies.includes(taxonomy))
+    }
+
     /** Mirrors ListingState on the server: a range counts once, whatever its ends. */
     activeFilterCount() {
         const ticked = Object.values(this.#facets).reduce((total, values) => total + values.length, 0)

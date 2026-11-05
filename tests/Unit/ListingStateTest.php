@@ -30,4 +30,17 @@ final class ListingStateTest extends TestCase
     {
         $this->assertNull(new ListingState(sort: 'rating')->chosenSort(['newest' => new Sort('New arrivals', ['post_date:desc'])]));
     }
+
+    #[Test]
+    public function it_selects_any_of_the_taxonomies_one_of_its_facets_names(): void
+    {
+        $this->assertTrue(new ListingState(['pa_volume' => ['400ml']])->selectsAnyOf(['pa_scent', 'pa_volume']));
+    }
+
+    #[Test]
+    public function it_selects_none_of_the_taxonomies_no_facet_names(): void
+    {
+        $this->assertFalse(new ListingState(['product_brand' => ['acme']])->selectsAnyOf(['pa_volume']));
+        $this->assertFalse(new ListingState()->selectsAnyOf(['pa_volume']));
+    }
 }

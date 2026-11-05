@@ -108,7 +108,7 @@ final class ResolvedListing
      */
     private function shownCards(): array
     {
-        $choice = new VariantChoice($this->state->facets, $this->state->price, $this->variantTaxonomies(), $this->sortFilter());
+        $choice = new VariantChoice($this->state, $this->variantTaxonomies(), $this->sortFilter());
 
         return array_map($choice->shown(...), $this->projectedCards());
     }
