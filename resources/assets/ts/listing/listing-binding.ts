@@ -67,6 +67,7 @@ export class ListingBinding {
         this.#contract.root.addEventListener('click', (event) => this.#clicked(event))
         this.#listing.addEventListener('change', (event) => this.#moved((event as CustomEvent<ChangeDetail>).detail))
         this.#listing.addEventListener('results', (event) => this.#repaint((event as CustomEvent<ResultsDetail>).detail))
+        this.#listing.addEventListener('failed', () => this.#results.failed())
         this.#listing.listenToHistory()
         new BusyGrid(this.#contract).watch(this.#listing)
         this.#sort.start()

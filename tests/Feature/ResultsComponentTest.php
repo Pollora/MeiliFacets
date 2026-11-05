@@ -67,6 +67,25 @@ final class ResultsComponentTest extends TestCase
         $this->assertStringNotContainsString('<ul', $html);
     }
 
+    /** The client reveals the same message, in the site's language, when a later search fails. */
+    #[Test]
+    public function it_keeps_the_outage_message_hidden_for_the_client(): void
+    {
+        $html = $this->render(cards: [$this->card('First')]);
+
+        $this->assertMatchesRegularExpression('/<div class="meilifacetsUnavailable" role="alert" hidden data-meili="unavailable"\s*>/', $html);
+        $this->assertStringContainsString(__('Search is temporarily unavailable. Please try again in a moment.'), $html);
+    }
+
+    #[Test]
+    public function it_shows_the_outage_message_unhooked_when_the_server_render_failed(): void
+    {
+        $html = $this->render(failed: true);
+
+        $this->assertStringNotContainsString('data-meili="unavailable"', $html);
+        $this->assertStringNotContainsString(' hidden', $html);
+    }
+
     /** Kept for the client to fill, hidden so no screen reader counts an empty list. */
     #[Test]
     public function it_hides_the_list_it_has_nothing_to_put_in(): void

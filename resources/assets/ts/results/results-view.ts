@@ -4,7 +4,7 @@ import type { PageWindow } from '../pagination/page-window.ts'
 import type { Contract } from '../shared/contract.ts'
 import type { Card } from '../shared/description.ts'
 
-/** The grid the theme rendered, and the message shown in its place when nothing matched. */
+/** The grid the theme rendered, and the message shown in its place when nothing matched or the engine failed. */
 export class ResultsView {
     #contract: Contract
     #cardView: CardView
@@ -25,6 +25,22 @@ export class ResultsView {
         list.replaceChildren(...cards.flatMap((card) => this.#cardView.stamp(template, card)))
         list.hidden = cards.length === 0
         this.#showEmpty(cards, pageWindow)
+        this.#reveal('unavailable', false)
+    }
+
+    /** The cards on screen answer filters the visitor has since changed: the message takes their place. */
+    failed() {
+        this.#reveal('results', false)
+        this.#reveal('empty', false)
+        this.#reveal('unavailable', true)
+    }
+
+    #reveal(hook: string, shown: boolean) {
+        const element = this.#contract.one(hook)
+
+        if (element instanceof HTMLElement) {
+            element.hidden = !shown
+        }
     }
 
     #showEmpty(cards: Card[], pageWindow: PageWindow) {
