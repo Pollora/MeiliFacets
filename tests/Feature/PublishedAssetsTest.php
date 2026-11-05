@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Tests\Feature;
 
+use Illuminate\Support\Facades\File;
 use Modules\MeiliFacets\Support\PublishedAssets;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -42,7 +43,7 @@ final class PublishedAssetsTest extends TestCase
         $published = public_path(self::PROBE);
         $kept = (string) file_get_contents($published);
         $was = filemtime($published);
-        unlink($published);
+        File::delete($published);
 
         $this->assertContains('css/meilifacets.css', new PublishedAssets()->stale());
 

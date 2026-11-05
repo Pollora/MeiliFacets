@@ -544,8 +544,9 @@ Ce que ça coûte :
   l'enveloppe, et seul le lockfile fixe le compilateur. La 6 disparaît
   quand `typescript-eslint` prend la 7 (7.1 attendue en novembre 2026). `esbuild` est épinglé à la
   version exacte, sans quoi une mise à jour changerait le fichier construit ;
-- **Node 24.12 au moins** (`engines`), la version où le retrait des types devient stable ; 24.21.0 sur
-  la machine et dans ddev. **Dans ddev la version est figée** (`nodejs_version: "24.21.0"`) : `"24"`
+- **Node 26 au moins** (`engines`), monté par Louis le 2026-11-05 (le retrait des types est stable
+  depuis 24.12) ; 26.13.0 sur la machine et dans ddev. **Dans ddev la version est figée**
+  (`nodejs_version: "26.13.0"`) : `"24"`
   restait sur celle de l'image. Chaque correctif de Node demande donc de monter ce numéro à la main,
   sans quoi ddev et la machine divergent de nouveau ;
 - **un `node_modules` ne sert qu'un système** : esbuild et TypeScript 7 déposent un binaire par

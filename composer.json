@@ -63,7 +63,7 @@
         "ext-dom": "*",
         "driftingly/rector-laravel": "^2.6",
         "laravel/pint": "^1.30",
-        "phpunit/phpunit": "^12.5",
+        "phpunit/phpunit": "^13.4",
         "rector/rector": "^2.6"
     },
     "suggest": {

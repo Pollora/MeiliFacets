@@ -4,7 +4,7 @@
     "license": "GPL-2.0-or-later",
     "type": "module",
     "engines": {
-        "node": ">=24.12"
+        "node": ">=26"
     },
     "scripts": {
         "lint": "eslint bundle.ts playwright.config.ts resources/assets/ts tests/ts tests/playwright",
@@ -16,8 +16,8 @@
     },
     "devDependencies": {
         "@eslint/js": "^10.0.1",
-        "@playwright/test": "1.63.0",
-        "@types/node": "^24.13.5",
+        "@playwright/test": "1.64.1",
+        "@types/node": "^26.6.6",
         "@typescript/native": "npm:typescript@~7.0.2",
         "esbuild": "0.28.2",
         "eslint": "^10.10.0",

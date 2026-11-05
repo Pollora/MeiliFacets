@@ -7,6 +7,7 @@ namespace Modules\MeiliFacets\Tests\Feature;
 use Dom\Element;
 use Dom\HTMLDocument;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\File;
 use InvalidArgumentException;
 use Modules\MeiliFacets\Contracts\Placeable;
 use Modules\MeiliFacets\Enums\Contract;
@@ -190,7 +191,7 @@ final class FacetComponentTest extends TestCase
     {
         $this->useApplyMode('immediate');
         $empty = config('view.compiled').'/'.hash('xxh128', '').'.blade.php';
-        @unlink($empty);
+        File::delete($empty);
 
         $this->placingEveryFacet();
         Blade::render('<x-meilifacets::listing.facets name="products" />');

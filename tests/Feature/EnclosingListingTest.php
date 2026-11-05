@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Tests\Feature;
 
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\File;
 use Illuminate\View\ViewException;
 use Modules\MeiliFacets\Discovery\ListingRegistry;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeListing;
@@ -73,7 +74,7 @@ final class EnclosingListingTest extends TestCase
                 .'</x-probe::wrapper></x-meilifacets::listing>'
             );
         } finally {
-            unlink($components.'/wrapper.blade.php');
+            File::delete($components.'/wrapper.blade.php');
             rmdir($components);
         }
 
