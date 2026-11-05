@@ -4,7 +4,36 @@ This page lists, for each release, what a project has to change when it updates 
 changes is in the [changelog](../CHANGELOG.md).
 
 0.1.0 was the first release, a beta; 0.2.0 is the second; 0.2.1 is the third; 0.2.2 is the fourth; 0.2.3 is the fifth;
-0.2.4 is the sixth; 0.3.0 is the seventh.
+0.2.4 is the sixth; 0.3.0 is the seventh; 0.4.0 is the eighth.
+
+## 0.4.0
+
+- **Require `pollora/meilifacets:^0.4`, which brings MeiliScout 2.6.1**: `composer require pollora/meilifacets:^0.4 -W`.
+  Below 1.0, `^0.3` does not reach 0.4.
+- **Run `php artisan module:publish MeiliFacets`, then clear the page cache.** The browser script changed; until it
+  is published, `php artisan meilifacets:check-assets` exits with `1`.
+- **Run `wp meiliscout index --clear` once if a selected taxonomy is registered only in the admin.** Before
+  MeiliScout 2.6.1, a full indexation from WP-CLI then left the taxonomies index empty, and `get_terms()` ran on
+  MySQL. `wp meiliscout index` now names such a taxonomy in a `Warning:` and leaves it out: unselect it in
+  MeiliScout › Content › Taxonomies unless the search needs it.
+- **Update the imports of the moved classes.** The WooCommerce indexing classes are in
+  `Modules\MeiliFacets\Indexing\WooCommerce` (for instance `Indexing\ProductStock` is
+  `Indexing\WooCommerce\ProductStock`); a project test using the module's helpers imports them from
+  `Modules\MeiliFacets\Tests\Feature\Concerns` (`KeepsTheIndexOut`…).
+- **Rename the calls**, if the project makes them: `Facet::presentedAs()` to `acceptedPresentation()`,
+  `TermScope::childrenOf()` to `childrenOfCurrentTerm()` (a project implementing `TermScope` renames its method),
+  `PriceBound::of($range)` to `$range->bound($bound)`, `SearchScope::searching($listing)` to
+  `QueryPlan::searchScope($listing)`. `ResolvedListing::baseFilter()` now returns a list of clauses; the joined
+  expression is `baseFilterExpression()`. `new VariantChoice($selected, $price, …)` becomes
+  `new VariantChoice(new ListingState($selected, price: $price), …)`.
+- **A `catch (RuntimeException)` around a module component** catches `Listing\PlacementRefused` or
+  `Support\NameRefused` instead: both are `LogicException`.
+- **Two listings declared under the same name**: the second one is now left out and reported in the log. Give each
+  its own name.
+- **A theme that copied `components/listing/results.blade.php`** adds `<x-meilifacets::listing.unavailable
+  when-search-fails />` above the results to show the outage message when a search fails in the browser; without it,
+  the grid keeps its last results. A copy of `components/listing/price/fields.blade.php` replaces
+  `$handle->bound->of($bounds)` with `$bounds->bound($handle->bound)`: `PriceBound::of()` is removed, and the page fails.
 
 ## 0.3.0
 
