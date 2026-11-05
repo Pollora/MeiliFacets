@@ -36,7 +36,7 @@ php artisan meilifacets:check-assets
 | --- | --- | --- |
 | PHP | 8.4 or later | |
 | Pollora | 13.x from 13.35.3 (`pollora/framework` `>=13.35.3 <14`), on Laravel 13 | Laravel modules (`nwidart/laravel-modules`) ship with Pollora: nothing to install. Plugins › Modules shows when a newer MeiliFacets is available |
-| MeiliScout | `amphibee/meiliscout` 2.5.1 or later | a WordPress plugin; it builds and pushes the documents |
+| MeiliScout | `amphibee/meiliscout` 2.6.1 or later | a WordPress plugin; it builds and pushes the documents |
 | Meilisearch | a server reachable from PHP and from the browser | see [Engine version](production.md#engine-version) |
 | WooCommerce | for the product listing | 9.8 for grouped product prices, 9.9 to switch off WooCommerce's own filtering of the shop query. The site search runs without WooCommerce |
 | `ext-intl` | suggested | without it, facet values ordered by name fall back to a byte comparison that misplaces accented labels |
@@ -80,7 +80,7 @@ until then, add them by hand. Keep the WordPress rules already under `installer-
 composer require pollora/meilifacets:^0.3 -W
 ```
 
-MeiliScout comes with the module, at 2.5.1 or later. It declares `type: wordpress-plugin`, so it is installed with
+MeiliScout comes with the module, at 2.6.1 or later. It declares `type: wordpress-plugin`, so it is installed with
 the other plugins (`public/content/plugins/meiliscout`), not in `vendor/`.
 
 Then enable the module in `modules_statuses.json`, at the project root. Create the file if it does not exist, or add
