@@ -43,13 +43,13 @@ readonly class Facet implements Placeable
             $name !== '' => $name,
             default => $taxonomy,
         };
-        $this->presentation = $this->presentedAs($presentation);
+        $this->presentation = $this->acceptedPresentation($presentation);
     }
 
     /**
      * @throws InvalidArgumentException when the facet holds one value at a time and the presentation cannot
      */
-    public function presentedAs(ValuePresentation $presentation): ValuePresentation
+    public function acceptedPresentation(ValuePresentation $presentation): ValuePresentation
     {
         if ($this->canBePresentedAs($presentation)) {
             return $presentation;

@@ -113,8 +113,8 @@ final class Facet extends ListingComponent
     {
         return match (true) {
             $override === null => $this->facet->presentation,
-            is_string($override) => $this->facet->presentedAs(Presentation::from($override)),
-            default => $this->facet->presentedAs($override),
+            is_string($override) => $this->facet->acceptedPresentation(Presentation::from($override)),
+            default => $this->facet->acceptedPresentation($override),
         };
     }
 

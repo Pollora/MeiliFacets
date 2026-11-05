@@ -53,7 +53,7 @@ final class FacetPresentationTest extends TestCase
     {
         $facet = new Facet('pa_size', 'Size', SelectionMode::Single);
 
-        $this->assertSame(Presentation::Control, $facet->presentedAs(Presentation::Control));
+        $this->assertSame(Presentation::Control, $facet->acceptedPresentation(Presentation::Control));
     }
 
     /** What a template asks for goes through the same guard as what the project declared. */
@@ -62,7 +62,7 @@ final class FacetPresentationTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
 
-        new Facet('pa_size', 'Size', SelectionMode::Single)->presentedAs(Presentation::Pill);
+        new Facet('pa_size', 'Size', SelectionMode::Single)->acceptedPresentation(Presentation::Pill);
     }
 
     #[Test]
