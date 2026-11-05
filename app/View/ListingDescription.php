@@ -66,7 +66,7 @@ final readonly class ListingDescription
 
         return [
             'name' => $listing->name(),
-            'filter' => $listing->baseFilter(),
+            'filter' => $listing->baseFilterExpression(),
             'baseQuery' => $listing->baseQuery(),
             'searchScope' => $this->searchScope($listing),
             'minChars' => $this->searchSettings->minChars,

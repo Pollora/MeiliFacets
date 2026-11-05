@@ -417,9 +417,17 @@ final class ResolvedListing
         return $this->listing->perPage();
     }
 
-    public function baseFilter(): string
+    /**
+     * @return list<string>
+     */
+    public function baseFilter(): array
     {
-        return FilterExpression::all($this->listing->baseFilter());
+        return $this->listing->baseFilter();
+    }
+
+    public function baseFilterExpression(): string
+    {
+        return FilterExpression::all($this->baseFilter());
     }
 
     public function baseQuery(): string
