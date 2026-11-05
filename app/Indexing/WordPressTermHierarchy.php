@@ -12,9 +12,6 @@ final readonly class WordPressTermHierarchy implements TermHierarchy
 {
     private const string RESOURCE_TYPE = 'taxonomy';
 
-    /**
-     * @return list<array<string, mixed>>
-     */
     public function ancestorsOf(int $termId, string $taxonomy): array
     {
         $ancestors = [];
@@ -30,9 +27,6 @@ final readonly class WordPressTermHierarchy implements TermHierarchy
         return $ancestors;
     }
 
-    /**
-     * @return list<string>
-     */
     public function childrenOf(int $termId, string $taxonomy): array
     {
         $terms = get_terms([

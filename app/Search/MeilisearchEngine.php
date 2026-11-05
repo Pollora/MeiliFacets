@@ -12,10 +12,6 @@ final readonly class MeilisearchEngine implements SearchEngine
 {
     public function __construct(private ?Client $client, private string $index) {}
 
-    /**
-     * @param  array<string, array<string, mixed>>  $queries
-     * @return array<string, array<string, mixed>>
-     */
     public function multiSearch(array $queries): array
     {
         if ($queries === []) {

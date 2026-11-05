@@ -16,9 +16,6 @@ final readonly class SummaryCardProjector implements CardProjector
 
     public function __construct(private CardProjector $card, private PostText $postText) {}
 
-    /**
-     * @return array<string, mixed>
-     */
     public function project(WP_Post $post): array
     {
         return [

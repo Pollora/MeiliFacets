@@ -21,33 +21,21 @@ final readonly class DeferredIndexAttributes implements IndexAttributes
         private IndexAttributes $withoutPlugin,
     ) {}
 
-    /**
-     * @return list<string>
-     */
     public function exactlyMatched(): array
     {
         return $this->current()->exactlyMatched();
     }
 
-    /**
-     * @return list<string>
-     */
     public function filterable(): array
     {
         return $this->current()->filterable();
     }
 
-    /**
-     * @return list<string>
-     */
     public function sortable(): array
     {
         return $this->current()->sortable();
     }
 
-    /**
-     * @return list<string>
-     */
     public function displayed(): array
     {
         return $this->current()->displayed();

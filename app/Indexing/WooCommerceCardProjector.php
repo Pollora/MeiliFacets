@@ -15,9 +15,6 @@ final readonly class WooCommerceCardProjector implements CardProjector
 
     public function __construct(private CardProjector $productCard, private CardProjector $otherCard) {}
 
-    /**
-     * @return array<string, mixed>
-     */
     public function project(WP_Post $post): array
     {
         $product = wc_get_product($post);

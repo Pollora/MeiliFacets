@@ -22,9 +22,6 @@ final readonly class DeferredCardProjector implements CardProjector
         private CardProjector $withoutPlugin,
     ) {}
 
-    /**
-     * @return array<string, mixed>
-     */
     public function project(WP_Post $post): array
     {
         $projector = ($this->pluginIsActive)() ? $this->plugin : $this->withoutPlugin;

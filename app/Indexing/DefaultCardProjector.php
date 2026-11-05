@@ -15,9 +15,6 @@ final readonly class DefaultCardProjector implements CardProjector
 
     public function __construct(private string $imageSize) {}
 
-    /**
-     * @return array<string, mixed>
-     */
     public function project(WP_Post $post): array
     {
         return [

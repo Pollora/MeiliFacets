@@ -12,17 +12,11 @@ use Modules\MeiliFacets\Enums\SearchedMeta;
 
 final readonly class WooCommerceIndexAttributes implements IndexAttributes
 {
-    /**
-     * @return list<string>
-     */
     public function exactlyMatched(): array
     {
         return [SearchedMeta::Sku->path()];
     }
 
-    /**
-     * @return list<string>
-     */
     public function filterable(): array
     {
         return [
@@ -32,9 +26,6 @@ final readonly class WooCommerceIndexAttributes implements IndexAttributes
         ];
     }
 
-    /**
-     * @return list<string>
-     */
     public function sortable(): array
     {
         return [
@@ -45,9 +36,6 @@ final readonly class WooCommerceIndexAttributes implements IndexAttributes
         ];
     }
 
-    /**
-     * @return list<string>
-     */
     public function displayed(): array
     {
         return [];
