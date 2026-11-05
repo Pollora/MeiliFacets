@@ -18,6 +18,7 @@ use Modules\MeiliFacets\Search\FacetTruncated;
 use Modules\MeiliFacets\Search\FilterExpression;
 use Modules\MeiliFacets\Search\ListingResults;
 use Modules\MeiliFacets\Search\ListingSearch;
+use Modules\MeiliFacets\Search\QueryPlan;
 use Modules\MeiliFacets\Support\UrlParameters;
 use RuntimeException;
 
@@ -428,7 +429,7 @@ final class ResolvedListing
 
     public function searchScope(): SearchScope
     {
-        return SearchScope::searching($this->listing);
+        return QueryPlan::searchScope($this->listing);
     }
 
     public function variantListing(): ?VariantScopedListing

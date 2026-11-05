@@ -6,6 +6,7 @@ namespace Modules\MeiliFacets\Search;
 
 use Modules\MeiliFacets\Contracts\DefaultSortedListing;
 use Modules\MeiliFacets\Contracts\Listing;
+use Modules\MeiliFacets\Contracts\SearchScopedListing;
 use Modules\MeiliFacets\Contracts\VariantScopedListing;
 use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Enums\PriceField;
@@ -316,7 +317,21 @@ final readonly class QueryPlan
     {
         $searchTerm = self::searchTerm($listing, $state);
 
-        return $searchTerm === '' ? SearchScope::browsing($listing) : SearchScope::searching($listing);
+        return $searchTerm === '' ? self::browsingScope($listing) : self::searchScope($listing);
+    }
+
+    public static function searchScope(Listing $listing): SearchScope
+    {
+        if ($listing instanceof SearchScopedListing) {
+            return $listing->searchScope();
+        }
+
+        return self::browsingScope($listing);
+    }
+
+    private static function browsingScope(Listing $listing): SearchScope
+    {
+        return new SearchScope($listing->baseFilter());
     }
 
     /**
