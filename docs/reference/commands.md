@@ -21,14 +21,17 @@ wp meiliscout index
 
 ### `meilifacets:check-parameters`
 
-Checks every listing URL parameter (the mapped taxonomy names and the five reserved names, renamed or not)
-against the names WordPress, WooCommerce and a reverse proxy already use. No options.
+Checks that the site has permalinks, which the pagination links need, then every listing URL parameter (the mapped
+taxonomy names and the reserved names, renamed or not) against the names WordPress, WooCommerce and a reverse proxy
+already use. No options.
 
 | Output | Level | Meaning |
 | --- | --- | --- |
+| `Permalinks are off: every pagination link would lead to the first page.` | error | Settings › Permalinks is on "Plain": WordPress paginates in `?paged=N`; the check stops there |
+| `Choose any structure other than "Plain" under Settings › Permalinks.` | line | follows that error |
 | `"<name>" is read from $_GET by WooCommerce: its query, its widgets or is_filtered() act on it.` | error | a parameter named `orderby`, `rating_filter` or `filter_*`, or named `min_price` / `max_price` without being that bound |
 | `"<name>" is a public WordPress query var: WordPress would filter its own query in parallel.` | error | a public query var, as filtered by `query_vars` |
-| `"<name>" is stripped by Varnish when it comes first: the whole query string would be dropped.` | error | `utm_campaign`, `utm_medium`, `utm_source`, `utm_term`, `adParams`, `client`, `cx`, `eid`, `fbid`, `feed`, `ref`, `refid`, `refsrc`, `ver`, `view` |
+| `"<name>" is stripped by common caching proxies when it comes first: the whole query string would be dropped.` | error | `utm_campaign`, `utm_medium`, `utm_source`, `utm_term`, `adParams`, `client`, `cx`, `eid`, `fbid`, `feed`, `ref`, `refid`, `refsrc`, `ver`, `view` |
 | `Rename them in config/meilifacets.php, under url_parameters or query_parameters.` | line | follows the errors |
 | `"min_price" is read from $_GET by WooCommerce: …` and the same for `max_price` | warning | the price bounds keep WooCommerce's names on purpose |
 | `Taken on purpose: the bounds keep the names WooCommerce reads, so a link written` / `for it drives the module. Rename them under query_parameters to give that up.` | line | follows the warnings |
@@ -96,11 +99,12 @@ Run from the module's repository.
 | `composer refactor` | Rector, dry run |
 | `composer test` | PHPUnit, `Unit` suite |
 | `composer test:host` | PHPUnit, `Feature` suite (needs a host application) |
-| `composer lint:js` / `npm run lint` | ESLint on `bundle.ts`, `resources/assets/ts` and `tests/ts` |
-| `composer types:js` / `npm run typecheck` | TypeScript type check, sources and tests |
+| `composer lint:js` / `npm run lint` | ESLint on `bundle.ts`, `playwright.config.ts`, `resources/assets/ts`, `tests/ts` and `tests/playwright` |
+| `composer types:js` / `npm run typecheck` | TypeScript type check, sources, client tests and browser tests |
 | `composer test:js` / `npm test` | Node's test runner on `tests/ts`, with coverage thresholds |
 | `composer build` / `npm run build` | builds `resources/assets/dist` |
 | `composer build:check` / `npm run build:check` | checks the built bundles are up to date |
+| `npm run test:playwright` | Playwright browser tests in `tests/playwright`, against the site `MEILIFACETS_PLAYWRIGHT_URL` names; not part of `composer check` |
 
 ## Watch out
 

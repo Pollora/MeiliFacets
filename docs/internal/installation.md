@@ -95,7 +95,7 @@ redémarrage. Recréée avec le même uid, elle retrouve exactement la même val
 
 ## 4. MeiliScout
 
-MeiliScout ne se requiert pas dans le projet : le `composer.json` du module le demande (`^2.5.1`, `R-242`) et le
+MeiliScout ne se requiert pas dans le projet : le `composer.json` du module le demande (`^2.6.1`, `R-244` ; `^2.5.1` depuis `R-242`) et le
 `merge-plugin` du projet le fait remonter. Une contrainte du projet qui l'exclut (l'ancienne `dev-feat/meilifacets`
 par exemple) rend l'installation insatisfiable. Reste à l'activer :
 
@@ -105,7 +105,8 @@ ddev wp plugin activate meiliscout
 
 Le paquet déclare `"type": "wordpress-plugin"` : il s'installe dans `public/content/plugins`,
 pas dans `vendor/`. La 2.5.1 est la première version taguée qui porte tout ce dont le module a besoin : le correctif
-d'extensibilité (`R-39`) et la réindexation demandée pendant `shutdown` (AmphiBee/MeiliScout#75).
+d'extensibilité (`R-39`) et la réindexation demandée pendant `shutdown` (AmphiBee/MeiliScout#75). La 2.6.1 ajoute
+AmphiBee/MeiliScout#84 : une taxonomie absente de la requête vidait l'index des taxonomies à l'indexation complète.
 
 ## 5. Sélection des contenus
 
@@ -115,6 +116,13 @@ keys à indexer.
 ⚠️ Cette configuration vit **en base de données**, pas dans le dépôt : elle n'est pas versionnée
 et ne se propage pas d'un environnement à l'autre. Elle doit être refaite sur chaque
 environnement, et toute modification doit être consignée quelque part.
+
+## 5 bis. Permaliens
+
+La pagination écrit ses liens en `/page/N/` (`get_pagenum_link()`, `R-245`) : avec les permaliens « Simple »,
+chaque lien mènerait à la première page. `meilifacets:check-parameters` échoue dans ce cas
+(`CheckParametersCommand::paginatesInThePath()`) ; choisir n'importe quelle autre structure dans Réglages ›
+Permaliens.
 
 ## 6. Première indexation
 

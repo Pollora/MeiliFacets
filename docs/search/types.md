@@ -146,7 +146,8 @@ The type must still be indexed by MeiliScout: a type missing from the index is n
 if the post type is not registered in WordPress.
 
 There is no `withBaseFilter()`. To search a type with another base filter, build it with
-`SearchableTypeFactory::make()`, which takes the post type, the filter clauses and the fields to search on:
+`SearchableTypeFactory::make()`, which takes the post type, the filter clauses and the fields to search on, narrowed
+to the index's search order:
 
 ```php
 $this->factory->make(
@@ -272,8 +273,8 @@ The other ways to bind a card field (attributes, classes, conditions) are in [Ov
 index does not search, so a type's fields must stay inside the index's search order, set by `SearchableAttributes`:
 see [Search relevance](../indexing/relevance.md).
 
-- The default types are narrowed to the search order automatically: if you remove `excerpt` from the order, the types
-  stop searching it.
+- The default types, and every type `SearchableTypeFactory` builds, are narrowed to the search order automatically: if
+  you remove `excerpt` from the order, the types stop searching it.
 - `withSearchOn()` takes the list as it is. A field outside the order throws when the search renders:
 
   ```text

@@ -36,7 +36,7 @@ You want to…
 | Sort, `widget="radios"` | a `<fieldset>` of native radios, in a `role="list"` |
 | Price slider | two `<button role="slider">` handles, named « Lowest price » and « Highest price », with `aria-valuemin`, `aria-valuemax`, `aria-valuenow` and `aria-valuetext` (the amount with its currency) |
 | Price fields | two `<input type="number">` labelled « From » and « To »; the currency symbol and the dash are hidden from screen readers |
-| Pagination | a `<nav>` named « Pagination »; the page shown carries `aria-current="page"`. Pages are buttons, not links: nothing navigates |
+| Pagination | a `<nav>` named « Pagination »; the page shown carries `aria-current="page"`. Pages are links to `/page/N`; a plain click turns the page in place and adds a history entry, a click opening a new tab is left to the browser |
 | Active filters | a visually hidden « Active filters », read just before a `role="list"` of pills, and hidden with them when none is left; each filter is a button named « Remove the … filter » |
 | Clear all | a button; in its icon shape, named by `aria-label` |
 | Listing search | a `<form role="search">` named by `aria-label`; its `type="search"` field is named by a visually hidden `<label>`, not by `aria-label`; a « Clear the search » button |
@@ -135,7 +135,7 @@ leaves the focus on `<body>`.
 | Escape in the site search, or in a floating panel | the button that opened it |
 | « Clear all », which then hides itself | the visible « Apply » in the same drawer, or in the listing; otherwise the drawer's title when the drawer is a sheet; otherwise the listing root |
 | removing an active filter | the filter now at the same place in the list, otherwise the one before, otherwise the listing root |
-| a page button that the new page hides | the button of the page shown |
+| a page link that the new page hides | the link of the page shown |
 | clearing the listing search | the search field |
 | picking a sort option | the sort button |
 
@@ -194,21 +194,20 @@ a view (see [Overriding views](/docs/customising/views.md)), keep:
   writes, and the elements they point at;
 - the roles: `combobox`, `listbox`, `option`, `slider`, `search`, `alert`, and `list` on every `<ul>` styled without
   bullets — Safari drops the list role of such a list for VoiceOver, and the attribute gives it back;
-- `aria-expanded="false"`, `aria-selected` and `aria-current="page"` as rendered: the client updates them, it does
-  not add them;
+- `aria-expanded="false"` and `aria-selected` as rendered: the client updates them, it does not add them;
 - `<fieldset>` and `<legend>` around a facet's values, or another grouping with an accessible name;
 - the `total-status` and `search-status` regions, with `aria-live="polite"`: without them, results change in
   silence;
 - `tabindex="-1"` on the drawer's title, which receives the focus;
 - `aria-hidden="true"` on decorative icons, on the ✕ marks, and on the badges that describe a button;
-- buttons as buttons: pagination, sort, apply and reset do not navigate, and a link there would announce a navigation
-  that never happens.
+- buttons as buttons: sort, apply and reset do not navigate, and a link there would announce a navigation that never
+  happens. The pagination does navigate: its controls are links.
 
 ## Watch out
 
 - **Without JavaScript, the listing is readable but inert.** The page is complete as the server renders it, but
-  facets, sort and pagination are buttons and boxes that do nothing. The listing search field is a real form and still
-  works. The site search magnifier does nothing without its client.
+  facets and sort are buttons and boxes that do nothing; the pagination links still lead to each page. The listing
+  search field is a real form and still works. The site search magnifier does nothing without its client.
 - **Your own card is yours to make accessible.** The module's card is a link around the image and the title, a heading
   whose level (`heading`, `h3` by default) follows the title above the listing: `h2` under the page's `<h1>`. No
   other component of the module renders a heading. A card

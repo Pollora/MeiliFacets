@@ -39,6 +39,7 @@ php artisan meilifacets:check-assets
 | MeiliScout | `amphibee/meiliscout` 2.6.1 or later | a WordPress plugin; it builds and pushes the documents |
 | Meilisearch | a server reachable from PHP and from the browser | see [Engine version](production.md#engine-version) |
 | WooCommerce | for the product listing | 9.8 for grouped product prices, 9.9 to switch off WooCommerce's own filtering of the shop query. The site search runs without WooCommerce |
+| Permalinks | any structure but "Plain" | the pagination links lead to `/page/N`; `php artisan meilifacets:check-parameters` fails without them |
 | `ext-intl` | suggested | without it, facet values ordered by name fall back to a byte comparison that misplaces accented labels |
 
 ## Prepare `composer.json`

@@ -40,7 +40,7 @@ Use your theme's own layout in place of `layouts.app`. The layout must call `wp_
 is printed there.
 
 Nothing is declared in PHP: on a WooCommerce project, the module provides a product listing filtered by category and
-brand. Open the shop, check a brand, and the address becomes:
+brand. Open the shop, check a brand, press « Apply filters », and the address becomes:
 
 ```text
 https://projet.ddev.site/shop/?f_product_brand=acme

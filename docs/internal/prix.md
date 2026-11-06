@@ -22,7 +22,7 @@ La note de `ProductMeta.php` (« `_price` is stored as a number, so range filter
 projection ») est donc exacte.
 
 **Dans la carte** — `WooCommerceCardProjector` projette `get_price_html()`, c'est-à-dire du **HTML
-figé au moment de l'indexation** (`decisions.md:42`). Ce n'est pas un nombre : la carte affiche ce
+figé au moment de l'indexation** (`decisions.md`, « Carte produit »). Ce n'est pas un nombre : la carte affiche ce
 que WooCommerce affichait ce jour-là.
 
 **Ce qui n'existe pas** : aucune facette de disponibilité (`D-f`). `_sale_price` et ses dates sont dans les
@@ -483,7 +483,7 @@ comme le widget classique, pas celle des blocs qui convertissent par classe de t
 renommables**, deux cas de plus dans `QueryParameter`.
 
 Le choix initial était de les figer, pour qu'un lien WooCommerce natif fonctionne toujours. Il
-contredisait `decisions.md:67` — « `sort`, `q`, `pg` : en anglais, **le projet les habille** » — que
+contredisait `decisions.md` (« Défauts des paramètres réservés ») — « `sort`, `q`, `pg` : en anglais, **le projet les habille** » — que
 `UrlParameters::reserved()` applique littéralement. Signalé à Louis, qui a laissé la décision au
 module ; elle est donc prise **pour la cohérence** :
 
@@ -515,9 +515,9 @@ pas seulement ses champs. À reprendre avec `D-f` et le mode « gestion par quan
 
 ## 6. Ce qui est déjà tranché et qu'il ne faut pas rouvrir sans le dire
 
-- le prix de la carte est du **HTML non filtré**, décidé et argumenté (`decisions.md:42`, `R-26`,
+- le prix de la carte est du **HTML non filtré**, décidé et argumenté (`decisions.md`, « Carte produit », `R-26`,
   `Q-11`) ;
-- `displayedAttributes` est restreint à `ID` et `card` (`decisions.md:53`) — un filtre prix n'a pas
+- `displayedAttributes` est restreint à `ID` et `card` (`decisions.md`, « `displayedAttributes` ») — un filtre prix n'a pas
   besoin de le rouvrir, `price.min`/`price.max` sont filtrables sans être affichés ;
 - **une couture s'ouvre quand un projet en a besoin** (`CLAUDE.md` § 2). Les tranches de prix par
   projet seraient une couture ; le min/max n'en est pas une.

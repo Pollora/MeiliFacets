@@ -32,6 +32,7 @@ not are listed in [Errors and console messages](reference/errors.md#silent-failu
 | `php artisan module:list` does not show MeiliFacets, or shows it disabled | `modules_statuses.json` is missing or does not enable it | write `{"MeiliFacets": true}` in `modules_statuses.json` at the project root |
 | `php artisan list` shows no `meilifacets:` command | the module is not loaded | same as the two rows above; then `composer dump-autoload` |
 | `Unable to locate a class or view for component [meilifacets::listing]` | the module is not loaded | same |
+| Every pagination link shows the first page; `meilifacets:check-parameters` says `Permalinks are off` | Settings › Permalinks is on "Plain" | choose any other structure |
 | `Name the listing: none is declared.` | WooCommerce is not active, a `Listing` class threw while being built, or Pollora is 13.34.3 or later with MeiliFacets 0.2.0 or earlier | activate WooCommerce; read the log for a reported exception; update the module (see [Upgrading](upgrading.md)) |
 
 ## The listing does not filter
@@ -113,8 +114,8 @@ The panel shows « Search unavailable » when the engine refuses or does not ans
   does not answer within 5 seconds, the listing shows its unavailable message above the results it had, puts its
   controls and its address back on that state, and logs `[meilifacets] the search failed` in the console. The visitor
   applies the filter again once the engine is back.
-- **Without JavaScript, only the first render and the listing search field work.** Facets, sorting and pagination
-  are buttons and need the client.
+- **Without JavaScript, only the first render, the pagination links and the listing search field work.** Facets and
+  sorting are buttons and need the client.
 - **The browser client's timeout** (5 seconds) is not configurable.
 
 ## FAQ

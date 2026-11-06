@@ -71,20 +71,21 @@ from the listing's name). Those that belong to a search receive `$root` and `$id
 | View | Also receives |
 | --- | --- |
 | `listing` | `$contract` (the contract version attribute), `$applyMode` |
-| `listing/results` | `$cards`, `$items`, `$priority($rank)` |
+| `listing/results` | `$cards`, `$items`, `$cardComponent`, `$priority($rank)`, `$bindingOf($card)`, `$templateBinding()`, `$templatePriority()` |
 | `listing/card` | `$binding`, `$priority`, `$heading`, `$link`, `$image`, `$title`, `$price` |
-| `listing/facets` | `$needsApplyButton`, `$collapsible`, `$withApply`, `$unwrapped`, `$componentFor($filter)` |
+| `listing/facets` | `$needsApplyButton`, `$collapsible`, `$withApply`, `$unwrapped`, `$remainingFilters()`, `$componentFor($filter)` |
 | `listing/facet` | `$facet`, `$values`, `$presentation`, `$collapsible`, `$inputType()`, `$inputName()`, `$panelId()`, `$labelId($value)`, `$countId($value)`, `$countLabel($value)`, `$disclosure()`, `$hasFoldedValues()`, `$isShown()`, `$isBeyondRow()`, `$marksPresentation()` |
 | `listing/price` | `$filter`, `$money`, `$collapsible`, `$bounds()`, `$handles()`, `$fill()`, `$readout()`, `$showsSlider()`, `$showsFields()`, `$isShown()`, `$isBeyondRow()`, `$panelId()`, `$disclosure()` |
 | `listing/sort`, `listing/sort-radios` | `$choices`, `$selected`, `$caption`, `$widget`, `$collapsible`, `$disclosure()`, `$panelId()`, `$choiceName()` |
-| `listing/pagination` | `$pagination` |
+| `listing/pagination` | `$pagination`, `$linkTo($page)` |
 | `listing/total` | `$label` |
 | `listing/active-filters` | `$count`, `$label` |
 | `listing/active-values` | `$values` |
 | `listing/apply` | `$shape`, `$visibleInDrawer`, `$badge`, `$label()`, `$onlyInDrawer()` |
 | `listing/reset`, `listing/reset-icon` | `$shape`, `$hasNothingToClear()`, `$defaultIconUrl()` |
-| `listing/drawer` | `$drawerId`, `$titleId`, `$media`, `$rowLimit`, `$overflow()`, `$showsMore()`, slots `$footer`, `$showMore` |
+| `listing/drawer` | `$drawerId`, `$titleId`, `$media`, `$rowLimit`, `$overflow()`, `$showsMore()`, `$hasMoreToShow()`, slots `$footer`, `$showMore` |
 | `listing/drawer-opener` | `$drawerId`, `$badge`, `$defaultIconUrl()`, slot `$icon` |
+| `listing/unavailable` | `$whenSearchFails` |
 | `listing/search` | `$action`, `$kept`, `$parameter`, `$term`, `$inputId`, `$maxLength`, `$label()` |
 | `search` | `$contract`, `$sectionTypes()`, slot `$icon` |
 | `search/toggle` | `$panelId`, `$defaultIconUrl()`, slot `$icon` |

@@ -410,8 +410,8 @@ attributs sont alors omis plutôt que devinés, et le CLS revient jusqu'à la r�
 (`ddev wp meiliscout index --clear`). Le repli n'est pas une valeur par défaut arbitraire —
 mentir au navigateur sur la taille provoque exactement le décalage qu'on veut éviter.
 
-**Le prix n'est filtré nulle part.** `Card` fait `new HtmlString($document->text(CardField::Price))` :
-ce que WooCommerce a formaté à l'indexation ressort tel quel dans la page. Le champ vient de
+**Le prix n'est filtré nulle part.** `CardBinding::price()` le passe tel quel à `CardFieldElement`, que la vue
+imprime sans échappement (`{{ $price }}`, un `Htmlable`) : ce que WooCommerce a formaté à l'indexation ressort tel quel dans la page. Le champ vient de
 `wc_price()`, donc du markup maison — mais rien ne le vérifie au rendu, et un projet qui projette
 un prix depuis une autre source injecterait ce qu'il veut. C'est R-26, ouvert.
 
@@ -532,12 +532,13 @@ $ ddev exec php artisan module:publish-config MeiliFacets
 
 Sans `--force` elle ne fait rien, puisque le fichier existe. **Avec `--force`, elle l'écrase par
 `Modules/MeiliFacets/config/config.php`** — qui ne contient que `['name' => 'MeiliFacets']`. Le
-projet perdrait `browser`, `apply_mode`, `price_parts` et `url_parameters` d'un coup, sans
+projet perdrait `browser`, `apply_mode`, `url_parameters` et `query_parameters` d'un coup, sans
 avertissement.
 
 C'est la conséquence directe de la règle inverse, écrite en tête de `config/config.php` : **une clé
 déclarée là ne peut pas être surchargée par le projet**, parce que la fusion de nwidart fait gagner
-le module. Les réglages surchargeables sont donc lus avec leur défaut **dans le provider**, et
+le module. Les réglages surchargeables sont donc lus avec leur défaut **là où ils sont lus** — un provider, ou
+`#[Config]` sur un constructeur —, et
 documentés dans `configuration.md` — jamais déclarés dans `config/config.php`.
 
 Autrement dit, il n'y a **rien à publier** : `config/meilifacets.php` côté projet n'est pas une

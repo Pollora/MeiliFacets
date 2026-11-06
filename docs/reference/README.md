@@ -9,7 +9,7 @@ Lookup pages: one table per object, taken from the code. Each row links to the p
 | [CSS custom properties](css-tokens.md) | Every `--meili-*` token of the two stylesheets, with its default and the root it is declared on. |
 | [Configuration and environment](configuration.md) | Every `config/meilifacets.php` key with its default, the environment variables and the MeiliScout settings involved. |
 | [PHP contracts](contracts.md) | Every interface in `Modules\MeiliFacets\Contracts`, its default implementation and how the module binds it. |
-| [WordPress filters and actions](wordpress-hooks.md) | The filter the module exposes, the WordPress filters it reads, the hooks it attaches to, and its asset handles. |
+| [WordPress filters and actions](wordpress-hooks.md) | The filters the module exposes, the WordPress filters it reads, the hooks it attaches to, and its asset handles. |
 | [Index settings and document fields](index-settings.md) | The Meilisearch settings the module writes and the fields it adds to each document. |
 | [Errors and console messages](errors.md) | Every exception, logged report, console line and browser message, with its cause and its fix. |
 | [Commands](commands.md) | Artisan, WP-CLI and development commands, with their options. |

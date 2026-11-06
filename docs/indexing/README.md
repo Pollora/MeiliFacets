@@ -20,12 +20,13 @@ You want to…
 its `metas`. Which post types are indexed is a MeiliScout setting, stored in the database and set from its
 administration screen: set it on every environment.
 
-**The module** hooks into MeiliScout at three points:
+**The module** hooks into MeiliScout at four points:
 
 | MeiliScout filter | What the module does |
 | --- | --- |
 | `meiliscout/post/document` | adds its fields to every document, on every indexing path: full index, single save, async queue |
 | `meiliscout/indexables` | replaces MeiliScout's post indexable with its own, which writes the module's index settings |
+| `meiliscout/post/ranking_rules` | puts Meilisearch's default ranking rules back, relevance before `sort` |
 | `HasDependentDocuments` (contract of that indexable) | writes one document per variant of a variable product, under the post type `product_variation`, with the product's and removed with it |
 
 The module never pushes documents itself, and has no indexing command of its own. To reindex, use MeiliScout's:
@@ -204,9 +205,10 @@ Each time MeiliScout indexes, the module writes these settings on the index:
 | Setting | What the module puts in it |
 | --- | --- |
 | `filterableAttributes` | MeiliScout's, plus `facets.<taxonomy>` for every indexed taxonomy, plus `ID` and `parent_id`, plus the WooCommerce price and stock fields and `document_kind` when WooCommerce is active |
-| `sortableAttributes` | MeiliScout's, plus `price.min`, `price.max` and `in_stock` when WooCommerce is active |
+| `sortableAttributes` | MeiliScout's, plus `price.min`, `price.max`, `in_stock` and `menu_order` when WooCommerce is active |
 | `displayedAttributes` | `ID`, `card`, `parent_id`, and what is declared as above |
 | `searchableAttributes` | the search order: see [Search relevance](relevance.md) |
+| `rankingRules` | Meilisearch's default rules, relevance before `sort`, through `meiliscout/post/ranking_rules` |
 | `typoTolerance.disableOnAttributes` | the fields matched exactly: the SKU when WooCommerce is active |
 | `faceting` | facet values sorted by count; at most `engine.max_facet_values` values per facet |
 | `pagination.maxTotalHits` | `engine.reachable_hits` |

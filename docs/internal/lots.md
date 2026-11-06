@@ -66,7 +66,7 @@ résultats, sans qu'aucun PHP ne s'exécute. Le retour arrière restaure l'état
 ## Lot 3 — Composants Blade et rendu
 
 Le premier lot visible. L'archive produit change de source de données et de carte : elle rend
-`<x-meilifacets::card>`, la carte du module (mesuré sur `/boutique` le 2026-09-22). *`decisions.md`, « Carte
+`<x-meilifacets::listing.card>`, la carte du module (mesuré sur `/boutique` le 2026-09-22). *`decisions.md`, « Carte
 de l'archive produit », prévoit encore le composant de carte du thème de test : écart à trancher (`Q-10`, `R-45`).*
 
 Livré en trois étapes. Après 3b, l'archive **affiche** le bon contenu pour n'importe quelle URL,
@@ -81,6 +81,9 @@ filtrée ou non — ce qui est ce que le référencement demande.
 > > Corrigé le 2026-09-07. Ils sont devenus des `<button type="button">` le 2026-09-06
 > > (« Les commandes sont des boutons »), donc **sans JavaScript le listing entier est inerte** :
 > > seul le premier rendu est servi, ce qui reste la promesse tenue.
+> >
+> > > Corrigé le 2026-11-06. La pagination est redevenue des liens `<a href>` (`R-245`) : elle
+> > > fonctionne sans JavaScript ; facettes, tri et remise à zéro restent inertes.
 
 | Étape | Objet | État |
 | --- | --- | --- |
@@ -166,7 +169,7 @@ Dans cet ordre, tous relevés par l'audit du 2026-09-04 :
 | --- | --- |
 | 1. `multi-search` et comptage disjonctif côté client | **livré** — recetté en navigateur au lot 3c-1, 131 tests Node |
 | 2. Pagination fausse sur un vrai catalogue | **livré** — `totalHits` remplace l'estimation, et la fenêtre ne propose jamais une page que le moteur refuse (`engine.reachable_hits`, R-42) |
-| 3. Contrat de liaison | **livré** — 23 crochets à cette date dans `Enums\Hook` (36 aujourd'hui), `data-meili-contract="1"`, refus au démarrage, parité testée |
+| 3. Contrat de liaison | **livré** — 23 crochets à cette date dans `Enums\Hook` (77 au 2026-11-06), `data-meili-contract="1"`, refus au démarrage, parité testée |
 | 4. `popstate` | **branché** — `Listing.listenToHistory()`, appelé par `ListingBinding.start()` ; recette au lot 3c-3 |
 | a11y : compteur dans le nom accessible | **corrigé** — `aria-describedby`, le nom de la case ne change plus au filtrage |
 | a11y : règle `[hidden]` | **corrigée** — `resources/assets/css/meilifacets.css`, publiée et inscrite par le module |
@@ -185,7 +188,8 @@ cocher et appliquer, mise à jour de l'affichage, `popstate` branché.
 zéro. `ListingBinding` n'est plus qu'un câblage : `ResultsView`, `FacetsView`, `PaginationView` et
 `SortCombobox` portent le rendu.
 
-**Ce qui reste à 3c-3** : état d'attente (`data-meili-busy`), comportement après échecs répétés,
+**Ce qui reste à 3c-3** : état d'attente (`data-meili-busy`) — livré depuis en `aria-busy` sur la grille
+(`BusyGrid`, `R-179`) —, comportement après échecs répétés,
 recette de `popstate` et du mode `immediate`. Retirés de cette liste parce que livrés le
 2026-09-07 : le `preconnect` (R-52) et le retour du regard en haut du listing (R-73) — devenu optionnel le
 2026-09-08, par composant (`scroll`, `data-meili-scroll`) : sans lui, la page ne bouge pas. `maxTotalHits` est
@@ -244,7 +248,7 @@ Ce qui transforme un module qui marche ici en module installable ailleurs.
 
 - Commande d'installation enchaînant vérification, synchronisation et première indexation.
 - Documentation d'installation, d'extension et de dépannage. **Fait le 2026-09-07**, par
-  anticipation : les documents vivent désormais dans `docs/` du module (huit aujourd'hui).
+  anticipation : les documents vivent désormais dans `docs/` du module (trente-trois hors `internal/` au 2026-11-06).
 - Bloc Gutenberg de pose : il désigne un listing existant, il n'en configure aucun.
 - Extraction en paquet Composer, si la décision est prise.
 

@@ -50,7 +50,7 @@ after the module's:
 | --- | --- | --- |
 | `lang/<locale>.json` at the project root | the module and the theme | none |
 | a theme catalogue, such as `<theme>/languages/<locale>.json` | the module | see below |
-| `resources/lang/modules/meilifacets/<locale>.json` in the project | it **replaces** the module's catalogue | none |
+| `lang/modules/meilifacets/<locale>.json` in the project | it **replaces** the module's catalogue | none |
 
 The project root catalogue is the simplest: it is always read, and wins.
 
@@ -64,7 +64,7 @@ $translator->addJsonPath(__DIR__.'/languages');
 $translator->setLoaded([]);
 ```
 
-The third place is a full replacement: when the folder `resources/lang/modules/meilifacets/` exists in the project,
+The third place is a full replacement: when the folder `lang/modules/meilifacets/` exists in the project,
 the module reads its catalogues there **instead of** its own `lang/` folder. Every key you leave out falls back to
 English. Use it only to own the whole translation.
 
@@ -127,6 +127,7 @@ The form is chosen by the plural rules of the site's language (CLDR, through PHP
 | `Close the filters` | the accessible name of the drawer's close button |
 | `Show more` | the button that unfolds a facet |
 | `Show less` | the same button, unfolded |
+| `Show more filters` | the accessible name of the drawer's « Show more » button, past the row limit |
 | `From` | the lower price field |
 | `To` | the upper price field |
 | `Lowest price` | the accessible name of the lower price handle |
@@ -140,8 +141,8 @@ The form is chosen by the plural rules of the site's language (CLDR, through PHP
 | `On sale` | a default WooCommerce sort |
 | `Category` | the default category facet |
 | `Brand` | the default brand facet |
-| `Previous` | the pagination's previous button |
-| `Next` | the pagination's next button |
+| `Previous` | the pagination's previous link |
+| `Next` | the pagination's next link |
 | `Pagination` | the accessible name of the pagination |
 | `No results found.` | the listing, when nothing matches |
 | `There is nothing on this page.` | the listing, on a page past the last one |

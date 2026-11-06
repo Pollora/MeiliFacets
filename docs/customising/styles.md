@@ -126,6 +126,7 @@ have a different default in each stylesheet; a value set on a common ancestor ch
 | `--meili-panel-min` | `18rem` | — | minimum width of a floating panel |
 | `--meili-panel-max` | `28rem` | — | maximum width of a floating panel |
 | `--meili-panel-price` | `20rem` | — | width of the price panel |
+| `--meili-side-sheet-width` | `26rem` | — | width of the side sheet past the row limit, capped at the screen's |
 | `--meili-listing-search-min` | `12rem` | — | minimum width of the listing search field |
 | `--meili-listing-search-width` | `18rem` | — | width of the listing search field |
 | `--meili-search-max` | — | `72rem` | width of the panel's content; its background stays full width |
@@ -227,7 +228,7 @@ Style by hooks and by the attributes that state what a component shows. The modu
 | `data-leaving` | a search result, section or message | the node is fading out, out of the flow |
 | `aria-expanded="true"` | a toggle, the sort trigger, the drawer opener | its panel is open |
 | `aria-busy="true"` | the results, the search panel | a search is out |
-| `aria-current="page"` | a page button | the page shown |
+| `aria-current="page"` | a page link | the page shown |
 | `aria-selected="true"` | a sort option | the sort in use |
 | `aria-disabled="true"` | a facet input | a value without results, kept in place in an open panel |
 | `aria-modal="true"` | the drawer | the drawer is open as a sheet |

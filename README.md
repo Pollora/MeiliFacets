@@ -45,6 +45,7 @@ whole sequence is in [Installation](docs/installation.md).
 | Indexing | MeiliScout (`amphibee/meiliscout`), a WordPress plugin, 2.6.1 or later |
 | Engine | a Meilisearch server |
 | Products | WooCommerce, for the product listing and its prices. The site search works without it |
+| Permalinks | any structure but "Plain", for the pagination links of a listing |
 | Optional | `ext-intl`, so that facet values ordered by name follow the site's language |
 
 ## Quick start
@@ -168,7 +169,7 @@ traps gathered while building the module. They are not needed to use it.
 ## Development
 
 Run these from a clone of the module's repository, not from a copy installed in a project. The repository keeps its
-own `node_modules`, which only serves the system that installed it. Node 24.12 or later is required.
+own `node_modules`, which only serves the system that installed it. Node 26 or later is required.
 
 ```bash
 npm install

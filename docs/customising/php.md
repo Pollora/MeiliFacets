@@ -77,6 +77,7 @@ your service providers.
 | change the content types of the site search | `SearchableTypes` | `scoped()`, decorating `WooCommerceSearchableTypes` | [Searchable content types](../search/types.md) |
 | change the site search defaults (characters, delay, results per section) | `SearchSettings` | `bind()` | [Site search](../search/README.md) |
 | add filterable, sortable, readable or exactly matched fields | `IndexAttributes` | `extend()` | [What gets indexed](../indexing/README.md) |
+| tell the client the titles and canonicals of a turned page, under an SEO plugin other than Yoast | `PageMetadata` | `bind()` | [Results, sorting and pagination](../listing/results-sort-pagination.md#the-title-and-the-canonical-of-a-turned-page) |
 | list another kind of content | `Listing` | a class discovered by the module | [Listing other content](../listing/custom-listing.md) |
 | order a facet's values your way | `ValueOrder` | an object passed to the facet | [Facets](../listing/facets.md) |
 | present a facet's values your way | `ValuePresentation` | an object passed to the facet | [Facets](../listing/facets.md) |
