@@ -24,6 +24,10 @@ export const described = (partial: Partial<ListingDescription>) =>
         defaultSort: [],
         locale: 'en',
         pagePath: '/shop',
+        pagePathPattern: '/shop/page/:page',
+        pageTitles: null,
+        pageCanonicals: null,
+        pageRobots: null,
         pageQuery: '',
         sortFilters: {},
         baseQuery: '',
@@ -47,6 +51,7 @@ export const served = (changes: StateChanges = {}) => new ListingState(changes).
 export class FakeHistory implements ListingHistory {
     pushed: string[] = []
     replaced: string[] = []
+    wentBack = 0
     recorded: Partial<Record<string, StateDescription>> = {}
     #restores: [string, (state: StateDescription) => void][] = []
 
@@ -62,6 +67,10 @@ export class FakeHistory implements ListingHistory {
     push(name: string, state: StateDescription, url: string) {
         this.pushed.push(url)
         this.record(name, state)
+    }
+
+    back() {
+        this.wentBack += 1
     }
 
     onPopState(name: string, restore: (state: StateDescription) => void) {

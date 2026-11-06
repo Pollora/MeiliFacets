@@ -18,6 +18,10 @@ export class PageWindow {
         this.#current = Math.min(Math.max(asked, 1), Math.max(this.#pages, 1))
     }
 
+    get asked() {
+        return this.#asked
+    }
+
     get current() {
         return this.#current
     }

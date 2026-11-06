@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Tests\Unit;
 
 use Modules\MeiliFacets\Contracts\Placeable;
-use Modules\MeiliFacets\Http\ServiceUnavailable;
 use Modules\MeiliFacets\Listing\Facet;
 use Modules\MeiliFacets\Listing\FacetValues;
 use Modules\MeiliFacets\Listing\ListingState;
@@ -14,7 +13,6 @@ use Modules\MeiliFacets\Listing\ResolvedListing;
 use Modules\MeiliFacets\Search\DisjunctiveFacetCounter;
 use Modules\MeiliFacets\Search\EngineLimits;
 use Modules\MeiliFacets\Search\ListingSearch;
-use Modules\MeiliFacets\Support\UrlParameters;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeDefaultTerms;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeListing;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeSearchEngine;
@@ -32,7 +30,7 @@ final class FacetPlacementTest extends TestCase
     #[Test]
     public function it_offers_every_facet_when_a_template_places_none(): void
     {
-        $this->assertSame(['brand', 'size'], $this->namesOf($this->listing()->remainingFacets()));
+        $this->assertSame(['brand', 'size'], $this->namesOf($this->listing()->placement()->remainingFilters()));
     }
 
     #[Test]
@@ -40,9 +38,9 @@ final class FacetPlacementTest extends TestCase
     {
         $listing = $this->listing();
 
-        $listing->placeFacet('brand', Facet::class);
+        $listing->placement()->placeNamed('brand', Facet::class);
 
-        $this->assertSame(['size'], $this->namesOf($listing->remainingFacets()));
+        $this->assertSame(['size'], $this->namesOf($listing->placement()->remainingFilters()));
     }
 
     /** Two identical blocks would duplicate the inputs and the ids they carry. */
@@ -52,12 +50,12 @@ final class FacetPlacementTest extends TestCase
         $listing = $this->listing();
         $brand = array_find($listing->filters(), static fn (Placeable $filter): bool => $filter->name === 'brand');
 
-        $listing->placeFacet($brand, Facet::class);
+        $listing->placement()->placeFilter($brand, Facet::class);
 
         $this->expectException(PlacementRefused::class);
         $this->expectExceptionMessageMatches('/Facet "brand" is rendered twice/');
 
-        $listing->placeFacet($brand, Facet::class);
+        $listing->placement()->placeFilter($brand, Facet::class);
     }
 
     /** The sort is a control like a facet: a drawer shows the one copy, never a second. */
@@ -66,12 +64,12 @@ final class FacetPlacementTest extends TestCase
     {
         $listing = $this->listing();
 
-        $listing->placeSort();
+        $listing->placement()->placeSort();
 
         $this->expectException(PlacementRefused::class);
         $this->expectExceptionMessageMatches('/The sort of listing "fake" is rendered twice.*Render <x-meilifacets::listing.sort> once per page\\./');
 
-        $listing->placeSort();
+        $listing->placement()->placeSort();
     }
 
     /** The group takes what is left, so placing a facet after it places it twice. */
@@ -80,13 +78,13 @@ final class FacetPlacementTest extends TestCase
     {
         $listing = $this->listing();
 
-        foreach ($listing->remainingFacets() as $facet) {
-            $listing->placeFacet($facet, Facet::class);
+        foreach ($listing->placement()->remainingFilters() as $facet) {
+            $listing->placement()->placeFilter($facet, Facet::class);
         }
 
         $this->expectException(PlacementRefused::class);
 
-        $listing->placeFacet('brand', Facet::class);
+        $listing->placement()->placeNamed('brand', Facet::class);
     }
 
     #[Test]
@@ -95,7 +93,7 @@ final class FacetPlacementTest extends TestCase
         $this->expectException(PlacementRefused::class);
         $this->expectExceptionMessageMatches('/No facet named "colour".*brand, size/');
 
-        $this->listing()->placeFacet('colour', Facet::class);
+        $this->listing()->placement()->placeNamed('colour', Facet::class);
     }
 
     /** A facet that names nothing answers to its taxonomy. */
@@ -104,7 +102,7 @@ final class FacetPlacementTest extends TestCase
     {
         $listing = $this->listing([new Facet('product_tag', 'Tag')]);
 
-        $this->assertSame('product_tag', $listing->placeFacet('product_tag', Facet::class)->name);
+        $this->assertSame('product_tag', $listing->placement()->placeNamed('product_tag', Facet::class)->name);
     }
 
     #[Test]
@@ -143,8 +141,7 @@ final class FacetPlacementTest extends TestCase
             new ListingState,
             new ListingSearch(new FakeSearchEngine, new DisjunctiveFacetCounter),
             new FacetValues(new FakeTermLabels, new FakeTermScope, new FakeDefaultTerms),
-            new UrlParameters([]),
-            new ServiceUnavailable,
+
             new EngineLimits(1000),
         );
     }

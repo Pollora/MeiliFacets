@@ -6,6 +6,7 @@ namespace Modules\MeiliFacets\Tests\Feature;
 
 use Modules\MeiliFacets\Http\ListingPage;
 use Modules\MeiliFacets\Search\BrowserConnection;
+use Modules\MeiliFacets\Tests\Unit\Doubles\AnsweredListing;
 use Modules\MeiliFacets\View\Preconnect;
 use PHPUnit\Framework\Attributes\Test;
 use ReflectionClass;
@@ -30,7 +31,7 @@ final class PreconnectTest extends TestCase
     public function it_opens_the_engine_origin_on_a_listing_page(): void
     {
         $page = new ListingPage;
-        $page->markAsCurrent();
+        $page->markAsCurrent(AnsweredListing::withTotal());
 
         $printed = $this->warm(new Preconnect($this->connection(), $page));
 

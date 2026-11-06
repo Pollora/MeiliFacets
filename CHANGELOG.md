@@ -9,6 +9,39 @@ What to change in a project when moving from one version to the next is in
 
 ## [Unreleased]
 
+### Added
+
+- `PageMetadata`, the titles and canonical URLs of a listing's pages for the client: bound for WordPress alone and
+  for Yoast SEO, to bind for another SEO plugin. See [docs/reference/contracts.md](docs/reference/contracts.md).
+
+### Changed
+
+- The pagination is made of links to the path WordPress paginates under, `/page/N`: the server renders each address
+  whole, and crawlers reach every page, each `noindex, follow` with its own canonical. A plain click still turns the
+  page in the browser and adds a history entry for its address; a click opening a new tab is left to the browser.
+  The links keep the listing's filters, sort and search, and the query parameters WordPress reads; the client
+  rewrites them after a filter or a sort. `?pg=N` is no longer read. `meilifacets:check-parameters` fails on a site
+  without permalinks, where WordPress would paginate in `?paged=N`.
+
+### Fixed
+
+- The tab's title, the canonical link and the robots directives follow each page the client turns to, as the server
+  prints them: a page turned in place no longer keeps the canonical or the `index` of the page it was loaded on.
+  With Yoast SEO, the page words of a listing's title (`%%page%%`, `%%pagetotal%%`) count the pages the engine
+  answered: a filtered page 2 no longer reads « Page 2 of 4 » when the filters leave three pages, or one.
+
+- Clearing the filters of a page loaded filtered no longer leaves every facet in the row on wide screens, without
+  « Show more »: the row is laid out on the filters the whole catalogue offers, not on those the filters left.
+  « Show more » is hidden while the filters leave nothing past the row, and comes back with it.
+
+- `ResolvedListing` keeps the listing's results, values, sorts and pagination. Placement moved to
+  `ResolvedListing::placement()` (`PagePlacement`), plain state reads to `state()`, URL names to `UrlParameters`, the
+  default card name to `Card::COMPONENT`, and the 503 of an engine outage is announced by `<x-meilifacets::listing>`.
+  See [docs/upgrading.md](docs/upgrading.md).
+
+### Removed
+
+
 ## [0.4.0](https://github.com/Pollora/MeiliFacets/releases/tag/0.4.0) - 2026-11-05
 
 Eighth beta, on MeiliScout 2.6.1 and after a code-health pass. Listings no longer fail on an all-digit facet value,

@@ -10,8 +10,6 @@ use Modules\MeiliFacets\Contracts\Listing;
 use Modules\MeiliFacets\Contracts\Placeable;
 use Modules\MeiliFacets\Contracts\VariantScopedListing;
 use Modules\MeiliFacets\Enums\ApplyMode;
-use Modules\MeiliFacets\Enums\QueryParameter;
-use Modules\MeiliFacets\Http\ServiceUnavailable;
 use Modules\MeiliFacets\Search\EngineLimits;
 use Modules\MeiliFacets\Search\EngineUnavailable;
 use Modules\MeiliFacets\Search\FacetTruncated;
@@ -19,12 +17,9 @@ use Modules\MeiliFacets\Search\FilterExpression;
 use Modules\MeiliFacets\Search\ListingResults;
 use Modules\MeiliFacets\Search\ListingSearch;
 use Modules\MeiliFacets\Search\QueryPlan;
-use Modules\MeiliFacets\Support\UrlParameters;
 
 final class ResolvedListing
 {
-    public const string CARD = 'meilifacets::listing.card';
-
     private ?ListingResults $results = null;
 
     /** @var list<array<string, mixed>>|null */
@@ -46,19 +41,15 @@ final class ResolvedListing
     /** @var array<string, Sort>|null */
     private ?array $sorts = null;
 
-    private readonly PagePlacement $placement;
+    private ?PagePlacement $placement = null;
 
     public function __construct(
         private readonly Listing $listing,
         private readonly ListingState $state,
         private readonly ListingSearch $search,
         private readonly FacetValues $facetValues,
-        private readonly UrlParameters $parameters,
-        private readonly ServiceUnavailable $serviceUnavailable,
         private readonly EngineLimits $limits,
-    ) {
-        $this->placement = new PagePlacement($listing->name());
-    }
+    ) {}
 
     public function results(): ListingResults
     {
@@ -78,7 +69,6 @@ final class ResolvedListing
             return $this->search->run($this->listing, $this->state);
         } catch (EngineUnavailable $failure) {
             $this->failed = true;
-            $this->serviceUnavailable->announce();
             report($failure);
 
             return new ListingResults([], 0, []);
@@ -179,70 +169,9 @@ final class ResolvedListing
         return $filters;
     }
 
-    private function facetNamed(string $name): Placeable
+    public function placement(): PagePlacement
     {
-        return array_find($this->filters(), static fn (Placeable $filter): bool => $filter->name === $name)
-            ?? throw PlacementRefused::unknownFacet(
-                $name,
-                $this->name(),
-                array_map(static fn (Placeable $filter): string => $filter->name, $this->filters()),
-            );
-    }
-
-    /**
-     * What `<x-meilifacets::listing.facets>` shows: everything a template did not place on
-     * its own.
-     *
-     * @return list<Placeable>
-     */
-    public function remainingFacets(): array
-    {
-        return $this->placement->remaining($this->filters());
-    }
-
-    public function placedFilterCount(): int
-    {
-        return $this->placement->placedFacetCount();
-    }
-
-    public function shownFilterCountSince(int $mark): int
-    {
-        return $this->shownAmong($this->placement->facetsPlacedSince($mark));
-    }
-
-    public function startRow(int $limit): void
-    {
-        $this->placement->startRow($limit);
-    }
-
-    public function endRow(): void
-    {
-        $this->placement->endRow();
-    }
-
-    public function isBeyondRow(Placeable $filter): bool
-    {
-        $row = $this->placement->row();
-
-        if (! $row instanceof FilterRow) {
-            return false;
-        }
-
-        $placed = $this->placement->facetsPlacedSince($row->mark);
-        $rank = array_search($filter->name, $placed, true);
-
-        return $rank !== false && $this->shownAmong(array_slice($placed, 0, $rank)) >= $row->limit;
-    }
-
-    /**
-     * @param  list<string>  $names
-     */
-    private function shownAmong(array $names): int
-    {
-        return count(array_filter(
-            $this->filters(),
-            fn (Placeable $filter): bool => in_array($filter->name, $names, true) && $this->isShown($filter),
-        ));
+        return $this->placement ??= new PagePlacement($this->name(), $this->filters(), $this->isInCatalog(...));
     }
 
     public function isShown(Placeable $filter): bool
@@ -254,6 +183,26 @@ final class ResolvedListing
         };
     }
 
+    private function isInCatalog(Placeable $filter): bool
+    {
+        if (! $this->search->narrows($this->listing, $this->state)) {
+            return $this->isShown($filter);
+        }
+
+        return match (true) {
+            // The unfiltered query carries no price statistics.
+            $filter instanceof PriceFilter => true,
+            $filter instanceof Facet => $this->hasCatalogValues($filter),
+            default => false,
+        };
+    }
+
+    /** A facet the listing does not measure, like the flat one of the taxonomy a page pins, has none. */
+    private function hasCatalogValues(Facet $facet): bool
+    {
+        return ($this->results()->unfilteredDistribution($facet->taxonomy) ?? []) !== [];
+    }
+
     private function hasPriceBounds(PriceFilter $filter): bool
     {
         return ! $filter->boundsFrom($this->facetStats())->isEmpty();
@@ -262,50 +211,6 @@ final class ResolvedListing
     private function hasReadableValues(Facet $facet): bool
     {
         return array_any($this->valuesOf($facet), static fn (FacetValue $value): bool => ! $value->folded);
-    }
-
-    /**
-     * A declaration comes from the group and stays in it; a name comes from a template
-     * that placed the facet on its own, so the group leaves it out. A component only
-     * places its own kind, so a mismatch is caught here rather than rendered wrong.
-     *
-     * @template T of Placeable
-     *
-     * @param  class-string<T>  $kind
-     * @return T
-     */
-    public function placeFacet(Placeable|string $facet, string $kind): Placeable
-    {
-        if ($facet instanceof Placeable) {
-            $this->placement->place($this->ofKind($facet, $kind));
-
-            return $facet;
-        }
-
-        $named = $this->ofKind($this->facetNamed($facet), $kind);
-        $this->placement->placeOnItsOwn($named);
-
-        return $named;
-    }
-
-    /**
-     * @template T of Placeable
-     *
-     * @param  class-string<T>  $kind
-     * @return T
-     */
-    private function ofKind(Placeable $facet, string $kind): Placeable
-    {
-        if (! $facet instanceof $kind) {
-            throw PlacementRefused::otherKind($facet->name, $this->name(), class_basename($facet));
-        }
-
-        return $facet;
-    }
-
-    public function placeSort(): void
-    {
-        $this->placement->placeSort();
     }
 
     /**
@@ -361,21 +266,6 @@ final class ResolvedListing
         return $this->results()->total;
     }
 
-    public function parameterForReserved(QueryParameter $parameter): string
-    {
-        return $this->parameters->reserved($parameter);
-    }
-
-    public function parameterFor(string $taxonomy): string
-    {
-        return $this->parameters->for($taxonomy);
-    }
-
-    public function activeFilterCount(): int
-    {
-        return $this->state->activeFilterCount();
-    }
-
     /**
      * @return list<string>
      */
@@ -384,24 +274,9 @@ final class ResolvedListing
         return $this->state->selected($facet->taxonomy);
     }
 
-    public function priceFilterCount(): int
-    {
-        return $this->state->priceFilterCount();
-    }
-
-    public function askedPrice(): Range
-    {
-        return $this->state->price;
-    }
-
     public function name(): string
     {
         return $this->listing->name();
-    }
-
-    public function isPristine(): bool
-    {
-        return $this->state->isPristine();
     }
 
     public function perPage(): int
@@ -442,11 +317,6 @@ final class ResolvedListing
         return StateReader::isRoutedSearch($this->listing);
     }
 
-    public function typedTerm(): string
-    {
-        return $this->state->query;
-    }
-
     public function applyMode(): ApplyMode
     {
         return $this->listing->applyMode();
@@ -460,9 +330,10 @@ final class ResolvedListing
         return $this->sorts ??= $this->listing->sorts();
     }
 
-    public function cardComponent(): string
+    /** The card the listing declares, if it declares one. */
+    public function cardComponent(): ?string
     {
-        return $this->listing instanceof CardComponentListing ? $this->listing->cardComponent() : self::CARD;
+        return $this->listing instanceof CardComponentListing ? $this->listing->cardComponent() : null;
     }
 
     /**
@@ -471,11 +342,6 @@ final class ResolvedListing
     public function defaultSort(): array
     {
         return $this->listing instanceof DefaultSortedListing ? array_values($this->listing->defaultSort()) : [];
-    }
-
-    public function currentSort(): ?string
-    {
-        return $this->state->sort;
     }
 
     /**

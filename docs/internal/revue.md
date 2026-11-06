@@ -3320,6 +3320,327 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
+### R-252 · 🟡 · **ouvert le 2026-11-06, plan à présenter à Louis** — casser le cycle `Listing` ↔ `Search`
+
+**Demande** (Louis, 2026-11-06, après la revue `desloppify` : « Tu peux mieux ranger oui sans soucis »). Revient sur
+la partie « cycle `Listing`↔`Search` reste en l'état » de la décision « Rangement des dossiers » (`R-244`).
+
+**Constat.**
+- `Listing` → `Search` : `ResolvedListing`, `CurrentListing`, `ProductListing`, `SortFilter` (`ListingSearch`,
+  `ListingResults`, `EngineLimits`, `QueryPlan`, `FilterExpression`, `VisibleProducts`).
+- `Search` → `Listing` : huit classes, surtout `ListingState`, `Facet`, `PriceFilter`, `Sort`, `SortFilter`.
+- Sans effet à l'exécution.
+
+**À faire.** Présenter le plan avant tout déplacement : sens des dépendances, classes déplacées, noms publics qui
+changent, `use` à corriger dans le projet, note de migration. `SearchScope` (boucle `Listing`↔`SiteSearch`) est à
+traiter dans le même plan.
+
+### R-251 · 🟠 · **livré le 2026-11-06, à valider par Louis avant commit** · ouvert le 2026-11-06 — les directives robots d'une vue tournée restaient celles de la vue chargée
+
+**Constat** (relevé en `R-250`, Louis : « doit être cohérent aussi »). Partir de `/boutique`, servie
+`index, follow, max-image-preview:large…`, et tourner en page 2 laissait `index` dans la tête, où le serveur sert
+`noindex, follow` (et l'inverse en revenant à la vue nue).
+
+**Plateforme.** `wp_robots()` imprime ce que le filtre `wp_robots` rassemble, sans fonction qui le rende
+(`robots-template.php:20-50`). Le module y pose `noindex, follow` à 10 ; Yoast fusionne les siens à `PHP_INT_MAX - 10`
+et retire ceux qu'un `noindex` contredit (`wp-robots-integration.php:46-60`).
+
+**Livré.**
+- `IndexingPolicy::asSecondaryView()`, la règle sans effet de bord, que le filtre applique.
+- `View\ListingRobots::byView()` : `wp_robots()` capturé deux fois, la vue nue par `meilifacets/is_listing_page`
+  à `false` (en dernier, après un projet qui y répondrait), la vue secondaire par la règle à sa priorité ; `null` si la
+  tête n'imprime pas de robots.
+- Description : `pageRobots`. Client : `RobotsMetaView`, et `PageHeadView` regroupe titre, canonique et robots ; les
+  deux vues de tête quittent `pagination/` pour `listing/`.
+- Un utilitaire `TemporaryFilter` a été écrit puis retiré à la remarque de Louis (« bizarre comme code ») : la pose et
+  le retrait du filtre s'écrivent là où ils servent (`DocumentTitle`, `ListingRobots`).
+
+**Observé.**
+- Navigateur : `/boutique` (`index, follow, max-…`) → page 2 (`noindex, follow`, canonique `/boutique/page/2`, « Page
+  2 sur 4 ») → page 1 (`index, follow, max-…`) ; `/boutique/page/2` servie directement : même tête.
+- Tests : `composer check` vert (837 PHP, 1055 client) ; `Modules` 1396 ; Playwright 23/24, le scénario clavier de la
+  recherche du site échoue (non lié, déjà vu instable).
+
+### R-250 · 🟠 · **livré le 2026-11-06, à valider par Louis avant commit** · ouvert le 2026-11-06 — la canonique d'une page tournée restait celle de la page de départ
+
+**Constat** (Louis, relevé d'extension SEO : `/boutique/page/2?marque=lessismore`, « Canonicalised » `/boutique/page/3`
+après un retour). Le serveur imprime la bonne canonique : `/boutique/page/3` sur `/boutique/page/3?marque=…`. Mais
+la page tournée sur place (`R-245`) gardait la balise `<link rel="canonical">` de la page chargée, `/boutique`.
+Les robots ne cliquent pas, l'écart ne touche que la page vue, mais la tête de page ment.
+
+**Plateforme.** Yoast pagine la canonique d'une archive par `get_paginated_url()`
+(`indexable-post-type-archive-presentation.php:19-31`, `indexable-term-archive-presentation.php:52-71`) ; une page
+singulière garde la sienne sur `/page/N` (`indexable-post-type-presentation.php:72-88`, mesuré : `/contact-aide/page/2`
+→ `/contact-aide`). Le numéro de page vient de la requête principale seulement (`pagination-helper.php:117-119`).
+WordPress seul : `rel_canonical()` sur une page singulière, la même partout (`link-template.php:4115-4126`). Modèle de
+lien à numéro : `get_pagenum_link(999999999)` de WooCommerce (`loop/pagination.php:24`).
+
+**Livré.**
+- `PageTitles` élargi en `PageMetadata` (`titles()`, `canonicals()`) ; `WordPressPageMetadata`, `YoastPageMetadata`,
+  et `YoastCanonicals`, qui reproduit le modèle de Yoast et le vérifie contre la canonique imprimée.
+- Une première version décidait par le type de l'indexable : fausse pour la boutique (une page pour Yoast, dont la
+  canonique suit pourtant la page). Remplacée par `is_singular()`.
+- Description : `pageCanonicals`. Client : `CanonicalLinkView`, branché dans `PaginationBinding`.
+
+**Observé.**
+- Navigateur, `/boutique?marque=lessismore` → clic 2 → clic 3 : canonique `/boutique` → `/boutique/page/2` →
+  `/boutique/page/3`, identique à la page 3 servie directement.
+- Patrons publiés identiques depuis la page 1 et la page 3 ; `/categorie-produit/visage/page/:page` sur une catégorie.
+- Tests : `composer check` vert (836 PHP, 1049 client) ; `Modules` 1391 ; Playwright 24/24.
+- Rector ne pouvait pas analyser un tableau `['first' => self::X, 'paged' => self::X]` d'un test : il charge la classe
+  pour y chercher un callable, et `Tests\TestCase` n'existe que dans l'hôte. Les attentes passent par une méthode.
+
+**Reste.**
+- `robots` ne suivait pas non plus côté client : traité en `R-251`.
+- `og:url` reste `/boutique` sur toutes les pages : c'est aussi ce que Yoast imprime côté serveur.
+
+### R-249 · 🟠 · **livré le 2026-11-06, à valider par Louis avant commit** · ouvert le 2026-11-06 — le titre ne suivait pas la page, et comptait les pages de WordPress sous un filtre
+
+**Constat** (Louis : « j'ai changé de page, la meta title est identique »). Deux défauts.
+- **Client** : la page tournée sur place (`R-245`) gardait le titre de la page de départ.
+- **Serveur** : `/boutique/page/2?min_price=40` (2 articles, une page) affichait « Page 2 sur 4 ». Yoast compte
+  `$wp_query->max_num_pages` (`class-wpseo-replace-vars.php:656`), le total de WordPress sans les filtres.
+
+**Parcours.** Trois versions dans la journée :
+1. `$GLOBALS['wp_query']->max_num_pages` réécrit au total du moteur : refusé par Louis (global) ;
+2. `DocumentTitles`, propre à Yoast : refusé (« tu t'es fermé à Yoast »), le module est générique ;
+3. retenue : contrat `PageTitles`, voir « Le titre suit la page, par l'extension qui l'écrit » (`decisions.md`).
+
+Une revue (`module-review`, sept passes, celle demandée sur les choix face au natif) a porté sur la version 2. Elle
+avait relevé :
+- les entités HTML (`Gels &amp;amp; huiles`), vérifiées sur le site ;
+- deux calculs par listing ;
+- `strtr` sur `%1$d` ;
+- une seconde lecture de `paged` ;
+- le clic sur la page courante, ainsi que `target` et `download` ;
+- des noms en double et des commentaires de décision.
+
+Tout est traité dans la version 3, sauf le renommage de `PAGE`, qui est fait.
+
+**Livré.**
+- `Contracts\PageTitles` (`titles()`, `PAGE_PLACEHOLDER`, `PAGE_COUNT_PLACEHOLDER`), lié par `bindIf` :
+  `YoastPageTitles` si Yoast est actif (`Support\YoastSeo`), sinon `WordPressPageTitles`.
+- `View\DocumentTitle` rend `wp_get_document_title()` sous un filtre temporaire et décode les entités.
+- `View\YoastPageWords` reprend `retrieve_page()` (`sprintf`, une traduction en `%d` comprise).
+- `View\YoastPageCount` (écrit d'abord dans `Http/`, déplacé pour ne pas faire dépendre `Http` de `View`) sur
+  `wpseo_replacements`, avec trois garanties :
+  - il ne remplace que les variables que le texte contient ;
+  - il laisse Yoast si le moteur a échoué ;
+  - il vide `%%pagetotal%%` pour un listing vide.
+- `ListingPage` retient le premier listing (`isPaginatedBy()`, `pagination()`).
+- Client :
+  - `PaginationBinding` regroupe `PageLinks`, `PaginationView` et `DocumentTitleView` ;
+  - `ListingUrl::linksFor()` ;
+  - un clic sur la page courante ne fait rien ;
+  - un lien `target`, `download` ou d'une autre origine reste au navigateur.
+
+**Observé.**
+- Serveur, `/boutique/page/2` filtrée par prix minimum :
+  - `min_price` 20, 40 articles : « Page 2 sur 3 » ;
+  - `min_price` 25, 23 articles : « Page 2 sur 2 » ;
+  - `min_price` 30, 12 articles : aucune mention de page.
+- `/categorie-produit/gels-huiles-de-douche` publie « Gels & huiles… », décodé comme l'onglet.
+- Navigateur : page 2, page 3, puis Retour ; l'onglet suit, identique au titre du serveur.
+- Tests : `composer check` vert ; `Modules` 1386 ; client 1043 ; Playwright 24/24.
+- Les nouveaux tests du client échouent sans leur correctif.
+- L'échec isolé de `Modules` relevé plus tôt était `PublishedAssetsTest` : script recompilé mais pas encore publié,
+  ce qui vient de l'ordre des commandes, pas d'un test instable.
+
+**Reste.**
+- La limite de chemin à plusieurs listings (`/page/N` commun à la page) est déjà celle de `R-245`.
+- Les métas réservées aux robots ne suivent pas côté client.
+
+### R-248 · 🟠 · **livré le 2026-11-06, à valider par Louis avant commit** · ouvert le 2026-11-06 — les archives de catégorie sans base répondaient 404 : la base `categorie-produit` revient
+
+**Constat.** Le thème retirait la base `categorie-produit` des liens de catégorie (`CategoryPermalinks`, commit
+`f98d46d`). Pour servir `/visage`, il attendait un 404 dans `request`, mais avec `/%postname%` WordPress lit
+`/visage` comme `name=visage` et ne signale jamais ce 404 : `/visage` répondait 404 en local.
+
+**Plateforme.** Rien de natif ne retire cette base. WooCommerce remplace une base vide par `product-category`
+(`wc_get_permalink_structure()`, `wc-core-functions.php:2163-2172`). Yoast ne la retire que pour les catégories
+d'articles, par des règles de réécriture écrites en code (`wordpress-seo/inc/class-rewrite.php`).
+
+**Décidé** (Louis, 2026-11-06) : revenir au natif. Un patch fondé sur des règles de réécriture, à la manière de
+Yoast, a été écrit puis refusé (« rien de natif »). Les adresses sans base n'avaient pas été publiées : aucune
+redirection n'est à prévoir. La base reste réglable sans code dans Réglages > Permaliens.
+
+**Livré** (thème) : `CategoryPermalinks` supprimé, `wp rewrite flush` relancé.
+
+**Observé.**
+- `/categorie-produit/visage`, `/categorie-produit/visage/soins-visage` et `/categorie-produit/non-classe/page/2`
+  répondent 200. La page 2 affiche le titre « Page 2 sur 4 » et un lien vers `/categorie-produit/non-classe/page/3`.
+- `/visage` répond 404.
+- `/boutique/page/2`, `/journal` et `/contact-aide` ne bougent pas.
+- La canonique de `/categorie-produit/visage` est juste.
+- Playwright : 23/23 avec la catégorie `/categorie-produit/visage`, pagination 4/4 sur `/categorie-produit/non-classe`.
+  Le premier passage, lancé juste après la régénération des règles, avait expiré quatre fois.
+
+**Reste ouvert.** La canonique de `non-classe` est `/page/2?product_cat=non-classe` : la ligne `yoast_indexable`
+datée du 2026-10-19 est périmée, et Yoast refuse de la reconstruire en environnement `local`.
+
+### R-247 · 🟡 · **livré le 2026-11-06, à valider par Louis avant commit** · ouvert le 2026-11-06 — `ResolvedListing` réduit à ce qu'il calcule, sur les recommandations de `desloppify`
+
+**Demande** (Louis, 2026-11-06) : « suis les recommandations complètes de desloppify ». Sept constats de la revue
+subjective visaient `ResolvedListing` (« hub » de 44 méthodes), classés « à ne pas corriger » le 2026-11-05 au nom de
+`R-167` (`R-244`) ; `R-246` avait fait passer le fichier à 505 lignes. Inverse « Relais de `ResolvedListing` »
+(`decisions.md`, « Validées »), consigné le même jour.
+
+**Livré** (un lot avec `R-245` et `R-246`, choix de Louis) :
+- placement et rangée dans `PagePlacement` (`placeFilter()` / `placeNamed()` au lieu de `placeFacet(Placeable|string)`,
+  `remainingFilters()`, `filtersBeyondRow()`, `isBeyondRow()`, `catalogFilterCountSince()`, recherche par nom et
+  contrôle du type), exposé par `ResolvedListing::placement()` ; `isInCatalog()` devient privé et passe en fonction ;
+  l'aiguillage objet / nom est fait une fois, `ListingComponent::place()` ;
+- relais vers l'état retirés (`currentSort()`, `typedTerm()`, `askedPrice()`, `isPristine()`, `activeFilterCount()`,
+  `priceFilterCount()`) : `state()` ;
+- `parameterFor()` / `parameterForReserved()` retirés : `UrlParameters` injecté dans `StateFields`, `ActiveValueList`,
+  `Facet`, `Price`, `Search` ;
+- `ResolvedListing::CARD` → `Card::COMPONENT`, `cardComponent()` rend `null` sans carte déclarée ;
+- `ServiceUnavailable` sort de `Listing` : `<x-meilifacets::listing>` annonce le 503 quand la recherche échoue ;
+- vocabulaire : « filter » pour un `Placeable`, « facet » pour une `Facet` ; `Drawer::closeRow()` intégré.
+
+**Observé.** `ResolvedListing` 505 → 351 lignes. `composer check` vert ; `Modules` 1373 verts, dont le 503 annoncé par
+le composant racine, vérifié dans les deux sens (échoue sans l'annonce) ; tests du projet boutique et journal verts ;
+Playwright 21/23 à deux navigateurs — catégorie (`/visage` en 404, connu) et le scénario des pastilles, qui passe 3/3
+rejoué seul. `/boutique`, la page 2 filtrée et `/journal` rendent sans erreur, même rangée qu'avant.
+
+### R-246 · 🟠 · **livré le 2026-11-06, à valider par Louis avant commit** · ouvert le 2026-11-06 — « Annuler » laissait toute la rangée de filtres dépliée, sans « Voir plus »
+
+**Constat** (Louis, 2026-11-06, reproduit). `/boutique`, prix à partir de 7 €, marque lessismore, page 2, « Annuler » :
+retour sur `/boutique` avec les 17 facettes en ligne et aucun « Voir plus ». La page 2 filtrée, rendue par le serveur,
+masque 15 facettes sans valeur ; `Drawer` (`shownFilterCountSince()`) et `ResolvedListing::isBeyondRow()` comptaient
+les filtres **visibles dans l'état filtré** : sous la limite, ni `data-overflow`, ni `data-beyond-row`. « Annuler » fait
+réapparaître les facettes dans le navigateur, que rien ne fait recalculer la rangée. Défaut antérieur à `R-245` (toute
+adresse filtrée chargée directement), rendu courant par lui : chaque lien de page recharge l'état filtré.
+
+**Tranché avec Louis.** Rangée fixe : elle se décide sur les filtres que **le catalogue entier** propose, pas sur ceux
+que l'état filtré laisse. « Annuler » revient en page 1 (inchangé). Recalcul dans le navigateur écarté : la règle du
+serveur réécrite en TypeScript et deux attributs de plus.
+
+**Livré.** `ResolvedListing::isInCatalog()` : hors filtre, l'état affiché ; sous un filtre, la distribution non filtrée
+déjà demandée pour `R-49` (`ListingResults::isNarrowed()`), le prix toujours compté (la requête non filtrée ne porte
+pas ses bornes). `shownFilterCountSince()` → `catalogFilterCountSince()`, `ShownFilterCountTest` →
+`CatalogFilterCountTest`. Aucune requête en plus.
+
+**Observé.** Le test du tiroir sous un filtre qui vide une facette échoue sur l'ancienne règle (`null` au lieu de
+`show-more`) et passe sur la nouvelle ; un scénario Playwright à une seule valeur ne distinguait pas les deux (une valeur
+ne vide pas assez de facettes sur ce catalogue) : retiré. Dans le navigateur, sur la page 2 filtrée puis « Annuler » :
+4 facettes en rangée, « Voir plus » revenu. Les essais ont été faussés deux fois, à noter pour la suite : opcache
+relit un fichier modifié avec 2 s de retard (`opcache.revalidate_freq`), et la boutique sort deux `Cache-Control`
+contradictoires (`max-age=3600, must-revalidate, public` puis `max-age=0`) : le navigateur garde une page filtrée
+jusqu'à une heure.
+
+**Coût.** Sous un filtre qui vide une facette de la rangée, la rangée montre un filtre de moins au lieu de faire monter
+le suivant.
+
+**Suite, même jour** (Louis) : « Voir plus » restait affiché quand l'état filtré ne laissait aucun filtre derrière lui
+(`?marque=lessismore&min_price=7` : 13 facettes au-delà de la rangée, aucune avec une valeur) — conséquence directe de
+la rangée fixe. Corrigé des deux côtés : le serveur rend le bouton `hidden` (`Drawer`, lu pendant que la rangée est
+ouverte), le client le montre ou le cache à chaque réponse selon les facettes `data-beyond-row` non masquées
+(`ShowMoreView`, appelée par `ListingDrawers::refreshShowMore()` ; `BEYOND_ROW` rejoint `shared/attributes.ts`). Observé
+dans le navigateur : visible (11 facettes) → masqué sous lessismore → masqué sous lessismore + 7 € → visible après
+« Annuler » ; page 2 filtrée chargée : masqué, puis visible après « Annuler ». `composer check` vert, `Modules` 1370
+verts, Playwright 22/23 (catégorie, connu).
+
+**Corrigé après la revue `desloppify` du 2026-11-06.** Deux trous dans `isInCatalog()` :
+- **Sur une catégorie**, une facette placée mais jamais interrogée (la facette plate de la taxonomie épinglée) comptait
+  dès qu'une case était cochée : `unfilteredDistribution()` rendait `null`, et `null !== []`.
+- **Sur un listing sans facette de termes**, une recherche ou un prix ne déclenchaient pas le comptage du catalogue,
+  si bien que le prix était jugé sur les résultats filtrés.
+
+`ResolvedListing` pose maintenant la question à `ListingSearch::narrows()`, l'ancien prédicat privé. Une facette non
+mesurée compte comme absente. `ListingResults::isNarrowed()`, homonyme trompeur, est retiré. Deux tests
+(`CatalogFilterCountTest`) échouent sans la correction.
+
+### R-245 · 🟠 · **livré le 2026-11-06, à valider par Louis avant commit** · ouvert le 2026-11-06 — la pagination devient des liens explorables, tournés sur place au clic
+
+**Demande** (Louis, 2026-11-06, exigence SEO relayée pour `/boutique`). Chaque page de résultats est une page dédiée :
+un clic sur « page 2 » charge une nouvelle page dans le navigateur, et l'URL paginée porte sa propre canonique.
+Références données : `aroma-zone.com/products/soins-cheveux?page=2`, `ohmycream.com/collections/visage?page=2`.
+
+**État relevé le 2026-11-06.**
+- Pagination en `<button type="button" value="N">` (`listing/pagination.blade.php:4-17`), interceptée par le client
+  (`listing-binding.ts:152-158`), recherche dans le navigateur puis `pushState` de `?pg=N` (`listing.ts:107-110`,
+  `listing-url.ts:60-61`). Aucun `<a href>` dans le HTML.
+- La page N est déjà rendue par le serveur au premier chargement, sous `?pg=N` et sous `/page/N/` (`paged` en repli,
+  `CurrentListing.php:68`) : deux adresses pour une même page.
+- En local : `/boutique/?pg=2` → `noindex, follow`, canonique `/boutique?pg=2` ; `/boutique/page/2/` → `noindex,
+  follow`, canonique `/boutique/page/2`. La canonique s'imprime malgré le `noindex` : Yoast ne la retire que si *ses*
+  robots portent `noindex` (`canonical-presenter.php:39-40`), et le module pose le sien par `wp_robots`.
+- Préproduction (`pluralia.amphi.beer`) : `noindex, nofollow` du cœur et aucune sortie Yoast sur les trois URL —
+  site fermé aux moteurs, comportement SEO non observable là.
+- Plateforme : WooCommerce rend des liens `/page/N/` par `paginate_links()` (`templates/loop/pagination.php:24-45`),
+  mais sur le total de `WP_Query`, faux sous un filtre Meilisearch : le gabarit n'est pas réutilisable. L'adresse,
+  elle, l'est : `get_pagenum_link($n)` (`link-template.php:2432`) écrit `/page/N/`, garde la chaîne de requête et
+  retire un `/page/N/` précédent. Yoast ne connaît que `/page/N/` (`pagination-helper.php:64-95`).
+
+**Tranché avec Louis le 2026-11-06.**
+1. Liens réels, navigation complète : inverse « Pagination » (`decisions.md`, « Validées ») et « Les commandes sont
+   des boutons (2026-09-06) » pour la seule pagination.
+2. Forme `/page/N/`, pas `?page=N` (`page` est une query var publique de WordPress, `class-wp.php:18`, lue sur une
+   page et sur la page des articles, `class-wp.php:763-775`) ni `?pg=N`. `?pg=N` n'est plus lu : une redirection 301 a
+   été écrite puis retirée le même jour, à la demande de Louis — sans production, aucun lien `?pg=` à rattraper, et elle
+   envoyait `/hello-world?pg=2` vers une 404.
+3. `noindex, follow` conservé sur les pages au-delà de la première, canonique auto-référente telle qu'elle sort
+   déjà (option a : rien de forcé contre Yoast).
+4. Mode `submit` : un clic sur un lien de page abandonne les cases cochées et non appliquées. Sans effet sur
+   Pluralia, en mode `immediate`.
+
+5. `Contract::VERSION` **inchangé** (Louis, même jour).
+6. Permaliens exigés : `meilifacets:check-parameters` échoue sans eux (Louis, même jour).
+
+**Livré le 2026-11-06, non commité.** Liens `<a href>` rendus par `PageAddress::pathOf()` (`get_pagenum_link()`) et
+`linkedQuery()` (paramètres du listing et de WordPress seulement : `utm_source`, `add-to-cart` écartés) ; motif
+`pagePathPattern` publié au client, qui réécrit les `href` après chaque recherche (`ListingUrl::linkTo()`) ;
+`goToPage()`, `BrowserHistory::push()`, `ListingState::onPage()` et l'attribut `scroll` de la pagination retirés (et
+du thème Pluralia, deux vues) ; `CurrentListing` ne lit plus que `paged` ; `UrlParameters::owns()` extrait
+d'`IndexingPolicy` ; le filtre `wpseo_canonical` du module, qui n'ajoutait plus que `?pg=N`, retiré avec ses tests ;
+contrôle des permaliens dans `meilifacets:check-parameters`.
+
+**Observé.** `composer check` vert ; `--testsuite Modules` : 1366 tests verts ; Playwright 17/18. Le dix-huitième, la
+page de catégorie, échoue avant comme après : `/categorie-produit/cheveux` → 301 `/cheveux` → 404. Cause :
+`CategoryPermalinks` du thème (`f98d46d`) attend un 404 dans `request`, mais WordPress lit `/visage` comme l'article
+`name=visage` ; il perd aussi `paged`. Une correction dans ce filtre, essayée (18/18), a été annulée à la demande de
+Louis : la forme native est une règle par catégorie sur `product_cat_rewrite_rules`, comme Yoast le fait pour les
+catégories d'articles (`wordpress-seo/inc/class-rewrite.php`). Point suivant, à numéroter. Les canoniques Yoast des
+catégories sont fausses aussi (`/?product_cat=non-classe`), indexables à reconstruire. En local, sur `/boutique/page/2` filtrée par catégorie, tri, recherche, prix et leur
+combinaison : liens corrects, `noindex, follow`, canonique `/boutique/page/2`. Dans le navigateur : le clic charge une
+nouvelle page (marqueur `window` perdu), un filtre posé depuis la page 2 ramène en page 1 et réécrit les liens, la page
+suivie garde tri, prix et total. Rendu identique aux boutons. `/boutique?pg=3` → 200, première page, `noindex,
+follow`.
+
+**Clic intercepté, même jour** (Louis : « ce n'est plus rapide »). Le chargement complet coûtait 0,4 à 0,8 s et
+430 Ko de HTML par page en local. Les liens restent, le serveur rend toujours chaque adresse ; un clic simple est
+intercepté (`PageLinks::pageOf()` lit la page dans le `href`, `ListingUrl::pageAt()`), `goToPage()` part de l'état
+appliqué et `BrowserHistory::push()` ajoute l'entrée. Ctrl, Cmd, Maj, Alt et le bouton du milieu sont laissés au
+navigateur. `scroll` rétabli sur la pagination : le constructeur de `Pagination` et `{{ $scrollMark() }}` l'avaient
+perdu, sans erreur (test ajouté, échoue sans le correctif) ; rétabli dans les deux vues du thème. Google suit le
+`href` sans cliquer et recommande `pushState` (documentation relue). **Observé** : clic vers la page 2 en 106 ms, sans
+rechargement (marqueur `window` conservé), retour en haut de liste (`scrollY` 2448 → 568), Retour vers la page 1,
+Cmd-clic dans un nouvel onglet ; `composer check` vert (836 PHP, 1035 client), `Modules` 1374 ; Playwright 24/24, dont
+une adresse `/page/2` ouverte seule, rendue sans recherche du navigateur ; pagination 5/5 sur
+`/categorie-produit/non-classe`. Reste : le titre de l'onglet garde celui de la page de départ.
+
+**Revue six passes (`module-review`).** Corrigé : canonique morte ; requête des liens calculée une fois par rendu
+(PHP) et par état (TS) ; `redirect()` → `sendToPagedPath()`, `PageLink` → `LinkTo`, `toPageUrl` fusionné dans
+`toUrl(state, page)` ; condition à effet de bord de la redirection dépliée, `target()` lit la requête elle-même ;
+`isAPageNumber()` extrait ; 8 commentaires supprimés, 5 corrigés ; le composant est rendu par un test. La
+redirection, objet de plusieurs constats, a ensuite été retirée. Refusé :
+un seul `ListingUrl` partagé entre `Listing` et la liaison (valeur pure construite de la description, la partager
+ajouterait une méthode publique à `Listing`) ; la lecture du numéro de page commune à `StateReader` (privée, sur un
+tableau déjà filtré ; la redirection lit une valeur brute). `reserved.page` reste publié, sans lecteur côté client :
+le retirer change la description.
+
+**Restant.** `/page/999` répond la 404 de WordPress, plus « rien sur cette page » : si un listing compte un jour plus de
+pages que la requête principale de WordPress, sa dernière page serait une 404. `reserved.page` reste publié sans
+lecteur côté client.
+
+**Corrigé après la revue `desloppify` du 2026-11-06.** Un changement de page dont la recherche échoue laissait deux
+entrées « page 1 » : l'entrée ajoutée était réécrite par le retour arrière, contre « L'historique est remplacé, sans
+nouvelle entrée » (`decisions.md`). `Listing` retient l'état pour lequel il a ajouté l'entrée, et le retour arrière la
+retire (`BrowserHistory::back()`). Observé dans le navigateur, moteur coupé : l'adresse revient à `/boutique`, et
+Retour quitte le listing. Le cas d'un Retour suivi d'un échec, qui réécrit l'entrée atteinte, reste une question pour
+Louis.
+
 ### R-244 · 🟢 · **fermé le 2026-11-05** · ouvert le 2026-11-05 — passe de qualité outillée (desloppify), livrée en 0.4.0
 
 **Demande** (Louis, 2026-11-05). Lancer `desloppify` sur le module et suivre sa boucle sur une branche dédiée,
@@ -11887,3 +12208,20 @@ continuer à décider sur 76 produits sans variations.
   dédiée, vingt relectures à l'aveugle, puis tri des constats contre `decisions.md` et le registre. Deux bugs visibles
   corrigés, l'échec d'une recherche dans le navigateur signalé et annulé (#5), environ 230 tests, un correctif amont
   dans MeiliScout (2.6.1). Livré en 0.4.0.
+- **2026-11-06** — **Pagination en liens explorables (`R-245`)**, exigence SEO relayée par Louis. Passe de conformité :
+  la demande inverse deux décisions validées (pagination sans rechargement, commandes en boutons). Tranché en séance :
+  liens `/page/N/` (tournés sur place au clic, même jour), `?pg=N` redirigé en 301, `noindex` conservé avec la canonique auto-référente déjà émise, cases
+  non appliquées abandonnées au clic en mode `submit`.
+- **2026-11-06** — **Rangée des filtres décidée sur le catalogue (`R-246`)** : « Annuler » sur une page filtrée
+  rendue par le serveur laissait toute la rangée dépliée. Rangée fixe choisie par Louis ; test du tiroir vérifié dans
+  les deux sens.
+- **2026-11-06** — **`ResolvedListing` allégé (`R-247`)**, sur les recommandations complètes de `desloppify` : placement
+  dans `PagePlacement`, état lu sur `state()`, noms d'URL injectés, 503 annoncé par la vue. Inverse « Relais de
+  `ResolvedListing` » (`R-244`).
+- **2026-11-06** — **Base `categorie-produit` rétablie (`R-248`)** : retirer la base n'a rien de natif, et
+  `/visage` répondait 404 ; le patch de règles à la Yoast a été refusé, puis `CategoryPermalinks` supprimé.
+- **2026-11-06** — **Le titre suit la page (`R-249`)** : contrat `PageTitles`, WordPress seul et Yoast dans le module,
+  `wpseo_replacements` compte les pages du moteur. Deux versions refusées (global, Yoast seul).
+- **2026-11-06** — **La canonique suit la page tournée (`R-250`)** : `PageMetadata::canonicals()`, modèle de Yoast vérifié
+  contre la canonique imprimée.
+- **2026-11-06** — **Les directives robots suivent la vue tournée (`R-251`)** : `wp_robots()` rendu pour les deux vues.

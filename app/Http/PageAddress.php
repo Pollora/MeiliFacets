@@ -4,19 +4,45 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Http;
 
+use Modules\MeiliFacets\Enums\QueryParameter;
+use Modules\MeiliFacets\Listing\ListingState;
 use Modules\MeiliFacets\Support\ReservedParameters;
+use Modules\MeiliFacets\Support\UrlParameters;
 
-/** The address of the page a listing sits on: its path and the query parameters WordPress reads, less the page number and the listing's own. */
+/** The address of the page a listing sits on: the path of each of its pages, and the query parameters that come with it. */
 final readonly class PageAddress
 {
     /** The listing reads it when its own page parameter is absent: kept, it would turn the page back. */
     public const string PAGED_QUERY_VAR = 'paged';
 
-    public function __construct(private ReservedParameters $reserved) {}
+    public const string PAGE_PLACEHOLDER = ':page';
+
+    /** `get_pagenum_link()` takes no placeholder: WooCommerce substitutes one the same way (`loop/pagination.php`). */
+    private const int UNREACHED_PAGE = PHP_INT_MAX;
+
+    public function __construct(private ReservedParameters $reserved, private UrlParameters $parameters) {}
 
     public function path(): string
     {
-        return wp_parse_url(get_pagenum_link(1, false), PHP_URL_PATH) ?: '/';
+        return $this->pathOf(ListingState::FIRST_PAGE);
+    }
+
+    public function pathPattern(): string
+    {
+        return str_replace((string) self::UNREACHED_PAGE, self::PAGE_PLACEHOLDER, $this->pathOf(self::UNREACHED_PAGE));
+    }
+
+    public function pathOf(int $page): string
+    {
+        return wp_parse_url(get_pagenum_link($page, false), PHP_URL_PATH) ?: '/';
+    }
+
+    /** Only the listing's parameters and those WordPress reads travel: `add-to-cart` would be repeated on every page. */
+    public function linkedQuery(): string
+    {
+        $query = implode('&', $this->pairsWhere($this->travels(...)));
+
+        return $query === '' ? '' : '?'.$query;
     }
 
     /**
@@ -37,10 +63,30 @@ final readonly class PageAddress
     {
         $read = array_diff($this->reserved->wordPress(), [...$names, self::PAGED_QUERY_VAR]);
 
-        return array_values(array_filter(
-            $this->pairs(),
-            fn (string $pair): bool => in_array($this->nameOf($pair), $read, true),
-        ));
+        return $this->pairsWhere(fn (int|string|null $name): bool => in_array($name, $read, true));
+    }
+
+    private function travels(int|string|null $name): bool
+    {
+        if ($name === null || $this->isAPageNumber($name)) {
+            return false;
+        }
+
+        return $this->parameters->owns((string) $name) || in_array($name, $this->reserved->wordPress(), true);
+    }
+
+    private function isAPageNumber(int|string $name): bool
+    {
+        return $name === self::PAGED_QUERY_VAR || $name === $this->parameters->reserved(QueryParameter::Page);
+    }
+
+    /**
+     * @param  callable(int|string|null): bool  $kept
+     * @return list<string> pairs as the URL encoded them
+     */
+    private function pairsWhere(callable $kept): array
+    {
+        return array_values(array_filter($this->pairs(), fn (string $pair): bool => $kept($this->nameOf($pair))));
     }
 
     /**

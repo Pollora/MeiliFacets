@@ -43,6 +43,24 @@ final class CheckParametersCommandTest extends TestCase
         $this->artisan('meilifacets:check-parameters')->assertSuccessful();
     }
 
+    /** Set in memory: `set_permalink_structure()` would save the option, and the host project's site with it. */
+    #[Test]
+    public function it_refuses_a_site_without_permalinks(): void
+    {
+        global $wp_rewrite;
+
+        $structure = $wp_rewrite->permalink_structure;
+        $wp_rewrite->permalink_structure = '';
+
+        try {
+            $this->artisan('meilifacets:check-parameters')
+                ->expectsOutputToContain('Permalinks are off')
+                ->assertFailed();
+        } finally {
+            $wp_rewrite->permalink_structure = $structure;
+        }
+    }
+
     #[Test]
     public function it_refuses_a_name_a_plugin_declares_only_through_the_filter(): void
     {

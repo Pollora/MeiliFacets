@@ -34,8 +34,8 @@ Voir aussi : [installation.md](installation.md) · [architecture.md](architectur
 | Dépendance MeiliScout | épinglée sur `dev-feat/meilifacets` (commit `a83fa4b` au lock depuis `R-112`, `1c59a05` à l'origine) — **dette : repasser à `dev-main` après merge de la PR** *Amendé le 2026-10-19 (`R-242`)* : tag stable `^2.5.1` (la 2.5.0 perdait la réindexation d'une variation, corrigée par AmphiBee/MeiliScout#75). *Coût* : trois dépendances de plus, `symfony/http-client` ^7.3 et `nyholm/psr7` (par MeiliScout), `illuminate/reflection` ^13.35 (déclarée par le module pour `lazy()`, accord de Louis du 2026-10-19), une indexation complète et une nouvelle clé de recherche par environnement. *Amendé le 2026-11-05 par Louis (`R-244`)* : `^2.6.1`, après le correctif amont AmphiBee/MeiliScout#84 (une taxonomie absente de la requête vidait l'index des taxonomies à l'indexation complète). **C'est le module qui porte la montée de MeiliScout**, dans son `composer.json` et une version publiée ; un projet ne monte pas de son côté une dépendance du module. `illuminate/translation` (repli de `CountLabel` sans `intl`) et `meilisearch/meilisearch-php` (requêtes construites avec son API), déjà utilisés, sont déclarés le même jour. *Coût* : un projet sur MeiliScout 2.5 doit passer à la 0.4.0 du module pour recevoir le correctif. |
 | Noms des paramètres d'URL | figés en configuration (`meilifacets.url_parameters`), jamais dérivés d'un libellé de taxonomie |
 | Indexation des URLs de listing | `noindex, follow` sur toute URL portant **un paramètre de listing rempli** — facette, tri, recherche, borne de prix ou page — et **uniquement sur une page qui rend un listing** ; canonique vers le chemin nu (ligne suivante). *Élargi le 2026-09-06 : un tri et une page étaient indexables, ce qui laissait entrer des doublons ; la garde de contexte a rendu l'élargissement sûr.* *Précisé le 2026-10-06 (`R-210` n°8), validé par Louis : la garde était « archive ou recherche », qui posait `noindex` et une canonique `?pg=N` sur une archive du blog sans listing, et ratait un listing posé sur une page ordinaire. `<x-meilifacets::listing>` marque désormais la page (`ListingPage::markAsCurrent()`), ce qu'une vue qui étend son gabarit fait avant le `<head>` ; le filtre `meilifacets/is_listing_page` surcharge la réponse.* *Coût* : un gabarit qui imprime le `<head>` avant de rendre le listing (`get_header()` puis le contenu) n'a plus ni `noindex`, ni canonique, ni preconnect sur ses vues filtrées, tant qu'il ne renvoie pas `true` au filtre. |
-| Canonique d'une URL de listing | **vers le chemin nu, numéro de page conservé**, sur toute vue où le module pose `noindex` : sans facette, tri, recherche ni borne de prix, mais avec `pg` ou `/page/N` — une page 2 ne liste pas les produits de la page 1. Le module complète la canonique de Yoast, qui la construit depuis le permalien et sa propre pagination, sans les paramètres du listing ; filtre `wpseo_canonical` à la priorité 20, pour passer après l'intégration WooCommerce de Yoast. Inerte sans Yoast. *Inversé le 2026-10-02 (`R-208`), décision SEO d'un projet consommateur, validée par l'utilisateur : la canonique était supprimée depuis `R-59`.* *Coût, accepté en connaissance de cause* : `noindex` et une canonique pointant ailleurs sont deux signaux que Google décrit comme contradictoires, avec le risque documenté de voir le `noindex` reporté sur la cible — ici le chemin nu. `noindex` gardé : il est seul à garantir qu'aucune combinaison n'entre dans l'index |
-| Pagination native de WordPress | `/page/N` **sert la vraie page N** — le listing lit `paged` en repli de `pg` — et reste en `noindex`, avec une canonique auto-référente (sans les filtres, *depuis le 2026-10-02, `R-208`*) et sans `rel="next"`/`"prev"`. Les deux paginations coexistaient sans se connaître : `/page/2` à `/page/5` servaient quatre fois la première page, en `index`, avec une canonique auto-référente et une chaîne `rel="next"` qui les liait toutes. *Tranché le 2026-09-06 après analyse dédiée (R-60).* |
+| Canonique d'une URL de listing | **vers le chemin nu, numéro de page conservé**, sur toute vue où le module pose `noindex` : sans facette, tri, recherche ni borne de prix, mais avec `pg` ou `/page/N` — une page 2 ne liste pas les produits de la page 1. Le module complète la canonique de Yoast, qui la construit depuis le permalien et sa propre pagination, sans les paramètres du listing ; filtre `wpseo_canonical` à la priorité 20, pour passer après l'intégration WooCommerce de Yoast. Inerte sans Yoast. *Inversé le 2026-10-02 (`R-208`), décision SEO d'un projet consommateur, validée par l'utilisateur : la canonique était supprimée depuis `R-59`.* *Coût, accepté en connaissance de cause* : `noindex` et une canonique pointant ailleurs sont deux signaux que Google décrit comme contradictoires, avec le risque documenté de voir le `noindex` reporté sur la cible — ici le chemin nu. `noindex` gardé : il est seul à garantir qu'aucune combinaison n'entre dans l'index. *Modifié le 2026-11-06 (`R-245`, option (a) de Louis)* : le filtre `wpseo_canonical` du module est retiré, il n'ajoutait plus que `?pg=N`. La canonique est celle de Yoast, sans les paramètres du listing, page conservée (`/boutique/page/3?marque=…` → `/boutique/page/3`) ; une page tournée par le client la suit (`R-250`) |
+| Pagination native de WordPress | `/page/N` **sert la vraie page N** — le listing lit `paged` en repli de `pg` — et reste en `noindex`, avec une canonique auto-référente (sans les filtres, *depuis le 2026-10-02, `R-208`*) et sans `rel="next"`/`"prev"`. Les deux paginations coexistaient sans se connaître : `/page/2` à `/page/5` servaient quatre fois la première page, en `index`, avec une canonique auto-référente et une chaîne `rel="next"` qui les liait toutes. *Tranché le 2026-09-06 après analyse dédiée (R-60).* *Étendu le 2026-11-06 (`R-245`)* : `/page/N/` est la seule forme d'une page ; `?pg=N` n'est plus lu. |
 | Forme canonique d'une URL | valeurs triées octet par octet et dédupliquées des deux côtés — sans quoi `?marque=a,b` et `?marque=b,a` sont deux entrées Varnish pour un même état. *Octet par octet depuis le 2026-09-17 : le client n'a plus à reconnaître un nombre.* |
 | Entrées non validées | un tri absent de `sorts()` est ignoré, une facette est plafonnée à son `cap`, la recherche à 200 caractères — un paramètre libre est un vecteur de saturation du cache |
 | Ordre par défaut d'un listing | sans tri choisi **et sans terme cherché**, un listing qui implémente `DefaultSortedListing` (contrat optionnel, séparé de `Listing`) est trié par `defaultSort()` ; même règle au premier rendu et à chaque requête du navigateur (`QueryPlan::sortIn()`, `ListingQuery.#sortIn()`, cas partagés `tests/variant-plan-cases.json`). Sous un terme cherché, l'ordre du moteur (pertinence) reste, comme WooCommerce (`class-wc-query.php:703`). `ProductListing` suit le « Tri par défaut des produits » de WooCommerce, lu comme `WC_Query::get_catalog_ordering_args()` le lit (option et filtre `woocommerce_default_catalog_orderby`, valeur `champ-sens`) : ordre personnalisé puis titre, titre, date, prix ; popularité, note et aléatoire gardent l'ordre du moteur. *Décidé par l'utilisateur le 2026-10-14 (`R-229`)*, sans champ triable supplémentaire tant qu'aucun site n'en a besoin. *Coût* : `menu_order` déclaré triable (réglages à pousser, une réindexation) ; « Pertinence » désigne l'ordre par défaut tant qu'aucun terme n'est cherché ; un client antérieur (page en cache) garde l'ordre du moteur — champ lu avec repli, `Contract::VERSION` inchangé ; client à republier (`dist/`). *Amendé le 2026-10-15 par l'utilisateur, après la revue de la PR #15* : sous une facette de variation, l'ordre par défaut s'applique tel quel — un document variante est une copie du document produit (`VariantDocuments::document()`), son `menu_order` est celui du produit ; l'amendement « titre seul » de la veille reposait sur le contraire et est annulé. Un tri qui ne fait que filtrer (« En promotion ») suit l'ordre par défaut, côté serveur comme navigateur. « Popularité » et « Note moyenne » sont retirées du choix du Customizer (`Listing\CatalogOrderChoices`, filtre `woocommerce_default_catalog_orderby_options`) plutôt que signalées à chaque requête ; une valeur non reproductible venue d'un filtre garde l'ordre du moteur, sans rapport. Non reproduits, documentés : le départage par ID des dates égales, `modified` et `id` (champs non triables). *Coût* : ces deux ordres ne sont plus proposés aux marchands ; client à republier. |
@@ -57,7 +57,7 @@ Voir aussi : [installation.md](installation.md) · [architecture.md](architectur
 | Repli `503` | objet `Unavailable` lié en `scoped`, pas d'état statique |
 | `displayedAttributes` | restreint à `ID` et `card` par défaut, ouvert par `meilifacets.displayed_attributes` ; `'*'` rouvre tout |
 | Mode de sélection | déclaré par facette ; le disjonctif n'est produit que pour le multi-sélection |
-| Pagination | pages numérotées en query var, sans rechargement ; pas de « charger plus » |
+| Pagination | pages numérotées en liens `/page/N/`, **rendues entières par le serveur, tournées sur place au clic** ; pas de « charger plus » ; permaliens exigés. *Inversé le 2026-11-06 par Louis (`R-245`)* : c'était « en query var, sans rechargement » ; le chargement par le navigateur, livré le même jour, a été remplacé par le clic intercepté, plus rapide. Voir « La pagination est faite de liens (2026-11-06) ». |
 | Valeurs par facette | 10 visibles, le reste rendu et replié, plafond par défaut à 30 |
 | Ce qui décide le plafond et le repli | le plafond sur le **compte** (c'est le moteur qui trie), le repli sur l'**ordre déclaré** — donc réordonner puis replier. *Renversé le 2026-09-08 : le repli se décidait sur le compte avant réordonnancement, ce que le client ne pouvait pas reproduire (`R-85`).* |
 | Tri des valeurs de facette | le moteur compte (`sortFacetValuesBy`), la facette déclare l'ordre d'affichage — `DisplayOrder`, ou un `ValueOrder` que le projet fournit |
@@ -69,7 +69,7 @@ Voir aussi : [installation.md](installation.md) · [architecture.md](architectur
 | Taille de page | dérivée du contexte au rendu, jamais recopiée en configuration |
 | Rendu serveur | applique les filtres de l'URL ; Varnish cache chaque combinaison 180 s |
 | Repli des paramètres d'URL | une taxonomie non mappée prend un préfixe, jamais son nom nu |
-| Défauts des paramètres réservés | `sort`, `q`, `pg` — en anglais, le projet les habille. *Étendu le 2026-09-15 : `min_price`, `max_price`, noms de WooCommerce (`D-h`, `prix.md`).* |
+| Défauts des paramètres réservés | `sort`, `q`, `pg` — en anglais, le projet les habille. *Depuis le 2026-11-06 (`R-245`), `pg` n'est plus ni écrit ni lu ; le nom reste réservé.* *Étendu le 2026-09-15 : `min_price`, `max_price`, noms de WooCommerce (`D-h`, `prix.md`).* |
 | Facettes de l'archive produit | marque, contenance et catégorie, toutes en multi-sélection. *Le module n'en livre que deux, catégorie et marque ; contenance et prix sont déclarés par le projet de test (sa liaison de `ProductFacets`).* |
 | Markup des facettes | cases à cocher rendues cochées par le serveur, jamais des liens par valeur |
 | Déclenchement de la recherche | `meilifacets.apply_mode` : `submit` par défaut, `immediate` selon le volume ; le choix voyage dans la description JSON, `data-apply` n'est rendu que pour le thème, sur la racine du listing (déplacé du groupe de facettes le 2026-10-16, `R-233`, Louis : le mode vaut pour tout le listing et le groupe disparaît avec `unwrapped`) |
@@ -126,8 +126,8 @@ Voir aussi : [installation.md](installation.md) · [architecture.md](architectur
 | Deux listings du même nom | **le premier déclaré est gardé, le second refusé** (`NameRefused::taken()`) et rapporté au journal par la construction du listing, sans casser la page. Il remplaçait le premier en silence. *Décidé par Louis le 2026-11-05 (`R-244`)*. *Coût* : aucun pour un projet qui nomme ses listings ; un projet qui comptait sur le remplacement perd son second listing. |
 | Exceptions d'usage dans un gabarit | une classe nommée par domaine, fille de `LogicException`, à constructeurs nommés : `Listing\PlacementRefused` (placement des facettes et du tri), `Support\NameRefused` (registres nommés), à côté de `View\BindingRefused` et `SiteSearch\SearchTypeRefused` déjà en place. Messages inchangés. `RuntimeException` reste aux pannes réelles du moteur (`EngineUnavailable`, `FacetTruncated`). *Décidé par Louis le 2026-11-05 (`R-244`)*. *Coût* : un `catch (RuntimeException)` d'un projet autour d'un composant ne les attrape plus. |
 | Changements d'API publique | tant qu'un seul projet utilise le module, **le module peut renommer, déplacer ou retirer** une classe ou une méthode publique, vue surchargeable comprise, à trois conditions : vérifier chaque changement contre ce projet (ses surcharges de vues, ses implémentations de contrats, ses imports), en corriger le projet sur sa branche de mise à jour, et l'écrire dans `upgrading.md`. Le nom du projet n'apparaît jamais dans le module. *Décidé par Louis le 2026-11-05 (`R-244`)*. *Coût* : chaque version qui en profite est une version mineure avec des étapes de mise à jour ; le projet doit attendre la version publiée avant de déployer ses corrections. |
-| Rangement des dossiers | conventions Laravel : **`app/Enums` reste à plat** (comme `make:enum`) ; les classes d'indexation propres à WooCommerce vont dans `app/Indexing/WooCommerce/` ; les traits d'aide des tests dans `tests/Feature/Concerns/`. Pas d'autre déplacement sans besoin : le cycle `Listing`↔`Search` (sans effet à l'exécution), un dossier `View/Card/` et `Seo/` restent en l'état. *Décidé par Louis le 2026-11-05 (`R-244`)*. *Coût* : namespaces déplacés, imports d'un projet à mettre à jour (0.4.0). |
-| Relais de `ResolvedListing` | **gardés** : `currentSort()`, `isPristine()`, `activeFilterCount()`… évitent à une vue de traverser l'état (`$listing->state()->sort`), selon la loi de Déméter ; c'est la conséquence de `R-167` (les composants ne voient que `ResolvedListing`). Un nom du contrat `Listing` repris par `ResolvedListing` garde son type (`baseFilter()` rend la liste ; l'expression jointe est `baseFilterExpression()`). *Décidé le 2026-11-05 (`R-244`)*, après lecture des appelants du module et du projet de test. |
+| Rangement des dossiers | conventions Laravel : **`app/Enums` reste à plat** (comme `make:enum`) ; les classes d'indexation propres à WooCommerce vont dans `app/Indexing/WooCommerce/` ; les traits d'aide des tests dans `tests/Feature/Concerns/`. Pas d'autre déplacement sans besoin : le cycle `Listing`↔`Search` (sans effet à l'exécution), un dossier `View/Card/` et `Seo/` restent en l'état. *Inversé pour le cycle le 2026-11-06 par Louis (`R-252`)* : le cycle `Listing`↔`Search` peut être cassé ; le plan de déplacement lui est présenté avant d'être exécuté. *Décidé par Louis le 2026-11-05 (`R-244`)*. *Coût* : namespaces déplacés, imports d'un projet à mettre à jour (0.4.0). |
+| Relais de `ResolvedListing` | **retirés** pour l'état, le placement et les noms d'URL : une vue lit l'état sur `$listing->state()`, place ses filtres sur `$listing->placement()` (`PagePlacement`, qui porte aussi la rangée), et reçoit `UrlParameters` par injection. `ResolvedListing` garde ce qu'il calcule : résultats, valeurs, tris, pagination, présence d'un filtre. Le 503 d'une panne est annoncé par `<x-meilifacets::listing>`, la couche View, plus par `Listing`. Un nom du contrat `Listing` repris par `ResolvedListing` garde son type (`baseFilter()` rend la liste ; l'expression jointe est `baseFilterExpression()`). *Inversé le 2026-11-06 par Louis (`R-247`)*, qui a demandé de suivre les recommandations complètes de `desloppify` : c'était « gardés » (`R-244`, loi de Déméter). *Coût* : un point de plus dans les vues (`state()->sort`, `placement()->isBeyondRow()`) et une note de montée pour toute vue copiée qui appelait les relais. |
 | Aiguillage des projecteurs de carte | `DeferredCardProjector` **reste une brique publique** : il choisit à chaque carte entre deux projecteurs selon une condition lue à l'appel, et le projet de test s'en sert pour brancher sa carte produit. Le supprimer déplacerait la même bascule dans le projet, sans gain de performance (un appel par carte, à l'indexation). *Décidé par Louis le 2026-11-05 (`R-244`)*. |
 
 ### Apports récents du moteur utiles à cette architecture
@@ -183,11 +183,16 @@ recherche, qui aurait été obligatoire sinon.
 Ce que ça coûte : sans JavaScript le listing est inerte. Cohérent avec les facettes, sans
 formulaire depuis le lot 3b.
 
+*Inversé pour la pagination le 2026-11-06 (`R-245`)* : voir « La pagination est faite de liens ».
+Le tri et la remise à zéro restent des boutons.
+
 ### Deux familles de gestes, pas cinq (2026-09-07)
 
 Un filtre **se rassemble** : en mode `submit` il ne cherche rien, en mode `immediate` il part
 aussitôt. Trier, paginer et remettre à zéro **ne se rassemblent pas** : ce sont des ordres, ils
 s'appliquent sur place dans les deux modes — **et ils emportent avec eux les filtres en attente**.
+*Sauf la pagination depuis le 2026-11-06 (`R-245`)* : la page tournée part de l'état appliqué, celui
+que porte le lien.
 
 Cette dernière clause a été ajoutée le 2026-09-07, après qu'une revue a mesuré que le code faisait
 déjà cela et que le texte disait le contraire (`R-77`). Trier vaut donc validation. L'alternative —
@@ -200,9 +205,10 @@ Sans cette distinction, un visiteur en mode `submit` qui clique « page 2 » ver
 en attente d'un bouton « Appliquer » qui parle de filtres. La règle vaut aussi pour « Tout
 effacer » : un effacement qui n'efface rien tant qu'on n'a pas validé n'efface pas.
 
-Ce que ça coûte : `Listing` déclenche lui-même la recherche pour trois gestes, donc un appelant qui
-enchaîne `.goToPage(2).apply()` en lance deux — l'écriture de l'URL comprise. La forme correcte est
-`.goToPage(2)` seul ; `apply()` ne reste public que pour le bouton « Appliquer ».
+Ce que ça coûte : `Listing` déclenche lui-même la recherche pour les gestes immédiats, donc un appelant
+qui enchaîne `.sortBy('price_asc').apply()` en lance deux — l'écriture de l'URL comprise. La forme
+correcte est `.sortBy('price_asc')` seul ; `apply()` ne reste public que pour le bouton « Appliquer ».
+*Depuis le 2026-11-06 (`R-245`), `goToPage()` part de l'état appliqué, celui que porte le lien de page.*
 
 ### Le module rend ce que ses propres choix ont retiré (2026-09-07)
 
@@ -733,6 +739,95 @@ n'imprime plus chaque champ par un composant.*
   recadrage, `wp_calculate_image_sizes()`) : 4 valeurs sur les 6 cartes qui le portent. Le poser dans la vue
   obligerait à refaire ce calcul des deux côtés.
 - `Contract::VERSION` inchangé : le module n'est pas publié.
+
+### La pagination est faite de liens (2026-11-06)
+
+*Louis, `R-245`, exigence SEO d'un projet consommateur.* Chaque page de résultats est une page
+dédiée : la pagination rend des `<a href>` vers `/page/N/`, que le serveur rend entière et que
+les robots suivent. Un clic simple est intercepté : le client cherche, montre la page et ajoute une
+entrée d'historique à son adresse (Louis, même jour : le chargement complet, livré d'abord, était
+trop lent). Google suit le `href` sans cliquer et recommande ce montage avec l'History API
+(documentation « Pagination » et « JavaScript SEO basics », relue le 2026-11-06).
+
+- **Forme `/page/N/`.** C'est celle que WordPress construit (`get_pagenum_link()`), que sa
+  redirection canonique traite et que Yoast connaît. `?page=N` est écarté : `page` est une query
+  var publique de WordPress. `?pg=N` n'est plus lu : il n'y a pas de production, donc aucun lien
+  `?pg=` à rattraper (Louis, même jour, après avoir écarté une redirection 301 qui touchait aussi
+  les articles). Les permaliens sont exigés, contrôlés par `meilifacets:check-parameters`.
+- **Adresse construite par WordPress, total donné par Meilisearch.** Le gabarit de WooCommerce
+  n'est pas repris : il compte les pages sur `WP_Query`, faux sous un filtre.
+- **Le client réécrit les `href`** après chaque recherche faite dans le navigateur (facette, tri),
+  sur la base de pagination transmise par le serveur — la réécriture que « Les commandes sont des
+  boutons » avait supprimée.
+- **SEO inchangé.** `noindex, follow` au-delà de la première page, canonique auto-référente,
+  sans `rel="next"`/`"prev"`.
+
+*Coût* :
+- un thème qui a copié `listing/pagination.blade.php` garde ses boutons, inertes. Les crochets
+  `data-meili` restent les mêmes ; `Contract::VERSION` **n'est pas incrémenté**, décision de Louis
+  du même jour : un client récent ne signale donc pas une copie restée en boutons ;
+- en mode `submit`, un clic sur une page abandonne les cases cochées et non appliquées (le bouton
+  les appliquait, `D-10`) : la page tournée est celle de l'état appliqué, que le lien porte. Exception
+  à « Deux familles de gestes » pour la pagination ;
+- un clic avec Ctrl, Cmd, Maj, Alt ou le bouton du milieu est laissé au navigateur ;
+- une URL `?pg=N` montre la première page ; une fois les liens explorés, revenir aux boutons
+  couperait des chemins connus des moteurs ;
+- un site en permaliens « simples » n'a plus de pagination utilisable.
+
+### Le titre et la canonique suivent la page, par l'extension qui les écrit (2026-11-06)
+
+*Louis, `R-249`, `R-250`.* Le client écrit le titre de l'onglet et la canonique à chaque page tournée, tels que le
+serveur les imprime.
+
+- **Le titre vient de `wp_get_document_title()`.** C'est la fonction que WordPress imprime dans la tête, et celle sur
+  laquelle se branchent les extensions SEO (Yoast par `pre_get_document_title`, `front-end-integration.php:259`). Le
+  module ne compose aucun titre : il le fait rendre deux fois, la page remplacée par `:page` et `:pages`, puis en
+  décode les entités, puisque WordPress et Yoast l'échappent pour la tête.
+- **Un contrat, `PageMetadata` (`titles()`, `canonicals()`), deux implémentations dans le module.** WordPress seul : la partie `page` de
+  `document_title_parts`. Yoast SEO : ses variables, par `wpseo_replacements`, le filtre qu'il documente pour cela
+  (`class-wpseo-replace-vars.php:124`). Une autre extension qui court-circuite le titre : `null`, l'onglet garde
+  le titre du serveur ; le projet lie son adaptateur. Le choix se fait à la résolution, après le chargement des
+  extensions, comme `CardProjector`.
+- **Avec Yoast, le serveur compte les pages du moteur.** `YoastPageCount` donne à `%%page%%` et `%%pagetotal%%` le
+  total de Meilisearch : Yoast lit `$wp_query->max_num_pages`, qui ignore les filtres. Modifier ce global a été
+  écarté par Louis.
+- **Les mots de Yoast sont repris tels quels** : sa chaîne `Page %1$d of %2$d`, dans **son domaine de texte**
+  (`wordpress-seo`), et son séparateur. Exception assumée à la règle « `__()` sans domaine » : c'est la traduction de
+  Yoast qu'il faut reproduire, pas une chaîne du module.
+- **La canonique de Yoast est reproduite puis vérifiée** (`R-250`). Yoast ne donne la canonique que de la page de la
+  requête principale (`get_current_archive_page_number()`), et modifier `paged` pour lui en demander une autre serait
+  revenir au global écarté. Le module applique son modèle : `get_paginated_url()` sur le permalien d'une archive, la
+  même canonique partout pour une canonique personnalisée ou une page singulière (`is_singular()`, la notion de
+  WordPress, et non le type de l'indexable : la boutique est une page pour Yoast et pagine pourtant sa canonique). Il
+  ne publie le modèle que s'il redonne la canonique imprimée sur la page servie ; sinon, un filtre `wpseo_canonical`
+  l'a changée, et rien n'est publié.
+- **Les directives `robots` passent par `wp_robots()`, sans contrat** (`R-251`) : toutes les extensions les écrivent
+  sur ce filtre (Yoast à `PHP_INT_MAX - 10`, `wp-robots-integration.php:46`). Le serveur imprime les deux vues par la
+  fonction elle-même : la vue nue en répondant `false` au filtre public `meilifacets/is_listing_page`, la vue
+  secondaire en appliquant `IndexingPolicy::asSecondaryView()` à sa priorité. Le client choisit avec la même règle
+  (`ListingState.isPristine()`).
+- **Le premier listing rendu pagine la page** : lui seul compte les pages pour Yoast et publie titres, canoniques et
+  directives.
+
+*Coût* :
+- le titre est rendu deux fois de plus par page de listing, avec les filtres des extensions ;
+- WordPress seul nomme une page au-delà de la dernière (« Page 5 ») ; le client suit la règle de Yoast et ne la
+  nomme pas : l'écart ne touche qu'une page vide ;
+- sous Rank Math ou SEOPress, l'onglet ne suit pas tant que le projet n'a pas lié son adaptateur ;
+- `ListingPage::markAsCurrent()` prend désormais le listing ;
+- la canonique Yoast d'une page tournée suppose que le modèle de la page servie vaut pour les autres : un filtre qui
+  ne changerait que certaines pages ne serait pas suivi.
+
+### La rangée se décide sur le catalogue entier (2026-11-06)
+
+*Louis, `R-246`.* Le nombre de filtres de la rangée — et donc `data-overflow`, `data-beyond-row` et « Voir plus » —
+compte les filtres que le catalogue propose avant tout filtre du visiteur, pas ceux que l'état filtré laisse. Une
+rangée décidée sur l'état filtré restait telle quelle quand le navigateur retirait les filtres : rien côté client ne
+la recalcule, et la règle n'y est volontairement pas réécrite. Même principe que le repli des valeurs sur l'ordre
+déclaré (`R-85`).
+
+*Coût* : sous un filtre qui vide une facette de la rangée, la rangée montre un filtre de moins ; le prix compte
+toujours sous un filtre, la requête non filtrée n'en portant pas les bornes.
 
 ### Contre-exemple
 

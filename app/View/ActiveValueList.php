@@ -9,13 +9,14 @@ use Modules\MeiliFacets\Enums\QueryParameter;
 use Modules\MeiliFacets\Listing\Facet;
 use Modules\MeiliFacets\Listing\ResolvedListing;
 use Modules\MeiliFacets\Support\Money;
+use Modules\MeiliFacets\Support\UrlParameters;
 
 /**
  * @phpstan-import-type Patterns from ActiveValuePatterns
  */
 final readonly class ActiveValueList
 {
-    public function __construct(private Money $money) {}
+    public function __construct(private Money $money, private UrlParameters $parameters) {}
 
     /**
      * @return list<ActiveValue>
@@ -51,7 +52,7 @@ final readonly class ActiveValueList
     private function tickedIn(ResolvedListing $listing, Facet $facet, ActiveValuePatterns $patterns): array
     {
         $labels = $listing->labelsOf($facet);
-        $parameter = $listing->parameterFor($facet->taxonomy);
+        $parameter = $this->parameters->for($facet->taxonomy);
         $labelled = array_intersect($listing->selectedIn($facet), array_keys($labels));
 
         return array_map(
@@ -65,7 +66,7 @@ final readonly class ActiveValueList
      */
     private function queried(ResolvedListing $listing, ActiveValuePatterns $patterns): array
     {
-        $term = $listing->typedTerm();
+        $term = $listing->state()->query;
 
         if ($term === '') {
             return [];
@@ -75,7 +76,7 @@ final readonly class ActiveValueList
 
         return [new ActiveValue(
             label: $label,
-            parameter: $listing->parameterForReserved(QueryParameter::Query),
+            parameter: $this->parameters->reserved(QueryParameter::Query),
             value: '',
             action: $patterns->removal($label),
             kind: ActiveValueKind::Search,
@@ -87,7 +88,7 @@ final readonly class ActiveValueList
      */
     private function priced(ResolvedListing $listing, ActiveValuePatterns $patterns): array
     {
-        $price = $listing->askedPrice();
+        $price = $listing->state()->price;
 
         if ($price->isEmpty()) {
             return [];
@@ -97,7 +98,7 @@ final readonly class ActiveValueList
 
         return [new ActiveValue(
             label: $label,
-            parameter: $listing->parameterForReserved(QueryParameter::MinPrice),
+            parameter: $this->parameters->reserved(QueryParameter::MinPrice),
             value: '',
             action: $patterns->removal($label),
             kind: ActiveValueKind::Price,

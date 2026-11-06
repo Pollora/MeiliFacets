@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Tests\Unit;
 
 use Modules\MeiliFacets\Enums\ActiveValueKind;
-use Modules\MeiliFacets\Http\ServiceUnavailable;
 use Modules\MeiliFacets\Listing\Facet;
 use Modules\MeiliFacets\Listing\FacetValues;
 use Modules\MeiliFacets\Listing\ListingState;
@@ -154,7 +153,7 @@ final class ActiveValueListTest extends TestCase
             'between' => ':min – :max',
             'from' => 'From :min',
             'upTo' => 'Up to :max',
-        ], new ActiveValueList(new Money)->patterns());
+        ], new ActiveValueList(new Money, new UrlParameters(['product_brand' => 'brand', 'pa_size' => 'size']))->patterns());
     }
 
     /**
@@ -163,7 +162,7 @@ final class ActiveValueListTest extends TestCase
      */
     private function valuesFor(ListingState $state, array $extraLabels = []): array
     {
-        return new ActiveValueList(new Money)->of($this->listing($state, $extraLabels));
+        return new ActiveValueList(new Money, new UrlParameters(['product_brand' => 'brand', 'pa_size' => 'size']))->of($this->listing($state, $extraLabels));
     }
 
     /**
@@ -190,8 +189,6 @@ final class ActiveValueListTest extends TestCase
                 'unfiltered' => $answer,
             ]), new DisjunctiveFacetCounter),
             new FacetValues(new FakeTermLabels($labels), new FakeTermScope, new FakeDefaultTerms),
-            new UrlParameters(['product_brand' => 'brand', 'pa_size' => 'size']),
-            new ServiceUnavailable,
             new EngineLimits(1000),
         );
     }

@@ -81,9 +81,10 @@ side.
 ## Past the row limit
 
 When a page loads with more filters shown than the drawer's `row-limit` (5 by default), the row does not hold them
-all on wide screens. Only the filters inside the drawer count, and only those the visitor can see: a facet with at
-least one value on screen, the price once it has a range. A filter placed elsewhere on the page, the search field and
-the sort do not count.
+all on wide screens. Only the filters inside the drawer count, and only those the whole catalogue offers: a facet with
+at least one value in the listing before any visitor filter, the price once it has a range. A filter the visitor's
+filters left empty still counts, so the row is the same filtered or not, and clearing the filters in the browser
+finds it as the page loaded it. A filter placed elsewhere on the page, the search field and the sort do not count.
 
 What happens then is the drawer's `row-overflow`, `side-sheet` by default:
 
@@ -98,7 +99,7 @@ Either way:
 
 - the server decides when the page loads, so the page never shows the row and then removes it;
 - the decision holds while the visitor filters: a search that shows fewer filters keeps the overflow, and one that
-  shows more keeps the row. A page loaded with filters in its address is decided on its own count;
+  shows more keeps the row. A page loaded with filters in its address is decided on the whole catalogue too;
 - the side sheet is fixed to the right of the page, full height. Its sections open as an accordion, as in the bottom
   sheet; it does not follow the finger;
 - below the drawer's `media` (`48em` by default), nothing changes: the bottom sheet serves, whatever the count.
@@ -112,8 +113,10 @@ The row gives way to the opener on wide screens too, and the opener opens the dr
 The row keeps its first `row-limit` filters shown, in the order the drawer's slot places them, with the search field
 and the sort. The filters after them are hidden from the row, and a « Show more » button closes it. The button opens
 the drawer itself as the side sheet — its head, its footer, its animation — holding the filters past the row only.
+While the visitor's filters leave none of those with a value, « Show more » is hidden, and it comes back with them.
 
-- Declare first the facets that must stay in the row. A facet with no value on a page lets the next one move up.
+- Declare first the facets that must stay in the row. A facet the whole catalogue leaves empty lets the next one move
+  up; a facet the visitor's filters emptied keeps its place, hidden, and the row shows one filter fewer.
 - Render the group `unwrapped` (`<x-meilifacets::listing.facets collapsible unwrapped />`): each filter then wraps
   on its own when the row runs out of width, as it does while the side sheet is open. Kept in its group, the facets
   drop to the next line all together, and the row changes when the sheet opens.

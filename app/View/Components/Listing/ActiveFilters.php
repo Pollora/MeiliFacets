@@ -18,7 +18,7 @@ final class ActiveFilters extends ListingComponent
 
     public function render(): View
     {
-        $count = $this->listing->activeFilterCount();
+        $count = $this->listing->state()->activeFilterCount();
 
         return view('meilifacets::components.listing.active-filters', [
             'count' => $count,

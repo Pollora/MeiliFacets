@@ -12,6 +12,7 @@ use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\Listing\PriceFilter;
 use Modules\MeiliFacets\Listing\Range;
 use Modules\MeiliFacets\Support\Money;
+use Modules\MeiliFacets\Support\UrlParameters;
 use Modules\MeiliFacets\View\Badge;
 use Modules\MeiliFacets\View\Components\ListingComponent;
 use Modules\MeiliFacets\View\Disclosure;
@@ -30,6 +31,7 @@ final class Price extends ListingComponent
     public function __construct(
         CurrentListing $listings,
         public readonly Money $money,
+        private readonly UrlParameters $parameters,
         PriceFilter|BackedEnum|string $facet,
         string $name = '',
         bool $scroll = false,
@@ -37,12 +39,12 @@ final class Price extends ListingComponent
     ) {
         parent::__construct($listings, $name, $scroll);
 
-        $this->filter = $this->listing->placeFacet($this->designated($facet), PriceFilter::class);
+        $this->filter = $this->place($facet, PriceFilter::class);
     }
 
     private function asked(): Range
     {
-        return $this->listing->askedPrice();
+        return $this->listing->state()->price;
     }
 
     public function bounds(): Range
@@ -57,7 +59,7 @@ final class Price extends ListingComponent
 
     public function isBeyondRow(): bool
     {
-        return $this->listing->isBeyondRow($this->filter);
+        return $this->listing->placement()->isBeyondRow($this->filter);
     }
 
     public function panelId(): string
@@ -70,7 +72,7 @@ final class Price extends ListingComponent
         return new Disclosure(
             label: $this->filter->label,
             panelId: $this->panelId(),
-            badge: new Badge($this->ids->facetSelectedCount($this->filter->name), $this->listing->priceFilterCount()),
+            badge: new Badge($this->ids->facetSelectedCount($this->filter->name), $this->listing->state()->priceFilterCount()),
         );
     }
 
@@ -150,7 +152,7 @@ final class Price extends ListingComponent
 
     private function parameter(PriceBound $bound): string
     {
-        return $this->listing->parameterForReserved($bound->parameter());
+        return $this->parameters->reserved($bound->parameter());
     }
 
     public function render(): View

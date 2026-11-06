@@ -19,6 +19,7 @@ final readonly class FakeListing implements Listing
      * @param  list<Placeable>  $facets
      * @param  list<string>  $baseFilter
      * @param  array<string, Sort>|null  $sorts
+     * @param  list<string>  $unmeasured  taxonomies placed but left out of the search, as a page pins its own
      */
     public function __construct(
         private array $facets = [],
@@ -27,6 +28,7 @@ final readonly class FakeListing implements Listing
         private string $baseQuery = '',
         private string $name = 'fake',
         private ?array $sorts = null,
+        private array $unmeasured = [],
     ) {}
 
     public static function named(string $name): self
@@ -70,7 +72,7 @@ final readonly class FakeListing implements Listing
     {
         return array_values(array_filter(
             $this->facets,
-            static fn (Placeable $filter): bool => $filter instanceof Facet
+            fn (Placeable $filter): bool => $filter instanceof Facet && ! in_array($filter->taxonomy, $this->unmeasured, true)
         ));
     }
 

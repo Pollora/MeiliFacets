@@ -64,7 +64,7 @@ overridden from `<theme>/resources/views/modules/meilifacets/` under the same pa
 | --- | --- | --- |
 | `name` | every listing component except `listing.card` and `listing.unavailable` | `string`, default `''`: the listing of the `<x-meilifacets::listing>` root around the component, else the only listing declared on the site. Outside a root, with none or several declared, an empty `name` throws (see [errors](errors.md#listing-and-search-names)). A root written inside the view of another listing component (a copied `listing/drawer.blade.php`, say) names its components: Laravel answers with the enclosing component's own data first. |
 | `name` | `search.toggle`, `search.panel`, `search.input`, `search.section` | `string`, default `''`: the only `<x-meilifacets::search>` rendered so far on the page. |
-| `scroll` | `listing.facets`, `listing.facet`, `listing.price`, `listing.sort`, `listing.pagination`, `listing.reset` | `bool`, default `false`. Renders `data-meili-scroll`: a pointer click on a control inside brings the top of the listing back into view. See [hooks](hooks.md#version-and-scroll-attributes). |
+| `scroll` | `listing.facets`, `listing.facet`, `listing.price`, `listing.sort`, `listing.pagination`, `listing.reset`, `listing.apply` | `bool`, default `false`. Renders `data-meili-scroll`: a pointer click on a control inside brings the top of the listing back into view. See [hooks](hooks.md#version-and-scroll-attributes). |
 | Attribute bag | per component, column “Bag lands on” | Attributes the class does not declare (`class`, `id`, `data-*`…) are merged on that element. “Nowhere” means they are dropped without a message. |
 | Variant attributes | `heading`, `shape`, `widget`, `presentation` | Accept the string value, or the enum case when bound (`:shape="ResetShape::Icon"`). An unknown string throws a `ValueError`. |
 | Boolean attributes | `scroll`, `collapsible`, `with-apply`, `visible-in-drawer` | Write the bare attribute for `true`; bind (`:with-apply="false"`) for `false`. |
@@ -76,7 +76,7 @@ overridden from `<theme>/resources/views/modules/meilifacets/` under the same pa
 
 The root. It renders `data-listing`, `data-apply` (the apply mode, `submit` or `immediate`) and `data-meili-contract`, asks for the `meilifacets` stylesheet and the
 `@meilifacets/listing` script module, and runs the one search every brick inside reads. When the engine fails, it
-renders `<x-meilifacets::listing.unavailable>` instead of its slot.
+renders `<x-meilifacets::listing.unavailable>` instead of its slot, and the page is served with status `503`.
 
 | Attribute | Type | Default | Values |
 | --- | --- | --- | --- |
@@ -192,8 +192,9 @@ The sort control. Not rendered when one order or none is offered. Rendered once 
 
 ### `<x-meilifacets::listing.pagination>`
 
-Previous, a window of page buttons, next. Rendered hidden when there is a single page: the client fills these
-slots, it never adds any.
+Previous, a window of page links, next: `<a href>` to the path WordPress paginates under (`/page/N`), with the
+listing's query. An empty slot is a hidden `<a>` with no `href`. Rendered hidden when there is a single page: the
+client fills these slots, it never adds any.
 
 | Attribute | Type | Default |
 | --- | --- | --- |
@@ -325,7 +326,7 @@ The message shown in place of the listing when the engine failed on the server. 
 
 | Attributes | Slots | Bag lands on | Hooks rendered |
 | --- | --- | --- | --- |
-| none | none | nowhere | none (`role="alert"`) |
+| `when-search-fails` (`bool`, default `false`): rendered hidden, for the client to show when a search fails in the browser; `listing.results` passes it | none | nowhere | `unavailable` with `when-search-fails`, none otherwise (`role="alert"`) |
 
 ## Search components
 

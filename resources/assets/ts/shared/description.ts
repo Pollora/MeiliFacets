@@ -112,8 +112,28 @@ export interface ListingDescription {
     state: StateDescription
     /** the path of the page's first page */
     pagePath: string
+    /** the path of a page beyond the first, its number written `:page` */
+    pagePathPattern: string
     /** already encoded: written as is */
     pageQuery: string
+    /** the titles the site writes for its pages, the page count written `:pages` */
+    pageTitles: ByPage | null
+    /** the canonical URLs the site prints for its pages */
+    pageCanonicals: ByPage | null
+    /** the robots directives `wp_robots()` prints for the bare view and for any other */
+    pageRobots: ByView | null
+}
+
+/** `View\ListingRobots` */
+export interface ByView {
+    bare: string
+    secondary: string
+}
+
+/** `Contracts\PageMetadata`: the first page's, and a later page's with its number written `:page`. */
+export interface ByPage {
+    first: string
+    paged: string
 }
 
 /** What a post type is to the search: the same whatever the template asks of it. */

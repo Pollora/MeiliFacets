@@ -117,7 +117,7 @@ describe('Listing', () => {
         const { listing } = build({ page: 4 })
 
         assert.equal(listing.toggle('product_brand', 'acme').state.page, 1)
-        assert.equal(listing.goToPage(3).sortBy('price_asc').state.page, 1)
+        assert.equal(build({ page: 3 }).listing.sortBy('price_asc').state.page, 1)
     })
 
     it('leaves the state it was given untouched', () => {
@@ -151,6 +151,15 @@ describe('Listing', () => {
 
             assert.equal(client.plans.length, 3)
         })
+
+        it('turns the page of the state it answered, the boxes ticked since left behind', async () => {
+            const { listing } = build({ facets: { product_brand: ['acme'] } })
+
+            await listing.apply()
+            listing.toggle('product_brand', 'globex').goToPage(2)
+
+            assert.deepEqual(listing.state.toDescription(), served({ facets: { product_brand: ['acme'] }, page: 2 }))
+        })
     })
 
     describe('when it searches at once', () => {
@@ -173,14 +182,22 @@ describe('Listing', () => {
     })
 
     // Five ticked boxes must not cost five presses on the back button.
-    it('replaces the history entry for a filter, pushes one for a page', async () => {
+    it('pushes an entry for a page, the page number in the path', async () => {
         const { listing, history } = build()
 
         await listing.toggle('product_brand', 'acme').apply()
         listing.goToPage(2)
 
-        assert.deepEqual(history.replaced, ['/shop?brand=acme'])
-        assert.deepEqual(history.pushed, ['/shop?brand=acme&pg=2'])
+        assert.deepEqual([history.replaced, history.pushed], [['/shop?brand=acme'], ['/shop/page/2?brand=acme']])
+    })
+
+    it('replaces the history entry, the page number in the path', async () => {
+        const { listing, history } = build({ page: 3 })
+
+        await listing.apply()
+        await listing.toggle('product_brand', 'acme').apply()
+
+        assert.deepEqual(history.replaced, ['/shop/page/3', '/shop?brand=acme'])
     })
 
     it('announces the state it moved to, then the answer it got', async () => {
@@ -220,9 +237,9 @@ describe('Listing', () => {
     })
 
     it('records the state it writes with the entry', async () => {
-        const { listing, history } = build()
+        const { listing, history } = build({ facets: { product_brand: ['acme'] }, page: 2 })
 
-        await listing.toggle('product_brand', 'acme').goToPage(2).apply()
+        await listing.apply()
 
         assert.deepEqual(history.recorded.products, served({ facets: { product_brand: ['acme'] }, page: 2 }))
     })
@@ -245,7 +262,7 @@ describe('Listing', () => {
         history.goBackTo('products', served({ page: 2 }))
         await Promise.resolve()
 
-        assert.deepEqual([history.replaced, history.pushed], [[], []])
+        assert.deepEqual(history.replaced, [])
     })
 
     it('repaints without searching when it goes back to the state it already shows', async () => {
@@ -272,6 +289,32 @@ describe('Listing', () => {
         assert.equal(history.replaced.at(-1), '/shop?brand=acme')
         assert.deepEqual(heard.slice(-2).map(([name]) => name), ['change', 'failed'])
         assert.match(String(errors.mock.calls[0]?.arguments[0]), /^\[meilifacets\] the search failed/)
+    })
+
+    it('leaves no history entry behind a page change the engine did not answer', async (t) => {
+        t.mock.method(console, 'error', () => undefined)
+        const { listing, history, client } = build()
+
+        await listing.apply()
+        client.failure = new SearchError('The engine did not answer in time.')
+        listing.goToPage(2)
+        await Promise.resolve()
+        await Promise.resolve()
+
+        assert.deepEqual([listing.state.page, history.pushed, history.wentBack, history.replaced], [1, ['/shop/page/2'], 1, ['/shop']])
+    })
+
+    it('still replaces the entry when a filter the engine did not answer is rolled back', async (t) => {
+        t.mock.method(console, 'error', () => undefined)
+        const { listing, history, client } = build()
+
+        await listing.apply()
+        listing.goToPage(2)
+        await Promise.resolve()
+        client.failure = new SearchError('The engine did not answer in time.')
+        await listing.toggle('product_brand', 'acme').apply()
+
+        assert.deepEqual([history.wentBack, history.replaced.at(-1)], [0, '/shop/page/2'])
     })
 
     it('clears everything on reset', () => {
@@ -335,7 +378,7 @@ describe('a listing with searches under way', () => {
         client.end(0).answer()
         await turn()
         listing.listenToHistory()
-        listing.goToPage(2)
+        listing.sortBy('price_asc')
         history.goBackTo('products', served())
         await turn()
 

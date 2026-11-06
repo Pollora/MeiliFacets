@@ -121,7 +121,7 @@ final class ListingSearchComponentTest extends TestCase
 
         $typed = $this->onSearch(
             ['s' => 'creme', 'post_type' => 'product'],
-            fn (): string => $this->app->make(CurrentListing::class)->named(ProductListing::NAME)->typedTerm(),
+            fn (): string => $this->app->make(CurrentListing::class)->named(ProductListing::NAME)->state()->query,
         );
 
         $this->assertSame('', $typed);

@@ -10,7 +10,7 @@
         <div class="meilifacetsDrawerBody" {{ $hook('drawer-body') }}>
             {{ $slot }}
             @if ($showsMore())
-                <button type="button" class="meilifacetsDrawerShowMore" aria-label="{{ __('Show more filters') }}" aria-expanded="false" aria-controls="{{ $drawerId }}" {{ $hook('drawer-show-more') }}>
+                <button type="button" class="meilifacetsDrawerShowMore" aria-label="{{ __('Show more filters') }}" aria-expanded="false" aria-controls="{{ $drawerId }}" @unless ($hasMoreToShow()) hidden @endunless {{ $hook('drawer-show-more') }}>
                     @isset($showMore)
                         @if ($showMore->isNotEmpty())<span class="meilifacetsDrawerIcon" aria-hidden="true">{{ $showMore }}</span>@endif
                     @endisset

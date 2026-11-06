@@ -7,7 +7,6 @@ namespace Modules\MeiliFacets\Listing;
 use Modules\MeiliFacets\Discovery\ListingRegistry;
 use Modules\MeiliFacets\Enums\QueryParameter;
 use Modules\MeiliFacets\Http\PageAddress;
-use Modules\MeiliFacets\Http\ServiceUnavailable;
 use Modules\MeiliFacets\Search\EngineLimits;
 use Modules\MeiliFacets\Search\ListingSearch;
 use Modules\MeiliFacets\Support\UrlParameters;
@@ -24,7 +23,6 @@ final class CurrentListing
         private readonly StateReader $reader,
         private readonly FacetValues $values,
         private readonly UrlParameters $parameters,
-        private readonly ServiceUnavailable $serviceUnavailable,
         private readonly EngineLimits $limits,
     ) {}
 
@@ -49,22 +47,19 @@ final class CurrentListing
             $this->reader->read($listing, $query),
             $this->search,
             $this->values,
-            $this->parameters,
-            $this->serviceUnavailable,
             $this->limits,
         );
     }
 
     /**
-     * WordPress resolved `/page/N` before we were asked: the path wins unless a parameter of ours says otherwise.
+     * The page is the one WordPress resolved from `/page/N`: a page parameter in the query is not read.
      *
      * @return array<string, mixed>
      */
     private function requestQuery(): array
     {
-        $query = request()->query();
         $page = $this->parameters->reserved(QueryParameter::Page);
 
-        return isset($query[$page]) ? $query : [...$query, $page => (string) get_query_var(PageAddress::PAGED_QUERY_VAR)];
+        return [...request()->query(), $page => (string) get_query_var(PageAddress::PAGED_QUERY_VAR)];
     }
 }

@@ -403,7 +403,7 @@ final class FacetComponentTest extends TestCase
         $description = $this->app->make(ListingDescription::class);
 
         $before = $description->of($listing);
-        $listing->placeFacet($this->first()->name, Facet::class);
+        $listing->placement()->placeNamed($this->first()->name, Facet::class);
 
         $this->assertSame(json_encode($before), json_encode($description->of($listing)));
         $this->assertCount(count($listing->facets()), $description->of($listing)['facets']);
@@ -484,9 +484,10 @@ final class FacetComponentTest extends TestCase
     private function shownLabelOf(Element $input): string
     {
         $listing = $this->listing();
+        $parameters = $this->app->make(UrlParameters::class);
         $facet = array_find(
             $listing->facets(),
-            static fn (Facet $facet): bool => $listing->parameterFor($facet->taxonomy) === $input->getAttribute('name')
+            static fn (Facet $facet): bool => $parameters->for($facet->taxonomy) === $input->getAttribute('name')
         );
         $value = array_find(
             $listing->valuesOf($facet),

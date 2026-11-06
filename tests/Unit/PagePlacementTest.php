@@ -16,19 +16,19 @@ final class PagePlacementTest extends TestCase
     #[Test]
     public function it_refuses_the_same_facet_twice(): void
     {
-        $placement = new PagePlacement('products');
-        $placement->place($this->facet('brand'));
+        $placement = $this->placementOf([$this->facet('brand')]);
+        $placement->placeFilter($this->facet('brand'), Facet::class);
 
         $this->expectException(PlacementRefused::class);
         $this->expectExceptionMessageMatches('/Facet "brand" is rendered twice/');
 
-        $placement->place($this->facet('brand'));
+        $placement->placeFilter($this->facet('brand'), Facet::class);
     }
 
     #[Test]
     public function it_refuses_the_sort_twice(): void
     {
-        $placement = new PagePlacement('products');
+        $placement = $this->placementOf([]);
         $placement->placeSort();
 
         $this->expectException(PlacementRefused::class);
@@ -44,10 +44,10 @@ final class PagePlacementTest extends TestCase
     #[Test]
     public function it_keeps_a_facet_named_like_the_sort_apart_from_the_sort(): void
     {
-        $placement = new PagePlacement('products');
+        $placement = $this->placementOf([]);
 
         foreach (['sort', 'products'] as $name) {
-            $placement->place($this->facet($name));
+            $placement->placeFilter($this->facet($name), Facet::class);
         }
         $placement->placeSort();
 
@@ -55,15 +55,40 @@ final class PagePlacementTest extends TestCase
     }
 
     #[Test]
-    public function it_leaves_out_of_the_remaining_facets_only_what_was_placed_on_its_own(): void
+    public function it_leaves_out_of_the_remaining_filters_only_what_was_placed_on_its_own(): void
     {
-        $placement = new PagePlacement('products');
         $filters = [$this->facet('brand'), $this->facet('size'), $this->facet('colour')];
+        $placement = $this->placementOf($filters);
 
-        $placement->placeOnItsOwn($filters[0]);
-        $placement->place($filters[2]);
+        $placement->placeNamed('brand', Facet::class);
+        $placement->placeFilter($filters[2], Facet::class);
 
-        $this->assertSame(['size', 'colour'], $this->namesOf($placement->remaining($filters)));
+        $this->assertSame(['size', 'colour'], $this->namesOf($placement->remainingFilters()));
+    }
+
+    /** Past the row, a filter only counts while the catalogue offers it: one it leaves empty lets the next move up. */
+    #[Test]
+    public function it_puts_past_the_row_what_follows_its_limit_of_filters_in_the_catalogue(): void
+    {
+        $filters = [$this->facet('brand'), $this->facet('size'), $this->facet('colour')];
+        $placement = new PagePlacement('products', $filters, static fn (Placeable $filter): bool => $filter->name !== 'brand');
+
+        $placement->startRow(1);
+        array_map(static fn (Facet $filter): Placeable => $placement->placeFilter($filter, Facet::class), $filters);
+
+        $this->assertSame(['colour'], $this->namesOf($placement->filtersBeyondRow()));
+        $this->assertSame(2, $placement->catalogFilterCountSince(0));
+
+        $placement->endRow();
+        $this->assertSame([], $placement->filtersBeyondRow());
+    }
+
+    /**
+     * @param  list<Placeable>  $filters
+     */
+    private function placementOf(array $filters): PagePlacement
+    {
+        return new PagePlacement('products', $filters, static fn (): bool => true);
     }
 
     private function facet(string $name): Facet

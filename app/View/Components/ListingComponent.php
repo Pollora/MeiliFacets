@@ -37,9 +37,22 @@ abstract class ListingComponent extends ContractComponent
         return $enclosing instanceof ResolvedListing ? $enclosing : $listings->onlyOne();
     }
 
-    /** A project names its filters in an enum; the listing looks them up by string. */
-    protected function designated(Placeable|BackedEnum|string $filter): Placeable|string
+    /**
+     * A declaration from the group, or a name a template placed on its own: a project names its filters in an enum.
+     *
+     * @template T of Placeable
+     *
+     * @param  class-string<T>  $kind
+     * @return T
+     */
+    protected function place(Placeable|BackedEnum|string $filter, string $kind): Placeable
     {
-        return $filter instanceof BackedEnum ? (string) $filter->value : $filter;
+        $placement = $this->listing->placement();
+
+        if ($filter instanceof Placeable) {
+            return $placement->placeFilter($filter, $kind);
+        }
+
+        return $placement->placeNamed($filter instanceof BackedEnum ? (string) $filter->value : $filter, $kind);
     }
 }

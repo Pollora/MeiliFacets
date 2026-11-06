@@ -6,7 +6,7 @@ import { ListingBinding } from '../../resources/assets/ts/listing/listing-bindin
 import { Listing } from '../../resources/assets/ts/listing/listing.ts'
 import { Contract } from '../../resources/assets/ts/shared/contract.ts'
 import { SearchError } from '../../resources/assets/ts/shared/search-client.ts'
-import { click, clickFromKeyboard, closestHook, find, listingMarkup, nth, open, tick, watchScrolling } from './dom.ts'
+import { click, clickFromKeyboard, closestHook, find, listingMarkup, nextTurn, nth, open, tick, watchScrolling } from './dom.ts'
 import { connection, described, FakeClient, FakeHistory, served } from './fixtures.ts'
 
 import type { TestWindow } from './dom.ts'
@@ -151,10 +151,18 @@ describe('ListingBinding', () => {
         assert.deepEqual([one('unavailable').hidden, box('acme').checked], [true, true])
     })
 
+    const startOnPage = (page: number) => {
+        ({ window, root } = open(listingMarkup()))
+        const paged = described({ ...description, state: served({ page }) })
+
+        listing = new Listing(paged, connection, { filterQueries: filterQueriesOf(paged), client, history })
+        new ListingBinding(new Contract(root), listing, paged).start()
+    }
+
     it('tells a page past the end from a search that found nothing', async () => {
+        startOnPage(99)
         client.answer = { results: { hits: [], totalHits: 17 } }
-        listing.goToPage(99)
-        await Promise.resolve()
+        await listing.apply()
 
         assert.equal(one('no-results').hidden, true)
         assert.equal(one('past-the-end').hidden, false)
@@ -167,12 +175,12 @@ describe('ListingBinding', () => {
     })
 
     it('leaves the message alone in a view that renders a single one', async () => {
+        startOnPage(99)
         const empty = one('empty')
 
         empty.replaceChildren('Nothing to see')
         client.answer = { results: { hits: [], totalHits: 17 } }
-        listing.goToPage(99)
-        await Promise.resolve()
+        await listing.apply()
 
         assert.equal(empty.hidden, false)
         assert.equal(empty.textContent, 'Nothing to see')
@@ -227,15 +235,128 @@ describe('ListingBinding', () => {
         assert.equal(client.plans.length, 1)
     })
 
-    it('goes to the page that was pressed, and leaves a way back', async () => {
+    it('points each page at its address, the filters in the query', async () => {
+        client.answer = { results: { hits: [], totalHits: 25 } }
+        tick(window, box('acme'))
+        await listing.apply()
+
+        assert.deepEqual(
+            [second('page').getAttribute('href'), one('next').getAttribute('href'), one('previous').hidden],
+            ['/shop/page/2?brand=acme', '/shop/page/2?brand=acme', true]
+        )
+    })
+
+    /** Whether the browser was left to follow the link: the listener stops it either way. */
+    const followed = () => {
+        const seen: boolean[] = []
+
+        window.addEventListener('click', (event) => {
+            seen.push(!event.defaultPrevented)
+            event.preventDefault()
+        })
+
+        return seen
+    }
+
+    it('turns the page in place, and leaves a way back', async () => {
         client.answer = { results: { hits: [], totalHits: 25 } }
         await listing.apply()
+        const seen = followed()
 
         click(window, second('page'))
         await Promise.resolve()
 
-        assert.equal(listing.state.page, 2)
-        assert.deepEqual(history.pushed, ['/shop?pg=2'])
+        assert.deepEqual(
+            [seen, listing.state.page, history.pushed, client.plans.length],
+            [[false], 2, ['/shop/page/2'], 2]
+        )
+    })
+
+    it('titles the tab for the page turned to, and for the first once a filter brings it back', async () => {
+        const titled = described({ ...description, pageTitles: { first: 'Shop - Site', paged: 'Shop - Page :page of :pages - Site' } })
+
+        ;({ window, root } = open(listingMarkup()))
+        listing = new Listing(titled, connection, { filterQueries: filterQueriesOf(titled), client, history })
+        new ListingBinding(new Contract(root), listing, titled).start()
+        client.answer = { results: { hits: [], totalHits: 40 } }
+        await listing.apply()
+
+        click(window, second('page'))
+        await nextTurn()
+        const turned = window.document.title
+
+        tick(window, box('acme'))
+        await listing.apply()
+
+        assert.deepEqual([turned, window.document.title], ['Shop - Page 2 of 4 - Site', 'Shop - Site'])
+    })
+
+    it('keeps the turned page out of the index, and lets the bare view back in', async () => {
+        const robots = { bare: 'index, follow', secondary: 'noindex, follow' }
+        const withRobots = described({ ...description, pageRobots: robots })
+
+        ;({ window, root } = open(listingMarkup()))
+        window.document.head.innerHTML = '<meta name="robots" content="index, follow">'
+        listing = new Listing(withRobots, connection, { filterQueries: filterQueriesOf(withRobots), client, history })
+        new ListingBinding(new Contract(root), listing, withRobots).start()
+        client.answer = { results: { hits: [], totalHits: 40 } }
+        await listing.apply()
+        const content = () => window.document.head.querySelector('meta[name="robots"]')?.getAttribute('content')
+
+        click(window, second('page'))
+        await nextTurn()
+        const turned = content()
+
+        click(window, one('previous'))
+        await nextTurn()
+
+        assert.deepEqual([turned, content()], [robots.secondary, robots.bare])
+    })
+
+    it('points the canonical at the page turned to', async () => {
+        const paged = described({ ...description, pageCanonicals: { first: 'https://example.test/shop', paged: 'https://example.test/shop/page/:page' } })
+
+        ;({ window, root } = open(listingMarkup()))
+        window.document.head.innerHTML = '<link rel="canonical" href="https://example.test/shop">'
+        listing = new Listing(paged, connection, { filterQueries: filterQueriesOf(paged), client, history })
+        new ListingBinding(new Contract(root), listing, paged).start()
+        client.answer = { results: { hits: [], totalHits: 40 } }
+        await listing.apply()
+
+        click(window, second('page'))
+        await nextTurn()
+
+        assert.equal(window.document.head.querySelector('link[rel="canonical"]')?.getAttribute('href'), 'https://example.test/shop/page/2')
+    })
+
+    it('stays on the page already shown when its own link is clicked', async () => {
+        client.answer = { results: { hits: [], totalHits: 25 } }
+        await listing.apply()
+        const seen = followed()
+
+        click(window, find(root, `${Contract.selector('page')}[aria-current="page"]`))
+        await Promise.resolve()
+
+        assert.deepEqual([seen, history.pushed, client.plans.length], [[false], [], 1])
+    })
+
+    it('leaves to the browser a link the theme opens elsewhere, a download, or a click already handled', async () => {
+        client.answer = { results: { hits: [], totalHits: 25 } }
+        await listing.apply()
+        const link = second('page')
+
+        link.setAttribute('target', '_blank')
+        click(window, link)
+        link.removeAttribute('target')
+        link.setAttribute('download', '')
+        click(window, link)
+        link.removeAttribute('download')
+        root.addEventListener('click', (event) => event.preventDefault(), { capture: true, once: true })
+        click(window, link)
+        window.addEventListener('click', (event) => event.preventDefault())
+        await Promise.resolve()
+
+        assert.deepEqual([listing.state.page, client.plans.length], [1, 1])
     })
 
     it('follows the previous and next steps', async () => {
@@ -244,6 +365,7 @@ describe('ListingBinding', () => {
 
         click(window, one('next'))
         await Promise.resolve()
+        await Promise.resolve()
 
         assert.equal(listing.state.page, 2)
 
@@ -251,6 +373,20 @@ describe('ListingBinding', () => {
         await Promise.resolve()
 
         assert.equal(listing.state.page, 1)
+    })
+
+    it('leaves a page link opened in a new tab to the browser', async () => {
+        client.answer = { results: { hits: [], totalHits: 25 } }
+        await listing.apply()
+        const seen = followed()
+
+        for (const modifier of ['ctrlKey', 'metaKey', 'shiftKey', 'altKey']) {
+            second('page').dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true, detail: 1, [modifier]: true }))
+        }
+
+        second('page').dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true, detail: 1, button: 1 }))
+
+        assert.deepEqual([seen, listing.state.page, client.plans.length], [[true, true, true, true, true], 1, 1])
     })
 
     it('sorts from the combobox, without waiting for a submit', async () => {
@@ -279,7 +415,6 @@ describe('ListingBinding', () => {
             listing = new Listing(description, connection, { filterQueries: filterQueriesOf(description), client, history })
             new ListingBinding(new Contract(root), listing, description).start()
 
-            // The pagination carries no page number until the engine has answered once.
             client.answer = { results: { hits: [], totalHits: 25 } }
             await listing.apply()
 
@@ -326,9 +461,10 @@ describe('ListingBinding', () => {
 
         /** The keyboard holds its place with the focus: moving the page would hide the button. */
         it('leaves the page alone when the keyboard raised the click', async () => {
-            const scrolled = await start(['pagination'])
+            const scrolled = await start(['sort'])
 
-            clickFromKeyboard(window, second('page'))
+            click(window, one('sort-trigger'))
+            clickFromKeyboard(window, second('sort-option'))
 
             assert.deepEqual(scrolled, [])
         })

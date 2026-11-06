@@ -39,11 +39,11 @@ final class Sort extends ListingComponent
 
         $this->widget = SortWidget::fromAttribute($widget);
 
-        $this->listing->placeSort();
+        $this->listing->placement()->placeSort();
 
         $this->choices = new SortChoices($this->ids)->of(
             $this->listing->sorts(),
-            $this->listing->currentSort(),
+            $this->listing->state()->sort,
             $this->listing->sortMatches(),
         );
         $this->selected = $this->currentChoice();

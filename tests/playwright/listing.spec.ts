@@ -46,7 +46,7 @@ test.describe('product listing', () => {
         listing.expectHealthySearches()
     })
 
-    test('the second page shows other products, and the back button returns to the first', async ({ page }) => {
+    test('the second page is a page of its own, and the back button returns to the first', async ({ page }) => {
         const listing = new VisitedListing(page)
         await listing.open(LISTING_PATH)
         const firstOfPageOne = await listing.firstCardUrl()

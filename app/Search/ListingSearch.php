@@ -137,7 +137,7 @@ final readonly class ListingSearch
      */
     private function unfilteredQueries(Listing $listing, ListingState $state): array
     {
-        if ($listing->facets() === [] || ! $this->isNarrowed($listing, $state)) {
+        if ($listing->facets() === [] || ! $this->narrows($listing, $state)) {
             return [];
         }
 
@@ -150,7 +150,8 @@ final readonly class ListingSearch
         return $queries;
     }
 
-    private function isNarrowed(Listing $listing, ListingState $state): bool
+    /** A typed term, or any filter that writes a clause: the visitor sees less than the whole catalogue. */
+    public function narrows(Listing $listing, ListingState $state): bool
     {
         if ($state->query !== '') {
             return true;

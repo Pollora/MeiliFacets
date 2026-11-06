@@ -29,7 +29,7 @@ final class Reset extends ListingComponent
 
     public function hasNothingToClear(): bool
     {
-        return $this->listing->isPristine();
+        return $this->listing->state()->isPristine();
     }
 
     public function defaultIconUrl(): string

@@ -45,8 +45,8 @@ final class Search extends ListingComponent
                 ...array_map(HiddenField::fromQueryPair(...), $this->page->pairsWithout($this->parameters->all())),
                 ...$this->stateFields->of($this->listing),
             ],
-            'parameter' => $this->listing->parameterForReserved(QueryParameter::Query),
-            'term' => $this->listing->typedTerm(),
+            'parameter' => $this->parameters->reserved(QueryParameter::Query),
+            'term' => $this->listing->state()->query,
             'inputId' => $this->ids->listingSearchInput(),
             'maxLength' => StateReader::MAX_QUERY_LENGTH,
         ]);

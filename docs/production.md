@@ -36,7 +36,7 @@ wp meiliscout index                       # only when the deployment changes wha
 4. **Clear the page cache**, and any minified copy a cache plugin keeps of the stylesheets and scripts.
 5. **Reindex** when the deployment changes what is indexed or the index settings; see the next section.
 6. **Check the environment** of a new server: `MEILI_HOST`, `MEILI_KEY`, `MEILI_SEARCH_KEY`, `MEILI_PUBLIC_URL`,
-   MeiliScout activated and its content selection made (both live in the database).
+   MeiliScout activated and its content selection made, permalinks on (all three live in the database).
 
 Steps 1 and 2 matter more than they look. A missing publication is visible: nothing filters, and the elements the
 client hides show. A **stale** publication is not: the old stylesheet and the old client run without error against
@@ -264,10 +264,15 @@ signed by the server; it is not implemented yet.
 On a page that renders a listing, every view that is not the bare path is served `noindex, follow`: a facet value, a
 sort, a search term, a price bound or a page number, in a parameter or as `/page/N`.
 
-- These views carry a **canonical to the bare path**, page number kept: `/shop/?q=cream&pg=2` points to
-  `/shop/?pg=2`. The bare path keeps its own canonical, and `rel="next"` / `rel="prev"` are removed from listing
-  pages.
-- Facets, sorting and pagination are **buttons, not links**. Crawlers do not follow them, so they do not discover the
+- These views keep the **canonical the site prints**; the module does not rewrite it. Yoast SEO builds it from the
+  permalink and its own page number, without the listing's parameters: `/shop/page/2?q=cream` points to
+  `/shop/page/2`. WordPress alone prints one on singular pages only. `rel="next"` / `rel="prev"` are removed from
+  listing pages.
+- A page the client turns in place gets the title and the canonical the server prints for it, through
+  [`PageMetadata`](reference/contracts.md).
+- The pagination is made of **links**, to `/page/N`: crawlers follow them to every page, each served `noindex,
+  follow` with its own canonical.
+- Facets and sorting are **buttons, not links**. Crawlers do not follow them, so they do not discover the
   combinations of filters.
 - Search terms read from the URL are escaped wherever they are printed.
 - A listing rendered after the page's `<head>` is not covered by these rules until its page is declared with the

@@ -42,7 +42,7 @@ search is one request from the browser to Meilisearch, and the module rewrites t
 
 `<x-meilifacets::listing>` is the root. It:
 
-- renders `<div class="meilifacets" data-listing="products" data-meili-contract="1">` around its slot. Its
+- renders `<div class="meilifacets" data-listing="products" data-apply="immediate" data-meili-contract="1">` around its slot. Its
   attribute bag lands on that `<div>`, so `class="…"` is merged with the module's class;
 - loads the module's stylesheet and, when the browser connection is configured, the browser client
   (see [Installation](../installation.md));
@@ -106,8 +106,8 @@ view can therefore be bookmarked, shared and reloaded.
 - **A taxonomy's parameter is `f_<taxonomy>`** unless the project maps it to a readable name. The prefix is there on
   purpose: a bare taxonomy name is a public WordPress query var, and `?product_brand=acme` would make WordPress filter
   its own query as well.
-- **The module's own parameters** are `sort`, `q` (search term), `pg` (page number), `min_price` and `max_price`. A
-  page served by WordPress under `/page/N` is honoured on first render; the client then writes the page as `pg`.
+- **The module's own parameters** are `sort`, `q` (search term), `min_price` and `max_price`. The page number is in
+  the path, where WordPress paginates: `/shop/page/2`. `pg`, the page parameter of earlier versions, is no longer read.
 - **A search term is cut at 200 characters**, and a term with no letter or digit (`?q=%3F%28`) counts as no term.
   The same holds for a WordPress product search routed to the listing (`?s=!&post_type=product`): it shows the
   whole catalogue, where WordPress itself would find nothing.
@@ -219,13 +219,12 @@ term can still be removed with its pill or with Clear all.
 ## What search engines see
 
 On a page that renders a listing, any view that is not the bare path is a secondary view: a facet value, a sort,
-a search term, a price bound, a page number in `pg`, or a `/page/N` path. A secondary view is served
+a search term, a price bound, or a `/page/N` path. A secondary view is served
 `noindex, follow`, because its content already exists on the bare path, and its links stay followed.
 
-- A secondary view's canonical points to the bare path, without facets, sort, search or price bounds. A page number
-  is kept, because page 2 does not list the products of page 1: `/shop/?q=cream&pg=2` points to `/shop/?pg=2`, and
-  `/shop/page/2/?brand=acme` to `/shop/page/2/`. The module builds it from the one Yoast SEO prints. Without
-  Yoast, the module prints none: an archive has no canonical, and a page keeps the one WordPress prints for it.
+- The module prints no canonical of its own. Yoast SEO's leaves out the query string and keeps the page number,
+  because page 2 does not list the products of page 1: `/shop/page/2/?brand=acme` points to `/shop/page/2/`. Without
+  Yoast, an archive has no canonical, and a page keeps the one WordPress prints for it.
 - `rel="next"` and `rel="prev"` are removed from every page that renders a listing, bare path included. Product pages
   are found through the sitemap, not through paginated listings.
 - A query parameter the module does not own, such as `?utm_source=news`, changes nothing.
@@ -297,17 +296,17 @@ The scroll is skipped when the gesture came from the keyboard, so that the focus
 own `scroll-behavior` decides whether the scroll is smooth.
 
 `listing.facet`, `listing.price`, `listing.active-filters` and `listing.sort widget="radios"` also accept `scroll`,
-but no gesture of theirs scrolls: checking a box never moves the page. An Apply button placed on its own takes the
-attribute directly: `<x-meilifacets::listing.apply data-meili-scroll />`.
+but no gesture of theirs scrolls: checking a box never moves the page. An Apply button placed on its own takes it too:
+`<x-meilifacets::listing.apply scroll />`.
 
 ## Without JavaScript
 
 The first render is complete without JavaScript: the server applies every filter, sort, price and page of the URL,
 and the results, counts, total and active values are right.
 
-The controls themselves need the client. Facets, sort, price, pagination, Apply and Clear all are buttons and inputs
-outside any form, so they do nothing without it. The [search field](#the-search-field) is the exception: it submits
-as a regular form. On small screens the [drawer](drawer.md#without-javascript) leaves the filters in the page.
+The controls themselves need the client. Facets, sort, price, Apply and Clear all are buttons and inputs outside any
+form, so they do nothing without it. Two exceptions: the pagination is made of links, and the
+[search field](#the-search-field) submits as a regular form. On small screens the [drawer](drawer.md#without-javascript) leaves the filters in the page.
 
 ## Watch out
 

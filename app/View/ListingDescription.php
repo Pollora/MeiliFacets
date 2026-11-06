@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\View;
 
+use Modules\MeiliFacets\Contracts\PageMetadata;
 use Modules\MeiliFacets\Contracts\VariantScopedListing;
 use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Enums\PriceField;
 use Modules\MeiliFacets\Enums\QueryParameter;
+use Modules\MeiliFacets\Http\ListingPage;
 use Modules\MeiliFacets\Http\PageAddress;
 use Modules\MeiliFacets\Listing\Facet;
 use Modules\MeiliFacets\Listing\FacetValue;
@@ -34,6 +36,10 @@ use Modules\MeiliFacets\Support\UrlParameters;
  * @phpstan-type FacetShape array{taxonomy: string, multiple: bool, cap: int, visible: int, counts: object, labels: object}
  * @phpstan-type State array{facets: object, query: string, sort: ?string, page: int, price: array{min: ?float, max: ?float}}
  * @phpstan-type VariantResults array{taxonomies: list<string>, filter: string, searchScope: Scope, distinct: string, attributes: list<string>, sorts: array<string, list<string>>, defaultSort: list<string>}
+ *
+ * @phpstan-import-type ByPage from PageMetadata
+ * @phpstan-import-type ByView from ListingRobots
+ *
  * @phpstan-type Description array{
  *     name: string, filter: string, baseQuery: string, searchScope: Scope, minChars: int, delay: int,
  *     perPage: int, reachableHits: int, attributes: list<string>, variantResults: VariantResults|null,
@@ -41,7 +47,8 @@ use Modules\MeiliFacets\Support\UrlParameters;
  *     priceFields: array{min: string, max: string}|null, money: Format|null, sorts: array<string, list<string>>,
  *     defaultSort: list<string>, sortFilters: object, countPattern: string, filterPattern: string,
  *     totalPattern: string, sortPattern: string, activeValuePatterns: Patterns, locale: string, state: State,
- *     pagePath: string, pageQuery: string
+ *     pagePath: string, pagePathPattern: string, pageQuery: string, pageTitles: ByPage|null, pageCanonicals: ByPage|null,
+ *     pageRobots: ByView|null
  * }
  */
 final readonly class ListingDescription
@@ -54,6 +61,9 @@ final readonly class ListingDescription
         private CountLabel $countLabel,
         private ActiveValueList $activeValues,
         private SearchSettings $searchSettings,
+        private PageMetadata $pageMetadata,
+        private ListingPage $listingPage,
+        private ListingRobots $robots,
     ) {}
 
     /**
@@ -63,6 +73,7 @@ final readonly class ListingDescription
     {
         $params = $this->params($listing);
         $reserved = $this->reserved();
+        $paginates = $this->listingPage->isPaginatedBy($listing);
 
         return [
             'name' => $listing->name(),
@@ -92,7 +103,11 @@ final readonly class ListingDescription
             'locale' => $this->countLabel->languageTag(),
             'state' => $this->state($listing->state()),
             'pagePath' => $this->page->path(),
+            'pagePathPattern' => $this->page->pathPattern(),
             'pageQuery' => $this->page->queryWithout([...array_values($params), ...array_values($reserved)]),
+            'pageTitles' => $paginates ? $this->pageMetadata->titles() : null,
+            'pageCanonicals' => $paginates ? $this->pageMetadata->canonicals() : null,
+            'pageRobots' => $paginates ? $this->robots->byView() : null,
         ];
     }
 

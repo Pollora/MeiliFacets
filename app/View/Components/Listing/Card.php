@@ -14,6 +14,8 @@ use Modules\MeiliFacets\View\Components\ContractComponent;
 
 final class Card extends ContractComponent
 {
+    public const string COMPONENT = 'meilifacets::listing.card';
+
     public string $heading;
 
     public CardFieldElement $link;

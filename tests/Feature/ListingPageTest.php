@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Blade;
 use Modules\MeiliFacets\Http\IndexingPolicy;
 use Modules\MeiliFacets\Http\ListingPage;
+use Modules\MeiliFacets\Tests\Unit\Doubles\AnsweredListing;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -53,7 +54,7 @@ final class ListingPageTest extends TestCase
     public function a_project_can_withdraw_a_page_that_renders_a_listing(): void
     {
         $page = $this->app->make(ListingPage::class);
-        $page->markAsCurrent();
+        $page->markAsCurrent(AnsweredListing::withTotal());
 
         add_filter(ListingPage::FILTER, '__return_false');
 
@@ -74,11 +75,27 @@ final class ListingPageTest extends TestCase
     public function a_page_number_on_a_listing_page_is_kept_out_of_the_index(): void
     {
         $this->withQuery(['pg' => '3']);
-        $this->app->make(ListingPage::class)->markAsCurrent();
+        $this->app->make(ListingPage::class)->markAsCurrent(AnsweredListing::withTotal());
 
         $robots = $this->app->make(IndexingPolicy::class)->noindexSecondaryViews(['index' => true]);
 
         $this->assertSame(['noindex' => true, 'follow' => true], $robots);
+    }
+
+    #[Test]
+    public function the_first_listing_rendered_paginates_the_page(): void
+    {
+        $page = new ListingPage;
+        $first = AnsweredListing::withTotal(40);
+        $second = AnsweredListing::withTotal(12);
+
+        $page->markAsCurrent($first);
+        $page->markAsCurrent($second);
+
+        $this->assertSame(
+            [true, false, 3],
+            [$page->isPaginatedBy($first), $page->isPaginatedBy($second), $page->pagination()?->pages()],
+        );
     }
 
     /**

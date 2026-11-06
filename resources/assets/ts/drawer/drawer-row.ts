@@ -1,6 +1,6 @@
+import { BEYOND_ROW } from '../shared/attributes.ts'
 import { Contract } from '../shared/contract.ts'
 
-const BEYOND_ROW = 'data-beyond-row'
 const ROW_CLASS = 'meilifacetsDrawerRow'
 
 interface Lifted {

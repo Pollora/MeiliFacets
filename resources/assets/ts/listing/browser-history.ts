@@ -6,7 +6,7 @@ type Restore = (state: StateDescription) => void
 
 interface HistoryWindow {
     location: Pick<Location, 'pathname' | 'search' | 'reload'>
-    history: Pick<History, 'state' | 'pushState' | 'replaceState'>
+    history: Pick<History, 'state' | 'pushState' | 'replaceState' | 'back'>
     addEventListener(type: 'popstate', listener: (event: PopStateEvent) => void): void
 }
 
@@ -40,6 +40,11 @@ export class BrowserHistory {
         this.#shownEntry = this.#showing(name, state)
         this.#window.history.pushState({ [KEY]: this.#shownEntry }, '', url)
         this.#shownAddress = this.#currentAddress()
+    }
+
+    /** Leaves the entry `push()` added: the browser returns to the one before, and says so with `popstate`. */
+    back() {
+        this.#window.history.back()
     }
 
     onPopState(name: string, restore: Restore) {

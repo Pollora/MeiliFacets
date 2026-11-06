@@ -82,9 +82,9 @@ Owned by `<x-meilifacets::listing>`. “Styled”: `listing` = `meilifacets.css`
 | `panel` | the values `<div>` of a collapsible facet or sort | required inside a `facet` or `sort-choices` that holds `toggle` | found through the toggle's `aria-controls`; the hook serves the rule and the sheet | listing | [Mobile drawer](../listing/drawer.md) |
 | `selected-count` | badge inside `toggle` | read when present | number of selected values | listing | [Facets](../listing/facets.md) |
 | `pagination` | `listing.pagination`, `<nav>` | host of a rule | shown or hidden | listing | [Pagination](../listing/results-sort-pagination.md) |
-| `page` | page `<button>` | required inside `pagination` | its `value` is the page; `aria-current` written | listing | [Pagination](../listing/results-sort-pagination.md) |
-| `previous` | `<button>` | required inside `pagination` | its `value` is the page | listing | [Pagination](../listing/results-sort-pagination.md) |
-| `next` | `<button>` | required inside `pagination` | its `value` is the page | listing | [Pagination](../listing/results-sort-pagination.md) |
+| `page` | page `<a>` | required inside `pagination` | its `href` points to the page; a plain click turns it in place; `aria-current` written | listing | [Pagination](../listing/results-sort-pagination.md) |
+| `previous` | `<a>` | required inside `pagination` | its `href` points to the page | listing | [Pagination](../listing/results-sort-pagination.md) |
+| `next` | `<a>` | required inside `pagination` | its `href` points to the page | listing | [Pagination](../listing/results-sort-pagination.md) |
 | `sort` | `listing.sort` listbox, `<div>` | host of a rule | binds the combobox | listing | [Sorting](../listing/results-sort-pagination.md) |
 | `sort-trigger` | `<button role="combobox">` | required inside `sort` | opens the list; `aria-expanded` | listing | [Sorting](../listing/results-sort-pagination.md) |
 | `sort-list` | `<ul role="listbox">` | required inside `sort` | shown and hidden | listing | [Sorting](../listing/results-sort-pagination.md) |
@@ -117,7 +117,7 @@ Owned by `<x-meilifacets::listing>`. “Styled”: `listing` = `meilifacets.css`
 | `drawer-title` | heading | required inside `drawer` | focused on open | listing | [Mobile drawer](../listing/drawer.md) |
 | `drawer-close` | close `<button>` and drag handle | required inside `drawer` | closes; the handle is dragged | listing | [Mobile drawer](../listing/drawer.md) |
 | `drawer-open` | `listing.drawer-opener`, `<button>` | read when present | opens; `aria-expanded` | listing | [Mobile drawer](../listing/drawer.md) |
-| `drawer-show-more` | « Show more » `<button>`, last in `drawer-body`, past the row limit with `show-more` | read when present | opens the drawer as a side sheet; `aria-expanded` | listing | [Mobile drawer](../listing/drawer.md#past-the-row-limit) |
+| `drawer-show-more` | « Show more » `<button>`, last in `drawer-body`, past the row limit with `show-more` | read when present | opens the drawer as a side sheet; `aria-expanded`; hidden while no filter past the row has a value | listing | [Mobile drawer](../listing/drawer.md#past-the-row-limit) |
 | `drawer-sheet` | sheet `<div>` | read when present | slides and is dragged | listing | [Mobile drawer](../listing/drawer.md) |
 | `drawer-body` | body `<div>` | none | not read | listing | [Mobile drawer](../listing/drawer.md) |
 | `drawer-footer` | footer `<div>` | none | not read | listing | [Mobile drawer](../listing/drawer.md) |
@@ -153,7 +153,7 @@ The client also relies on these, which an override must keep.
 | A `<template>` element | `card-template`, `active-value-template`, `search-card-template` | the client copies `template.content`; another element is skipped |
 | A `<form>` holding an `<input>` | `listing-search`, `listing-search-input` | another element is skipped |
 | `name` and `value` on a facet `<input>` | `facet.blade.php` | the name is the URL parameter, the value the term slug |
-| `value` on `page`, `previous` and `next` `<button>`s | `pagination.blade.php` | the page number is read from it |
+| `<a>` elements for `page`, `previous` and `next` | `pagination.blade.php` | the client writes their `href` and reads the page number from its path; a click on another element is left to the browser |
 | `data-value` on `sort-option`, `value` and `data-label` on `sort-choice` | the sort views | the sort key and the label shown |
 | `name` on `price-min` and `price-max` | the price sub-views | the URL parameter of each bound |
 | `aria-controls` on `toggle`, `sort-trigger`, `drawer-open`, `drawer-show-more`, `search-toggle` | the views | names the element they open |
@@ -176,7 +176,7 @@ The client also relies on these, which an override must keep.
 | `data-media` | `drawer` | a media query | yes |
 | `data-overflow` | `drawer`, past its row limit | `side-sheet`, `show-more` | yes |
 | `data-side-sheet` | `drawer`, set by the client while it is a side sheet | present or absent | written |
-| `data-beyond-row` | `facet`, past the row limit with `show-more` | present or absent | no |
+| `data-beyond-row` | `facet`, past the row limit with `show-more` | present or absent | yes |
 | `data-type`, `data-limit` | `search-section` | post type, number of results | yes |
 
 ## State attributes written by the client

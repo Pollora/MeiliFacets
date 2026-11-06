@@ -12,10 +12,14 @@ final class CheckParametersCommand extends Command
 {
     protected $signature = 'meilifacets:check-parameters';
 
-    protected $description = 'Check that no listing URL parameter collides with a reserved name';
+    protected $description = 'Check that no listing URL parameter collides with a reserved name, and that pages can be linked';
 
     public function handle(UrlParameters $parameters, ReservedParameters $reserved): int
     {
+        if (! $this->paginatesInThePath()) {
+            return self::FAILURE;
+        }
+
         $conflicts = $reserved->conflicts($parameters->all());
         $accepted = array_intersect_key($conflicts, array_flip($reserved->acceptedFor($parameters)));
         $blocking = array_diff_key($conflicts, $accepted);
@@ -42,5 +46,18 @@ final class CheckParametersCommand extends Command
         $this->info('No blocking conflict. '.count($parameters->all()).' parameters checked.');
 
         return self::SUCCESS;
+    }
+
+    /** Without permalinks WordPress paginates in `?paged=N`, which the pagination links leave out. */
+    private function paginatesInThePath(): bool
+    {
+        if ($GLOBALS['wp_rewrite']->using_permalinks()) {
+            return true;
+        }
+
+        $this->error('Permalinks are off: every pagination link would lead to the first page.');
+        $this->line('Choose any structure other than "Plain" under Settings › Permalinks.');
+
+        return false;
     }
 }

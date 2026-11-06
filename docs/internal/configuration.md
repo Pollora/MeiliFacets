@@ -34,9 +34,10 @@ changer.
 
 À poser dans `config/meilifacets.php`, à la racine du projet.
 
-La règle du module veut qu'elles soient lues **dans un provider**, avec leur défaut, et injectées ensuite.
-Sept le sont ; trois pas encore — `apply_mode` (`ApplyMode::fromConfig()`), `url_parameters` et
-`query_parameters` (`UrlParameters::fromConfig()`) —, ce que `R-05` suit.
+La règle du module veut qu'elles soient lues **dans un provider**, ou par `#[Config]` sur le constructeur de la
+classe qui les reçoit, avec leur défaut. Toutes le sont : `browser.*`, `engine.*`, `card.*` et `displayed_attributes`
+par une fabrique de provider ; `apply_mode` (`ProductListing`), `url_parameters` et `query_parameters`
+(`UrlParameters`), `drawer.row.*` (`Drawer`) et `card.image_size` des variantes (`ProductVariants`) par `#[Config]`.
 
 | Clé | Défaut | Sert à | Quand |
 | --- | --- | --- | --- |
@@ -44,7 +45,7 @@ Sept le sont ; trois pas encore — `apply_mode` (`ApplyMode::fromConfig()`), `u
 | `browser.key` | `''` | `BrowserConnection` — la clé de recherche seule | au rendu |
 | `url_parameters` | `[]` | `UrlParameters` | au rendu et au filtrage |
 | `query_parameters` | `sort`, `q`, `pg`, `min_price`, `max_price` | `UrlParameters` | au rendu et au filtrage |
-| `card.image_size` | `medium` | `DefaultCardProjector` | à l'indexation |
+| `card.image_size` | `medium`, `woocommerce_thumbnail` pour un produit et ses variantes | `DefaultCardProjector`, `ProductVariants` | à l'indexation |
 | `displayed_attributes` | `[]` | `ConfiguredIndexAttributes` | à l'indexation |
 | `apply_mode` | `submit` | `ProductListing` | au rendu |
 | `drawer.row.limit` | `5` | `Drawer` (`#[Config]`, `R-224`, regroupée par `R-233`) — surchargé par l'attribut `row-limit` | au rendu |
@@ -63,7 +64,7 @@ et rien ne le dit.
 **`engine.reachable_hits` est le `maxTotalHits` du moteur** : le nombre de résultats au-delà duquel
 Meilisearch répond `200` **sans aucun hit**, tout en continuant d'annoncer les pages qu'il refuse de
 servir. `Pagination` et son miroir `PageWindow` s'en servent pour ne jamais proposer une de ces
-pages — et **le module l'écrit sur l'index**, à chaque `ensureIndexExists()`, comme les cinq
+pages — et **le module l'écrit sur l'index**, à chaque `ensureIndexExists()`, comme les sept
 autres réglages qu'il pose.
 
 La clé est donc la seule source : la changer et réindexer suffit. Vérifié le 2026-09-07 —
@@ -345,7 +346,7 @@ attributs filtrables et triables.
 
 Le retour du regard en haut du listing après un geste ne se déclare pas ici : il s'active
 **composant par composant**, par l'attribut `scroll` (`<x-meilifacets::listing.pagination scroll />`). Une
-clé de configuration aurait imposé le même choix à la pagination, au tri et à la remise à zéro,
+clé de configuration aurait imposé le même choix à la pagination, au tri, à la remise à zéro et aux facettes,
 alors qu'un thème veut couramment l'un sans les autres. Voir `architecture.md`.
 
 ## Ce qui est indexable
@@ -355,19 +356,20 @@ Toute URL portant un paramètre du listing — facette, tri, page, recherche, bo
 `noindex, follow` : le contenu existe déjà sur le chemin nu, et les liens qu'elle porte restent
 suivis. `IndexingPolicy` s'en charge par le filtre `wp_robots`, que Yoast respecte.
 
-La règle **ne s'applique que sur une page d'archive ou de recherche** : le filtre `wp_robots` est
-global, et les noms réservés le sont aussi, donc sans cette garde un lien de campagne portant `?q=`
+La règle **ne s'applique que sur une page qui rend un listing** (`ListingPage::isCurrent()`, filtre
+`meilifacets/is_listing_page`) : le filtre `wp_robots` est global, et les noms réservés le sont aussi, donc sans cette garde un lien de campagne portant `?q=`
 sortirait l'accueil de l'index. Vérifié le 2026-09-06 : `/boutique` reste `index`,
 `/boutique?categorie=cheveux`, `?sort=newest` et `?pg=2` passent en `noindex, follow`,
 `/?q=bonjour` reste `index`.
 
 Un paramètre étranger au module ne déclenche rien : `?utm_source=news` reste indexable.
 
-**Canonique vers le chemin nu** sur ces vues, numéro de page conservé (`R-208`) : le module complète celle de Yoast
-(`wpseo_canonical`, priorité 20), que Yoast construit depuis le permalien et sa propre pagination, sans les paramètres
-du listing. Il ôte aussi `rel="next"`/`rel="prev"` de toute page de listing, chemin nu compris. Vérifié le 2026-10-02 :
-`/shop/?q=…` → `/shop/`, `/shop/?q=…&pg=2` → `/shop/?pg=2`, `/shop/page/2/?brand=x` → `/shop/page/2/`. Cas limites
-laissés en question sous `R-209`.
+**La canonique est celle de Yoast**, que Yoast construit depuis le permalien et sa propre pagination, sans les
+paramètres du listing : `/shop/?q=…` → `/shop/`, `/shop/page/2/?brand=x` → `/shop/page/2/`. Le module ne la filtre
+plus depuis `R-245` : son filtre `wpseo_canonical` (`R-208`) n'ajoutait plus que `?pg=N`, qui n'est plus lu. Il ôte
+`rel="next"`/`rel="prev"` de toute page de listing, chemin nu compris (`wpseo_next_rel_link`, `wpseo_prev_rel_link`).
+Sur une page tournée sur place, le client réécrit la canonique et le titre depuis `pageCanonicals` et `pageTitles`
+(`PageMetadata`, `R-249`, `R-250`). Cas limites laissés en question sous `R-209`.
 
 ## ⚠️ Le cron doit tourner, sinon l'index diverge en silence
 
@@ -1053,7 +1055,7 @@ valeurs remontent** ; l'ordre dans lequel elles s'affichent se déclare par face
 
 | Filtre | Ce que le module y fait |
 | --- | --- |
-| `meiliscout/post/document` | ajoute `facets`, `card` et `price` au document — les deux derniers à l'adresse de la boutique (`ShopTaxLocation`) |
+| `meiliscout/post/document` | ajoute `facets`, `labels`, `excerpt`, `content`, `card` et `price` au document — les deux derniers à l'adresse de la boutique (`ShopTaxLocation`) |
 | `meiliscout/indexables` | substitue `FacetedPostIndexable` à `PostIndexable` |
 
 Le premier est appliqué **à l'intérieur** de `formatForIndexing()`, donc sur tous les chemins
@@ -1090,8 +1092,8 @@ lié 75 ms plus tard (`R-134`). Un projet choisit une autre valeur par filtre :
 add_filter('meilifacets/script_fetchpriority', fn (): string => 'auto');
 ```
 
-Le filtre reçoit en second argument l'identifiant du paquet (`@meilifacets/listing`, et à l'étape 4 de la
-recherche du site `@meilifacets/site-search`) ; un projet qui veut une priorité par paquet le déclare avec
+Le filtre reçoit en second argument l'identifiant du paquet (`@meilifacets/listing`, ou
+`@meilifacets/site-search` pour la recherche du site) ; un projet qui veut une priorité par paquet le déclare avec
 `accepted_args` à 2 :
 
 ```php
@@ -1115,8 +1117,9 @@ Le mode voyage **dans la description JSON** que le serveur publie (`'apply' => �
 `Listing.appliesImmediately`. L'attribut `data-apply` du bloc de facettes est rendu pour le thème, qui
 peut s'en servir pour styler ; **le client ne le lit pas**.
 
-⚠️ En mode `submit`, cocher une case ne cherche rien mais pose l'état : trier, paginer ou remettre
-à zéro emportent donc les filtres en attente (D-10).
+⚠️ En mode `submit`, cocher une case ne cherche rien mais pose l'état : trier ou remettre
+à zéro emportent donc les filtres en attente (D-10). Paginer, non : la page part de l'état appliqué, et un clic sur un
+lien de page abandonne les cases cochées et non appliquées (`R-245`).
 
 Il n'y a délibérément pas de `<form method="get">` : un formulaire GET ne sait produire que
 `marque[]=a&marque[]=b`, ce qui donnerait une seconde URL — et une seconde entrée de cache Varnish
@@ -1393,8 +1396,8 @@ grossier (`--meili-field-font-min`, pas de zoom iOS). Dans la barre desktop du t
 `--meili-listing-search-min` (12rem) et grandit jusqu'à `--meili-listing-search-width` (18rem) s'il reste de la place : une rangée
 qui passe à la ligne découpe ses lignes sur les largeurs de base.
 
-`q` est un paramètre d'URL indexé : toute URL qui le porte rempli est déjà `noindex, follow`, avec une canonique
-vers le chemin nu, numéro de page du module conservé (`IndexingPolicy::canonicalFor()`, `R-208`).
+`q` est un paramètre d'URL indexé : toute URL qui le porte rempli est déjà `noindex, follow`, et sa canonique, celle
+de Yoast, ne le porte pas (voir « Ce qui est indexable »).
 
 ## Tiroir mobile et barre de filtres
 
@@ -1551,6 +1554,9 @@ sur le projet de test, dont ceux que WooCommerce déclare pour ses filtres de pr
 dans `$_GET` (`min_price`, `max_price`, `rating_filter`, `orderby`, tout `filter_*`) **et** à la liste que
 Varnish efface. La réponse change avec la configuration, mais aussi avec les attributs, les taxonomies
 et les extensions actives : relancer la commande après en avoir ajouté.
+
+Elle échoue aussi sans permaliens : en réglage « Simple », WordPress pagine en `?paged=N`, que les liens de pagination
+ne portent pas, et chaque lien mènerait à la première page (`R-245`).
 
 ## Ce qui n'est pas configurable
 

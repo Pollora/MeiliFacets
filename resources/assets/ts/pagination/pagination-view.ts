@@ -3,31 +3,34 @@ import type { PageWindow } from './page-window.ts'
 
 const CURRENT = 'aria-current'
 
-/** The numbers the theme rendered, revealed and relabelled: none is created, none removed. */
+const HREF = 'href'
+
+export type LinkTo = (page: number) => string
+
+/** The links the theme rendered, revealed and pointed elsewhere: none is created, none removed. */
 export class PaginationView {
     #contract: Contract
 
-    /** The nav and its buttons are never recreated: the client reveals them. */
     #nodes: { nav: Element | null, previous: Element | null, next: Element | null, pages: Element[] } | null = null
 
     constructor(contract: Contract) {
         this.#contract = contract
     }
 
-    show(pageWindow: PageWindow) {
-        const { nav, previous, next, pages: buttons } = this.#markup()
+    show(pageWindow: PageWindow, linkTo: LinkTo) {
+        const { nav, previous, next, pages: links } = this.#markup()
 
         if (!(nav instanceof HTMLElement)) {
             return
         }
 
-        const pressed = this.#focusedIn(nav)
+        const focused = this.#focusedIn(nav)
 
         nav.hidden = !pageWindow.hasPages
-        this.#showStep(previous, pageWindow.hasPrevious, pageWindow.previous)
-        this.#showStep(next, pageWindow.hasNext, pageWindow.next)
-        this.#showNumbers(buttons, pageWindow)
-        this.#keepTheFocus(buttons, pressed)
+        this.#showStep(previous, pageWindow.hasPrevious, linkTo(pageWindow.previous))
+        this.#showStep(next, pageWindow.hasNext, linkTo(pageWindow.next))
+        this.#showNumbers(links, pageWindow, linkTo)
+        this.#keepTheFocus(links, focused)
     }
 
     #markup() {
@@ -39,32 +42,37 @@ export class PaginationView {
         }
     }
 
-    #showStep(button: Element | null, reachable: boolean, page: number) {
-        if (button instanceof HTMLButtonElement) {
-            button.value = String(page)
-            button.hidden = !reachable
+    #showStep(link: Element | null, reachable: boolean, href: string) {
+        if (link instanceof HTMLAnchorElement) {
+            link.setAttribute(HREF, href)
+            link.hidden = !reachable
         }
     }
 
-    #showNumbers(buttons: Element[], pageWindow: PageWindow) {
-        const slots = pageWindow.slots(buttons.length)
+    #showNumbers(links: Element[], pageWindow: PageWindow, linkTo: LinkTo) {
+        const slots = pageWindow.slots(links.length)
 
-        buttons.forEach((button, rank) => this.#showNumber(button, slots[rank] ?? null, pageWindow.current))
+        links.forEach((link, rank) => this.#showNumber(link, slots[rank] ?? null, { current: pageWindow.current, linkTo }))
     }
 
-    #showNumber(button: Element, page: number | null, current: number) {
-        if (!(button instanceof HTMLButtonElement)) {
+    #showNumber(link: Element, page: number | null, { current, linkTo }: { current: number, linkTo: LinkTo }) {
+        if (!(link instanceof HTMLAnchorElement)) {
             return
         }
 
-        button.hidden = page === null
-        button.value = page === null ? '' : String(page)
-        button.textContent = button.value
+        link.hidden = page === null
+        link.textContent = page === null ? '' : String(page)
+
+        if (page === null) {
+            link.removeAttribute(HREF)
+        } else {
+            link.setAttribute(HREF, linkTo(page))
+        }
 
         if (page === current) {
-            button.setAttribute(CURRENT, 'page')
+            link.setAttribute(CURRENT, 'page')
         } else {
-            button.removeAttribute(CURRENT)
+            link.removeAttribute(CURRENT)
         }
     }
 
@@ -74,17 +82,16 @@ export class PaginationView {
         return focused instanceof HTMLElement && nav.contains(focused) ? focused : null
     }
 
-    /** Hiding the button that was pressed drops the focus on the document body. */
-    #keepTheFocus(buttons: Element[], pressed: HTMLElement | null) {
-        if (pressed === null || !pressed.hidden) {
+    /** Hiding the link that held the focus drops it on the document body. */
+    #keepTheFocus(links: Element[], focused: HTMLElement | null) {
+        if (focused === null || !focused.hidden) {
             return
         }
 
-        const current = buttons.find((button) => button.hasAttribute(CURRENT))
+        const current = links.find((link) => link.hasAttribute(CURRENT))
 
         if (current instanceof HTMLElement) {
-            // Without this the browser scrolls the focused button back into view,
-            // undoing the move to the top of the listing.
+            // Without this the browser scrolls the focused link back into view.
             current.focus({ preventScroll: true })
         }
     }

@@ -4,36 +4,67 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Listing;
 
+use Closure;
 use Modules\MeiliFacets\Contracts\Placeable;
 use Modules\MeiliFacets\Enums\PlacedControl;
 
+/** Where the templates of one listing placed its filters and its sort, and the row they fill. */
 final class PagePlacement
 {
     /** @var array<value-of<PlacedControl>, array<string, true>> */
     private array $rendered = [];
 
-    /** @var array<string, true> facet names a template placed on their own */
+    /** @var array<string, true> filter names a template placed on their own */
     private array $placedOnTheirOwn = [];
 
     private ?FilterRow $row = null;
 
-    public function __construct(private readonly string $listing) {}
+    /**
+     * @param  list<Placeable>  $filters
+     * @param  Closure(Placeable): bool  $isInCatalog
+     */
+    public function __construct(
+        private readonly string $listing,
+        private readonly array $filters,
+        private readonly Closure $isInCatalog,
+    ) {}
 
-    public function place(Placeable $facet): void
+    /**
+     * A declaration comes from the group and stays in it. A component only places its own kind,
+     * so a mismatch is caught here rather than rendered wrong.
+     *
+     * @template T of Placeable
+     *
+     * @param  class-string<T>  $kind
+     * @return T
+     */
+    public function placeFilter(Placeable $filter, string $kind): Placeable
     {
-        if ($this->isRendered(PlacedControl::Facet, $facet->name)) {
-            throw PlacementRefused::facetRenderedTwice($facet->name);
+        $placed = $this->ofKind($filter, $kind);
+
+        if ($this->isRendered(PlacedControl::Facet, $placed->name)) {
+            throw PlacementRefused::facetRenderedTwice($placed->name);
         }
 
-        $this->record(PlacedControl::Facet, $facet->name);
+        $this->record(PlacedControl::Facet, $placed->name);
+
+        return $placed;
     }
 
-    /** Designated by name, so the group leaves it alone. */
-    public function placeOnItsOwn(Placeable $facet): void
+    /**
+     * A name comes from a template that placed the filter on its own, so the group leaves it out.
+     *
+     * @template T of Placeable
+     *
+     * @param  class-string<T>  $kind
+     * @return T
+     */
+    public function placeNamed(string $name, string $kind): Placeable
     {
-        $this->placedOnTheirOwn[$facet->name] = true;
+        $filter = $this->placeFilter($this->filterNamed($name), $kind);
+        $this->placedOnTheirOwn[$filter->name] = true;
 
-        $this->place($facet);
+        return $filter;
     }
 
     public function placeSort(): void
@@ -45,14 +76,27 @@ final class PagePlacement
         $this->record(PlacedControl::Sort, $this->listing);
     }
 
-    public function placedFacetCount(): int
+    /**
+     * What `<x-meilifacets::listing.facets>` shows: everything a template did not place on its own.
+     *
+     * @return list<Placeable>
+     */
+    public function remainingFilters(): array
     {
-        return count($this->rendered[PlacedControl::Facet->value] ?? []);
+        return array_values(array_filter(
+            $this->filters,
+            fn (Placeable $filter): bool => ! isset($this->placedOnTheirOwn[$filter->name]),
+        ));
+    }
+
+    public function placedFilterCount(): int
+    {
+        return count($this->placedNames());
     }
 
     public function startRow(int $limit): void
     {
-        $this->row = new FilterRow($this->placedFacetCount(), $limit);
+        $this->row = new FilterRow($this->placedFilterCount(), $limit);
     }
 
     public function endRow(): void
@@ -60,29 +104,73 @@ final class PagePlacement
         $this->row = null;
     }
 
-    public function row(): ?FilterRow
+    public function catalogFilterCountSince(int $mark): int
     {
-        return $this->row;
+        return $this->inCatalogAmong(array_slice($this->placedNames(), $mark));
+    }
+
+    public function isBeyondRow(Placeable $filter): bool
+    {
+        if (! $this->row instanceof FilterRow) {
+            return false;
+        }
+
+        $placed = array_slice($this->placedNames(), $this->row->mark);
+        $rank = array_search($filter->name, $placed, true);
+
+        return $rank !== false && $this->inCatalogAmong(array_slice($placed, 0, $rank)) >= $this->row->limit;
+    }
+
+    /**
+     * @return list<Placeable>
+     */
+    public function filtersBeyondRow(): array
+    {
+        return array_values(array_filter($this->filters, $this->isBeyondRow(...)));
+    }
+
+    /**
+     * @param  list<string>  $names
+     */
+    private function inCatalogAmong(array $names): int
+    {
+        return count(array_filter(
+            $this->filters,
+            fn (Placeable $filter): bool => in_array($filter->name, $names, true) && ($this->isInCatalog)($filter),
+        ));
+    }
+
+    private function filterNamed(string $name): Placeable
+    {
+        return array_find($this->filters, static fn (Placeable $filter): bool => $filter->name === $name)
+            ?? throw PlacementRefused::unknownFacet(
+                $name,
+                $this->listing,
+                array_map(static fn (Placeable $filter): string => $filter->name, $this->filters),
+            );
+    }
+
+    /**
+     * @template T of Placeable
+     *
+     * @param  class-string<T>  $kind
+     * @return T
+     */
+    private function ofKind(Placeable $filter, string $kind): Placeable
+    {
+        if (! $filter instanceof $kind) {
+            throw PlacementRefused::otherKind($filter->name, $this->listing, class_basename($filter));
+        }
+
+        return $filter;
     }
 
     /**
      * @return list<string> in the order the page placed them
      */
-    public function facetsPlacedSince(int $mark): array
+    private function placedNames(): array
     {
-        return array_slice(array_keys($this->rendered[PlacedControl::Facet->value] ?? []), $mark);
-    }
-
-    /**
-     * @param  list<Placeable>  $filters
-     * @return list<Placeable>
-     */
-    public function remaining(array $filters): array
-    {
-        return array_values(array_filter(
-            $filters,
-            fn (Placeable $filter): bool => ! isset($this->placedOnTheirOwn[$filter->name])
-        ));
+        return array_keys($this->rendered[PlacedControl::Facet->value] ?? []);
     }
 
     private function isRendered(PlacedControl $control, string $name): bool

@@ -12,6 +12,7 @@ use Modules\MeiliFacets\Enums\Presentation;
 use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\Listing\Facet as Declaration;
 use Modules\MeiliFacets\Listing\FacetValue;
+use Modules\MeiliFacets\Support\UrlParameters;
 use Modules\MeiliFacets\View\Badge;
 use Modules\MeiliFacets\View\Components\ListingComponent;
 use Modules\MeiliFacets\View\CountLabel;
@@ -31,6 +32,7 @@ final class Facet extends ListingComponent
     public function __construct(
         CurrentListing $listings,
         private readonly CountLabel $countLabel,
+        private readonly UrlParameters $parameters,
         Declaration|BackedEnum|string $facet,
         string $name = '',
         bool $scroll = false,
@@ -39,7 +41,7 @@ final class Facet extends ListingComponent
     ) {
         parent::__construct($listings, $name, $scroll);
 
-        $this->facet = $this->listing->placeFacet($this->designated($facet), Declaration::class);
+        $this->facet = $this->place($facet, Declaration::class);
         $this->presentation = $this->presentationOf($presentation);
 
         $this->values = $this->listing->valuesOf($this->facet);
@@ -57,7 +59,7 @@ final class Facet extends ListingComponent
 
     public function inputName(): string
     {
-        return $this->listing->parameterFor($this->facet->taxonomy);
+        return $this->parameters->for($this->facet->taxonomy);
     }
 
     public function panelId(): string
@@ -105,7 +107,7 @@ final class Facet extends ListingComponent
 
     public function isBeyondRow(): bool
     {
-        return $this->listing->isBeyondRow($this->facet);
+        return $this->listing->placement()->isBeyondRow($this->facet);
     }
 
     /** A plain attribute can only name the module's presentations; a theme's arrives bound (`:presentation`). */

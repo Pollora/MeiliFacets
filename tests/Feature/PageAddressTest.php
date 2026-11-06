@@ -31,6 +31,36 @@ final class PageAddressTest extends TestCase
     }
 
     #[Test]
+    public function it_writes_where_the_number_of_a_later_page_goes(): void
+    {
+        $this->requesting('/boutique/page/3?marque=globex');
+        $this->assertSame('/boutique/page/:page', $this->page()->pathPattern());
+
+        $this->requesting('/boutique?marque=globex', 'seite');
+        $this->assertSame('/boutique/seite/:page', $this->page()->pathPattern());
+    }
+
+    #[Test]
+    public function it_links_a_page_in_the_path_the_listing_state_in_the_query(): void
+    {
+        $this->assertSame('/boutique/page/2?marque=globex&s=creme', $this->linkFrom('/boutique/page/3', 'marque=globex&s=creme', 2));
+        $this->assertSame('/boutique?marque=globex', $this->linkFrom('/boutique/page/3', 'marque=globex', 1));
+    }
+
+    /** Repeated on every page, `add-to-cart` would fill the basket of whoever follows the links. */
+    #[Test]
+    public function it_links_without_what_neither_the_listing_nor_wordpress_reads(): void
+    {
+        $this->assertSame('/boutique/page/2?f_product_cat=visage', $this->linkFrom('/boutique', 'utm_source=news&f_product_cat=visage&add-to-cart=12', 2));
+    }
+
+    #[Test]
+    public function it_links_without_a_page_number_the_path_already_carries(): void
+    {
+        $this->assertSame('/boutique/page/2?marque=globex', $this->linkFrom('/boutique', 'pg=5&paged=4&marque=globex', 2));
+    }
+
+    #[Test]
     public function it_writes_a_path_a_browser_cannot_read_as_a_host(): void
     {
         $this->assertSame('/boutique', $this->pathOf('//boutique/page/2'));
@@ -84,6 +114,14 @@ final class PageAddressTest extends TestCase
         request()->server->set('QUERY_STRING', $queryString);
 
         return $this->page()->queryWithout($owned);
+    }
+
+    private function linkFrom(string $path, string $queryString, int $page): string
+    {
+        $this->requesting($path.'?'.$queryString);
+        request()->server->set('QUERY_STRING', $queryString);
+
+        return $this->page()->pathOf($page).$this->page()->linkedQuery();
     }
 
     private function pathOf(string $requestUri): string

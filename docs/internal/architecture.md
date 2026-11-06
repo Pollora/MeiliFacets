@@ -142,14 +142,16 @@ cascade de vues du thème — et enregistre **un provider par couche**, calqué 
 
 | Provider | Ce qu'il lie |
 | --- | --- |
-| `IndexingServiceProvider` | `IndexAttributes`, `CardProjector`, `TermHierarchy`, `SearchableAttributes`, `IndexedTaxonomies` — ce que le document porte et ce que l'index cherche |
+| `IndexingServiceProvider` | `IndexAttributes`, `CardProjector`, `VariantFields`, `TermHierarchy`, `SearchableAttributes`, `IndexedTaxonomies` — ce que le document porte et ce que l'index cherche |
 | `SearchServiceProvider` | `SearchEngine`, `BrowserConnection`, `EngineLimits`, `FacetCounter` — l'envoi des recherches |
-| `ListingServiceProvider` | les adaptateurs de termes, `SiteCollator`, `NameOrder`, `ProductFacets`, `ProductSorts`, la découverte des listings (singleton, ajoutée au moteur par le `DiscoveryRegistrar` de Pollora) et leur registre, `CurrentListing`, `UrlParameters` |
-| `RenderingServiceProvider` | `ClientScript`, `CardSettings`, `CountLabel`, `ServiceUnavailable` — ce dont la page a besoin en plus. *Nommé ainsi et pas `ViewServiceProvider` : Laravel en charge déjà un du même nom court.* |
+| `ListingServiceProvider` | les adaptateurs de termes, `SiteCollator`, `NameOrder`, `ProductFacets`, `ProductSorts`, la découverte des listings (singleton, ajoutée au moteur par le `DiscoveryRegistrar` de Pollora) et leur registre, `CurrentListing` |
+| `SiteSearchServiceProvider` | `SearchableTypes`, `AcceptedSearchTypes`, `SearchSettings`, `SearchRegistry` — la recherche du site |
+| `RenderingServiceProvider` | `ClientScript`, `CardSettings`, `CountLabel`, `ServiceUnavailable`, `ListingPage`, `PageMetadata` — ce dont la page a besoin en plus. *Nommé ainsi et pas `ViewServiceProvider` : Laravel en charge déjà un du même nom court.* |
 
 Les fabriques privées restent avec leurs liaisons : c'est là que les réglages sont lus, avec leur
-défaut, comme la règle l'impose — jamais depuis un objet de domaine. ⚠️ Trois ne le sont pas
-encore : `apply_mode`, `url_parameters` et `query_parameters` sont lus hors des providers (`R-05`).
+défaut, comme la règle l'impose — jamais depuis un objet de domaine. Une classe qui reçoit un réglage le lit
+par `#[Config]` sur son constructeur : `apply_mode` (`ProductListing`), `url_parameters` et `query_parameters`
+(`UrlParameters`).
 
 ## Ce que la boutique déclare
 
@@ -225,7 +227,7 @@ Modules/MeiliFacets/
 │   │                carte, attributs d'index, termes, compteur, moteur
 │   ├── Discovery/   découverte des classes portant le contrat Listing
 │   ├── Enums/       contrats figés : champs de document, clés de réglage, crochets
-│   ├── Http/        indexabilité, adresse de la page publiée au client, page d'indisponibilité
+│   ├── Http/        indexabilité, adresse de chaque page du listing, page d'indisponibilité
 │   ├── Indexing/    projection des facettes et de la carte, branchement sur MeiliScout ;
 │   │                WooCommerce/ : prix, stock, variantes et carte des produits
 │   ├── Listing/     le domaine : état, facettes, pagination, tri
@@ -233,21 +235,25 @@ Modules/MeiliFacets/
 │   ├── Search/      connexion, plan de requête, lecture des réponses
 │   ├── Seo/         données structurées
 │   ├── Support/     gardes de contexte et noms de paramètres
-│   └── View/        composants Blade et description publiée au navigateur
+│   └── View/        composants Blade, description publiée au navigateur ; titre, canonique et
+│                    robots de chaque page (`PageMetadata`, `ListingRobots`), pages comptées pour Yoast
 ├── resources/
-│   ├── assets/css/  la seule feuille de style du module
+│   ├── assets/css/  les deux feuilles de style du module : `meilifacets.css`, `site-search.css`
 │   ├── assets/ts/   client de recherche navigateur, en TypeScript, rangé par fonctionnalité :
-│   │                listing, facets, price, sort, results, pagination, et shared pour ce que
+│   │                listing, facets, price, sort, results, pagination, drawer, collapsible,
+│   │                site-search, et shared pour ce que
 │   │                plusieurs partagent (contrat et ses racines, lecture des données publiées,
 │   │                description, plan, étendue de prix, transport) ;
-│   │                `listing-page.ts` est le point d'entrée empaqueté par `bundle.ts`
-│   ├── assets/dist/ le même client empaqueté et commité, seul fichier que la page charge
+│   │                `listing-page.ts`, `site-search-page.ts` et `site-search-client.ts` sont les
+│   │                points d'entrée empaquetés par `bundle.ts`, à la racine du module
+│   ├── assets/dist/ le même client empaqueté et commité, un fichier par point d'entrée
 │   └── views/       vues Blade, toutes surchargeables par le thème
 ├── lang/            catalogue JSON, chargé par le provider
-├── tests/Unit/      suite `Unit`, autonome : ni WordPress ni moteur
+├── tests/Unit/      suite `Unit`, autonome : ni WordPress ni moteur ; Doubles/ : ses doublures
 ├── tests/Feature/   suite `Feature`, rend des vues, ne passe que depuis le projet ;
 │                    Concerns/ : les traits d'aide qu'elle partage
 ├── tests/ts/        lanceur intégré de Node, happy-dom pour la couche DOM
+├── tests/playwright/ scénarios navigateur, sur le site du projet
 ├── config/config.php
 ├── config/meilifacets.php.stub  configuration de départ, publiée dans le projet
 ├── docs/            décisions, registre, pièges — ce document compris
@@ -307,8 +313,8 @@ TypeScript et empaqueté par esbuild en un seul module (`decisions.md`, 2026-09-
 
 **Deux familles de gestes, pas cinq.** Cocher une facette et valider une plage de prix *se
 rassemblent* — en mode `submit` elles attendent « Appliquer », en mode `immediate` elles partent
-aussitôt. `Listing.search()` suit la même règle, mais aucun composant ne rend de champ de
-recherche : `q` n'arrive aujourd'hui que par l'URL.
+aussitôt. `Listing.search()` suit la même règle, pour le champ que rend
+`<x-meilifacets::listing.search>`.
 Trier, paginer et remettre à zéro ne se rassemblent pas : ce sont des ordres, ils s'appliquent sur
 place **dans les deux modes**. Un visiteur qui clique « page 2 » et voit sa demande mise en attente
 d'un bouton ne comprendrait pas ce qu'on lui demande.
@@ -319,7 +325,8 @@ une valeur écartée par un plafond, une remise à zéro et un retour arrière d
 
 **Un geste qui remplace la grille peut ramener le haut du listing dans l'écran** — la pagination est
 en bas de plusieurs écrans de produits, et sans ça le visiteur lit la fin d'une page dont il n'a
-jamais vu le début.
+jamais vu le début. Un lien de page cliqué simplement est tourné sur place (`R-245`) : il compte
+parmi ces gestes.
 
 **Désactivé par défaut, demandé composant par composant** :
 
@@ -344,10 +351,10 @@ peut pas connaître cette hauteur, et sans la marge le haut du listing atterrit 
 **Composants Blade** pour l'intégration. Un bloc Gutenberg est envisagé plus tard, pas
 maintenant.
 
-**Décidé, pas encore livré (lot 3c-3) : un état de chargement sur le composant listing, sur un
-seul cas.** Au clic sur un filtre, la grille affichée reste pertinente et peut être atténuée sans
-être masquée. Les seuils se calibrent sur la vitesse réelle, ils ne se devinent pas. Aujourd'hui,
-ni la vue ni le client ne marquent une recherche en cours.
+**Un état de chargement sur la grille, sur un seul cas** (`R-179`). Au clic sur un filtre, la grille
+affichée reste pertinente et peut être atténuée sans être masquée. `BusyGrid` pose `aria-busy` sur
+`results` tant qu'une recherche est dehors (`Listing` annonce `searching` et `settled`) ; la feuille
+n'atténue qu'après `--meili-duration-busy-delay`, qu'une réponse rapide n'atteint pas.
 
 > Corrigé le 2026-09-04. Ce document décrivait un second cas — « au chargement d'une page portant
 > déjà des filtres, la grille servie est fausse et doit être masquée ». C'était vrai avant le lot
@@ -388,6 +395,10 @@ construit depuis le permalien et sa propre pagination). Elle était retirée dep
 pointant ailleurs étant deux signaux contradictoires : ce risque est accepté, le `noindex, follow` reste posé. Les
 liens `next`/`prev` de Yoast sont retirés de tout listing.
 
+*Retiré le 2026-11-06 (`R-245`)* : le filtre `wpseo_canonical` du module, qui n'ajoutait plus que `?pg=N`. La canonique
+est celle que Yoast imprime, auto-référente sur `/page/N` (`/boutique/page/2`) ; `IndexingPolicy` ne filtre plus que
+`wp_robots` et les liens `next`/`prev`.
+
 ⚠️ Ne pas compter sur le `follow` dans la durée : une page durablement `noindex` finit traitée
 comme `nofollow` par Google. Ce qui garantit la découverte des fiches produits est le sitemap
 Yoast, pas les liens des pages filtrées.
@@ -404,7 +415,8 @@ le préfixe signale un mapping à faire, pas un état normal.
 
 Les paramètres réservés au module — page, tri, recherche, bornes de prix — prennent des défauts
 **en anglais** (`pg`, `sort`, `q`, `min_price`, `max_price`), que le projet habille comme il
-habille les taxonomies. Trois noms sont interdits sans qu'aucun test d'URL ne le révèle : `page`,
+habille les taxonomies. `pg` reste réservé, mais n'est plus lu ni écrit depuis `R-245` : la page vit
+dans le chemin. Trois noms sont interdits sans qu'aucun test d'URL ne le révèle : `page`,
 `paged` et `order` sont des query vars WordPress. La validation d'un nom se fait contre les query
 vars publiques, filtre `query_vars` compris, contre les noms que WooCommerce lit dans `$_GET`
 (`min_price`, `max_price`, `rating_filter`, `orderby`, `filter_*`) et contre la liste que Varnish
@@ -412,8 +424,12 @@ efface, dans la commande de diagnostic — jamais sur le chemin d'une requête. 
 prennent exprès les noms de WooCommerce (`D-h`) : la commande tolère la collision tant qu'elles
 les gardent.
 
-**Pagination** : pages numérotées en query var, sans rechargement. Les pages au-delà de la
-première cessent donc d'être indexables. Ce qui compte n'est pas l'indexation de la page 2, mais
+**Pagination** : pages numérotées en liens `/page/N/` (`PageAddress::pathOf()`, `get_pagenum_link()`), que le
+serveur rend pour chaque adresse et lit par `paged` seul (`CurrentListing`). Un clic simple est tourné sur place
+(`PaginationBinding`, `PageLinks`) ; Ctrl, Cmd, Maj, Alt, le bouton du milieu, un lien `target` ou `download` restent
+au navigateur. Le client réécrit alors le titre et la canonique de la page (`PageMetadata`, `R-249`, `R-250`).
+Permaliens exigés : `meilifacets:check-parameters` échoue sans eux. Les pages au-delà de la première sont
+`noindex, follow`. Ce qui compte n'est pas l'indexation de la page 2, mais
 la découvrabilité des produits qu'elle contient — assurée ici par le sitemap Yoast, qui publie
 chaque fiche avec son URL propre (`product-sitemap.xml`, `noindex-product` à `false`, vérifié).
 Si ce sitemap était désactivé ou tronqué, l'argument tomberait.
@@ -425,7 +441,8 @@ libellé en back-office.
 **Qui lit l'URL : le serveur, seul.** `StateReader` la lit au rendu et la description du listing
 publie ce qu'il a lu (`state`). Le client part de cet état et n'en tire jamais un d'une adresse. Il écrit
 l'URL à chaque recherche — le chemin de la première page que le serveur publie (`pagePath`,
-`get_pagenum_link(1)`), puis ses paramètres, la page en `pg` ; `replaceState`, `pushState` pour une page — et
+`get_pagenum_link(1)`) ou, au-delà de la première, son motif (`pagePathPattern`, `/boutique/page/:page`), puis ses
+paramètres ; `replaceState`, `pushState` pour un changement de page (`BrowserHistory::push()`) — et
 range son état dans
 l'entrée, sous le nom du listing (`history.state.meilifacets`) ; l'entrée servie reçoit le sien au
 démarrage. Retour et Suivant restaurent cet état sans réécrire l'entrée : l'adresse et son fragment
@@ -463,7 +480,7 @@ Trois exigences, dans cet ordre :
 | --- | --- | --- |
 | Cartes de résultats | clonées depuis un `<template>` rendu par le même composant Blade | personne n'a le focus dans la grille pendant un filtrage |
 | Valeurs de facettes | nœuds stables, celles que le listing non filtré propose en plus des siennes, chacune sous le plafond, masquées quand leur compte tombe à zéro | le focus est sur la case qu'on vient de cocher ; les recréer éjecte l'utilisateur clavier |
-| Pagination | fenêtre de taille fixe, slots vides rendus puis remplis | le nombre de pages varie avec les filtres |
+| Pagination | fenêtre de taille fixe, liens vides rendus puis remplis | le nombre de pages varie avec les filtres |
 
 Le markup reste celui du thème dans les deux cas : le `<template>` est produit par le composant
 Blade que le thème peut surcharger, donc il n'existe jamais deux sources de markup.
@@ -486,11 +503,11 @@ n'a pas cherché lui-même.
 
 ### Boutons, pas des liens
 
-**Un seul `<a href>` dans un listing : la carte produit**, qui mène vraiment ailleurs. Pagination
-et remise à zéro sont des `<button type="button">` portant leur valeur dans l'attribut `value`
-natif. La règle est « Meilisearch full AJAX » : un contrôle qui affiche un `href` annonce une
-navigation qui n'a pas lieu, et un lien dont le `href` doit être réécrit après chaque recherche —
-sinon il renvoie l'état d'avant — est un piège pour rien.
+**Deux `<a href>` dans un listing : la carte produit**, qui mène vraiment ailleurs, **et la pagination**
+(`R-245`) : chaque page est une adresse que le serveur rend, que le client tourne sur place et dont il
+réécrit les `href` après chaque recherche (`ListingUrl::linksFor()`). La remise à zéro reste un
+`<button type="button">`. La règle était « Meilisearch full AJAX » : un contrôle qui affiche un `href`
+annonce une navigation qui n'a pas lieu.
 
 **Le tri est une liste déroulante du module, pas un `<select>` natif** : un `<select>` ne se style
 pas au-delà de sa boîte, ses options échappent au design system. Le module rend donc le motif
@@ -529,13 +546,12 @@ bouton.
 Trois conséquences, toutes assumées :
 
 - l'URL reste la source de l'état — le serveur la lit et publie ce qu'il a lu —, mais elle est
-  écrite par `history.replaceState` — `pushState` pour un changement de page —, plus par le navigateur qui suit un lien. `ListingUrls` a donc disparu : il n'existe plus qu'une seule
+  écrite par `history.replaceState`, `pushState` pour un lien de page tourné sur place (`R-245`). `ListingUrls` a donc disparu : il n'existe plus qu'une seule
   implémentation de la construction d'URL, côté client, au lieu de deux à tenir alignées ;
-- sans JavaScript, le listing servi est complet et lisible mais **inerte**. C'était déjà le cas
-  des facettes, qui n'ont pas de formulaire depuis le lot 3b : les liens de tri et de pagination
-  étaient les seules commandes à moitié fonctionnelles, ce qui était plus déroutant qu'utile ;
-- aucune URL de tri ni de page n'est crawlable. C'est un gain sur le tri (autant de doublons en
-  moins) et sans effet sur les fiches produits, découvertes par le sitemap.
+- sans JavaScript, le listing servi est complet et lisible mais **inerte**, pagination exceptée. C'était
+  déjà le cas des facettes, qui n'ont pas de formulaire depuis le lot 3b ;
+- aucune URL de tri n'est crawlable, ce qui fait autant de doublons en moins. Les pages `/page/N/`
+  le sont depuis `R-245`, en `noindex, follow` ; les fiches produits restent découvertes par le sitemap.
 
 ### Ordre des valeurs d'une facette
 
@@ -614,6 +630,10 @@ et **refuse de démarrer** si elle diffère, ou si un crochet structurel manque 
 celle du serveur, entièrement fonctionnelle, et la console nomme ce qui manque. Une surcharge de
 thème périmée dégrade donc vers le rendu serveur, jamais vers une interaction à moitié morte.
 
+Le tableau ne reprend que les crochets du cœur du listing et de la recherche. La liste complète est `Enums\Hook`,
+décrite dans [reference/hooks.md](../reference/hooks.md) : tiroir, rangée, pastilles actives, champ de recherche du
+listing, tri en boutons radio, total.
+
 | Crochet | Où | Rôle |
 | --- | --- | --- |
 | `results` | `<x-meilifacets::listing.results>` | la liste que le client repeint |
@@ -628,7 +648,7 @@ thème périmée dégrade donc vers le rendu serveur, jamais vers une interactio
 | `count` | idem | le compte réécrit à chaque recherche |
 | `apply` | `<x-meilifacets::listing.facets>` | le bouton « appliquer », en mode `submit` |
 | `pagination` | `<x-meilifacets::listing.pagination>` | la nav, masquée s'il n'y a qu'une page |
-| `page` `previous` `next` | idem | les sept slots de la fenêtre et les deux flèches |
+| `page` `previous` `next` | idem | les sept liens de la fenêtre et les deux flèches, dont le client réécrit le `href` |
 | `sort` | `<x-meilifacets::listing.sort>` | le conteneur du tri |
 | `sort-trigger` | idem | le bouton qui ouvre la liste et affiche le tri courant |
 | `sort-list` | idem | la `listbox`, masquée à la fermeture |
@@ -662,12 +682,15 @@ contrôle, jamais sur ce que la donnée décide :
   image ni prix démarre ;
 - exigés dès que leur hôte est rendu : `input` dans une `facet-value`, `more` dans un `facet`
   qui contient une `facet-value`,
+  `panel` dans un `facet` ou un `sort-choices` qui contient un `toggle`,
   `page`/`previous`/`next` dans une `pagination`,
-  `sort-trigger`/`sort-list`/`sort-option` dans un `sort`,
-  `price-track`/`price-handle` dans un `price-range` ;
+  `sort-trigger`/`sort-list`/`sort-option` dans un `sort`, `sort-choice` dans un `sort-choices`,
+  `price-track`/`price-handle` dans un `price-range`, `listing-search-input` dans un `listing-search`,
+  `active-value-template` dans un `active-values` et `active-value` dans ce gabarit,
+  `drawer-title`/`drawer-close` dans un `drawer` (`shared/root-component.ts`) ;
 - sous une racine `search` : toujours `search-panel`, `search-input`, `search-status`, `search-empty`,
   `search-unavailable` ; dans chaque `search-section`, `search-results`, `search-card-template`,
-  `search-count` ; dans chaque `search-card-template`, `card`, `url`, `title` ;
+  `search-count` ; dans chaque `search-card-template`, `url` ;
 - optionnels : tout le reste. Un thème peut légitimement ne pas afficher de facettes, de tri ou
   de compteurs — et une catégorie feuille ne rend aucune `facet-value`. **Un bloc `facet` vide
   n'est donc pas une infraction** (`R-84`) : une catégorie feuille et une URL filtrée sans
@@ -717,10 +740,10 @@ champ, le séparateur de valeurs, la borne de recherche, la première page, et l
 `data-active` que la feuille de style doit connaître.
 
 Les valeurs que le client doit lire voyagent dans des attributs natifs quand il en existe un —
-`value` sur les boutons de pagination, `data-value` sur une option de tri, `value`/`checked` sur
+`href` sur les liens de pagination, `data-value` sur une option de tri, `value`/`checked` sur
 une case de facette.
 
-Trois marques déplacées à chaque recherche : `aria-current="page"` sur le bouton de la page lue et
+Trois marques déplacées à chaque recherche : `aria-current="page"` sur le lien de la page lue et
 `aria-selected` sur les options de tri, toutes deux **rendues par les vues** puis entretenues par le
 client ; et `data-active` sur l'option de tri que le clavier désigne, **écrite par le seul client**
 — elle n'a pas d'équivalent ARIA sur l'option, `aria-activedescendant` étant porté par le bouton.
@@ -737,7 +760,9 @@ page d'indisponibilité reste. C'est le comportement voulu, pas un effet de bord
 
 Une vue Blade de repli, annonçant un problème technique, servie en `503` avec `Retry-After` et
 `Cache-Control: no-store` — pour que l'erreur soit traitée comme temporaire par les moteurs de
-recherche et qu'elle ne soit pas figée par le cache.
+recherche et qu'elle ne soit pas figée par le cache. Le composant racine `<x-meilifacets::listing>`
+l'annonce quand la recherche échoue (`ServiceUnavailable::announce()`, `R-247`) ; le middleware
+`ServiceUnavailableHeaders` pose statut et en-têtes.
 
 ## Clé de recherche
 

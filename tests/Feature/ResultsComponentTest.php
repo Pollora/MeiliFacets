@@ -14,11 +14,11 @@ use Modules\MeiliFacets\Enums\ImagePriority;
 use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\Listing\Pagination;
 use Modules\MeiliFacets\Listing\ProductListing;
-use Modules\MeiliFacets\Listing\ResolvedListing;
 use Modules\MeiliFacets\Seo\ItemList;
 use Modules\MeiliFacets\Tests\Feature\Concerns\RendersTheModuleViews;
 use Modules\MeiliFacets\Tests\Unit\Doubles\ProjectListingCard;
 use Modules\MeiliFacets\View\CardBinding;
+use Modules\MeiliFacets\View\Components\Listing\Card;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -216,7 +216,7 @@ final class ResultsComponentTest extends TestCase
         array $cards = [],
         ?ItemList $items = null,
         bool $pastTheEnd = false,
-        string $cardComponent = ResolvedListing::CARD,
+        string $cardComponent = Card::COMPONENT,
     ): string {
         $resolved = new readonly class($failed, $pastTheEnd)
         {

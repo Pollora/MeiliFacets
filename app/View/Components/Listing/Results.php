@@ -32,7 +32,7 @@ final class Results extends ListingComponent
         parent::__construct($listings, $name);
 
         $this->cards = $this->listing->cards();
-        $this->cardComponent = $this->listing->cardComponent();
+        $this->cardComponent = $this->listing->cardComponent() ?? Card::COMPONENT;
         $this->items = $indexing->isSecondaryView()
             ? null
             : new ItemList($this->listing->projectedCards(), $this->listing->offset());

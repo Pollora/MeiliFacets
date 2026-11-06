@@ -6,6 +6,35 @@ changes is in the [changelog](../CHANGELOG.md).
 0.1.0 was the first release, a beta; 0.2.0 is the second; 0.2.1 is the third; 0.2.2 is the fourth; 0.2.3 is the fifth;
 0.2.4 is the sixth; 0.3.0 is the seventh; 0.4.0 is the eighth.
 
+## Unreleased
+
+- **Run `php artisan module:publish MeiliFacets`, then clear the page cache.** The browser script changed, and the
+  cached listing pages still carry the old pagination buttons, which it no longer follows. An address in `?pg=N` now
+  shows the first page.
+- **Turn permalinks on** if the site runs on "Plain": `php artisan meilifacets:check-parameters` now fails without
+  them.
+- **A theme that copied `components/listing/pagination.blade.php`** replaces its `<button type="button" value="N">`
+  with `<a href="{{ $linkTo(N) }}">`, keeping the `data-meili` hooks and `{{ $scrollMark() }}` on the `<nav>`, and
+  printing no `href` on an empty slot. A copy left with buttons renders controls that do nothing.
+- **A project on an SEO plugin other than Yoast SEO** (Rank Math, SEOPress…) binds its own `PageMetadata` for the
+  title and the canonical of a page the client turns to; without it, they stay those of the page loaded. See
+  [The title and the canonical of a turned page](listing/results-sort-pagination.md#the-title-and-the-canonical-of-a-turned-page).
+- **A project class calling `ListingPage::markAsCurrent()`** passes the listing it renders:
+  `markAsCurrent($listing)`. The `meilifacets/is_listing_page` filter is unchanged.
+- **A copied view or a project class calling `ResolvedListing`** follows its smaller surface:
+  - plain state is read on `$listing->state()`: `currentSort()` → `state()->sort`, `typedTerm()` → `state()->query`,
+    `askedPrice()` → `state()->price`, `isPristine()`, `activeFilterCount()` and `priceFilterCount()` →
+    `state()->isPristine()`…;
+  - placement is on `$listing->placement()`: `placeFacet($filter, $kind)` → `placeFilter()` for a declaration or
+    `placeNamed()` for a name, `remainingFacets()` → `remainingFilters()`, and `placeSort()`, `startRow()`, `endRow()`,
+    `isBeyondRow()`, `placedFilterCount()`, and `shownFilterCountSince()` → `catalogFilterCountSince()`, which counts
+    the filters of the whole catalogue; a copy of
+    `components/listing/facets.blade.php` loops on `$remainingFilters()`;
+  - URL names come from `Modules\MeiliFacets\Support\UrlParameters`, injected: `parameterFor($taxonomy)` →
+    `for($taxonomy)`, `parameterForReserved($parameter)` → `reserved($parameter)`;
+  - `ResolvedListing::CARD` is `View\Components\Listing\Card::COMPONENT`, and `cardComponent()` returns `null` when
+    the listing declares no card of its own.
+
 ## 0.4.0
 
 - **Require `pollora/meilifacets:^0.4`, which brings MeiliScout 2.6.1**: `composer require pollora/meilifacets:^0.4 -W`.

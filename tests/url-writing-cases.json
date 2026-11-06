@@ -100,18 +100,18 @@
         "search": "?q=%C2%A0coat%C2%A0"
     },
     {
-        "case": "a sort and a page",
+        "case": "a sort",
         "state": {
             "facets": {},
             "query": "",
             "sort": "price_asc",
-            "page": 3,
+            "page": 1,
             "price": {
                 "min": null,
                 "max": null
             }
         },
-        "search": "?sort=price_asc&pg=3"
+        "search": "?sort=price_asc"
     },
     {
         "case": "a bound of zero and a decimal bound",
@@ -141,12 +141,12 @@
             },
             "query": "coat",
             "sort": "price_asc",
-            "page": 2,
+            "page": 1,
             "price": {
                 "min": 10,
                 "max": 80.5
             }
         },
-        "search": "?brand=acme,globex&f_product_cat=visage&q=coat&sort=price_asc&pg=2&min_price=10&max_price=80.5"
+        "search": "?brand=acme,globex&f_product_cat=visage&q=coat&sort=price_asc&min_price=10&max_price=80.5"
     }
 ]

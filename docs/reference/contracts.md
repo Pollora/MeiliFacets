@@ -58,6 +58,7 @@ final class SearchServiceProvider extends ServiceProvider
 | `IndexAttributes` | `Indexing\ConfiguredIndexAttributes` (adds `displayed_attributes`) around `DeferredIndexAttributes`: `WooCommerceIndexAttributes` with WooCommerce, `EmptyIndexAttributes` without | `bind` | `extend` | [What gets indexed](../indexing/README.md) |
 | `SearchableAttributes` | `Indexing\DefaultSearchableAttributes`: title, then brand, category and SKU (WooCommerce), other labels, excerpt, content | `scopedIf` | `scoped` or `bind`, decorating the default | [Search relevance](../indexing/relevance.md) |
 | `SearchableTypes` | `SiteSearch\WooCommerceSearchableTypes`: products first when WooCommerce is active and products are searchable, then `WordPressSearchableTypes` | `scopedIf` | `scoped`, decorating the default | [Searchable types](../search/types.md) |
+| `PageMetadata` | with Yoast SEO, `View\YoastPageMetadata`; without, `View\WordPressPageMetadata`, which tells no title when another plugin writes it | `bindIf` | `bind`, for another SEO plugin | [Pagination](../listing/results-sort-pagination.md#the-title-and-the-canonical-of-a-turned-page) |
 | `Listing` | `Listing\ProductListing`, named `products`; refuses itself without WooCommerce | discovered | implement it in a class Pollora discovers (`app/`, or a module's `app/`) | [Listing other content](../listing/custom-listing.md) |
 | `SearchScopedListing` | — | discovered | implement it instead of `Listing` | [Listing other content](../listing/custom-listing.md) |
 | `CardComponentListing` | — | discovered | implement it alongside your listing's contract to draw its results with a card of your own | [The card](../customising/card.md#a-card-per-listing) |
@@ -84,6 +85,7 @@ final class SearchServiceProvider extends ServiceProvider
 | `IndexAttributes` | `exactlyMatched(): list<string>`, `filterable(): list<string>`, `sortable(): list<string>`, `displayed(): list<string>` |
 | `SearchableAttributes` | `all(): list<string>`, most important first |
 | `SearchableTypes` | `all(): array<string, SearchableType>`, keyed by post type |
+| `PageMetadata` | `titles(): ?array{first: string, paged: string}`, plain text, the page number written `PageMetadata::PAGE_PLACEHOLDER` (`:page`) and the page count `PageMetadata::PAGE_COUNT_PLACEHOLDER` (`:pages`); `canonicals(): ?array{first: string, paged: string}`, the page number written `:page`. `null` leaves the page's own alone |
 | `Listing` | `name(): string`, `facets(): list<Facet>`, `filters(): list<Placeable>`, `sorts(): array<string, Sort>`, `baseFilter(): list<string>`, `baseQuery(): string`, `perPage(): int`, `applyMode(): ApplyMode`. `facets()` may hold fewer than `filters()`: a flat facet of the taxonomy the page pins is left out |
 | `SearchScopedListing` | the `Listing` methods, plus `searchScope(): SearchScope`: filter and fields used once a term is typed |
 | `CardComponentListing` | the `Listing` methods, plus `cardComponent(): string`: the Blade component that draws the listing's cards, given `binding` and `priority` |

@@ -41,6 +41,12 @@ final readonly class UrlParameters
         return array_values($this->taxonomies);
     }
 
+    /** A facet the configuration does not map still answers to its prefixed name. */
+    public function owns(string $name): bool
+    {
+        return str_starts_with($name, self::UNMAPPED_PREFIX) || in_array($name, $this->all(), true);
+    }
+
     /**
      * @return list<string>
      */

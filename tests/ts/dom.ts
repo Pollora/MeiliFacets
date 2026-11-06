@@ -189,7 +189,7 @@ const sortOption = (value: string, label: string, selected: string) => `
     <li class="meilifacetsSortOption" id="sort-${value || 'default'}" role="option"
         data-value="${value}" aria-selected="${selected}" data-meili="sort-option">${label}</li>`
 
-const pageButton = () => '<button type="button" value="" hidden data-meili="page"></button>'
+const pageLink = () => '<a hidden data-meili="page"></a>'
 
 /**
  * Mirrors the structure the Blade components render — hooks, classes and initial
@@ -271,9 +271,9 @@ ${priced ? priceBlock(folding) : ''}
     </template>
 
     <nav class="meilifacetsPagination" hidden data-meili="pagination" ${mark('pagination')}>
-        <button type="button" value="1" hidden data-meili="previous">Previous</button>
-        ${Array.from({ length: 7 }, pageButton).join('')}
-        <button type="button" value="1" hidden data-meili="next">Next</button>
+        <a href="/shop" hidden data-meili="previous">Previous</a>
+        ${Array.from({ length: 7 }, pageLink).join('')}
+        <a href="/shop" hidden data-meili="next">Next</a>
     </nav>
 ${facetBlock('pa_size', 'size', 'Size', facetValue('taille', 'm', 'Medium'))}
 </div>`

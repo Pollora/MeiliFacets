@@ -9,9 +9,12 @@ use Modules\MeiliFacets\Enums\QueryParameter;
 use Modules\MeiliFacets\Listing\Range;
 use Modules\MeiliFacets\Listing\ResolvedListing;
 use Modules\MeiliFacets\Listing\StateReader;
+use Modules\MeiliFacets\Support\UrlParameters;
 
 final readonly class StateFields
 {
+    public function __construct(private UrlParameters $parameters) {}
+
     /**
      * @return list<HiddenField>
      */
@@ -36,7 +39,7 @@ final readonly class StateFields
 
             if ($selected !== []) {
                 $values = implode(StateReader::VALUE_SEPARATOR, $selected);
-                $fields[] = new HiddenField($listing->parameterFor($facet->taxonomy), $values);
+                $fields[] = new HiddenField($this->parameters->for($facet->taxonomy), $values);
             }
         }
 
@@ -48,13 +51,13 @@ final readonly class StateFields
      */
     private function sort(ResolvedListing $listing): array
     {
-        $sort = $listing->currentSort();
+        $sort = $listing->state()->sort;
 
         if ($sort === null) {
             return [];
         }
 
-        return [new HiddenField($listing->parameterForReserved(QueryParameter::Sort), $sort)];
+        return [new HiddenField($this->parameters->reserved(QueryParameter::Sort), $sort)];
     }
 
     /**
@@ -65,10 +68,10 @@ final readonly class StateFields
         $fields = [];
 
         foreach (PriceBound::cases() as $bound) {
-            $asked = $listing->askedPrice()->bound($bound);
+            $asked = $listing->state()->price->bound($bound);
 
             if ($asked !== null) {
-                $fields[] = new HiddenField($listing->parameterForReserved($bound->parameter()), Range::formatBound($asked));
+                $fields[] = new HiddenField($this->parameters->reserved($bound->parameter()), Range::formatBound($asked));
             }
         }
 

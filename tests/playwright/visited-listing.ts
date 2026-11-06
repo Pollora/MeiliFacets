@@ -3,6 +3,9 @@ import { Engine } from './engine.ts'
 import { Hook, Hooks } from './hooks.ts'
 
 export class VisitedListing {
+    /** Set on the window before a page link is clicked: a document loaded again would have lost it. */
+    static readonly #STAYED = 'meilifacetsStayed'
+
     readonly #page: Page
 
     readonly #searches: Response[] = []
@@ -140,11 +143,29 @@ export class VisitedListing {
         return prices.evaluateAll((nodes) => nodes.filter((node) => node.querySelector('del') === null).length)
     }
 
-    async goToPage(number: number): Promise<void> {
-        const button = this.#page.locator(`${Hooks.selector(Hook.page)}[value="${number}"]`).first()
+    pageLink(number: number): Locator {
+        return this.#page.locator(Hooks.selector(Hook.page)).filter({ hasText: new RegExp(`^\\s*${number}\\s*$`) }).first()
+    }
 
-        await this.#afterSearch(() => button.click())
-        await expect(button).toHaveAttribute('aria-current', 'page')
+    pastTheEnd(): Locator {
+        return this.#page.locator(Hooks.selector(Hook.pastTheEnd))
+    }
+
+    /** What a visitor sees in the open drawer: a facet folded under « more filters » still counts. */
+    drawerFacets(): Locator {
+        return this.#page.locator(`${Hooks.selector(Hook.drawer)} ${Hooks.selector(Hook.facet)}:visible`)
+    }
+
+    /** A page has an address of its own, and the click turns to it in place: the document is not loaded again. */
+    async goToPage(number: number): Promise<void> {
+        const link = this.pageLink(number)
+        const href = await link.getAttribute('href')
+
+        expect(href, `page ${number} has an address`).not.toBeNull()
+        await this.#page.evaluate((mark) => Reflect.set(window, mark, true), VisitedListing.#STAYED)
+        await Promise.all([this.#page.waitForURL((url) => url.pathname + url.search === href), link.click()])
+        await expect(this.#page.locator(`${Hooks.selector(Hook.page)}[aria-current="page"]`)).toHaveText(String(number))
+        expect(await this.#page.evaluate((mark) => Reflect.get(window, mark) === true, VisitedListing.#STAYED), 'turned in place').toBe(true)
     }
 
     /** The lowest price each card charges, in cents, whatever the shop's decimal separator. */
@@ -163,6 +184,11 @@ export class VisitedListing {
         const prices = (await this.#cardPriceRanges()).map((range) => Math.max(...range))
 
         return prices.every((price, index) => index === 0 || (prices[index - 1] ?? price) >= price)
+    }
+
+    expectServedWithoutSearching(): void {
+        expect(this.#errors, 'script errors').toEqual([])
+        expect(this.#searches.length, 'searches sent by the browser').toBe(0)
     }
 
     expectHealthySearches(): void {

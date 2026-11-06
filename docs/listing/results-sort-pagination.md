@@ -32,7 +32,7 @@ A toolbar above the grid, the grid, and the pagination under it:
     </div>
 
     <x-meilifacets::listing.results />
-    <x-meilifacets::listing.pagination scroll />
+    <x-meilifacets::listing.pagination />
 </x-meilifacets::listing>
 ```
 
@@ -246,20 +246,78 @@ The sort of listing "products" is rendered twice on this page: its list and ids 
   (default `1000`), so with 24 per page, page 42 is the last one offered, however many products match. The total and
   the facet counts stay exact. Raise the value in `config/meilifacets.php`, then reindex. See
   [Configuration and environment](../reference/configuration.md).
-- **History.** A page change adds an entry to the browser history: Back returns to the previous page. A filter or a
-  sort replaces the current entry instead.
-- **The URL** carries the page as `pg`: `https://projet.ddev.site/shop/?pg=2`.
+- **Each page is a page of its own.** The controls are links to the path WordPress paginates under,
+  `https://projet.ddev.site/shop/page/2`. The server renders that address whole, and crawlers follow the links. Each
+  link keeps the listing's filters, sort and search, and the query parameters WordPress reads; anything else in the
+  address, such as `utm_source`, is left out.
+- **A click turns the page in place.** The client searches in the browser, shows the new page and adds a history
+  entry for its address, so Back returns to the page before. A click with Ctrl, Cmd, Shift or Alt held, or with the
+  middle button, is left to the browser, which opens the address; so is a link an override points at another tab,
+  another site or a download. A click on the current page does nothing. Without JavaScript the links load the page.
+- **In `submit` mode**, the page turned to is the one of the filters applied: boxes ticked and not applied are left
+  behind, as the link's address says.
+- **After a filter or a sort**, the client rewrites the links for the new state, and replaces the current history
+  entry.
+- **The tab's title, the canonical and the robots directives follow the page.** See
+  [The title and the canonical of a turned page](#the-title-and-the-canonical-of-a-turned-page).
+- **`scroll`** on `<x-meilifacets::listing.pagination>` brings the top of the listing back into view after a page
+  click. See [How a listing works](README.md#scrolling-back-to-the-top).
+- **`?pg=N`**, the page parameter of earlier versions, is no longer read: the page shows the first page.
+- **Permalinks are required.** Without them WordPress paginates in `?paged=N`; `meilifacets:check-parameters` fails.
 - The pagination renders hidden when there is a single page, so that the client can fill it after a gesture.
-
-The controls are buttons, not links: nothing in the listing announces a navigation that does not happen. They do
-nothing without JavaScript (see [How a listing works](README.md#without-javascript)).
 
 | Attribute | Default | Effect |
 | --- | --- | --- |
 | `name` | the only listing | the listing it belongs to |
-| `scroll` | `false` | a page change brings the top of the listing back into view |
 
 `listing.pagination` takes no attribute bag.
+
+
+### The title and the canonical of a turned page
+
+The client writes the tab's title and the canonical link on each page it turns to, as the server prints them on
+the page it renders. The server hands it, through the `PageMetadata` contract, the first page's, and a later page's
+with `:page` for its number (and `:pages` for the page count, in a title).
+
+- **WordPress alone**: the titles are those of `wp_get_document_title()`, the page part, `Page 2`, after the title.
+  WordPress prints a canonical on a singular page only, the same on every page of it.
+- **Yoast SEO**: the titles and canonicals are Yoast's.
+  - `%%page%%` and `%%pagetotal%%` count the pages the engine answered, on the page the server renders too:
+    `/shop/page/2?min_price=20` reads `Shop - Page 2 of 3`, where WordPress, which ignores the filters, counts four.
+  - An archive's canonical follows the page, `/shop/page/3`. A custom canonical, or a singular page's, stays the
+    same on every page.
+  - When a `wpseo_canonical` filter prints a canonical the module cannot tell, the canonical is left alone.
+- **Another plugin that writes the head** (Rank Math, SEOPress…): the module cannot tell what it writes, so the page
+  keeps what the server printed. Bind your own `PageMetadata` to follow it:
+
+```php
+use Modules\MeiliFacets\Contracts\PageMetadata;
+
+final readonly class RankMathPageMetadata implements PageMetadata
+{
+    public function titles(): ?array
+    {
+        return ['first' => 'Shop - Site', 'paged' => 'Shop - Page :page of :pages - Site'];
+    }
+
+    public function canonicals(): ?array
+    {
+        return ['first' => 'https://example.com/shop', 'paged' => 'https://example.com/shop/page/:page'];
+    }
+}
+
+// In a service provider's register():
+$this->app->bind(PageMetadata::class, RankMathPageMetadata::class);
+```
+
+The robots directives need no contract: every plugin writes them through WordPress's `wp_robots` filter. The server
+prints them for the bare view and for any other through `wp_robots()` itself, the module's `noindex, follow` and the
+plugins' own included, and the client writes one or the other: the bare view, with no filter, sort, search or page
+past the first, keeps `index`.
+
+Each method returns `null` for what it cannot tell. Only the listing rendered first writes them; on a page with
+several, the others leave the head alone. Crawlers never turn a page in place: they read the head the server prints
+for each address.
 
 ## Total
 
@@ -351,8 +409,8 @@ lands on the `<button>`.
 - **Sort once per page.** Two `listing.sort` components fail, even with different widgets.
 - **A sort on an attribute the index does not declare** turns the whole listing into the unavailable message. Declare
   the attribute, then reindex.
-- **Pages past `engine.reachable_hits`** are never offered. A visitor who types `?pg=500` sees the past-the-end
-  empty state.
+- **Pages past `engine.reachable_hits`** are never offered. A visitor who types `/page/500` sees WordPress's 404 when WordPress counts fewer pages, and the
+  past-the-end empty state otherwise.
 - **Some components take no attribute bag** (`results`, `sort`, `pagination`, `reset`, `active-filters`): a `class`
   is dropped without error.
 

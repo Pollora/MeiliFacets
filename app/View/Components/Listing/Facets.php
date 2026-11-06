@@ -25,7 +25,15 @@ final class Facets extends ListingComponent
 
     public function shouldRender(): bool
     {
-        return $this->listing->remainingFacets() !== [] || $this->rendersApply();
+        return $this->remainingFilters() !== [] || $this->rendersApply();
+    }
+
+    /**
+     * @return list<Placeable>
+     */
+    public function remainingFilters(): array
+    {
+        return $this->listing->placement()->remainingFilters();
     }
 
     /** The only place that knows which kind renders through what. */

@@ -1,8 +1,8 @@
 import { Contract } from '../shared/contract.ts'
 import { FacetCounts } from '../facets/facet-counts.ts'
 import { FacetsView } from '../facets/facets-view.ts'
-import { PageWindow } from '../pagination/page-window.ts'
-import { PaginationView } from '../pagination/pagination-view.ts'
+import { PaginationBinding } from '../pagination/pagination-binding.ts'
+import { PageHeadView } from './page-head-view.ts'
 import { PriceControl } from '../price/price-control.ts'
 import { BusyGrid } from '../results/busy-grid.ts'
 import { VariantChoice } from '../results/variant-choice.ts'
@@ -16,6 +16,7 @@ import { SortRadios } from '../sort/sort-radios.ts'
 import { DisclosureGroup } from '../collapsible/disclosure-group.ts'
 import { ListingDrawers } from '../drawer/listing-drawers.ts'
 import { ListingSearch } from './listing-search.ts'
+import { ListingUrl } from './listing-url.ts'
 import { ResetFocus } from './reset-focus.ts'
 import { SummaryBinding } from './summary-binding.ts'
 
@@ -29,9 +30,10 @@ export class ListingBinding {
     #contract: Contract
     #listing: Listing
     #description: ListingDescription
+    #pagination: PaginationBinding
+    #head: PageHeadView
     #results: ResultsView
     #facets: FacetsView
-    #pagination: PaginationView
     #sort: SortCombobox
     #sortRadios: SortRadios
     #price: PriceControl
@@ -46,9 +48,10 @@ export class ListingBinding {
         this.#contract = contract
         this.#listing = listing
         this.#description = description
+        this.#pagination = new PaginationBinding(contract, description, new ListingUrl(description))
+        this.#head = new PageHeadView(description, contract.root.ownerDocument)
         this.#results = new ResultsView(contract)
         this.#facets = new FacetsView(contract, description)
-        this.#pagination = new PaginationView(contract)
         this.#sort = new SortCombobox(contract, (sort) => this.#listing.sortBy(sort))
         this.#sortRadios = new SortRadios(contract, description.sortPattern, (sort) => this.#listing.sortBy(sort))
         this.#sortQuery = new SortQuery(description.sortFilters)
@@ -149,12 +152,13 @@ export class ListingBinding {
             return true
         }
 
-        const page = this.#pageOf(event.target)
+        const page = this.#pagination.pageOf(event)
 
         if (page === null) {
             return false
         }
 
+        event.preventDefault()
         this.#listing.goToPage(page)
 
         return true
@@ -185,14 +189,6 @@ export class ListingBinding {
         }
     }
 
-    #pageOf(target: EventTarget | null): number | null {
-        const button = this.#hookOf(target, 'page')
-            ?? this.#hookOf(target, 'previous')
-            ?? this.#hookOf(target, 'next')
-
-        return button instanceof HTMLButtonElement ? Number.parseInt(button.value, 10) || null : null
-    }
-
     #moved({ state }: ChangeDetail) {
         this.#listingSearches.forEach((field) => field.show(state))
         this.#facets.showSelection(state)
@@ -206,6 +202,7 @@ export class ListingBinding {
         const results = answers[RESULTS] ?? {}
 
         this.#facets.showCounts(new FacetCounts(answers))
+        this.#drawers.refreshShowMore()
         this.#price.showBounds(answers, state)
         const matches = this.#sortQuery.matchesIn(Measures.in(answers).facetDistribution ?? {})
 
@@ -224,22 +221,14 @@ export class ListingBinding {
     }
 
     #repaintGrid(results: SearchAnswer, state: ListingState) {
-        const pageWindow = this.#pageWindowOf(state, results.totalHits ?? 0)
+        const pageWindow = this.#pagination.windowOf(state, results.totalHits ?? 0)
         const variantTaxonomies = this.#description.variantResults?.taxonomies ?? []
         const sortFilter = state.sort === null ? null : this.#description.sortFilters[state.sort] ?? null
         const choice = new VariantChoice({ state, variantTaxonomies, sortFilter })
 
         this.#results.show((results.hits ?? []).map((hit) => CardView.fieldsOf(hit, choice)), pageWindow)
-        this.#pagination.show(pageWindow)
-    }
-
-    #pageWindowOf(state: ListingState, total: number) {
-        return new PageWindow({
-            asked: state.page,
-            perPage: this.#description.perPage,
-            total,
-            reachable: this.#description.reachableHits,
-        })
+        this.#pagination.show(pageWindow, state)
+        this.#head.show(pageWindow, state)
     }
 
     #hookOf(target: EventTarget | null, hook: string) {

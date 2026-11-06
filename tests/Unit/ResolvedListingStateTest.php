@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Tests\Unit;
 
 use Modules\MeiliFacets\Contracts\Listing;
-use Modules\MeiliFacets\Http\ServiceUnavailable;
 use Modules\MeiliFacets\Listing\CardVariant;
 use Modules\MeiliFacets\Listing\Facet;
 use Modules\MeiliFacets\Listing\FacetValues;
@@ -15,7 +14,6 @@ use Modules\MeiliFacets\Listing\ResolvedListing;
 use Modules\MeiliFacets\Search\DisjunctiveFacetCounter;
 use Modules\MeiliFacets\Search\EngineLimits;
 use Modules\MeiliFacets\Search\ListingSearch;
-use Modules\MeiliFacets\Support\UrlParameters;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeDefaultTerms;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeListing;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeSearchEngine;
@@ -55,9 +53,9 @@ final class ResolvedListingStateTest extends TestCase
         $asked = new Range(10.0, 20.0);
         $listing = $this->listing(new ListingState(price: $asked));
 
-        $this->assertSame($asked, $listing->askedPrice());
-        $this->assertSame(1, $listing->priceFilterCount());
-        $this->assertSame(0, $this->listing(new ListingState)->priceFilterCount());
+        $this->assertSame($asked, $listing->state()->price);
+        $this->assertSame(1, $listing->state()->priceFilterCount());
+        $this->assertSame(0, $this->listing(new ListingState)->state()->priceFilterCount());
     }
 
     #[Test]
@@ -96,8 +94,7 @@ final class ResolvedListingStateTest extends TestCase
             $state,
             new ListingSearch($engine, new DisjunctiveFacetCounter),
             new FacetValues(new FakeTermLabels, new FakeTermScope, new FakeDefaultTerms),
-            new UrlParameters([]),
-            new ServiceUnavailable,
+
             new EngineLimits(1000),
         );
     }

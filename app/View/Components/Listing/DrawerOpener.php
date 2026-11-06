@@ -22,7 +22,7 @@ final class DrawerOpener extends ListingComponent
     {
         return view('meilifacets::components.listing.drawer-opener', [
             'drawerId' => $this->ids->drawer(),
-            'badge' => new Badge($this->ids->drawerCount(), $this->listing->activeFilterCount()),
+            'badge' => new Badge($this->ids->drawerCount(), $this->listing->state()->activeFilterCount()),
         ]);
     }
 }

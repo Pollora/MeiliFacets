@@ -11,7 +11,7 @@ import type { Answers, Searcher } from '../shared/search-client.ts'
 
 const IMMEDIATE = 'immediate'
 
-export type ListingHistory = Pick<BrowserHistory, 'record' | 'replace' | 'push' | 'onPopState'>
+export type ListingHistory = Pick<BrowserHistory, 'record' | 'replace' | 'push' | 'back' | 'onPopState'>
 
 export interface ChangeDetail {
     state: ListingState
@@ -52,6 +52,9 @@ export class Listing extends EventTarget {
 
     /** A page change is a place a visitor can come back to; a filter is not. */
     #keepsHistory = false
+
+    /** The state whose page change added the current history entry, while its search is under way. */
+    #pushedFor: string | null = null
 
     constructor(description: ListingDescription, connection: Connection, {
         filterQueries,
@@ -105,9 +108,13 @@ export class Listing extends EventTarget {
     }
 
     goToPage(page: number) {
+        if (page === this.#answered.page) {
+            return this
+        }
+
         this.#keepsHistory = true
 
-        return this.#applyNow(this.#state.onPage(page))
+        return this.#applyNow(this.#answered.onPage(page))
     }
 
     remove(taxonomy: string, value: string) {
@@ -156,10 +163,10 @@ export class Listing extends EventTarget {
     async #search() {
         this.#pendingSearches.start()
 
-        try {
-            const state = this.#state
-            const asked = JSON.stringify(state.toDescription())
+        const state = this.#state
+        const asked = JSON.stringify(state.toDescription())
 
+        try {
             this.#askedFor = asked
             const answers = await this.#client.search(this.#query.plan(state))
 
@@ -169,7 +176,7 @@ export class Listing extends EventTarget {
         } catch (failure) {
             if (!(failure instanceof SearchSuperseded)) {
                 console.error('[meilifacets] the search failed:', failure)
-                this.#rollBack()
+                this.#rollBack(asked)
                 this.#dispatch('failed', { failure })
             }
         } finally {
@@ -177,11 +184,20 @@ export class Listing extends EventTarget {
         }
     }
 
-    /** The page claims no state the engine did not answer: the controls and the URL go back to the last one it did. */
-    #rollBack() {
+    /**
+     * The page claims no state the engine did not answer: the controls and the URL go back to the last one it did,
+     * and a page change that failed leaves no entry behind.
+     */
+    #rollBack(asked: string) {
         this.#setState(this.#answered)
         this.#askedFor = this.#searchedFor
-        this.#writeUrl()
+
+        if (asked === this.#pushedFor) {
+            this.#pushedFor = null
+            this.#history.back()
+        } else {
+            this.#writeUrl()
+        }
     }
 
     #applyIfImmediate(state: ListingState) {
@@ -208,14 +224,15 @@ export class Listing extends EventTarget {
     }
 
     #writeUrl() {
-        const url = this.#url.toUrl(this.#state)
-
         const { name } = this.#description
+        const url = this.#url.toUrl(this.#state)
 
         if (this.#keepsHistory) {
             this.#history.push(name, this.#state.toDescription(), url)
+            this.#pushedFor = JSON.stringify(this.#state.toDescription())
         } else {
             this.#history.replace(name, this.#state.toDescription(), url)
+            this.#pushedFor = null
         }
 
         this.#keepsHistory = false

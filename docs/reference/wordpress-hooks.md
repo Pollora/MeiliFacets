@@ -1,6 +1,6 @@
 # WordPress filters and actions
 
-The filter the module exposes, the WordPress and plugin filters it reads, the hooks it attaches to, and the asset
+The filters the module exposes, the WordPress and plugin filters it reads, the hooks it attaches to, and the asset
 handles it registers.
 
 You want to…
@@ -21,7 +21,7 @@ add_filter('meilifacets/script_fetchpriority', function (string $priority, strin
 | Filter | Arguments | Default | Returns | Applied |
 | --- | --- | --- | --- | --- |
 | `meilifacets/script_fetchpriority` | `string $priority`, `string $module` (`@meilifacets/listing` or `@meilifacets/site-search`) | `low` | the `fetchpriority` of the module's `<script type="module">` | once per bundle, when a root first asks for it on the page |
-| `meilifacets/is_listing_page` | `bool $isListingPage` | `true` once `<x-meilifacets::listing>` is built on the page | whether the page gets the `noindex` and canonical rules, the removal of `rel="next"` and `rel="prev"`, and the preconnect hint | in `wp_head`, by each hook below marked « listing pages » and by `wpseo_canonical` |
+| `meilifacets/is_listing_page` | `bool $isListingPage` | `true` once `<x-meilifacets::listing>` is built on the page | whether the page gets the `noindex` rule, the removal of `rel="next"` and `rel="prev"`, and the preconnect hint | in `wp_head`, by each hook below marked « listing pages » |
 
 They are the only filters the module applies under its own name. See [PHP extension points](../customising/php.md).
 
@@ -35,6 +35,7 @@ WordPress and WooCommerce filters whose value the module uses. A project can hoo
 | `excerpt_length` | indexing | `55` | words in the `summary` of a non-product card | [What gets indexed](../indexing/README.md) |
 | `wp_img_tag_add_auto_sizes` | indexing | `true` | prefixes the card's `image_sizes` with `auto, ` | [What gets indexed](../indexing/README.md) |
 | `woocommerce_default_catalog_orderby` | render | the « Default product sorting » setting | the product listing's order while no sort is chosen | [The default order](../listing/results-sort-pagination.md#the-default-order) |
+| `pre_get_document_title` | render, without Yoast SEO | none | hooked by a plugin, the tab keeps the server's title on the pages the client turns to | [PHP contracts](contracts.md) |
 | `query_vars` | `meilifacets:check-parameters` | WordPress's public query vars | the names a listing parameter must not take | [Commands](commands.md#meilifacetscheck-parameters) |
 
 ## Hooks the module attaches to
@@ -47,15 +48,19 @@ WordPress and WooCommerce filters whose value the module uses. A project can hoo
 | `script_module_data_@meilifacets/listing` | filter | 10 | added when a listing root renders | publishes the browser connection and the description of each listing root | [How a listing works](../listing/README.md) |
 | `script_module_data_@meilifacets/site-search` | filter | 10 | added when a search root renders | publishes the browser connection and the description of each search root | [Site search](../search/README.md) |
 | `wp_robots` | filter | 10 | listing pages | `noindex, follow` on a filtered, sorted, searched or paginated view | [How a listing works](../listing/README.md) |
-| `wpseo_canonical` | filter | 20 | same views | points Yoast's canonical to the bare path, page number kept | [How a listing works](../listing/README.md) |
 | `wpseo_next_rel_link` | filter | 10 | listing pages | removes Yoast's `rel="next"` | [How a listing works](../listing/README.md) |
 | `wpseo_prev_rel_link` | filter | 10 | listing pages | removes Yoast's `rel="prev"` | [How a listing works](../listing/README.md) |
+| `wpseo_replacements` | filter | 10 | Yoast SEO fills a title's variables, once a listing has rendered | gives `%%page%%` and `%%pagetotal%%` the page count the engine answered, not WordPress's | [PHP contracts](contracts.md) |
+| `document_title_parts` without Yoast SEO, `wpseo_replacements` with it | filter | `PHP_INT_MAX` | added while the first listing root describes its pages, removed right after | renders the document title with the page number and the page count as placeholders, for the client | [PHP contracts](contracts.md) |
+| `meilifacets/is_listing_page` | filter | `PHP_INT_MAX` | added while the first listing root describes its pages, removed right after | answers `false`, so that `wp_robots()` prints the bare view's directives, for the client | [Pagination](../listing/results-sort-pagination.md#the-title-and-the-canonical-of-a-turned-page) |
+| `wp_robots` | filter | 10 | added while the first listing root describes its pages, removed right after | adds `noindex, follow`, so that `wp_robots()` prints a secondary view's directives, for the client | [Pagination](../listing/results-sort-pagination.md#the-title-and-the-canonical-of-a-turned-page) |
 | `woocommerce_default_catalog_orderby_options` | filter | 10 | the Customizer lists the default product sortings | keeps only those the product listing can follow | [The default order](../listing/results-sort-pagination.md#the-default-order) |
 | `woocommerce_enable_post_clause_filtering` | filter | 10 | every request | returns `false`: WooCommerce no longer narrows a product archive's main query from the URL | [Indexed prices](../indexing/prices.md) |
 | `woocommerce_get_tax_location` | filter | 10 | added while a document is indexed, removed right after | taxes at the shop's base address | [Indexed prices](../indexing/prices.md) |
 | `rocket_delay_js_exclusions` | filter | 10 | when WP Rocket asks | excludes the published bundles from Delay JS | [Going to production](../production.md) |
 | `meiliscout/post/document` | filter | 10 | MeiliScout builds a post document | adds `facets`, `labels`, `excerpt`, `content`, `card`, `price`, `in_stock`, `document_kind` | [What gets indexed](../indexing/README.md) |
 | `meiliscout/indexables` | filter | 10 | MeiliScout lists its indexables | replaces its post indexable with the module's, which writes the index settings | [Index settings](index-settings.md) |
+| `meiliscout/post/ranking_rules` | filter | 10 | MeiliScout writes the post index settings | puts Meilisearch's default ranking rules back, relevance before `sort` | [Search relevance](../indexing/relevance.md) |
 | `woocommerce_new_product_variation`, `woocommerce_update_product_variation`, `woocommerce_before_delete_product_variation`, `woocommerce_trash_product_variation` | action | 10 | a variation is saved, deleted or trashed | remembers its product | [What gets indexed](../indexing/README.md#when-to-reindex) |
 | `added_post_meta`, `updated_post_meta`, `deleted_post_meta` | action | 10 | a meta is written | remembers the product of a variation whose meta changed | [What gets indexed](../indexing/README.md#every-meta-write-reindexes-the-post) |
 | `shutdown` | action | 20 | end of the request | fires `meiliscout/reindex_post` once per remembered product | [What gets indexed](../indexing/README.md#when-to-reindex) |

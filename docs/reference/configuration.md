@@ -47,7 +47,7 @@ document (see [commands](commands.md#wordpress-cli)).
 | `apply_mode` | `string` | `submit` | `submit` | render | `immediate`: every checked box searches. `submit`: changes wait for Apply. Any other value falls back to `submit`. Read by the default product listing; a custom `Listing` decides through `applyMode()`. | [How a listing works](../listing/README.md) |
 | `url_parameters` | `array<string, string>` | `[]` | `[]` | render | Taxonomy name to URL parameter name. A taxonomy left out travels as `f_<taxonomy>`. | [How a listing works](../listing/README.md) |
 | `query_parameters` | `array<string, string>` | `[]` | `[]` | render | Renames a reserved parameter: keys `sort`, `q`, `pg`, `min_price`, `max_price`. | [How a listing works](../listing/README.md) |
-| `drawer.row.limit` | `int` | `5` | `5` | render | Number of filters shown at page load that the drawer's row holds on wide screens; past it, `drawer.row.overflow` applies, and the decision holds while the visitor filters. The drawer's `row-limit` attribute overrides it per template. Must be an integer: any other value fails every listing page. | [Mobile drawer and filter bar](../listing/drawer.md#past-the-row-limit) |
+| `drawer.row.limit` | `int` | `5` | `5` | render | Number of filters the whole catalogue offers, before any filter of the visitor, that the drawer's row holds on wide screens; past it, `drawer.row.overflow` applies, and the decision holds while the visitor filters. The drawer's `row-limit` attribute overrides it per template. Must be an integer: any other value fails every listing page. | [Mobile drawer and filter bar](../listing/drawer.md#past-the-row-limit) |
 | `drawer.row.overflow` | `string` | `side-sheet` | `side-sheet` | render | Past the limit: `side-sheet` moves every filter to a side sheet behind the « Filters » button; `show-more` keeps the first `drawer.row.limit` filters in the row and ends it with a « Show more » button that opens the side sheet on the filters past them. The drawer's `row-overflow` attribute overrides it per template. Any other value fails every listing page. | [Mobile drawer and filter bar](../listing/drawer.md#past-the-row-limit) |
 | `card.eager` | `int` | `4` | `4` | render | Number of first cards whose image loads eagerly with `fetchpriority="high"`. | [Results](../listing/results-sort-pagination.md) |
 | `card.image_size` | `string` | `woocommerce_thumbnail` for products and their variants, `medium` otherwise | commented out | indexing | WordPress image size stored in every card, products included. | [What gets indexed](../indexing/README.md) |
@@ -64,7 +64,7 @@ the project's, so it cannot be overridden; nothing reads it.
 | --- | --- | --- |
 | `sort` | the sort key | `query_parameters.sort` |
 | `q` | the typed search term, 200 characters at most | `query_parameters.q` |
-| `pg` | the page number (`/page/N` is honoured too) | `query_parameters.pg` |
+| `pg` | no longer read: the page number lives in the path, `/page/N`; the name stays reserved | `query_parameters.pg` |
 | `min_price` | the lower price bound | `query_parameters.min_price` |
 | `max_price` | the upper price bound | `query_parameters.max_price` |
 | `f_<taxonomy>` | the values of a facet, unless `url_parameters` maps the taxonomy | `url_parameters` |

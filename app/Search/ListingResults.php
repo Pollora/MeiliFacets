@@ -44,7 +44,8 @@ final readonly class ListingResults
     }
 
     /**
-     * @return array<string, int>|null null when nothing narrowed the listing
+     * @return array<string, int>|null null when the whole catalogue was not counted for it: nothing narrowed the
+     *                                 listing, or the listing does not measure this taxonomy
      */
     public function unfilteredDistribution(string $taxonomy): ?array
     {

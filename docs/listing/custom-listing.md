@@ -335,8 +335,8 @@ Their element ids are prefixed with the listing's name, and each keeps its own s
 
 They share the URL, though:
 
-- the reserved parameters `sort`, `q`, `pg`, `min_price` and `max_price` are the same for every listing: on a reload,
-  both listings read the same page number, sort and search term;
+- the reserved parameters `sort`, `q`, `min_price` and `max_price`, and the `/page/N` path, are the same for every
+  listing: on a reload, both listings read the same page number, sort and search term;
 - a facet's parameter depends on its taxonomy only, so two listings filtering the same taxonomy read the same values;
 - a gesture on one listing rewrites the address with its own state and drops the parameters of the other: the other
   listing's state survives Back and Forward, but not a reload or a shared link.

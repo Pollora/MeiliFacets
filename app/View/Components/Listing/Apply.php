@@ -53,7 +53,7 @@ final class Apply extends ListingComponent
     public function render(): View
     {
         return view('meilifacets::components.listing.apply', [
-            'badge' => new Badge($this->ids->applyCount(), $this->listing->activeFilterCount()),
+            'badge' => new Badge($this->ids->applyCount(), $this->listing->state()->activeFilterCount()),
         ]);
     }
 }

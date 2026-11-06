@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Tests\Unit;
 
-use Modules\MeiliFacets\Http\ServiceUnavailable;
 use Modules\MeiliFacets\Listing\Facet;
 use Modules\MeiliFacets\Listing\FacetValues;
 use Modules\MeiliFacets\Listing\ListingState;
@@ -117,7 +116,7 @@ final class StateFieldsTest extends TestCase
      */
     private function fieldsOf(ListingState $state, array $reserved = []): array
     {
-        return new StateFields()->of(new ResolvedListing(
+        return new StateFields(new UrlParameters(['product_brand' => 'brand'], $reserved))->of(new ResolvedListing(
             new FakeListing([
                 new Facet('product_brand', 'Brand', name: 'brand'),
                 new PriceFilter('Price'),
@@ -126,8 +125,6 @@ final class StateFieldsTest extends TestCase
             $state,
             new ListingSearch(new FakeSearchEngine, new DisjunctiveFacetCounter),
             new FacetValues(new FakeTermLabels, new FakeTermScope, new FakeDefaultTerms),
-            new UrlParameters(['product_brand' => 'brand'], $reserved),
-            new ServiceUnavailable,
             new EngineLimits(1000),
         ));
     }

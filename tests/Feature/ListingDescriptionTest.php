@@ -6,6 +6,7 @@ namespace Modules\MeiliFacets\Tests\Feature;
 
 use Modules\MeiliFacets\Contracts\SearchableTypes;
 use Modules\MeiliFacets\Enums\QueryParameter;
+use Modules\MeiliFacets\Http\PageAddress;
 use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\Listing\ProductListing;
 use Modules\MeiliFacets\Listing\ResolvedListing;
@@ -31,6 +32,7 @@ final class ListingDescriptionTest extends TestCase
     {
         request()->query->replace([]);
         request()->server->remove('QUERY_STRING');
+        set_query_var(PageAddress::PAGED_QUERY_VAR, '');
         $this->app->forgetScopedInstances();
 
         parent::tearDown();
@@ -42,9 +44,9 @@ final class ListingDescriptionTest extends TestCase
         $parameters = $this->app->make(UrlParameters::class);
         $taxonomy = $this->listing()->facets()[0]->taxonomy;
 
+        set_query_var(PageAddress::PAGED_QUERY_VAR, '3');
         $state = $this->describedWith([
             $parameters->for($taxonomy) => 'globex,acme',
-            $parameters->reserved(QueryParameter::Page) => '3',
             $parameters->reserved(QueryParameter::MinPrice) => '12.5',
         ])['state'];
 
@@ -53,6 +55,14 @@ final class ListingDescriptionTest extends TestCase
         $this->assertSame(['min' => 12.5, 'max' => null], $state['price']);
         $this->assertSame('', $state['query']);
         $this->assertNull($state['sort']);
+    }
+
+    #[Test]
+    public function it_reads_the_page_from_the_path_and_not_from_a_parameter(): void
+    {
+        $page = $this->app->make(UrlParameters::class)->reserved(QueryParameter::Page);
+
+        $this->assertSame(1, $this->describedWith([$page => '3'])['state']['page']);
     }
 
     /** The engine answers slugs only: a pill the client draws takes its words from here (`R-57`). */

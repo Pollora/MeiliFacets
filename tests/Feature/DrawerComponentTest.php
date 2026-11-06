@@ -9,6 +9,7 @@ use Dom\HTMLDocument;
 use Illuminate\Support\Facades\Blade;
 use Modules\MeiliFacets\Enums\Hook;
 use Modules\MeiliFacets\Enums\RowOverflow;
+use Modules\MeiliFacets\Support\UrlParameters;
 use Modules\MeiliFacets\Tests\Feature\Concerns\FindsHooks;
 use Modules\MeiliFacets\Tests\Feature\Concerns\HoldsCatalogueValues;
 use Modules\MeiliFacets\Tests\Feature\Concerns\SwitchesTheSiteLocale;
@@ -22,6 +23,8 @@ final class DrawerComponentTest extends TestCase
     use FindsHooks;
     use HoldsCatalogueValues;
     use SwitchesTheSiteLocale;
+
+    private int $unfilteredShownCount = 0;
 
     private const string PLACED = '<x-meilifacets::listing.drawer-opener name="products" /><x-meilifacets::listing.drawer name="products" class="flex-1"><p id="inside">Facets</p>'
         .'<x-slot:footer><x-meilifacets::listing.reset name="products" /></x-slot:footer></x-meilifacets::listing.drawer>';
@@ -253,6 +256,27 @@ final class DrawerComponentTest extends TestCase
         $this->assertSame(0, $drawer->querySelectorAll($this->hooked(Hook::Facet).'[data-beyond-row] ~ '.$this->hooked(Hook::Facet).':not([data-beyond-row])')->length);
     }
 
+    /** A filter emptying facets must not lift the row: clearing it in the browser would leave every facet on show. */
+    #[Test]
+    public function it_keeps_the_row_of_the_whole_catalogue_under_a_filter_that_empties_facets(): void
+    {
+        $limit = $this->shownFilterCount() - 1;
+        $this->holdAValueThatEmptiesAFacet();
+
+        $this->assertSame(RowOverflow::ShowMore->value, $this->drawerShowingMore($limit)->getAttribute('data-overflow'));
+    }
+
+    #[Test]
+    public function it_hides_show_more_while_every_filter_past_the_row_is_empty(): void
+    {
+        $limit = $this->shownFilterCount() - 1;
+        $this->holdAValueThatEmptiesAFacet();
+        $drawer = $this->drawerShowingMore($limit);
+        $pastTheRow = $drawer->querySelectorAll($this->hooked(Hook::Facet).'[data-beyond-row]:not([hidden])')->length;
+
+        $this->assertSame($pastTheRow === 0, $drawer->querySelector($this->hooked(Hook::DrawerShowMore))->hasAttribute('hidden'));
+    }
+
     #[Test]
     public function it_ends_its_row_with_a_show_more_button_that_opens_it(): void
     {
@@ -367,6 +391,7 @@ final class DrawerComponentTest extends TestCase
     {
         $listing = $this->catalogue();
         $shown = count(array_filter($listing->filters(), $listing->isShown(...)));
+        $this->unfilteredShownCount = $shown;
 
         if ($shown === 0) {
             $this->markTestSkipped('The catalogue shows no filter.');
@@ -378,6 +403,24 @@ final class DrawerComponentTest extends TestCase
     private function drawerLimitedTo(int $rowLimit): Element
     {
         return $this->drawerHoldingTheFacets(' :row-limit="'.$rowLimit.'"');
+    }
+
+    private function holdAValueThatEmptiesAFacet(): void
+    {
+        $parameters = $this->app->make(UrlParameters::class);
+
+        foreach ($this->catalogue()->facets() as $facet) {
+            foreach ($this->catalogue()->valuesOf($facet) as $value) {
+                request()->query->replace([$parameters->for($facet->taxonomy) => $value->slug]);
+                $this->app->forgetScopedInstances();
+
+                if (count(array_filter($this->catalogue()->filters(), $this->catalogue()->isShown(...))) < $this->unfilteredShownCount) {
+                    return;
+                }
+            }
+        }
+
+        $this->markTestSkipped('No value of the catalogue empties another facet.');
     }
 
     private function drawerShowingMore(int $rowLimit): Element

@@ -16,6 +16,7 @@ export const Hook = {
     more: 'more',
     page: 'page',
     panel: 'panel',
+    pastTheEnd: 'past-the-end',
     price: 'price',
     priceMax: 'price-max',
     reset: 'reset',

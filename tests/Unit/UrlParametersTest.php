@@ -11,6 +11,17 @@ use PHPUnit\Framework\TestCase;
 final class UrlParametersTest extends TestCase
 {
     #[Test]
+    public function it_owns_its_mapped_reserved_and_prefixed_names_and_nothing_else(): void
+    {
+        $parameters = new UrlParameters(['product_brand' => 'marque'], ['sort' => 'tri']);
+
+        $this->assertSame(
+            [true, true, true, false, false],
+            array_map($parameters->owns(...), ['marque', 'tri', 'f_product_cat', 'sort', 'utm_source']),
+        );
+    }
+
+    #[Test]
     public function it_gives_a_mapped_taxonomy_the_configured_name(): void
     {
         $parameters = new UrlParameters(['product_brand' => 'marque']);

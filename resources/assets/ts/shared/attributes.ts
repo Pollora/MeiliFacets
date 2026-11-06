@@ -3,6 +3,9 @@ export const EXPANDED = 'aria-expanded'
 
 export const CONTROLS = 'aria-controls'
 
+/** A filter the server put past the drawer's row: read by the row and by « Show more ». */
+export const BEYOND_ROW = 'data-beyond-row'
+
 export const ACTIVE_DESCENDANT = 'aria-activedescendant'
 
 export const BUSY = 'aria-busy'

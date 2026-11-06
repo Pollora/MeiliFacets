@@ -49,6 +49,7 @@ class FakeTab {
             this.#entries[this.#index] = { url: this.#resolve(url), state: structuredClone(state) }
             this.#sync()
         },
+        back: () => this.back(),
         scrollRestoration: 'auto' as ScrollRestoration,
     }
 
@@ -131,7 +132,7 @@ describe('BrowserHistory', () => {
     })
 
     it('keeps the state of another script on the entry it replaces', () => {
-        history.replace('products', served({ page: 3 }), '/shop?pg=3')
+        history.replace('products', served({ page: 3 }), '/shop/page/3')
 
         assert.deepEqual(tab.state, { theme: 'kept', meilifacets: { products: served({ page: 3 }) } })
     })
@@ -139,9 +140,18 @@ describe('BrowserHistory', () => {
     it('carries every listing of the page into the entry one of them adds, and nothing else', () => {
         history.record('products', served())
         history.record('journal', served({ page: 3 }))
-        history.push('products', served({ page: 3 }), '/shop?pg=3')
+        history.push('products', served({ page: 3 }), '/shop/page/3')
 
         assert.deepEqual(tab.state, { meilifacets: { products: served({ page: 3 }), journal: served({ page: 3 }) } })
+    })
+
+    it('leaves the entry it added, back to the one before', () => {
+        history.record('products', served({ page: 2 }))
+        history.push('products', served({ page: 3 }), '/shop/page/3')
+
+        history.back()
+
+        assert.equal(tab.address, '/shop/page/2?brand=acme')
     })
 
     it('keeps the other listings when another script emptied the entry', () => {
@@ -162,7 +172,8 @@ describe('BrowserHistory', () => {
     it('hands each listing the state the entry holds for it', () => {
         listen('journal')
         history.record('products', served({ page: 2 }))
-        history.push('products', served({ page: 3 }), '/shop?pg=3')
+        tab.followAnchor('#main')
+        history.replace('products', served({ page: 3 }), '/shop/page/3')
 
         tab.back()
 
@@ -180,7 +191,7 @@ describe('BrowserHistory', () => {
 
     it('restores an anchor it recorded', () => {
         history.record('products', served({ page: 2 }))
-        history.push('products', served({ page: 3 }), '/shop?pg=3')
+        history.replace('products', served({ page: 3 }), '/shop/page/3')
         tab.followAnchor('#main')
 
         tab.back()
@@ -191,7 +202,8 @@ describe('BrowserHistory', () => {
 
     it('records an anchor with the state of the entry the visitor went back to', () => {
         history.record('products', served({ page: 2 }))
-        history.push('products', served({ page: 3 }), '/shop?pg=3')
+        tab.followAnchor('#top')
+        history.replace('products', served({ page: 3 }), '/shop/page/3')
         tab.back()
 
         tab.followAnchor('#main')

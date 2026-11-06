@@ -26,14 +26,10 @@ describe('ListingUrl', () => {
     })
 
     // `page` is a public WordPress query var: the server never writes it either.
-    it('paginates on pg, never on page', () => {
-        assert.equal(url.toSearch(new ListingState({ facets: {}, page: 3 })), '?pg=3')
-    })
-
     it('takes the parameter names the server declares', () => {
-        const renamed = new ListingUrl(described({ ...listing, reserved: { ...listing.reserved, sort: 'tri', page: 'p2' } }))
+        const renamed = new ListingUrl(described({ ...listing, reserved: { ...listing.reserved, sort: 'tri' } }))
 
-        assert.equal(renamed.toSearch(new ListingState({ sort: 'price_asc', page: 2 })), '?tri=price_asc&p2=2')
+        assert.equal(renamed.toSearch(new ListingState({ sort: 'price_asc' })), '?tri=price_asc')
     })
 
     it('writes only what differs from the default state', () => {
@@ -59,9 +55,33 @@ describe('ListingUrl', () => {
         assert.equal(search, '?brand=acme,globex&f_pa_size=large')
     })
 
-    it('writes a page only past the first', () => {
-        assert.equal(url.toSearch(new ListingState({ facets: {}, page: 2 })), '?pg=2')
-        assert.equal(url.toSearch(new ListingState({ facets: {}, page: 1 })), '')
+    it('writes a page in the path, only past the first', () => {
+        assert.equal(url.toUrl(new ListingState({ facets: {}, page: 2 })), '/shop/page/2')
+        assert.equal(url.toUrl(new ListingState({ facets: {}, page: 1 })), '/shop')
+        assert.equal(url.toSearch(new ListingState({ facets: {}, page: 2 })), '')
+    })
+
+    it('points a link at any page, the state kept in the query', () => {
+        const state = new ListingState({ facets: { product_brand: ['acme'] }, page: 4 })
+
+        assert.equal(url.linksFor(state)(2), '/shop/page/2?brand=acme')
+        assert.equal(url.linksFor(state)(1), '/shop?brand=acme')
+        assert.equal(url.toUrl(state, 3), '/shop/page/3?brand=acme')
+    })
+
+    it('reads the page a link points to, trailing slash or not', () => {
+        assert.deepEqual(
+            ['/shop', '/shop/', '/shop/page/3', '/shop/page/3/'].map((path) => url.pageAt(path)),
+            [1, 1, 3, 3]
+        )
+    })
+
+    it('reads no page from an address of another kind', () => {
+        assert.deepEqual(
+            ['/blog', '/shop/page/', '/shop/page/1', '/shop/page/two', '/shop/page/2/extra', '/elsewhere/page/2']
+                .map((path) => url.pageAt(path)),
+            [null, null, null, null, null, null]
+        )
     })
 
     it('writes the query and the sort when they are set', () => {
@@ -69,11 +89,11 @@ describe('ListingUrl', () => {
             '?q=coat&sort=price_asc')
     })
 
-    it('writes the path the server published, the page in pg', () => {
+    it('writes the paths the server published, under whatever name WordPress paginates', () => {
         const state = new ListingState({ facets: { product_brand: ['acme'] } })
-        const published = new ListingUrl(described({ ...listing, pagePath: '/' }))
+        const published = new ListingUrl(described({ ...listing, pagePath: '/', pagePathPattern: '/seite/:page/' }))
 
-        assert.equal(url.toUrl(state.onPage(3)), '/shop?brand=acme&pg=3')
+        assert.equal(published.toUrl(state, 3), '/seite/3/?brand=acme')
         assert.equal(published.toUrl(new ListingState()), '/')
     })
 
