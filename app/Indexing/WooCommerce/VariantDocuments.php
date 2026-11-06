@@ -8,8 +8,8 @@ use Modules\MeiliFacets\Enums\CardField;
 use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Enums\PriceField;
 use Modules\MeiliFacets\Listing\CardVariant;
-use Modules\MeiliFacets\Search\FilterExpression;
-use Modules\MeiliFacets\Search\VisibleProducts;
+use Modules\MeiliFacets\Listing\FilterExpression;
+use Modules\MeiliFacets\Listing\VisibleProducts;
 
 /** One document per variant of a product: the product's document, under the variant's terms, price and stock. */
 final readonly class VariantDocuments

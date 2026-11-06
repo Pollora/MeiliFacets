@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Tests\Unit;
 
 use Modules\MeiliFacets\Contracts\Listing;
-use Modules\MeiliFacets\Listing\ResolvedListing;
+use Modules\MeiliFacets\Search\ResolvedListing;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;

@@ -12,7 +12,7 @@ use Modules\MeiliFacets\Contracts\SearchEngine;
 use Modules\MeiliFacets\Enums\Contract;
 use Modules\MeiliFacets\Enums\Hook;
 use Modules\MeiliFacets\Enums\PricePart;
-use Modules\MeiliFacets\Listing\CurrentListing;
+use Modules\MeiliFacets\Http\CurrentListing;
 use Modules\MeiliFacets\Listing\PriceFilter;
 use Modules\MeiliFacets\Listing\ProductListing;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeSearchEngine;

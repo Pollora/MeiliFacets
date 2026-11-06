@@ -6,7 +6,7 @@ namespace Modules\MeiliFacets\Tests\Feature;
 
 use Closure;
 use Modules\MeiliFacets\Enums\ScriptModule;
-use Modules\MeiliFacets\Listing\CurrentListing;
+use Modules\MeiliFacets\Http\CurrentListing;
 use Modules\MeiliFacets\Listing\ProductListing;
 use Modules\MeiliFacets\Search\BrowserConnection;
 use Modules\MeiliFacets\View\ClientScript;

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\SiteSearch;
 
 use LogicException;
+use Modules\MeiliFacets\Listing\SearchableType;
 use Modules\MeiliFacets\Support\NamedRegistry;
 
 /**

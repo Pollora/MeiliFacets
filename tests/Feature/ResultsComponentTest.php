@@ -11,7 +11,7 @@ use Illuminate\View\DynamicComponent;
 use Modules\MeiliFacets\Enums\CardField;
 use Modules\MeiliFacets\Enums\Hook;
 use Modules\MeiliFacets\Enums\ImagePriority;
-use Modules\MeiliFacets\Listing\CurrentListing;
+use Modules\MeiliFacets\Http\CurrentListing;
 use Modules\MeiliFacets\Listing\Pagination;
 use Modules\MeiliFacets\Listing\ProductListing;
 use Modules\MeiliFacets\Seo\ItemList;

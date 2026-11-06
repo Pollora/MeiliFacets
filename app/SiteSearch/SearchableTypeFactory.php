@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\SiteSearch;
 
 use Modules\MeiliFacets\Enums\DocumentField;
-use Modules\MeiliFacets\Search\PublishedPosts;
+use Modules\MeiliFacets\Listing\NoFieldToSearch;
+use Modules\MeiliFacets\Listing\PublishedPosts;
+use Modules\MeiliFacets\Listing\SearchableType;
 use WP_Post_Type;
 
 final readonly class SearchableTypeFactory

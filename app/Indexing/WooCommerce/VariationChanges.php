@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Indexing\WooCommerce;
 
-use Modules\MeiliFacets\Search\VisibleProducts;
+use Modules\MeiliFacets\Listing\VisibleProducts;
 use Pollora\Attributes\Action;
 
 /** Re-indexes the product of every variation changed during the request, once. */

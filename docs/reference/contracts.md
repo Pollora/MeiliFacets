@@ -133,7 +133,7 @@ All under `Modules\MeiliFacets\`.
 | `Listing\CardVariant` | class | one way a product is sold, inside its card: facets, price, fields, in stock; `toArray()`, `read()` | [Card variants](../customising/card.md#card-variants) |
 | `Listing\VariantChoice` | class | `shown(array $card)`: the card through the variant the filters point to once a variation attribute is checked, as projected otherwise | [Card variants](../customising/card.md#card-variants) |
 | `Listing\ListingUnavailable` | exception | thrown by a listing's constructor to opt out quietly | [Listing other content](../listing/custom-listing.md) |
-| `SiteSearch\SearchableType` | class | a searchable type; `withHeading()`, `withSeeAllLabel()`, `withCard()`, `withArchive()`, `withoutArchive()`, `withSearchOn()` | [Searchable types](../search/types.md) |
+| `Listing\SearchableType` | class | a searchable type; `withHeading()`, `withSeeAllLabel()`, `withCard()`, `withArchive()`, `withoutArchive()`, `withSearchOn()` | [Searchable types](../search/types.md) |
 | `SiteSearch\SearchableTypeFactory` | class | `forPostType()`, `make()` | [Searchable types](../search/types.md) |
 | `Enums\SelectionMode` | enum | `Multiple`, `Single` | [Facets](../listing/facets.md) |
 | `Enums\DisplayOrder` | enum | `Count`, `Declared` | [Facets](../listing/facets.md) |
@@ -149,9 +149,9 @@ All under `Modules\MeiliFacets\`.
 | `Enums\DocumentField`, `Enums\PriceField`, `Enums\ProductMeta`, `Enums\SearchedMeta` | enums | document field names and paths | [Index settings](index-settings.md) |
 | `Enums\ProductTaxonomy` | enum | WooCommerce taxonomies; `technical()` lists those never searched | [Search relevance](../indexing/relevance.md) |
 | `Enums\Hook` | enum | the `data-meili` hooks; `->attribute()` | [`data-meili` hooks](hooks.md) |
-| `Search\PublishedPosts` | helper | `of($postType)`: filter clauses for published posts of a type | [Listing other content](../listing/custom-listing.md) |
-| `Search\FilterExpression` | helper | `equals()`, `without()`, `all()`, `any()`: Meilisearch filter clauses | [Listing other content](../listing/custom-listing.md) |
-| `Search\VisibleProducts` | helper | `inCatalogue()`, `inSearch()`: clauses for visible products; `onVariants()`: the same clauses widened to the variations' post type, parents left out | [Searchable types](../search/types.md) |
+| `Listing\PublishedPosts` | helper | `of($postType)`: filter clauses for published posts of a type | [Listing other content](../listing/custom-listing.md) |
+| `Listing\FilterExpression` | helper | `equals()`, `without()`, `all()`, `any()`: Meilisearch filter clauses | [Listing other content](../listing/custom-listing.md) |
+| `Listing\VisibleProducts` | helper | `inCatalogue()`, `inSearch()`: clauses for visible products; `onVariants()`: the same clauses widened to the variations' post type, parents left out | [Searchable types](../search/types.md) |
 | `Support\WooCommerce` | helper | `isActive()` | [Composing the panel](../search/composition.md) |
 
 ## Watch out

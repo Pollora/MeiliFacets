@@ -7,7 +7,7 @@ namespace Modules\MeiliFacets\View;
 use Modules\MeiliFacets\Enums\ActiveValueKind;
 use Modules\MeiliFacets\Enums\QueryParameter;
 use Modules\MeiliFacets\Listing\Facet;
-use Modules\MeiliFacets\Listing\ResolvedListing;
+use Modules\MeiliFacets\Search\ResolvedListing;
 use Modules\MeiliFacets\Support\Money;
 use Modules\MeiliFacets\Support\UrlParameters;
 

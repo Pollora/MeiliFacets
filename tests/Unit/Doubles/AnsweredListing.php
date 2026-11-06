@@ -7,10 +7,10 @@ namespace Modules\MeiliFacets\Tests\Unit\Doubles;
 use Modules\MeiliFacets\Contracts\SearchEngine;
 use Modules\MeiliFacets\Listing\FacetValues;
 use Modules\MeiliFacets\Listing\ListingState;
-use Modules\MeiliFacets\Listing\ResolvedListing;
 use Modules\MeiliFacets\Search\DisjunctiveFacetCounter;
 use Modules\MeiliFacets\Search\EngineLimits;
 use Modules\MeiliFacets\Search\ListingSearch;
+use Modules\MeiliFacets\Search\ResolvedListing;
 
 /** A listing of 16 cards a page. */
 final class AnsweredListing

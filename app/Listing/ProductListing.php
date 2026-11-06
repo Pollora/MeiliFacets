@@ -14,9 +14,6 @@ use Modules\MeiliFacets\Contracts\VariantScopedListing;
 use Modules\MeiliFacets\Enums\ApplyMode;
 use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Enums\PriceField;
-use Modules\MeiliFacets\Search\FilterExpression;
-use Modules\MeiliFacets\Search\VisibleProducts;
-use Modules\MeiliFacets\SiteSearch\SearchableType;
 use Modules\MeiliFacets\Support\WooCommerce;
 use WP_Term;
 

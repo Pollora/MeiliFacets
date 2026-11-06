@@ -7,8 +7,8 @@ namespace Modules\MeiliFacets\View\Components;
 use BackedEnum;
 use Illuminate\Support\Facades\View;
 use Modules\MeiliFacets\Contracts\Placeable;
-use Modules\MeiliFacets\Listing\CurrentListing;
-use Modules\MeiliFacets\Listing\ResolvedListing;
+use Modules\MeiliFacets\Http\CurrentListing;
+use Modules\MeiliFacets\Search\ResolvedListing;
 use Modules\MeiliFacets\View\ElementId;
 
 abstract class ListingComponent extends ContractComponent

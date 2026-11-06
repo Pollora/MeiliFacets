@@ -36,7 +36,7 @@ use Modules\MeiliFacets\Contracts\Listing;
 use Modules\MeiliFacets\Enums\ApplyMode;
 use Modules\MeiliFacets\Listing\Facet;
 use Modules\MeiliFacets\Listing\Sort;
-use Modules\MeiliFacets\Search\PublishedPosts;
+use Modules\MeiliFacets\Listing\PublishedPosts;
 
 final class EventListing implements Listing
 {
@@ -199,8 +199,8 @@ namespace App\Listing;
 use Modules\MeiliFacets\Contracts\Listing;
 use Modules\MeiliFacets\Enums\ApplyMode;
 use Modules\MeiliFacets\Listing\Facet;
-use Modules\MeiliFacets\Search\FilterExpression;
-use Modules\MeiliFacets\Search\PublishedPosts;
+use Modules\MeiliFacets\Listing\FilterExpression;
+use Modules\MeiliFacets\Listing\PublishedPosts;
 use WP_Term;
 
 final class EventListing implements Listing

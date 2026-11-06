@@ -6,8 +6,8 @@ namespace Modules\MeiliFacets\View\Components\Listing;
 
 use Illuminate\Contracts\View\View;
 use Modules\MeiliFacets\Enums\ImagePriority;
+use Modules\MeiliFacets\Http\CurrentListing;
 use Modules\MeiliFacets\Http\IndexingPolicy;
-use Modules\MeiliFacets\Listing\CurrentListing;
 use Modules\MeiliFacets\Seo\ItemList;
 use Modules\MeiliFacets\View\CardBinding;
 use Modules\MeiliFacets\View\CardSettings;

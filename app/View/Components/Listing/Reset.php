@@ -6,7 +6,7 @@ namespace Modules\MeiliFacets\View\Components\Listing;
 
 use Illuminate\Contracts\View\View;
 use Modules\MeiliFacets\Enums\ResetShape;
-use Modules\MeiliFacets\Listing\CurrentListing;
+use Modules\MeiliFacets\Http\CurrentListing;
 use Modules\MeiliFacets\View\Components\ListingComponent;
 
 final class Reset extends ListingComponent

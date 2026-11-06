@@ -6,7 +6,7 @@ namespace Modules\MeiliFacets\Tests\Unit;
 
 use Meilisearch\Client;
 use Meilisearch\Contracts\MultiSearchFederation;
-use Modules\MeiliFacets\Search\EngineUnavailable;
+use Modules\MeiliFacets\Contracts\EngineUnavailable;
 use Modules\MeiliFacets\Search\MeilisearchEngine;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Modules\MeiliFacets\Search;
+namespace Modules\MeiliFacets\Contracts;
 
 use RuntimeException;
 use Throwable;

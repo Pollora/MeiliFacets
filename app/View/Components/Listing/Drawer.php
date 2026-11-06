@@ -7,7 +7,7 @@ namespace Modules\MeiliFacets\View\Components\Listing;
 use Illuminate\Container\Attributes\Config;
 use Illuminate\Contracts\View\View;
 use Modules\MeiliFacets\Enums\RowOverflow;
-use Modules\MeiliFacets\Listing\CurrentListing;
+use Modules\MeiliFacets\Http\CurrentListing;
 use Modules\MeiliFacets\View\Components\ListingComponent;
 
 final class Drawer extends ListingComponent

@@ -6,6 +6,7 @@ namespace Modules\MeiliFacets\SiteSearch;
 
 use Modules\MeiliFacets\Contracts\SearchableTypes;
 use Modules\MeiliFacets\Indexing\IndexedPostTypes;
+use Modules\MeiliFacets\Listing\SearchableType;
 
 final readonly class AcceptedSearchTypes
 {

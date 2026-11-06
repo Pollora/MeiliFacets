@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Tests\Unit;
 
-use Modules\MeiliFacets\SiteSearch\NoFieldToSearch;
-use Modules\MeiliFacets\SiteSearch\SearchableType;
+use Modules\MeiliFacets\Listing\NoFieldToSearch;
+use Modules\MeiliFacets\Listing\SearchableType;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 

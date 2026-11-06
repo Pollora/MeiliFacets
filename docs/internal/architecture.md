@@ -144,9 +144,9 @@ cascade de vues du thème — et enregistre **un provider par couche**, calqué 
 | --- | --- |
 | `IndexingServiceProvider` | `IndexAttributes`, `CardProjector`, `VariantFields`, `TermHierarchy`, `SearchableAttributes`, `IndexedTaxonomies` — ce que le document porte et ce que l'index cherche |
 | `SearchServiceProvider` | `SearchEngine`, `BrowserConnection`, `EngineLimits`, `FacetCounter` — l'envoi des recherches |
-| `ListingServiceProvider` | les adaptateurs de termes, `SiteCollator`, `NameOrder`, `ProductFacets`, `ProductSorts`, la découverte des listings (singleton, ajoutée au moteur par le `DiscoveryRegistrar` de Pollora) et leur registre, `CurrentListing` |
+| `ListingServiceProvider` | les adaptateurs de termes, `SiteCollator`, `NameOrder`, `ProductFacets`, `ProductSorts`, la découverte des listings (singleton, ajoutée au moteur par le `DiscoveryRegistrar` de Pollora) et leur registre |
 | `SiteSearchServiceProvider` | `SearchableTypes`, `AcceptedSearchTypes`, `SearchSettings`, `SearchRegistry` — la recherche du site |
-| `RenderingServiceProvider` | `ClientScript`, `CardSettings`, `CountLabel`, `ServiceUnavailable`, `ListingPage`, `PageMetadata` — ce dont la page a besoin en plus. *Nommé ainsi et pas `ViewServiceProvider` : Laravel en charge déjà un du même nom court.* |
+| `RenderingServiceProvider` | `ClientScript`, `CardSettings`, `CountLabel`, `ServiceUnavailable`, `ListingPage`, `CurrentListing`, `PageMetadata` — ce dont la page a besoin en plus. *Nommé ainsi et pas `ViewServiceProvider` : Laravel en charge déjà un du même nom court.* |
 
 Les fabriques privées restent avec leurs liaisons : c'est là que les réglages sont lus, avec leur
 défaut, comme la règle l'impose — jamais depuis un objet de domaine. Une classe qui reçoit un réglage le lit
@@ -219,6 +219,12 @@ réindexation (`D-e`).
 
 ## Structure du module
 
+**Couches** (`R-252`, vérifiées par `NamespaceLayersTest`). Chaque espace de noms n'atteint que ceux du dessous :
+`Enums` → `Support` → `Contracts` et `Listing` (une couche : les contrats nomment les objets du domaine, et le domaine
+prend des contrats) → `Discovery` → `Search` → `Indexing` → `SiteSearch` → `Http` → `Seo` → `Console` → `View`. Les
+providers lient toutes les couches et restent à part. Seule exception tolérée : `Enums\Presentation` implémente
+`Contracts\ValuePresentation`, parce qu'`app/Enums` reste à plat.
+
 ```
 Modules/MeiliFacets/
 ├── app/
@@ -227,12 +233,15 @@ Modules/MeiliFacets/
 │   │                carte, attributs d'index, termes, compteur, moteur
 │   ├── Discovery/   découverte des classes portant le contrat Listing
 │   ├── Enums/       contrats figés : champs de document, clés de réglage, crochets
-│   ├── Http/        indexabilité, adresse de chaque page du listing, page d'indisponibilité
+│   ├── Http/        la requête : listing courant (`CurrentListing`), adresse de chaque page,
+│   │                indexabilité, page d'indisponibilité
 │   ├── Indexing/    projection des facettes et de la carte, branchement sur MeiliScout ;
 │   │                WooCommerce/ : prix, stock, variantes et carte des produits
-│   ├── Listing/     le domaine : état, facettes, pagination, tri
+│   ├── Listing/     le domaine : état, facettes, pagination, tri, et le vocabulaire des filtres
+│   │                (`FilterExpression`, `PublishedPosts`, `VisibleProducts`, `SearchableType`)
 │   ├── Providers/
-│   ├── Search/      connexion, plan de requête, lecture des réponses
+│   ├── Search/      connexion, plan de requête, lecture des réponses (`ResolvedListing`)
+│   ├── SiteSearch/  la recherche du site : types recherchés, sections, registre
 │   ├── Seo/         données structurées
 │   ├── Support/     gardes de contexte et noms de paramètres
 │   └── View/        composants Blade, description publiée au navigateur ; titre, canonique et

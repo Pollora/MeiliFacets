@@ -6,12 +6,12 @@ namespace Modules\MeiliFacets\Tests\Feature;
 
 use Modules\MeiliFacets\Contracts\SearchableTypes;
 use Modules\MeiliFacets\Enums\QueryParameter;
+use Modules\MeiliFacets\Http\CurrentListing;
 use Modules\MeiliFacets\Http\PageAddress;
-use Modules\MeiliFacets\Listing\CurrentListing;
+use Modules\MeiliFacets\Listing\FilterExpression;
 use Modules\MeiliFacets\Listing\ProductListing;
-use Modules\MeiliFacets\Listing\ResolvedListing;
-use Modules\MeiliFacets\Search\FilterExpression;
-use Modules\MeiliFacets\Search\VisibleProducts;
+use Modules\MeiliFacets\Listing\VisibleProducts;
+use Modules\MeiliFacets\Search\ResolvedListing;
 use Modules\MeiliFacets\SiteSearch\SearchSettings;
 use Modules\MeiliFacets\Support\UrlParameters;
 use Modules\MeiliFacets\Tests\Feature\Concerns\RequestsAnAddress;

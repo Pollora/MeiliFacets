@@ -19,6 +19,12 @@ changes is in the [changelog](../CHANGELOG.md).
 - **A project on an SEO plugin other than Yoast SEO** (Rank Math, SEOPress…) binds its own `PageMetadata` for the
   title and the canonical of a page the client turns to; without it, they stay those of the page loaded. See
   [The title and the canonical of a turned page](listing/results-sort-pagination.md#the-title-and-the-canonical-of-a-turned-page).
+- **Nine classes moved namespace**, unchanged otherwise; update the `use` statements and any container binding:
+  - `Search\FilterExpression`, `Search\PublishedPosts`, `Search\VisibleProducts` → `Listing\…`;
+  - `SiteSearch\SearchableType`, `SiteSearch\NoFieldToSearch` → `Listing\…`;
+  - `Search\EngineUnavailable` → `Contracts\EngineUnavailable`;
+  - `Listing\CurrentListing` → `Http\CurrentListing`, now bound by `RenderingServiceProvider`;
+  - `Listing\ResolvedListing` → `Search\ResolvedListing`.
 - **A project class calling `ListingPage::markAsCurrent()`** passes the listing it renders:
   `markAsCurrent($listing)`. The `meilifacets/is_listing_page` filter is unchanged.
 - **A copied view or a project class calling `ResolvedListing`** follows its smaller surface:

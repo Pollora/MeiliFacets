@@ -8,6 +8,7 @@ use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
 use Illuminate\Support\ServiceProvider;
 use Modules\MeiliFacets\Contracts\PageMetadata;
+use Modules\MeiliFacets\Http\CurrentListing;
 use Modules\MeiliFacets\Http\ListingPage;
 use Modules\MeiliFacets\Http\ServiceUnavailable;
 use Modules\MeiliFacets\Http\ServiceUnavailableHeaders;
@@ -26,6 +27,7 @@ final class RenderingServiceProvider extends ServiceProvider
     {
         $this->app->scoped(ServiceUnavailable::class);
         $this->app->scoped(ListingPage::class);
+        $this->app->scoped(CurrentListing::class);
         $this->app->scoped(ClientScript::class);
         $this->app->scoped(CountLabel::class, fn (): CountLabel => new CountLabel(SiteLocale::current(...)));
         // Resolved with the listing, once WordPress has loaded its plugins.

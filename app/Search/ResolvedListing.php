@@ -2,21 +2,29 @@
 
 declare(strict_types=1);
 
-namespace Modules\MeiliFacets\Listing;
+namespace Modules\MeiliFacets\Search;
 
 use Modules\MeiliFacets\Contracts\CardComponentListing;
 use Modules\MeiliFacets\Contracts\DefaultSortedListing;
+use Modules\MeiliFacets\Contracts\EngineUnavailable;
 use Modules\MeiliFacets\Contracts\Listing;
 use Modules\MeiliFacets\Contracts\Placeable;
 use Modules\MeiliFacets\Contracts\VariantScopedListing;
 use Modules\MeiliFacets\Enums\ApplyMode;
-use Modules\MeiliFacets\Search\EngineLimits;
-use Modules\MeiliFacets\Search\EngineUnavailable;
-use Modules\MeiliFacets\Search\FacetTruncated;
-use Modules\MeiliFacets\Search\FilterExpression;
-use Modules\MeiliFacets\Search\ListingResults;
-use Modules\MeiliFacets\Search\ListingSearch;
-use Modules\MeiliFacets\Search\QueryPlan;
+use Modules\MeiliFacets\Listing\Facet;
+use Modules\MeiliFacets\Listing\FacetValue;
+use Modules\MeiliFacets\Listing\FacetValues;
+use Modules\MeiliFacets\Listing\FilterExpression;
+use Modules\MeiliFacets\Listing\ListingState;
+use Modules\MeiliFacets\Listing\PagePlacement;
+use Modules\MeiliFacets\Listing\Pagination;
+use Modules\MeiliFacets\Listing\PlacementRefused;
+use Modules\MeiliFacets\Listing\PriceFilter;
+use Modules\MeiliFacets\Listing\SearchScope;
+use Modules\MeiliFacets\Listing\Sort;
+use Modules\MeiliFacets\Listing\SortFilter;
+use Modules\MeiliFacets\Listing\StateReader;
+use Modules\MeiliFacets\Listing\VariantChoice;
 
 final class ResolvedListing
 {

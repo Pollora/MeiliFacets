@@ -8,7 +8,8 @@ use Closure;
 use Modules\MeiliFacets\Contracts\SearchableTypes;
 use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Indexing\WooCommerce\WooCommerceProductFields;
-use Modules\MeiliFacets\Search\VisibleProducts;
+use Modules\MeiliFacets\Listing\SearchableType;
+use Modules\MeiliFacets\Listing\VisibleProducts;
 
 final class WooCommerceSearchableTypes implements SearchableTypes
 {

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Indexing\WooCommerce;
 
-use Modules\MeiliFacets\Search\VisibleProducts;
+use Modules\MeiliFacets\Listing\VisibleProducts;
 use Modules\MeiliFacets\Support\WooCommerce;
 use Pollora\Attributes\Action;
 use WP_Term;

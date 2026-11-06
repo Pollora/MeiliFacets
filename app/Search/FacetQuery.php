@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Search;
 
 use Modules\MeiliFacets\Listing\Facet;
+use Modules\MeiliFacets\Listing\FilterExpression;
 use Modules\MeiliFacets\Listing\ListingState;
 
 final readonly class FacetQuery implements FilterQuery

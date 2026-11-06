@@ -2,11 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Modules\MeiliFacets\Search;
+namespace Modules\MeiliFacets\Listing;
 
 use Modules\MeiliFacets\Enums\PriceField;
-use Modules\MeiliFacets\Listing\Facet;
-use Modules\MeiliFacets\Listing\Range;
 
 final readonly class FilterExpression
 {

@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Listing;
 
-use Modules\MeiliFacets\Search\FilterExpression;
-
 final readonly class SortFilter
 {
     private const string TRUE = 'true';

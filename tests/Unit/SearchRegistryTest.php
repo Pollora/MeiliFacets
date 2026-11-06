@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Tests\Unit;
 
 use LogicException;
-use Modules\MeiliFacets\SiteSearch\SearchableType;
+use Modules\MeiliFacets\Listing\SearchableType;
 use Modules\MeiliFacets\SiteSearch\SearchRegistry;
 use Modules\MeiliFacets\SiteSearch\SearchRoot;
 use Modules\MeiliFacets\SiteSearch\SearchSettings;

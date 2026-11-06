@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\SiteSearch;
 
+use Modules\MeiliFacets\Listing\SearchableType;
+
 final readonly class SearchRoot
 {
     public const string DEFAULT_NAME = 'search';

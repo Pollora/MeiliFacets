@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Tests\Unit;
 
 use Modules\MeiliFacets\Listing\Facet;
+use Modules\MeiliFacets\Listing\FilterExpression;
 use Modules\MeiliFacets\Listing\Range;
-use Modules\MeiliFacets\Search\FilterExpression;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 

@@ -7,8 +7,8 @@ namespace Modules\MeiliFacets\View;
 use Modules\MeiliFacets\Enums\PriceBound;
 use Modules\MeiliFacets\Enums\QueryParameter;
 use Modules\MeiliFacets\Listing\Range;
-use Modules\MeiliFacets\Listing\ResolvedListing;
 use Modules\MeiliFacets\Listing\StateReader;
+use Modules\MeiliFacets\Search\ResolvedListing;
 use Modules\MeiliFacets\Support\UrlParameters;
 
 final readonly class StateFields

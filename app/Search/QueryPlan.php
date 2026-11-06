@@ -12,6 +12,7 @@ use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Enums\PriceField;
 use Modules\MeiliFacets\Enums\SortDirection;
 use Modules\MeiliFacets\Listing\Facet;
+use Modules\MeiliFacets\Listing\FilterExpression;
 use Modules\MeiliFacets\Listing\ListingState;
 use Modules\MeiliFacets\Listing\PriceFilter;
 use Modules\MeiliFacets\Listing\SearchScope;

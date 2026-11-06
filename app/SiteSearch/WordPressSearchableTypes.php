@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\SiteSearch;
 
 use Modules\MeiliFacets\Contracts\SearchableTypes;
-use Modules\MeiliFacets\Search\VisibleProducts;
+use Modules\MeiliFacets\Listing\VisibleProducts;
 
 final class WordPressSearchableTypes implements SearchableTypes
 {

@@ -11,7 +11,7 @@ use Modules\MeiliFacets\Listing\Facet;
 use Modules\MeiliFacets\Listing\PriceFilter;
 use Modules\MeiliFacets\Listing\SearchScope;
 use Modules\MeiliFacets\Listing\Sort;
-use Modules\MeiliFacets\Search\VisibleProducts;
+use Modules\MeiliFacets\Listing\VisibleProducts;
 
 /** Products filtered by brand, size and price, whose sizes have a document each, in a shop's own order. */
 final readonly class FakeVariantScopedListing implements DefaultSortedListing, VariantScopedListing

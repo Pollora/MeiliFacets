@@ -6,7 +6,7 @@ namespace Modules\MeiliFacets\View\Components\Listing;
 
 use Illuminate\Contracts\View\View;
 use Modules\MeiliFacets\Enums\ApplyShape;
-use Modules\MeiliFacets\Listing\CurrentListing;
+use Modules\MeiliFacets\Http\CurrentListing;
 use Modules\MeiliFacets\View\Badge;
 use Modules\MeiliFacets\View\Components\ListingComponent;
 

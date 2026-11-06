@@ -9,7 +9,7 @@ use Illuminate\Support\HtmlString;
 use Illuminate\View\ComponentAttributeBag;
 use Modules\MeiliFacets\Enums\Hook;
 use Modules\MeiliFacets\Enums\QueryParameter;
-use Modules\MeiliFacets\Listing\CurrentListing;
+use Modules\MeiliFacets\Http\CurrentListing;
 use Modules\MeiliFacets\Listing\ProductListing;
 use Modules\MeiliFacets\Support\UrlParameters;
 use Modules\MeiliFacets\Tests\Feature\Concerns\SwitchesTheSiteLocale;

@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Tests\Feature\Concerns;
 
-use Modules\MeiliFacets\Listing\CurrentListing;
+use Modules\MeiliFacets\Http\CurrentListing;
 use Modules\MeiliFacets\Listing\Facet;
 use Modules\MeiliFacets\Listing\FacetValue;
 use Modules\MeiliFacets\Listing\ProductListing;
-use Modules\MeiliFacets\Listing\ResolvedListing;
+use Modules\MeiliFacets\Search\ResolvedListing;
 use Modules\MeiliFacets\Support\UrlParameters;
 
 /** Values of the host's real catalogue, written in the address as ticking them would: a catalogue too small skips. */

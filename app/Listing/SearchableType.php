@@ -2,9 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Modules\MeiliFacets\SiteSearch;
-
-use Modules\MeiliFacets\Listing\SearchScope;
+namespace Modules\MeiliFacets\Listing;
 
 final readonly class SearchableType
 {

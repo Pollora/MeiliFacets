@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Contracts;
 
-use Modules\MeiliFacets\Search\EngineUnavailable;
-
 interface SearchEngine
 {
     /**

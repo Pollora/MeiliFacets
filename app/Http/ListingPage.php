@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Http;
 
 use Modules\MeiliFacets\Listing\Pagination;
-use Modules\MeiliFacets\Listing\ResolvedListing;
+use Modules\MeiliFacets\Search\ResolvedListing;
 
 /**
  * Whether the request being served renders a listing. Hooks that fire in `wp_head` run on every page of the site

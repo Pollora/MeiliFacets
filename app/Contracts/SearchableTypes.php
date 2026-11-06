@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Contracts;
 
-use Modules\MeiliFacets\SiteSearch\SearchableType;
+use Modules\MeiliFacets\Listing\SearchableType;
 
 interface SearchableTypes
 {

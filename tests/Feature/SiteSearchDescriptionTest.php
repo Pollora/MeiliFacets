@@ -6,8 +6,8 @@ namespace Modules\MeiliFacets\Tests\Feature;
 
 use Modules\MeiliFacets\Enums\QueryParameter;
 use Modules\MeiliFacets\Http\ListingPage;
+use Modules\MeiliFacets\Listing\SearchableType;
 use Modules\MeiliFacets\Search\BrowserConnection;
-use Modules\MeiliFacets\SiteSearch\SearchableType;
 use Modules\MeiliFacets\SiteSearch\SearchRoot;
 use Modules\MeiliFacets\SiteSearch\SearchSettings;
 use Modules\MeiliFacets\Support\UrlParameters;

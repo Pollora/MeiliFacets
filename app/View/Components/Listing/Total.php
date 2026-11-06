@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\View\Components\Listing;
 
 use Illuminate\Contracts\View\View;
-use Modules\MeiliFacets\Listing\CurrentListing;
+use Modules\MeiliFacets\Http\CurrentListing;
 use Modules\MeiliFacets\View\Components\ListingComponent;
 use Modules\MeiliFacets\View\CountLabel;
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Search;
 
 use Meilisearch\Client;
+use Modules\MeiliFacets\Contracts\EngineUnavailable;
 use Modules\MeiliFacets\Contracts\SearchEngine;
 use Throwable;
 

@@ -6,7 +6,7 @@ namespace Modules\MeiliFacets\View\Components\Search;
 
 use Illuminate\Contracts\View\View;
 use LogicException;
-use Modules\MeiliFacets\SiteSearch\SearchableType;
+use Modules\MeiliFacets\Listing\SearchableType;
 use Modules\MeiliFacets\SiteSearch\SearchRegistry;
 use Modules\MeiliFacets\SiteSearch\SearchTypeRefused;
 use Modules\MeiliFacets\View\Components\SearchComponent;

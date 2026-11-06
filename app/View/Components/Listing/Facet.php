@@ -9,7 +9,7 @@ use Illuminate\Contracts\View\View;
 use Modules\MeiliFacets\Contracts\ValuePresentation;
 use Modules\MeiliFacets\Enums\InputType;
 use Modules\MeiliFacets\Enums\Presentation;
-use Modules\MeiliFacets\Listing\CurrentListing;
+use Modules\MeiliFacets\Http\CurrentListing;
 use Modules\MeiliFacets\Listing\Facet as Declaration;
 use Modules\MeiliFacets\Listing\FacetValue;
 use Modules\MeiliFacets\Support\UrlParameters;

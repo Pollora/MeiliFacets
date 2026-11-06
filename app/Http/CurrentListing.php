@@ -2,13 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Modules\MeiliFacets\Listing;
+namespace Modules\MeiliFacets\Http;
 
 use Modules\MeiliFacets\Discovery\ListingRegistry;
 use Modules\MeiliFacets\Enums\QueryParameter;
-use Modules\MeiliFacets\Http\PageAddress;
+use Modules\MeiliFacets\Listing\FacetValues;
+use Modules\MeiliFacets\Listing\StateReader;
 use Modules\MeiliFacets\Search\EngineLimits;
 use Modules\MeiliFacets\Search\ListingSearch;
+use Modules\MeiliFacets\Search\ResolvedListing;
 use Modules\MeiliFacets\Support\UrlParameters;
 
 /** One per name for the whole request: components placed anywhere share a single search. */

@@ -3320,7 +3320,7 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
-### R-252 · 🟡 · **ouvert le 2026-11-06, plan à présenter à Louis** — casser le cycle `Listing` ↔ `Search`
+### R-252 · 🟡 · **livré le 2026-11-06, à valider par Louis avant commit** · ouvert le 2026-11-06 — casser le cycle `Listing` ↔ `Search`
 
 **Demande** (Louis, 2026-11-06, après la revue `desloppify` : « Tu peux mieux ranger oui sans soucis »). Revient sur
 la partie « cycle `Listing`↔`Search` reste en l'état » de la décision « Rangement des dossiers » (`R-244`).
@@ -3331,9 +3331,23 @@ la partie « cycle `Listing`↔`Search` reste en l'état » de la décision « R
 - `Search` → `Listing` : huit classes, surtout `ListingState`, `Facet`, `PriceFilter`, `Sort`, `SortFilter`.
 - Sans effet à l'exécution.
 
-**À faire.** Présenter le plan avant tout déplacement : sens des dépendances, classes déplacées, noms publics qui
-changent, `use` à corriger dans le projet, note de migration. `SearchScope` (boucle `Listing`↔`SiteSearch`) est à
-traiter dans le même plan.
+**Plan** (agent de planification, validé par Louis) : tout le cœur formait une seule composante cyclique (`Listing`
+↔ `Search`, ↔ `SiteSearch`, ↔ `Http`, ↔ `Discovery`, `Enums` ↔ `Contracts`, `Contracts` ↔ `Listing`). Couches
+retenues : `Enums` → `Support` → `Contracts`+`Listing` → `Discovery` → `Search` → `Indexing` → `SiteSearch` → `Http`
+→ `Seo` → `Console` → `View`. `Presentation` reste dans `Enums` (Louis), sa flèche est tolérée.
+
+**Livré.**
+- `NamespaceLayersTest` : lit les noms complets d'`app/`, échoue sur toute flèche qui remonte ; une seule tolérée.
+- Déplacés : `FilterExpression`, `PublishedPosts`, `VisibleProducts` (`Search` → `Listing`) ; `SearchableType`,
+  `NoFieldToSearch` (`SiteSearch` → `Listing`) ; `EngineUnavailable` (`Search` → `Contracts`) ; `CurrentListing`
+  (`Listing` → `Http`, lié par `RenderingServiceProvider`) ; `ResolvedListing` (`Listing` → `Search`).
+- Projet : `JournalListing` et `ProductArchiveFiltersTest` suivent les nouveaux noms.
+
+**Observé.** `NamespaceLayersTest` vert (aucune flèche montante hors `Presentation`) ; `composer check` vert (841 PHP,
+1058 client) ; `Modules` 1400 ; Playwright 24/24 ; `/boutique` (19 cartes) et `/journal` répondent. La suite
+complète du projet échoue sur 59 tests, sans lien : 46 `rocket_clean_post` introuvable quand toutes les suites
+tournent ensemble, `WpRocketCssDeliveryMigrationsTest` et `ProductJournalTest` (données), et
+`ProductArchiveFiltersTest`, vert lancé seul.
 
 ### R-251 · 🟠 · **livré le 2026-11-06, à valider par Louis avant commit** · ouvert le 2026-11-06 — les directives robots d'une vue tournée restaient celles de la vue chargée
 

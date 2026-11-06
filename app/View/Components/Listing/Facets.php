@@ -6,7 +6,7 @@ namespace Modules\MeiliFacets\View\Components\Listing;
 
 use Illuminate\Contracts\View\View;
 use Modules\MeiliFacets\Contracts\Placeable;
-use Modules\MeiliFacets\Listing\CurrentListing;
+use Modules\MeiliFacets\Http\CurrentListing;
 use Modules\MeiliFacets\Listing\PriceFilter;
 use Modules\MeiliFacets\View\Components\ListingComponent;
 

@@ -16,6 +16,10 @@ What to change in a project when moving from one version to the next is in
 
 ### Changed
 
+- Nine classes moved so that each namespace only reaches the ones below it: `FilterExpression`, `PublishedPosts`,
+  `VisibleProducts`, `SearchableType` and `NoFieldToSearch` to `Listing`, `EngineUnavailable` to `Contracts`,
+  `CurrentListing` to `Http`, `ResolvedListing` to `Search`. See [docs/upgrading.md](docs/upgrading.md).
+
 - The pagination is made of links to the path WordPress paginates under, `/page/N`: the server renders each address
   whole, and crawlers reach every page, each `noindex, follow` with its own canonical. A plain click still turns the
   page in the browser and adds a history entry for its address; a click opening a new tab is left to the browser.

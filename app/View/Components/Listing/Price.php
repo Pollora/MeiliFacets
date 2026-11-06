@@ -8,7 +8,7 @@ use BackedEnum;
 use Illuminate\Contracts\View\View;
 use Modules\MeiliFacets\Enums\PriceBound;
 use Modules\MeiliFacets\Enums\PricePart;
-use Modules\MeiliFacets\Listing\CurrentListing;
+use Modules\MeiliFacets\Http\CurrentListing;
 use Modules\MeiliFacets\Listing\PriceFilter;
 use Modules\MeiliFacets\Listing\Range;
 use Modules\MeiliFacets\Support\Money;
