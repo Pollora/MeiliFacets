@@ -56,20 +56,20 @@ namespace and the browser script changed: publish the assets, clear the page cac
   ([#4](https://github.com/Pollora/MeiliFacets/issues/4)).
 - Saving a product used to re-index it once per meta WooCommerce writes, each pass resending the index settings.
   MeiliScout 2.5 sends the writes of a request once, at its end, and resends the settings only when they change; this
-  has not been measured with the module yet.
+  has not been measured with the module yet ([#21](https://github.com/Pollora/MeiliFacets/issues/21)).
 - MeiliScout's *Search weights* screen (*Relevance* before 2.6) has no effect: the module writes its own searched
-  fields at every indexation.
-- MeiliScout's suggestion field is not supported alongside the module: it reads fields the module does not display.
+  fields at every indexation ([#22](https://github.com/Pollora/MeiliFacets/issues/22)).
+- MeiliScout's suggestion field is not supported alongside the module: it reads fields the module does not display ([#23](https://github.com/Pollora/MeiliFacets/issues/23)).
 - On a WooCommerce attribute archive (`/pa_volume/400ml/`), the card does not show the variant of the term browsed.
   Attribute archives are outside the module's scope: leave « Enable archives? » unchecked.
-- A product whose variants share a term counts once per variant under that term.
+- A product whose variants share a term counts once per variant under that term ([#24](https://github.com/Pollora/MeiliFacets/issues/24)).
 - Past the row limit on a wide screen, the side sheet needs the browser client: when it does not start, the
-  « Filters » or « Show more » button opens nothing.
+  « Filters » or « Show more » button opens nothing ([#25](https://github.com/Pollora/MeiliFacets/issues/25)).
 - A theme that moves the drawer's `media` past `48em` also redeclares the side sheet block.
-- « Popularity » and « Average rating » cannot be the listing's default order yet.
-- In `submit` mode, a click on a page link drops the boxes ticked and not yet applied.
+- « Popularity » and « Average rating » cannot be the listing's default order yet ([#26](https://github.com/Pollora/MeiliFacets/issues/26)).
+- In `submit` mode, a click on a page link drops the boxes ticked and not yet applied ([#27](https://github.com/Pollora/MeiliFacets/issues/27)).
 - With an SEO plugin other than Yoast SEO, the title and the canonical of a page turned in place stay those of the
-  page loaded until the project binds its own `PageMetadata`.
+  page loaded until the project binds its own `PageMetadata` ([#28](https://github.com/Pollora/MeiliFacets/issues/28)).
 
 ## [0.4.0](https://github.com/Pollora/MeiliFacets/releases/tag/0.4.0) - 2026-11-05
 
