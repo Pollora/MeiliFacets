@@ -3320,7 +3320,7 @@ qu'aucune page n'ait à être chargée.
 **Vérifié** : `composer check` vert, suite `Modules` 403 tests, client 282. Relevés à part : `R-159`,
 `R-160`, `R-161`.
 
-### R-252 · 🟡 · **livré le 2026-11-06, à valider par Louis avant commit** · ouvert le 2026-11-06 — casser le cycle `Listing` ↔ `Search`
+### R-252 · 🟡 · **fermé le 2026-11-10** (livré le 2026-11-06, commits `d83ad80` et `20e7989`) · ouvert le 2026-11-06 — casser le cycle `Listing` ↔ `Search`
 
 **Demande** (Louis, 2026-11-06, après la revue `desloppify` : « Tu peux mieux ranger oui sans soucis »). Revient sur
 la partie « cycle `Listing`↔`Search` reste en l'état » de la décision « Rangement des dossiers » (`R-244`).
@@ -3349,7 +3349,7 @@ complète du projet échoue sur 59 tests, sans lien : 46 `rocket_clean_post` int
 tournent ensemble, `WpRocketCssDeliveryMigrationsTest` et `ProductJournalTest` (données), et
 `ProductArchiveFiltersTest`, vert lancé seul.
 
-### R-251 · 🟠 · **livré le 2026-11-06, à valider par Louis avant commit** · ouvert le 2026-11-06 — les directives robots d'une vue tournée restaient celles de la vue chargée
+### R-251 · 🟠 · **fermé le 2026-11-10** (livré le 2026-11-06, commits `d83ad80` et `20e7989`) · ouvert le 2026-11-06 — les directives robots d'une vue tournée restaient celles de la vue chargée
 
 **Constat** (relevé en `R-250`, Louis : « doit être cohérent aussi »). Partir de `/boutique`, servie
 `index, follow, max-image-preview:large…`, et tourner en page 2 laissait `index` dans la tête, où le serveur sert
@@ -3375,7 +3375,7 @@ et retire ceux qu'un `noindex` contredit (`wp-robots-integration.php:46-60`).
 - Tests : `composer check` vert (837 PHP, 1055 client) ; `Modules` 1396 ; Playwright 23/24, le scénario clavier de la
   recherche du site échoue (non lié, déjà vu instable).
 
-### R-250 · 🟠 · **livré le 2026-11-06, à valider par Louis avant commit** · ouvert le 2026-11-06 — la canonique d'une page tournée restait celle de la page de départ
+### R-250 · 🟠 · **fermé le 2026-11-10** (livré le 2026-11-06, commits `d83ad80` et `20e7989`) · ouvert le 2026-11-06 — la canonique d'une page tournée restait celle de la page de départ
 
 **Constat** (Louis, relevé d'extension SEO : `/boutique/page/2?marque=lessismore`, « Canonicalised » `/boutique/page/3`
 après un retour). Le serveur imprime la bonne canonique : `/boutique/page/3` sur `/boutique/page/3?marque=…`. Mais
@@ -3408,7 +3408,7 @@ lien à numéro : `get_pagenum_link(999999999)` de WooCommerce (`loop/pagination
 - `robots` ne suivait pas non plus côté client : traité en `R-251`.
 - `og:url` reste `/boutique` sur toutes les pages : c'est aussi ce que Yoast imprime côté serveur.
 
-### R-249 · 🟠 · **livré le 2026-11-06, à valider par Louis avant commit** · ouvert le 2026-11-06 — le titre ne suivait pas la page, et comptait les pages de WordPress sous un filtre
+### R-249 · 🟠 · **fermé le 2026-11-10** (livré le 2026-11-06, commits `d83ad80` et `20e7989`) · ouvert le 2026-11-06 — le titre ne suivait pas la page, et comptait les pages de WordPress sous un filtre
 
 **Constat** (Louis : « j'ai changé de page, la meta title est identique »). Deux défauts.
 - **Client** : la page tournée sur place (`R-245`) gardait le titre de la page de départ.
@@ -3464,7 +3464,7 @@ Tout est traité dans la version 3, sauf le renommage de `PAGE`, qui est fait.
 - La limite de chemin à plusieurs listings (`/page/N` commun à la page) est déjà celle de `R-245`.
 - Les métas réservées aux robots ne suivent pas côté client.
 
-### R-248 · 🟠 · **livré le 2026-11-06, à valider par Louis avant commit** · ouvert le 2026-11-06 — les archives de catégorie sans base répondaient 404 : la base `categorie-produit` revient
+### R-248 · 🟠 · **fermé le 2026-11-10** (livré le 2026-11-06, commits `d83ad80` et `20e7989`) · ouvert le 2026-11-06 — les archives de catégorie sans base répondaient 404 : la base `categorie-produit` revient
 
 **Constat.** Le thème retirait la base `categorie-produit` des liens de catégorie (`CategoryPermalinks`, commit
 `f98d46d`). Pour servir `/visage`, il attendait un 404 dans `request`, mais avec `/%postname%` WordPress lit
@@ -3492,7 +3492,7 @@ redirection n'est à prévoir. La base reste réglable sans code dans Réglages 
 **Reste ouvert.** La canonique de `non-classe` est `/page/2?product_cat=non-classe` : la ligne `yoast_indexable`
 datée du 2026-10-19 est périmée, et Yoast refuse de la reconstruire en environnement `local`.
 
-### R-247 · 🟡 · **livré le 2026-11-06, à valider par Louis avant commit** · ouvert le 2026-11-06 — `ResolvedListing` réduit à ce qu'il calcule, sur les recommandations de `desloppify`
+### R-247 · 🟡 · **fermé le 2026-11-10** (livré le 2026-11-06, commits `d83ad80` et `20e7989`) · ouvert le 2026-11-06 — `ResolvedListing` réduit à ce qu'il calcule, sur les recommandations de `desloppify`
 
 **Demande** (Louis, 2026-11-06) : « suis les recommandations complètes de desloppify ». Sept constats de la revue
 subjective visaient `ResolvedListing` (« hub » de 44 méthodes), classés « à ne pas corriger » le 2026-11-05 au nom de
@@ -3517,7 +3517,7 @@ le composant racine, vérifié dans les deux sens (échoue sans l'annonce) ; tes
 Playwright 21/23 à deux navigateurs — catégorie (`/visage` en 404, connu) et le scénario des pastilles, qui passe 3/3
 rejoué seul. `/boutique`, la page 2 filtrée et `/journal` rendent sans erreur, même rangée qu'avant.
 
-### R-246 · 🟠 · **livré le 2026-11-06, à valider par Louis avant commit** · ouvert le 2026-11-06 — « Annuler » laissait toute la rangée de filtres dépliée, sans « Voir plus »
+### R-246 · 🟠 · **fermé le 2026-11-10** (livré le 2026-11-06, commits `d83ad80` et `20e7989`) · ouvert le 2026-11-06 — « Annuler » laissait toute la rangée de filtres dépliée, sans « Voir plus »
 
 **Constat** (Louis, 2026-11-06, reproduit). `/boutique`, prix à partir de 7 €, marque lessismore, page 2, « Annuler » :
 retour sur `/boutique` avec les 17 facettes en ligne et aucun « Voir plus ». La page 2 filtrée, rendue par le serveur,
@@ -3565,7 +3565,7 @@ verts, Playwright 22/23 (catégorie, connu).
 mesurée compte comme absente. `ListingResults::isNarrowed()`, homonyme trompeur, est retiré. Deux tests
 (`CatalogFilterCountTest`) échouent sans la correction.
 
-### R-245 · 🟠 · **livré le 2026-11-06, à valider par Louis avant commit** · ouvert le 2026-11-06 — la pagination devient des liens explorables, tournés sur place au clic
+### R-245 · 🟠 · **fermé le 2026-11-10** (livré le 2026-11-06, commits `d83ad80` et `20e7989`) · ouvert le 2026-11-06 — la pagination devient des liens explorables, tournés sur place au clic
 
 **Demande** (Louis, 2026-11-06, exigence SEO relayée pour `/boutique`). Chaque page de résultats est une page dédiée :
 un clic sur « page 2 » charge une nouvelle page dans le navigateur, et l'URL paginée porte sa propre canonique.
@@ -3580,7 +3580,7 @@ Références données : `aroma-zone.com/products/soins-cheveux?page=2`, `ohmycre
 - En local : `/boutique/?pg=2` → `noindex, follow`, canonique `/boutique?pg=2` ; `/boutique/page/2/` → `noindex,
   follow`, canonique `/boutique/page/2`. La canonique s'imprime malgré le `noindex` : Yoast ne la retire que si *ses*
   robots portent `noindex` (`canonical-presenter.php:39-40`), et le module pose le sien par `wp_robots`.
-- Préproduction (`pluralia.amphi.beer`) : `noindex, nofollow` du cœur et aucune sortie Yoast sur les trois URL —
+- Préproduction du projet de test : `noindex, nofollow` du cœur et aucune sortie Yoast sur les trois URL —
   site fermé aux moteurs, comportement SEO non observable là.
 - Plateforme : WooCommerce rend des liens `/page/N/` par `paginate_links()` (`templates/loop/pagination.php:24-45`),
   mais sur le total de `WP_Query`, faux sous un filtre Meilisearch : le gabarit n'est pas réutilisable. L'adresse,
@@ -3597,7 +3597,7 @@ Références données : `aroma-zone.com/products/soins-cheveux?page=2`, `ohmycre
 3. `noindex, follow` conservé sur les pages au-delà de la première, canonique auto-référente telle qu'elle sort
    déjà (option a : rien de forcé contre Yoast).
 4. Mode `submit` : un clic sur un lien de page abandonne les cases cochées et non appliquées. Sans effet sur
-   Pluralia, en mode `immediate`.
+   le projet de test, en mode `immediate`.
 
 5. `Contract::VERSION` **inchangé** (Louis, même jour).
 6. Permaliens exigés : `meilifacets:check-parameters` échoue sans eux (Louis, même jour).
@@ -3606,7 +3606,7 @@ Références données : `aroma-zone.com/products/soins-cheveux?page=2`, `ohmycre
 `linkedQuery()` (paramètres du listing et de WordPress seulement : `utm_source`, `add-to-cart` écartés) ; motif
 `pagePathPattern` publié au client, qui réécrit les `href` après chaque recherche (`ListingUrl::linkTo()`) ;
 `goToPage()`, `BrowserHistory::push()`, `ListingState::onPage()` et l'attribut `scroll` de la pagination retirés (et
-du thème Pluralia, deux vues) ; `CurrentListing` ne lit plus que `paged` ; `UrlParameters::owns()` extrait
+du thème du projet de test, deux vues) ; `CurrentListing` ne lit plus que `paged` ; `UrlParameters::owns()` extrait
 d'`IndexingPolicy` ; le filtre `wpseo_canonical` du module, qui n'ajoutait plus que `?pg=N`, retiré avec ses tests ;
 contrôle des permaliens dans `meilifacets:check-parameters`.
 

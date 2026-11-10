@@ -9,6 +9,13 @@ What to change in a project when moving from one version to the next is in
 
 ## [Unreleased]
 
+## [0.5.0](https://github.com/Pollora/MeiliFacets/releases/tag/0.5.0) - 2026-11-10
+
+Ninth beta. The pagination is made of real `/page/N` links that crawlers follow, still turned in place on a click, and
+the tab's title, the canonical link and the robots directives follow each page turned to. Nine classes moved
+namespace and the browser script changed: publish the assets, clear the page cache, and read
+[docs/upgrading.md](docs/upgrading.md) if the project calls the module's classes or copies its views.
+
 ### Added
 
 - `PageMetadata`, the titles and canonical URLs of a listing's pages for the client: bound for WordPress alone and
@@ -19,6 +26,11 @@ What to change in a project when moving from one version to the next is in
 - Nine classes moved so that each namespace only reaches the ones below it: `FilterExpression`, `PublishedPosts`,
   `VisibleProducts`, `SearchableType` and `NoFieldToSearch` to `Listing`, `EngineUnavailable` to `Contracts`,
   `CurrentListing` to `Http`, `ResolvedListing` to `Search`. See [docs/upgrading.md](docs/upgrading.md).
+
+- `ResolvedListing` keeps the listing's results, values, sorts and pagination. Placement moved to
+  `ResolvedListing::placement()` (`PagePlacement`), plain state reads to `state()`, URL names to `UrlParameters`, the
+  default card name to `Card::COMPONENT`, and the 503 of an engine outage is announced by `<x-meilifacets::listing>`.
+  `ListingPage::markAsCurrent()` takes the listing it renders. See [docs/upgrading.md](docs/upgrading.md).
 
 - The pagination is made of links to the path WordPress paginates under, `/page/N`: the server renders each address
   whole, and crawlers reach every page, each `noindex, follow` with its own canonical. A plain click still turns the
@@ -38,13 +50,26 @@ What to change in a project when moving from one version to the next is in
   « Show more »: the row is laid out on the filters the whole catalogue offers, not on those the filters left.
   « Show more » is hidden while the filters leave nothing past the row, and comes back with it.
 
-- `ResolvedListing` keeps the listing's results, values, sorts and pagination. Placement moved to
-  `ResolvedListing::placement()` (`PagePlacement`), plain state reads to `state()`, URL names to `UrlParameters`, the
-  default card name to `Card::COMPONENT`, and the 503 of an engine outage is announced by `<x-meilifacets::listing>`.
-  See [docs/upgrading.md](docs/upgrading.md).
+### Known issues
 
-### Removed
-
+- A facet declared with `SelectionMode::Single` hides its other values once one is picked
+  ([#4](https://github.com/Pollora/MeiliFacets/issues/4)).
+- Saving a product used to re-index it once per meta WooCommerce writes, each pass resending the index settings.
+  MeiliScout 2.5 sends the writes of a request once, at its end, and resends the settings only when they change; this
+  has not been measured with the module yet.
+- MeiliScout's *Search weights* screen (*Relevance* before 2.6) has no effect: the module writes its own searched
+  fields at every indexation.
+- MeiliScout's suggestion field is not supported alongside the module: it reads fields the module does not display.
+- On a WooCommerce attribute archive (`/pa_volume/400ml/`), the card does not show the variant of the term browsed.
+  Attribute archives are outside the module's scope: leave « Enable archives? » unchecked.
+- A product whose variants share a term counts once per variant under that term.
+- Past the row limit on a wide screen, the side sheet needs the browser client: when it does not start, the
+  « Filters » or « Show more » button opens nothing.
+- A theme that moves the drawer's `media` past `48em` also redeclares the side sheet block.
+- « Popularity » and « Average rating » cannot be the listing's default order yet.
+- In `submit` mode, a click on a page link drops the boxes ticked and not yet applied.
+- With an SEO plugin other than Yoast SEO, the title and the canonical of a page turned in place stay those of the
+  page loaded until the project binds its own `PageMetadata`.
 
 ## [0.4.0](https://github.com/Pollora/MeiliFacets/releases/tag/0.4.0) - 2026-11-05
 

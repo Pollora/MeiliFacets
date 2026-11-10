@@ -19,7 +19,7 @@ You want to…
 The whole sequence, once `composer.json` is prepared:
 
 ```bash
-composer require pollora/meilifacets:^0.4 -W
+composer require pollora/meilifacets:^0.5 -W
 echo '{"MeiliFacets": true}' > modules_statuses.json   # or add the key to the existing file
 wp plugin activate meiliscout
 php artisan vendor:publish --tag=meilifacets-config
@@ -78,7 +78,7 @@ until then, add them by hand. Keep the WordPress rules already under `installer-
 ## Install the module
 
 ```bash
-composer require pollora/meilifacets:^0.4 -W
+composer require pollora/meilifacets:^0.5 -W
 ```
 
 MeiliScout comes with the module, at 2.6.1 or later. It declares `type: wordpress-plugin`, so it is installed with

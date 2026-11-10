@@ -4,10 +4,12 @@ This page lists, for each release, what a project has to change when it updates 
 changes is in the [changelog](../CHANGELOG.md).
 
 0.1.0 was the first release, a beta; 0.2.0 is the second; 0.2.1 is the third; 0.2.2 is the fourth; 0.2.3 is the fifth;
-0.2.4 is the sixth; 0.3.0 is the seventh; 0.4.0 is the eighth.
+0.2.4 is the sixth; 0.3.0 is the seventh; 0.4.0 is the eighth; 0.5.0 is the ninth.
 
-## Unreleased
+## 0.5.0
 
+- **Require `pollora/meilifacets:^0.5`**: `composer require pollora/meilifacets:^0.5 -W`. Below 1.0, `^0.4` does not
+  reach 0.5.
 - **Run `php artisan module:publish MeiliFacets`, then clear the page cache.** The browser script changed, and the
   cached listing pages still carry the old pagination buttons, which it no longer follows. An address in `?pg=N` now
   shows the first page.
