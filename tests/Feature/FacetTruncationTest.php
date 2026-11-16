@@ -18,38 +18,10 @@ use Modules\MeiliFacets\Tests\Unit\Doubles\FakeListing;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeSearchEngine;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeTermLabels;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeTermScope;
-use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-/**
- * Runs here rather than standalone: `report()` needs the application the Unit
- * suite deliberately does without.
- */
-final class FacetTruncationTest extends TestCase
+trait FacetTruncationSupport
 {
-    #[Test]
-    public function it_speaks_when_a_distribution_stops_on_the_ceiling(): void
-    {
-        Exceptions::fake();
-
-        $this->listingReturning(400, new EngineLimits(1000, 400))->valuesOf($this->facet());
-
-        Exceptions::assertReported(
-            fn (FacetTruncated $cut): bool => str_contains($cut->getMessage(), 'product_brand')
-                && str_contains($cut->getMessage(), '400')
-        );
-    }
-
-    #[Test]
-    public function it_says_nothing_of_a_distribution_that_stops_short(): void
-    {
-        Exceptions::fake();
-
-        $this->listingReturning(399, new EngineLimits(1000, 400))->valuesOf($this->facet());
-
-        Exceptions::assertNotReported(FacetTruncated::class);
-    }
-
     private function facet(): Facet
     {
         return new Facet('product_brand', 'Brand', name: 'brand');
@@ -72,3 +44,28 @@ final class FacetTruncationTest extends TestCase
         );
     }
 }
+
+/**
+ * Runs here rather than standalone: `report()` needs the application the Unit
+ * suite deliberately does without.
+ */
+uses(TestCase::class, FacetTruncationSupport::class);
+
+it('speaks when a distribution stops on the ceiling', function (): void {
+    Exceptions::fake();
+
+    $this->listingReturning(400, new EngineLimits(1000, 400))->valuesOf($this->facet());
+
+    Exceptions::assertReported(
+        fn (FacetTruncated $cut): bool => str_contains($cut->getMessage(), 'product_brand')
+            && str_contains($cut->getMessage(), '400')
+    );
+});
+
+it('says nothing of a distribution that stops short', function (): void {
+    Exceptions::fake();
+
+    $this->listingReturning(399, new EngineLimits(1000, 400))->valuesOf($this->facet());
+
+    Exceptions::assertNotReported(FacetTruncated::class);
+});

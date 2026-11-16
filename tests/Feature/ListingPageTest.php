@@ -9,95 +9,10 @@ use Illuminate\Support\Facades\Blade;
 use Modules\MeiliFacets\Http\IndexingPolicy;
 use Modules\MeiliFacets\Http\ListingPage;
 use Modules\MeiliFacets\Tests\Unit\Doubles\AnsweredListing;
-use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-final class ListingPageTest extends TestCase
+trait ListingPageSupport
 {
-    /** The suite shares one application: a listing marked here would reach a later class. */
-    protected function tearDown(): void
-    {
-        remove_all_filters(ListingPage::FILTER);
-        $this->app->forgetScopedInstances();
-
-        parent::tearDown();
-    }
-
-    #[Test]
-    public function a_page_that_renders_no_listing_is_not_a_listing_page(): void
-    {
-        $this->assertFalse($this->app->make(ListingPage::class)->isCurrent());
-    }
-
-    /** Layouts render their sections first, as `@extends` does. */
-    #[Test]
-    public function the_head_of_a_layout_rendering_a_listing_knows_it(): void
-    {
-        $page = Blade::render(<<<'BLADE'
-            @section('content')<x-meilifacets::listing name="products" />@endsection
-            <head>{{ app(\Modules\MeiliFacets\Http\ListingPage::class)->isCurrent() ? 'listing' : 'none' }}</head>
-            <body>@yield('content')</body>
-            BLADE);
-
-        $this->assertStringContainsString('<head>listing</head>', $page);
-    }
-
-    #[Test]
-    public function a_project_can_declare_a_listing_page_the_module_cannot_see(): void
-    {
-        add_filter(ListingPage::FILTER, '__return_true');
-
-        $this->assertTrue($this->app->make(ListingPage::class)->isCurrent());
-    }
-
-    #[Test]
-    public function a_project_can_withdraw_a_page_that_renders_a_listing(): void
-    {
-        $page = $this->app->make(ListingPage::class);
-        $page->markAsCurrent(AnsweredListing::withTotal());
-
-        add_filter(ListingPage::FILTER, '__return_false');
-
-        $this->assertFalse($page->isCurrent());
-    }
-
-    #[Test]
-    public function a_page_number_on_a_page_without_a_listing_leaves_its_robots_alone(): void
-    {
-        $this->withQuery(['pg' => '3']);
-
-        $robots = $this->app->make(IndexingPolicy::class)->noindexSecondaryViews(['index' => true]);
-
-        $this->assertSame(['index' => true], $robots);
-    }
-
-    #[Test]
-    public function a_page_number_on_a_listing_page_is_kept_out_of_the_index(): void
-    {
-        $this->withQuery(['pg' => '3']);
-        $this->app->make(ListingPage::class)->markAsCurrent(AnsweredListing::withTotal());
-
-        $robots = $this->app->make(IndexingPolicy::class)->noindexSecondaryViews(['index' => true]);
-
-        $this->assertSame(['noindex' => true, 'follow' => true], $robots);
-    }
-
-    #[Test]
-    public function the_first_listing_rendered_paginates_the_page(): void
-    {
-        $page = new ListingPage;
-        $first = AnsweredListing::withTotal(40);
-        $second = AnsweredListing::withTotal(12);
-
-        $page->markAsCurrent($first);
-        $page->markAsCurrent($second);
-
-        $this->assertSame(
-            [true, false, 3],
-            [$page->isPaginatedBy($first), $page->isPaginatedBy($second), $page->pagination()?->pages()],
-        );
-    }
-
     /**
      * @param  array<string, string>  $query
      */
@@ -106,3 +21,68 @@ final class ListingPageTest extends TestCase
         $this->app->instance('request', Request::create('/', 'GET', $query));
     }
 }
+
+uses(TestCase::class, ListingPageSupport::class);
+
+afterEach(function (): void {
+    remove_all_filters(ListingPage::FILTER);
+    $this->app->forgetScopedInstances();
+});
+
+test('a page that renders no listing is not a listing page', function (): void {
+    expect($this->app->make(ListingPage::class)->isCurrent())->toBeFalse();
+});
+
+/** Layouts render their sections first, as `@extends` does. */
+test('the head of a layout rendering a listing knows it', function (): void {
+    $page = Blade::render(<<<'BLADE'
+        @section('content')<x-meilifacets::listing name="products" />@endsection
+        <head>{{ app(\Modules\MeiliFacets\Http\ListingPage::class)->isCurrent() ? 'listing' : 'none' }}</head>
+        <body>@yield('content')</body>
+        BLADE);
+
+    expect($page)->toContain('<head>listing</head>');
+});
+
+test('a project can declare a listing page the module cannot see', function (): void {
+    add_filter(ListingPage::FILTER, '__return_true');
+
+    expect($this->app->make(ListingPage::class)->isCurrent())->toBeTrue();
+});
+
+test('a project can withdraw a page that renders a listing', function (): void {
+    $page = $this->app->make(ListingPage::class);
+    $page->markAsCurrent(AnsweredListing::withTotal());
+
+    add_filter(ListingPage::FILTER, '__return_false');
+
+    expect($page->isCurrent())->toBeFalse();
+});
+
+test('a page number on a page without a listing leaves its robots alone', function (): void {
+    $this->withQuery(['pg' => '3']);
+
+    $robots = $this->app->make(IndexingPolicy::class)->noindexSecondaryViews(['index' => true]);
+
+    expect($robots)->toBe(['index' => true]);
+});
+
+test('a page number on a listing page is kept out of the index', function (): void {
+    $this->withQuery(['pg' => '3']);
+    $this->app->make(ListingPage::class)->markAsCurrent(AnsweredListing::withTotal());
+
+    $robots = $this->app->make(IndexingPolicy::class)->noindexSecondaryViews(['index' => true]);
+
+    expect($robots)->toBe(['noindex' => true, 'follow' => true]);
+});
+
+test('the first listing rendered paginates the page', function (): void {
+    $page = new ListingPage;
+    $first = AnsweredListing::withTotal(40);
+    $second = AnsweredListing::withTotal(12);
+
+    $page->markAsCurrent($first);
+    $page->markAsCurrent($second);
+
+    expect([$page->isPaginatedBy($first), $page->isPaginatedBy($second), $page->pagination()?->pages()])->toBe([true, false, 3]);
+});

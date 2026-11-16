@@ -9,66 +9,14 @@ use Modules\MeiliFacets\Enums\CardField;
 use Modules\MeiliFacets\Indexing\PostText;
 use Modules\MeiliFacets\Indexing\SummaryCardProjector;
 use Modules\MeiliFacets\Indexing\WooCommerce\WooCommerceCardProjector;
-use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 use WC_Product;
 use WooCommerce;
 use WP_Post;
 
-final class SummaryCardProjectorTest extends TestCase
+trait SummaryCardProjectorSupport
 {
     private const string EXCERPT_LENGTH_FILTER = 'excerpt_length';
-
-    #[Test]
-    public function it_adds_the_summary_to_the_card_it_decorates(): void
-    {
-        $card = $this->summaryCard()->project($this->article('<p>Un geste simple.</p>'));
-
-        $this->assertSame(['from' => 'card', CardField::Summary->value => 'Un geste simple.'], $card);
-    }
-
-    /** A card with nothing to say keeps the shape of one that has no image. */
-    #[Test]
-    public function it_leaves_the_summary_out_when_the_post_says_nothing(): void
-    {
-        $this->assertSame(['from' => 'card'], $this->summaryCard()->project($this->article('')));
-    }
-
-    #[Test]
-    public function it_bounds_the_opening_to_the_length_the_theme_asks_for(): void
-    {
-        $threeWords = static fn (): int => 3;
-        add_filter(self::EXCERPT_LENGTH_FILTER, $threeWords);
-
-        try {
-            $card = $this->summaryCard()->project($this->article('<p>Un geste simple et doux.</p>'));
-        } finally {
-            remove_filter(self::EXCERPT_LENGTH_FILTER, $threeWords);
-        }
-
-        $this->assertSame('Un geste simple…', $card[CardField::Summary->value]);
-    }
-
-    #[Test]
-    public function it_gives_an_article_the_summary_card_once_woocommerce_is_there(): void
-    {
-        $this->requireWooCommerce();
-
-        $card = $this->shopCard()->project($this->article('<p>Un geste simple.</p>'));
-
-        $this->assertSame(['from' => 'card', CardField::Summary->value => 'Un geste simple.'], $card);
-    }
-
-    #[Test]
-    public function it_leaves_the_product_card_as_it_was(): void
-    {
-        $this->requireWooCommerce();
-        $product = $this->aPublishedProduct();
-
-        $card = $this->shopCard()->project(get_post($product->get_id()));
-
-        $this->assertSame(['from' => 'card', CardField::Price->value => $product->get_price_html()], $card);
-    }
 
     private function shopCard(): WooCommerceCardProjector
     {
@@ -117,3 +65,46 @@ final class SummaryCardProjectorTest extends TestCase
         }
     }
 }
+
+uses(TestCase::class, SummaryCardProjectorSupport::class);
+
+it('adds the summary to the card it decorates', function (): void {
+    $card = $this->summaryCard()->project($this->article('<p>Un geste simple.</p>'));
+
+    expect($card)->toBe(['from' => 'card', CardField::Summary->value => 'Un geste simple.']);
+});
+
+/** A card with nothing to say keeps the shape of one that has no image. */
+it('leaves the summary out when the post says nothing', function (): void {
+    expect($this->summaryCard()->project($this->article('')))->toBe(['from' => 'card']);
+});
+
+it('bounds the opening to the length the theme asks for', function (): void {
+    $threeWords = static fn (): int => 3;
+    add_filter(self::EXCERPT_LENGTH_FILTER, $threeWords);
+
+    try {
+        $card = $this->summaryCard()->project($this->article('<p>Un geste simple et doux.</p>'));
+    } finally {
+        remove_filter(self::EXCERPT_LENGTH_FILTER, $threeWords);
+    }
+
+    expect($card[CardField::Summary->value])->toBe('Un geste simple…');
+});
+
+it('gives an article the summary card once woocommerce is there', function (): void {
+    $this->requireWooCommerce();
+
+    $card = $this->shopCard()->project($this->article('<p>Un geste simple.</p>'));
+
+    expect($card)->toBe(['from' => 'card', CardField::Summary->value => 'Un geste simple.']);
+});
+
+it('leaves the product card as it was', function (): void {
+    $this->requireWooCommerce();
+    $product = $this->aPublishedProduct();
+
+    $card = $this->shopCard()->project(get_post($product->get_id()));
+
+    expect($card)->toBe(['from' => 'card', CardField::Price->value => $product->get_price_html()]);
+});

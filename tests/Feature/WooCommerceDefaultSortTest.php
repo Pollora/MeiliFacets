@@ -5,81 +5,14 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Tests\Feature;
 
 use Modules\MeiliFacets\Listing\WooCommerceDefaultSort;
-use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-/** The setting is answered by a filter: the saved option is never written. */
-final class WooCommerceDefaultSortTest extends TestCase
+trait WooCommerceDefaultSortSupport
 {
     private const string SETTING = 'woocommerce_default_catalog_orderby';
 
     /** @var list<callable(): string> */
     private array $answers = [];
-
-    protected function tearDown(): void
-    {
-        array_walk($this->answers, static fn (callable $answer): bool => remove_filter(self::SETTING, $answer));
-
-        parent::tearDown();
-    }
-
-    /**
-     * @return iterable<string, array{string, list<string>}>
-     */
-    public static function followableSortings(): iterable
-    {
-        yield 'custom ordering, then name' => ['menu_order', ['menu_order:asc', 'post_title:asc']];
-        yield 'name' => ['title', ['post_title:asc']];
-        yield 'latest' => ['date', ['post_date:desc']];
-        yield 'oldest' => ['date-asc', ['post_date:asc']];
-        yield 'price, low to high' => ['price', ['price.min:asc']];
-        yield 'price, high to low' => ['price-desc', ['price.max:desc']];
-        yield 'relevance' => ['relevance', []];
-    }
-
-    /**
-     * @param  list<string>  $expressions
-     */
-    #[DataProvider('followableSortings')]
-    #[Test]
-    public function it_sorts_as_woocommerce_sorts_by_default(string $setting, array $expressions): void
-    {
-        $this->assertSame($expressions, $this->defaultSortFor($setting));
-    }
-
-    #[Test]
-    public function a_sorting_the_listing_cannot_follow_keeps_the_engine_order(): void
-    {
-        $this->assertSame([], $this->defaultSortFor('popularity'));
-    }
-
-    #[Test]
-    public function the_customizer_offers_only_the_sortings_the_listing_follows(): void
-    {
-        $choices = array_fill_keys(['menu_order', 'popularity', 'rating', 'date', 'price', 'price-desc'], '');
-
-        $offered = apply_filters('woocommerce_default_catalog_orderby_options', $choices);
-
-        $this->assertSame(['menu_order', 'date', 'price', 'price-desc'], array_keys($offered));
-    }
-
-    #[Test]
-    public function the_setting_is_read_once(): void
-    {
-        $reads = 0;
-        $this->answer(static function () use (&$reads): string {
-            $reads++;
-
-            return 'date';
-        });
-        $defaultSort = new WooCommerceDefaultSort;
-
-        $defaultSort->expressions();
-        $defaultSort->expressions();
-
-        $this->assertSame(1, $reads);
-    }
 
     /**
      * @return list<string>
@@ -100,3 +33,49 @@ final class WooCommerceDefaultSortTest extends TestCase
         add_filter(self::SETTING, $answer);
     }
 }
+
+/** The setting is answered by a filter: the saved option is never written. */
+uses(TestCase::class, WooCommerceDefaultSortSupport::class);
+
+afterEach(function (): void {
+    array_walk($this->answers, static fn (callable $answer): bool => remove_filter(self::SETTING, $answer));
+});
+
+it('sorts as woocommerce sorts by default', function (string $setting, array $expressions): void {
+    expect($this->defaultSortFor($setting))->toBe($expressions);
+})->with([
+    'custom ordering, then name' => ['menu_order', ['menu_order:asc', 'post_title:asc']],
+    'name' => ['title', ['post_title:asc']],
+    'latest' => ['date', ['post_date:desc']],
+    'oldest' => ['date-asc', ['post_date:asc']],
+    'price, low to high' => ['price', ['price.min:asc']],
+    'price, high to low' => ['price-desc', ['price.max:desc']],
+    'relevance' => ['relevance', []],
+]);
+
+test('a sorting the listing cannot follow keeps the engine order', function (): void {
+    expect($this->defaultSortFor('popularity'))->toBe([]);
+});
+
+test('the customizer offers only the sortings the listing follows', function (): void {
+    $choices = array_fill_keys(['menu_order', 'popularity', 'rating', 'date', 'price', 'price-desc'], '');
+
+    $offered = apply_filters('woocommerce_default_catalog_orderby_options', $choices);
+
+    expect(array_keys($offered))->toBe(['menu_order', 'date', 'price', 'price-desc']);
+});
+
+test('the setting is read once', function (): void {
+    $reads = 0;
+    $this->answer(static function () use (&$reads): string {
+        $reads++;
+
+        return 'date';
+    });
+    $defaultSort = new WooCommerceDefaultSort;
+
+    $defaultSort->expressions();
+    $defaultSort->expressions();
+
+    expect($reads)->toBe(1);
+});

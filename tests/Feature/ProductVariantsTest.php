@@ -9,7 +9,6 @@ use Modules\MeiliFacets\Enums\CardField;
 use Modules\MeiliFacets\Enums\VariantField;
 use Modules\MeiliFacets\Indexing\WooCommerce\ProductVariants;
 use Modules\MeiliFacets\Tests\Feature\Concerns\KeepsTheIndexOut;
-use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 use WC_Product;
 use WC_Product_Attribute;
@@ -19,11 +18,8 @@ use WC_Product_Variation;
 use WooCommerce;
 use WP_Post;
 
-/** The variants the module reads off a variable product, for its card. */
-final class ProductVariantsTest extends TestCase
+trait ProductVariantsSupport
 {
-    use KeepsTheIndexOut;
-
     private const string ATTRIBUTE = 'pa_test_volume';
 
     /** A taxonomy of the site that is not a product attribute, and a local attribute's name. */
@@ -42,180 +38,6 @@ final class ProductVariantsTest extends TestCase
 
     /** @var list<int> */
     private array $images = [];
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        if (! class_exists(WooCommerce::class)) {
-            $this->markTestSkipped('Variants are WooCommerce\'s.');
-        }
-
-        register_taxonomy(self::ATTRIBUTE, 'product', ['public' => false]);
-        $this->declareAttribute();
-    }
-
-    protected function tearDown(): void
-    {
-        foreach (array_reverse($this->created) as $product) {
-            $product->delete(true);
-        }
-
-        foreach ($this->images as $imageId) {
-            wp_delete_post($imageId, true);
-        }
-
-        unregister_taxonomy(self::ATTRIBUTE);
-        unset($GLOBALS['wc_product_attributes'][self::ATTRIBUTE]);
-        remove_all_filters(self::HIDE_OUT_OF_STOCK);
-
-        parent::tearDown();
-    }
-
-    #[Test]
-    public function it_reads_each_variation_with_its_terms_its_price_and_its_stock(): void
-    {
-        $product = $this->variable(['15ml' => ['26', true], '400ml' => ['39', false]]);
-
-        $variants = $this->variantsOf($product, $this->variants());
-
-        $facets = array_column($variants, VariantField::Facets->value);
-
-        $this->assertSame([[self::ATTRIBUTE => ['15ml']], [self::ATTRIBUTE => ['400ml']]], $facets);
-        $this->assertSame([26.0, 39.0], array_column($variants, VariantField::Price->value));
-        $this->assertSame([true, false], array_column($variants, VariantField::InStock->value));
-    }
-
-    #[Test]
-    public function it_reads_whether_each_variation_is_on_sale(): void
-    {
-        $product = $this->variable(['15ml' => ['26', true], '400ml' => ['39', true]]);
-        $onSale = wc_get_product($product->get_children()[1]);
-        $onSale->set_sale_price('30');
-        $onSale->save();
-
-        $variants = $this->variantsOf(new WC_Product_Variable($product->get_id()), $this->variants());
-
-        $this->assertSame([false, true], array_column($variants, VariantField::OnSale->value));
-    }
-
-    #[Test]
-    public function it_shows_the_variation_price_and_links_to_the_variation(): void
-    {
-        $fields = $this->fieldsOf($this->variable(['15ml' => ['26', true]]), $this->variants());
-
-        $this->assertStringContainsString('26', $fields[CardField::Price->value]);
-        $this->assertStringContainsString('attribute_'.self::ATTRIBUTE.'=15ml', $fields[CardField::Url->value]);
-    }
-
-    #[Test]
-    public function it_lends_a_variation_without_its_own_image_none_of_the_product_one(): void
-    {
-        $product = $this->variable(['15ml' => ['26', true]]);
-        $product->set_image_id($this->image());
-        $product->save();
-
-        $this->assertArrayNotHasKey(CardField::ImageUrl->value, $this->fieldsOf($product, $this->variants()));
-    }
-
-    #[Test]
-    public function it_writes_every_image_field_of_a_variation_image_so_none_of_the_product_one_stays(): void
-    {
-        $product = $this->variable(['15ml' => ['26', true]], $this->image());
-
-        $fields = $this->fieldsOf($product, $this->variants());
-
-        $this->assertStringEndsWith('variant.jpg', (string) $fields[CardField::ImageUrl->value]);
-        $this->assertSame('', $fields[CardField::ImageAlt->value]);
-        $this->assertSame('', $fields[CardField::ImageSrcset->value]);
-        $this->assertSame('', $fields[CardField::ImageSizes->value]);
-    }
-
-    #[Test]
-    public function it_files_a_variation_under_the_ancestors_of_its_term_on_a_hierarchical_attribute(): void
-    {
-        register_taxonomy(self::ATTRIBUTE, 'product', ['public' => false, 'hierarchical' => true]);
-        $parent = wp_insert_term('Small sizes', self::ATTRIBUTE, ['slug' => 'small-sizes']);
-        $child = wp_insert_term('15ml', self::ATTRIBUTE, ['slug' => '15ml', 'parent' => $parent['term_id']]);
-
-        try {
-            $facets = $this->variantsOf($this->variable(['15ml' => ['26', true]]), $this->variants())[0][VariantField::Facets->value];
-        } finally {
-            wp_delete_term($child['term_id'], self::ATTRIBUTE);
-            wp_delete_term($parent['term_id'], self::ATTRIBUTE);
-        }
-
-        $this->assertSame([self::ATTRIBUTE => ['15ml', 'small-sizes']], $facets);
-    }
-
-    #[Test]
-    public function it_reads_no_term_off_a_local_attribute_named_like_a_taxonomy(): void
-    {
-        register_taxonomy(self::LOCAL, 'product', ['public' => false]);
-        $product = $this->variable(['15ml' => ['26', true]]);
-        $local = new WC_Product_Attribute;
-        $local->set_name(self::LOCAL);
-        $local->set_options(['Bleu ciel']);
-        $local->set_variation(true);
-        $product->set_attributes([...$product->get_attributes(), $local]);
-        $product->save();
-        $variation = wc_get_product($product->get_children()[0]);
-        $variation->set_attributes([self::ATTRIBUTE => '15ml', self::LOCAL => 'Bleu ciel']);
-        $variation->save();
-
-        try {
-            $facets = $this->variantsOf(new WC_Product_Variable($product->get_id()), $this->variants())[0][VariantField::Facets->value];
-        } finally {
-            unregister_taxonomy(self::LOCAL);
-        }
-
-        $this->assertSame([self::ATTRIBUTE => ['15ml']], $facets);
-    }
-
-    #[Test]
-    public function it_gives_a_variation_sold_for_any_value_no_term(): void
-    {
-        $product = $this->variable(['' => ['26', true]]);
-
-        $this->assertSame([], $this->variantsOf($product, $this->variants())[0][VariantField::Facets->value]);
-    }
-
-    #[Test]
-    public function it_leaves_out_the_variations_out_of_stock_when_the_shop_hides_them(): void
-    {
-        $product = $this->variable(['15ml' => ['26', true], '400ml' => ['39', false]]);
-
-        add_filter(self::HIDE_OUT_OF_STOCK, static fn (): string => 'yes');
-
-        $facets = array_column($this->variantsOf($product, $this->variants()), VariantField::Facets->value);
-
-        $this->assertSame([[self::ATTRIBUTE => ['15ml']]], $facets);
-    }
-
-    #[Test]
-    public function it_adds_the_project_fields_which_win_over_the_module_ones(): void
-    {
-        $variants = $this->app->make(ProductVariants::class, ['variantFields' => $this->projectFields()]);
-
-        $fields = $this->fieldsOf($this->variable(['15ml' => ['26', true]]), $variants);
-
-        $this->assertSame('15ml', $fields[self::PROJECT_FIELD]);
-        $this->assertSame(self::PROJECT_URL, $fields[CardField::Url->value]);
-    }
-
-    #[Test]
-    public function it_reads_no_variant_off_a_simple_product_nor_a_post(): void
-    {
-        $simple = new WC_Product_Simple;
-        $simple->set_name('Simple, for the test');
-        $simple->set_status('publish');
-        $simple->set_regular_price('12');
-        $simple->save();
-        $this->created[] = $simple;
-
-        $this->assertSame([], $this->variantsOf($simple, $this->variants()));
-        $this->assertSame([], $this->variants()->project(new WP_Post((object) ['ID' => 0, 'post_type' => 'post'])));
-    }
 
     /**
      * @param  array<string, array{string, bool}>  $variations  slug to its price and whether it is in stock
@@ -319,3 +141,152 @@ final class ProductVariantsTest extends TestCase
         $GLOBALS['wc_product_attributes'][self::ATTRIBUTE] = (object) ['attribute_name' => 'test_volume'];
     }
 }
+
+/** The variants the module reads off a variable product, for its card. */
+uses(TestCase::class, KeepsTheIndexOut::class, ProductVariantsSupport::class);
+
+beforeEach(function (): void {
+    if (! class_exists(WooCommerce::class)) {
+        $this->markTestSkipped('Variants are WooCommerce\'s.');
+    }
+
+    register_taxonomy(self::ATTRIBUTE, 'product', ['public' => false]);
+    $this->declareAttribute();
+});
+
+afterEach(function (): void {
+    foreach (array_reverse($this->created) as $product) {
+        $product->delete(true);
+    }
+
+    foreach ($this->images as $imageId) {
+        wp_delete_post($imageId, true);
+    }
+
+    unregister_taxonomy(self::ATTRIBUTE);
+    unset($GLOBALS['wc_product_attributes'][self::ATTRIBUTE]);
+    remove_all_filters(self::HIDE_OUT_OF_STOCK);
+});
+
+it('reads each variation with its terms its price and its stock', function (): void {
+    $product = $this->variable(['15ml' => ['26', true], '400ml' => ['39', false]]);
+
+    $variants = $this->variantsOf($product, $this->variants());
+
+    $facets = array_column($variants, VariantField::Facets->value);
+
+    expect($facets)->toBe([[self::ATTRIBUTE => ['15ml']], [self::ATTRIBUTE => ['400ml']]]);
+    expect(array_column($variants, VariantField::Price->value))->toBe([26.0, 39.0]);
+    expect(array_column($variants, VariantField::InStock->value))->toBe([true, false]);
+});
+
+it('reads whether each variation is on sale', function (): void {
+    $product = $this->variable(['15ml' => ['26', true], '400ml' => ['39', true]]);
+    $onSale = wc_get_product($product->get_children()[1]);
+    $onSale->set_sale_price('30');
+    $onSale->save();
+
+    $variants = $this->variantsOf(new WC_Product_Variable($product->get_id()), $this->variants());
+
+    expect(array_column($variants, VariantField::OnSale->value))->toBe([false, true]);
+});
+
+it('shows the variation price and links to the variation', function (): void {
+    $fields = $this->fieldsOf($this->variable(['15ml' => ['26', true]]), $this->variants());
+
+    expect($fields[CardField::Price->value])->toContain('26');
+    expect($fields[CardField::Url->value])->toContain('attribute_'.self::ATTRIBUTE.'=15ml');
+});
+
+it('lends a variation without its own image none of the product one', function (): void {
+    $product = $this->variable(['15ml' => ['26', true]]);
+    $product->set_image_id($this->image());
+    $product->save();
+
+    $this->assertArrayNotHasKey(CardField::ImageUrl->value, $this->fieldsOf($product, $this->variants()));
+});
+
+it('writes every image field of a variation image so none of the product one stays', function (): void {
+    $product = $this->variable(['15ml' => ['26', true]], $this->image());
+
+    $fields = $this->fieldsOf($product, $this->variants());
+
+    expect((string) $fields[CardField::ImageUrl->value])->toEndWith('variant.jpg');
+    expect($fields[CardField::ImageAlt->value])->toBe('');
+    expect($fields[CardField::ImageSrcset->value])->toBe('');
+    expect($fields[CardField::ImageSizes->value])->toBe('');
+});
+
+it('files a variation under the ancestors of its term on a hierarchical attribute', function (): void {
+    register_taxonomy(self::ATTRIBUTE, 'product', ['public' => false, 'hierarchical' => true]);
+    $parent = wp_insert_term('Small sizes', self::ATTRIBUTE, ['slug' => 'small-sizes']);
+    $child = wp_insert_term('15ml', self::ATTRIBUTE, ['slug' => '15ml', 'parent' => $parent['term_id']]);
+
+    try {
+        $facets = $this->variantsOf($this->variable(['15ml' => ['26', true]]), $this->variants())[0][VariantField::Facets->value];
+    } finally {
+        wp_delete_term($child['term_id'], self::ATTRIBUTE);
+        wp_delete_term($parent['term_id'], self::ATTRIBUTE);
+    }
+
+    expect($facets)->toBe([self::ATTRIBUTE => ['15ml', 'small-sizes']]);
+});
+
+it('reads no term off a local attribute named like a taxonomy', function (): void {
+    register_taxonomy(self::LOCAL, 'product', ['public' => false]);
+    $product = $this->variable(['15ml' => ['26', true]]);
+    $local = new WC_Product_Attribute;
+    $local->set_name(self::LOCAL);
+    $local->set_options(['Bleu ciel']);
+    $local->set_variation(true);
+    $product->set_attributes([...$product->get_attributes(), $local]);
+    $product->save();
+    $variation = wc_get_product($product->get_children()[0]);
+    $variation->set_attributes([self::ATTRIBUTE => '15ml', self::LOCAL => 'Bleu ciel']);
+    $variation->save();
+
+    try {
+        $facets = $this->variantsOf(new WC_Product_Variable($product->get_id()), $this->variants())[0][VariantField::Facets->value];
+    } finally {
+        unregister_taxonomy(self::LOCAL);
+    }
+
+    expect($facets)->toBe([self::ATTRIBUTE => ['15ml']]);
+});
+
+it('gives a variation sold for any value no term', function (): void {
+    $product = $this->variable(['' => ['26', true]]);
+
+    expect($this->variantsOf($product, $this->variants())[0][VariantField::Facets->value])->toBe([]);
+});
+
+it('leaves out the variations out of stock when the shop hides them', function (): void {
+    $product = $this->variable(['15ml' => ['26', true], '400ml' => ['39', false]]);
+
+    add_filter(self::HIDE_OUT_OF_STOCK, static fn (): string => 'yes');
+
+    $facets = array_column($this->variantsOf($product, $this->variants()), VariantField::Facets->value);
+
+    expect($facets)->toBe([[self::ATTRIBUTE => ['15ml']]]);
+});
+
+it('adds the project fields which win over the module ones', function (): void {
+    $variants = $this->app->make(ProductVariants::class, ['variantFields' => $this->projectFields()]);
+
+    $fields = $this->fieldsOf($this->variable(['15ml' => ['26', true]]), $variants);
+
+    expect($fields[self::PROJECT_FIELD])->toBe('15ml');
+    expect($fields[CardField::Url->value])->toBe(self::PROJECT_URL);
+});
+
+it('reads no variant off a simple product nor a post', function (): void {
+    $simple = new WC_Product_Simple;
+    $simple->set_name('Simple, for the test');
+    $simple->set_status('publish');
+    $simple->set_regular_price('12');
+    $simple->save();
+    $this->created[] = $simple;
+
+    expect($this->variantsOf($simple, $this->variants()))->toBe([]);
+    expect($this->variants()->project(new WP_Post((object) ['ID' => 0, 'post_type' => 'post'])))->toBe([]);
+});

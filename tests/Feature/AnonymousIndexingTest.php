@@ -10,7 +10,6 @@ use Modules\MeiliFacets\Enums\PriceField;
 use Modules\MeiliFacets\Indexing\PostDocument;
 use Modules\MeiliFacets\Indexing\WooCommerce\AnonymousVisitor;
 use Modules\MeiliFacets\Tests\Feature\Concerns\KeepsTheIndexOut;
-use PHPUnit\Framework\Attributes\Test;
 use RuntimeException;
 use Tests\TestCase;
 use WC_Product;
@@ -20,10 +19,8 @@ use WooCommerce;
 use WP_Post;
 use WP_User;
 
-final class AnonymousIndexingTest extends TestCase
+trait AnonymousIndexingSupport
 {
-    use KeepsTheIndexOut;
-
     /** Fixed, so a run cut short before its teardown cannot leave an account behind for good. */
     private const string LOGIN = 'meilifacets-administrator-for-the-test';
 
@@ -35,70 +32,6 @@ final class AnonymousIndexingTest extends TestCase
     private ?WC_Product_Simple $draft = null;
 
     private ?WC_Product_Simple $published = null;
-
-    protected function tearDown(): void
-    {
-        wp_set_current_user(0);
-
-        foreach (array_reverse($this->created) as $product) {
-            $product->delete(true);
-        }
-
-        if ($this->administrator !== null) {
-            require_once ABSPATH.'wp-admin/includes/user.php';
-            wp_delete_user($this->administrator);
-        }
-
-        parent::tearDown();
-    }
-
-    #[Test]
-    public function it_indexes_a_grouped_product_as_a_visitor_sees_it_whoever_saves_it(): void
-    {
-        if (! class_exists(WooCommerce::class)) {
-            $this->markTestSkipped('Grouped products are WooCommerce\'s.');
-        }
-
-        $product = $this->groupedWithADraftChild();
-
-        $asVisitor = $this->documentOf($product);
-        wp_set_current_user($this->administrator());
-        $asAdministrator = $this->documentOf($product);
-
-        $this->assertSame($asVisitor, $asAdministrator);
-        $this->assertSame(
-            $this->shownPriceOf($this->published),
-            $asAdministrator[DocumentField::Price->value][PriceField::Max->value]
-        );
-        $this->assertStringNotContainsString(
-            wp_strip_all_tags(wc_price($this->shownPriceOf($this->draft))),
-            wp_strip_all_tags((string) $asAdministrator[DocumentField::Card->value][CardField::Price->value])
-        );
-    }
-
-    #[Test]
-    public function it_signs_out_for_the_read_then_signs_the_administrator_back_in(): void
-    {
-        $administrator = $this->administrator();
-        wp_set_current_user($administrator);
-
-        $this->assertSame(0, new AnonymousVisitor()->during(static fn (): int => get_current_user_id()));
-        $this->assertSame($administrator, get_current_user_id());
-    }
-
-    #[Test]
-    public function it_signs_the_administrator_back_in_when_the_read_fails(): void
-    {
-        $administrator = $this->administrator();
-        wp_set_current_user($administrator);
-
-        try {
-            new AnonymousVisitor()->during(static fn (): never => throw new RuntimeException('the read failed'));
-        } catch (RuntimeException) {
-        }
-
-        $this->assertSame($administrator, get_current_user_id());
-    }
 
     /**
      * @return array<string, mixed>
@@ -171,3 +104,57 @@ final class AnonymousIndexingTest extends TestCase
         return $this->administrator = $administrator;
     }
 }
+
+uses(TestCase::class, KeepsTheIndexOut::class, AnonymousIndexingSupport::class);
+
+afterEach(function (): void {
+    wp_set_current_user(0);
+
+    foreach (array_reverse($this->created) as $product) {
+        $product->delete(true);
+    }
+
+    if ($this->administrator !== null) {
+        require_once ABSPATH.'wp-admin/includes/user.php';
+        wp_delete_user($this->administrator);
+    }
+});
+
+it('indexes a grouped product as a visitor sees it whoever saves it', function (): void {
+    if (! class_exists(WooCommerce::class)) {
+        $this->markTestSkipped('Grouped products are WooCommerce\'s.');
+    }
+
+    $product = $this->groupedWithADraftChild();
+
+    $asVisitor = $this->documentOf($product);
+    wp_set_current_user($this->administrator());
+    $asAdministrator = $this->documentOf($product);
+
+    expect($asAdministrator)->toBe($asVisitor);
+    expect($asAdministrator[DocumentField::Price->value][PriceField::Max->value])->toBe($this->shownPriceOf($this->published));
+    $this->assertStringNotContainsString(
+        wp_strip_all_tags(wc_price($this->shownPriceOf($this->draft))),
+        wp_strip_all_tags((string) $asAdministrator[DocumentField::Card->value][CardField::Price->value])
+    );
+});
+
+it('signs out for the read then signs the administrator back in', function (): void {
+    $administrator = $this->administrator();
+    wp_set_current_user($administrator);
+
+    expect(new AnonymousVisitor()->during(static fn (): int => get_current_user_id()))->toBe(0);
+    expect(get_current_user_id())->toBe($administrator);
+});
+
+it('signs the administrator back in when the read fails', function (): void {
+    $administrator = $this->administrator();
+    wp_set_current_user($administrator);
+
+    try {
+        new AnonymousVisitor()->during(static fn (): never => throw new RuntimeException('the read failed'));
+    } catch (RuntimeException) {
+    }
+
+    expect(get_current_user_id())->toBe($administrator);
+});

@@ -29,385 +29,11 @@ use Modules\MeiliFacets\Tests\Unit\Doubles\FakePresentation;
 use Modules\MeiliFacets\View\Components\Listing\Facet as FacetComponent;
 use Modules\MeiliFacets\View\ElementId;
 use Modules\MeiliFacets\View\ListingDescription;
-use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-/**
- * That the components reach the listing and each other. What they place, and
- * what they refuse, is `Unit\FacetPlacementTest` — on facets it declares itself.
- */
-final class FacetComponentTest extends TestCase
+trait FacetComponentSupport
 {
-    use FindsHooks;
-    use SwitchesApplyMode;
-    use SwitchesTheSiteLocale;
-
     private const string NOTHING_MATCHES = 'qqxxzzww-aucun-produit-ne-correspond';
-
-    /** What a page placed lives as long as its listing, and the suite shares one application. */
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->app->forgetScopedInstances();
-    }
-
-    /** The suite shares one application: what is placed here would reach a later class. */
-    protected function tearDown(): void
-    {
-        request()->query->replace([]);
-        $this->app->forgetScopedInstances();
-
-        parent::tearDown();
-    }
-
-    #[Test]
-    public function it_hangs_the_hook_on_the_outermost_element(): void
-    {
-        $opening = explode('>', trim($this->renderOne()))[0];
-
-        $this->assertStringStartsWith('<fieldset', $opening);
-        $this->assertStringContainsString(Hook::Facet->attribute()->toHtml(), $opening);
-    }
-
-    /** A grid row collapses only if something inside it can hide its overflow. */
-    #[Test]
-    public function it_wraps_the_values_in_a_panel_a_theme_can_collapse(): void
-    {
-        $this->assertMatchesRegularExpression(
-            '/<div class="meilifacetsFacetPanel"[^>]*>\s*<div class="meilifacetsFacetPanelInner">/',
-            $this->renderOne()
-        );
-    }
-
-    /** Without an id, a theme's disclosure has nothing to point `aria-controls` at. */
-    #[Test]
-    public function it_names_the_panel(): void
-    {
-        $listing = $this->listing();
-
-        $this->assertStringContainsString(
-            'id="'.new ElementId($listing->name())->facetPanel($this->first()->name).'"',
-            $this->renderOne()
-        );
-    }
-
-    /** Styled without bullets, a list loses its role in Safari with VoiceOver: `role="list"` gives it back. */
-    #[Test]
-    public function it_keeps_the_values_a_list_without_their_bullets(): void
-    {
-        $values = HTMLDocument::createFromString($this->renderOne(), LIBXML_NOERROR)->querySelector('.meilifacetsFacetValues');
-
-        $this->assertSame('list', $values?->getAttribute('role'));
-    }
-
-    /** The fold button belongs to the panel: collapsing the facet must take it along. */
-    #[Test]
-    public function it_keeps_the_fold_button_inside_the_panel(): void
-    {
-        $panel = HTMLDocument::createFromString($this->renderOne(), LIBXML_NOERROR)
-            ->querySelector('.meilifacetsFacetPanelInner');
-
-        $this->assertNotNull($panel, 'The facet renders no panel to collapse.');
-        $this->assertNotNull(
-            $panel->querySelector($this->hooked(Hook::More)),
-            'The fold button sits outside the panel, so collapsing the facet leaves it behind.'
-        );
-    }
-
-    #[Test]
-    public function it_renders_both_fold_labels_for_the_client(): void
-    {
-        $button = HTMLDocument::createFromString($this->renderOne(), LIBXML_NOERROR)
-            ->querySelector($this->hooked(Hook::More));
-
-        $more = $button->querySelector($this->hooked(Hook::MoreLabel));
-        $less = $button->querySelector($this->hooked(Hook::LessLabel));
-
-        $this->assertNotNull($more, 'The fold button renders no label to reveal when it is folded.');
-        $this->assertNotNull($less, 'The fold button renders no label to reveal once it is unfolded.');
-        $this->assertFalse($more->hasAttribute('hidden'));
-        $this->assertTrue($less->hasAttribute('hidden'));
-        $this->assertNotSame(trim($more->textContent), trim($less->textContent));
-    }
-
-    /** They left the description with `R-143`: nothing else ties them to the language of the page. */
-    #[Test]
-    public function it_writes_the_fold_labels_in_the_language_wordpress_translates_in(): void
-    {
-        $html = $this->underLocales('fr', 'en_US', fn (): string => $this->renderOne());
-
-        $this->assertStringContainsString('>Show more<', $html);
-        $this->assertStringContainsString('>Show less<', $html);
-        $this->assertStringNotContainsString('Voir plus', $html);
-    }
-
-    /** The rule is `Unit\FacetPlacementTest`; what this proves is that the component asks for it. */
-    #[Test]
-    public function it_places_a_named_facet_outside_the_group(): void
-    {
-        $rendered = Blade::render($this->placing($this->first()).'<x-meilifacets::listing.facets name="products" />');
-
-        $this->assertSame($this->declaredCount(), $this->countFacets($rendered));
-        $this->assertSame(1, substr_count($rendered, 'data-taxonomy="'.$this->first()->taxonomy.'"'));
-    }
-
-    /** An empty container is markup the page carries for nothing. */
-    #[Test]
-    public function it_renders_no_container_when_every_facet_was_placed_on_its_own(): void
-    {
-        $this->useApplyMode('immediate');
-
-        $rendered = $this->placingEveryFacet().Blade::render('<x-meilifacets::listing.facets name="products" />');
-
-        $this->assertSame($this->declaredCount(), $this->countFacets($rendered));
-        $this->assertStringNotContainsString('data-meili="facets"', $rendered);
-    }
-
-    #[Test]
-    public function it_merges_the_classes_the_caller_adds(): void
-    {
-        $html = Blade::render($this->placing($this->first(), 'class="lg:col-span-2"'));
-
-        $this->assertStringContainsString('class="meilifacetsFacet lg:col-span-2"', $html);
-    }
-
-    /** A facet placed on its own brings the listing back into view like the group does. */
-    #[Test]
-    public function it_marks_the_facet_that_asks_to_scroll(): void
-    {
-        $this->assertStringContainsString(
-            Contract::ScrollAttribute->value,
-            Blade::render($this->placing($this->first(), 'scroll'))
-        );
-    }
-
-    #[Test]
-    public function it_marks_nothing_when_the_facet_does_not_ask(): void
-    {
-        $this->assertStringNotContainsString(Contract::ScrollAttribute->value, $this->renderOne());
-    }
-
-    /** A string return would have Blade compile, write and include a file that renders nothing. */
-    #[Test]
-    public function it_compiles_no_view_when_it_renders_nothing(): void
-    {
-        $this->useApplyMode('immediate');
-        $empty = config('view.compiled').'/'.hash('xxh128', '').'.blade.php';
-        File::delete($empty);
-
-        $this->placingEveryFacet();
-        Blade::render('<x-meilifacets::listing.facets name="products" />');
-
-        $this->assertFileDoesNotExist($empty);
-    }
-
-    /** Unless it still holds the button that commits the filters. */
-    #[Test]
-    public function it_keeps_the_container_that_carries_the_apply_button(): void
-    {
-        $this->useApplyMode('submit');
-
-        $rendered = $this->placingEveryFacet().Blade::render('<x-meilifacets::listing.facets name="products" />');
-
-        $this->assertStringContainsString('data-meili="facets"', $rendered);
-        $this->assertStringContainsString('data-meili="apply"', $rendered);
-    }
-
-    #[Test]
-    public function the_listing_root_carries_the_apply_mode_and_the_group_does_not(): void
-    {
-        foreach (['submit', 'immediate'] as $mode) {
-            $this->useApplyMode($mode);
-            $this->app->forgetScopedInstances();
-
-            $document = HTMLDocument::createFromString(Blade::render('<x-meilifacets::listing name="products"><x-meilifacets::listing.facets /></x-meilifacets::listing>'), LIBXML_NOERROR);
-
-            $this->assertSame($mode, $document->querySelector('[data-listing]')->getAttribute('data-apply'));
-            $this->assertFalse($document->querySelector($this->hooked(Hook::Facets))->hasAttribute('data-apply'));
-        }
-    }
-
-    #[Test]
-    public function it_renders_the_filters_and_the_apply_button_without_their_container_when_unwrapped(): void
-    {
-        $this->useApplyMode('submit');
-
-        $document = HTMLDocument::createFromString(Blade::render('<x-meilifacets::listing.facets name="products" unwrapped scroll />'), LIBXML_NOERROR);
-        $placed = $document->querySelectorAll($this->hooked(Hook::Facet).', '.$this->hooked(Hook::Apply));
-
-        $this->assertNull($document->querySelector($this->hooked(Hook::Facets)));
-        $this->assertGreaterThan(1, $placed->length);
-        $this->assertCount($placed->length, $document->querySelectorAll('['.Contract::ScrollAttribute->value.']'));
-    }
-
-    #[Test]
-    public function it_marks_the_container_alone_when_it_keeps_it(): void
-    {
-        $document = HTMLDocument::createFromString(Blade::render('<x-meilifacets::listing.facets name="products" scroll />'), LIBXML_NOERROR);
-
-        $this->assertCount(1, $document->querySelectorAll('['.Contract::ScrollAttribute->value.']'));
-        $this->assertTrue($document->querySelector($this->hooked(Hook::Facets))->hasAttribute(Contract::ScrollAttribute->value));
-    }
-
-    /** Naming a box with a count would rename it under the cursor at every filtering. */
-    #[Test]
-    public function it_counts_a_value_in_the_language_wordpress_translates_in(): void
-    {
-        $html = $this->underLocales('fr', 'en_US', fn (): string => $this->renderOne());
-
-        $this->assertMatchesRegularExpression('/\\d+ results?\\b/', $html);
-        $this->assertStringNotContainsString('résultat', $html);
-    }
-
-    /** R-151: named by the `<label>` that wraps it, a box reads « Globex 16 results ». */
-    #[Test]
-    public function it_names_a_value_with_its_label_alone(): void
-    {
-        $document = $this->documentOf($this->placingEveryFacet());
-        $values = $this->valuesIn($document);
-
-        foreach ($values as $value) {
-            $input = $value->querySelector($this->hooked(Hook::Input));
-            $name = $document->getElementById($input->getAttribute('aria-labelledby'));
-
-            $this->assertSame($value, $name->closest($this->hooked(Hook::FacetValue)));
-            $this->assertSame($this->shownLabelOf($input), $name->textContent);
-        }
-
-        $this->assertNotEmpty($values);
-    }
-
-    /** The count stays in the `<label>`, so a click on it checks the box natively. */
-    #[Test]
-    public function it_describes_a_value_with_the_count_its_label_holds(): void
-    {
-        $document = $this->documentOf($this->placingEveryFacet());
-
-        foreach ($this->valuesIn($document) as $value) {
-            $input = $value->querySelector($this->hooked(Hook::Input));
-            $count = $document->getElementById($input->getAttribute('aria-describedby'));
-
-            $this->assertTrue($count->matches($this->hooked(Hook::Count)));
-            $this->assertSame($input->closest('label'), $count->closest('label'));
-            $this->assertMatchesRegularExpression('/\\d/', $count->textContent);
-        }
-    }
-
-    #[Test]
-    public function it_gives_every_name_and_every_count_its_own_id(): void
-    {
-        $ids = [];
-
-        foreach ($this->valuesIn($this->documentOf($this->placingEveryFacet())) as $value) {
-            $input = $value->querySelector($this->hooked(Hook::Input));
-            $ids[] = $input->getAttribute('aria-labelledby');
-            $ids[] = $input->getAttribute('aria-describedby');
-        }
-
-        $this->assertSame(array_unique($ids), $ids);
-    }
-
-    /** A view a theme copies must hold markup only: what it computes, a copy freezes (`R-151`). */
-    #[Test]
-    public function it_leaves_every_computation_to_the_component(): void
-    {
-        $view = file_get_contents(dirname(__DIR__, 2).'/resources/views/components/listing/facet.blade.php');
-
-        $this->assertStringNotContainsString('@php', $view);
-        $this->assertStringNotContainsString('$ids->', $view);
-        $this->assertStringNotContainsString('$listing->', $view);
-    }
-
-    #[Test]
-    public function it_keeps_every_value_on_a_narrowed_page_and_hides_those_without_results(): void
-    {
-        $offered = count($this->listing()->valuesOf($this->first()));
-
-        $document = $this->renderedUnder([$this->reserved(QueryParameter::Query) => self::NOTHING_MATCHES]);
-        $values = $document->querySelectorAll($this->hooked(Hook::FacetValue));
-
-        $this->assertGreaterThan(0, $offered);
-        $this->assertCount($offered, $values);
-        $this->assertSame([true], array_values(array_unique(array_map(static fn ($value): bool => $value->hasAttribute('hidden'), iterator_to_array($values)))));
-        $this->assertTrue($document->querySelector($this->hooked(Hook::Facet))->hasAttribute('hidden'));
-        $this->assertTrue($document->querySelector($this->hooked(Hook::More))->hasAttribute('hidden'));
-    }
-
-    #[Test]
-    public function it_shows_a_held_value_that_has_no_result_left(): void
-    {
-        $held = $this->listing()->valuesOf($this->first())[0]->slug;
-
-        $document = $this->renderedUnder([
-            $this->reserved(QueryParameter::Query) => self::NOTHING_MATCHES,
-            $this->app->make(UrlParameters::class)->for($this->first()->taxonomy) => $held,
-        ]);
-        $input = $document->querySelector('input[value="'.$held.'"]');
-
-        $this->assertTrue($input->hasAttribute('checked'));
-        $this->assertFalse($input->closest($this->hooked(Hook::FacetValue))->hasAttribute('hidden'));
-        $this->assertFalse($document->querySelector($this->hooked(Hook::Facet))->hasAttribute('hidden'));
-    }
-
-    #[Test]
-    public function it_marks_pills_with_one_attribute_and_nothing_else(): void
-    {
-        $control = Blade::render($this->placing($this->first(), 'presentation="control"'));
-        $this->app->forgetScopedInstances();
-        $pill = Blade::render($this->placing($this->first(), 'presentation="pill"'));
-
-        $this->assertStringContainsString(' data-presentation="pill"', explode('>', $pill)[0]);
-        $this->assertStringNotContainsString('data-presentation', $control);
-        $this->assertSame($control, str_replace(' data-presentation="pill"', '', $pill));
-    }
-
-    #[Test]
-    public function it_presents_a_facet_as_its_declaration_says(): void
-    {
-        $declared = new Facet($this->first()->taxonomy, $this->first()->label, presentation: Presentation::Pill);
-
-        $html = Blade::render('<x-meilifacets::listing.facet name="products" :facet="$declared" />', ['declared' => $declared]);
-
-        $this->assertStringContainsString('data-presentation="pill"', $html);
-    }
-
-    /** A plain attribute names only the module's presentations; a theme's arrives bound. */
-    #[Test]
-    public function it_marks_a_theme_presentation_a_template_binds_with_its_name(): void
-    {
-        $html = Blade::render(
-            '<x-meilifacets::listing.facet name="products" :facet="$name" :presentation="$presentation" />',
-            ['name' => $this->first()->name, 'presentation' => FakePresentation::Tile],
-        );
-
-        $this->assertStringContainsString('data-presentation="tile"', explode('>', $html)[0]);
-    }
-
-    /** R-10: the template cannot slip past the guard the declaration went through. */
-    #[Test]
-    public function it_refuses_pills_a_template_asks_for_on_a_single_selection_facet(): void
-    {
-        $single = new Facet($this->first()->taxonomy, $this->first()->label, SelectionMode::Single);
-
-        $this->expectException(InvalidArgumentException::class);
-
-        $this->app->make(FacetComponent::class, ['facet' => $single, 'presentation' => 'pill', 'name' => ProductListing::NAME]);
-    }
-
-    /** The description feeds the client, which counts and filters on facets the page never showed. */
-    #[Test]
-    public function it_still_publishes_a_facet_a_template_placed_on_its_own(): void
-    {
-        $listing = $this->listing();
-        $description = $this->app->make(ListingDescription::class);
-
-        $before = $description->of($listing);
-        $listing->placement()->placeNamed($this->first()->name, Facet::class);
-
-        $this->assertSame(json_encode($before), json_encode($description->of($listing)));
-        $this->assertCount(count($listing->facets()), $description->of($listing)['facets']);
-    }
 
     private function listing(): ResolvedListing
     {
@@ -502,3 +128,299 @@ final class FacetComponentTest extends TestCase
         return substr_count($rendered, 'data-meili="facet"');
     }
 }
+
+/**
+ * That the components reach the listing and each other. What they place, and
+ * what they refuse, is `Unit\FacetPlacementTest` — on facets it declares itself.
+ */
+uses(TestCase::class, FindsHooks::class, SwitchesApplyMode::class, SwitchesTheSiteLocale::class, FacetComponentSupport::class);
+
+beforeEach(function (): void {
+    $this->app->forgetScopedInstances();
+});
+
+afterEach(function (): void {
+    request()->query->replace([]);
+    $this->app->forgetScopedInstances();
+});
+
+it('hangs the hook on the outermost element', function (): void {
+    $opening = explode('>', trim($this->renderOne()))[0];
+
+    expect($opening)->toStartWith('<fieldset');
+    expect($opening)->toContain(Hook::Facet->attribute()->toHtml());
+});
+
+/** A grid row collapses only if something inside it can hide its overflow. */
+it('wraps the values in a panel a theme can collapse', function (): void {
+    expect($this->renderOne())->toMatch('/<div class="meilifacetsFacetPanel"[^>]*>\s*<div class="meilifacetsFacetPanelInner">/');
+});
+
+/** Without an id, a theme's disclosure has nothing to point `aria-controls` at. */
+it('names the panel', function (): void {
+    $listing = $this->listing();
+
+    expect($this->renderOne())->toContain('id="'.new ElementId($listing->name())->facetPanel($this->first()->name).'"');
+});
+
+/** Styled without bullets, a list loses its role in Safari with VoiceOver: `role="list"` gives it back. */
+it('keeps the values a list without their bullets', function (): void {
+    $values = HTMLDocument::createFromString($this->renderOne(), LIBXML_NOERROR)->querySelector('.meilifacetsFacetValues');
+
+    expect($values?->getAttribute('role'))->toBe('list');
+});
+
+/** The fold button belongs to the panel: collapsing the facet must take it along. */
+it('keeps the fold button inside the panel', function (): void {
+    $panel = HTMLDocument::createFromString($this->renderOne(), LIBXML_NOERROR)
+        ->querySelector('.meilifacetsFacetPanelInner');
+
+    $this->assertNotNull($panel, 'The facet renders no panel to collapse.');
+    $this->assertNotNull(
+        $panel->querySelector($this->hooked(Hook::More)),
+        'The fold button sits outside the panel, so collapsing the facet leaves it behind.'
+    );
+});
+
+it('renders both fold labels for the client', function (): void {
+    $button = HTMLDocument::createFromString($this->renderOne(), LIBXML_NOERROR)
+        ->querySelector($this->hooked(Hook::More));
+
+    $more = $button->querySelector($this->hooked(Hook::MoreLabel));
+    $less = $button->querySelector($this->hooked(Hook::LessLabel));
+
+    $this->assertNotNull($more, 'The fold button renders no label to reveal when it is folded.');
+    $this->assertNotNull($less, 'The fold button renders no label to reveal once it is unfolded.');
+    expect($more->hasAttribute('hidden'))->toBeFalse();
+    expect($less->hasAttribute('hidden'))->toBeTrue();
+    expect(trim($less->textContent))->not->toBe(trim($more->textContent));
+});
+
+/** They left the description with `R-143`: nothing else ties them to the language of the page. */
+it('writes the fold labels in the language wordpress translates in', function (): void {
+    $html = $this->underLocales('fr', 'en_US', fn (): string => $this->renderOne());
+
+    expect($html)->toContain('>Show more<');
+    expect($html)->toContain('>Show less<');
+    $this->assertStringNotContainsString('Voir plus', $html);
+});
+
+/** The rule is `Unit\FacetPlacementTest`; what this proves is that the component asks for it. */
+it('places a named facet outside the group', function (): void {
+    $rendered = Blade::render($this->placing($this->first()).'<x-meilifacets::listing.facets name="products" />');
+
+    expect($this->countFacets($rendered))->toBe($this->declaredCount());
+    expect(substr_count($rendered, 'data-taxonomy="'.$this->first()->taxonomy.'"'))->toBe(1);
+});
+
+/** An empty container is markup the page carries for nothing. */
+it('renders no container when every facet was placed on its own', function (): void {
+    $this->useApplyMode('immediate');
+
+    $rendered = $this->placingEveryFacet().Blade::render('<x-meilifacets::listing.facets name="products" />');
+
+    expect($this->countFacets($rendered))->toBe($this->declaredCount());
+    $this->assertStringNotContainsString('data-meili="facets"', $rendered);
+});
+
+it('merges the classes the caller adds', function (): void {
+    $html = Blade::render($this->placing($this->first(), 'class="lg:col-span-2"'));
+
+    expect($html)->toContain('class="meilifacetsFacet lg:col-span-2"');
+});
+
+/** A facet placed on its own brings the listing back into view like the group does. */
+it('marks the facet that asks to scroll', function (): void {
+    expect(Blade::render($this->placing($this->first(), 'scroll')))->toContain(Contract::ScrollAttribute->value);
+});
+
+it('marks nothing when the facet does not ask', function (): void {
+    $this->assertStringNotContainsString(Contract::ScrollAttribute->value, $this->renderOne());
+});
+
+/** A string return would have Blade compile, write and include a file that renders nothing. */
+it('compiles no view when it renders nothing', function (): void {
+    $this->useApplyMode('immediate');
+    $empty = config('view.compiled').'/'.hash('xxh128', '').'.blade.php';
+    File::delete($empty);
+
+    $this->placingEveryFacet();
+    Blade::render('<x-meilifacets::listing.facets name="products" />');
+
+    $this->assertFileDoesNotExist($empty);
+});
+
+/** Unless it still holds the button that commits the filters. */
+it('keeps the container that carries the apply button', function (): void {
+    $this->useApplyMode('submit');
+
+    $rendered = $this->placingEveryFacet().Blade::render('<x-meilifacets::listing.facets name="products" />');
+
+    expect($rendered)->toContain('data-meili="facets"');
+    expect($rendered)->toContain('data-meili="apply"');
+});
+
+test('the listing root carries the apply mode and the group does not', function (): void {
+    foreach (['submit', 'immediate'] as $mode) {
+        $this->useApplyMode($mode);
+        $this->app->forgetScopedInstances();
+
+        $document = HTMLDocument::createFromString(Blade::render('<x-meilifacets::listing name="products"><x-meilifacets::listing.facets /></x-meilifacets::listing>'), LIBXML_NOERROR);
+
+        expect($document->querySelector('[data-listing]')->getAttribute('data-apply'))->toBe($mode);
+        expect($document->querySelector($this->hooked(Hook::Facets))->hasAttribute('data-apply'))->toBeFalse();
+    }
+});
+
+it('renders the filters and the apply button without their container when unwrapped', function (): void {
+    $this->useApplyMode('submit');
+
+    $document = HTMLDocument::createFromString(Blade::render('<x-meilifacets::listing.facets name="products" unwrapped scroll />'), LIBXML_NOERROR);
+    $placed = $document->querySelectorAll($this->hooked(Hook::Facet).', '.$this->hooked(Hook::Apply));
+
+    expect($document->querySelector($this->hooked(Hook::Facets)))->toBeNull();
+    expect($placed->length)->toBeGreaterThan(1);
+    expect($document->querySelectorAll('['.Contract::ScrollAttribute->value.']'))->toHaveCount($placed->length);
+});
+
+it('marks the container alone when it keeps it', function (): void {
+    $document = HTMLDocument::createFromString(Blade::render('<x-meilifacets::listing.facets name="products" scroll />'), LIBXML_NOERROR);
+
+    expect($document->querySelectorAll('['.Contract::ScrollAttribute->value.']'))->toHaveCount(1);
+    expect($document->querySelector($this->hooked(Hook::Facets))->hasAttribute(Contract::ScrollAttribute->value))->toBeTrue();
+});
+
+/** Naming a box with a count would rename it under the cursor at every filtering. */
+it('counts a value in the language wordpress translates in', function (): void {
+    $html = $this->underLocales('fr', 'en_US', fn (): string => $this->renderOne());
+
+    expect($html)->toMatch('/\\d+ results?\\b/');
+    $this->assertStringNotContainsString('résultat', $html);
+});
+
+/** R-151: named by the `<label>` that wraps it, a box reads « Globex 16 results ». */
+it('names a value with its label alone', function (): void {
+    $document = $this->documentOf($this->placingEveryFacet());
+    $values = $this->valuesIn($document);
+
+    foreach ($values as $value) {
+        $input = $value->querySelector($this->hooked(Hook::Input));
+        $name = $document->getElementById($input->getAttribute('aria-labelledby'));
+
+        expect($name->closest($this->hooked(Hook::FacetValue)))->toBe($value);
+        expect($name->textContent)->toBe($this->shownLabelOf($input));
+    }
+
+    expect($values)->not->toBeEmpty();
+});
+
+/** The count stays in the `<label>`, so a click on it checks the box natively. */
+it('describes a value with the count its label holds', function (): void {
+    $document = $this->documentOf($this->placingEveryFacet());
+
+    foreach ($this->valuesIn($document) as $value) {
+        $input = $value->querySelector($this->hooked(Hook::Input));
+        $count = $document->getElementById($input->getAttribute('aria-describedby'));
+
+        expect($count->matches($this->hooked(Hook::Count)))->toBeTrue();
+        expect($count->closest('label'))->toBe($input->closest('label'));
+        expect($count->textContent)->toMatch('/\\d/');
+    }
+});
+
+it('gives every name and every count its own id', function (): void {
+    $ids = [];
+
+    foreach ($this->valuesIn($this->documentOf($this->placingEveryFacet())) as $value) {
+        $input = $value->querySelector($this->hooked(Hook::Input));
+        $ids[] = $input->getAttribute('aria-labelledby');
+        $ids[] = $input->getAttribute('aria-describedby');
+    }
+
+    expect($ids)->toBe(array_unique($ids));
+});
+
+/** A view a theme copies must hold markup only: what it computes, a copy freezes (`R-151`). */
+it('leaves every computation to the component', function (): void {
+    $view = file_get_contents(dirname(__DIR__, 2).'/resources/views/components/listing/facet.blade.php');
+
+    $this->assertStringNotContainsString('@php', $view);
+    $this->assertStringNotContainsString('$ids->', $view);
+    $this->assertStringNotContainsString('$listing->', $view);
+});
+
+it('keeps every value on a narrowed page and hides those without results', function (): void {
+    $offered = count($this->listing()->valuesOf($this->first()));
+
+    $document = $this->renderedUnder([$this->reserved(QueryParameter::Query) => self::NOTHING_MATCHES]);
+    $values = $document->querySelectorAll($this->hooked(Hook::FacetValue));
+
+    expect($offered)->toBeGreaterThan(0);
+    expect($values)->toHaveCount($offered);
+    expect(array_values(array_unique(array_map(static fn ($value): bool => $value->hasAttribute('hidden'), iterator_to_array($values)))))->toBe([true]);
+    expect($document->querySelector($this->hooked(Hook::Facet))->hasAttribute('hidden'))->toBeTrue();
+    expect($document->querySelector($this->hooked(Hook::More))->hasAttribute('hidden'))->toBeTrue();
+});
+
+it('shows a held value that has no result left', function (): void {
+    $held = $this->listing()->valuesOf($this->first())[0]->slug;
+
+    $document = $this->renderedUnder([
+        $this->reserved(QueryParameter::Query) => self::NOTHING_MATCHES,
+        $this->app->make(UrlParameters::class)->for($this->first()->taxonomy) => $held,
+    ]);
+    $input = $document->querySelector('input[value="'.$held.'"]');
+
+    expect($input->hasAttribute('checked'))->toBeTrue();
+    expect($input->closest($this->hooked(Hook::FacetValue))->hasAttribute('hidden'))->toBeFalse();
+    expect($document->querySelector($this->hooked(Hook::Facet))->hasAttribute('hidden'))->toBeFalse();
+});
+
+it('marks pills with one attribute and nothing else', function (): void {
+    $control = Blade::render($this->placing($this->first(), 'presentation="control"'));
+    $this->app->forgetScopedInstances();
+    $pill = Blade::render($this->placing($this->first(), 'presentation="pill"'));
+
+    expect(explode('>', $pill)[0])->toContain(' data-presentation="pill"');
+    $this->assertStringNotContainsString('data-presentation', $control);
+    expect(str_replace(' data-presentation="pill"', '', $pill))->toBe($control);
+});
+
+it('presents a facet as its declaration says', function (): void {
+    $declared = new Facet($this->first()->taxonomy, $this->first()->label, presentation: Presentation::Pill);
+
+    $html = Blade::render('<x-meilifacets::listing.facet name="products" :facet="$declared" />', ['declared' => $declared]);
+
+    expect($html)->toContain('data-presentation="pill"');
+});
+
+/** A plain attribute names only the module's presentations; a theme's arrives bound. */
+it('marks a theme presentation a template binds with its name', function (): void {
+    $html = Blade::render(
+        '<x-meilifacets::listing.facet name="products" :facet="$name" :presentation="$presentation" />',
+        ['name' => $this->first()->name, 'presentation' => FakePresentation::Tile],
+    );
+
+    expect(explode('>', $html)[0])->toContain('data-presentation="tile"');
+});
+
+/** R-10: the template cannot slip past the guard the declaration went through. */
+it('refuses pills a template asks for on a single selection facet', function (): void {
+    $single = new Facet($this->first()->taxonomy, $this->first()->label, SelectionMode::Single);
+
+    $this->expectException(InvalidArgumentException::class);
+
+    $this->app->make(FacetComponent::class, ['facet' => $single, 'presentation' => 'pill', 'name' => ProductListing::NAME]);
+});
+
+/** The description feeds the client, which counts and filters on facets the page never showed. */
+it('still publishes a facet a template placed on its own', function (): void {
+    $listing = $this->listing();
+    $description = $this->app->make(ListingDescription::class);
+
+    $before = $description->of($listing);
+    $listing->placement()->placeNamed($this->first()->name, Facet::class);
+
+    expect(json_encode($description->of($listing)))->toBe(json_encode($before));
+    expect($description->of($listing)['facets'])->toHaveCount(count($listing->facets()));
+});

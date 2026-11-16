@@ -11,117 +11,13 @@ use Modules\MeiliFacets\View\WordPressPageMetadata;
 use Modules\MeiliFacets\View\YoastCanonicals;
 use Modules\MeiliFacets\View\YoastPageMetadata;
 use Modules\MeiliFacets\View\YoastPageWords;
-use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-/**
- * The test's current page says nothing of pages: each test hands Yoast the presentation it needs, through the filter
- * Yoast applies to it, and puts the main query back as it found it.
- */
-final class PageMetadataTest extends TestCase
+trait PageMetadataSupport
 {
     private const string SHOP = 'https://shop.test/shop';
 
     private const string TITLE_SHORT_CIRCUIT = 'pre_get_document_title';
-
-    #[Test]
-    public function yoast_writes_a_title_for_the_first_page_and_one_for_the_others(): void
-    {
-        $titles = $this->withPresentation(['title' => 'Shop %%page%% %%sep%% Site'], fn (): ?array => $this->yoast()->titles());
-
-        $this->assertSame($this->byPage('Shop - Site', 'Shop - Page :page sur :pages - Site'), $titles);
-        $this->assertFalse($this->leftAFilterBehind('wpseo_replacements'));
-    }
-
-    #[Test]
-    public function yoast_titles_are_plain_text(): void
-    {
-        $titles = $this->withPresentation(['title' => 'L’Atelier & Cie %%page%%'], fn (): ?array => $this->yoast()->titles());
-
-        $this->assertSame('L’Atelier & Cie', $titles['first'] ?? null);
-    }
-
-    #[Test]
-    public function yoast_pages_the_canonical_of_an_archive(): void
-    {
-        $canonicals = $this->onAnArchive(fn (): ?array => $this->withPresentation(
-            ['canonical' => self::SHOP, 'permalink' => self::SHOP],
-            fn (): ?array => $this->yoast()->canonicals(),
-        ));
-
-        $this->assertSame($this->byPage(self::SHOP, self::SHOP.'/page/:page'), $canonicals);
-    }
-
-    #[Test]
-    public function yoast_keeps_the_canonical_of_a_singular_page_on_every_page(): void
-    {
-        $canonicals = $this->onASingularPage(fn (): ?array => $this->withPresentation(
-            ['canonical' => self::SHOP, 'permalink' => self::SHOP],
-            fn (): ?array => $this->yoast()->canonicals(),
-        ));
-
-        $this->assertSame($this->byPage(self::SHOP, self::SHOP), $canonicals);
-    }
-
-    #[Test]
-    public function yoast_tells_nothing_of_a_canonical_a_filter_rewrote(): void
-    {
-        $rewrite = static fn (): string => 'https://elsewhere.test/';
-        add_filter('wpseo_canonical', $rewrite);
-
-        try {
-            $canonicals = $this->onAnArchive(fn (): ?array => $this->withPresentation(
-                ['canonical' => self::SHOP, 'permalink' => self::SHOP],
-                fn (): ?array => $this->yoast()->canonicals(),
-            ));
-        } finally {
-            remove_filter('wpseo_canonical', $rewrite);
-        }
-
-        $this->assertNull($canonicals);
-    }
-
-    #[Test]
-    public function yoast_tells_nothing_on_a_page_it_prints_no_canonical_for(): void
-    {
-        $canonicals = $this->onAnArchive(fn (): ?array => $this->withPresentation(
-            ['canonical' => self::SHOP, 'permalink' => self::SHOP, 'robots' => ['index' => 'noindex']],
-            fn (): ?array => $this->yoast()->canonicals(),
-        ));
-
-        $this->assertNull($canonicals);
-    }
-
-    #[Test]
-    public function wordpress_alone_places_the_page_right_after_the_title(): void
-    {
-        $titles = $this->withoutTitlePlugin(fn (): ?array => $this->wordPress()->titles());
-        $page = preg_quote(sprintf(__('Page %s', 'default'), PageMetadata::PAGE_PLACEHOLDER), '/');
-
-        $this->assertNotNull($titles);
-        $this->assertStringNotContainsString(PageMetadata::PAGE_PLACEHOLDER, $titles['first']);
-        $this->assertMatchesRegularExpression('/'.$page.' \S+ /u', $titles['paged']);
-        $this->assertSame($titles['first'], preg_replace('/'.$page.' \S+ /u', '', $titles['paged']));
-    }
-
-    #[Test]
-    public function wordpress_alone_tells_no_title_when_a_plugin_writes_it(): void
-    {
-        $plugin = static fn (): string => 'Written elsewhere';
-        add_filter(self::TITLE_SHORT_CIRCUIT, $plugin);
-
-        try {
-            $this->assertNull($this->wordPress()->titles());
-        } finally {
-            remove_filter(self::TITLE_SHORT_CIRCUIT, $plugin);
-        }
-    }
-
-    #[Test]
-    public function wordpress_alone_prints_no_canonical_on_an_archive(): void
-    {
-        $this->assertNull($this->onAnArchive(fn (): ?array => $this->wordPress()->canonicals()));
-    }
 
     /**
      * @return array{first: string, paged: string}
@@ -235,3 +131,90 @@ final class PageMetadataTest extends TestCase
         return isset($wp_filter[$hook]->callbacks[PHP_INT_MAX]);
     }
 }
+
+/**
+ * The test's current page says nothing of pages: each test hands Yoast the presentation it needs, through the filter
+ * Yoast applies to it, and puts the main query back as it found it.
+ */
+uses(TestCase::class, PageMetadataSupport::class);
+
+test('yoast writes a title for the first page and one for the others', function (): void {
+    $titles = $this->withPresentation(['title' => 'Shop %%page%% %%sep%% Site'], fn (): ?array => $this->yoast()->titles());
+
+    expect($titles)->toBe($this->byPage('Shop - Site', 'Shop - Page :page sur :pages - Site'));
+    expect($this->leftAFilterBehind('wpseo_replacements'))->toBeFalse();
+});
+
+test('yoast titles are plain text', function (): void {
+    $titles = $this->withPresentation(['title' => 'L’Atelier & Cie %%page%%'], fn (): ?array => $this->yoast()->titles());
+
+    expect($titles['first'] ?? null)->toBe('L’Atelier & Cie');
+});
+
+test('yoast pages the canonical of an archive', function (): void {
+    $canonicals = $this->onAnArchive(fn (): ?array => $this->withPresentation(
+        ['canonical' => self::SHOP, 'permalink' => self::SHOP],
+        fn (): ?array => $this->yoast()->canonicals(),
+    ));
+
+    expect($canonicals)->toBe($this->byPage(self::SHOP, self::SHOP.'/page/:page'));
+});
+
+test('yoast keeps the canonical of a singular page on every page', function (): void {
+    $canonicals = $this->onASingularPage(fn (): ?array => $this->withPresentation(
+        ['canonical' => self::SHOP, 'permalink' => self::SHOP],
+        fn (): ?array => $this->yoast()->canonicals(),
+    ));
+
+    expect($canonicals)->toBe($this->byPage(self::SHOP, self::SHOP));
+});
+
+test('yoast tells nothing of a canonical a filter rewrote', function (): void {
+    $rewrite = static fn (): string => 'https://elsewhere.test/';
+    add_filter('wpseo_canonical', $rewrite);
+
+    try {
+        $canonicals = $this->onAnArchive(fn (): ?array => $this->withPresentation(
+            ['canonical' => self::SHOP, 'permalink' => self::SHOP],
+            fn (): ?array => $this->yoast()->canonicals(),
+        ));
+    } finally {
+        remove_filter('wpseo_canonical', $rewrite);
+    }
+
+    expect($canonicals)->toBeNull();
+});
+
+test('yoast tells nothing on a page it prints no canonical for', function (): void {
+    $canonicals = $this->onAnArchive(fn (): ?array => $this->withPresentation(
+        ['canonical' => self::SHOP, 'permalink' => self::SHOP, 'robots' => ['index' => 'noindex']],
+        fn (): ?array => $this->yoast()->canonicals(),
+    ));
+
+    expect($canonicals)->toBeNull();
+});
+
+test('wordpress alone places the page right after the title', function (): void {
+    $titles = $this->withoutTitlePlugin(fn (): ?array => $this->wordPress()->titles());
+    $page = preg_quote(sprintf(__('Page %s', 'default'), PageMetadata::PAGE_PLACEHOLDER), '/');
+
+    expect($titles)->not->toBeNull();
+    $this->assertStringNotContainsString(PageMetadata::PAGE_PLACEHOLDER, $titles['first']);
+    expect($titles['paged'])->toMatch('/'.$page.' \S+ /u');
+    expect(preg_replace('/'.$page.' \S+ /u', '', $titles['paged']))->toBe($titles['first']);
+});
+
+test('wordpress alone tells no title when a plugin writes it', function (): void {
+    $plugin = static fn (): string => 'Written elsewhere';
+    add_filter(self::TITLE_SHORT_CIRCUIT, $plugin);
+
+    try {
+        expect($this->wordPress()->titles())->toBeNull();
+    } finally {
+        remove_filter(self::TITLE_SHORT_CIRCUIT, $plugin);
+    }
+});
+
+test('wordpress alone prints no canonical on an archive', function (): void {
+    expect($this->onAnArchive(fn (): ?array => $this->wordPress()->canonicals()))->toBeNull();
+});

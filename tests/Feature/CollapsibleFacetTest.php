@@ -13,164 +13,11 @@ use Modules\MeiliFacets\Enums\QueryParameter;
 use Modules\MeiliFacets\Support\UrlParameters;
 use Modules\MeiliFacets\Tests\Feature\Concerns\FindsHooks;
 use Modules\MeiliFacets\Tests\Feature\Concerns\HoldsCatalogueValues;
-use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-/** Step 4a of the filter bar: the facet as the trigger of a panel, closed until the client opens it. */
-final class CollapsibleFacetTest extends TestCase
+trait CollapsibleFacetSupport
 {
-    use FindsHooks;
-    use HoldsCatalogueValues;
-
     private const string NOTHING_MATCHES = 'qqxxzzww-aucun-produit-ne-correspond';
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->app->forgetScopedInstances();
-    }
-
-    protected function tearDown(): void
-    {
-        request()->query->replace([]);
-        $this->app->forgetScopedInstances();
-
-        parent::tearDown();
-    }
-
-    #[Test]
-    public function it_names_the_facet_with_a_trigger_inside_its_legend(): void
-    {
-        $toggle = $this->collapsible()->querySelector('legend > '.$this->hooked(Hook::Toggle));
-
-        $this->assertNotNull($toggle, 'The legend holds no trigger.');
-        $this->assertSame('button', $toggle->getAttribute('type'));
-        $this->assertSame($this->firstFacet()->label, $toggle->querySelector('.meilifacetsFacetToggleLabel')->textContent);
-    }
-
-    /** Q-4: closed on the server, or every panel flashes open until the client runs. */
-    #[Test]
-    public function it_renders_the_panel_closed_and_points_the_trigger_at_it(): void
-    {
-        $document = $this->collapsible();
-        $toggle = $document->querySelector($this->hooked(Hook::Toggle));
-        $panel = $document->getElementById($toggle->getAttribute('aria-controls'));
-
-        $this->assertSame('false', $toggle->getAttribute('aria-expanded'));
-        $this->assertNotNull($panel, 'aria-controls names no element.');
-        $this->assertTrue($panel->matches($this->hooked(Hook::Panel)));
-        $this->assertTrue($panel->hasAttribute('hidden'));
-        $this->assertSame($panel->closest($this->hooked(Hook::Facet)), $toggle->closest($this->hooked(Hook::Facet)));
-    }
-
-    #[Test]
-    public function it_hides_an_empty_badge_on_a_facet_that_holds_nothing(): void
-    {
-        $badge = $this->collapsible()->querySelector($this->hooked(Hook::SelectedCount));
-
-        $this->assertTrue($badge->hasAttribute('hidden'));
-        $this->assertSame('', $badge->textContent);
-    }
-
-    #[Test]
-    public function it_counts_on_the_badge_the_values_the_address_holds(): void
-    {
-        $this->holdTwoValues();
-
-        $badge = $this->collapsible()->querySelector($this->hooked(Hook::SelectedCount));
-
-        $this->assertFalse($badge->hasAttribute('hidden'));
-        $this->assertSame('2', $badge->textContent);
-    }
-
-    /** R-49: a search that keeps nothing still leaves the pill of a held value, to lift it. */
-    #[Test]
-    public function it_keeps_the_trigger_of_a_facet_holding_a_value_when_nothing_matches(): void
-    {
-        [$held] = $this->valuesOfTheFirstFacet(1);
-
-        $document = $this->collapsibleUnder([
-            $this->app->make(UrlParameters::class)->reserved(QueryParameter::Query) => self::NOTHING_MATCHES,
-            $this->app->make(UrlParameters::class)->for($this->firstFacet()->taxonomy) => $held,
-        ]);
-        $input = $document->querySelector('input[value="'.$held.'"]');
-
-        $this->assertFalse($document->querySelector($this->hooked(Hook::Facet))->hasAttribute('hidden'));
-        $this->assertNotNull($document->querySelector('legend > '.$this->hooked(Hook::Toggle)));
-        $this->assertSame('1', $document->querySelector($this->hooked(Hook::SelectedCount))->textContent);
-        $this->assertTrue($input->hasAttribute('checked'));
-        $this->assertFalse($input->closest($this->hooked(Hook::FacetValue))->hasAttribute('hidden'));
-    }
-
-    #[Test]
-    public function it_hides_the_trigger_of_a_facet_holding_nothing_when_nothing_matches(): void
-    {
-        $document = $this->collapsibleUnder([
-            $this->app->make(UrlParameters::class)->reserved(QueryParameter::Query) => self::NOTHING_MATCHES,
-        ]);
-
-        $this->assertTrue($document->querySelector($this->hooked(Hook::Facet))->hasAttribute('hidden'));
-    }
-
-    /** The badge describes the trigger: inside its name it would read « Brand 2 », for the group too. */
-    #[Test]
-    public function it_describes_the_trigger_with_the_badge_and_keeps_the_badge_out_of_every_name(): void
-    {
-        $document = $this->collapsible();
-        $toggle = $document->querySelector($this->hooked(Hook::Toggle));
-        $badge = $document->getElementById($toggle->getAttribute('aria-describedby'));
-
-        $this->assertNotNull($badge, 'aria-describedby names no element.');
-        $this->assertTrue($badge->matches($this->hooked(Hook::SelectedCount)));
-        $this->assertSame('true', $badge->getAttribute('aria-hidden'));
-    }
-
-    /** What the column renders today must not move by a byte when nothing asks to collapse. */
-    #[Test]
-    public function it_differs_from_the_plain_facet_by_the_trigger_and_the_closed_panel_only(): void
-    {
-        $plain = Blade::render($this->placing());
-        $this->app->forgetScopedInstances();
-
-        $this->assertSame($this->serialized($plain), $this->withoutDisclosure(Blade::render($this->placing('collapsible'))));
-        $this->assertStringNotContainsString(Contract::Attribute->value.'="'.Hook::Toggle->value.'"', $plain);
-        $this->assertStringNotContainsString(Contract::Attribute->value.'="'.Hook::Panel->value.'"', $plain);
-        $this->assertStringNotContainsString(Contract::Attribute->value.'="'.Hook::SelectedCount->value.'"', $plain);
-    }
-
-    #[Test]
-    public function the_group_collapses_every_filter_it_renders(): void
-    {
-        $document = HTMLDocument::createFromString(Blade::render('<x-meilifacets::listing.facets name="products" collapsible />'), LIBXML_NOERROR);
-
-        foreach ($document->querySelectorAll($this->hooked(Hook::Facet)) as $block) {
-            $this->assertInstanceOf(Element::class, $block->querySelector($this->hooked(Hook::Toggle)));
-            $this->assertFalse($block->hasAttribute('collapsible'));
-        }
-
-        $this->assertCount(count($this->catalogue()->filters()), $document->querySelectorAll($this->hooked(Hook::Toggle)));
-    }
-
-    #[Test]
-    public function the_group_collapses_nothing_unless_asked(): void
-    {
-        $this->assertStringNotContainsString(
-            Contract::Attribute->value.'="'.Hook::Toggle->value.'"',
-            Blade::render('<x-meilifacets::listing.facets name="products" />')
-        );
-    }
-
-    /** A view a theme copies must hold markup only (`R-151`). */
-    #[Test]
-    public function it_leaves_every_computation_of_the_trigger_to_the_component(): void
-    {
-        $view = file_get_contents(dirname(__DIR__, 2).'/resources/views/components/listing/toggle.blade.php');
-
-        $this->assertStringNotContainsString('@php', $view);
-        $this->assertStringNotContainsString('$ids->', $view);
-        $this->assertStringNotContainsString('$listing->', $view);
-    }
 
     private function collapsible(): HTMLDocument
     {
@@ -213,3 +60,126 @@ final class CollapsibleFacetTest extends TestCase
         return '<x-meilifacets::listing.facet name="products" facet="'.$this->firstFacet()->name.'" '.$attributes.' />';
     }
 }
+
+/** Step 4a of the filter bar: the facet as the trigger of a panel, closed until the client opens it. */
+uses(TestCase::class, FindsHooks::class, HoldsCatalogueValues::class, CollapsibleFacetSupport::class);
+
+beforeEach(function (): void {
+    $this->app->forgetScopedInstances();
+});
+
+afterEach(function (): void {
+    request()->query->replace([]);
+    $this->app->forgetScopedInstances();
+});
+
+it('names the facet with a trigger inside its legend', function (): void {
+    $toggle = $this->collapsible()->querySelector('legend > '.$this->hooked(Hook::Toggle));
+
+    $this->assertNotNull($toggle, 'The legend holds no trigger.');
+    expect($toggle->getAttribute('type'))->toBe('button');
+    expect($toggle->querySelector('.meilifacetsFacetToggleLabel')->textContent)->toBe($this->firstFacet()->label);
+});
+
+/** Q-4: closed on the server, or every panel flashes open until the client runs. */
+it('renders the panel closed and points the trigger at it', function (): void {
+    $document = $this->collapsible();
+    $toggle = $document->querySelector($this->hooked(Hook::Toggle));
+    $panel = $document->getElementById($toggle->getAttribute('aria-controls'));
+
+    expect($toggle->getAttribute('aria-expanded'))->toBe('false');
+    $this->assertNotNull($panel, 'aria-controls names no element.');
+    expect($panel->matches($this->hooked(Hook::Panel)))->toBeTrue();
+    expect($panel->hasAttribute('hidden'))->toBeTrue();
+    expect($toggle->closest($this->hooked(Hook::Facet)))->toBe($panel->closest($this->hooked(Hook::Facet)));
+});
+
+it('hides an empty badge on a facet that holds nothing', function (): void {
+    $badge = $this->collapsible()->querySelector($this->hooked(Hook::SelectedCount));
+
+    expect($badge->hasAttribute('hidden'))->toBeTrue();
+    expect($badge->textContent)->toBe('');
+});
+
+it('counts on the badge the values the address holds', function (): void {
+    $this->holdTwoValues();
+
+    $badge = $this->collapsible()->querySelector($this->hooked(Hook::SelectedCount));
+
+    expect($badge->hasAttribute('hidden'))->toBeFalse();
+    expect($badge->textContent)->toBe('2');
+});
+
+/** R-49: a search that keeps nothing still leaves the pill of a held value, to lift it. */
+it('keeps the trigger of a facet holding a value when nothing matches', function (): void {
+    [$held] = $this->valuesOfTheFirstFacet(1);
+
+    $document = $this->collapsibleUnder([
+        $this->app->make(UrlParameters::class)->reserved(QueryParameter::Query) => self::NOTHING_MATCHES,
+        $this->app->make(UrlParameters::class)->for($this->firstFacet()->taxonomy) => $held,
+    ]);
+    $input = $document->querySelector('input[value="'.$held.'"]');
+
+    expect($document->querySelector($this->hooked(Hook::Facet))->hasAttribute('hidden'))->toBeFalse();
+    expect($document->querySelector('legend > '.$this->hooked(Hook::Toggle)))->not->toBeNull();
+    expect($document->querySelector($this->hooked(Hook::SelectedCount))->textContent)->toBe('1');
+    expect($input->hasAttribute('checked'))->toBeTrue();
+    expect($input->closest($this->hooked(Hook::FacetValue))->hasAttribute('hidden'))->toBeFalse();
+});
+
+it('hides the trigger of a facet holding nothing when nothing matches', function (): void {
+    $document = $this->collapsibleUnder([
+        $this->app->make(UrlParameters::class)->reserved(QueryParameter::Query) => self::NOTHING_MATCHES,
+    ]);
+
+    expect($document->querySelector($this->hooked(Hook::Facet))->hasAttribute('hidden'))->toBeTrue();
+});
+
+/** The badge describes the trigger: inside its name it would read « Brand 2 », for the group too. */
+it('describes the trigger with the badge and keeps the badge out of every name', function (): void {
+    $document = $this->collapsible();
+    $toggle = $document->querySelector($this->hooked(Hook::Toggle));
+    $badge = $document->getElementById($toggle->getAttribute('aria-describedby'));
+
+    $this->assertNotNull($badge, 'aria-describedby names no element.');
+    expect($badge->matches($this->hooked(Hook::SelectedCount)))->toBeTrue();
+    expect($badge->getAttribute('aria-hidden'))->toBe('true');
+});
+
+/** What the column renders today must not move by a byte when nothing asks to collapse. */
+it('differs from the plain facet by the trigger and the closed panel only', function (): void {
+    $plain = Blade::render($this->placing());
+    $this->app->forgetScopedInstances();
+
+    expect($this->withoutDisclosure(Blade::render($this->placing('collapsible'))))->toBe($this->serialized($plain));
+    $this->assertStringNotContainsString(Contract::Attribute->value.'="'.Hook::Toggle->value.'"', $plain);
+    $this->assertStringNotContainsString(Contract::Attribute->value.'="'.Hook::Panel->value.'"', $plain);
+    $this->assertStringNotContainsString(Contract::Attribute->value.'="'.Hook::SelectedCount->value.'"', $plain);
+});
+
+test('the group collapses every filter it renders', function (): void {
+    $document = HTMLDocument::createFromString(Blade::render('<x-meilifacets::listing.facets name="products" collapsible />'), LIBXML_NOERROR);
+
+    foreach ($document->querySelectorAll($this->hooked(Hook::Facet)) as $block) {
+        expect($block->querySelector($this->hooked(Hook::Toggle)))->toBeInstanceOf(Element::class);
+        expect($block->hasAttribute('collapsible'))->toBeFalse();
+    }
+
+    expect($document->querySelectorAll($this->hooked(Hook::Toggle)))->toHaveCount(count($this->catalogue()->filters()));
+});
+
+test('the group collapses nothing unless asked', function (): void {
+    $this->assertStringNotContainsString(
+        Contract::Attribute->value.'="'.Hook::Toggle->value.'"',
+        Blade::render('<x-meilifacets::listing.facets name="products" />')
+    );
+});
+
+/** A view a theme copies must hold markup only (`R-151`). */
+it('leaves every computation of the trigger to the component', function (): void {
+    $view = file_get_contents(dirname(__DIR__, 2).'/resources/views/components/listing/toggle.blade.php');
+
+    $this->assertStringNotContainsString('@php', $view);
+    $this->assertStringNotContainsString('$ids->', $view);
+    $this->assertStringNotContainsString('$listing->', $view);
+});

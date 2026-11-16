@@ -8,106 +8,12 @@ use Closure;
 use Illuminate\Support\Facades\Blade;
 use Modules\MeiliFacets\Enums\Stylesheet;
 use Modules\MeiliFacets\View\ClientStylesheet;
-use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 use WP_Styles;
 
-final class ClientStylesheetTest extends TestCase
+trait ClientStylesheetSupport
 {
     private const string LINK = "id='".Stylesheet::Listing->value."-css'";
-
-    /** The suite shares one application: a listing resolved here would reach a later class. */
-    protected function tearDown(): void
-    {
-        $this->app->forgetScopedInstances();
-
-        parent::tearDown();
-    }
-
-    #[Test]
-    public function it_leaves_the_stylesheet_off_a_page_without_a_listing(): void
-    {
-        $head = $this->withFreshStyles(static function (): string {
-            do_action('wp_enqueue_scripts');
-
-            return self::printed('wp_print_styles');
-        });
-
-        $this->assertStringNotContainsString(self::LINK, $head);
-    }
-
-    /** Layouts render their sections first, as `@extends` does. */
-    #[Test]
-    public function it_prints_the_stylesheet_in_the_head_of_a_layout_rendering_a_listing(): void
-    {
-        $page = $this->withFreshStyles(static fn (): string => Blade::render(<<<'BLADE'
-            @section('content')<x-meilifacets::listing name="products" />@endsection
-            <head>@php do_action('wp_enqueue_scripts'); wp_print_styles(); @endphp</head>
-            <body>@yield('content')</body>
-            BLADE));
-
-        $this->assertStringContainsString(self::LINK, $page);
-        $this->assertLessThan(strpos($page, '</head>'), strpos($page, self::LINK));
-    }
-
-    /** A header renders after the `<head>` its layout printed. */
-    #[Test]
-    public function it_prints_the_search_stylesheet_before_a_search_rendered_after_the_head(): void
-    {
-        $body = $this->withFreshStyles(fn (): string => $this->afterTheHead(static function (): string {
-            new ClientStylesheet()->register();
-
-            return Blade::render('<x-meilifacets::search />');
-        }));
-
-        $link = "id='".Stylesheet::SiteSearch->value."-css'";
-
-        $this->assertStringContainsString($link, $body);
-        $this->assertLessThan(strpos($body, 'data-meili="search"'), strpos($body, $link));
-        $this->assertStringNotContainsString(self::LINK, $body);
-    }
-
-    #[Test]
-    public function it_prints_the_stylesheet_once_before_listings_rendered_after_the_head(): void
-    {
-        $body = $this->withFreshStyles(fn (): string => $this->afterTheHead(static function (): string {
-            $stylesheet = new ClientStylesheet;
-            $stylesheet->register();
-
-            return self::printed(static fn () => $stylesheet->require(Stylesheet::Listing)).self::printed(static fn () => $stylesheet->require(Stylesheet::Listing));
-        }));
-
-        $this->assertSame(1, substr_count($body, self::LINK));
-    }
-
-    #[Test]
-    public function it_lets_a_theme_dequeue_the_stylesheet(): void
-    {
-        $head = $this->withFreshStyles(static function (): string {
-            $stylesheet = new ClientStylesheet;
-            $stylesheet->require(Stylesheet::Listing);
-            $stylesheet->register();
-            wp_dequeue_style(Stylesheet::Listing->value);
-
-            return self::printed('wp_print_styles');
-        });
-
-        $this->assertStringNotContainsString(self::LINK, $head);
-    }
-
-    #[Test]
-    public function it_lets_a_theme_deregister_the_stylesheet_of_a_listing_rendered_after_the_head(): void
-    {
-        $body = $this->withFreshStyles(fn (): string => $this->afterTheHead(static function (): string {
-            $stylesheet = new ClientStylesheet;
-            $stylesheet->register();
-            wp_deregister_style(Stylesheet::Listing->value);
-
-            return self::printed(static fn () => $stylesheet->require(Stylesheet::Listing));
-        }));
-
-        $this->assertStringNotContainsString(self::LINK, $body);
-    }
 
     private static function printed(callable $print): string
     {
@@ -145,3 +51,82 @@ final class ClientStylesheetTest extends TestCase
         }
     }
 }
+
+uses(TestCase::class, ClientStylesheetSupport::class);
+
+afterEach(function (): void {
+    $this->app->forgetScopedInstances();
+});
+
+it('leaves the stylesheet off a page without a listing', function (): void {
+    $head = $this->withFreshStyles(static function (): string {
+        do_action('wp_enqueue_scripts');
+
+        return self::printed('wp_print_styles');
+    });
+
+    $this->assertStringNotContainsString(self::LINK, $head);
+});
+
+/** Layouts render their sections first, as `@extends` does. */
+it('prints the stylesheet in the head of a layout rendering a listing', function (): void {
+    $page = $this->withFreshStyles(static fn (): string => Blade::render(<<<'BLADE'
+        @section('content')<x-meilifacets::listing name="products" />@endsection
+        <head>@php do_action('wp_enqueue_scripts'); wp_print_styles(); @endphp</head>
+        <body>@yield('content')</body>
+        BLADE));
+
+    expect($page)->toContain(self::LINK);
+    expect(strpos($page, (string) self::LINK))->toBeLessThan(strpos($page, '</head>'));
+});
+
+/** A header renders after the `<head>` its layout printed. */
+it('prints the search stylesheet before a search rendered after the head', function (): void {
+    $body = $this->withFreshStyles(fn (): string => $this->afterTheHead(static function (): string {
+        new ClientStylesheet()->register();
+
+        return Blade::render('<x-meilifacets::search />');
+    }));
+
+    $link = "id='".Stylesheet::SiteSearch->value."-css'";
+
+    expect($body)->toContain($link);
+    expect(strpos($body, $link))->toBeLessThan(strpos($body, 'data-meili="search"'));
+    $this->assertStringNotContainsString(self::LINK, $body);
+});
+
+it('prints the stylesheet once before listings rendered after the head', function (): void {
+    $body = $this->withFreshStyles(fn (): string => $this->afterTheHead(static function (): string {
+        $stylesheet = new ClientStylesheet;
+        $stylesheet->register();
+
+        return self::printed(static fn () => $stylesheet->require(Stylesheet::Listing)).self::printed(static fn () => $stylesheet->require(Stylesheet::Listing));
+    }));
+
+    expect(substr_count($body, self::LINK))->toBe(1);
+});
+
+it('lets a theme dequeue the stylesheet', function (): void {
+    $head = $this->withFreshStyles(static function (): string {
+        $stylesheet = new ClientStylesheet;
+        $stylesheet->require(Stylesheet::Listing);
+        $stylesheet->register();
+        wp_dequeue_style(Stylesheet::Listing->value);
+
+        return self::printed('wp_print_styles');
+    });
+
+    $this->assertStringNotContainsString(self::LINK, $head);
+});
+
+it('lets a theme deregister the stylesheet of a listing rendered after the head', function (): void {
+    $body = $this->withFreshStyles(fn (): string => $this->afterTheHead(static function (): string {
+        $stylesheet = new ClientStylesheet;
+        $stylesheet->register();
+        wp_deregister_style(Stylesheet::Listing->value);
+
+        return self::printed(static fn () => $stylesheet->require(Stylesheet::Listing));
+    }));
+
+    $this->assertStringNotContainsString(self::LINK, $body);
+});

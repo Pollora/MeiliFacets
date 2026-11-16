@@ -6,29 +6,12 @@ namespace Modules\MeiliFacets\Tests\Feature;
 
 use Modules\MeiliFacets\Contracts\CardProjector;
 use Modules\MeiliFacets\Indexing\DeferredCardProjector;
-use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 use WP_Post;
 
-final class DeferredCardProjectorTest extends TestCase
+trait DeferredCardProjectorSupport
 {
     private bool $pluginIsActive = false;
-
-    /** A hook wired before plugins load keeps its instance for the whole request (R-171). */
-    #[Test]
-    public function it_projects_the_plugin_card_once_the_plugin_has_loaded_after_the_wiring(): void
-    {
-        $projector = $this->deferred();
-        $this->pluginIsActive = true;
-
-        $this->assertSame(['from' => 'plugin'], $projector->project(new WP_Post((object) [])));
-    }
-
-    #[Test]
-    public function it_projects_the_default_card_while_the_plugin_is_absent(): void
-    {
-        $this->assertSame(['from' => 'default'], $this->deferred()->project(new WP_Post((object) [])));
-    }
 
     private function deferred(): DeferredCardProjector
     {
@@ -55,3 +38,17 @@ final class DeferredCardProjectorTest extends TestCase
         };
     }
 }
+
+uses(TestCase::class, DeferredCardProjectorSupport::class);
+
+/** A hook wired before plugins load keeps its instance for the whole request (R-171). */
+it('projects the plugin card once the plugin has loaded after the wiring', function (): void {
+    $projector = $this->deferred();
+    $this->pluginIsActive = true;
+
+    expect($projector->project(new WP_Post((object) [])))->toBe(['from' => 'plugin']);
+});
+
+it('projects the default card while the plugin is absent', function (): void {
+    expect($this->deferred()->project(new WP_Post((object) [])))->toBe(['from' => 'default']);
+});
