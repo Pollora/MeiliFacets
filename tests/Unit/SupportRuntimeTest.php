@@ -73,6 +73,10 @@ final class SupportRuntimeTest extends TestCase
     #[Test]
     public function it_builds_one_collator_per_locale_and_orders_numbers_by_value(): void
     {
+        if (! class_exists(Collator::class)) {
+            $this->markTestSkipped('ext-intl is not loaded: the module falls back to a byte comparison.');
+        }
+
         WordPress::fake('get_locale', 'fr_FR');
         $collators = new SiteCollator;
 
