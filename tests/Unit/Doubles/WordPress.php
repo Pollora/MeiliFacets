@@ -35,9 +35,15 @@ final class WordPress
     public static function boot(): void
     {
         require_once __DIR__.'/wordpress-functions.php';
+        require_once __DIR__.'/wordpress-classes.php';
 
         self::reset();
         Container::setInstance(new Application);
+    }
+
+    public static function bootWooCommerce(): void
+    {
+        require_once __DIR__.'/woocommerce-functions.php';
     }
 
     public static function reset(): void

@@ -213,3 +213,49 @@ if (! function_exists('wp_get_canonical_url')) {
         return WordPress::call('wp_get_canonical_url', [$post], static fn (): bool => false);
     }
 }
+
+// The long tail: each name answers only what a test faked, and raises on any other call. They take any arguments
+// because no test here exercises WordPress's own signatures, only what the module does with the answers.
+foreach ([
+    'get_post_type',
+    'get_the_title',
+    'get_permalink',
+    'get_post_thumbnail_id',
+    'get_post_meta',
+    'get_ancestors',
+    'get_term',
+    'get_terms',
+    'get_term_by',
+    'get_object_taxonomies',
+    'get_objects_in_term',
+    'get_posts',
+    'clean_post_cache',
+    'doing_action',
+    'do_action',
+    'wp_get_post_parent_id',
+    'is_wp_error',
+    'strip_shortcodes',
+    'wp_trim_words',
+    'wp_get_attachment_image_src',
+    'wp_get_attachment_image_srcset',
+    'wp_get_attachment_image_sizes',
+    'wp_set_current_user',
+    'get_current_user_id',
+    'wp_strip_all_tags',
+    'update_meta_cache',
+    'is_taxonomy_hierarchical',
+    '_prime_post_caches',
+    'get_post_type_object',
+    'get_post_type_archive_link',
+    'get_option',
+    'sanitize_title',
+    'is_object_in_taxonomy',
+    'is_tax',
+    'is_search',
+    'get_queried_object',
+    'wp_get_attachment_url',
+] as $name) {
+    if (! function_exists($name)) {
+        eval("function {$name}(mixed ...\$arguments): mixed { return Modules\\MeiliFacets\\Tests\\Unit\\Doubles\\WordPress::call('{$name}', \$arguments); }");
+    }
+}
