@@ -2,8 +2,6 @@
 
 declare(strict_types=1);
 
-namespace Modules\MeiliFacets\Tests\Unit;
-
 use Meilisearch\Client;
 use Meilisearch\Contracts\MultiSearchFederation;
 use Modules\MeiliFacets\Contracts\EngineUnavailable;
@@ -20,154 +18,116 @@ use Modules\MeiliFacets\Enums\Stylesheet;
 use Modules\MeiliFacets\Search\FacetTruncated;
 use Modules\MeiliFacets\Search\MeilisearchEngine;
 use Modules\MeiliFacets\View\HiddenField;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
-use RuntimeException;
 
-final class EnumsAndErrorsTest extends TestCase
-{
-    #[Test]
-    public function it_falls_back_to_submitting_on_an_unknown_apply_setting(): void
+it('falls back to submitting on an unknown apply setting', function (): void {
+    expect(ApplyMode::fromSetting('immediate'))->toBe(ApplyMode::Immediate);
+    expect(ApplyMode::fromSetting('whenever'))->toBe(ApplyMode::OnSubmit);
+    expect(ApplyMode::OnSubmit->needsButton())->toBeTrue();
+    expect(ApplyMode::Immediate->needsButton())->toBeFalse();
+});
+
+it('writes no shape for the default apply block and reset text', function (): void {
+    expect(ApplyShape::Block->mark())->toBeNull();
+    expect(ApplyShape::Pill->mark())->toBe('pill');
+    expect(ApplyShape::Pill->showsCount())->toBeTrue();
+    expect(ApplyShape::Block->showsCount())->toBeFalse();
+    expect(ResetShape::Text->mark())->toBeNull();
+    expect(ResetShape::Icon->mark())->toBe('icon');
+});
+
+it('prefixes each document key with the field that holds it', function (): void {
+    expect(DocumentField::Price->path('min'))->toBe('price.min');
+    expect(DocumentField::Labels->paths(['a', 'b']))->toBe(['labels.a', 'labels.b']);
+});
+
+it('lists every ranking rule in meilisearch order', function (): void {
+    expect(RankingRule::relevanceFirst())->toBe(
+        ['words', 'typo', 'proximity', 'attributeRank', 'sort', 'wordPosition', 'exactness']
+    );
+});
+
+it('names the query parameter and hook of each price bound', function (): void {
+    expect(PriceBound::Min->parameter())->toBe(QueryParameter::MinPrice);
+    expect(PriceBound::Max->parameter())->toBe(QueryParameter::MaxPrice);
+    expect(PriceBound::Min->hook())->toBe(Hook::PriceMin);
+    expect(PriceBound::Max->hook())->toBe(Hook::PriceMax);
+    expect(PriceBound::Min->label())->toBe('From');
+    expect(PriceBound::Max->label())->toBe('To');
+    expect(PriceBound::Min->handleLabel())->toBe('Lowest price');
+    expect(PriceBound::Max->handleLabel())->toBe('Highest price');
+});
+
+it('reads each query parameter under the key the browser knows', function (): void {
+    $keys = array_map(static fn (QueryParameter $parameter): string => $parameter->key(), QueryParameter::cases());
+
+    expect($keys)->toBe(['sort', 'query', 'page', 'minPrice', 'maxPrice']);
+});
+
+it('lists the product taxonomies that are flags not words', function (): void {
+    expect(ProductTaxonomy::technical())->toBe(
+        ['product_visibility', 'product_type', 'product_shipping_class', 'pos_product_visibility']
+    );
+});
+
+it('publishes each stylesheet under the module folder', function (): void {
+    expect(Stylesheet::Listing->source())->toBe('modules/meilifacets/css/meilifacets.css');
+    expect(Stylesheet::SiteSearch->source())->toBe('modules/meilifacets/css/site-search.css');
+});
+
+it('writes a hook as an attribute and as an attribute map', function (): void {
+    expect((string) Hook::FacetValue->attribute())->toBe('data-meili="facet-value"');
+    expect(Hook::Drawer->asAttributes())->toBe(['data-meili' => 'drawer']);
+});
+
+it('decodes a hidden field from a query pair', function (): void {
+    $field = HiddenField::fromQueryPair('post_type=pro%20duct');
+
+    expect($field->name)->toBe('post_type');
+    expect($field->value)->toBe('pro duct');
+    expect(HiddenField::fromQueryPair('flag')->value)->toBe('');
+    expect(HiddenField::fromQueryPair('k=a=b')->value)->toBe('a=b');
+});
+
+it('names the taxonomy and the setting to raise when a facet is truncated', function (): void {
+    $failure = FacetTruncated::at('product_brand', 100);
+
+    expect($failure)->toBeInstanceOf(RuntimeException::class);
+    expect($failure->getMessage())->toContain('"product_brand" returned 100 values');
+    expect($failure->getMessage())->toContain('meilifacets.engine.max_facet_values');
+});
+
+it('tells each outage apart by what to check', function (): void {
+    expect(EngineUnavailable::unreachable(new RuntimeException)->getMessage())->toContain('MEILI_HOST');
+    expect(EngineUnavailable::incomplete(2, 1)->getMessage())->toContain('1 of 2 searches');
+    expect(EngineUnavailable::unconfigured()->getMessage())->toContain('MEILI_SEARCH_KEY');
+});
+
+it('searches nothing when nothing is asked', function (): void {
+    expect(new MeilisearchEngine(null, 'posts')->multiSearch([]))->toBe([]);
+});
+
+it('refuses a search without a client', function (): void {
+    $this->expectException(EngineUnavailable::class);
+    $this->expectExceptionMessage('No Meilisearch client');
+
+    new MeilisearchEngine(null, 'posts')->multiSearch(['results' => []]);
+});
+
+it('reports a failing client as an unreachable engine', function (): void {
+    $client = new class extends Client
     {
-        $this->assertSame(ApplyMode::Immediate, ApplyMode::fromSetting('immediate'));
-        $this->assertSame(ApplyMode::OnSubmit, ApplyMode::fromSetting('whenever'));
-        $this->assertTrue(ApplyMode::OnSubmit->needsButton());
-        $this->assertFalse(ApplyMode::Immediate->needsButton());
-    }
+        public function __construct() {}
 
-    #[Test]
-    public function it_writes_no_shape_for_the_default_apply_block_and_reset_text(): void
-    {
-        $this->assertNull(ApplyShape::Block->mark());
-        $this->assertSame('pill', ApplyShape::Pill->mark());
-        $this->assertTrue(ApplyShape::Pill->showsCount());
-        $this->assertFalse(ApplyShape::Block->showsCount());
-        $this->assertNull(ResetShape::Text->mark());
-        $this->assertSame('icon', ResetShape::Icon->mark());
-    }
-
-    #[Test]
-    public function it_prefixes_each_document_key_with_the_field_that_holds_it(): void
-    {
-        $this->assertSame('price.min', DocumentField::Price->path('min'));
-        $this->assertSame(['labels.a', 'labels.b'], DocumentField::Labels->paths(['a', 'b']));
-    }
-
-    #[Test]
-    public function it_lists_every_ranking_rule_in_meilisearch_order(): void
-    {
-        $this->assertSame(
-            ['words', 'typo', 'proximity', 'attributeRank', 'sort', 'wordPosition', 'exactness'],
-            RankingRule::relevanceFirst()
-        );
-    }
-
-    #[Test]
-    public function it_names_the_query_parameter_and_hook_of_each_price_bound(): void
-    {
-        $this->assertSame(QueryParameter::MinPrice, PriceBound::Min->parameter());
-        $this->assertSame(QueryParameter::MaxPrice, PriceBound::Max->parameter());
-        $this->assertSame(Hook::PriceMin, PriceBound::Min->hook());
-        $this->assertSame(Hook::PriceMax, PriceBound::Max->hook());
-        $this->assertSame('From', PriceBound::Min->label());
-        $this->assertSame('To', PriceBound::Max->label());
-        $this->assertSame('Lowest price', PriceBound::Min->handleLabel());
-        $this->assertSame('Highest price', PriceBound::Max->handleLabel());
-    }
-
-    #[Test]
-    public function it_reads_each_query_parameter_under_the_key_the_browser_knows(): void
-    {
-        $keys = array_map(static fn (QueryParameter $parameter): string => $parameter->key(), QueryParameter::cases());
-
-        $this->assertSame(['sort', 'query', 'page', 'minPrice', 'maxPrice'], $keys);
-    }
-
-    #[Test]
-    public function it_lists_the_product_taxonomies_that_are_flags_not_words(): void
-    {
-        $this->assertSame(
-            ['product_visibility', 'product_type', 'product_shipping_class', 'pos_product_visibility'],
-            ProductTaxonomy::technical()
-        );
-    }
-
-    #[Test]
-    public function it_publishes_each_stylesheet_under_the_module_folder(): void
-    {
-        $this->assertSame('modules/meilifacets/css/meilifacets.css', Stylesheet::Listing->source());
-        $this->assertSame('modules/meilifacets/css/site-search.css', Stylesheet::SiteSearch->source());
-    }
-
-    #[Test]
-    public function it_writes_a_hook_as_an_attribute_and_as_an_attribute_map(): void
-    {
-        $this->assertSame('data-meili="facet-value"', (string) Hook::FacetValue->attribute());
-        $this->assertSame(['data-meili' => 'drawer'], Hook::Drawer->asAttributes());
-    }
-
-    #[Test]
-    public function it_decodes_a_hidden_field_from_a_query_pair(): void
-    {
-        $field = HiddenField::fromQueryPair('post_type=pro%20duct');
-
-        $this->assertSame('post_type', $field->name);
-        $this->assertSame('pro duct', $field->value);
-        $this->assertSame('', HiddenField::fromQueryPair('flag')->value);
-        $this->assertSame('a=b', HiddenField::fromQueryPair('k=a=b')->value);
-    }
-
-    #[Test]
-    public function it_names_the_taxonomy_and_the_setting_to_raise_when_a_facet_is_truncated(): void
-    {
-        $failure = FacetTruncated::at('product_brand', 100);
-
-        $this->assertInstanceOf(RuntimeException::class, $failure);
-        $this->assertStringContainsString('"product_brand" returned 100 values', $failure->getMessage());
-        $this->assertStringContainsString('meilifacets.engine.max_facet_values', $failure->getMessage());
-    }
-
-    #[Test]
-    public function it_tells_each_outage_apart_by_what_to_check(): void
-    {
-        $this->assertStringContainsString('MEILI_HOST', EngineUnavailable::unreachable(new RuntimeException)->getMessage());
-        $this->assertStringContainsString('1 of 2 searches', EngineUnavailable::incomplete(2, 1)->getMessage());
-        $this->assertStringContainsString('MEILI_SEARCH_KEY', EngineUnavailable::unconfigured()->getMessage());
-    }
-
-    #[Test]
-    public function it_searches_nothing_when_nothing_is_asked(): void
-    {
-        $this->assertSame([], new MeilisearchEngine(null, 'posts')->multiSearch([]));
-    }
-
-    #[Test]
-    public function it_refuses_a_search_without_a_client(): void
-    {
-        $this->expectException(EngineUnavailable::class);
-        $this->expectExceptionMessage('No Meilisearch client');
-
-        new MeilisearchEngine(null, 'posts')->multiSearch(['results' => []]);
-    }
-
-    #[Test]
-    public function it_reports_a_failing_client_as_an_unreachable_engine(): void
-    {
-        $client = new class extends Client
+        public function multiSearch(array $queries = [], ?MultiSearchFederation $federation = null): array
         {
-            public function __construct() {}
-
-            public function multiSearch(array $queries = [], ?MultiSearchFederation $federation = null): array
-            {
-                throw new RuntimeException('connection refused');
-            }
-        };
-
-        try {
-            new MeilisearchEngine($client, 'posts')->multiSearch(['results' => []]);
-            $this->fail('The outage was swallowed.');
-        } catch (EngineUnavailable $failure) {
-            $this->assertSame('connection refused', $failure->getPrevious()?->getMessage());
+            throw new RuntimeException('connection refused');
         }
+    };
+
+    try {
+        new MeilisearchEngine($client, 'posts')->multiSearch(['results' => []]);
+        $this->fail('The outage was swallowed.');
+    } catch (EngineUnavailable $failure) {
+        expect($failure->getPrevious()?->getMessage())->toBe('connection refused');
     }
-}
+});

@@ -2,97 +2,76 @@
 
 declare(strict_types=1);
 
-namespace Modules\MeiliFacets\Tests\Unit;
-
 use Modules\MeiliFacets\Enums\ImagePriority;
 use Modules\MeiliFacets\View\CardBinding;
 use Modules\MeiliFacets\View\CardHooks;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 
 /** What a card template writes for each field it shows, listed and standalone. */
-final class CardHooksTest extends TestCase
-{
-    private const array CARD = [
-        'title' => 'Red shoe',
-        'url' => 'https://example.test/red',
-        'summary' => 'Soft & warm',
-        'price' => '<span class="amount">10 €</span>',
-        'image_url' => 'https://example.test/red.jpg',
-        'image_srcset' => 'red-300.jpg 300w',
-        'image_sizes' => '300px',
-        'image_alt' => '',
-        'image_width' => 300,
-        'image_height' => 200,
-    ];
+const CARD_HOOKS_CARD = [
+    'title' => 'Red shoe',
+    'url' => 'https://example.test/red',
+    'summary' => 'Soft & warm',
+    'price' => '<span class="amount">10 €</span>',
+    'image_url' => 'https://example.test/red.jpg',
+    'image_srcset' => 'red-300.jpg 300w',
+    'image_sizes' => '300px',
+    'image_alt' => '',
+    'image_width' => 300,
+    'image_height' => 200,
+];
 
-    #[Test]
-    public function it_writes_the_link_with_the_hook_the_client_addresses_a_listed_card_by(): void
-    {
-        $link = new CardHooks(CardBinding::of(self::CARD))->link();
+it('writes the link with the hook the client addresses a listed card by', function (): void {
+    $link = new CardHooks(CardBinding::of(CARD_HOOKS_CARD))->link();
 
-        $this->assertTrue($link->isPresent());
-        $this->assertSame('https://example.test/red', $link->attributes->get('href'));
-        $this->assertSame('url', $link->attributes->get('data-meili'));
-    }
+    expect($link->isPresent())->toBeTrue();
+    expect($link->attributes->get('href'))->toBe('https://example.test/red');
+    expect($link->attributes->get('data-meili'))->toBe('url');
+});
 
-    #[Test]
-    public function it_leaves_the_hook_off_a_standalone_card_the_client_never_rebuilds(): void
-    {
-        $link = new CardHooks(CardBinding::standalone(self::CARD))->link();
+it('leaves the hook off a standalone card the client never rebuilds', function (): void {
+    $link = new CardHooks(CardBinding::standalone(CARD_HOOKS_CARD))->link();
 
-        $this->assertSame('https://example.test/red', $link->attributes->get('href'));
-        $this->assertNull($link->attributes->get('data-meili'));
-    }
+    expect($link->attributes->get('href'))->toBe('https://example.test/red');
+    expect($link->attributes->get('data-meili'))->toBeNull();
+});
 
-    #[Test]
-    public function it_writes_the_image_with_its_candidates_and_its_loading_priority(): void
-    {
-        $image = new CardHooks(CardBinding::of(self::CARD))->image(ImagePriority::Eager);
+it('writes the image with its candidates and its loading priority', function (): void {
+    $image = new CardHooks(CardBinding::of(CARD_HOOKS_CARD))->image(ImagePriority::Eager);
 
-        $this->assertSame('https://example.test/red.jpg', $image->attributes->get('src'));
-        $this->assertSame('red-300.jpg 300w', $image->attributes->get('srcset'));
-        $this->assertSame('Red shoe', $image->attributes->get('alt'));
-        $this->assertSame('eager', $image->attributes->get('loading'));
-        $this->assertSame('high', $image->attributes->get('fetchpriority'));
-        $this->assertSame('image', $image->attributes->get('data-meili'));
-    }
+    expect($image->attributes->get('src'))->toBe('https://example.test/red.jpg');
+    expect($image->attributes->get('srcset'))->toBe('red-300.jpg 300w');
+    expect($image->attributes->get('alt'))->toBe('Red shoe');
+    expect($image->attributes->get('loading'))->toBe('eager');
+    expect($image->attributes->get('fetchpriority'))->toBe('high');
+    expect($image->attributes->get('data-meili'))->toBe('image');
+});
 
-    #[Test]
-    public function it_writes_a_thumbnail_without_candidates_or_priority(): void
-    {
-        $thumbnail = new CardHooks(CardBinding::of(self::CARD))->thumbnail();
+it('writes a thumbnail without candidates or priority', function (): void {
+    $thumbnail = new CardHooks(CardBinding::of(CARD_HOOKS_CARD))->thumbnail();
 
-        $this->assertSame('https://example.test/red.jpg', $thumbnail->attributes->get('src'));
-        $this->assertSame('300', (string) $thumbnail->attributes->get('width'));
-        $this->assertNull($thumbnail->attributes->get('srcset'));
-        $this->assertNull($thumbnail->attributes->get('loading'));
-    }
+    expect($thumbnail->attributes->get('src'))->toBe('https://example.test/red.jpg');
+    expect((string) $thumbnail->attributes->get('width'))->toBe('300');
+    expect($thumbnail->attributes->get('srcset'))->toBeNull();
+    expect($thumbnail->attributes->get('loading'))->toBeNull();
+});
 
-    #[Test]
-    public function it_leaves_out_the_image_of_a_card_without_one(): void
-    {
-        $hooks = new CardHooks(CardBinding::standalone(['title' => 'No photo']));
+it('leaves out the image of a card without one', function (): void {
+    $hooks = new CardHooks(CardBinding::standalone(['title' => 'No photo']));
 
-        $this->assertFalse($hooks->image(ImagePriority::Lazy)->isPresent());
-        $this->assertFalse($hooks->thumbnail()->isPresent());
-    }
+    expect($hooks->image(ImagePriority::Lazy)->isPresent())->toBeFalse();
+    expect($hooks->thumbnail()->isPresent())->toBeFalse();
+});
 
-    #[Test]
-    public function it_escapes_the_text_fields_and_writes_the_price_as_the_markup_it_is(): void
-    {
-        $hooks = new CardHooks(CardBinding::of(self::CARD));
+it('escapes the text fields and writes the price as the markup it is', function (): void {
+    $hooks = new CardHooks(CardBinding::of(CARD_HOOKS_CARD));
 
-        $this->assertSame('Red shoe', $hooks->title()->toHtml());
-        $this->assertSame('Soft &amp; warm', $hooks->summary()->toHtml());
-        $this->assertSame('<span class="amount">10 €</span>', $hooks->price()->toHtml());
-        $this->assertSame('summary', $hooks->summary()->attributes->get('data-meili'));
-    }
+    expect($hooks->title()->toHtml())->toBe('Red shoe');
+    expect($hooks->summary()->toHtml())->toBe('Soft &amp; warm');
+    expect($hooks->price()->toHtml())->toBe('<span class="amount">10 €</span>');
+    expect($hooks->summary()->attributes->get('data-meili'))->toBe('summary');
+});
 
-    #[Test]
-    public function it_leaves_out_the_price_a_card_does_not_carry_but_keeps_it_in_a_template(): void
-    {
-        $this->assertFalse(new CardHooks(CardBinding::of(['title' => 'Free']))->price()->isPresent());
-        $this->assertTrue(new CardHooks(CardBinding::template())->price()->isPresent());
-    }
-}
+it('leaves out the price a card does not carry but keeps it in a template', function (): void {
+    expect(new CardHooks(CardBinding::of(['title' => 'Free']))->price()->isPresent())->toBeFalse();
+    expect(new CardHooks(CardBinding::template())->price()->isPresent())->toBeTrue();
+});
