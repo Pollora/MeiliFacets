@@ -71,7 +71,8 @@
         "pollora/attributes": "^0.1.2",
         "pollora/discovery": "^0.1.0",
         "pollora/harness": "^0.1.23",
-        "rector/rector": "^2.6"
+        "rector/rector": "^2.6",
+        "symfony/polyfill-php83": "^1.30"
     },
     "suggest": {
         "ext-intl": "Orders facet values as the site language does; without it, NameOrder falls back to a byte comparison that misplaces accented labels."
