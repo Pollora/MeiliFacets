@@ -2,88 +2,67 @@
 
 declare(strict_types=1);
 
-namespace Modules\MeiliFacets\Tests\Unit;
+namespace Modules\MeiliFacets\Tests\Unit\PriceFilter;
 
 use Modules\MeiliFacets\Enums\PriceBound;
 use Modules\MeiliFacets\Enums\PricePart;
 use Modules\MeiliFacets\Listing\PriceFilter;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 
-final class PriceFilterTest extends TestCase
-{
-    #[Test]
-    public function it_reads_its_bounds_off_the_engine_statistics(): void
-    {
-        $bounds = new PriceFilter('Price')->boundsFrom([
-            'price.min' => ['min' => 4.5, 'max' => 190.0],
-            'price.max' => ['min' => 4.5, 'max' => 199.0],
-        ]);
+it('reads its bounds off the engine statistics', function (): void {
+    $bounds = new PriceFilter('Price')->boundsFrom([
+        'price.min' => ['min' => 4.5, 'max' => 190.0],
+        'price.max' => ['min' => 4.5, 'max' => 199.0],
+    ]);
 
-        $this->assertEqualsWithDelta(4.0, $bounds->min, PHP_FLOAT_EPSILON);
-        $this->assertEqualsWithDelta(199.0, $bounds->max, PHP_FLOAT_EPSILON);
-    }
+    expect($bounds->min)->toEqualWithDelta(4.0, PHP_FLOAT_EPSILON);
+    expect($bounds->max)->toEqualWithDelta(199.0, PHP_FLOAT_EPSILON);
+});
 
-    /** A handle only rests on whole units: an end left at 46.40 would put the product priced there out of reach. */
-    #[Test]
-    public function it_widens_its_bounds_to_whole_units_as_woocommerce_does(): void
-    {
-        $bounds = new PriceFilter('Price')->boundsFrom([
-            'price.min' => ['min' => 9.8, 'max' => 40.0],
-            'price.max' => ['min' => 12.0, 'max' => 46.4],
-        ]);
+/** A handle only rests on whole units: an end left at 46.40 would put the product priced there out of reach. */
+it('widens its bounds to whole units as woocommerce does', function (): void {
+    $bounds = new PriceFilter('Price')->boundsFrom([
+        'price.min' => ['min' => 9.8, 'max' => 40.0],
+        'price.max' => ['min' => 12.0, 'max' => 46.4],
+    ]);
 
-        $this->assertEqualsWithDelta(9.0, $bounds->min, PHP_FLOAT_EPSILON);
-        $this->assertEqualsWithDelta(47.0, $bounds->max, PHP_FLOAT_EPSILON);
-    }
+    expect($bounds->min)->toEqualWithDelta(9.0, PHP_FLOAT_EPSILON);
+    expect($bounds->max)->toEqualWithDelta(47.0, PHP_FLOAT_EPSILON);
+});
 
-    #[Test]
-    public function it_draws_no_range_over_a_single_price(): void
-    {
-        $filter = new PriceFilter('Price');
+it('draws no range over a single price', function (): void {
+    $filter = new PriceFilter('Price');
 
-        $this->assertTrue($filter->boundsFrom(['price.min' => ['min' => 20.0], 'price.max' => ['max' => 20.0]])->isEmpty());
-        $this->assertFalse($filter->boundsFrom(['price.min' => ['min' => 20.0], 'price.max' => ['max' => 20.4]])->isEmpty());
-    }
+    expect($filter->boundsFrom(['price.min' => ['min' => 20.0], 'price.max' => ['max' => 20.0]])->isEmpty())->toBeTrue();
+    expect($filter->boundsFrom(['price.min' => ['min' => 20.0], 'price.max' => ['max' => 20.4]])->isEmpty())->toBeFalse();
+});
 
-    /** A listing whose engine reported nothing must not draw a range from nowhere. */
-    #[Test]
-    public function it_has_no_bounds_when_the_engine_reported_none(): void
-    {
-        $this->assertTrue(new PriceFilter('Price')->boundsFrom([])->isEmpty());
-    }
+/** A listing whose engine reported nothing must not draw a range from nowhere. */
+it('has no bounds when the engine reported none', function (): void {
+    expect(new PriceFilter('Price')->boundsFrom([])->isEmpty())->toBeTrue();
+});
 
-    /** One end alone draws nothing, and leaves the other reading `aria-valuemax=""`. */
-    #[Test]
-    public function it_has_no_bounds_when_the_engine_reported_only_one_end(): void
-    {
-        $filter = new PriceFilter('Price');
+/** One end alone draws nothing, and leaves the other reading `aria-valuemax=""`. */
+it('has no bounds when the engine reported only one end', function (): void {
+    $filter = new PriceFilter('Price');
 
-        $this->assertTrue($filter->boundsFrom(['price.min' => ['min' => 9.5]])->isEmpty());
-        $this->assertTrue($filter->boundsFrom(['price.max' => ['max' => 46.0]])->isEmpty());
-    }
+    expect($filter->boundsFrom(['price.min' => ['min' => 9.5]])->isEmpty())->toBeTrue();
+    expect($filter->boundsFrom(['price.max' => ['max' => 46.0]])->isEmpty())->toBeTrue();
+});
 
-    /** A legend cannot sit on a flex row, so the control names itself. */
-    #[Test]
-    public function it_names_itself_only_when_it_shows_a_range(): void
-    {
-        $this->assertTrue(new PriceFilter('Price', [PricePart::Slider])->namesItself());
-        $this->assertFalse(new PriceFilter('Price', [PricePart::Fields])->namesItself());
-    }
+/** A legend cannot sit on a flex row, so the control names itself. */
+it('names itself only when it shows a range', function (): void {
+    expect(new PriceFilter('Price', [PricePart::Slider])->namesItself())->toBeTrue();
+    expect(new PriceFilter('Price', [PricePart::Fields])->namesItself())->toBeFalse();
+});
 
-    #[Test]
-    public function it_answers_to_the_name_a_project_gives_it(): void
-    {
-        $this->assertSame('price', new PriceFilter('Price')->name);
-        $this->assertSame('tarif', new PriceFilter('Price', name: 'tarif')->name);
-    }
+it('answers to the name a project gives it', function (): void {
+    expect(new PriceFilter('Price')->name)->toBe('price');
+    expect(new PriceFilter('Price', name: 'tarif')->name)->toBe('tarif');
+});
 
-    #[Test]
-    public function it_maps_each_bound_to_the_parameter_and_hook_that_carry_it(): void
-    {
-        $this->assertSame('min_price', PriceBound::Min->parameter()->value);
-        $this->assertSame('max_price', PriceBound::Max->parameter()->value);
-        $this->assertSame('price-min', PriceBound::Min->hook()->value);
-        $this->assertSame('price-max', PriceBound::Max->hook()->value);
-    }
-}
+it('maps each bound to the parameter and hook that carry it', function (): void {
+    expect(PriceBound::Min->parameter()->value)->toBe('min_price');
+    expect(PriceBound::Max->parameter()->value)->toBe('max_price');
+    expect(PriceBound::Min->hook()->value)->toBe('price-min');
+    expect(PriceBound::Max->hook()->value)->toBe('price-max');
+});
