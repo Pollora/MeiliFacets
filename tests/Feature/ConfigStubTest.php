@@ -9,59 +9,11 @@ use Modules\MeiliFacets\Enums\RowOverflow;
 use Modules\MeiliFacets\Search\EngineLimits;
 use Modules\MeiliFacets\View\CardSettings;
 use Modules\MeiliFacets\View\Components\Listing\Drawer;
-use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-/** Runs here rather than standalone: the stub reads `env()`, which needs a package only a host installs. */
-final class ConfigStubTest extends TestCase
+trait ConfigStubHelpers
 {
     private const string STUB = __DIR__.'/../../config/meilifacets.php.stub';
-
-    #[Test]
-    public function it_publishes_the_apply_mode_the_code_defaults_to(): void
-    {
-        $this->assertSame(ApplyMode::DEFAULT->value, $this->stub()['apply_mode']);
-    }
-
-    #[Test]
-    public function it_publishes_the_card_settings_the_code_defaults_to(): void
-    {
-        $this->assertSame(
-            ['eager' => CardSettings::DEFAULT_EAGER],
-            $this->stub()['card']
-        );
-    }
-
-    #[Test]
-    public function it_publishes_the_row_settings_the_drawer_defaults_to(): void
-    {
-        $this->assertSame(
-            ['row' => ['limit' => Drawer::ROW_LIMIT, 'overflow' => RowOverflow::DEFAULT->value]],
-            $this->stub()['drawer']
-        );
-    }
-
-    #[Test]
-    public function it_publishes_the_engine_limits_the_code_defaults_to(): void
-    {
-        $this->assertSame(
-            [
-                'reachable_hits' => EngineLimits::DEFAULT_REACHABLE_HITS,
-                'max_facet_values' => EngineLimits::DEFAULT_MAX_FACET_VALUES,
-            ],
-            $this->stub()['engine']
-        );
-    }
-
-    #[Test]
-    public function it_publishes_no_renamed_parameter_and_no_displayed_attribute(): void
-    {
-        $stub = $this->stub();
-
-        $this->assertSame([], $stub['url_parameters']);
-        $this->assertSame([], $stub['query_parameters']);
-        $this->assertSame([], $stub['displayed_attributes']);
-    }
 
     /**
      * @return array<string, mixed>
@@ -71,3 +23,33 @@ final class ConfigStubTest extends TestCase
         return require self::STUB;
     }
 }
+
+/** Runs here rather than standalone: the stub reads `env()`, which needs a package only a host installs. */
+uses(TestCase::class, ConfigStubHelpers::class);
+
+it('publishes the apply mode the code defaults to', function (): void {
+    expect($this->stub()['apply_mode'])->toBe(ApplyMode::DEFAULT->value);
+});
+
+it('publishes the card settings the code defaults to', function (): void {
+    expect($this->stub()['card'])->toBe(['eager' => CardSettings::DEFAULT_EAGER]);
+});
+
+it('publishes the row settings the drawer defaults to', function (): void {
+    expect($this->stub()['drawer'])->toBe(['row' => ['limit' => Drawer::ROW_LIMIT, 'overflow' => RowOverflow::DEFAULT->value]]);
+});
+
+it('publishes the engine limits the code defaults to', function (): void {
+    expect($this->stub()['engine'])->toBe([
+        'reachable_hits' => EngineLimits::DEFAULT_REACHABLE_HITS,
+        'max_facet_values' => EngineLimits::DEFAULT_MAX_FACET_VALUES,
+    ]);
+});
+
+it('publishes no renamed parameter and no displayed attribute', function (): void {
+    $stub = $this->stub();
+
+    expect($stub['url_parameters'])->toBe([]);
+    expect($stub['query_parameters'])->toBe([]);
+    expect($stub['displayed_attributes'])->toBe([]);
+});

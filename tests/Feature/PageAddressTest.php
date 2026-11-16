@@ -6,106 +6,10 @@ namespace Modules\MeiliFacets\Tests\Feature;
 
 use Modules\MeiliFacets\Http\PageAddress;
 use Modules\MeiliFacets\Tests\Feature\Concerns\RequestsAnAddress;
-use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-final class PageAddressTest extends TestCase
+trait PageAddressHelpers
 {
-    use RequestsAnAddress;
-
-    /** The suite shares one application: a query left behind would reach a later class. */
-    protected function tearDown(): void
-    {
-        request()->query->replace([]);
-        request()->server->remove('QUERY_STRING');
-
-        parent::tearDown();
-    }
-
-    #[Test]
-    public function it_writes_the_first_page_under_whatever_name_wordpress_paginates(): void
-    {
-        $this->requesting('/boutique/seite/2?marque=globex', 'seite');
-
-        $this->assertSame('/boutique', $this->page()->path());
-    }
-
-    #[Test]
-    public function it_writes_where_the_number_of_a_later_page_goes(): void
-    {
-        $this->requesting('/boutique/page/3?marque=globex');
-        $this->assertSame('/boutique/page/:page', $this->page()->pathPattern());
-
-        $this->requesting('/boutique?marque=globex', 'seite');
-        $this->assertSame('/boutique/seite/:page', $this->page()->pathPattern());
-    }
-
-    #[Test]
-    public function it_links_a_page_in_the_path_the_listing_state_in_the_query(): void
-    {
-        $this->assertSame('/boutique/page/2?marque=globex&s=creme', $this->linkFrom('/boutique/page/3', 'marque=globex&s=creme', 2));
-        $this->assertSame('/boutique?marque=globex', $this->linkFrom('/boutique/page/3', 'marque=globex', 1));
-    }
-
-    /** Repeated on every page, `add-to-cart` would fill the basket of whoever follows the links. */
-    #[Test]
-    public function it_links_without_what_neither_the_listing_nor_wordpress_reads(): void
-    {
-        $this->assertSame('/boutique/page/2?f_product_cat=visage', $this->linkFrom('/boutique', 'utm_source=news&f_product_cat=visage&add-to-cart=12', 2));
-    }
-
-    #[Test]
-    public function it_links_without_a_page_number_the_path_already_carries(): void
-    {
-        $this->assertSame('/boutique/page/2?marque=globex', $this->linkFrom('/boutique', 'pg=5&paged=4&marque=globex', 2));
-    }
-
-    #[Test]
-    public function it_writes_a_path_a_browser_cannot_read_as_a_host(): void
-    {
-        $this->assertSame('/boutique', $this->pathOf('//boutique/page/2'));
-        $this->assertSame('/', $this->pathOf('//?s=creme'));
-    }
-
-    #[Test]
-    public function it_keeps_only_what_wordpress_reads(): void
-    {
-        $this->assertSame('s=creme&post_type=product', $this->keptFrom('s=creme&add-to-cart=12&post_type=product&utm_source=news'));
-    }
-
-    #[Test]
-    public function it_drops_the_page_wordpress_would_read_instead_of_the_listing(): void
-    {
-        $this->assertSame('s=creme', $this->keptFrom('paged=2&s=creme'));
-    }
-
-    #[Test]
-    public function it_drops_what_the_listing_writes_itself(): void
-    {
-        $this->assertSame('post_type=product', $this->keptFrom('s=creme&post_type=product', ['s']));
-    }
-
-    #[Test]
-    public function it_keeps_each_pair_as_php_received_it_not_as_laravel_left_it(): void
-    {
-        request()->server->set('QUERY_STRING', 's=&post_type=%20product%20');
-        request()->query->replace(['s' => null, 'post_type' => 'product']);
-
-        $this->assertSame('s=&post_type=%20product%20', $this->page()->queryWithout([]));
-    }
-
-    #[Test]
-    public function it_keeps_a_search_written_without_a_value_and_every_repeat(): void
-    {
-        $this->assertSame('s&s=a&s=b', $this->keptFrom('s&s=a&utm_source=x&s=b'));
-    }
-
-    #[Test]
-    public function it_reads_a_name_as_php_hands_it_to_wordpress(): void
-    {
-        $this->assertSame('post_type%5B%5D=product&post.type=page', $this->keptFrom('post_type%5B%5D=product&post.type=page&%FF=1'));
-    }
-
     /**
      * @param  list<string>  $owned
      */
@@ -136,3 +40,71 @@ final class PageAddressTest extends TestCase
         return $this->app->make(PageAddress::class);
     }
 }
+
+uses(TestCase::class, RequestsAnAddress::class, PageAddressHelpers::class);
+
+/** The suite shares one application: a query left behind would reach a later class. */
+afterEach(function (): void {
+    request()->query->replace([]);
+    request()->server->remove('QUERY_STRING');
+});
+
+it('writes the first page under whatever name wordpress paginates', function (): void {
+    $this->requesting('/boutique/seite/2?marque=globex', 'seite');
+
+    expect($this->page()->path())->toBe('/boutique');
+});
+
+it('writes where the number of a later page goes', function (): void {
+    $this->requesting('/boutique/page/3?marque=globex');
+    expect($this->page()->pathPattern())->toBe('/boutique/page/:page');
+
+    $this->requesting('/boutique?marque=globex', 'seite');
+    expect($this->page()->pathPattern())->toBe('/boutique/seite/:page');
+});
+
+it('links a page in the path the listing state in the query', function (): void {
+    expect($this->linkFrom('/boutique/page/3', 'marque=globex&s=creme', 2))->toBe('/boutique/page/2?marque=globex&s=creme');
+    expect($this->linkFrom('/boutique/page/3', 'marque=globex', 1))->toBe('/boutique?marque=globex');
+});
+
+/** Repeated on every page, `add-to-cart` would fill the basket of whoever follows the links. */
+it('links without what neither the listing nor wordpress reads', function (): void {
+    expect($this->linkFrom('/boutique', 'utm_source=news&f_product_cat=visage&add-to-cart=12', 2))->toBe('/boutique/page/2?f_product_cat=visage');
+});
+
+it('links without a page number the path already carries', function (): void {
+    expect($this->linkFrom('/boutique', 'pg=5&paged=4&marque=globex', 2))->toBe('/boutique/page/2?marque=globex');
+});
+
+it('writes a path a browser cannot read as a host', function (): void {
+    expect($this->pathOf('//boutique/page/2'))->toBe('/boutique');
+    expect($this->pathOf('//?s=creme'))->toBe('/');
+});
+
+it('keeps only what wordpress reads', function (): void {
+    expect($this->keptFrom('s=creme&add-to-cart=12&post_type=product&utm_source=news'))->toBe('s=creme&post_type=product');
+});
+
+it('drops the page wordpress would read instead of the listing', function (): void {
+    expect($this->keptFrom('paged=2&s=creme'))->toBe('s=creme');
+});
+
+it('drops what the listing writes itself', function (): void {
+    expect($this->keptFrom('s=creme&post_type=product', ['s']))->toBe('post_type=product');
+});
+
+it('keeps each pair as php received it not as laravel left it', function (): void {
+    request()->server->set('QUERY_STRING', 's=&post_type=%20product%20');
+    request()->query->replace(['s' => null, 'post_type' => 'product']);
+
+    expect($this->page()->queryWithout([]))->toBe('s=&post_type=%20product%20');
+});
+
+it('keeps a search written without a value and every repeat', function (): void {
+    expect($this->keptFrom('s&s=a&utm_source=x&s=b'))->toBe('s&s=a&s=b');
+});
+
+it('reads a name as php hands it to wordpress', function (): void {
+    expect($this->keptFrom('post_type%5B%5D=product&post.type=page&%FF=1'))->toBe('post_type%5B%5D=product&post.type=page');
+});

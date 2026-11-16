@@ -9,46 +9,10 @@ use Modules\MeiliFacets\Contracts\SearchableTypes;
 use Modules\MeiliFacets\Providers\SiteSearchServiceProvider;
 use Modules\MeiliFacets\SiteSearch\SearchSettings;
 use Modules\MeiliFacets\Tests\Feature\Concerns\RegistersAProvider;
-use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-/** The default declaration of searchable types is pinned by `SearchableTypesTest`. */
-final class SiteSearchServiceProviderTest extends TestCase
+trait SiteSearchServiceProviderHelpers
 {
-    use RegistersAProvider;
-
-    #[Test]
-    public function it_keeps_the_searchable_types_a_project_bound_first(): void
-    {
-        $types = $this->projectTypes();
-        $container = $this->registered(
-            SiteSearchServiceProvider::class,
-            static fn (Container $project) => $project->instance(SearchableTypes::class, $types)
-        );
-
-        $this->assertSame($types, $container->make(SearchableTypes::class));
-    }
-
-    #[Test]
-    public function it_searches_with_the_default_settings_when_the_project_binds_none(): void
-    {
-        $settings = $this->registered(SiteSearchServiceProvider::class)->make(SearchSettings::class);
-
-        $this->assertEquals(new SearchSettings, $settings);
-    }
-
-    #[Test]
-    public function it_keeps_the_search_settings_a_project_bound_first(): void
-    {
-        $settings = new SearchSettings()->withMinChars(3);
-        $container = $this->registered(
-            SiteSearchServiceProvider::class,
-            static fn (Container $project) => $project->instance(SearchSettings::class, $settings)
-        );
-
-        $this->assertSame($settings, $container->make(SearchSettings::class));
-    }
-
     private function projectTypes(): SearchableTypes
     {
         return new readonly class implements SearchableTypes
@@ -60,3 +24,32 @@ final class SiteSearchServiceProviderTest extends TestCase
         };
     }
 }
+
+/** The default declaration of searchable types is pinned by `SearchableTypesTest`. */
+uses(TestCase::class, RegistersAProvider::class, SiteSearchServiceProviderHelpers::class);
+
+it('keeps the searchable types a project bound first', function (): void {
+    $types = $this->projectTypes();
+    $container = $this->registered(
+        SiteSearchServiceProvider::class,
+        static fn (Container $project) => $project->instance(SearchableTypes::class, $types)
+    );
+
+    expect($container->make(SearchableTypes::class))->toBe($types);
+});
+
+it('searches with the default settings when the project binds none', function (): void {
+    $settings = $this->registered(SiteSearchServiceProvider::class)->make(SearchSettings::class);
+
+    expect($settings)->toEqual(new SearchSettings);
+});
+
+it('keeps the search settings a project bound first', function (): void {
+    $settings = new SearchSettings()->withMinChars(3);
+    $container = $this->registered(
+        SiteSearchServiceProvider::class,
+        static fn (Container $project) => $project->instance(SearchSettings::class, $settings)
+    );
+
+    expect($container->make(SearchSettings::class))->toBe($settings);
+});

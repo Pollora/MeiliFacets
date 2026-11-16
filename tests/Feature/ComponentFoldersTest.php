@@ -18,130 +18,17 @@ use Modules\MeiliFacets\View\Components\Listing\Search as ListingSearch;
 use Modules\MeiliFacets\View\Components\Search;
 use Modules\MeiliFacets\View\Components\Search\EmptyState;
 use Modules\MeiliFacets\View\Components\Search\Toggle;
-use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\Test;
 use ReflectionFunction;
 use Tests\TestCase;
 
-/** Each root keeps its bricks in its own folder, class and view alike, reached by Laravel's dot notation. */
-final class ComponentFoldersTest extends TestCase
+trait ComponentFoldersHelpers
 {
-    use PinsIndexedPostTypes;
-
     private const string NAMESPACE = 'meilifacets';
 
     private string $theme = '';
 
     /** @var array<string, list<string>> */
     private array $hints = [];
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->pinIndexedPostTypes();
-        $this->hints = View::getFinder()->getHints();
-    }
-
-    /** The registry is scoped and the finder is shared: both would reach the next test of the application. */
-    protected function tearDown(): void
-    {
-        remove_all_filters('stylesheet_directory');
-        View::getFinder()->replaceNamespace(self::NAMESPACE, $this->hints[self::NAMESPACE] ?? []);
-        View::getFinder()->flush();
-
-        if ($this->theme !== '') {
-            new Filesystem()->deleteDirectory($this->theme);
-        }
-
-        $this->unpinIndexedPostTypes();
-        $this->app->forgetScopedInstances();
-
-        parent::tearDown();
-    }
-
-    /**
-     * @return iterable<string, array{string, string}>
-     */
-    public static function tags(): iterable
-    {
-        yield 'a search brick' => ['meilifacets::search.toggle', Toggle::class];
-        yield 'a listing brick' => ['meilifacets::listing.facets', Facets::class];
-        yield 'a brick whose name PHP reserves' => ['meilifacets::search.empty-state', EmptyState::class];
-        yield 'a listing brick named like the search root' => ['meilifacets::listing.search', ListingSearch::class];
-        yield 'the search root beside that listing brick' => ['meilifacets::search', Search::class];
-        yield 'a brick with no class' => ['meilifacets::listing.toggle', 'meilifacets::components.listing.toggle'];
-    }
-
-    #[DataProvider('tags')]
-    #[Test]
-    public function it_resolves_a_dotted_tag_to_the_class_of_its_folder_before_the_view(string $tag, string $resolved): void
-    {
-        $this->assertSame($resolved, $this->compiler()->componentClass($tag));
-    }
-
-    /**
-     * @return iterable<string, array{string}>
-     */
-    public static function formerTags(): iterable
-    {
-        yield 'a search brick' => ['meilifacets::search-toggle'];
-        yield 'a listing brick' => ['meilifacets::facets'];
-        yield 'the empty state under the reserved word' => ['meilifacets::search.empty'];
-        yield 'the search field of the listing' => ['meilifacets::listing.query-field'];
-    }
-
-    #[DataProvider('formerTags')]
-    #[Test]
-    public function it_resolves_no_former_or_reserved_name(string $tag): void
-    {
-        $this->expectException(InvalidArgumentException::class);
-
-        $this->compiler()->componentClass($tag);
-    }
-
-    #[Test]
-    public function it_renders_a_search_brick_by_its_dotted_name(): void
-    {
-        $html = Blade::render('<x-meilifacets::search><x-meilifacets::search.toggle /></x-meilifacets::search>');
-
-        $this->assertStringContainsString(Hook::SearchToggle->attribute()->toHtml(), $html);
-    }
-
-    #[Test]
-    public function it_renders_a_listing_brick_by_its_dotted_name(): void
-    {
-        $this->assertStringContainsString(Hook::Facets->attribute()->toHtml(), Blade::render('<x-meilifacets::listing.facets name="products" />'));
-    }
-
-    /**
-     * @return iterable<string, array{string, string}>
-     */
-    public static function searchViews(): iterable
-    {
-        yield 'the root' => ['search', '<div class="themedSearch" {{ $hook(\'search\') }}>{{ $slot }}</div>'];
-
-        foreach (['toggle', 'panel', 'input', 'section', 'card', 'empty-state', 'unavailable'] as $brick) {
-            yield 'the '.$brick => ['search/'.$brick, '<div class="themedSearch" {{ $attributes }}>{{ $slot ?? \'\' }}</div>'];
-        }
-    }
-
-    #[DataProvider('searchViews')]
-    #[Test]
-    public function it_takes_each_search_view_a_theme_overrides_under_the_folder_of_its_root(string $view, string $override): void
-    {
-        $this->overrideView($view, $override);
-
-        $this->assertStringContainsString('themedSearch', Blade::render('<x-meilifacets::search />'));
-    }
-
-    #[Test]
-    public function it_takes_the_search_field_a_theme_overrides_under_its_name(): void
-    {
-        $this->overrideView('listing/search', '<form class="themedListingSearch"></form>');
-
-        $this->assertStringContainsString('themedListingSearch', Blade::render('<x-meilifacets::listing.search name="products" />'));
-    }
 
     private function overrideView(string $view, string $override): void
     {
@@ -177,3 +64,75 @@ final class ComponentFoldersTest extends TestCase
         $this->fail('The module hooks nothing on after_setup_theme.');
     }
 }
+
+/** Each root keeps its bricks in its own folder, class and view alike, reached by Laravel's dot notation. */
+uses(TestCase::class, PinsIndexedPostTypes::class, ComponentFoldersHelpers::class);
+
+beforeEach(function (): void {
+    $this->pinIndexedPostTypes();
+    $this->hints = View::getFinder()->getHints();
+});
+
+/** The registry is scoped and the finder is shared: both would reach the next test of the application. */
+afterEach(function (): void {
+    remove_all_filters('stylesheet_directory');
+    View::getFinder()->replaceNamespace(self::NAMESPACE, $this->hints[self::NAMESPACE] ?? []);
+    View::getFinder()->flush();
+
+    if ($this->theme !== '') {
+        new Filesystem()->deleteDirectory($this->theme);
+    }
+
+    $this->unpinIndexedPostTypes();
+    $this->app->forgetScopedInstances();
+});
+
+it('resolves a dotted tag to the class of its folder before the view', function (string $tag, string $resolved): void {
+    expect($this->compiler()->componentClass($tag))->toBe($resolved);
+})->with(function (): iterable {
+    yield 'a search brick' => ['meilifacets::search.toggle', Toggle::class];
+    yield 'a listing brick' => ['meilifacets::listing.facets', Facets::class];
+    yield 'a brick whose name PHP reserves' => ['meilifacets::search.empty-state', EmptyState::class];
+    yield 'a listing brick named like the search root' => ['meilifacets::listing.search', ListingSearch::class];
+    yield 'the search root beside that listing brick' => ['meilifacets::search', Search::class];
+    yield 'a brick with no class' => ['meilifacets::listing.toggle', 'meilifacets::components.listing.toggle'];
+});
+
+it('resolves no former or reserved name', function (string $tag): void {
+    $this->expectException(InvalidArgumentException::class);
+
+    $this->compiler()->componentClass($tag);
+})->with(function (): iterable {
+    yield 'a search brick' => ['meilifacets::search-toggle'];
+    yield 'a listing brick' => ['meilifacets::facets'];
+    yield 'the empty state under the reserved word' => ['meilifacets::search.empty'];
+    yield 'the search field of the listing' => ['meilifacets::listing.query-field'];
+});
+
+it('renders a search brick by its dotted name', function (): void {
+    $html = Blade::render('<x-meilifacets::search><x-meilifacets::search.toggle /></x-meilifacets::search>');
+
+    expect($html)->toContain(Hook::SearchToggle->attribute()->toHtml());
+});
+
+it('renders a listing brick by its dotted name', function (): void {
+    expect(Blade::render('<x-meilifacets::listing.facets name="products" />'))->toContain(Hook::Facets->attribute()->toHtml());
+});
+
+it('takes each search view a theme overrides under the folder of its root', function (string $view, string $override): void {
+    $this->overrideView($view, $override);
+
+    expect(Blade::render('<x-meilifacets::search />'))->toContain('themedSearch');
+})->with(function (): iterable {
+    yield 'the root' => ['search', '<div class="themedSearch" {{ $hook(\'search\') }}>{{ $slot }}</div>'];
+
+    foreach (['toggle', 'panel', 'input', 'section', 'card', 'empty-state', 'unavailable'] as $brick) {
+        yield 'the '.$brick => ['search/'.$brick, '<div class="themedSearch" {{ $attributes }}>{{ $slot ?? \'\' }}</div>'];
+    }
+});
+
+it('takes the search field a theme overrides under its name', function (): void {
+    $this->overrideView('listing/search', '<form class="themedListingSearch"></form>');
+
+    expect(Blade::render('<x-meilifacets::listing.search name="products" />'))->toContain('themedListingSearch');
+});

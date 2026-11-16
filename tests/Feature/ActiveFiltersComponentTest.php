@@ -8,65 +8,10 @@ use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\HtmlString;
 use Modules\MeiliFacets\Tests\Feature\Concerns\SwitchesTheSiteLocale;
 use Modules\MeiliFacets\View\CountLabel;
-use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-/** A bare digit names nothing: the badge has to say what it counts. */
-final class ActiveFiltersComponentTest extends TestCase
+trait ActiveFiltersComponentHelpers
 {
-    use SwitchesTheSiteLocale;
-
-    /** The suite shares one application: a listing resolved here would reach a later class. */
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->app->forgetScopedInstances();
-    }
-
-    protected function tearDown(): void
-    {
-        $this->app->forgetScopedInstances();
-
-        parent::tearDown();
-    }
-
-    #[Test]
-    public function it_names_what_it_counts(): void
-    {
-        // A word after the digit, whatever the language the site runs in.
-        $this->assertMatchesRegularExpression('/>1 \w+/u', $this->render(1));
-        $this->assertMatchesRegularExpression('/>2 \w+/u', $this->render(2));
-    }
-
-    #[Test]
-    public function it_agrees_with_what_it_counts(): void
-    {
-        $this->assertNotSame(strip_tags($this->render(1)), strip_tags($this->render(2)));
-        $this->assertNotSame(
-            preg_replace('/\d/', '', strip_tags($this->render(1))),
-            preg_replace('/\d/', '', strip_tags($this->render(2)))
-        );
-    }
-
-    #[Test]
-    public function it_resolves_as_a_component_and_speaks_the_language_wordpress_translates_in(): void
-    {
-        $html = $this->underLocales('fr', 'en_US', fn (): string => Blade::render('<x-meilifacets::listing.active-filters name="products" />'));
-
-        $this->assertStringContainsString('0 active filters', $html);
-    }
-
-    /** Rendered even at zero: the client reveals it, it creates nothing. */
-    #[Test]
-    public function it_is_rendered_and_hidden_when_nothing_is_filtered(): void
-    {
-        $html = $this->render(0);
-
-        $this->assertStringContainsString('hidden', $html);
-        $this->assertStringContainsString('data-meili="active-filters"', $html);
-    }
-
     private function render(int $count): string
     {
         return (string) view('meilifacets::components.listing.active-filters', [
@@ -76,3 +21,44 @@ final class ActiveFiltersComponentTest extends TestCase
         ])->render();
     }
 }
+
+/** A bare digit names nothing: the badge has to say what it counts. */
+uses(TestCase::class, SwitchesTheSiteLocale::class, ActiveFiltersComponentHelpers::class);
+
+/** The suite shares one application: a listing resolved here would reach a later class. */
+beforeEach(function (): void {
+    $this->app->forgetScopedInstances();
+});
+
+afterEach(function (): void {
+    $this->app->forgetScopedInstances();
+});
+
+it('names what it counts', function (): void {
+    // A word after the digit, whatever the language the site runs in.
+    expect($this->render(1))->toMatch('/>1 \w+/u');
+    expect($this->render(2))->toMatch('/>2 \w+/u');
+});
+
+it('agrees with what it counts', function (): void {
+    // Kept as `assertNotSame`: it renders the expected side first, as the original did.
+    $this->assertNotSame(strip_tags($this->render(1)), strip_tags($this->render(2)));
+    $this->assertNotSame(
+        preg_replace('/\d/', '', strip_tags($this->render(1))),
+        preg_replace('/\d/', '', strip_tags($this->render(2)))
+    );
+});
+
+it('resolves as a component and speaks the language wordpress translates in', function (): void {
+    $html = $this->underLocales('fr', 'en_US', fn (): string => Blade::render('<x-meilifacets::listing.active-filters name="products" />'));
+
+    expect($html)->toContain('0 active filters');
+});
+
+/** Rendered even at zero: the client reveals it, it creates nothing. */
+it('is rendered and hidden when nothing is filtered', function (): void {
+    $html = $this->render(0);
+
+    expect($html)->toContain('hidden');
+    expect($html)->toContain('data-meili="active-filters"');
+});

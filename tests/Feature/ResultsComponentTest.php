@@ -19,112 +19,10 @@ use Modules\MeiliFacets\Tests\Feature\Concerns\RendersTheModuleViews;
 use Modules\MeiliFacets\Tests\Unit\Doubles\ProjectListingCard;
 use Modules\MeiliFacets\View\CardBinding;
 use Modules\MeiliFacets\View\Components\Listing\Card;
-use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-/** `$items` is null on a page robots are told to skip — the state the view must not assume. */
-final class ResultsComponentTest extends TestCase
+trait ResultsComponentHelpers
 {
-    use RendersTheModuleViews;
-
-    #[Test]
-    public function the_cards_it_renders_on_the_server_carry_their_hooks(): void
-    {
-        $this->renderTheModuleViews();
-        $this->app->forgetScopedInstances();
-
-        try {
-            if ($this->app->make(CurrentListing::class)->named(ProductListing::NAME)->cards() === []) {
-                $this->markTestSkipped('The catalogue lists no card.');
-            }
-
-            $html = Blade::render('<x-meilifacets::listing.results :name="$name" />', ['name' => ProductListing::NAME]);
-        } finally {
-            $this->restoreTheThemeViews();
-            $this->app->forgetScopedInstances();
-        }
-
-        $card = HTMLDocument::createFromString('<!doctype html><body>'.$html, LIBXML_NOERROR)
-            ->querySelector('[data-meili="results"] > [data-meili="card"]');
-
-        $this->assertInstanceOf(Element::class, $card);
-        $this->assertNotNull($card->querySelector('[data-meili="url"]'));
-    }
-
-    /** Styled without bullets, a list loses its role in Safari with VoiceOver: `role="list"` gives it back. */
-    #[Test]
-    public function it_keeps_the_results_a_list_without_their_bullets(): void
-    {
-        $this->assertStringContainsString('<ul class="meilifacetsResults" role="list"', $this->render());
-    }
-
-    #[Test]
-    public function it_announces_the_outage_instead_of_an_empty_list(): void
-    {
-        $html = $this->render(failed: true);
-
-        $this->assertStringContainsString('meilifacetsUnavailable', $html);
-        $this->assertStringNotContainsString('<ul', $html);
-    }
-
-    /** The client reveals the same message, in the site's language, when a later search fails. */
-    #[Test]
-    public function it_keeps_the_outage_message_hidden_for_the_client(): void
-    {
-        $html = $this->render(cards: [$this->card('First')]);
-
-        $this->assertMatchesRegularExpression('/<div class="meilifacetsUnavailable" role="alert" hidden data-meili="unavailable"\s*>/', $html);
-        $this->assertStringContainsString(__('Search is temporarily unavailable. Please try again in a moment.'), $html);
-    }
-
-    #[Test]
-    public function it_shows_the_outage_message_unhooked_when_the_server_render_failed(): void
-    {
-        $html = $this->render(failed: true);
-
-        $this->assertStringNotContainsString('data-meili="unavailable"', $html);
-        $this->assertStringNotContainsString(' hidden', $html);
-    }
-
-    /** Kept for the client to fill, hidden so no screen reader counts an empty list. */
-    #[Test]
-    public function it_hides_the_list_it_has_nothing_to_put_in(): void
-    {
-        $html = $this->render(cards: []);
-
-        $this->assertStringContainsString('<ul class="meilifacetsResults" role="list" hidden', $html);
-        $this->assertStringNotContainsString('class="meilifacetsResultsEmpty" hidden', $html);
-    }
-
-    #[Test]
-    public function it_lists_the_cards_it_was_given(): void
-    {
-        $html = $this->render(cards: [$this->card('First'), $this->card('Second')]);
-
-        $this->assertStringContainsString('First', $html);
-        $this->assertStringContainsString('Second', $html);
-        $this->assertStringContainsString('class="meilifacetsResultsEmpty" hidden', $html);
-    }
-
-    #[Test]
-    public function it_reveals_the_reason_nothing_is_listed(): void
-    {
-        $this->assertSame(['no-results'], $this->shownReasons($this->render(cards: [])));
-        $this->assertSame(['past-the-end'], $this->shownReasons($this->render(cards: [], pastTheEnd: true)));
-    }
-
-    /** Both are rendered: the client reveals one, it writes no text of its own. */
-    #[Test]
-    public function it_renders_both_reasons_for_the_client(): void
-    {
-        preg_match_all('/data-meili="(?:no-results|past-the-end)">([^<]*)</', $this->render(cards: []), $found);
-        [$nothingAtAll, $nothingHere] = array_map(trim(...), $found[1]);
-
-        // Whatever language the site runs in, the two must not read the same.
-        $this->assertNotSame('', $nothingAtAll);
-        $this->assertNotSame($nothingAtAll, $nothingHere);
-    }
-
     /**
      * @return list<string>
      */
@@ -133,68 +31,6 @@ final class ResultsComponentTest extends TestCase
         preg_match_all('/<span data-meili="(no-results|past-the-end)">/', $html, $found);
 
         return $found[1];
-    }
-
-    /** One clone source, so the client never carries markup of its own. */
-    #[Test]
-    public function it_offers_a_card_template_the_client_can_clone(): void
-    {
-        $html = $this->render(cards: [$this->card('First')]);
-
-        $this->assertStringContainsString('<template data-meili="card-template">', $html);
-        $this->assertSame(2, substr_count($html, 'data-meili="card"'));
-    }
-
-    #[Test]
-    public function a_listing_that_names_its_card_draws_it_on_the_server_and_in_the_template(): void
-    {
-        $aliases = Blade::getClassComponentAliases();
-        Blade::component(ProjectListingCard::class, ProjectListingCard::ALIAS);
-        $this->forgetDynamicComponentAliases();
-
-        try {
-            $html = $this->render(cards: [$this->card('First')], cardComponent: ProjectListingCard::ALIAS);
-        } finally {
-            (fn (): array => $this->classComponentAliases = $aliases)->call(Blade::getFacadeRoot());
-            $this->forgetDynamicComponentAliases();
-        }
-
-        $this->assertStringContainsString('<p class="probeListingCard" data-priority="eager" data-meili="title">First</p>', $html);
-        $this->assertStringContainsString('<p class="probeListingCard" data-priority="lazy" data-meili="title" data-meili-text="title"></p>', $html);
-        $this->assertStringNotContainsString('meilifacetsCard', $html);
-    }
-
-    /** No template on an outage: the contract fails and the client stays out. */
-    #[Test]
-    public function it_offers_nothing_to_clone_when_the_search_is_down(): void
-    {
-        $this->assertStringNotContainsString('card-template', $this->render(failed: true));
-    }
-
-    #[Test]
-    public function it_publishes_the_structured_list(): void
-    {
-        $html = $this->render(cards: [$this->card('First')], items: new ItemList([$this->card('First')]));
-
-        $this->assertStringContainsString('application/ld+json', $html);
-        $this->assertStringContainsString('"@type":"ItemList"', $html);
-    }
-
-    #[Test]
-    public function it_survives_a_page_that_publishes_no_structured_list(): void
-    {
-        $html = $this->render(cards: [$this->card('First')], items: null);
-
-        $this->assertStringContainsString('meilifacetsResultsItem', $html);
-        $this->assertStringNotContainsString('application/ld+json', $html);
-    }
-
-    #[Test]
-    public function it_writes_no_empty_structured_list(): void
-    {
-        $html = $this->render(cards: [$this->card('First')], items: new ItemList([]));
-
-        $this->assertStringNotContainsString('application/ld+json', $html);
     }
 
     /**
@@ -258,3 +94,136 @@ final class ResultsComponentTest extends TestCase
         })->bindTo(null, DynamicComponent::class)();
     }
 }
+
+/** `$items` is null on a page robots are told to skip — the state the view must not assume. */
+uses(TestCase::class, RendersTheModuleViews::class, ResultsComponentHelpers::class);
+
+it('the cards it renders on the server carry their hooks', function (): void {
+    $this->renderTheModuleViews();
+    $this->app->forgetScopedInstances();
+
+    try {
+        if ($this->app->make(CurrentListing::class)->named(ProductListing::NAME)->cards() === []) {
+            $this->markTestSkipped('The catalogue lists no card.');
+        }
+
+        $html = Blade::render('<x-meilifacets::listing.results :name="$name" />', ['name' => ProductListing::NAME]);
+    } finally {
+        $this->restoreTheThemeViews();
+        $this->app->forgetScopedInstances();
+    }
+
+    $card = HTMLDocument::createFromString('<!doctype html><body>'.$html, LIBXML_NOERROR)
+        ->querySelector('[data-meili="results"] > [data-meili="card"]');
+
+    expect($card)->toBeInstanceOf(Element::class);
+    expect($card->querySelector('[data-meili="url"]'))->not->toBeNull();
+});
+
+/** Styled without bullets, a list loses its role in Safari with VoiceOver: `role="list"` gives it back. */
+it('keeps the results a list without their bullets', function (): void {
+    expect($this->render())->toContain('<ul class="meilifacetsResults" role="list"');
+});
+
+it('announces the outage instead of an empty list', function (): void {
+    $html = $this->render(failed: true);
+
+    expect($html)->toContain('meilifacetsUnavailable');
+    expect($html)->not->toContain('<ul');
+});
+
+/** The client reveals the same message, in the site's language, when a later search fails. */
+it('keeps the outage message hidden for the client', function (): void {
+    $html = $this->render(cards: [$this->card('First')]);
+
+    expect($html)->toMatch('/<div class="meilifacetsUnavailable" role="alert" hidden data-meili="unavailable"\s*>/');
+    expect($html)->toContain(__('Search is temporarily unavailable. Please try again in a moment.'));
+});
+
+it('shows the outage message unhooked when the server render failed', function (): void {
+    $html = $this->render(failed: true);
+
+    expect($html)->not->toContain('data-meili="unavailable"');
+    expect($html)->not->toContain(' hidden');
+});
+
+/** Kept for the client to fill, hidden so no screen reader counts an empty list. */
+it('hides the list it has nothing to put in', function (): void {
+    $html = $this->render(cards: []);
+
+    expect($html)->toContain('<ul class="meilifacetsResults" role="list" hidden');
+    expect($html)->not->toContain('class="meilifacetsResultsEmpty" hidden');
+});
+
+it('lists the cards it was given', function (): void {
+    $html = $this->render(cards: [$this->card('First'), $this->card('Second')]);
+
+    expect($html)->toContain('First');
+    expect($html)->toContain('Second');
+    expect($html)->toContain('class="meilifacetsResultsEmpty" hidden');
+});
+
+it('reveals the reason nothing is listed', function (): void {
+    expect($this->shownReasons($this->render(cards: [])))->toBe(['no-results']);
+    expect($this->shownReasons($this->render(cards: [], pastTheEnd: true)))->toBe(['past-the-end']);
+});
+
+/** Both are rendered: the client reveals one, it writes no text of its own. */
+it('renders both reasons for the client', function (): void {
+    preg_match_all('/data-meili="(?:no-results|past-the-end)">([^<]*)</', $this->render(cards: []), $found);
+    [$nothingAtAll, $nothingHere] = array_map(trim(...), $found[1]);
+
+    // Whatever language the site runs in, the two must not read the same.
+    expect($nothingAtAll)->not->toBe('');
+    expect($nothingHere)->not->toBe($nothingAtAll);
+});
+
+/** One clone source, so the client never carries markup of its own. */
+it('offers a card template the client can clone', function (): void {
+    $html = $this->render(cards: [$this->card('First')]);
+
+    expect($html)->toContain('<template data-meili="card-template">');
+    expect(substr_count($html, 'data-meili="card"'))->toBe(2);
+});
+
+it('a listing that names its card draws it on the server and in the template', function (): void {
+    $aliases = Blade::getClassComponentAliases();
+    Blade::component(ProjectListingCard::class, ProjectListingCard::ALIAS);
+    $this->forgetDynamicComponentAliases();
+
+    try {
+        $html = $this->render(cards: [$this->card('First')], cardComponent: ProjectListingCard::ALIAS);
+    } finally {
+        (fn (): array => $this->classComponentAliases = $aliases)->call(Blade::getFacadeRoot());
+        $this->forgetDynamicComponentAliases();
+    }
+
+    expect($html)->toContain('<p class="probeListingCard" data-priority="eager" data-meili="title">First</p>');
+    expect($html)->toContain('<p class="probeListingCard" data-priority="lazy" data-meili="title" data-meili-text="title"></p>');
+    expect($html)->not->toContain('meilifacetsCard');
+});
+
+/** No template on an outage: the contract fails and the client stays out. */
+it('offers nothing to clone when the search is down', function (): void {
+    expect($this->render(failed: true))->not->toContain('card-template');
+});
+
+it('publishes the structured list', function (): void {
+    $html = $this->render(cards: [$this->card('First')], items: new ItemList([$this->card('First')]));
+
+    expect($html)->toContain('application/ld+json');
+    expect($html)->toContain('"@type":"ItemList"');
+});
+
+it('survives a page that publishes no structured list', function (): void {
+    $html = $this->render(cards: [$this->card('First')], items: null);
+
+    expect($html)->toContain('meilifacetsResultsItem');
+    expect($html)->not->toContain('application/ld+json');
+});
+
+it('writes no empty structured list', function (): void {
+    $html = $this->render(cards: [$this->card('First')], items: new ItemList([]));
+
+    expect($html)->not->toContain('application/ld+json');
+});

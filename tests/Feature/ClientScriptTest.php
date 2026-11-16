@@ -11,151 +11,15 @@ use Modules\MeiliFacets\Listing\ProductListing;
 use Modules\MeiliFacets\Search\BrowserConnection;
 use Modules\MeiliFacets\View\ClientScript;
 use Modules\MeiliFacets\View\ListingDescription;
-use PHPUnit\Framework\Attributes\Test;
 use Pollora\MeiliScout\Config\Config;
 use Tests\TestCase;
 use WP_Script_Modules;
 
-final class ClientScriptTest extends TestCase
+trait ClientScriptHelpers
 {
     private const string LISTING_DATA = 'script_module_data_'.ScriptModule::Listing->value;
 
     private const string SEARCH_DATA = 'script_module_data_'.ScriptModule::SiteSearch->value;
-
-    protected function tearDown(): void
-    {
-        remove_all_filters(self::LISTING_DATA);
-
-        parent::tearDown();
-    }
-
-    #[Test]
-    public function it_fetches_the_client_after_what_the_page_shows(): void
-    {
-        $this->assertStringContainsString('fetchpriority="low"', $this->printedModules($this->requireTheListing(...)));
-    }
-
-    #[Test]
-    public function it_lets_a_project_choose_another_priority(): void
-    {
-        $highest = static fn (): string => 'high';
-        add_filter(ClientScript::PRIORITY_FILTER, $highest);
-
-        try {
-            $this->assertStringContainsString(
-                'fetchpriority="high"',
-                $this->printedModules($this->requireTheListing(...))
-            );
-        } finally {
-            remove_filter(ClientScript::PRIORITY_FILTER, $highest);
-        }
-    }
-
-    #[Test]
-    public function it_keeps_the_listing_script_out_of_the_scripts_wp_rocket_delays(): void
-    {
-        $this->assertTrue($this->isExcluded($this->moduleTag('modules/meilifacets/dist/listing.js')));
-    }
-
-    #[Test]
-    public function it_leaves_another_module_script_to_wp_rocket(): void
-    {
-        $this->assertFalse($this->isExcluded($this->moduleTag('modules/wishlist/js/wishlist.js')));
-    }
-
-    /** The payload `ListingScript` published before it was shared with the search, key for key. */
-    #[Test]
-    public function it_publishes_the_listing_exactly_as_before_the_extraction(): void
-    {
-        $listing = $this->app->make(CurrentListing::class)->named(ProductListing::NAME);
-
-        $this->printedModules($this->requireTheListing(...));
-
-        $this->assertSame(
-            json_encode([
-                'kept' => true,
-                'connection' => ['url' => 'https://engine.test', 'key' => 'search', 'index' => 'products'],
-                'listings' => [$listing->name() => $this->app->make(ListingDescription::class)->of($listing)],
-            ]),
-            json_encode(apply_filters(self::LISTING_DATA, ['kept' => true]))
-        );
-    }
-
-    /** Assertions are booleans: a failure message would print the key it looked for. */
-    #[Test]
-    public function it_hands_the_browser_no_key_but_the_search_one(): void
-    {
-        $master = (string) Config::get('meili_key');
-        $connection = $this->app->make(BrowserConnection::class);
-        $script = new ClientScript($connection);
-        $this->printedModules(static fn () => $script->require(ScriptModule::Listing, 'products', static fn (): array => []));
-
-        $published = (array) apply_filters(self::LISTING_DATA, []);
-
-        $this->assertNotSame('', $master, 'MeiliScout has no master key to compare with.');
-        $this->assertFalse(in_array($master, $this->valuesOf($published), true));
-        $this->assertTrue($published['connection']['key'] === $connection->key);
-    }
-
-    #[Test]
-    public function it_reads_no_description_while_the_browser_has_no_engine_to_reach(): void
-    {
-        $script = new ClientScript(new BrowserConnection('', '', ''));
-
-        $printed = $this->printedModules(fn () => $script->require(
-            ScriptModule::Listing,
-            'products',
-            fn (): array => $this->fail('The description was built for nothing.'),
-        ));
-
-        $this->assertStringNotContainsString(ScriptModule::Listing->value, $printed);
-    }
-
-    #[Test]
-    public function it_inscribes_the_search_loader_like_the_listing_and_files_its_roots_under_their_key(): void
-    {
-        $printed = $this->printedModules(fn () => $this->script()->require(
-            ScriptModule::SiteSearch,
-            'header',
-            static fn (): array => ['name' => 'header'],
-        ));
-
-        try {
-            $this->assertStringContainsString('src="'.asset(ScriptModule::SiteSearch->source()).'?ver=', $printed);
-            $this->assertStringContainsString('fetchpriority="low"', $printed);
-            $this->assertSame(['header' => ['name' => 'header']], apply_filters(self::SEARCH_DATA, [])['searches'] ?? null);
-        } finally {
-            remove_all_filters(self::SEARCH_DATA);
-        }
-    }
-
-    /** The client is imported by the loader, never printed: Delay JS has no tag of it to hold back. */
-    #[Test]
-    public function it_keeps_the_search_loader_out_of_the_scripts_wp_rocket_delays(): void
-    {
-        $this->assertTrue($this->isExcluded($this->moduleTag(ScriptModule::SiteSearch->source())));
-    }
-
-    #[Test]
-    public function it_inscribes_no_bundle_the_module_has_not_published(): void
-    {
-        $published = public_path();
-        $this->app->usePublicPath(sys_get_temp_dir().'/meilifacets-unpublished');
-
-        try {
-            $printed = $this->printedModules(fn () => $this->script()->require(
-                ScriptModule::SiteSearch,
-                'search',
-                static fn (): array => [],
-            ));
-
-            $this->assertStringNotContainsString(ScriptModule::SiteSearch->value, $printed);
-            $this->assertFalse(has_filter(self::SEARCH_DATA));
-            $this->assertFalse($this->isExcluded($this->moduleTag(ScriptModule::SiteSearch->source())));
-        } finally {
-            $this->app->usePublicPath($published);
-        }
-    }
 
     /**
      * @param  array<mixed>  $published
@@ -224,3 +88,115 @@ final class ClientScriptTest extends TestCase
         ]);
     }
 }
+
+uses(TestCase::class, ClientScriptHelpers::class);
+
+afterEach(function (): void {
+    remove_all_filters(self::LISTING_DATA);
+});
+
+it('fetches the client after what the page shows', function (): void {
+    expect($this->printedModules($this->requireTheListing(...)))->toContain('fetchpriority="low"');
+});
+
+it('lets a project choose another priority', function (): void {
+    $highest = static fn (): string => 'high';
+    add_filter(ClientScript::PRIORITY_FILTER, $highest);
+
+    try {
+        expect($this->printedModules($this->requireTheListing(...)))->toContain('fetchpriority="high"');
+    } finally {
+        remove_filter(ClientScript::PRIORITY_FILTER, $highest);
+    }
+});
+
+it('keeps the listing script out of the scripts wp rocket delays', function (): void {
+    expect($this->isExcluded($this->moduleTag('modules/meilifacets/dist/listing.js')))->toBeTrue();
+});
+
+it('leaves another module script to wp rocket', function (): void {
+    expect($this->isExcluded($this->moduleTag('modules/wishlist/js/wishlist.js')))->toBeFalse();
+});
+
+/** The payload `ListingScript` published before it was shared with the search, key for key. */
+it('publishes the listing exactly as before the extraction', function (): void {
+    $listing = $this->app->make(CurrentListing::class)->named(ProductListing::NAME);
+
+    $this->printedModules($this->requireTheListing(...));
+
+    // Kept as `assertSame`: the expected side is built before the filter runs, as the original did.
+    $this->assertSame(
+        json_encode([
+            'kept' => true,
+            'connection' => ['url' => 'https://engine.test', 'key' => 'search', 'index' => 'products'],
+            'listings' => [$listing->name() => $this->app->make(ListingDescription::class)->of($listing)],
+        ]),
+        json_encode(apply_filters(self::LISTING_DATA, ['kept' => true]))
+    );
+});
+
+/** Assertions are booleans: a failure message would print the key it looked for. */
+it('hands the browser no key but the search one', function (): void {
+    $master = (string) Config::get('meili_key');
+    $connection = $this->app->make(BrowserConnection::class);
+    $script = new ClientScript($connection);
+    $this->printedModules(static fn () => $script->require(ScriptModule::Listing, 'products', static fn (): array => []));
+
+    $published = (array) apply_filters(self::LISTING_DATA, []);
+
+    $this->assertNotSame('', $master, 'MeiliScout has no master key to compare with.');
+    expect(in_array($master, $this->valuesOf($published), true))->toBeFalse();
+    expect($published['connection']['key'] === $connection->key)->toBeTrue();
+});
+
+it('reads no description while the browser has no engine to reach', function (): void {
+    $script = new ClientScript(new BrowserConnection('', '', ''));
+
+    $printed = $this->printedModules(fn () => $script->require(
+        ScriptModule::Listing,
+        'products',
+        fn (): array => $this->fail('The description was built for nothing.'),
+    ));
+
+    expect($printed)->not->toContain(ScriptModule::Listing->value);
+});
+
+it('inscribes the search loader like the listing and files its roots under their key', function (): void {
+    $printed = $this->printedModules(fn () => $this->script()->require(
+        ScriptModule::SiteSearch,
+        'header',
+        static fn (): array => ['name' => 'header'],
+    ));
+
+    try {
+        expect($printed)->toContain('src="'.asset(ScriptModule::SiteSearch->source()).'?ver=');
+        expect($printed)->toContain('fetchpriority="low"');
+        expect(apply_filters(self::SEARCH_DATA, [])['searches'] ?? null)->toBe(['header' => ['name' => 'header']]);
+    } finally {
+        remove_all_filters(self::SEARCH_DATA);
+    }
+});
+
+/** The client is imported by the loader, never printed: Delay JS has no tag of it to hold back. */
+it('keeps the search loader out of the scripts wp rocket delays', function (): void {
+    expect($this->isExcluded($this->moduleTag(ScriptModule::SiteSearch->source())))->toBeTrue();
+});
+
+it('inscribes no bundle the module has not published', function (): void {
+    $published = public_path();
+    $this->app->usePublicPath(sys_get_temp_dir().'/meilifacets-unpublished');
+
+    try {
+        $printed = $this->printedModules(fn () => $this->script()->require(
+            ScriptModule::SiteSearch,
+            'search',
+            static fn (): array => [],
+        ));
+
+        expect($printed)->not->toContain(ScriptModule::SiteSearch->value);
+        expect(has_filter(self::SEARCH_DATA))->toBeFalse();
+        expect($this->isExcluded($this->moduleTag(ScriptModule::SiteSearch->source())))->toBeFalse();
+    } finally {
+        $this->app->usePublicPath($published);
+    }
+});
