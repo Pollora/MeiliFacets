@@ -1,0 +1,19 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Parameter \#2 \$callback of function array_filter expects \(callable\(string\)\: bool\)\|null, Closure\(string\)\: int\<0, max\> given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Listing/FilterExpression.php
+
+		-
+			message: '#^Call to static method Modules\\MeiliFacets\\Search\\QueryPlan\:\:readsVariants\(\) with Modules\\MeiliFacets\\Contracts\\VariantScopedListing and Modules\\MeiliFacets\\Listing\\ListingState will always evaluate to true\.$#'
+			identifier: staticMethod.alreadyNarrowedType
+			count: 1
+			path: app/Search/QueryPlan.php
+
+		-
+			message: '#^Method Modules\\MeiliFacets\\View\\YoastPageMetadata\:\:titles\(\) never returns null so it can be removed from the return type\.$#'
+			identifier: return.unusedType
+			count: 1
+			path: app/View/YoastPageMetadata.php

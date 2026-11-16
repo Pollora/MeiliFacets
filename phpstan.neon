@@ -1,0 +1,26 @@
+includes:
+    - vendor/pollora/harness/presets/phpstan/base.neon
+    - phpstan-baseline.neon
+    # Larastan is not included: the module is analysed on its own, without the host application it is installed in.
+
+parameters:
+    level: 5
+    paths:
+        - app
+    excludePaths:
+        # Extends Nwidart\Modules\Support\ModuleServiceProvider, which only the host application installs: PHPStan
+        # cannot analyse a class whose parent it cannot find, and that error cannot be ignored.
+        - app/Providers/MeiliFacetsServiceProvider.php
+    scanFiles:
+        # WooCommerce is the shop the module indexes; it is not a Composer dependency of the module.
+        - vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php
+        - vendor/php-stubs/woocommerce-stubs/woocommerce-packages-stubs.php
+    ignoreErrors:
+        # The module runs inside a Pollora host, which provides the Laravel helpers, nwidart/laravel-modules, the Laravel
+        # HTTP kernel and Yoast SEO. None of them is installed when the module is analysed alone.
+        -
+            identifier: function.notFound
+            message: '#^Function (view|config|config_path|public_path|asset|report|request|rescue|app|module_path|YoastSEO) not found\.$#'
+        -
+            identifier: class.notFound
+            message: '#(Yoast\\|Symfony\\Component\\HttpFoundation\\|Illuminate\\Http\\Request|Illuminate\\Foundation\\|Nwidart\\|Automattic\\WooCommerce\\Internal\\)#'
