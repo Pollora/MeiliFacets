@@ -173,3 +173,5 @@ A point is closed when all of these are true, and not before:
 - create a directory that is not already in the module's structure;
 - rename anything that travels in an indexed URL — a URL parameter, a facet value, a slug;
 - increment `Contract::VERSION` on one side only.
+
+The Pollora harness rules for this repository: @AGENTS.md

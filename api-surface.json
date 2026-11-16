@@ -1,0 +1,8 @@
+{
+    "version": 1,
+    "surface": {
+        "command:meilifacets:check-assets": "command",
+        "command:meilifacets:check-parameters": "command",
+        "config:config.name": "key"
+    }
+}

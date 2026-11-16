@@ -1,0 +1,22 @@
+name: Harness
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    # A label (api-change, breaking) changes what the public surface gate allows.
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  harness:
+    uses: Pollora/harness/.github/workflows/php-package.yml@v0.1.23
+    with:
+      # composer.json requires PHP ^8.4: the default matrix (8.3 and 8.4) could not install the module on 8.3.
+      php-versions: '["8.4"]'
+    permissions:
+      contents: read

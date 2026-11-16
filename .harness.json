@@ -1,0 +1,18 @@
+{
+    "profile": "integration",
+    "mode": "enforce",
+    "observed": [
+        "Security patterns"
+    ],
+    "allow_commands": [
+        {
+            "prefix": "meilifacets:",
+            "reason": "meilifacets:check-assets and meilifacets:check-parameters are the module's published command names; renaming them breaks projects' scripts"
+        }
+    ],
+    "ratchet": {
+        "phpstan_level": 5,
+        "phpstan_baseline": 4,
+        "coverage": 47.0
+    }
+}
