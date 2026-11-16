@@ -247,7 +247,7 @@ foreach ([
     'get_object_taxonomies',
     'get_objects_in_term',
     'get_posts',
-    'clean_post_cache',
+    'home_url', 'is_multisite', 'clean_post_cache',
     'doing_action',
     'do_action',
     'wp_get_post_parent_id',

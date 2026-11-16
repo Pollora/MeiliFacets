@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Tests\Unit\Doubles;
 
 use Illuminate\Container\Container;
+use Illuminate\Support\ServiceProvider;
 
 /** The slice of the Laravel application the module reads outside the container. */
 final class Application extends Container
@@ -14,6 +15,15 @@ final class Application extends Container
     public function __construct()
     {
         $this->instance('config', new FakeConfig);
+        $this->instance(\Illuminate\Contracts\Container\Container::class, $this);
+    }
+
+    /**
+     * @param  class-string<ServiceProvider>  $provider
+     */
+    public function register(string $provider): void
+    {
+        new $provider($this)->register();
     }
 
     public function runningUnitTests(): bool
