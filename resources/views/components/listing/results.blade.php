@@ -31,6 +31,8 @@
     </template>
 
     @if ($items && ! $items->isEmpty())
+        {{-- The JSON-LD must reach the page unescaped. ItemList::toJson() encodes < > & ' " as \uXXXX (JSON_HEX_*, pinned by ItemListTest), so no value can close the script element. --}}
+        {{-- nosemgrep --}}
         <script type="application/ld+json">{!! $items->toJson() !!}</script>
     @endif
 @endif
