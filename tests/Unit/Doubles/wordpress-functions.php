@@ -107,3 +107,109 @@ if (! function_exists('is_paged')) {
         return WordPress::call('is_paged', [], static fn (): bool => false);
     }
 }
+
+if (! function_exists('esc_url')) {
+    function esc_url(string $url, ?array $protocols = null, string $_context = 'display'): string
+    {
+        return WordPress::call('esc_url', [$url], static fn (): string => $url);
+    }
+}
+
+if (! function_exists('asset')) {
+    function asset(string $path): string
+    {
+        return 'https://example.test/'.ltrim($path, '/');
+    }
+}
+
+if (! function_exists('add_filter')) {
+    function add_filter(string $hook_name, callable $callback, int $priority = 10, int $accepted_args = 1): true
+    {
+        WordPress::call('add_filter', [$hook_name, $callback, $priority], static fn (): null => null);
+
+        return true;
+    }
+}
+
+if (! function_exists('remove_filter')) {
+    function remove_filter(string $hook_name, callable $callback, int $priority = 10): bool
+    {
+        WordPress::call('remove_filter', [$hook_name, $callback, $priority], static fn (): null => null);
+
+        return true;
+    }
+}
+
+if (! function_exists('has_action')) {
+    function has_action(string $hook_name, callable|string|array|false $callback = false): bool|int
+    {
+        return WordPress::call('has_action', [$hook_name, $callback], static fn (): int => 10);
+    }
+}
+
+if (! function_exists('wp_robots')) {
+    function wp_robots(): void
+    {
+        WordPress::call('wp_robots', [], static fn (): null => null);
+    }
+}
+
+if (! function_exists('wp_get_document_title')) {
+    function wp_get_document_title(): string
+    {
+        return WordPress::call('wp_get_document_title', []);
+    }
+}
+
+if (! function_exists('wp_enqueue_script_module')) {
+    function wp_enqueue_script_module(string $id, string $src = '', array $deps = [], string|false|null $version = false, array $args = []): void
+    {
+        WordPress::call('wp_enqueue_script_module', [$id, $src, $deps, $version, $args], static fn (): null => null);
+    }
+}
+
+if (! function_exists('wp_register_style')) {
+    function wp_register_style(string $handle, string|false $src, array $deps = [], string|bool|null $ver = false, string $media = 'all'): bool
+    {
+        WordPress::call('wp_register_style', [$handle, $src, $deps, $ver], static fn (): null => null);
+
+        return true;
+    }
+}
+
+if (! function_exists('wp_enqueue_style')) {
+    function wp_enqueue_style(string $handle, string $src = '', array $deps = [], string|bool|null $ver = false, string $media = 'all'): void
+    {
+        WordPress::call('wp_enqueue_style', [$handle], static fn (): null => null);
+    }
+}
+
+if (! function_exists('wp_print_styles')) {
+    function wp_print_styles(string|array|false $handles = false): array
+    {
+        WordPress::call('wp_print_styles', [$handles], static fn (): null => null);
+
+        return [];
+    }
+}
+
+if (! function_exists('has_filter')) {
+    function has_filter(string $hook_name, callable|string|array|false $callback = false): bool|int
+    {
+        return WordPress::call('has_filter', [$hook_name, $callback], static fn (): bool => false);
+    }
+}
+
+if (! function_exists('is_singular')) {
+    function is_singular(string|array $post_types = ''): bool
+    {
+        return WordPress::call('is_singular', [$post_types], static fn (): bool => false);
+    }
+}
+
+if (! function_exists('wp_get_canonical_url')) {
+    function wp_get_canonical_url(int|WP_Post|null $post = null): string|false
+    {
+        return WordPress::call('wp_get_canonical_url', [$post], static fn (): bool => false);
+    }
+}

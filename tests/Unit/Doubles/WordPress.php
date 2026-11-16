@@ -21,6 +21,9 @@ final class WordPress
     /** @var array<string, int> */
     public static array $calls = [];
 
+    /** @var list<array{string, array<int, mixed>}> every call, in order */
+    public static array $log = [];
+
     /** @var array<string, mixed> */
     public static array $config = [];
 
@@ -41,6 +44,7 @@ final class WordPress
     {
         self::$handlers = [];
         self::$calls = [];
+        self::$log = [];
         self::$config = [];
         self::$query = [];
         self::$queryString = '';
@@ -64,6 +68,7 @@ final class WordPress
     public static function call(string $function, array $arguments, ?callable $default = null): mixed
     {
         self::$calls[$function] = (self::$calls[$function] ?? 0) + 1;
+        self::$log[] = [$function, $arguments];
 
         if (isset(self::$handlers[$function])) {
             return (self::$handlers[$function])(...$arguments);
