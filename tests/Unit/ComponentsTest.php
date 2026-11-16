@@ -108,13 +108,13 @@ final class ComponentsTest extends TestCase
         $component = $this->price(['price.min' => ['min' => 10.4, 'max' => 10.4], 'price.max' => ['min' => 80.0, 'max' => 99.2]]);
 
         $this->assertTrue($component->isShown());
-        $this->assertSame(10.0, $component->bounds()->min);
-        $this->assertSame(100.0, $component->bounds()->max);
+        $this->assertEqualsWithDelta(10.0, $component->bounds()->min, PHP_FLOAT_EPSILON);
+        $this->assertEqualsWithDelta(100.0, $component->bounds()->max, PHP_FLOAT_EPSILON);
         $this->assertSame(['min', 'max'], array_map(static fn ($handle): string => $handle->bound->value, $component->handles()));
         $this->assertSame($component->handles(), $component->handles());
         $this->assertSame('min_price', $component->handles()[0]->parameter);
-        $this->assertSame(0.0, $component->fill()->from);
-        $this->assertSame(1.0, $component->fill()->to);
+        $this->assertEqualsWithDelta(0.0, $component->fill()->from, PHP_FLOAT_EPSILON);
+        $this->assertEqualsWithDelta(1.0, $component->fill()->to, PHP_FLOAT_EPSILON);
         $this->assertSame('10.00 – 100.00', $component->readout());
         $this->assertFalse($component->showsSlider());
         $this->assertTrue($component->showsFields());
@@ -147,8 +147,8 @@ final class ComponentsTest extends TestCase
 
         [$low, $high] = $component->handles();
 
-        $this->assertSame(10.0, $low->value);
-        $this->assertSame(60.0, $high->value);
+        $this->assertEqualsWithDelta(10.0, $low->value, PHP_FLOAT_EPSILON);
+        $this->assertEqualsWithDelta(60.0, $high->value, PHP_FLOAT_EPSILON);
     }
 
     #[Test]

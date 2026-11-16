@@ -51,7 +51,7 @@ final class SiteSearchAndSeoTest extends TestCase
             'post' => new WP_Post_Type('Posts', 'All posts'),
             'page' => new WP_Post_Type('Pages', 'All pages'),
             'product' => new WP_Post_Type('Products', 'All products'),
-            'attachment' => new WP_Post_Type('Media', 'All media', excluded: true),
+            'attachment' => new WP_Post_Type('Media', 'All media', exclude_from_search: true),
             default => false,
         });
         WordPress::fake('get_object_taxonomies', static fn (string $type): array => $type === 'post' ? ['category'] : []);
@@ -306,9 +306,9 @@ final class SiteSearchAndSeoTest extends TestCase
     private function fakeYoast(string $separator = '-'): void
     {
         WordPress::bootYoast();
-        WordPress::fake('YoastSEO', (object) ['helpers' => (object) ['options' => new class($separator)
+        WordPress::fake('YoastSEO', (object) ['helpers' => (object) ['options' => new readonly class($separator)
         {
-            public function __construct(private readonly string $separator) {}
+            public function __construct(private string $separator) {}
 
             public function get_title_separator(): string
             {
@@ -322,9 +322,9 @@ final class SiteSearchAndSeoTest extends TestCase
         WordPress::bootYoast();
         $indexable = new Indexable;
         $indexable->canonical = $custom;
-        $pagination = new class($page)
+        $pagination = new readonly class($page)
         {
-            public function __construct(private readonly int $page) {}
+            public function __construct(private int $page) {}
 
             public function get_current_archive_page_number(): int
             {
@@ -337,11 +337,11 @@ final class SiteSearchAndSeoTest extends TestCase
             }
         };
         WordPress::fake('YoastSEO', (object) [
-            'meta' => new class($canonical, $permalink, $indexable)
+            'meta' => new readonly class($canonical, $permalink, $indexable)
             {
-                public function __construct(private readonly string $canonical, private readonly string $permalink, private readonly Indexable $indexable) {}
+                public function __construct(private string $canonical, private string $permalink, private Indexable $indexable) {}
 
-                public function for_current_page(): object
+                public function for_current_page(): \stdClass
                 {
                     return (object) ['canonical' => $this->canonical, 'permalink' => $this->permalink, 'indexable' => $this->indexable];
                 }

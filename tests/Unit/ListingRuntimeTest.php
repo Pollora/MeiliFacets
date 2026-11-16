@@ -90,7 +90,7 @@ final class ListingRuntimeTest extends TestCase
             $reported[] = $failure->getMessage();
         });
         $container = new Container;
-        $container->bind(FakeListing::class, static fn () => throw new RuntimeException('project binding failed'));
+        $container->bind(FakeListing::class, static fn (): never => throw new RuntimeException('project binding failed'));
         $registry = new ListingRegistry($container);
         $registry->addDeclaration(FakeListing::class);
 

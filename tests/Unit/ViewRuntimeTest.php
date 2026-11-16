@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Tests\Unit;
 
 use Closure;
+use Illuminate\Filesystem\Filesystem;
 use Modules\MeiliFacets\Enums\ScriptModule;
 use Modules\MeiliFacets\Enums\Stylesheet;
 use Modules\MeiliFacets\Http\IndexingPolicy;
@@ -50,7 +51,7 @@ final class ViewRuntimeTest extends TestCase
     protected function tearDown(): void
     {
         foreach (glob($this->public.'/modules/meilifacets/{dist,css}/*', GLOB_BRACE) ?: [] as $file) {
-            unlink($file);
+            new Filesystem()->delete($file);
         }
 
         foreach (['/modules/meilifacets/dist', '/modules/meilifacets/css', '/modules/meilifacets', '/modules', ''] as $folder) {
@@ -191,7 +192,7 @@ final class ViewRuntimeTest extends TestCase
     #[Test]
     public function it_removes_the_title_filter_even_when_wordpress_raises(): void
     {
-        WordPress::fake('wp_get_document_title', static fn () => throw new \RuntimeException('boom'));
+        WordPress::fake('wp_get_document_title', static fn (): never => throw new \RuntimeException('boom'));
 
         try {
             new DocumentTitle()->renderedWith('document_title_parts', static fn (array $parts): array => $parts);

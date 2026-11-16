@@ -347,10 +347,10 @@ final class IndexingProjectionTest extends TestCase
      */
     private function indexable(int $reachable = 1000, int $maxFacetValues = 1000, array $displayed = ['extra']): FacetedPostIndexable
     {
-        $attributes = new class($displayed) implements IndexAttributes
+        $attributes = new readonly class($displayed) implements IndexAttributes
         {
             /** @param  list<string>  $displayed */
-            public function __construct(private readonly array $displayed) {}
+            public function __construct(private array $displayed) {}
 
             public function exactlyMatched(): array
             {
@@ -435,10 +435,10 @@ final class IndexingProjectionTest extends TestCase
      */
     private function constantProjector(array $card): CardProjector
     {
-        return new class($card) implements CardProjector
+        return new readonly class($card) implements CardProjector
         {
             /** @param  array<string, mixed>  $card */
-            public function __construct(private readonly array $card) {}
+            public function __construct(private array $card) {}
 
             public function project(WP_Post $post): array
             {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Tests\Unit;
 
 use Collator;
+use Illuminate\Filesystem\Filesystem;
 use Modules\MeiliFacets\Console\CheckAssetsCommand;
 use Modules\MeiliFacets\Console\CheckParametersCommand;
 use Modules\MeiliFacets\Support\PublishedAssets;
@@ -42,7 +43,7 @@ final class SupportRuntimeTest extends TestCase
     protected function tearDown(): void
     {
         foreach (glob($this->directory.'/{module,public/modules/meilifacets}/{resources/assets/,}css/*', GLOB_BRACE) ?: [] as $file) {
-            unlink($file);
+            new Filesystem()->delete($file);
         }
 
         foreach (['/module/resources/assets/css', '/module/resources/assets', '/module/resources', '/module', '/public/modules/meilifacets/css', '/public/modules/meilifacets', '/public/modules', '/public', ''] as $folder) {
@@ -242,9 +243,9 @@ final class SupportRuntimeTest extends TestCase
     private function permalinks(bool $on): void
     {
         $GLOBALS['wp'] = (object) ['public_query_vars' => ['s']];
-        $GLOBALS['wp_rewrite'] = new class($on)
+        $GLOBALS['wp_rewrite'] = new readonly class($on)
         {
-            public function __construct(private readonly bool $on) {}
+            public function __construct(private bool $on) {}
 
             public function using_permalinks(): bool
             {

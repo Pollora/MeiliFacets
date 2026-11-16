@@ -194,7 +194,7 @@ final class WooCommerceIndexingTest extends TestCase
 
         $this->assertCount(1, $variants);
         $this->assertSame(['pa_color' => ['red', 'warm', 'colour']], $variants[0]['facets']);
-        $this->assertSame(10.0, $variants[0]['price']);
+        $this->assertEqualsWithDelta(10.0, $variants[0]['price'], PHP_FLOAT_EPSILON);
         $this->assertTrue($variants[0]['on_sale']);
         $this->assertSame('https://example.test/red', $variants[0]['fields']['url']);
     }
@@ -278,7 +278,7 @@ final class WooCommerceIndexingTest extends TestCase
         });
 
         try {
-            new ShopTaxLocation()->during(static fn () => new AnonymousVisitor()->during(static fn () => throw new \RuntimeException('boom')));
+            new ShopTaxLocation()->during(static fn (): mixed => new AnonymousVisitor()->during(static fn (): never => throw new \RuntimeException('boom')));
             $this->fail('The failure was swallowed.');
         } catch (\RuntimeException) {
             $this->assertSame([0, 7, 'filter'], $restored);
@@ -308,7 +308,7 @@ final class WooCommerceIndexingTest extends TestCase
 
         $this->assertSame(0, $fields['in_stock']);
         $this->assertSame('parent', $fields['document_kind']);
-        $this->assertSame(10.0, $fields['price']['min']);
+        $this->assertEqualsWithDelta(10.0, $fields['price']['min'], PHP_FLOAT_EPSILON);
         $this->assertSame('T', $fields['card']['title']);
         $this->assertTrue($fields['card']['out_of_stock']);
         $this->assertCount(1, $fields['card']['variants']);
@@ -462,10 +462,10 @@ final class WooCommerceIndexingTest extends TestCase
      */
     private function card(array $fields): CardProjector
     {
-        return new class($fields) implements CardProjector
+        return new readonly class($fields) implements CardProjector
         {
             /** @param  array<string, mixed>  $fields */
-            public function __construct(private readonly array $fields) {}
+            public function __construct(private array $fields) {}
 
             public function project(WP_Post $post): array
             {

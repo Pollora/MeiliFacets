@@ -7,12 +7,12 @@ namespace Modules\MeiliFacets\Tests\Unit\Doubles;
 use Illuminate\Support\Arr;
 
 /** What `request()` hands back: the parsed query and the raw server variables. */
-final class FakeRequest
+final readonly class FakeRequest
 {
     /**
      * @param  array<string, mixed>  $query
      */
-    public function __construct(private readonly array $query = [], private readonly string $queryString = '') {}
+    public function __construct(private array $query = [], private string $queryString = '') {}
 
     /**
      * @return array<string, mixed>

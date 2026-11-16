@@ -212,7 +212,7 @@ final class ListingWordPressTest extends TestCase
     public function it_falls_back_to_every_attribute_and_reports_when_woocommerce_internals_moved(): void
     {
         WordPress::fake('wc_get_attribute_taxonomy_names', ['pa_color']);
-        WordPress::fake('wc_get_container', static fn () => throw new RuntimeException('internal class gone'));
+        WordPress::fake('wc_get_container', static fn (): never => throw new RuntimeException('internal class gone'));
 
         $this->assertSame(['pa_color'], new VariationTaxonomies()->all());
     }
@@ -306,20 +306,20 @@ final class ListingWordPressTest extends TestCase
         WordPress::fake('get_option', 'menu_order');
 
         $facets ??= new WooCommerceFacets(new NameOrder(static fn (): null => null))->all();
-        $productFacets = new class($facets) implements ProductFacets
+        $productFacets = new readonly class($facets) implements ProductFacets
         {
             /** @param  list<Placeable>  $facets */
-            public function __construct(private readonly array $facets) {}
+            public function __construct(private array $facets) {}
 
             public function all(): array
             {
                 return $this->facets;
             }
         };
-        $searchable = new class($types) implements SearchableTypes
+        $searchable = new readonly class($types) implements SearchableTypes
         {
             /** @param  array<string, SearchableType>  $types */
-            public function __construct(private readonly array $types) {}
+            public function __construct(private array $types) {}
 
             public function all(): array
             {
