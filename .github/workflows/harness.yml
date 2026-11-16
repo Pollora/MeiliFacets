@@ -14,7 +14,7 @@ permissions: {}
 
 jobs:
   harness:
-    uses: Pollora/harness/.github/workflows/php-package.yml@v0.1.23
+    uses: Pollora/harness/.github/workflows/php-package.yml@v0.1.24
     with:
       # composer.json requires PHP ^8.4: the default matrix (8.3 and 8.4) could not install the module on 8.3.
       php-versions: '["8.4"]'
