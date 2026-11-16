@@ -18,60 +18,10 @@ use Modules\MeiliFacets\Listing\WordPressTermScope;
 use Modules\MeiliFacets\Providers\ListingServiceProvider;
 use Modules\MeiliFacets\Tests\Feature\Concerns\RegistersAProvider;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeTermHierarchy;
-use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-final class ListingServiceProviderTest extends TestCase
+trait ListingServiceProviderSteps
 {
-    use RegistersAProvider;
-
-    #[Test]
-    public function it_reads_term_labels_from_wordpress(): void
-    {
-        $container = $this->registered(ListingServiceProvider::class);
-
-        $this->assertInstanceOf(WordPressTermLabels::class, $container->make(TermLabels::class));
-    }
-
-    /** The scope remembers the queried term: it must not outlive the request that read it. */
-    #[Test]
-    public function it_scopes_terms_from_wordpress_once_per_request(): void
-    {
-        $container = $this->registered(ListingServiceProvider::class, $this->withTheHierarchyItReads());
-        $scope = $container->make(TermScope::class);
-
-        $this->assertInstanceOf(WordPressTermScope::class, $scope);
-        $this->assertSame($scope, $container->make(TermScope::class));
-
-        $container->forgetScopedInstances();
-
-        $this->assertNotSame($scope, $container->make(TermScope::class));
-    }
-
-    #[Test]
-    public function it_offers_the_woocommerce_facets_and_sorts_when_the_project_binds_none(): void
-    {
-        $container = $this->registered(ListingServiceProvider::class);
-
-        $this->assertInstanceOf(WooCommerceFacets::class, $container->make(ProductFacets::class));
-        $this->assertInstanceOf(WooCommerceSorts::class, $container->make(ProductSorts::class));
-    }
-
-    #[Test]
-    public function it_keeps_the_facets_and_sorts_a_project_bound_first(): void
-    {
-        $facets = $this->projectFacets();
-        $sorts = $this->projectSorts();
-        $container = $this->registered(
-            ListingServiceProvider::class,
-            static fn (Container $project) => $project->instance(ProductFacets::class, $facets),
-            static fn (Container $project) => $project->instance(ProductSorts::class, $sorts),
-        );
-
-        $this->assertSame($facets, $container->make(ProductFacets::class));
-        $this->assertSame($sorts, $container->make(ProductSorts::class));
-    }
-
     /** Bound by `IndexingServiceProvider`, which this container leaves out. */
     private function withTheHierarchyItReads(): Closure
     {
@@ -100,3 +50,44 @@ final class ListingServiceProviderTest extends TestCase
         };
     }
 }
+
+uses(TestCase::class, RegistersAProvider::class, ListingServiceProviderSteps::class);
+
+it('reads term labels from wordpress', function (): void {
+    $container = $this->registered(ListingServiceProvider::class);
+
+    expect($container->make(TermLabels::class))->toBeInstanceOf(WordPressTermLabels::class);
+});
+
+// The scope remembers the queried term: it must not outlive the request that read it.
+it('scopes terms from wordpress once per request', function (): void {
+    $container = $this->registered(ListingServiceProvider::class, $this->withTheHierarchyItReads());
+    $scope = $container->make(TermScope::class);
+
+    expect($scope)->toBeInstanceOf(WordPressTermScope::class);
+    expect($container->make(TermScope::class))->toBe($scope);
+
+    $container->forgetScopedInstances();
+
+    expect($container->make(TermScope::class))->not->toBe($scope);
+});
+
+it('offers the woocommerce facets and sorts when the project binds none', function (): void {
+    $container = $this->registered(ListingServiceProvider::class);
+
+    expect($container->make(ProductFacets::class))->toBeInstanceOf(WooCommerceFacets::class);
+    expect($container->make(ProductSorts::class))->toBeInstanceOf(WooCommerceSorts::class);
+});
+
+it('keeps the facets and sorts a project bound first', function (): void {
+    $facets = $this->projectFacets();
+    $sorts = $this->projectSorts();
+    $container = $this->registered(
+        ListingServiceProvider::class,
+        static fn (Container $project) => $project->instance(ProductFacets::class, $facets),
+        static fn (Container $project) => $project->instance(ProductSorts::class, $sorts),
+    );
+
+    expect($container->make(ProductFacets::class))->toBe($facets);
+    expect($container->make(ProductSorts::class))->toBe($sorts);
+});

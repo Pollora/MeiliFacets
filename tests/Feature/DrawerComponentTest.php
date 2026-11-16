@@ -14,16 +14,10 @@ use Modules\MeiliFacets\Tests\Feature\Concerns\FindsHooks;
 use Modules\MeiliFacets\Tests\Feature\Concerns\HoldsCatalogueValues;
 use Modules\MeiliFacets\Tests\Feature\Concerns\SwitchesTheSiteLocale;
 use Modules\MeiliFacets\View\Components\Listing\Drawer;
-use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-/** Step 5a of the filter bar: a plain container the client promotes to a modal sheet, and the button that opens it. */
-final class DrawerComponentTest extends TestCase
+trait DrawerComponentSteps
 {
-    use FindsHooks;
-    use HoldsCatalogueValues;
-    use SwitchesTheSiteLocale;
-
     private int $unfilteredShownCount = 0;
 
     private const string PLACED = '<x-meilifacets::listing.drawer-opener name="products" /><x-meilifacets::listing.drawer name="products" class="flex-1"><p id="inside">Facets</p>'
@@ -31,348 +25,6 @@ final class DrawerComponentTest extends TestCase
 
     /** @var array<string, mixed>|null */
     private ?array $configuredDrawer = null;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->configuredDrawer = config('meilifacets.drawer');
-        config(['meilifacets.drawer.row.overflow' => RowOverflow::DEFAULT->value]);
-
-        $this->app->forgetScopedInstances();
-    }
-
-    protected function tearDown(): void
-    {
-        request()->query->replace([]);
-        config(['meilifacets.drawer' => $this->configuredDrawer]);
-        $this->app->forgetScopedInstances();
-
-        parent::tearDown();
-    }
-
-    /** Option A: nothing modal on the server, so the markup reads as a plain container without JavaScript. */
-    #[Test]
-    public function it_renders_a_plain_container_around_what_it_holds(): void
-    {
-        $drawer = $this->drawer($this->placed());
-
-        $this->assertFalse($drawer->hasAttribute('role'));
-        $this->assertFalse($drawer->hasAttribute('aria-modal'));
-        $this->assertFalse($drawer->hasAttribute('hidden'));
-        $this->assertSame(Drawer::MOBILE, $drawer->getAttribute('data-media'));
-        $this->assertSame('meilifacetsDrawer flex-1', $drawer->getAttribute('class'));
-        $this->assertNotNull($drawer->querySelector($this->hooked(Hook::DrawerSheet).' '.$this->hooked(Hook::DrawerBody).' #inside'));
-        $this->assertNotNull($drawer->querySelector($this->hooked(Hook::DrawerSheet).' '.$this->hooked(Hook::DrawerFooter).' '.$this->hooked(Hook::Reset)));
-    }
-
-    /** The rule the client refuses to start without: `drawer` holds `drawer-title` and `drawer-close`. */
-    #[Test]
-    public function it_holds_what_the_contract_requires_of_a_drawer(): void
-    {
-        $drawer = $this->drawer($this->placed());
-        $title = $drawer->querySelector($this->hooked(Hook::DrawerTitle));
-        $close = $drawer->querySelector($this->hooked(Hook::DrawerClose));
-
-        $this->assertInstanceOf(Element::class, $title);
-        $this->assertSame('p', strtolower($title->localName), 'the title names the sheet without adding a heading to the page');
-        $this->assertSame('-1', $title->getAttribute('tabindex'));
-        $this->assertNotSame('', $title->getAttribute('id'));
-        $this->assertInstanceOf(Element::class, $close);
-        $this->assertSame('button', $close->getAttribute('type'));
-        $this->assertNotSame('', $close->getAttribute('aria-label'));
-    }
-
-    #[Test]
-    public function it_points_the_opener_at_the_drawer_it_opens(): void
-    {
-        $document = $this->placed();
-        $opener = $document->querySelector($this->hooked(Hook::DrawerOpen));
-
-        $this->assertSame('button', $opener->getAttribute('type'));
-        $this->assertSame('false', $opener->getAttribute('aria-expanded'));
-        $this->assertSame($this->drawer($document), $document->getElementById($opener->getAttribute('aria-controls')));
-    }
-
-    #[Test]
-    public function it_hides_the_count_on_an_opener_while_nothing_is_held(): void
-    {
-        $count = $this->placed()->querySelector($this->hooked(Hook::DrawerOpen).' '.$this->hooked(Hook::ActiveCount));
-
-        $this->assertTrue($count->hasAttribute('hidden'));
-        $this->assertSame('', $count->textContent);
-    }
-
-    #[Test]
-    public function it_counts_on_the_opener_the_values_the_address_holds(): void
-    {
-        $this->holdTwoValues();
-
-        $count = $this->placed()->querySelector($this->hooked(Hook::DrawerOpen).' '.$this->hooked(Hook::ActiveCount));
-
-        $this->assertFalse($count->hasAttribute('hidden'));
-        $this->assertSame('2', $count->textContent);
-    }
-
-    /** Like the badge of a trigger: the count describes the opener, it never enters its name. */
-    #[Test]
-    public function it_describes_the_opener_with_its_count(): void
-    {
-        $document = $this->placed();
-        $opener = $document->querySelector($this->hooked(Hook::DrawerOpen));
-        $count = $document->getElementById($opener->getAttribute('aria-describedby'));
-
-        $this->assertNotNull($count, 'aria-describedby names no element.');
-        $this->assertTrue($count->matches($this->hooked(Hook::ActiveCount)));
-        $this->assertSame('true', $count->getAttribute('aria-hidden'));
-        $this->assertStringNotContainsString('(', $opener->innerHTML);
-    }
-
-    /** The icon is decoration: the name stays the word, whatever draws it. */
-    #[Test]
-    public function it_shows_the_module_icon_before_the_label_when_given_none(): void
-    {
-        $opener = $this->placed()->querySelector($this->hooked(Hook::DrawerOpen));
-        $icon = $opener->firstElementChild;
-        $image = $icon->querySelector('img');
-
-        $this->assertSame('true', $icon->getAttribute('aria-hidden'));
-        $this->assertStringEndsWith('/modules/meilifacets/images/filters.svg', $image->getAttribute('src'));
-        $this->assertSame('', $image->getAttribute('alt'));
-        $this->assertSame(['14', '14'], [$image->getAttribute('width'), $image->getAttribute('height')]);
-        $this->assertSame(__('Filters'), trim($icon->nextSibling->textContent));
-        $this->assertTrue($opener->lastElementChild->matches($this->hooked(Hook::ActiveCount)));
-    }
-
-    #[Test]
-    public function it_sets_the_icon_a_theme_gives_in_place_of_its_own(): void
-    {
-        $opener = $this->opener('<x-slot:icon><svg id="sliders" width="16" height="16"></svg></x-slot:icon>');
-        $icon = $opener->firstElementChild;
-
-        $this->assertSame('true', $icon->getAttribute('aria-hidden'));
-        $this->assertNotNull($icon->querySelector('svg#sliders'));
-        $this->assertNull($opener->querySelector('img'));
-        $this->assertSame(__('Filters'), trim($icon->nextSibling->textContent));
-    }
-
-    /** An empty slot is how a theme asks for no icon at all: nothing is left behind. */
-    #[Test]
-    public function it_renders_no_icon_when_the_theme_empties_the_slot(): void
-    {
-        $opener = $this->opener('<x-slot:icon></x-slot:icon>');
-
-        $this->assertSame(1, $opener->childElementCount);
-        $this->assertSame(__('Filters'), trim($opener->textContent));
-        $this->assertTrue($opener->firstElementChild->matches($this->hooked(Hook::ActiveCount)));
-    }
-
-    /** The browser reads the published copy: the source alone is an icon nobody sees. */
-    #[Test]
-    public function it_points_at_an_icon_that_was_published(): void
-    {
-        $published = public_path('modules/meilifacets/images/filters.svg');
-
-        $this->assertFileExists($published);
-        $this->assertFileEquals(module_path('MeiliFacets', 'resources/assets/images/filters.svg'), $published);
-    }
-
-    #[Test]
-    public function it_renders_no_footer_unless_given_one(): void
-    {
-        $document = HTMLDocument::createFromString(Blade::render('<x-meilifacets::listing.drawer name="products">Facets</x-meilifacets::listing.drawer>'), LIBXML_NOERROR);
-
-        $this->assertNotNull($document->querySelector($this->hooked(Hook::DrawerSheet)));
-        $this->assertNull($document->querySelector($this->hooked(Hook::DrawerFooter)));
-    }
-
-    /** Q-3: a theme with another threshold passes it, and restates the stylesheet block. */
-    #[Test]
-    public function it_takes_another_threshold(): void
-    {
-        $document = HTMLDocument::createFromString(
-            Blade::render('<x-meilifacets::listing.drawer name="products" media="(width < 64em)">Facets</x-meilifacets::listing.drawer>'),
-            LIBXML_NOERROR
-        );
-
-        $this->assertSame('(width < 64em)', $this->drawer($document)->getAttribute('data-media'));
-    }
-
-    #[Test]
-    public function it_marks_side_sheet_overflow_past_its_row_limit(): void
-    {
-        $shown = $this->shownFilterCount();
-
-        $this->assertSame(RowOverflow::SideSheet->value, $this->drawerLimitedTo($shown - 1)->getAttribute('data-overflow'));
-        $this->assertFalse($this->drawerLimitedTo($shown - 1)->hasAttribute('data-side-sheet'));
-        $this->assertFalse($this->drawerLimitedTo($shown)->hasAttribute('data-overflow'));
-    }
-
-    #[Test]
-    public function it_takes_its_row_limit_from_the_configuration_unless_given_one(): void
-    {
-        $shown = $this->shownFilterCount();
-
-        config(['meilifacets.drawer.row.limit' => $shown]);
-        $this->assertFalse($this->drawerHoldingTheFacets()->hasAttribute('data-overflow'));
-
-        config(['meilifacets.drawer.row.limit' => $shown - 1]);
-        $this->assertTrue($this->drawerHoldingTheFacets()->hasAttribute('data-overflow'));
-        $this->assertFalse($this->drawerLimitedTo($shown)->hasAttribute('data-overflow'));
-    }
-
-    #[Test]
-    public function it_takes_its_row_overflow_from_the_configuration_unless_given_one(): void
-    {
-        $limited = ' :row-limit="'.($this->shownFilterCount() - 1).'"';
-
-        config(['meilifacets.drawer.row.overflow' => RowOverflow::ShowMore->value]);
-        $this->assertSame(RowOverflow::ShowMore->value, $this->drawerHoldingTheFacets($limited)->getAttribute('data-overflow'));
-
-        $sideSheet = $this->drawerHoldingTheFacets($limited.' row-overflow="'.RowOverflow::SideSheet->value.'"');
-        $this->assertSame(RowOverflow::SideSheet->value, $sideSheet->getAttribute('data-overflow'));
-    }
-
-    #[Test]
-    public function it_accepts_its_row_overflow_spelled_with_a_hyphen(): void
-    {
-        $drawer = $this->drawerHoldingTheFacets(' :row-limit="'.($this->shownFilterCount() - 1).'" row-overflow="show-more"');
-
-        $this->assertSame(RowOverflow::ShowMore->value, $drawer->getAttribute('data-overflow'));
-        $this->assertNotNull($drawer->querySelector($this->hooked(Hook::DrawerShowMore)));
-    }
-
-    #[Test]
-    public function it_keeps_its_first_shown_filters_in_the_row_and_marks_the_others_with_show_more(): void
-    {
-        $limit = $this->shownFilterCount() - 1;
-        $drawer = $this->drawerShowingMore($limit);
-        $shown = $drawer->querySelectorAll($this->hooked(Hook::Facet).':not([hidden])');
-        $kept = array_slice(iterator_to_array($shown), 0, $limit);
-
-        $this->assertSame(RowOverflow::ShowMore->value, $drawer->getAttribute('data-overflow'));
-        $this->assertSame([], array_filter($kept, static fn (Element $filter): bool => $filter->hasAttribute('data-beyond-row')));
-        $this->assertTrue($shown[$limit]->hasAttribute('data-beyond-row'));
-        $this->assertSame(0, $drawer->querySelectorAll($this->hooked(Hook::Facet).'[data-beyond-row] ~ '.$this->hooked(Hook::Facet).':not([data-beyond-row])')->length);
-    }
-
-    /** A filter emptying facets must not lift the row: clearing it in the browser would leave every facet on show. */
-    #[Test]
-    public function it_keeps_the_row_of_the_whole_catalogue_under_a_filter_that_empties_facets(): void
-    {
-        $limit = $this->shownFilterCount() - 1;
-        $this->holdAValueThatEmptiesAFacet();
-
-        $this->assertSame(RowOverflow::ShowMore->value, $this->drawerShowingMore($limit)->getAttribute('data-overflow'));
-    }
-
-    #[Test]
-    public function it_hides_show_more_while_every_filter_past_the_row_is_empty(): void
-    {
-        $limit = $this->shownFilterCount() - 1;
-        $this->holdAValueThatEmptiesAFacet();
-        $drawer = $this->drawerShowingMore($limit);
-        $pastTheRow = $drawer->querySelectorAll($this->hooked(Hook::Facet).'[data-beyond-row]:not([hidden])')->length;
-
-        $this->assertSame($pastTheRow === 0, $drawer->querySelector($this->hooked(Hook::DrawerShowMore))->hasAttribute('hidden'));
-    }
-
-    #[Test]
-    public function it_ends_its_row_with_a_show_more_button_that_opens_it(): void
-    {
-        $drawer = $this->drawerShowingMore($this->shownFilterCount() - 1);
-        $button = $drawer->querySelector($this->hooked(Hook::DrawerShowMore));
-
-        $this->assertInstanceOf(Element::class, $button);
-        $this->assertSame($drawer->querySelector($this->hooked(Hook::DrawerBody))->lastElementChild, $button);
-        $this->assertSame('button', $button->getAttribute('type'));
-        $this->assertSame($drawer->getAttribute('id'), $button->getAttribute('aria-controls'));
-        $this->assertSame('false', $button->getAttribute('aria-expanded'));
-        $this->assertSame(__('Show more'), trim($button->textContent));
-        $this->assertSame(__('Show more filters'), $button->getAttribute('aria-label'));
-        $this->assertNull($button->querySelector('[aria-hidden]'));
-    }
-
-    #[Test]
-    public function it_sets_the_icon_a_theme_gives_before_show_more(): void
-    {
-        $drawer = $this->drawerHoldingTheFacets(
-            ' :row-limit="'.($this->shownFilterCount() - 1).'" row-overflow="show-more"',
-            '<x-slot:show-more><svg id="sliders"></svg></x-slot:show-more>',
-        );
-        $icon = $drawer->querySelector($this->hooked(Hook::DrawerShowMore))->firstElementChild;
-
-        $this->assertSame('true', $icon->getAttribute('aria-hidden'));
-        $this->assertNotNull($icon->querySelector('svg#sliders'));
-    }
-
-    #[Test]
-    public function it_marks_nothing_and_shows_no_button_within_its_row_limit(): void
-    {
-        $drawer = $this->drawerShowingMore($this->shownFilterCount());
-
-        $this->assertFalse($drawer->hasAttribute('data-overflow'));
-        $this->assertNull($drawer->querySelector($this->hooked(Hook::DrawerShowMore)));
-        $this->assertNull($drawer->querySelector('[data-beyond-row]'));
-    }
-
-    #[Test]
-    public function it_marks_no_filter_and_shows_no_button_as_a_side_sheet(): void
-    {
-        $drawer = $this->drawerLimitedTo($this->shownFilterCount() - 1);
-
-        $this->assertNull($drawer->querySelector($this->hooked(Hook::DrawerShowMore)));
-        $this->assertNull($drawer->querySelector('[data-beyond-row]'));
-    }
-
-    #[Test]
-    public function it_marks_no_filter_placed_after_it(): void
-    {
-        $this->app->forgetScopedInstances();
-        $document = HTMLDocument::createFromString(
-            Blade::render('<x-meilifacets::listing.drawer name="products" :row-limit="0" row-overflow="show-more">Facets</x-meilifacets::listing.drawer>'
-                .'<x-meilifacets::listing.facets name="products" />'),
-            LIBXML_NOERROR
-        );
-
-        $this->assertGreaterThan(0, $this->shownFilterCount());
-        $this->assertNull($document->querySelector('[data-beyond-row]'));
-    }
-
-    #[Test]
-    public function it_counts_no_filter_placed_outside_it(): void
-    {
-        $empty = HTMLDocument::createFromString(
-            Blade::render('<x-meilifacets::listing.facets name="products" /><x-meilifacets::listing.drawer name="products" :row-limit="0">Facets</x-meilifacets::listing.drawer>'),
-            LIBXML_NOERROR
-        );
-
-        $this->assertGreaterThan(0, $this->shownFilterCount());
-        $this->assertFalse($this->drawer($empty)->hasAttribute('data-overflow'));
-    }
-
-    #[Test]
-    public function it_speaks_the_language_of_the_site(): void
-    {
-        $document = HTMLDocument::createFromString($this->underLocales('fr', 'fr_FR', static fn (): string => Blade::render(self::PLACED)), LIBXML_NOERROR);
-
-        $this->assertSame('Filtres', trim($document->querySelector($this->hooked(Hook::DrawerTitle))->textContent));
-        $this->assertSame('Filtres', trim($document->querySelector($this->hooked(Hook::DrawerOpen))->textContent));
-        $this->assertSame('Fermer les filtres', $document->querySelector($this->hooked(Hook::DrawerClose))->getAttribute('aria-label'));
-    }
-
-    /** A view a theme copies must hold markup only (`R-151`). */
-    #[Test]
-    public function it_leaves_every_computation_to_the_components(): void
-    {
-        foreach (['drawer', 'drawer-opener'] as $name) {
-            $view = (string) file_get_contents(dirname(__DIR__, 2).'/resources/views/components/listing/'.$name.'.blade.php');
-
-            $this->assertStringNotContainsString('@php', $view, $name);
-            $this->assertStringNotContainsString('$ids->', $view, $name);
-            $this->assertStringNotContainsString('$listing->', $view, $name);
-        }
-    }
 
     private function opener(string $slot): Element
     {
@@ -443,3 +95,288 @@ final class DrawerComponentTest extends TestCase
         return $document->querySelector($this->hooked(Hook::Drawer));
     }
 }
+
+// Step 5a of the filter bar: a plain container the client promotes to a modal sheet, and the button that opens it.
+uses(TestCase::class, FindsHooks::class, HoldsCatalogueValues::class, SwitchesTheSiteLocale::class, DrawerComponentSteps::class);
+
+beforeEach(function (): void {
+    $this->configuredDrawer = config('meilifacets.drawer');
+    config(['meilifacets.drawer.row.overflow' => RowOverflow::DEFAULT->value]);
+
+    $this->app->forgetScopedInstances();
+});
+
+afterEach(function (): void {
+    request()->query->replace([]);
+    config(['meilifacets.drawer' => $this->configuredDrawer]);
+    $this->app->forgetScopedInstances();
+});
+
+// Option A: nothing modal on the server, so the markup reads as a plain container without JavaScript.
+it('renders a plain container around what it holds', function (): void {
+    $drawer = $this->drawer($this->placed());
+
+    expect($drawer->hasAttribute('role'))->toBeFalse();
+    expect($drawer->hasAttribute('aria-modal'))->toBeFalse();
+    expect($drawer->hasAttribute('hidden'))->toBeFalse();
+    expect($drawer->getAttribute('data-media'))->toBe(Drawer::MOBILE);
+    expect($drawer->getAttribute('class'))->toBe('meilifacetsDrawer flex-1');
+    expect($drawer->querySelector($this->hooked(Hook::DrawerSheet).' '.$this->hooked(Hook::DrawerBody).' #inside'))->not->toBeNull();
+    expect($drawer->querySelector($this->hooked(Hook::DrawerSheet).' '.$this->hooked(Hook::DrawerFooter).' '.$this->hooked(Hook::Reset)))->not->toBeNull();
+});
+
+// The rule the client refuses to start without: `drawer` holds `drawer-title` and `drawer-close`.
+it('holds what the contract requires of a drawer', function (): void {
+    $drawer = $this->drawer($this->placed());
+    $title = $drawer->querySelector($this->hooked(Hook::DrawerTitle));
+    $close = $drawer->querySelector($this->hooked(Hook::DrawerClose));
+
+    expect($title)->toBeInstanceOf(Element::class);
+    expect(strtolower($title->localName))->toBe('p', 'the title names the sheet without adding a heading to the page');
+    expect($title->getAttribute('tabindex'))->toBe('-1');
+    expect($title->getAttribute('id'))->not->toBe('');
+    expect($close)->toBeInstanceOf(Element::class);
+    expect($close->getAttribute('type'))->toBe('button');
+    expect($close->getAttribute('aria-label'))->not->toBe('');
+});
+
+it('points the opener at the drawer it opens', function (): void {
+    $document = $this->placed();
+    $opener = $document->querySelector($this->hooked(Hook::DrawerOpen));
+
+    expect($opener->getAttribute('type'))->toBe('button');
+    expect($opener->getAttribute('aria-expanded'))->toBe('false');
+    expect($document->getElementById($opener->getAttribute('aria-controls')))->toBe($this->drawer($document));
+});
+
+it('hides the count on an opener while nothing is held', function (): void {
+    $count = $this->placed()->querySelector($this->hooked(Hook::DrawerOpen).' '.$this->hooked(Hook::ActiveCount));
+
+    expect($count->hasAttribute('hidden'))->toBeTrue();
+    expect($count->textContent)->toBe('');
+});
+
+it('counts on the opener the values the address holds', function (): void {
+    $this->holdTwoValues();
+
+    $count = $this->placed()->querySelector($this->hooked(Hook::DrawerOpen).' '.$this->hooked(Hook::ActiveCount));
+
+    expect($count->hasAttribute('hidden'))->toBeFalse();
+    expect($count->textContent)->toBe('2');
+});
+
+// Like the badge of a trigger: the count describes the opener, it never enters its name.
+it('describes the opener with its count', function (): void {
+    $document = $this->placed();
+    $opener = $document->querySelector($this->hooked(Hook::DrawerOpen));
+    $count = $document->getElementById($opener->getAttribute('aria-describedby'));
+
+    $this->assertNotNull($count, 'aria-describedby names no element.');
+    expect($count->matches($this->hooked(Hook::ActiveCount)))->toBeTrue();
+    expect($count->getAttribute('aria-hidden'))->toBe('true');
+    expect($opener->innerHTML)->not->toContain('(');
+});
+
+// The icon is decoration: the name stays the word, whatever draws it.
+it('shows the module icon before the label when given none', function (): void {
+    $opener = $this->placed()->querySelector($this->hooked(Hook::DrawerOpen));
+    $icon = $opener->firstElementChild;
+    $image = $icon->querySelector('img');
+
+    expect($icon->getAttribute('aria-hidden'))->toBe('true');
+    expect($image->getAttribute('src'))->toEndWith('/modules/meilifacets/images/filters.svg');
+    expect($image->getAttribute('alt'))->toBe('');
+    expect([$image->getAttribute('width'), $image->getAttribute('height')])->toBe(['14', '14']);
+    expect(trim($icon->nextSibling->textContent))->toBe(__('Filters'));
+    expect($opener->lastElementChild->matches($this->hooked(Hook::ActiveCount)))->toBeTrue();
+});
+
+it('sets the icon a theme gives in place of its own', function (): void {
+    $opener = $this->opener('<x-slot:icon><svg id="sliders" width="16" height="16"></svg></x-slot:icon>');
+    $icon = $opener->firstElementChild;
+
+    expect($icon->getAttribute('aria-hidden'))->toBe('true');
+    expect($icon->querySelector('svg#sliders'))->not->toBeNull();
+    expect($opener->querySelector('img'))->toBeNull();
+    expect(trim($icon->nextSibling->textContent))->toBe(__('Filters'));
+});
+
+// An empty slot is how a theme asks for no icon at all: nothing is left behind.
+it('renders no icon when the theme empties the slot', function (): void {
+    $opener = $this->opener('<x-slot:icon></x-slot:icon>');
+
+    expect($opener->childElementCount)->toBe(1);
+    expect(trim($opener->textContent))->toBe(__('Filters'));
+    expect($opener->firstElementChild->matches($this->hooked(Hook::ActiveCount)))->toBeTrue();
+});
+
+// The browser reads the published copy: the source alone is an icon nobody sees.
+it('points at an icon that was published', function (): void {
+    $published = public_path('modules/meilifacets/images/filters.svg');
+
+    $this->assertFileExists($published);
+    $this->assertFileEquals(module_path('MeiliFacets', 'resources/assets/images/filters.svg'), $published);
+});
+
+it('renders no footer unless given one', function (): void {
+    $document = HTMLDocument::createFromString(Blade::render('<x-meilifacets::listing.drawer name="products">Facets</x-meilifacets::listing.drawer>'), LIBXML_NOERROR);
+
+    expect($document->querySelector($this->hooked(Hook::DrawerSheet)))->not->toBeNull();
+    expect($document->querySelector($this->hooked(Hook::DrawerFooter)))->toBeNull();
+});
+
+// Q-3: a theme with another threshold passes it, and restates the stylesheet block.
+it('takes another threshold', function (): void {
+    $document = HTMLDocument::createFromString(
+        Blade::render('<x-meilifacets::listing.drawer name="products" media="(width < 64em)">Facets</x-meilifacets::listing.drawer>'),
+        LIBXML_NOERROR
+    );
+
+    expect($this->drawer($document)->getAttribute('data-media'))->toBe('(width < 64em)');
+});
+
+it('marks side sheet overflow past its row limit', function (): void {
+    $shown = $this->shownFilterCount();
+
+    expect($this->drawerLimitedTo($shown - 1)->getAttribute('data-overflow'))->toBe(RowOverflow::SideSheet->value);
+    expect($this->drawerLimitedTo($shown - 1)->hasAttribute('data-side-sheet'))->toBeFalse();
+    expect($this->drawerLimitedTo($shown)->hasAttribute('data-overflow'))->toBeFalse();
+});
+
+it('takes its row limit from the configuration unless given one', function (): void {
+    $shown = $this->shownFilterCount();
+
+    config(['meilifacets.drawer.row.limit' => $shown]);
+    expect($this->drawerHoldingTheFacets()->hasAttribute('data-overflow'))->toBeFalse();
+
+    config(['meilifacets.drawer.row.limit' => $shown - 1]);
+    expect($this->drawerHoldingTheFacets()->hasAttribute('data-overflow'))->toBeTrue();
+    expect($this->drawerLimitedTo($shown)->hasAttribute('data-overflow'))->toBeFalse();
+});
+
+it('takes its row overflow from the configuration unless given one', function (): void {
+    $limited = ' :row-limit="'.($this->shownFilterCount() - 1).'"';
+
+    config(['meilifacets.drawer.row.overflow' => RowOverflow::ShowMore->value]);
+    expect($this->drawerHoldingTheFacets($limited)->getAttribute('data-overflow'))->toBe(RowOverflow::ShowMore->value);
+
+    $sideSheet = $this->drawerHoldingTheFacets($limited.' row-overflow="'.RowOverflow::SideSheet->value.'"');
+    expect($sideSheet->getAttribute('data-overflow'))->toBe(RowOverflow::SideSheet->value);
+});
+
+it('accepts its row overflow spelled with a hyphen', function (): void {
+    $drawer = $this->drawerHoldingTheFacets(' :row-limit="'.($this->shownFilterCount() - 1).'" row-overflow="show-more"');
+
+    expect($drawer->getAttribute('data-overflow'))->toBe(RowOverflow::ShowMore->value);
+    expect($drawer->querySelector($this->hooked(Hook::DrawerShowMore)))->not->toBeNull();
+});
+
+it('keeps its first shown filters in the row and marks the others with show more', function (): void {
+    $limit = $this->shownFilterCount() - 1;
+    $drawer = $this->drawerShowingMore($limit);
+    $shown = $drawer->querySelectorAll($this->hooked(Hook::Facet).':not([hidden])');
+    $kept = array_slice(iterator_to_array($shown), 0, $limit);
+
+    expect($drawer->getAttribute('data-overflow'))->toBe(RowOverflow::ShowMore->value);
+    expect(array_filter($kept, static fn (Element $filter): bool => $filter->hasAttribute('data-beyond-row')))->toBe([]);
+    expect($shown[$limit]->hasAttribute('data-beyond-row'))->toBeTrue();
+    expect($drawer->querySelectorAll($this->hooked(Hook::Facet).'[data-beyond-row] ~ '.$this->hooked(Hook::Facet).':not([data-beyond-row])')->length)->toBe(0);
+});
+
+// A filter emptying facets must not lift the row: clearing it in the browser would leave every facet on show.
+it('keeps the row of the whole catalogue under a filter that empties facets', function (): void {
+    $limit = $this->shownFilterCount() - 1;
+    $this->holdAValueThatEmptiesAFacet();
+
+    expect($this->drawerShowingMore($limit)->getAttribute('data-overflow'))->toBe(RowOverflow::ShowMore->value);
+});
+
+it('hides show more while every filter past the row is empty', function (): void {
+    $limit = $this->shownFilterCount() - 1;
+    $this->holdAValueThatEmptiesAFacet();
+    $drawer = $this->drawerShowingMore($limit);
+    $pastTheRow = $drawer->querySelectorAll($this->hooked(Hook::Facet).'[data-beyond-row]:not([hidden])')->length;
+
+    expect($drawer->querySelector($this->hooked(Hook::DrawerShowMore))->hasAttribute('hidden'))->toBe($pastTheRow === 0);
+});
+
+it('ends its row with a show more button that opens it', function (): void {
+    $drawer = $this->drawerShowingMore($this->shownFilterCount() - 1);
+    $button = $drawer->querySelector($this->hooked(Hook::DrawerShowMore));
+
+    expect($button)->toBeInstanceOf(Element::class);
+    expect($button)->toBe($drawer->querySelector($this->hooked(Hook::DrawerBody))->lastElementChild);
+    expect($button->getAttribute('type'))->toBe('button');
+    expect($button->getAttribute('aria-controls'))->toBe($drawer->getAttribute('id'));
+    expect($button->getAttribute('aria-expanded'))->toBe('false');
+    expect(trim($button->textContent))->toBe(__('Show more'));
+    expect($button->getAttribute('aria-label'))->toBe(__('Show more filters'));
+    expect($button->querySelector('[aria-hidden]'))->toBeNull();
+});
+
+it('sets the icon a theme gives before show more', function (): void {
+    $drawer = $this->drawerHoldingTheFacets(
+        ' :row-limit="'.($this->shownFilterCount() - 1).'" row-overflow="show-more"',
+        '<x-slot:show-more><svg id="sliders"></svg></x-slot:show-more>',
+    );
+    $icon = $drawer->querySelector($this->hooked(Hook::DrawerShowMore))->firstElementChild;
+
+    expect($icon->getAttribute('aria-hidden'))->toBe('true');
+    expect($icon->querySelector('svg#sliders'))->not->toBeNull();
+});
+
+it('marks nothing and shows no button within its row limit', function (): void {
+    $drawer = $this->drawerShowingMore($this->shownFilterCount());
+
+    expect($drawer->hasAttribute('data-overflow'))->toBeFalse();
+    expect($drawer->querySelector($this->hooked(Hook::DrawerShowMore)))->toBeNull();
+    expect($drawer->querySelector('[data-beyond-row]'))->toBeNull();
+});
+
+it('marks no filter and shows no button as a side sheet', function (): void {
+    $drawer = $this->drawerLimitedTo($this->shownFilterCount() - 1);
+
+    expect($drawer->querySelector($this->hooked(Hook::DrawerShowMore)))->toBeNull();
+    expect($drawer->querySelector('[data-beyond-row]'))->toBeNull();
+});
+
+it('marks no filter placed after it', function (): void {
+    $this->app->forgetScopedInstances();
+    $document = HTMLDocument::createFromString(
+        Blade::render('<x-meilifacets::listing.drawer name="products" :row-limit="0" row-overflow="show-more">Facets</x-meilifacets::listing.drawer>'
+            .'<x-meilifacets::listing.facets name="products" />'),
+        LIBXML_NOERROR
+    );
+
+    expect($this->shownFilterCount())->toBeGreaterThan(0);
+    expect($document->querySelector('[data-beyond-row]'))->toBeNull();
+});
+
+it('counts no filter placed outside it', function (): void {
+    $empty = HTMLDocument::createFromString(
+        Blade::render('<x-meilifacets::listing.facets name="products" /><x-meilifacets::listing.drawer name="products" :row-limit="0">Facets</x-meilifacets::listing.drawer>'),
+        LIBXML_NOERROR
+    );
+
+    expect($this->shownFilterCount())->toBeGreaterThan(0);
+    expect($this->drawer($empty)->hasAttribute('data-overflow'))->toBeFalse();
+});
+
+it('speaks the language of the site', function (): void {
+    $document = HTMLDocument::createFromString($this->underLocales('fr', 'fr_FR', static fn (): string => Blade::render(self::PLACED)), LIBXML_NOERROR);
+
+    expect(trim($document->querySelector($this->hooked(Hook::DrawerTitle))->textContent))->toBe('Filtres');
+    expect(trim($document->querySelector($this->hooked(Hook::DrawerOpen))->textContent))->toBe('Filtres');
+    expect($document->querySelector($this->hooked(Hook::DrawerClose))->getAttribute('aria-label'))->toBe('Fermer les filtres');
+});
+
+// A view a theme copies must hold markup only (`R-151`).
+it('leaves every computation to the components', function (): void {
+    foreach (['drawer', 'drawer-opener'] as $name) {
+        $view = (string) file_get_contents(dirname(__DIR__, 2).'/resources/views/components/listing/'.$name.'.blade.php');
+
+        $this->assertStringNotContainsString('@php', $view, $name);
+        $this->assertStringNotContainsString('$ids->', $view, $name);
+        $this->assertStringNotContainsString('$listing->', $view, $name);
+    }
+});

@@ -19,57 +19,10 @@ use Modules\MeiliFacets\Listing\WooCommerceDefaultSort;
 use Modules\MeiliFacets\Listing\WooCommerceFacets;
 use Modules\MeiliFacets\Listing\WooCommerceSorts;
 use Modules\MeiliFacets\Support\UrlParameters;
-use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-/** Built by hand: the suite shares one application, so a binding made here would outlive the class. */
-final class ProductFacetsTest extends TestCase
+trait ProductFacetsSteps
 {
-    #[Test]
-    public function it_ships_category_and_brand_as_its_default(): void
-    {
-        $taxonomies = array_map(
-            static fn (Facet $facet): string => $facet->taxonomy,
-            new WooCommerceFacets(new NameOrder)->all()
-        );
-
-        $this->assertSame([ProductTaxonomy::Category->value, ProductTaxonomy::Brand->value], $taxonomies);
-    }
-
-    #[Test]
-    public function it_ships_sorts_by_price_by_date_and_one_for_promotions(): void
-    {
-        $this->assertSame(['price_asc', 'price_desc', 'newest', 'on_sale'], array_keys(new WooCommerceSorts()->all()));
-    }
-
-    #[Test]
-    public function it_shows_the_facets_it_was_given(): void
-    {
-        $listing = new ProductListing($this->facets('pa_couleur'), new WooCommerceSorts, $this->app->make(SearchableTypes::class), new VariationTaxonomies, new WooCommerceDefaultSort);
-
-        $this->assertSame(['pa_couleur'], array_map(
-            static fn (Facet $facet): string => $facet->taxonomy,
-            $listing->facets()
-        ));
-    }
-
-    #[Test]
-    public function it_takes_its_facets_and_its_sorts_from_two_places(): void
-    {
-        $listing = new ProductListing(new WooCommerceFacets(new NameOrder), $this->sorts('rating'), $this->app->make(SearchableTypes::class), new VariationTaxonomies, new WooCommerceDefaultSort);
-
-        $this->assertSame(['rating'], array_keys($listing->sorts()));
-        $this->assertCount(2, $listing->facets());
-    }
-
-    #[Test]
-    public function it_builds_its_facets_once(): void
-    {
-        $facets = new WooCommerceFacets(new NameOrder);
-
-        $this->assertSame($facets->all(), $facets->all());
-    }
-
     private function facets(string $taxonomy): ProductFacets
     {
         return new readonly class($taxonomy) implements ProductFacets
@@ -81,17 +34,6 @@ final class ProductFacetsTest extends TestCase
                 return [new Facet($this->taxonomy, 'Given')];
             }
         };
-    }
-
-    #[Test]
-    public function it_offers_promotions_only_on_a_listing_that_declares_a_price(): void
-    {
-        $withoutPrice = new ProductListing(new WooCommerceFacets(new NameOrder), new WooCommerceSorts, $this->app->make(SearchableTypes::class), new VariationTaxonomies, new WooCommerceDefaultSort);
-        $withPrice = new ProductListing($this->facetsWithPrice(), new WooCommerceSorts, $this->app->make(SearchableTypes::class), new VariationTaxonomies, new WooCommerceDefaultSort);
-
-        $this->assertArrayNotHasKey('on_sale', $withoutPrice->sorts());
-        $this->assertArrayHasKey('on_sale', $withPrice->sorts());
-        $this->assertNull(new StateReader(new UrlParameters([]))->read($withoutPrice, ['sort' => 'on_sale'])->sort);
     }
 
     private function facetsWithPrice(): ProductFacets
@@ -118,3 +60,50 @@ final class ProductFacetsTest extends TestCase
         };
     }
 }
+
+// Built by hand: the suite shares one application, so a binding made here would outlive the class.
+uses(TestCase::class, ProductFacetsSteps::class);
+
+it('ships category and brand as its default', function (): void {
+    $taxonomies = array_map(
+        static fn (Facet $facet): string => $facet->taxonomy,
+        new WooCommerceFacets(new NameOrder)->all()
+    );
+
+    expect($taxonomies)->toBe([ProductTaxonomy::Category->value, ProductTaxonomy::Brand->value]);
+});
+
+it('ships sorts by price by date and one for promotions', function (): void {
+    expect(array_keys(new WooCommerceSorts()->all()))->toBe(['price_asc', 'price_desc', 'newest', 'on_sale']);
+});
+
+it('shows the facets it was given', function (): void {
+    $listing = new ProductListing($this->facets('pa_couleur'), new WooCommerceSorts, $this->app->make(SearchableTypes::class), new VariationTaxonomies, new WooCommerceDefaultSort);
+
+    expect(array_map(
+        static fn (Facet $facet): string => $facet->taxonomy,
+        $listing->facets()
+    ))->toBe(['pa_couleur']);
+});
+
+it('takes its facets and its sorts from two places', function (): void {
+    $listing = new ProductListing(new WooCommerceFacets(new NameOrder), $this->sorts('rating'), $this->app->make(SearchableTypes::class), new VariationTaxonomies, new WooCommerceDefaultSort);
+
+    expect(array_keys($listing->sorts()))->toBe(['rating']);
+    expect($listing->facets())->toHaveCount(2);
+});
+
+it('builds its facets once', function (): void {
+    $facets = new WooCommerceFacets(new NameOrder);
+
+    expect($facets->all())->toBe($facets->all());
+});
+
+it('offers promotions only on a listing that declares a price', function (): void {
+    $withoutPrice = new ProductListing(new WooCommerceFacets(new NameOrder), new WooCommerceSorts, $this->app->make(SearchableTypes::class), new VariationTaxonomies, new WooCommerceDefaultSort);
+    $withPrice = new ProductListing($this->facetsWithPrice(), new WooCommerceSorts, $this->app->make(SearchableTypes::class), new VariationTaxonomies, new WooCommerceDefaultSort);
+
+    expect($withoutPrice->sorts())->not->toHaveKey('on_sale');
+    expect($withPrice->sorts())->toHaveKey('on_sale');
+    expect(new StateReader(new UrlParameters([]))->read($withoutPrice, ['sort' => 'on_sale'])->sort)->toBeNull();
+});

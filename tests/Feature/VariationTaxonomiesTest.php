@@ -9,14 +9,13 @@ use Closure;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Support\Facades\Exceptions;
 use Modules\MeiliFacets\Listing\VariationTaxonomies;
-use PHPUnit\Framework\Attributes\Test;
 use RuntimeException;
 use stdClass;
 use Tests\TestCase;
 use WC_Cache_Helper;
 use WooCommerce;
 
-final class VariationTaxonomiesTest extends TestCase
+trait VariationTaxonomiesSteps
 {
     private const string SIZE = 'meilifacets_test_size';
 
@@ -38,7 +37,7 @@ final class VariationTaxonomiesTest extends TestCase
     private const int ATTRIBUTE_ID_BASE = 2_000_000_000;
 
     /** Each `$this->method(...)` is a new closure, which `remove_filter()` would not find. */
-    private Closure $attributes;
+    private ?Closure $attributes = null;
 
     private Closure $lookupEnabledAnswer;
 
@@ -49,85 +48,6 @@ final class VariationTaxonomiesTest extends TestCase
     private string $regenerating = 'no';
 
     private ?ExceptionHandler $hostHandler = null;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        if (! class_exists(WooCommerce::class)) {
-            $this->markTestSkipped('Attributes are WooCommerce\'s.');
-        }
-
-        $this->attributes = $this->withTestAttributes(...);
-        $this->lookupEnabledAnswer = fn (): string => $this->lookupEnabled === self::BROKEN
-            ? throw new RuntimeException('WooCommerce changed its internal lookup classes.')
-            : $this->lookupEnabled;
-        $this->regeneratingAnswer = fn (): string => $this->regenerating;
-        add_filter(self::ATTRIBUTES, $this->attributes);
-        add_filter(self::LOOKUP_ENABLED, $this->lookupEnabledAnswer);
-        add_filter(self::REGENERATING, $this->regeneratingAnswer);
-        WC_Cache_Helper::invalidate_cache_group(self::ATTRIBUTE_CACHE);
-        $this->insertLookupRow(self::SIZE, isVariation: true);
-        $this->insertLookupRow(self::SKIN, isVariation: false);
-    }
-
-    protected function tearDown(): void
-    {
-        global $wpdb;
-
-        if (isset($this->attributes)) {
-            remove_filter(self::ATTRIBUTES, $this->attributes);
-            remove_filter(self::LOOKUP_ENABLED, $this->lookupEnabledAnswer);
-            remove_filter(self::REGENERATING, $this->regeneratingAnswer);
-            WC_Cache_Helper::invalidate_cache_group(self::ATTRIBUTE_CACHE);
-            $wpdb->delete($this->lookupTable(), ['product_or_parent_id' => self::PRODUCT_ID]);
-        }
-
-        if ($this->hostHandler instanceof ExceptionHandler) {
-            $this->app->instance(ExceptionHandler::class, $this->hostHandler);
-        }
-
-        parent::tearDown();
-    }
-
-    #[Test]
-    public function it_names_the_attributes_woocommerce_marks_as_used_for_variations(): void
-    {
-        $names = new VariationTaxonomies()->all();
-
-        $this->assertContains('pa_'.self::SIZE, $names);
-        $this->assertNotContains('pa_'.self::SKIN, $names);
-    }
-
-    #[Test]
-    public function it_names_every_attribute_while_woocommerce_does_not_use_its_lookup_table(): void
-    {
-        $this->lookupEnabled = 'no';
-
-        $names = new VariationTaxonomies()->all();
-
-        $this->assertSame(array_values(wc_get_attribute_taxonomy_names()), $names);
-        $this->assertContains('pa_'.self::SKIN, $names);
-    }
-
-    #[Test]
-    public function it_names_every_attribute_while_woocommerce_rebuilds_its_lookup_table(): void
-    {
-        $this->regenerating = 'yes';
-
-        $this->assertContains('pa_'.self::SKIN, new VariationTaxonomies()->all());
-    }
-
-    #[Test]
-    public function it_reports_a_lookup_table_it_cannot_read_and_names_every_attribute(): void
-    {
-        $this->hostHandler = $this->app->make(ExceptionHandler::class);
-        Exceptions::fake();
-        $this->lookupEnabled = self::BROKEN;
-
-        $this->assertSame(array_values(wc_get_attribute_taxonomy_names()), new VariationTaxonomies()->all());
-        Exceptions::assertReported(RuntimeException::class);
-    }
 
     /**
      * @param  array<object>  $attributes
@@ -163,3 +83,70 @@ final class VariationTaxonomiesTest extends TestCase
         return wc_get_container()->get(LookupDataStore::class)->get_lookup_table_name();
     }
 }
+
+uses(TestCase::class, VariationTaxonomiesSteps::class);
+
+beforeEach(function (): void {
+    if (! class_exists(WooCommerce::class)) {
+        $this->markTestSkipped('Attributes are WooCommerce\'s.');
+    }
+
+    $this->attributes = $this->withTestAttributes(...);
+    $this->lookupEnabledAnswer = fn (): string => $this->lookupEnabled === self::BROKEN
+        ? throw new RuntimeException('WooCommerce changed its internal lookup classes.')
+        : $this->lookupEnabled;
+    $this->regeneratingAnswer = fn (): string => $this->regenerating;
+    add_filter(self::ATTRIBUTES, $this->attributes);
+    add_filter(self::LOOKUP_ENABLED, $this->lookupEnabledAnswer);
+    add_filter(self::REGENERATING, $this->regeneratingAnswer);
+    WC_Cache_Helper::invalidate_cache_group(self::ATTRIBUTE_CACHE);
+    $this->insertLookupRow(self::SIZE, isVariation: true);
+    $this->insertLookupRow(self::SKIN, isVariation: false);
+});
+
+afterEach(function (): void {
+    global $wpdb;
+
+    if ($this->attributes instanceof Closure) {
+        remove_filter(self::ATTRIBUTES, $this->attributes);
+        remove_filter(self::LOOKUP_ENABLED, $this->lookupEnabledAnswer);
+        remove_filter(self::REGENERATING, $this->regeneratingAnswer);
+        WC_Cache_Helper::invalidate_cache_group(self::ATTRIBUTE_CACHE);
+        $wpdb->delete($this->lookupTable(), ['product_or_parent_id' => self::PRODUCT_ID]);
+    }
+
+    if ($this->hostHandler instanceof ExceptionHandler) {
+        $this->app->instance(ExceptionHandler::class, $this->hostHandler);
+    }
+});
+
+it('names the attributes woocommerce marks as used for variations', function (): void {
+    $names = new VariationTaxonomies()->all();
+
+    expect($names)->toContain('pa_'.self::SIZE);
+    expect($names)->not->toContain('pa_'.self::SKIN);
+});
+
+it('names every attribute while woocommerce does not use its lookup table', function (): void {
+    $this->lookupEnabled = 'no';
+
+    $names = new VariationTaxonomies()->all();
+
+    expect($names)->toBe(array_values(wc_get_attribute_taxonomy_names()));
+    expect($names)->toContain('pa_'.self::SKIN);
+});
+
+it('names every attribute while woocommerce rebuilds its lookup table', function (): void {
+    $this->regenerating = 'yes';
+
+    expect(new VariationTaxonomies()->all())->toContain('pa_'.self::SKIN);
+});
+
+it('reports a lookup table it cannot read and names every attribute', function (): void {
+    $this->hostHandler = $this->app->make(ExceptionHandler::class);
+    Exceptions::fake();
+    $this->lookupEnabled = self::BROKEN;
+
+    expect(new VariationTaxonomies()->all())->toBe(array_values(wc_get_attribute_taxonomy_names()));
+    Exceptions::assertReported(RuntimeException::class);
+});
