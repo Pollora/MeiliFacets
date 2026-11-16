@@ -6,19 +6,17 @@ namespace Modules\MeiliFacets\Tests\Unit;
 
 use Automattic\WooCommerce\Internal\ProductAttributesLookup\Filterer;
 use Automattic\WooCommerce\Internal\ProductAttributesLookup\LookupDataStore;
+use Modules\MeiliFacets\Contracts\Placeable;
 use Modules\MeiliFacets\Contracts\ProductFacets;
-use Modules\MeiliFacets\Contracts\ProductSorts;
 use Modules\MeiliFacets\Contracts\SearchableTypes;
 use Modules\MeiliFacets\Contracts\TermHierarchy;
 use Modules\MeiliFacets\Listing\ChildTermsFacet;
 use Modules\MeiliFacets\Listing\Facet;
-use Modules\MeiliFacets\Listing\ListingUnavailable;
 use Modules\MeiliFacets\Listing\NameOrder;
 use Modules\MeiliFacets\Listing\PageSize;
 use Modules\MeiliFacets\Listing\PriceFilter;
 use Modules\MeiliFacets\Listing\ProductListing;
 use Modules\MeiliFacets\Listing\SearchableType;
-use Modules\MeiliFacets\Listing\Sort;
 use Modules\MeiliFacets\Listing\VariationTaxonomies;
 use Modules\MeiliFacets\Listing\WooCommerceDefaultSort;
 use Modules\MeiliFacets\Listing\WooCommerceFacets;
@@ -297,7 +295,7 @@ final class ListingWordPressTest extends TestCase
 
     /**
      * @param  array<string, SearchableType>  $types
-     * @param  list<\Modules\MeiliFacets\Contracts\Placeable>|null  $facets
+     * @param  list<Placeable>|null  $facets
      */
     private function productListing(string $applyMode = 'submit', array $types = [], ?array $facets = null): ProductListing
     {
@@ -310,7 +308,7 @@ final class ListingWordPressTest extends TestCase
         $facets ??= new WooCommerceFacets(new NameOrder(static fn (): null => null))->all();
         $productFacets = new class($facets) implements ProductFacets
         {
-            /** @param  list<\Modules\MeiliFacets\Contracts\Placeable>  $facets */
+            /** @param  list<Placeable>  $facets */
             public function __construct(private readonly array $facets) {}
 
             public function all(): array

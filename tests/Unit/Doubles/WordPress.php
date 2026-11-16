@@ -47,6 +47,11 @@ final class WordPress
         require_once __DIR__.'/woocommerce-classes.php';
     }
 
+    public static function bootYoast(): void
+    {
+        require_once __DIR__.'/yoast.php';
+    }
+
     public static function reset(): void
     {
         self::$handlers = [];

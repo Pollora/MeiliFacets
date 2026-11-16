@@ -137,3 +137,21 @@ if (! class_exists('WC_Product')) {
         }
     }
 }
+
+if (! class_exists('WP_Post_Type')) {
+    class WP_Post_Type
+    {
+        public bool $public = true;
+
+        public bool $exclude_from_search = false;
+
+        public object $labels;
+
+        public function __construct(string $name = 'Posts', string $all = 'All posts', bool $public = true, bool $excluded = false)
+        {
+            $this->labels = (object) ['name' => $name, 'all_items' => $all];
+            $this->public = $public;
+            $this->exclude_from_search = $excluded;
+        }
+    }
+}
