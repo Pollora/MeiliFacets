@@ -2,28 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Modules\MeiliFacets\Tests\Unit;
+namespace Modules\MeiliFacets\Tests\Unit\ImagePriority;
 
 use Modules\MeiliFacets\Enums\ImagePriority;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 
-final class ImagePriorityTest extends TestCase
-{
-    #[Test]
-    public function it_loads_the_cards_above_the_fold_eagerly(): void
-    {
-        $this->assertSame(ImagePriority::Eager, ImagePriority::forRank(0, 4));
-        $this->assertSame(ImagePriority::Eager, ImagePriority::forRank(3, 4));
-        $this->assertSame(ImagePriority::Lazy, ImagePriority::forRank(4, 4));
-    }
+it('loads the cards above the fold eagerly', function (): void {
+    expect(ImagePriority::forRank(0, 4))->toBe(ImagePriority::Eager);
+    expect(ImagePriority::forRank(3, 4))->toBe(ImagePriority::Eager);
+    expect(ImagePriority::forRank(4, 4))->toBe(ImagePriority::Lazy);
+});
 
-    #[Test]
-    public function it_never_hints_a_priority_it_does_not_mean(): void
-    {
-        $this->assertSame('eager', ImagePriority::Eager->loading());
-        $this->assertSame('high', ImagePriority::Eager->fetchPriority());
-        $this->assertSame('lazy', ImagePriority::Lazy->loading());
-        $this->assertSame('auto', ImagePriority::Lazy->fetchPriority());
-    }
-}
+it('never hints a priority it does not mean', function (): void {
+    expect(ImagePriority::Eager->loading())->toBe('eager');
+    expect(ImagePriority::Eager->fetchPriority())->toBe('high');
+    expect(ImagePriority::Lazy->loading())->toBe('lazy');
+    expect(ImagePriority::Lazy->fetchPriority())->toBe('auto');
+});

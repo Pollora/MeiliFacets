@@ -2,41 +2,30 @@
 
 declare(strict_types=1);
 
-namespace Modules\MeiliFacets\Tests\Unit;
+namespace Modules\MeiliFacets\Tests\Unit\WooCommerceProductFields;
 
 use Modules\MeiliFacets\Indexing\WooCommerce\WooCommerceProductFields;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 
-final class WooCommerceProductFieldsTest extends TestCase
-{
-    #[Test]
-    public function it_ranks_the_brand_then_the_category_then_the_sku(): void
-    {
-        $fields = new WooCommerceProductFields(static fn (): bool => true);
+it('ranks the brand then the category then the sku', function (): void {
+    $fields = new WooCommerceProductFields(static fn (): bool => true);
 
-        $this->assertSame(['labels.product_brand', 'labels.product_cat', 'metas._sku'], $fields->all());
-    }
+    expect($fields->all())->toBe(['labels.product_brand', 'labels.product_cat', 'metas._sku']);
+});
 
-    #[Test]
-    public function it_ranks_nothing_without_woocommerce(): void
-    {
-        $this->assertSame([], new WooCommerceProductFields(static fn (): bool => false)->all());
-    }
+it('ranks nothing without woocommerce', function (): void {
+    expect(new WooCommerceProductFields(static fn (): bool => false)->all())->toBe([]);
+});
 
-    /** A hook wired before plugins load keeps its instance for the whole request (R-171). */
-    #[Test]
-    public function it_asks_whether_woocommerce_is_there_on_every_read(): void
-    {
-        $pluginIsActive = false;
-        $fields = new WooCommerceProductFields(static function () use (&$pluginIsActive): bool {
-            return $pluginIsActive;
-        });
+/** A hook wired before plugins load keeps its instance for the whole request (R-171). */
+it('asks whether woocommerce is there on every read', function (): void {
+    $pluginIsActive = false;
+    $fields = new WooCommerceProductFields(static function () use (&$pluginIsActive): bool {
+        return $pluginIsActive;
+    });
 
-        $this->assertSame([], $fields->all());
+    expect($fields->all())->toBe([]);
 
-        $pluginIsActive = true;
+    $pluginIsActive = true;
 
-        $this->assertCount(3, $fields->all());
-    }
-}
+    expect($fields->all())->toHaveCount(3);
+});

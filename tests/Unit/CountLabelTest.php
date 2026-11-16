@@ -2,72 +2,45 @@
 
 declare(strict_types=1);
 
-namespace Modules\MeiliFacets\Tests\Unit;
+namespace Modules\MeiliFacets\Tests\Unit\CountLabel;
 
 use Modules\MeiliFacets\View\CountLabel;
-use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\RequiresPhpExtension;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 
-final class CountLabelTest extends TestCase
-{
-    private const string PATTERN = ':count result|:count results';
+const PATTERN = ':count result|:count results';
 
-    /**
-     * The same table `tests/ts/count-label.test.ts` reads: the browser must pick the form the server wrote.
-     *
-     * @param  array{locale: string, count: int, form: int}  $case
-     */
-    #[DataProvider('pluralCases')]
-    #[RequiresPhpExtension('intl')]
-    #[Test]
-    public function it_picks_the_form_the_language_rule_names(array $case): void
-    {
-        $expected = explode('|', str_replace(':count', (string) $case['count'], self::PATTERN))[$case['form']];
+/** The same table `tests/ts/count-label.test.ts` reads: the browser must pick the form the server wrote. */
+it('picks the form the language rule names', function (array $case): void {
+    $expected = explode('|', str_replace(':count', (string) $case['count'], PATTERN))[$case['form']];
 
-        $this->assertSame($expected, new CountLabel(fn (): string => $case['locale'])->of(self::PATTERN, $case['count']));
+    expect(new CountLabel(fn (): string => $case['locale'])->of(PATTERN, $case['count']))->toBe($expected);
+})->skip(! extension_loaded('intl'), 'The intl extension is required.')->with(function () {
+    $cases = json_decode((string) file_get_contents(__DIR__.'/../plural-cases.json'), true, flags: JSON_THROW_ON_ERROR);
+
+    foreach ($cases as $case) {
+        yield $case['locale'].' '.$case['count'] => [$case];
     }
+});
 
-    /**
-     * @return iterable<string, array{array<string, mixed>}>
-     */
-    public static function pluralCases(): iterable
-    {
-        $cases = json_decode((string) file_get_contents(__DIR__.'/../plural-cases.json'), true, flags: JSON_THROW_ON_ERROR);
+it('hands the browser a tag it accepts', function (): void {
+    expect(new CountLabel(fn (): string => 'pt_BR')->languageTag())->toBe('pt-BR');
+    expect(new CountLabel(fn (): string => 'pt_PT_ao90')->languageTag())->toBe('pt-PT');
+    expect(new CountLabel(fn (): string => 'zh_Hans_CN')->languageTag())->toBe('zh');
+    expect(new CountLabel(fn (): string => 'C')->languageTag())->toBe('en');
+});
 
-        foreach ($cases as $case) {
-            yield $case['locale'].' '.$case['count'] => [$case];
-        }
-    }
+it('falls back to the one form a pattern carries', function (): void {
+    expect(new CountLabel(fn (): string => 'en')->of(':count', 4))->toBe('4');
+});
 
-    #[Test]
-    public function it_hands_the_browser_a_tag_it_accepts(): void
-    {
-        $this->assertSame('pt-BR', new CountLabel(fn (): string => 'pt_BR')->languageTag());
-        $this->assertSame('pt-PT', new CountLabel(fn (): string => 'pt_PT_ao90')->languageTag());
-        $this->assertSame('zh', new CountLabel(fn (): string => 'zh_Hans_CN')->languageTag());
-        $this->assertSame('en', new CountLabel(fn (): string => 'C')->languageTag());
-    }
+it('tags each language the site switches to', function (): void {
+    $locale = 'de_DE';
+    $countLabel = new CountLabel(function () use (&$locale): string {
+        return $locale;
+    });
 
-    #[Test]
-    public function it_falls_back_to_the_one_form_a_pattern_carries(): void
-    {
-        $this->assertSame('4', new CountLabel(fn (): string => 'en')->of(':count', 4));
-    }
+    expect($countLabel->languageTag())->toBe('de-DE');
 
-    #[Test]
-    public function it_tags_each_language_the_site_switches_to(): void
-    {
-        $locale = 'de_DE';
-        $countLabel = new CountLabel(function () use (&$locale): string {
-            return $locale;
-        });
+    $locale = 'pt_BR';
 
-        $this->assertSame('de-DE', $countLabel->languageTag());
-
-        $locale = 'pt_BR';
-
-        $this->assertSame('pt-BR', $countLabel->languageTag());
-    }
-}
+    expect($countLabel->languageTag())->toBe('pt-BR');
+});

@@ -2,23 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Modules\MeiliFacets\Tests\Unit;
+namespace Modules\MeiliFacets\Tests\Unit\PublishedPosts;
 
 use Modules\MeiliFacets\Listing\PublishedPosts;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 
-final class PublishedPostsTest extends TestCase
-{
-    #[Test]
-    public function it_keeps_only_the_published_posts_of_one_type(): void
-    {
-        $this->assertSame(['post_type = "product"', 'post_status = "publish"'], PublishedPosts::of('product'));
-    }
+it('keeps only the published posts of one type', function (): void {
+    expect(PublishedPosts::of('product'))->toBe(['post_type = "product"', 'post_status = "publish"']);
+});
 
-    #[Test]
-    public function it_quotes_a_post_type_that_would_break_out_of_the_filter(): void
-    {
-        $this->assertSame('post_type = "x\" OR post_type = \"page"', PublishedPosts::of('x" OR post_type = "page')[0]);
-    }
-}
+it('quotes a post type that would break out of the filter', function (): void {
+    expect(PublishedPosts::of('x" OR post_type = "page')[0])->toBe('post_type = "x\" OR post_type = \"page"');
+});

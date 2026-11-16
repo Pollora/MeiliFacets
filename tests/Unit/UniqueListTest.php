@@ -2,44 +2,29 @@
 
 declare(strict_types=1);
 
-namespace Modules\MeiliFacets\Tests\Unit;
+namespace Modules\MeiliFacets\Tests\Unit\UniqueList;
 
 use Modules\MeiliFacets\Support\UniqueList;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 
-final class UniqueListTest extends TestCase
-{
-    #[Test]
-    public function it_keeps_each_value_where_it_first_appears(): void
-    {
-        $this->assertSame(['title', 'excerpt', 'content'], UniqueList::merge(['title', 'excerpt'], ['content', 'title']));
-    }
+it('keeps each value where it first appears', function (): void {
+    expect(UniqueList::merge(['title', 'excerpt'], ['content', 'title']))->toBe(['title', 'excerpt', 'content']);
+});
 
-    #[Test]
-    public function it_drops_a_repeat_inside_a_single_list(): void
-    {
-        $this->assertSame(['red', 'blue'], UniqueList::merge(['red', 'blue', 'red']));
-    }
+it('drops a repeat inside a single list', function (): void {
+    expect(UniqueList::merge(['red', 'blue', 'red']))->toBe(['red', 'blue']);
+});
 
-    #[Test]
-    public function it_hands_back_a_list_with_no_gap_in_its_keys(): void
-    {
-        $merged = UniqueList::merge(['a', 'a'], ['b']);
+it('hands back a list with no gap in its keys', function (): void {
+    $merged = UniqueList::merge(['a', 'a'], ['b']);
 
-        $this->assertTrue(array_is_list($merged));
-    }
+    expect(array_is_list($merged))->toBeTrue();
+});
 
-    #[Test]
-    public function it_keeps_values_that_differ_only_by_case(): void
-    {
-        $this->assertSame(['Red', 'red'], UniqueList::merge(['Red'], ['red']));
-    }
+it('keeps values that differ only by case', function (): void {
+    expect(UniqueList::merge(['Red'], ['red']))->toBe(['Red', 'red']);
+});
 
-    #[Test]
-    public function it_merges_nothing_into_an_empty_list(): void
-    {
-        $this->assertSame([], UniqueList::merge());
-        $this->assertSame([], UniqueList::merge([], []));
-    }
-}
+it('merges nothing into an empty list', function (): void {
+    expect(UniqueList::merge())->toBe([]);
+    expect(UniqueList::merge([], []))->toBe([]);
+});
