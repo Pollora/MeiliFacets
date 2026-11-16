@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Container\Container;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeRequest;
+use Modules\MeiliFacets\Tests\Unit\Doubles\RenderedView;
 use Modules\MeiliFacets\Tests\Unit\Doubles\WordPress;
 
 // Loaded by `WordPress::boot()`, from a test that runs in its own process only.
@@ -274,5 +275,13 @@ foreach ([
 ] as $name) {
     if (! function_exists($name)) {
         eval("function {$name}(mixed ...\$arguments): mixed { return Modules\\MeiliFacets\\Tests\\Unit\\Doubles\\WordPress::call('{$name}', \$arguments); }");
+    }
+}
+
+if (! function_exists('view')) {
+    /** The view a component renders: its name and data, for a test to read back. */
+    function view(?string $view = null, array $data = []): RenderedView
+    {
+        return new RenderedView((string) $view, $data);
     }
 }
