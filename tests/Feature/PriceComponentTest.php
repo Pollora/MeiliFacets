@@ -16,149 +16,12 @@ use Modules\MeiliFacets\Http\CurrentListing;
 use Modules\MeiliFacets\Listing\PriceFilter;
 use Modules\MeiliFacets\Listing\ProductListing;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeSearchEngine;
-use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-/**
- * The parts a project declared decide what is drawn. What always exists is the pair
- * of inputs: they carry the parameter names and the current bounds the client reads.
- */
-final class PriceComponentTest extends TestCase
+trait PriceComponentSteps
 {
     /** @var array{concrete: \Closure, shared: bool} */
     private array $engine;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->engine = $this->app->getBindings()[SearchEngine::class];
-        $this->app->forgetScopedInstances();
-    }
-
-    /** The suite shares one application: a fake engine left bound would answer a later class. */
-    protected function tearDown(): void
-    {
-        $this->app->bind(SearchEngine::class, $this->engine['concrete'], $this->engine['shared']);
-        $this->app->forgetScopedInstances();
-
-        parent::tearDown();
-    }
-
-    #[Test]
-    public function it_carries_both_bounds_as_inputs_whatever_it_shows(): void
-    {
-        foreach ([[], [PricePart::Fields], [PricePart::Slider], [PricePart::Slider, PricePart::Fields]] as $parts) {
-            $document = $this->render($parts);
-
-            foreach ([Hook::PriceMin, Hook::PriceMax] as $hook) {
-                $this->assertNotNull($this->one($document, $hook), $hook->value.' is missing without '.count($parts).' parts.');
-            }
-        }
-    }
-
-    /** Declared with no part at all, it still reads the URL — so it keeps its inputs, hidden. */
-    #[Test]
-    public function it_hides_its_inputs_when_it_shows_nothing(): void
-    {
-        $this->assertSame('hidden', $this->one($this->render([]), Hook::PriceMin)->getAttribute('type'));
-        $this->assertSame('number', $this->one($this->render([PricePart::Fields]), Hook::PriceMin)->getAttribute('type'));
-    }
-
-    /** Alone, an empty field is an open end; beside the control it mirrors the handle. */
-    #[Test]
-    public function it_leaves_a_field_empty_when_nothing_was_asked(): void
-    {
-        $this->assertSame('', $this->one($this->render([PricePart::Fields]), Hook::PriceMin)->getAttribute('value'));
-        $this->assertNotSame('', $this->one($this->render([PricePart::Slider, PricePart::Fields]), Hook::PriceMin)->getAttribute('value'));
-    }
-
-    #[Test]
-    public function it_hints_each_field_with_the_end_of_the_catalogue_it_stands_for(): void
-    {
-        $document = $this->render([PricePart::Fields]);
-        $min = $this->one($document, Hook::PriceMin);
-        $max = $this->one($document, Hook::PriceMax);
-
-        $this->assertSame($min->getAttribute('min'), $min->getAttribute('placeholder'));
-        $this->assertSame($max->getAttribute('max'), $max->getAttribute('placeholder'));
-        $this->assertNotSame($min->getAttribute('placeholder'), $max->getAttribute('placeholder'));
-    }
-
-    #[Test]
-    public function it_shows_back_what_the_url_asked_for(): void
-    {
-        $document = $this->render([PricePart::Fields], ['min_price' => '40', 'max_price' => '70']);
-
-        $this->assertSame('40', $this->one($document, Hook::PriceMin)->getAttribute('value'));
-        $this->assertSame('70', $this->one($document, Hook::PriceMax)->getAttribute('value'));
-    }
-
-    /**
-     * Without it the stylesheet falls back to `--from: 0` and `--to: 1`, and the
-     * whole track reads as selected until a script runs.
-     */
-    #[Test]
-    public function it_draws_the_filled_part_of_the_track_before_any_script_runs(): void
-    {
-        [$lowest, $highest] = $this->catalogueBounds();
-        $quarter = ($highest - $lowest) / 4;
-        $document = $this->render([PricePart::Slider], [
-            'min_price' => (string) ($lowest + $quarter),
-            'max_price' => (string) ($highest - $quarter),
-        ]);
-        $style = $this->one($document, Hook::PriceRange)->getAttribute('style');
-
-        $this->assertMatchesRegularExpression('/--from: 0\.\d+/', (string) $style);
-        $this->assertMatchesRegularExpression('/--to: 0\.\d+/', (string) $style);
-    }
-
-    /**
-     * A field carries a bare number, so a control without a range formats nothing:
-     * `wc_price()` reads the currency, the decimals and both separators each time.
-     */
-    #[Test]
-    public function it_formats_no_price_when_it_draws_no_range(): void
-    {
-        $this->assertStringNotContainsString('aria-valuetext', $this->render([PricePart::Fields])->body->innerHTML);
-        $this->assertStringContainsString('aria-valuetext', $this->render([PricePart::Slider])->body->innerHTML);
-    }
-
-    #[Test]
-    public function it_renders_hidden_and_empty_when_the_engine_reports_no_bounds(): void
-    {
-        $this->app->scoped(SearchEngine::class, fn (): FakeSearchEngine => new FakeSearchEngine);
-
-        $document = $this->render([PricePart::Slider, PricePart::Fields]);
-
-        $this->assertTrue($this->one($document, Hook::Facet)?->hasAttribute('hidden'));
-
-        foreach ([Hook::PriceMin, Hook::PriceMax] as $hook) {
-            $input = $this->one($document, $hook);
-
-            $this->assertNotNull($input, $hook->value.' left the markup with no bounds.');
-            $this->assertSame('', $input->getAttribute('value'), $hook->value.' invented a bound.');
-        }
-    }
-
-    /** It is placed like a facet, but a fold button folds values, and a range has none. */
-    #[Test]
-    public function it_is_a_facet_host_with_nothing_to_fold(): void
-    {
-        $facet = $this->one($this->render([PricePart::Fields]), Hook::Facet);
-
-        $this->assertNotNull($facet);
-        $this->assertNull($this->one($facet, Hook::More));
-        $this->assertNull($this->one($facet, Hook::FacetValue));
-    }
-
-    #[Test]
-    public function it_refuses_to_place_a_term_facet(): void
-    {
-        $this->expectExceptionMessageMatches('/place it with the component of its own kind/');
-
-        Blade::render('<x-meilifacets::listing.price name="products" facet="'.$this->aFacetName().'" />');
-    }
 
     /**
      * The filter is declared here, not read off the host project: adding one to the
@@ -205,3 +68,109 @@ final class PriceComponentTest extends TestCase
         return $this->app->make(CurrentListing::class)->named(ProductListing::NAME)->facets()[0]->name;
     }
 }
+
+// The parts a project declared decide what is drawn. What always exists is the pair
+// of inputs: they carry the parameter names and the current bounds the client reads.
+uses(TestCase::class, PriceComponentSteps::class);
+
+beforeEach(function (): void {
+    $this->engine = $this->app->getBindings()[SearchEngine::class];
+    $this->app->forgetScopedInstances();
+});
+
+// The suite shares one application: a fake engine left bound would answer a later class.
+afterEach(function (): void {
+    $this->app->bind(SearchEngine::class, $this->engine['concrete'], $this->engine['shared']);
+    $this->app->forgetScopedInstances();
+});
+
+it('carries both bounds as inputs whatever it shows', function (): void {
+    foreach ([[], [PricePart::Fields], [PricePart::Slider], [PricePart::Slider, PricePart::Fields]] as $parts) {
+        $document = $this->render($parts);
+
+        foreach ([Hook::PriceMin, Hook::PriceMax] as $hook) {
+            $this->assertNotNull($this->one($document, $hook), $hook->value.' is missing without '.count($parts).' parts.');
+        }
+    }
+});
+
+// Declared with no part at all, it still reads the URL — so it keeps its inputs, hidden.
+it('hides its inputs when it shows nothing', function (): void {
+    expect($this->one($this->render([]), Hook::PriceMin)->getAttribute('type'))->toBe('hidden');
+    expect($this->one($this->render([PricePart::Fields]), Hook::PriceMin)->getAttribute('type'))->toBe('number');
+});
+
+// Alone, an empty field is an open end; beside the control it mirrors the handle.
+it('leaves a field empty when nothing was asked', function (): void {
+    expect($this->one($this->render([PricePart::Fields]), Hook::PriceMin)->getAttribute('value'))->toBe('');
+    expect($this->one($this->render([PricePart::Slider, PricePart::Fields]), Hook::PriceMin)->getAttribute('value'))->not->toBe('');
+});
+
+it('hints each field with the end of the catalogue it stands for', function (): void {
+    $document = $this->render([PricePart::Fields]);
+    $min = $this->one($document, Hook::PriceMin);
+    $max = $this->one($document, Hook::PriceMax);
+
+    expect($min->getAttribute('placeholder'))->toBe($min->getAttribute('min'));
+    expect($max->getAttribute('placeholder'))->toBe($max->getAttribute('max'));
+    expect($max->getAttribute('placeholder'))->not->toBe($min->getAttribute('placeholder'));
+});
+
+it('shows back what the url asked for', function (): void {
+    $document = $this->render([PricePart::Fields], ['min_price' => '40', 'max_price' => '70']);
+
+    expect($this->one($document, Hook::PriceMin)->getAttribute('value'))->toBe('40');
+    expect($this->one($document, Hook::PriceMax)->getAttribute('value'))->toBe('70');
+});
+
+// Without it the stylesheet falls back to `--from: 0` and `--to: 1`, and the
+// whole track reads as selected until a script runs.
+it('draws the filled part of the track before any script runs', function (): void {
+    [$lowest, $highest] = $this->catalogueBounds();
+    $quarter = ($highest - $lowest) / 4;
+    $document = $this->render([PricePart::Slider], [
+        'min_price' => (string) ($lowest + $quarter),
+        'max_price' => (string) ($highest - $quarter),
+    ]);
+    $style = $this->one($document, Hook::PriceRange)->getAttribute('style');
+
+    expect((string) $style)->toMatch('/--from: 0\.\d+/');
+    expect((string) $style)->toMatch('/--to: 0\.\d+/');
+});
+
+// A field carries a bare number, so a control without a range formats nothing:
+// `wc_price()` reads the currency, the decimals and both separators each time.
+it('formats no price when it draws no range', function (): void {
+    expect($this->render([PricePart::Fields])->body->innerHTML)->not->toContain('aria-valuetext');
+    expect($this->render([PricePart::Slider])->body->innerHTML)->toContain('aria-valuetext');
+});
+
+it('renders hidden and empty when the engine reports no bounds', function (): void {
+    $this->app->scoped(SearchEngine::class, fn (): FakeSearchEngine => new FakeSearchEngine);
+
+    $document = $this->render([PricePart::Slider, PricePart::Fields]);
+
+    expect($this->one($document, Hook::Facet)?->hasAttribute('hidden'))->toBeTrue();
+
+    foreach ([Hook::PriceMin, Hook::PriceMax] as $hook) {
+        $input = $this->one($document, $hook);
+
+        $this->assertNotNull($input, $hook->value.' left the markup with no bounds.');
+        expect($input->getAttribute('value'))->toBe('', $hook->value.' invented a bound.');
+    }
+});
+
+// It is placed like a facet, but a fold button folds values, and a range has none.
+it('is a facet host with nothing to fold', function (): void {
+    $facet = $this->one($this->render([PricePart::Fields]), Hook::Facet);
+
+    expect($facet)->not->toBeNull();
+    expect($this->one($facet, Hook::More))->toBeNull();
+    expect($this->one($facet, Hook::FacetValue))->toBeNull();
+});
+
+it('refuses to place a term facet', function (): void {
+    $this->expectExceptionMessageMatches('/place it with the component of its own kind/');
+
+    Blade::render('<x-meilifacets::listing.price name="products" facet="'.$this->aFacetName().'" />');
+});

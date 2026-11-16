@@ -14,60 +14,11 @@ use Modules\MeiliFacets\Support\UrlParameters;
 use Modules\MeiliFacets\View\CountLabel;
 use Modules\MeiliFacets\View\Preconnect;
 use Modules\MeiliFacets\View\SiteSearchDescription;
-use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-/** Runs here rather than standalone: the count pattern is translated and the locale is WordPress's. */
-final class SiteSearchDescriptionTest extends TestCase
+trait SiteSearchDescriptionSteps
 {
     private const string ENGINE = 'https://engine.test:7700/multi-search';
-
-    #[Test]
-    public function it_describes_a_root_in_the_shape_the_client_reads(): void
-    {
-        $countLabel = $this->app->make(CountLabel::class);
-        $root = new SearchRoot('header', new SearchSettings(3, 200, 6), [
-            'product' => $this->type('product', 'Products', '/shop'),
-            'post' => $this->type('post', 'Posts', null),
-        ]);
-
-        $this->assertSame(
-            [
-                'name' => 'header',
-                'minChars' => 3,
-                'delay' => 200,
-                'limit' => 6,
-                'types' => [
-                    $this->described('product', 'Products', '/shop'),
-                    $this->described('post', 'Posts', null),
-                ],
-                'countPattern' => __(':count result|:count results'),
-                'sectionPattern' => __(':heading: :count'),
-                'locale' => $countLabel->languageTag(),
-                'preconnect' => 'https://engine.test:7700',
-                'seeAllParameter' => 'q',
-            ],
-            $this->description(self::ENGINE)->of($root)
-        );
-    }
-
-    #[Test]
-    public function it_warms_no_origin_while_the_browser_has_no_engine_to_reach(): void
-    {
-        $root = new SearchRoot('header', new SearchSettings, []);
-
-        $this->assertSame('', $this->description('')->of($root)['preconnect']);
-    }
-
-    /** « See all » writes the term where the listing reads it, renamed or not. */
-    #[Test]
-    public function it_names_the_parameter_the_listing_reads_the_term_from(): void
-    {
-        $root = new SearchRoot('header', new SearchSettings, []);
-        $renamed = new UrlParameters([], [QueryParameter::Query->value => 'recherche']);
-
-        $this->assertSame('recherche', $this->description(self::ENGINE, $renamed)->of($root)['seeAllParameter']);
-    }
 
     private function description(string $engine, UrlParameters $parameters = new UrlParameters([])): SiteSearchDescription
     {
@@ -106,3 +57,44 @@ final class SiteSearchDescriptionTest extends TestCase
         ];
     }
 }
+
+// Runs here rather than standalone: the count pattern is translated and the locale is WordPress's.
+uses(TestCase::class, SiteSearchDescriptionSteps::class);
+
+it('describes a root in the shape the client reads', function (): void {
+    $countLabel = $this->app->make(CountLabel::class);
+    $root = new SearchRoot('header', new SearchSettings(3, 200, 6), [
+        'product' => $this->type('product', 'Products', '/shop'),
+        'post' => $this->type('post', 'Posts', null),
+    ]);
+
+    expect($this->description(self::ENGINE)->of($root))->toBe([
+        'name' => 'header',
+        'minChars' => 3,
+        'delay' => 200,
+        'limit' => 6,
+        'types' => [
+            $this->described('product', 'Products', '/shop'),
+            $this->described('post', 'Posts', null),
+        ],
+        'countPattern' => __(':count result|:count results'),
+        'sectionPattern' => __(':heading: :count'),
+        'locale' => $countLabel->languageTag(),
+        'preconnect' => 'https://engine.test:7700',
+        'seeAllParameter' => 'q',
+    ]);
+});
+
+it('warms no origin while the browser has no engine to reach', function (): void {
+    $root = new SearchRoot('header', new SearchSettings, []);
+
+    expect($this->description('')->of($root)['preconnect'])->toBe('');
+});
+
+// « See all » writes the term where the listing reads it, renamed or not.
+it('names the parameter the listing reads the term from', function (): void {
+    $root = new SearchRoot('header', new SearchSettings, []);
+    $renamed = new UrlParameters([], [QueryParameter::Query->value => 'recherche']);
+
+    expect($this->description(self::ENGINE, $renamed)->of($root)['seeAllParameter'])->toBe('recherche');
+});
