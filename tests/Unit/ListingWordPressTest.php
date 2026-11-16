@@ -182,9 +182,23 @@ final class ListingWordPressTest extends TestCase
         WordPress::fake('wc_get_container', $lookup);
         $GLOBALS['wpdb'] = new class
         {
+            public ?string $query = null;
+
+            /** Quotes an identifier for %i the way wpdb::prepare() does: between backticks. */
+            public function prepare(string $query, string ...$identifiers): string
+            {
+                return (string) preg_replace_callback(
+                    '/%i/',
+                    static fn (): string => '`'.str_replace('`', '``', (string) array_shift($identifiers)).'`',
+                    $query,
+                );
+            }
+
             /** @return list<string> */
             public function get_col(string $query): array
             {
+                $this->query = $query;
+
                 return ['pa_size', 'pa_color'];
             }
         };
@@ -194,6 +208,8 @@ final class ListingWordPressTest extends TestCase
         $this->assertSame(['pa_color', 'pa_size'], $taxonomies->all());
         $this->assertSame(['pa_color', 'pa_size'], $taxonomies->all());
         $this->assertSame(1, WordPress::$calls['wc_get_attribute_taxonomy_names']);
+        // The table name goes through prepare() and its %i placeholder: it is quoted, not interpolated into the SQL.
+        $this->assertSame('SELECT DISTINCT taxonomy FROM `wp_wc_product_attributes_lookup` WHERE is_variation_attribute = 1', $GLOBALS['wpdb']->query);
     }
 
     #[Test]

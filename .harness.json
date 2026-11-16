@@ -1,9 +1,6 @@
 {
     "profile": "integration",
     "mode": "enforce",
-    "observed": [
-        "Security patterns"
-    ],
     "allow_commands": [
         {
             "prefix": "meilifacets:",

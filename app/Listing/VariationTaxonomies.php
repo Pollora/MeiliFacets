@@ -56,7 +56,8 @@ final class VariationTaxonomies
 
         $table = $this->lookupTable()->get_lookup_table_name();
 
-        return $wpdb->get_col("SELECT DISTINCT taxonomy FROM {$table} WHERE is_variation_attribute = 1");
+        // %i is WordPress's placeholder for an identifier (6.2+): the table name is quoted, not interpolated.
+        return $wpdb->get_col($wpdb->prepare('SELECT DISTINCT taxonomy FROM %i WHERE is_variation_attribute = 1', $table));
     }
 
     private function lookupTable(): LookupDataStore

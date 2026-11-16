@@ -14,6 +14,12 @@ What to change in a project when moving from one version to the next is in
 - Requires `league/uri` 7.5.1 or later: 7.5.0 declares a dependency on `league/uri-interfaces` that is too loose
   and fails when Composer resolves the lowest versions.
 
+### Security
+
+- The query that reads the variation attributes from WooCommerce's lookup table quotes the table name with
+  `$wpdb->prepare()` and the `%i` placeholder instead of interpolating it into the SQL. The name comes from WooCommerce
+  and not from a request, so this closes no known hole: it removes the pattern the harness forbids (SEC-03).
+
 ## [0.5.0](https://github.com/Pollora/MeiliFacets/releases/tag/0.5.0) - 2026-11-10
 
 Ninth beta. The pagination is made of real `/page/N` links that crawlers follow, still turned in place on a click, and
