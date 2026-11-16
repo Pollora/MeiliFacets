@@ -9,6 +9,11 @@ What to change in a project when moving from one version to the next is in
 
 ## [Unreleased]
 
+### Changed
+
+- Requires `league/uri` 7.5.1 or later: 7.5.0 declares a dependency on `league/uri-interfaces` that is too loose
+  and fails when Composer resolves the lowest versions.
+
 ## [0.5.0](https://github.com/Pollora/MeiliFacets/releases/tag/0.5.0) - 2026-11-10
 
 Ninth beta. The pagination is made of real `/page/N` links that crawlers follow, still turned in place on a click, and
