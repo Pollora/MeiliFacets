@@ -7,15 +7,11 @@ namespace Modules\MeiliFacets\Tests\Feature;
 use Modules\MeiliFacets\Enums\CardField;
 use Modules\MeiliFacets\Indexing\DefaultCardProjector;
 use Modules\MeiliFacets\Tests\Feature\Concerns\KeepsTheIndexOut;
-use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 use WP_Post;
 
-/** The post lives in memory; only its image is an attachment, deleted after each test. */
-final class DefaultCardProjectorTest extends TestCase
+trait DefaultCardProjectorSupport
 {
-    use KeepsTheIndexOut;
-
     private const string LINK_FILTER = 'post_link';
 
     private const string THUMBNAIL_FILTER = 'post_thumbnail_id';
@@ -35,35 +31,6 @@ final class DefaultCardProjectorTest extends TestCase
     private const int UNSAVED_POST = 987654321;
 
     private int $imageId = 0;
-
-    protected function tearDown(): void
-    {
-        if ($this->imageId > 0) {
-            wp_delete_post($this->imageId, true);
-        }
-
-        parent::tearDown();
-    }
-
-    #[Test]
-    public function it_gives_a_post_without_image_its_plain_title_and_its_wordpress_link_only(): void
-    {
-        $card = $this->linked(fn (): array => $this->projector(self::MEDIUM_SIZE)->project($this->article()));
-
-        $this->assertSame([CardField::Title->value => 'Huile & baume', CardField::Url->value => self::LINK], $card);
-    }
-
-    #[Test]
-    public function it_shows_the_featured_image_in_the_size_it_was_given(): void
-    {
-        $this->imageId = $this->image();
-
-        $thumbnail = $this->illustrated(fn (): array => $this->projector(self::THUMBNAIL_SIZE)->project($this->article()));
-        $medium = $this->illustrated(fn (): array => $this->projector(self::MEDIUM_SIZE)->project($this->article()));
-
-        $this->assertStringEndsWith(self::THUMBNAIL_FILE, $thumbnail[CardField::ImageUrl->value]);
-        $this->assertStringEndsWith(self::MEDIUM_FILE, $medium[CardField::ImageUrl->value]);
-    }
 
     private function projector(string $imageSize): DefaultCardProjector
     {
@@ -132,3 +99,28 @@ final class DefaultCardProjectorTest extends TestCase
         return $imageId;
     }
 }
+
+/** The post lives in memory; only its image is an attachment, deleted after each test. */
+uses(TestCase::class, KeepsTheIndexOut::class, DefaultCardProjectorSupport::class);
+
+afterEach(function (): void {
+    if ($this->imageId > 0) {
+        wp_delete_post($this->imageId, true);
+    }
+});
+
+it('gives a post without image its plain title and its wordpress link only', function (): void {
+    $card = $this->linked(fn (): array => $this->projector(self::MEDIUM_SIZE)->project($this->article()));
+
+    expect($card)->toBe([CardField::Title->value => 'Huile & baume', CardField::Url->value => self::LINK]);
+});
+
+it('shows the featured image in the size it was given', function (): void {
+    $this->imageId = $this->image();
+
+    $thumbnail = $this->illustrated(fn (): array => $this->projector(self::THUMBNAIL_SIZE)->project($this->article()));
+    $medium = $this->illustrated(fn (): array => $this->projector(self::MEDIUM_SIZE)->project($this->article()));
+
+    expect($thumbnail[CardField::ImageUrl->value])->toEndWith(self::THUMBNAIL_FILE);
+    expect($medium[CardField::ImageUrl->value])->toEndWith(self::MEDIUM_FILE);
+});

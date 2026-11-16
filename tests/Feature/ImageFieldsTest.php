@@ -7,13 +7,10 @@ namespace Modules\MeiliFacets\Tests\Feature;
 use Modules\MeiliFacets\Enums\CardField;
 use Modules\MeiliFacets\Indexing\ImageFields;
 use Modules\MeiliFacets\Tests\Feature\Concerns\KeepsTheIndexOut;
-use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-final class ImageFieldsTest extends TestCase
+trait ImageFieldsSupport
 {
-    use KeepsTheIndexOut;
-
     private const string FILE = 'meilifacets-test/jar.jpg';
 
     private const string MEDIUM_FILE = 'jar-medium.jpg';
@@ -23,54 +20,6 @@ final class ImageFieldsTest extends TestCase
     private const array MEDIUM = ['file' => self::MEDIUM_FILE, 'width' => 300, 'height' => 200, 'mime-type' => 'image/jpeg'];
 
     private int $imageId = 0;
-
-    protected function tearDown(): void
-    {
-        wp_delete_post($this->imageId, true);
-
-        parent::tearDown();
-    }
-
-    #[Test]
-    public function it_offers_every_size_of_the_same_ratio_the_way_wordpress_writes_a_lazy_image(): void
-    {
-        $this->imageId = $this->image([self::SIZE => self::MEDIUM]);
-        $uploads = wp_get_upload_dir()['baseurl'].'/meilifacets-test/';
-
-        $fields = ImageFields::of($this->imageId, self::SIZE);
-
-        $this->assertSame($uploads.self::MEDIUM_FILE, $fields[CardField::ImageUrl->value]);
-        $this->assertSame(300, $fields[CardField::ImageWidth->value]);
-        $this->assertSame(200, $fields[CardField::ImageHeight->value]);
-        $this->assertSame($uploads.self::MEDIUM_FILE.' 300w, '.$uploads.'jar.jpg 600w', $fields[CardField::ImageSrcset->value]);
-        $this->assertSame('auto, (max-width: 300px) 100vw, 300px', $fields[CardField::ImageSizes->value]);
-        $this->assertSame('A jar', $fields[CardField::ImageAlt->value]);
-    }
-
-    #[Test]
-    public function it_leaves_the_sizes_out_of_an_image_wordpress_holds_in_one_size(): void
-    {
-        $this->imageId = $this->image([]);
-
-        $fields = ImageFields::of($this->imageId, self::SIZE);
-
-        $this->assertArrayNotHasKey(CardField::ImageSrcset->value, $fields);
-        $this->assertArrayNotHasKey(CardField::ImageSizes->value, $fields);
-    }
-
-    #[Test]
-    public function it_lends_no_image_to_a_card_without_one_while_the_global_post_is_an_attachment(): void
-    {
-        $this->imageId = $this->image([self::SIZE => self::MEDIUM]);
-        $globalPost = $GLOBALS['post'] ?? null;
-        $GLOBALS['post'] = get_post($this->imageId);
-
-        try {
-            $this->assertSame([], ImageFields::of(0, self::SIZE));
-        } finally {
-            $GLOBALS['post'] = $globalPost;
-        }
-    }
 
     /**
      * @param  array<string, array{file: string, width: int, height: int, mime-type: string}>  $sizes
@@ -85,3 +34,44 @@ final class ImageFieldsTest extends TestCase
         return $imageId;
     }
 }
+
+uses(TestCase::class, KeepsTheIndexOut::class, ImageFieldsSupport::class);
+
+afterEach(function (): void {
+    wp_delete_post($this->imageId, true);
+});
+
+it('offers every size of the same ratio the way wordpress writes a lazy image', function (): void {
+    $this->imageId = $this->image([self::SIZE => self::MEDIUM]);
+    $uploads = wp_get_upload_dir()['baseurl'].'/meilifacets-test/';
+
+    $fields = ImageFields::of($this->imageId, self::SIZE);
+
+    expect($fields[CardField::ImageUrl->value])->toBe($uploads.self::MEDIUM_FILE);
+    expect($fields[CardField::ImageWidth->value])->toBe(300);
+    expect($fields[CardField::ImageHeight->value])->toBe(200);
+    expect($fields[CardField::ImageSrcset->value])->toBe($uploads.self::MEDIUM_FILE.' 300w, '.$uploads.'jar.jpg 600w');
+    expect($fields[CardField::ImageSizes->value])->toBe('auto, (max-width: 300px) 100vw, 300px');
+    expect($fields[CardField::ImageAlt->value])->toBe('A jar');
+});
+
+it('leaves the sizes out of an image wordpress holds in one size', function (): void {
+    $this->imageId = $this->image([]);
+
+    $fields = ImageFields::of($this->imageId, self::SIZE);
+
+    $this->assertArrayNotHasKey(CardField::ImageSrcset->value, $fields);
+    $this->assertArrayNotHasKey(CardField::ImageSizes->value, $fields);
+});
+
+it('lends no image to a card without one while the global post is an attachment', function (): void {
+    $this->imageId = $this->image([self::SIZE => self::MEDIUM]);
+    $globalPost = $GLOBALS['post'] ?? null;
+    $GLOBALS['post'] = get_post($this->imageId);
+
+    try {
+        expect(ImageFields::of(0, self::SIZE))->toBe([]);
+    } finally {
+        $GLOBALS['post'] = $globalPost;
+    }
+});

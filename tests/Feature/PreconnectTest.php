@@ -8,35 +8,12 @@ use Modules\MeiliFacets\Http\ListingPage;
 use Modules\MeiliFacets\Search\BrowserConnection;
 use Modules\MeiliFacets\Tests\Unit\Doubles\AnsweredListing;
 use Modules\MeiliFacets\View\Preconnect;
-use PHPUnit\Framework\Attributes\Test;
 use ReflectionClass;
 use Tests\TestCase;
 
-final class PreconnectTest extends TestCase
+trait PreconnectSupport
 {
     private const string ENGINE = 'https://engine.example.test:7701';
-
-    #[Test]
-    public function it_leaves_the_connection_unread_on_a_page_without_a_listing(): void
-    {
-        $connection = $this->connection();
-
-        $printed = $this->warm(new Preconnect($connection, new ListingPage));
-
-        $this->assertSame('', $printed);
-        $this->assertTrue(new ReflectionClass(BrowserConnection::class)->isUninitializedLazyObject($connection));
-    }
-
-    #[Test]
-    public function it_opens_the_engine_origin_on_a_listing_page(): void
-    {
-        $page = new ListingPage;
-        $page->markAsCurrent(AnsweredListing::withTotal());
-
-        $printed = $this->warm(new Preconnect($this->connection(), $page));
-
-        $this->assertStringContainsString('rel="preconnect" href="'.self::ENGINE.'"', $printed);
-    }
 
     /** Built as the module builds it: the searched index is read on first use only. */
     private function connection(): BrowserConnection
@@ -52,3 +29,23 @@ final class PreconnectTest extends TestCase
         return (string) ob_get_clean();
     }
 }
+
+uses(TestCase::class, PreconnectSupport::class);
+
+it('leaves the connection unread on a page without a listing', function (): void {
+    $connection = $this->connection();
+
+    $printed = $this->warm(new Preconnect($connection, new ListingPage));
+
+    expect($printed)->toBe('');
+    expect(new ReflectionClass(BrowserConnection::class)->isUninitializedLazyObject($connection))->toBeTrue();
+});
+
+it('opens the engine origin on a listing page', function (): void {
+    $page = new ListingPage;
+    $page->markAsCurrent(AnsweredListing::withTotal());
+
+    $printed = $this->warm(new Preconnect($this->connection(), $page));
+
+    expect($printed)->toContain('rel="preconnect" href="'.self::ENGINE.'"');
+});
