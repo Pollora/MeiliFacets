@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\MeiliFacets\Tests\Unit;
 
+use Modules\MeiliFacets\Contracts\Listing;
 use Modules\MeiliFacets\Listing\ListingState;
 use Modules\MeiliFacets\Listing\Range;
 use Modules\MeiliFacets\Search\FacetQuery;
@@ -12,203 +13,153 @@ use Modules\MeiliFacets\Search\PriceQuery;
 use Modules\MeiliFacets\Search\QueryPlan;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeListing;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeVariantScopedListing;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 
-/** The results read the documents of the variants once a filter concerns a variant. */
-final class VariantResultsQueryTest extends TestCase
+// The results read the documents of the variants once a filter concerns a variant.
+
+const VARIANT_RESULTS_OF_VARIATIONS = 'post_type = "product_variation"';
+
+const VARIANT_RESULTS_VARIANT_DOCUMENTS = 'NOT document_kind = "parent"';
+
+function variantResultsQueryKeyed(Listing $listing, string $key): FilterQuery
 {
-    private const string OF_VARIATIONS = 'post_type = "product_variation"';
+    $queries = array_filter(QueryPlan::filterQueries($listing), static fn (FilterQuery $query): bool => $query->key() === $key);
 
-    private const string VARIANT_DOCUMENTS = 'NOT document_kind = "parent"';
-
-    private FakeVariantScopedListing $listing;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->listing = new FakeVariantScopedListing;
-    }
-
-    #[Test]
-    public function it_reads_the_products_while_no_filter_concerns_a_variant(): void
-    {
-        $state = new ListingState(['product_brand' => ['acme']], 'price_asc');
-
-        $query = QueryPlan::results($this->listing, $state, []);
-
-        $this->assertFalse(QueryPlan::readsVariants($this->listing, $state));
-        $this->assertStringNotContainsString(self::OF_VARIATIONS, $query['filter']);
-        $this->assertArrayNotHasKey('distinct', $query);
-        $this->assertSame(['price.min:asc'], $query['sort']);
-    }
-
-    #[Test]
-    public function it_reads_one_variant_per_product_once_a_size_is_ticked(): void
-    {
-        $state = new ListingState([FakeVariantScopedListing::SIZE => ['400ml']], 'price_asc');
-
-        $query = QueryPlan::results($this->listing, $state, []);
-
-        $this->assertTrue(QueryPlan::readsVariants($this->listing, $state));
-        $this->assertStringContainsString(self::VARIANT_DOCUMENTS, $query['filter']);
-        $this->assertStringContainsString(self::OF_VARIATIONS, $query['filter']);
-        $this->assertStringContainsString('facets.pa_size = "400ml"', $query['filter']);
-        $this->assertSame('parent_id', $query['distinct']);
-        $this->assertSame(['ID', 'card', 'parent_id'], $query['attributesToRetrieve']);
-        $this->assertArrayNotHasKey('facets', $query);
-    }
-
-    #[Test]
-    public function it_reads_variants_through_the_search_scope_once_a_term_is_searched(): void
-    {
-        $state = new ListingState([FakeVariantScopedListing::SIZE => ['400ml']], query: 'lotion');
-
-        $filter = QueryPlan::results($this->listing, $state, [])['filter'];
-
-        $this->assertStringContainsString('exclude-from-search', $filter);
-        $this->assertStringContainsString(self::VARIANT_DOCUMENTS, $filter);
-    }
-
-    #[Test]
-    public function it_sorts_variants_in_stock_first_under_a_price_sort_only(): void
-    {
-        $size = [FakeVariantScopedListing::SIZE => ['400ml']];
-
-        $byPrice = QueryPlan::results($this->listing, new ListingState($size, 'price_asc'), []);
-        $byDate = QueryPlan::results($this->listing, new ListingState($size, 'newest'), []);
-
-        $this->assertSame(['in_stock:desc', 'price.min:asc'], $byPrice['sort']);
-        $this->assertSame(['post_date:desc'], $byDate['sort']);
-    }
-
-    #[Test]
-    public function it_reads_products_under_a_price_range_alone_as_woocommerce_does(): void
-    {
-        $state = new ListingState(sort: 'price_asc', price: new Range(min: 30.0, max: 35.0));
-
-        $query = QueryPlan::results($this->listing, $state, []);
-
-        $this->assertFalse(QueryPlan::readsVariants($this->listing, $state));
-        $this->assertStringNotContainsString(self::OF_VARIATIONS, $query['filter']);
-        $this->assertStringContainsString('price.min <= 35 AND price.max >= 30', $query['filter']);
-        $this->assertArrayNotHasKey('distinct', $query);
-        $this->assertSame(['price.min:asc'], $query['sort']);
-    }
-
-    #[Test]
-    public function it_never_reads_variants_of_a_listing_without_a_document_per_variant(): void
-    {
-        $state = new ListingState([FakeVariantScopedListing::SIZE => ['400ml']]);
-
-        $this->assertFalse(QueryPlan::readsVariants(FakeListing::withPriceAndBrand(), $state));
-    }
-
-    #[Test]
-    public function it_measures_once_per_product_on_the_variants_beside_the_variant_results(): void
-    {
-        $state = new ListingState([FakeVariantScopedListing::SIZE => ['400ml']], 'price_asc');
-
-        $query = QueryPlan::measures($this->listing, $state, ['count:pa_size']);
-
-        $this->assertStringContainsString(self::VARIANT_DOCUMENTS, $query['filter']);
-        $this->assertStringContainsString('facets.pa_size = "400ml"', $query['filter']);
-        $this->assertSame('parent_id', $query['distinct']);
-        $this->assertSame(['facets.product_brand', 'price.min', 'price.max'], $query['facets']);
-        $this->assertSame(0, $query['hitsPerPage']);
-        $this->assertSame(1, $query['page']);
-        $this->assertArrayNotHasKey('sort', $query);
-    }
-
-    #[Test]
-    public function it_counts_the_sizes_once_per_variant_under_the_other_filters(): void
-    {
-        $state = new ListingState(['product_brand' => ['acme']], price: new Range(min: 30.0, max: 35.0));
-
-        $query = QueryPlan::measureWithout($this->listing, $state, $this->sizeQuery());
-
-        $this->assertStringContainsString(self::VARIANT_DOCUMENTS, $query['filter']);
-        $this->assertStringContainsString('facets.product_brand = "acme"', $query['filter']);
-        $this->assertStringContainsString('price.min <= 35 AND price.max >= 30', $query['filter']);
-        $this->assertArrayNotHasKey('distinct', $query);
-        $this->assertSame(['facets.pa_size'], $query['facets']);
-    }
-
-    #[Test]
-    public function it_counts_a_ticked_size_without_its_own_clause(): void
-    {
-        $state = new ListingState([FakeVariantScopedListing::SIZE => ['400ml']]);
-
-        $query = QueryPlan::measureWithout($this->listing, $state, $this->sizeQuery());
-
-        $this->assertStringNotContainsString('facets.pa_size', $query['filter']);
-        $this->assertArrayNotHasKey('distinct', $query);
-    }
-
-    #[Test]
-    public function it_counts_a_shared_facet_once_per_product_while_a_size_is_ticked(): void
-    {
-        $state = new ListingState(['product_brand' => ['acme'], FakeVariantScopedListing::SIZE => ['400ml']]);
-
-        $query = QueryPlan::measureWithout($this->listing, $state, $this->brandQuery());
-
-        $this->assertStringContainsString(self::VARIANT_DOCUMENTS, $query['filter']);
-        $this->assertStringContainsString('facets.pa_size = "400ml"', $query['filter']);
-        $this->assertSame('parent_id', $query['distinct']);
-    }
-
-    #[Test]
-    public function it_counts_a_shared_facet_on_the_products_while_no_size_is_ticked(): void
-    {
-        $state = new ListingState(['product_brand' => ['acme']], price: new Range(max: 30.0));
-
-        $query = QueryPlan::measureWithout($this->listing, $state, $this->brandQuery());
-
-        $this->assertStringNotContainsString(self::OF_VARIATIONS, $query['filter']);
-        $this->assertArrayNotHasKey('distinct', $query);
-    }
-
-    #[Test]
-    public function it_bounds_the_price_on_every_variant_while_a_size_is_ticked(): void
-    {
-        $state = new ListingState([FakeVariantScopedListing::SIZE => ['400ml']], price: new Range(max: 30.0));
-
-        $query = QueryPlan::measureWithout($this->listing, $state, $this->priceQuery());
-
-        $this->assertStringContainsString(self::VARIANT_DOCUMENTS, $query['filter']);
-        $this->assertStringNotContainsString('price.min <=', $query['filter']);
-        $this->assertArrayNotHasKey('distinct', $query);
-    }
-
-    #[Test]
-    public function it_offers_the_facets_of_the_variant_taxonomies_only(): void
-    {
-        $keys = array_map(static fn (FacetQuery $query): string => $query->key(), QueryPlan::variantFacetQueries($this->listing));
-
-        $this->assertSame(['count:pa_size'], $keys);
-        $this->assertSame([], QueryPlan::variantFacetQueries(FakeListing::withPriceAndBrand()));
-    }
-
-    private function sizeQuery(): FilterQuery
-    {
-        return $this->queryKeyed('count:pa_size');
-    }
-
-    private function brandQuery(): FilterQuery
-    {
-        return $this->queryKeyed('count:product_brand');
-    }
-
-    private function priceQuery(): FilterQuery
-    {
-        return $this->queryKeyed(PriceQuery::KEY);
-    }
-
-    private function queryKeyed(string $key): FilterQuery
-    {
-        $queries = array_filter(QueryPlan::filterQueries($this->listing), static fn (FilterQuery $query): bool => $query->key() === $key);
-
-        return array_values($queries)[0];
-    }
+    return array_values($queries)[0];
 }
+
+beforeEach(function (): void {
+    $this->listing = new FakeVariantScopedListing;
+});
+
+it('reads the products while no filter concerns a variant', function (): void {
+    $state = new ListingState(['product_brand' => ['acme']], 'price_asc');
+
+    $query = QueryPlan::results($this->listing, $state, []);
+
+    expect(QueryPlan::readsVariants($this->listing, $state))->toBeFalse();
+    expect($query['filter'])->not->toContain(VARIANT_RESULTS_OF_VARIATIONS);
+    expect($query)->not->toHaveKey('distinct');
+    expect($query['sort'])->toBe(['price.min:asc']);
+});
+
+it('reads one variant per product once a size is ticked', function (): void {
+    $state = new ListingState([FakeVariantScopedListing::SIZE => ['400ml']], 'price_asc');
+
+    $query = QueryPlan::results($this->listing, $state, []);
+
+    expect(QueryPlan::readsVariants($this->listing, $state))->toBeTrue();
+    expect($query['filter'])->toContain(VARIANT_RESULTS_VARIANT_DOCUMENTS);
+    expect($query['filter'])->toContain(VARIANT_RESULTS_OF_VARIATIONS);
+    expect($query['filter'])->toContain('facets.pa_size = "400ml"');
+    expect($query['distinct'])->toBe('parent_id');
+    expect($query['attributesToRetrieve'])->toBe(['ID', 'card', 'parent_id']);
+    expect($query)->not->toHaveKey('facets');
+});
+
+it('reads variants through the search scope once a term is searched', function (): void {
+    $state = new ListingState([FakeVariantScopedListing::SIZE => ['400ml']], query: 'lotion');
+
+    $filter = QueryPlan::results($this->listing, $state, [])['filter'];
+
+    expect($filter)->toContain('exclude-from-search');
+    expect($filter)->toContain(VARIANT_RESULTS_VARIANT_DOCUMENTS);
+});
+
+it('sorts variants in stock first under a price sort only', function (): void {
+    $size = [FakeVariantScopedListing::SIZE => ['400ml']];
+
+    $byPrice = QueryPlan::results($this->listing, new ListingState($size, 'price_asc'), []);
+    $byDate = QueryPlan::results($this->listing, new ListingState($size, 'newest'), []);
+
+    expect($byPrice['sort'])->toBe(['in_stock:desc', 'price.min:asc']);
+    expect($byDate['sort'])->toBe(['post_date:desc']);
+});
+
+it('reads products under a price range alone as woocommerce does', function (): void {
+    $state = new ListingState(sort: 'price_asc', price: new Range(min: 30.0, max: 35.0));
+
+    $query = QueryPlan::results($this->listing, $state, []);
+
+    expect(QueryPlan::readsVariants($this->listing, $state))->toBeFalse();
+    expect($query['filter'])->not->toContain(VARIANT_RESULTS_OF_VARIATIONS);
+    expect($query['filter'])->toContain('price.min <= 35 AND price.max >= 30');
+    expect($query)->not->toHaveKey('distinct');
+    expect($query['sort'])->toBe(['price.min:asc']);
+});
+
+it('never reads variants of a listing without a document per variant', function (): void {
+    $state = new ListingState([FakeVariantScopedListing::SIZE => ['400ml']]);
+
+    expect(QueryPlan::readsVariants(FakeListing::withPriceAndBrand(), $state))->toBeFalse();
+});
+
+it('measures once per product on the variants beside the variant results', function (): void {
+    $state = new ListingState([FakeVariantScopedListing::SIZE => ['400ml']], 'price_asc');
+
+    $query = QueryPlan::measures($this->listing, $state, ['count:pa_size']);
+
+    expect($query['filter'])->toContain(VARIANT_RESULTS_VARIANT_DOCUMENTS);
+    expect($query['filter'])->toContain('facets.pa_size = "400ml"');
+    expect($query['distinct'])->toBe('parent_id');
+    expect($query['facets'])->toBe(['facets.product_brand', 'price.min', 'price.max']);
+    expect($query['hitsPerPage'])->toBe(0);
+    expect($query['page'])->toBe(1);
+    expect($query)->not->toHaveKey('sort');
+});
+
+it('counts the sizes once per variant under the other filters', function (): void {
+    $state = new ListingState(['product_brand' => ['acme']], price: new Range(min: 30.0, max: 35.0));
+
+    $query = QueryPlan::measureWithout($this->listing, $state, variantResultsQueryKeyed($this->listing, 'count:pa_size'));
+
+    expect($query['filter'])->toContain(VARIANT_RESULTS_VARIANT_DOCUMENTS);
+    expect($query['filter'])->toContain('facets.product_brand = "acme"');
+    expect($query['filter'])->toContain('price.min <= 35 AND price.max >= 30');
+    expect($query)->not->toHaveKey('distinct');
+    expect($query['facets'])->toBe(['facets.pa_size']);
+});
+
+it('counts a ticked size without its own clause', function (): void {
+    $state = new ListingState([FakeVariantScopedListing::SIZE => ['400ml']]);
+
+    $query = QueryPlan::measureWithout($this->listing, $state, variantResultsQueryKeyed($this->listing, 'count:pa_size'));
+
+    expect($query['filter'])->not->toContain('facets.pa_size');
+    expect($query)->not->toHaveKey('distinct');
+});
+
+it('counts a shared facet once per product while a size is ticked', function (): void {
+    $state = new ListingState(['product_brand' => ['acme'], FakeVariantScopedListing::SIZE => ['400ml']]);
+
+    $query = QueryPlan::measureWithout($this->listing, $state, variantResultsQueryKeyed($this->listing, 'count:product_brand'));
+
+    expect($query['filter'])->toContain(VARIANT_RESULTS_VARIANT_DOCUMENTS);
+    expect($query['filter'])->toContain('facets.pa_size = "400ml"');
+    expect($query['distinct'])->toBe('parent_id');
+});
+
+it('counts a shared facet on the products while no size is ticked', function (): void {
+    $state = new ListingState(['product_brand' => ['acme']], price: new Range(max: 30.0));
+
+    $query = QueryPlan::measureWithout($this->listing, $state, variantResultsQueryKeyed($this->listing, 'count:product_brand'));
+
+    expect($query['filter'])->not->toContain(VARIANT_RESULTS_OF_VARIATIONS);
+    expect($query)->not->toHaveKey('distinct');
+});
+
+it('bounds the price on every variant while a size is ticked', function (): void {
+    $state = new ListingState([FakeVariantScopedListing::SIZE => ['400ml']], price: new Range(max: 30.0));
+
+    $query = QueryPlan::measureWithout($this->listing, $state, variantResultsQueryKeyed($this->listing, PriceQuery::KEY));
+
+    expect($query['filter'])->toContain(VARIANT_RESULTS_VARIANT_DOCUMENTS);
+    expect($query['filter'])->not->toContain('price.min <=');
+    expect($query)->not->toHaveKey('distinct');
+});
+
+it('offers the facets of the variant taxonomies only', function (): void {
+    $keys = array_map(static fn (FacetQuery $query): string => $query->key(), QueryPlan::variantFacetQueries($this->listing));
+
+    expect($keys)->toBe(['count:pa_size']);
+    expect(QueryPlan::variantFacetQueries(FakeListing::withPriceAndBrand()))->toBe([]);
+});

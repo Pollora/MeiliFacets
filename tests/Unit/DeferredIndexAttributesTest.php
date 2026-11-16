@@ -7,42 +7,31 @@ namespace Modules\MeiliFacets\Tests\Unit;
 use Modules\MeiliFacets\Indexing\DeferredIndexAttributes;
 use Modules\MeiliFacets\Indexing\EmptyIndexAttributes;
 use Modules\MeiliFacets\Indexing\WooCommerce\WooCommerceIndexAttributes;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 
-final class DeferredIndexAttributesTest extends TestCase
-{
-    private bool $pluginIsActive = false;
+beforeEach(function (): void {
+    $this->pluginIsActive = false;
+    $this->deferred = fn (): DeferredIndexAttributes => new DeferredIndexAttributes(
+        fn (): bool => $this->pluginIsActive,
+        new WooCommerceIndexAttributes,
+        new EmptyIndexAttributes
+    );
+});
 
-    /** A hook wired before plugins load keeps its instance for the whole request (R-171). */
-    #[Test]
-    public function it_declares_the_plugin_attributes_once_the_plugin_has_loaded_after_the_wiring(): void
-    {
-        $attributes = $this->deferred();
-        $this->pluginIsActive = true;
+// A hook wired before plugins load keeps its instance for the whole request (R-171).
+it('declares the plugin attributes once the plugin has loaded after the wiring', function (): void {
+    $attributes = ($this->deferred)();
+    $this->pluginIsActive = true;
 
-        $this->assertSame((new WooCommerceIndexAttributes)->filterable(), $attributes->filterable());
-        $this->assertSame((new WooCommerceIndexAttributes)->sortable(), $attributes->sortable());
-        $this->assertSame((new WooCommerceIndexAttributes)->exactlyMatched(), $attributes->exactlyMatched());
-    }
+    expect($attributes->filterable())->toBe((new WooCommerceIndexAttributes)->filterable());
+    expect($attributes->sortable())->toBe((new WooCommerceIndexAttributes)->sortable());
+    expect($attributes->exactlyMatched())->toBe((new WooCommerceIndexAttributes)->exactlyMatched());
+});
 
-    #[Test]
-    public function it_declares_nothing_while_the_plugin_is_absent(): void
-    {
-        $attributes = $this->deferred();
+it('declares nothing while the plugin is absent', function (): void {
+    $attributes = ($this->deferred)();
 
-        $this->assertSame([], $attributes->filterable());
-        $this->assertSame([], $attributes->sortable());
-        $this->assertSame([], $attributes->displayed());
-        $this->assertSame([], $attributes->exactlyMatched());
-    }
-
-    private function deferred(): DeferredIndexAttributes
-    {
-        return new DeferredIndexAttributes(
-            fn (): bool => $this->pluginIsActive,
-            new WooCommerceIndexAttributes,
-            new EmptyIndexAttributes
-        );
-    }
-}
+    expect($attributes->filterable())->toBe([]);
+    expect($attributes->sortable())->toBe([]);
+    expect($attributes->displayed())->toBe([]);
+    expect($attributes->exactlyMatched())->toBe([]);
+});

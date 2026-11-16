@@ -5,82 +5,65 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Tests\Unit;
 
 use Modules\MeiliFacets\Listing\Pagination;
-use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 
-/** Read here and by `tests/ts/page-window.test.ts`: the two copies answered differently until a shared table said so. */
-final class PaginationTest extends TestCase
-{
-    /** Far above anything these cases count: the engine's own cap is a case of its own. */
-    private const int UNBOUNDED = 1_000_000;
+// Read here and by `tests/ts/page-window.test.ts`: the two copies answered differently until a shared table said so.
 
-    /**
-     * @param  array<string, mixed>  $case
-     */
-    #[DataProvider('cases')]
-    #[Test]
-    public function it_answers_the_shared_cases(array $case): void
-    {
-        $pagination = new Pagination($case['asked'], $case['perPage'], $case['total'], $case['reachable']);
+// Far above anything these cases count: the engine's own cap is a case of its own.
+const PAGINATION_UNBOUNDED = 1_000_000;
 
-        $this->assertSame(Pagination::SLOTS, $case['slotCount'], 'the shared cases expect another window width');
-        $this->assertSame($case['pages'], $pagination->pages(), 'pages');
-        $this->assertSame($case['current'], $pagination->current, 'current');
-        $this->assertSame($case['isPastTheEnd'], $pagination->isPastTheEnd(), 'isPastTheEnd');
-        $this->assertSame($case['hasPages'], $pagination->hasPages(), 'hasPages');
-        $this->assertSame($case['hasPrevious'], $pagination->hasPrevious(), 'hasPrevious');
-        $this->assertSame($case['hasNext'], $pagination->hasNext(), 'hasNext');
-        $this->assertSame($case['previous'], $pagination->previous(), 'previous');
-        $this->assertSame($case['next'], $pagination->next(), 'next');
-        $this->assertSame($case['slots'], $pagination->slots(), 'slots');
+/**
+ * @return array<string, array{array<string, mixed>}>
+ */
+dataset('pagination cases', function (): array {
+    $cases = json_decode((string) file_get_contents(__DIR__.'/../pagination-cases.json'), true);
+    $sets = [];
+
+    foreach ($cases as $case) {
+        $sets[$case['case']] = [$case];
     }
 
-    /**
-     * @return array<string, array{array<string, mixed>}>
-     */
-    public static function cases(): array
-    {
-        $cases = json_decode((string) file_get_contents(__DIR__.'/../pagination-cases.json'), true);
-        $sets = [];
+    return $sets;
+});
 
-        foreach ($cases as $case) {
-            $sets[$case['case']] = [$case];
-        }
+/**
+ * @param  array<string, mixed>  $case
+ */
+it('answers the shared cases', function (array $case): void {
+    $pagination = new Pagination($case['asked'], $case['perPage'], $case['total'], $case['reachable']);
 
-        return $sets;
-    }
+    $this->assertSame(Pagination::SLOTS, $case['slotCount'], 'the shared cases expect another window width');
+    $this->assertSame($case['pages'], $pagination->pages(), 'pages');
+    $this->assertSame($case['current'], $pagination->current, 'current');
+    $this->assertSame($case['isPastTheEnd'], $pagination->isPastTheEnd(), 'isPastTheEnd');
+    $this->assertSame($case['hasPages'], $pagination->hasPages(), 'hasPages');
+    $this->assertSame($case['hasPrevious'], $pagination->hasPrevious(), 'hasPrevious');
+    $this->assertSame($case['hasNext'], $pagination->hasNext(), 'hasNext');
+    $this->assertSame($case['previous'], $pagination->previous(), 'previous');
+    $this->assertSame($case['next'], $pagination->next(), 'next');
+    $this->assertSame($case['slots'], $pagination->slots(), 'slots');
+})->with('pagination cases');
 
-    /** The message must tell which of the two truths it is: nothing at all, or nothing here. */
-    #[Test]
-    public function it_tells_a_page_past_the_end_from_an_empty_result(): void
-    {
-        $this->assertTrue(new Pagination(999, 10, 1570, self::UNBOUNDED)->isPastTheEnd());
-        $this->assertFalse(new Pagination(1, 10, 1570, self::UNBOUNDED)->isPastTheEnd());
-        $this->assertFalse(new Pagination(999, 10, 0, self::UNBOUNDED)->isPastTheEnd());
-    }
+// The message must tell which of the two truths it is: nothing at all, or nothing here.
+it('tells a page past the end from an empty result', function (): void {
+    expect(new Pagination(999, 10, 1570, PAGINATION_UNBOUNDED)->isPastTheEnd())->toBeTrue();
+    expect(new Pagination(1, 10, 1570, PAGINATION_UNBOUNDED)->isPastTheEnd())->toBeFalse();
+    expect(new Pagination(999, 10, 0, PAGINATION_UNBOUNDED)->isPastTheEnd())->toBeFalse();
+});
 
-    /** The page that was asked for stays readable, next to the one that exists. */
-    #[Test]
-    public function it_remembers_the_page_it_was_asked_for(): void
-    {
-        $pagination = new Pagination(999, 10, 1570, self::UNBOUNDED);
+// The page that was asked for stays readable, next to the one that exists.
+it('remembers the page it was asked for', function (): void {
+    $pagination = new Pagination(999, 10, 1570, PAGINATION_UNBOUNDED);
 
-        $this->assertSame(999, $pagination->asked);
-        $this->assertSame(157, $pagination->current);
-    }
+    expect($pagination->asked)->toBe(999);
+    expect($pagination->current)->toBe(157);
+});
 
-    #[Test]
-    public function it_offsets_a_page_by_the_ones_before_it(): void
-    {
-        $this->assertSame(0, new Pagination(1, 16, 33, self::UNBOUNDED)->offset());
-        $this->assertSame(16, new Pagination(2, 16, 33, self::UNBOUNDED)->offset());
-        $this->assertSame(32, new Pagination(3, 16, 33, self::UNBOUNDED)->offset());
-    }
+it('offsets a page by the ones before it', function (): void {
+    expect(new Pagination(1, 16, 33, PAGINATION_UNBOUNDED)->offset())->toBe(0);
+    expect(new Pagination(2, 16, 33, PAGINATION_UNBOUNDED)->offset())->toBe(16);
+    expect(new Pagination(3, 16, 33, PAGINATION_UNBOUNDED)->offset())->toBe(32);
+});
 
-    #[Test]
-    public function it_holds_the_window_against_the_last_page(): void
-    {
-        $this->assertSame([307, 308, 309, 310, 311, 312, 313], new Pagination(313, 16, 5000, self::UNBOUNDED)->slots());
-    }
-}
+it('holds the window against the last page', function (): void {
+    expect(new Pagination(313, 16, 5000, PAGINATION_UNBOUNDED)->slots())->toBe([307, 308, 309, 310, 311, 312, 313]);
+});

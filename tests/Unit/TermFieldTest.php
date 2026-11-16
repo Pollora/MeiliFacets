@@ -5,33 +5,22 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Tests\Unit;
 
 use Modules\MeiliFacets\Enums\TermField;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 
-final class TermFieldTest extends TestCase
-{
-    #[Test]
-    public function it_reads_the_text_held_under_its_key(): void
-    {
-        $term = ['slug' => 'acme', 'taxonomy' => 'product_brand'];
+it('reads the text held under its key', function (): void {
+    $term = ['slug' => 'acme', 'taxonomy' => 'product_brand'];
 
-        $this->assertSame('acme', TermField::Slug->textIn($term));
-        $this->assertSame('product_brand', TermField::Taxonomy->textIn($term));
-    }
+    expect(TermField::Slug->textIn($term))->toBe('acme');
+    expect(TermField::Taxonomy->textIn($term))->toBe('product_brand');
+});
 
-    #[Test]
-    public function it_reads_nothing_from_a_missing_or_empty_key(): void
-    {
-        $this->assertNull(TermField::Slug->textIn(['name' => 'Acme']));
-        $this->assertNull(TermField::Slug->textIn(['slug' => '']));
-    }
+it('reads nothing from a missing or empty key', function (): void {
+    expect(TermField::Slug->textIn(['name' => 'Acme']))->toBeNull();
+    expect(TermField::Slug->textIn(['slug' => '']))->toBeNull();
+});
 
-    /** A term read from the database carries its ids as numbers, and a broken one may carry anything. */
-    #[Test]
-    public function it_reads_nothing_from_a_value_that_is_not_text(): void
-    {
-        $this->assertNull(TermField::TermId->textIn(['term_id' => 12]));
-        $this->assertNull(TermField::Slug->textIn(['slug' => null]));
-        $this->assertNull(TermField::Slug->textIn(['slug' => ['acme']]));
-    }
-}
+// A term read from the database carries its ids as numbers, and a broken one may carry anything.
+it('reads nothing from a value that is not text', function (): void {
+    expect(TermField::TermId->textIn(['term_id' => 12]))->toBeNull();
+    expect(TermField::Slug->textIn(['slug' => null]))->toBeNull();
+    expect(TermField::Slug->textIn(['slug' => ['acme']]))->toBeNull();
+});

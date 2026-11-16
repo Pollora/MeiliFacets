@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Modules\MeiliFacets\Tests\Unit;
+namespace Modules\MeiliFacets\Tests\Unit\ResolvedListingState;
 
 use Modules\MeiliFacets\Contracts\Listing;
 use Modules\MeiliFacets\Listing\CardVariant;
@@ -20,82 +20,67 @@ use Modules\MeiliFacets\Tests\Unit\Doubles\FakeSearchEngine;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeTermLabels;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeTermScope;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeVariantScopedListing;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 
-/** What the components read of the visitor's state, asked of the listing rather than reached through it. */
-final class ResolvedListingStateTest extends TestCase
+// What the components read of the visitor's state, asked of the listing rather than reached through it.
+const RESULTS = 'results';
+
+beforeEach(function (): void {
+    $this->brand = new Facet('product_brand', 'Brand', name: 'brand');
+    $this->size = new Facet('pa_size', 'Size', name: 'size');
+});
+
+function listing(ListingState $state, FakeSearchEngine $engine = new FakeSearchEngine, ?Listing $listing = null): ResolvedListing
 {
-    private const string RESULTS = 'results';
+    return new ResolvedListing(
+        $listing ?? new FakeListing([
+            new Facet('product_brand', 'Brand', name: 'brand'),
+            new Facet('pa_size', 'Size', name: 'size'),
+        ]),
+        $state,
+        new ListingSearch($engine, new DisjunctiveFacetCounter),
+        new FacetValues(new FakeTermLabels, new FakeTermScope, new FakeDefaultTerms),
 
-    private Facet $brand;
-
-    private Facet $size;
-
-    protected function setUp(): void
-    {
-        $this->brand = new Facet('product_brand', 'Brand', name: 'brand');
-        $this->size = new Facet('pa_size', 'Size', name: 'size');
-    }
-
-    #[Test]
-    public function it_answers_the_values_held_in_a_facet(): void
-    {
-        $listing = $this->listing(new ListingState(facets: ['product_brand' => ['acme', 'zest']]));
-
-        $this->assertSame(['acme', 'zest'], $listing->selectedIn($this->brand));
-        $this->assertSame([], $listing->selectedIn($this->size));
-    }
-
-    #[Test]
-    public function it_answers_the_price_asked_and_counts_it_as_one_filter(): void
-    {
-        $asked = new Range(10.0, 20.0);
-        $listing = $this->listing(new ListingState(price: $asked));
-
-        $this->assertSame($asked, $listing->state()->price);
-        $this->assertSame(1, $listing->state()->priceFilterCount());
-        $this->assertSame(0, $this->listing(new ListingState)->state()->priceFilterCount());
-    }
-
-    #[Test]
-    public function it_shows_a_card_through_its_variant_only_on_a_listing_with_variant_documents(): void
-    {
-        $variants = [
-            new CardVariant(['pa_size' => ['large']], 39.0, ['size' => 'Large'])->toArray(),
-            new CardVariant(['pa_size' => ['small']], 26.0, ['size' => 'Small'])->toArray(),
-        ];
-        $engine = new FakeSearchEngine([self::RESULTS => ['hits' => [['ID' => 125, 'card' => ['variants' => $variants]]]]]);
-
-        $state = new ListingState(facets: ['pa_size' => ['large']]);
-
-        $this->assertSame([['id' => 125, 'size' => 'Large']], $this->listing($state, $engine, new FakeVariantScopedListing)->cards());
-        $this->assertSame([['id' => 125]], $this->listing($state, $engine)->cards());
-    }
-
-    /** Search engines read the product's address, not the one of the variant the filters point to. */
-    #[Test]
-    public function it_keeps_the_product_card_beside_the_card_shown_through_a_variant(): void
-    {
-        $variants = [new CardVariant(['pa_size' => ['large']], 39.0, ['url' => '/product/?size=large'])->toArray()];
-        $card = ['url' => '/product/', 'variants' => $variants];
-        $engine = new FakeSearchEngine([self::RESULTS => ['hits' => [['ID' => 125, 'card' => $card]]]]);
-
-        $listing = $this->listing(new ListingState(facets: ['pa_size' => ['large']]), $engine, new FakeVariantScopedListing);
-
-        $this->assertSame('/product/?size=large', $listing->cards()[0]['url']);
-        $this->assertSame('/product/', $listing->projectedCards()[0]['url']);
-    }
-
-    private function listing(ListingState $state, FakeSearchEngine $engine = new FakeSearchEngine, ?Listing $listing = null): ResolvedListing
-    {
-        return new ResolvedListing(
-            $listing ?? new FakeListing([$this->brand, $this->size]),
-            $state,
-            new ListingSearch($engine, new DisjunctiveFacetCounter),
-            new FacetValues(new FakeTermLabels, new FakeTermScope, new FakeDefaultTerms),
-
-            new EngineLimits(1000),
-        );
-    }
+        new EngineLimits(1000),
+    );
 }
+
+it('answers the values held in a facet', function (): void {
+    $listing = listing(new ListingState(facets: ['product_brand' => ['acme', 'zest']]));
+
+    expect($listing->selectedIn($this->brand))->toBe(['acme', 'zest']);
+    expect($listing->selectedIn($this->size))->toBe([]);
+});
+
+it('answers the price asked and counts it as one filter', function (): void {
+    $asked = new Range(10.0, 20.0);
+    $listing = listing(new ListingState(price: $asked));
+
+    expect($listing->state()->price)->toBe($asked);
+    expect($listing->state()->priceFilterCount())->toBe(1);
+    expect(listing(new ListingState)->state()->priceFilterCount())->toBe(0);
+});
+
+it('shows a card through its variant only on a listing with variant documents', function (): void {
+    $variants = [
+        new CardVariant(['pa_size' => ['large']], 39.0, ['size' => 'Large'])->toArray(),
+        new CardVariant(['pa_size' => ['small']], 26.0, ['size' => 'Small'])->toArray(),
+    ];
+    $engine = new FakeSearchEngine([RESULTS => ['hits' => [['ID' => 125, 'card' => ['variants' => $variants]]]]]);
+
+    $state = new ListingState(facets: ['pa_size' => ['large']]);
+
+    expect(listing($state, $engine, new FakeVariantScopedListing)->cards())->toBe([['id' => 125, 'size' => 'Large']]);
+    expect(listing($state, $engine)->cards())->toBe([['id' => 125]]);
+});
+
+/** Search engines read the product's address, not the one of the variant the filters point to. */
+it('keeps the product card beside the card shown through a variant', function (): void {
+    $variants = [new CardVariant(['pa_size' => ['large']], 39.0, ['url' => '/product/?size=large'])->toArray()];
+    $card = ['url' => '/product/', 'variants' => $variants];
+    $engine = new FakeSearchEngine([RESULTS => ['hits' => [['ID' => 125, 'card' => $card]]]]);
+
+    $listing = listing(new ListingState(facets: ['pa_size' => ['large']]), $engine, new FakeVariantScopedListing);
+
+    expect($listing->cards()[0]['url'])->toBe('/product/?size=large');
+    expect($listing->projectedCards()[0]['url'])->toBe('/product/');
+});

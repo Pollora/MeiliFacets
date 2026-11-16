@@ -6,7 +6,6 @@ namespace Modules\MeiliFacets\Tests\Feature;
 
 use Modules\MeiliFacets\Indexing\WooCommerce\ShopFields;
 use Modules\MeiliFacets\Tests\Feature\Concerns\KeepsTheIndexOut;
-use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 use WC_Product;
 use WC_Product_Simple;
@@ -15,52 +14,10 @@ use WC_Product_Variation;
 use WooCommerce;
 use WP_Post;
 
-/** The stock and the kind of document a product's own document carries. */
-final class ShopFieldsTest extends TestCase
+trait ShopFieldsHelpers
 {
-    use KeepsTheIndexOut;
-
     /** @var list<WC_Product> */
     private array $created = [];
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        if (! class_exists(WooCommerce::class)) {
-            $this->markTestSkipped('Products are WooCommerce\'s.');
-        }
-    }
-
-    protected function tearDown(): void
-    {
-        foreach (array_reverse($this->created) as $product) {
-            $product->delete(true);
-        }
-
-        parent::tearDown();
-    }
-
-    #[Test]
-    public function it_writes_a_simple_product_in_stock_and_of_no_kind(): void
-    {
-        $fields = $this->fieldsOf($this->simple('instock'));
-
-        $this->assertSame(1, $fields['in_stock']);
-        $this->assertArrayNotHasKey('document_kind', $fields);
-    }
-
-    #[Test]
-    public function it_writes_a_simple_product_out_of_stock(): void
-    {
-        $this->assertSame(0, $this->fieldsOf($this->simple('outofstock'))['in_stock']);
-    }
-
-    #[Test]
-    public function it_writes_a_product_with_variants_as_their_parent(): void
-    {
-        $this->assertSame('parent', $this->fieldsOf($this->variable())['document_kind']);
-    }
 
     private function simple(string $stockStatus): WC_Product_Simple
     {
@@ -105,3 +62,33 @@ final class ShopFieldsTest extends TestCase
         return $this->app->make(ShopFields::class)->project($post);
     }
 }
+
+/** The stock and the kind of document a product's own document carries. */
+uses(TestCase::class, KeepsTheIndexOut::class, ShopFieldsHelpers::class);
+
+beforeEach(function (): void {
+    if (! class_exists(WooCommerce::class)) {
+        $this->markTestSkipped('Products are WooCommerce\'s.');
+    }
+});
+
+afterEach(function (): void {
+    foreach (array_reverse($this->created) as $product) {
+        $product->delete(true);
+    }
+});
+
+it('writes a simple product in stock and of no kind', function (): void {
+    $fields = $this->fieldsOf($this->simple('instock'));
+
+    expect($fields['in_stock'])->toBe(1);
+    expect($fields)->not->toHaveKey('document_kind');
+});
+
+it('writes a simple product out of stock', function (): void {
+    expect($this->fieldsOf($this->simple('outofstock'))['in_stock'])->toBe(0);
+});
+
+it('writes a product with variants as their parent', function (): void {
+    expect($this->fieldsOf($this->variable())['document_kind'])->toBe('parent');
+});

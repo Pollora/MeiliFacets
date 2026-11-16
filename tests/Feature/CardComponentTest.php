@@ -13,200 +13,11 @@ use Modules\MeiliFacets\Enums\ImagePriority;
 use Modules\MeiliFacets\Tests\Feature\Concerns\RendersTheModuleViews;
 use Modules\MeiliFacets\View\CardBinding;
 use Modules\MeiliFacets\View\Components\Listing\Card;
-use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-/**
- * The component reaches wp_kses() and the config, so it cannot be covered by the
- * pure unit suite. What it renders is markup a search engine and a browser read.
- */
-final class CardComponentTest extends TestCase
+trait CardComponentSupport
 {
     private const string SRCSET = 'https://example.test/photo-300x300.jpg 300w, https://example.test/photo.jpg 600w';
-
-    use RendersTheModuleViews;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->renderTheModuleViews();
-    }
-
-    protected function tearDown(): void
-    {
-        $this->restoreTheThemeViews();
-
-        parent::tearDown();
-    }
-
-    #[Test]
-    public function it_hands_an_override_the_binding_over_its_card(): void
-    {
-        $binding = new Card(CardBinding::of(['brand' => '<b>Acme</b>', 'id' => 12]))->binding;
-        $brand = $binding->text('brand');
-
-        $this->assertSame('', (string) $brand->attributes);
-        $this->assertSame('&lt;b&gt;Acme&lt;/b&gt;', $brand->toHtml());
-        $this->assertSame('data-product_id="12"', (string) $binding->attributes(['data-product_id' => 'id']));
-    }
-
-    #[Test]
-    public function it_binds_only_the_template(): void
-    {
-        $template = CardBinding::template();
-
-        $this->assertSame('data-meili-text="brand"', (string) $template->text('brand')->attributes);
-        $this->assertSame('data-meili-attr="data-product_id:id"', (string) $template->attributes(['data-product_id' => 'id']));
-    }
-
-    /** The price is what WooCommerce formatted: it is rendered as it stands. */
-    #[Test]
-    public function it_renders_the_price_markup_as_it_stands(): void
-    {
-        $price = '<del aria-hidden="true"><span class="amount">50,00</span></del>'
-            .'<span class="screen-reader-text">Le prix initial était : 50,00.</span>';
-
-        $this->assertStringContainsString($price, $this->render([CardField::Price->value => $price]));
-    }
-
-    #[Test]
-    public function it_keeps_the_price_markup_woocommerce_formats(): void
-    {
-        $price = '<del><span class="amount"><bdi>42,00</bdi></span></del>'
-            .'<ins><span class="amount"><bdi>21,00</bdi></span></ins>';
-
-        $this->assertStringContainsString($price, $this->render([CardField::Price->value => $price]));
-    }
-
-    #[Test]
-    public function it_reserves_the_image_space_before_any_stylesheet_loads(): void
-    {
-        $html = $this->render([
-            CardField::ImageUrl->value => 'https://example.test/photo.jpg',
-            CardField::ImageWidth->value => 300,
-            CardField::ImageHeight->value => 200,
-        ]);
-
-        $this->assertStringContainsString('width="300"', $html);
-        $this->assertStringContainsString('height="200"', $html);
-    }
-
-    #[Test]
-    public function it_leaves_out_an_image_the_card_does_not_have(): void
-    {
-        $this->assertNull($this->document($this->render([]))->querySelector('img'));
-    }
-
-    #[Test]
-    public function it_offers_the_browser_the_sizes_the_index_holds(): void
-    {
-        $image = $this->image([
-            CardField::ImageUrl->value => 'https://example.test/photo-300x300.jpg',
-            CardField::ImageSrcset->value => self::SRCSET,
-            CardField::ImageSizes->value => '(max-width: 300px) 100vw, 300px',
-        ]);
-
-        $this->assertSame(self::SRCSET, $image->getAttribute('srcset'));
-        $this->assertSame('(max-width: 300px) 100vw, 300px', $image->getAttribute('sizes'));
-    }
-
-    #[Test]
-    public function it_names_an_image_after_the_title_when_its_alt_text_is_empty(): void
-    {
-        $image = $this->image([
-            CardField::Title->value => 'Serum',
-            CardField::ImageUrl->value => 'https://example.test/photo.jpg',
-            CardField::ImageAlt->value => '',
-        ]);
-
-        $this->assertSame('Serum', $image->getAttribute('alt'));
-    }
-
-    #[Test]
-    public function it_renders_the_loading_hints_of_the_priority_it_is_given(): void
-    {
-        $card = [CardField::ImageUrl->value => 'https://example.test/photo.jpg'];
-        $eager = $this->render($card, ['priority' => ImagePriority::Eager]);
-
-        $this->assertStringContainsString('loading="eager"', $eager);
-        $this->assertStringContainsString('fetchpriority="high"', $eager);
-        $this->assertStringContainsString('loading="lazy"', $this->render($card));
-    }
-
-    /** A card the client clones lands in a page already painted: eager buys nothing. */
-    #[Test]
-    public function it_defers_the_image_of_a_card_nobody_placed(): void
-    {
-        $this->assertStringContainsString('loading="lazy"', $this->renderTemplate());
-    }
-
-    #[Test]
-    public function its_template_holds_every_hook_the_client_fills(): void
-    {
-        $html = $this->renderTemplate();
-
-        foreach (['url', 'image', 'title', 'price'] as $hook) {
-            $this->assertStringContainsString('data-meili="'.$hook.'"', $html);
-        }
-    }
-
-    #[Test]
-    public function it_leaves_out_what_a_card_has_nothing_to_show_in(): void
-    {
-        $card = $this->document($this->render([CardField::Url->value => 'https://example.test/serum']));
-
-        foreach (['image', 'title', 'price'] as $hook) {
-            $this->assertNull($card->querySelector('[data-meili="'.$hook.'"]'), $hook);
-        }
-    }
-
-    #[Test]
-    public function a_standalone_card_writes_no_hook(): void
-    {
-        $html = Blade::render('<x-meilifacets::listing.card :binding="$binding" />', ['binding' => CardBinding::standalone([
-            CardField::Url->value => 'https://example.test/serum',
-            CardField::ImageUrl->value => 'https://example.test/photo.jpg',
-            CardField::Title->value => 'Serum',
-            CardField::Price->value => '42,00',
-        ])]);
-
-        $card = $this->document($html);
-
-        $this->assertSame('Serum', $card->querySelector('.meilifacetsCardTitle')?->textContent);
-        $this->assertNull($card->querySelector('[data-meili]'));
-    }
-
-    #[Test]
-    public function it_takes_the_heading_level_its_context_needs(): void
-    {
-        $card = $this->document($this->render([CardField::Title->value => 'Serum'], ['heading' => 'h4']));
-
-        $this->assertSame('Serum', $card->querySelector('h4.meilifacetsCardTitle[data-meili="title"]')?->textContent);
-    }
-
-    #[Test]
-    public function it_refuses_a_heading_that_would_open_any_other_tag(): void
-    {
-        $this->expectException(ViewException::class);
-        $this->expectExceptionMessageMatches('/not a valid backing value/');
-
-        Blade::render(
-            '<x-meilifacets::listing.card :binding="$binding" :heading="$heading" />',
-            ['binding' => CardBinding::of([]), 'heading' => 'script src=x']
-        );
-    }
-
-    #[Test]
-    public function it_merges_the_classes_the_caller_adds(): void
-    {
-        $html = Blade::render(
-            '<x-meilifacets::listing.card :binding="$binding" class="col-span-2" />',
-            ['binding' => CardBinding::of([])]
-        );
-
-        $this->assertStringContainsString('class="meilifacetsCard col-span-2"', $html);
-    }
 
     /**
      * @param  array<string, mixed>  $card
@@ -246,3 +57,153 @@ final class CardComponentTest extends TestCase
         return Blade::render('<x-meilifacets::listing.card :binding="$binding" />', ['binding' => CardBinding::template()]);
     }
 }
+
+/**
+ * The component reaches wp_kses() and the config, so it cannot be covered by the
+ * pure unit suite. What it renders is markup a search engine and a browser read.
+ */
+uses(TestCase::class, RendersTheModuleViews::class, CardComponentSupport::class);
+
+beforeEach(function (): void {
+    $this->renderTheModuleViews();
+});
+
+afterEach(function (): void {
+    $this->restoreTheThemeViews();
+});
+
+it('hands an override the binding over its card', function (): void {
+    $binding = new Card(CardBinding::of(['brand' => '<b>Acme</b>', 'id' => 12]))->binding;
+    $brand = $binding->text('brand');
+
+    expect((string) $brand->attributes)->toBe('');
+    expect($brand->toHtml())->toBe('&lt;b&gt;Acme&lt;/b&gt;');
+    expect((string) $binding->attributes(['data-product_id' => 'id']))->toBe('data-product_id="12"');
+});
+
+it('binds only the template', function (): void {
+    $template = CardBinding::template();
+
+    expect((string) $template->text('brand')->attributes)->toBe('data-meili-text="brand"');
+    expect((string) $template->attributes(['data-product_id' => 'id']))->toBe('data-meili-attr="data-product_id:id"');
+});
+
+/** The price is what WooCommerce formatted: it is rendered as it stands. */
+it('renders the price markup as it stands', function (): void {
+    $price = '<del aria-hidden="true"><span class="amount">50,00</span></del>'
+        .'<span class="screen-reader-text">Le prix initial était : 50,00.</span>';
+
+    expect($this->render([CardField::Price->value => $price]))->toContain($price);
+});
+
+it('keeps the price markup woocommerce formats', function (): void {
+    $price = '<del><span class="amount"><bdi>42,00</bdi></span></del>'
+        .'<ins><span class="amount"><bdi>21,00</bdi></span></ins>';
+
+    expect($this->render([CardField::Price->value => $price]))->toContain($price);
+});
+
+it('reserves the image space before any stylesheet loads', function (): void {
+    $html = $this->render([
+        CardField::ImageUrl->value => 'https://example.test/photo.jpg',
+        CardField::ImageWidth->value => 300,
+        CardField::ImageHeight->value => 200,
+    ]);
+
+    expect($html)->toContain('width="300"');
+    expect($html)->toContain('height="200"');
+});
+
+it('leaves out an image the card does not have', function (): void {
+    expect($this->document($this->render([]))->querySelector('img'))->toBeNull();
+});
+
+it('offers the browser the sizes the index holds', function (): void {
+    $image = $this->image([
+        CardField::ImageUrl->value => 'https://example.test/photo-300x300.jpg',
+        CardField::ImageSrcset->value => self::SRCSET,
+        CardField::ImageSizes->value => '(max-width: 300px) 100vw, 300px',
+    ]);
+
+    expect($image->getAttribute('srcset'))->toBe(self::SRCSET);
+    expect($image->getAttribute('sizes'))->toBe('(max-width: 300px) 100vw, 300px');
+});
+
+it('names an image after the title when its alt text is empty', function (): void {
+    $image = $this->image([
+        CardField::Title->value => 'Serum',
+        CardField::ImageUrl->value => 'https://example.test/photo.jpg',
+        CardField::ImageAlt->value => '',
+    ]);
+
+    expect($image->getAttribute('alt'))->toBe('Serum');
+});
+
+it('renders the loading hints of the priority it is given', function (): void {
+    $card = [CardField::ImageUrl->value => 'https://example.test/photo.jpg'];
+    $eager = $this->render($card, ['priority' => ImagePriority::Eager]);
+
+    expect($eager)->toContain('loading="eager"');
+    expect($eager)->toContain('fetchpriority="high"');
+    expect($this->render($card))->toContain('loading="lazy"');
+});
+
+/** A card the client clones lands in a page already painted: eager buys nothing. */
+it('defers the image of a card nobody placed', function (): void {
+    expect($this->renderTemplate())->toContain('loading="lazy"');
+});
+
+test('its template holds every hook the client fills', function (): void {
+    $html = $this->renderTemplate();
+
+    foreach (['url', 'image', 'title', 'price'] as $hook) {
+        expect($html)->toContain('data-meili="'.$hook.'"');
+    }
+});
+
+it('leaves out what a card has nothing to show in', function (): void {
+    $card = $this->document($this->render([CardField::Url->value => 'https://example.test/serum']));
+
+    foreach (['image', 'title', 'price'] as $hook) {
+        $this->assertNull($card->querySelector('[data-meili="'.$hook.'"]'), $hook);
+    }
+});
+
+test('a standalone card writes no hook', function (): void {
+    $html = Blade::render('<x-meilifacets::listing.card :binding="$binding" />', ['binding' => CardBinding::standalone([
+        CardField::Url->value => 'https://example.test/serum',
+        CardField::ImageUrl->value => 'https://example.test/photo.jpg',
+        CardField::Title->value => 'Serum',
+        CardField::Price->value => '42,00',
+    ])]);
+
+    $card = $this->document($html);
+
+    expect($card->querySelector('.meilifacetsCardTitle')?->textContent)->toBe('Serum');
+    expect($card->querySelector('[data-meili]'))->toBeNull();
+});
+
+it('takes the heading level its context needs', function (): void {
+    $card = $this->document($this->render([CardField::Title->value => 'Serum'], ['heading' => 'h4']));
+
+    expect($card->querySelector('h4.meilifacetsCardTitle[data-meili="title"]')?->textContent)->toBe('Serum');
+});
+
+it('refuses a heading that would open any other tag', function (): void {
+    $this->expectException(ViewException::class);
+    $this->expectExceptionMessageMatches('/not a valid backing value/');
+
+    Blade::render(
+        '<x-meilifacets::listing.card :binding="$binding" :heading="$heading" />',
+        ['binding' => CardBinding::of([]), 'heading' => 'script src=x']
+    );
+});
+
+it('merges the classes the caller adds', function (): void {
+    $html = Blade::render(
+        '<x-meilifacets::listing.card :binding="$binding" class="col-span-2" />',
+        ['binding' => CardBinding::of([])]
+    );
+
+    expect($html)->toContain('class="meilifacetsCard col-span-2"');
+});

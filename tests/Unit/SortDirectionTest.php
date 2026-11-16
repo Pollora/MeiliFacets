@@ -5,27 +5,16 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Tests\Unit;
 
 use Modules\MeiliFacets\Enums\SortDirection;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 
-final class SortDirectionTest extends TestCase
-{
-    #[Test]
-    public function it_writes_a_meilisearch_sort_expression_for_a_field(): void
-    {
-        $this->assertSame('post_date:asc', SortDirection::Ascending->of('post_date'));
-        $this->assertSame('price.max:desc', SortDirection::Descending->of('price.max'));
-    }
+it('writes a meilisearch sort expression for a field', function (): void {
+    expect(SortDirection::Ascending->of('post_date'))->toBe('post_date:asc');
+    expect(SortDirection::Descending->of('price.max'))->toBe('price.max:desc');
+});
 
-    #[Test]
-    public function it_reads_the_field_back_out_of_an_expression(): void
-    {
-        $this->assertSame('price.min', SortDirection::fieldOf('price.min:asc'));
-    }
+it('reads the field back out of an expression', function (): void {
+    expect(SortDirection::fieldOf('price.min:asc'))->toBe('price.min');
+});
 
-    #[Test]
-    public function it_reads_an_expression_with_no_direction_as_the_field_itself(): void
-    {
-        $this->assertSame('post_title', SortDirection::fieldOf('post_title'));
-    }
-}
+it('reads an expression with no direction as the field itself', function (): void {
+    expect(SortDirection::fieldOf('post_title'))->toBe('post_title');
+});

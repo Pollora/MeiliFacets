@@ -6,14 +6,11 @@ namespace Modules\MeiliFacets\Tests\Feature;
 
 use Closure;
 use Modules\MeiliFacets\Tests\Feature\Concerns\KeepsTheIndexOut;
-use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 use WP_Post;
 
-final class ProductOrderingChangesTest extends TestCase
+trait ProductOrderingChangesHelpers
 {
-    use KeepsTheIndexOut;
-
     private const string REINDEX_POST = 'meiliscout/reindex_post';
 
     private const string ORDERING_REQUEST = 'wp_ajax_woocommerce_product_ordering';
@@ -29,59 +26,6 @@ final class ProductOrderingChangesTest extends TestCase
     private array $reindexed = [];
 
     private Closure $recorder;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->recorder = $this->record(...);
-        add_action(self::REINDEX_POST, $this->recorder);
-    }
-
-    protected function tearDown(): void
-    {
-        remove_action(self::REINDEX_POST, $this->recorder);
-        array_walk($this->posts, static fn (int $postId): mixed => wp_delete_post($postId, true));
-
-        parent::tearDown();
-    }
-
-    #[Test]
-    public function it_reindexes_the_products_the_ordering_moved_once_it_is_done(): void
-    {
-        $moved = $this->publishedPost();
-        $alsoMoved = $this->publishedPost();
-
-        $this->order(static function () use ($moved, $alsoMoved): void {
-            clean_post_cache($moved);
-            clean_post_cache($alsoMoved);
-        });
-
-        $this->assertSame([$moved, $alsoMoved], $this->reindexed);
-    }
-
-    #[Test]
-    public function a_second_ordering_reindexes_only_what_it_moved(): void
-    {
-        $first = $this->publishedPost();
-        $second = $this->publishedPost();
-        $this->order(static fn (): mixed => clean_post_cache($first));
-        $this->reindexed = [];
-
-        $this->order(static fn (): mixed => clean_post_cache($second));
-
-        $this->assertSame([$second], $this->reindexed);
-    }
-
-    #[Test]
-    public function a_cache_cleared_outside_the_ordering_reindexes_nothing(): void
-    {
-        clean_post_cache($this->publishedPost());
-
-        do_action(self::AFTER_ORDERING, 0, []);
-
-        $this->assertSame([], $this->reindexed);
-    }
 
     /** WooCommerce's own handler leaves the request, unhooked meanwhile: it checks a nonce, then dies. */
     private function order(Closure $writeMenuOrders): void
@@ -117,3 +61,46 @@ final class ProductOrderingChangesTest extends TestCase
         $this->reindexed[] = $postId;
     }
 }
+
+uses(TestCase::class, KeepsTheIndexOut::class, ProductOrderingChangesHelpers::class);
+
+beforeEach(function (): void {
+    $this->recorder = $this->record(...);
+    add_action(self::REINDEX_POST, $this->recorder);
+});
+
+afterEach(function (): void {
+    remove_action(self::REINDEX_POST, $this->recorder);
+    array_walk($this->posts, static fn (int $postId): mixed => wp_delete_post($postId, true));
+});
+
+it('reindexes the products the ordering moved once it is done', function (): void {
+    $moved = $this->publishedPost();
+    $alsoMoved = $this->publishedPost();
+
+    $this->order(static function () use ($moved, $alsoMoved): void {
+        clean_post_cache($moved);
+        clean_post_cache($alsoMoved);
+    });
+
+    expect($this->reindexed)->toBe([$moved, $alsoMoved]);
+});
+
+it('a second ordering reindexes only what it moved', function (): void {
+    $first = $this->publishedPost();
+    $second = $this->publishedPost();
+    $this->order(static fn (): mixed => clean_post_cache($first));
+    $this->reindexed = [];
+
+    $this->order(static fn (): mixed => clean_post_cache($second));
+
+    expect($this->reindexed)->toBe([$second]);
+});
+
+it('a cache cleared outside the ordering reindexes nothing', function (): void {
+    clean_post_cache($this->publishedPost());
+
+    do_action(self::AFTER_ORDERING, 0, []);
+
+    expect($this->reindexed)->toBe([]);
+});

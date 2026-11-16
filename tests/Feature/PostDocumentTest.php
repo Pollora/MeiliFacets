@@ -10,131 +10,14 @@ use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Indexing\PostDocument;
 use Modules\MeiliFacets\Indexing\WooCommerce\ShopFields;
 use Modules\MeiliFacets\Tests\Feature\Concerns\PinsIndexedPostTypes;
-use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 use WP_Post;
 
-/** The fields the module adds to a MeiliScout document, as the single hook writes them. */
-final class PostDocumentTest extends TestCase
+trait PostDocumentSupport
 {
-    use PinsIndexedPostTypes;
-
     private const array CARD = ['title' => 'Routine'];
 
     private const string ATTRIBUTE = 'pa_test_volume';
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->pinIndexedPostTypes();
-        register_taxonomy(self::ATTRIBUTE, 'post', ['public' => false]);
-    }
-
-    protected function tearDown(): void
-    {
-        unregister_taxonomy(self::ATTRIBUTE);
-        $this->unpinIndexedPostTypes();
-
-        parent::tearDown();
-    }
-
-    #[Test]
-    public function it_files_term_names_under_their_taxonomy(): void
-    {
-        $labels = $this->completed([
-            $this->term(1, 'Visage', 'category'),
-            $this->term(2, 'Laits &amp; crèmes', 'category'),
-        ])[DocumentField::Labels->value];
-
-        $this->assertSame(['category' => ['Visage', 'Laits & crèmes']], $labels);
-    }
-
-    /** A WooCommerce attribute without archives is not viewable, yet its values are what a visitor types. */
-    #[Test]
-    public function it_labels_a_taxonomy_without_archives(): void
-    {
-        $labels = $this->completed([$this->term(1, '100ml', self::ATTRIBUTE)])[DocumentField::Labels->value];
-
-        $this->assertSame([self::ATTRIBUTE => ['100ml']], $labels);
-    }
-
-    /** `exclude-from-search` is a term of `product_visibility`: labelled, it would be found by its own name. */
-    #[Test]
-    public function it_labels_no_term_of_a_technical_taxonomy_yet_filters_on_it(): void
-    {
-        $document = $this->completed([$this->term(1, 'exclude-from-search', 'product_visibility')]);
-
-        $this->assertSame([], $document[DocumentField::Labels->value]);
-        $this->assertSame(['product_visibility' => ['exclude-from-search']], $document[DocumentField::Facets->value]);
-    }
-
-    #[Test]
-    public function it_facets_and_labels_nothing_on_a_document_without_terms(): void
-    {
-        $document = $this->postDocument()->complete(['ID' => 1], $this->article());
-
-        $this->assertSame([], $document[DocumentField::Facets->value]);
-        $this->assertSame([], $document[DocumentField::Labels->value]);
-    }
-
-    /** Each field used to come from its own filter: an unreadable `terms` never stopped the others. */
-    #[Test]
-    public function it_still_projects_the_rest_when_the_terms_are_unreadable(): void
-    {
-        $document = $this->postDocument()->complete([DocumentField::Terms->value => 'broken'], $this->article());
-
-        $this->assertArrayNotHasKey(DocumentField::Facets->value, $document);
-        $this->assertArrayNotHasKey(DocumentField::Labels->value, $document);
-        $this->assertSame('Doux & frais', $document[DocumentField::Excerpt->value]);
-        $this->assertSame('Routine', $document[DocumentField::Content->value]);
-        $this->assertSame(self::CARD, $document[DocumentField::Card->value]);
-    }
-
-    #[Test]
-    public function it_writes_the_excerpt_and_the_content_as_plain_text(): void
-    {
-        $document = $this->completed([]);
-
-        $this->assertSame('Doux & frais', $document[DocumentField::Excerpt->value]);
-        $this->assertSame('Routine', $document[DocumentField::Content->value]);
-    }
-
-    #[Test]
-    public function it_leaves_a_card_without_a_price_off_the_price_field(): void
-    {
-        $this->assertArrayNotHasKey(DocumentField::Price->value, $this->completed([]));
-    }
-
-    #[Test]
-    public function it_drops_the_variants_and_the_stock_flag_a_projector_writes_on_a_post(): void
-    {
-        $card = ['title' => 'Routine', CardField::Variants->value => [['price' => 26]], CardField::OutOfStock->value => true];
-
-        $document = $this->postDocument($card)->complete([], $this->article());
-
-        $this->assertSame(['title' => 'Routine'], $document[DocumentField::Card->value]);
-    }
-
-    /** A frozen snapshot: every field, every value and the key order, on a post that lives only in memory. */
-    #[Test]
-    public function it_writes_this_exact_document(): void
-    {
-        $document = $this->postDocument()->complete(
-            ['ID' => 7, DocumentField::Terms->value => [$this->term(1, 'Soins &amp; rituels', 'category')]],
-            $this->article()
-        );
-
-        $this->assertSame([
-            'ID' => 7,
-            'terms' => [['term_id' => 1, 'name' => 'Soins &amp; rituels', 'slug' => 'soins-rituels', 'taxonomy' => 'category', 'parent' => 0]],
-            'facets' => ['category' => ['soins-rituels']],
-            'labels' => ['category' => ['Soins & rituels']],
-            'excerpt' => 'Doux & frais',
-            'content' => 'Routine',
-            'card' => ['title' => 'Routine'],
-        ], $document);
-    }
 
     /**
      * @param  list<array<string, mixed>>  $terms
@@ -196,3 +79,95 @@ final class PostDocumentTest extends TestCase
         return ['term_id' => $id, 'name' => $name, 'slug' => sanitize_title($name), 'taxonomy' => $taxonomy, 'parent' => 0];
     }
 }
+
+/** The fields the module adds to a MeiliScout document, as the single hook writes them. */
+uses(TestCase::class, PinsIndexedPostTypes::class, PostDocumentSupport::class);
+
+beforeEach(function (): void {
+    $this->pinIndexedPostTypes();
+    register_taxonomy(self::ATTRIBUTE, 'post', ['public' => false]);
+});
+
+afterEach(function (): void {
+    unregister_taxonomy(self::ATTRIBUTE);
+    $this->unpinIndexedPostTypes();
+});
+
+it('files term names under their taxonomy', function (): void {
+    $labels = $this->completed([
+        $this->term(1, 'Visage', 'category'),
+        $this->term(2, 'Laits &amp; crèmes', 'category'),
+    ])[DocumentField::Labels->value];
+
+    expect($labels)->toBe(['category' => ['Visage', 'Laits & crèmes']]);
+});
+
+/** A WooCommerce attribute without archives is not viewable, yet its values are what a visitor types. */
+it('labels a taxonomy without archives', function (): void {
+    $labels = $this->completed([$this->term(1, '100ml', self::ATTRIBUTE)])[DocumentField::Labels->value];
+
+    expect($labels)->toBe([self::ATTRIBUTE => ['100ml']]);
+});
+
+/** `exclude-from-search` is a term of `product_visibility`: labelled, it would be found by its own name. */
+it('labels no term of a technical taxonomy yet filters on it', function (): void {
+    $document = $this->completed([$this->term(1, 'exclude-from-search', 'product_visibility')]);
+
+    expect($document[DocumentField::Labels->value])->toBe([]);
+    expect($document[DocumentField::Facets->value])->toBe(['product_visibility' => ['exclude-from-search']]);
+});
+
+it('facets and labels nothing on a document without terms', function (): void {
+    $document = $this->postDocument()->complete(['ID' => 1], $this->article());
+
+    expect($document[DocumentField::Facets->value])->toBe([]);
+    expect($document[DocumentField::Labels->value])->toBe([]);
+});
+
+/** Each field used to come from its own filter: an unreadable `terms` never stopped the others. */
+it('still projects the rest when the terms are unreadable', function (): void {
+    $document = $this->postDocument()->complete([DocumentField::Terms->value => 'broken'], $this->article());
+
+    $this->assertArrayNotHasKey(DocumentField::Facets->value, $document);
+    $this->assertArrayNotHasKey(DocumentField::Labels->value, $document);
+    expect($document[DocumentField::Excerpt->value])->toBe('Doux & frais');
+    expect($document[DocumentField::Content->value])->toBe('Routine');
+    expect($document[DocumentField::Card->value])->toBe(self::CARD);
+});
+
+it('writes the excerpt and the content as plain text', function (): void {
+    $document = $this->completed([]);
+
+    expect($document[DocumentField::Excerpt->value])->toBe('Doux & frais');
+    expect($document[DocumentField::Content->value])->toBe('Routine');
+});
+
+it('leaves a card without a price off the price field', function (): void {
+    $this->assertArrayNotHasKey(DocumentField::Price->value, $this->completed([]));
+});
+
+it('drops the variants and the stock flag a projector writes on a post', function (): void {
+    $card = ['title' => 'Routine', CardField::Variants->value => [['price' => 26]], CardField::OutOfStock->value => true];
+
+    $document = $this->postDocument($card)->complete([], $this->article());
+
+    expect($document[DocumentField::Card->value])->toBe(['title' => 'Routine']);
+});
+
+/** A frozen snapshot: every field, every value and the key order, on a post that lives only in memory. */
+it('writes this exact document', function (): void {
+    $document = $this->postDocument()->complete(
+        ['ID' => 7, DocumentField::Terms->value => [$this->term(1, 'Soins &amp; rituels', 'category')]],
+        $this->article()
+    );
+
+    expect($document)->toBe([
+        'ID' => 7,
+        'terms' => [['term_id' => 1, 'name' => 'Soins &amp; rituels', 'slug' => 'soins-rituels', 'taxonomy' => 'category', 'parent' => 0]],
+        'facets' => ['category' => ['soins-rituels']],
+        'labels' => ['category' => ['Soins & rituels']],
+        'excerpt' => 'Doux & frais',
+        'content' => 'Routine',
+        'card' => ['title' => 'Routine'],
+    ]);
+});

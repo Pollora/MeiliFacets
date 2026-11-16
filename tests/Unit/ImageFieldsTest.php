@@ -5,25 +5,16 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Tests\Unit;
 
 use Modules\MeiliFacets\Indexing\ImageFields;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 
-final class ImageFieldsTest extends TestCase
-{
-    #[Test]
-    public function it_writes_every_image_field_once_one_is_given(): void
-    {
-        $fields = ImageFields::withWholeImage(['price' => '39', 'image_url' => 'variant.jpg']);
+it('writes every image field once one is given', function (): void {
+    $fields = ImageFields::withWholeImage(['price' => '39', 'image_url' => 'variant.jpg']);
 
-        $this->assertSame('variant.jpg', $fields['image_url']);
-        $this->assertSame('', $fields['image_srcset']);
-        $this->assertSame('', $fields['image_sizes']);
-        $this->assertSame('39', $fields['price']);
-    }
+    expect($fields['image_url'])->toBe('variant.jpg');
+    expect($fields['image_srcset'])->toBe('');
+    expect($fields['image_sizes'])->toBe('');
+    expect($fields['price'])->toBe('39');
+});
 
-    #[Test]
-    public function it_leaves_fields_without_any_image_as_they_are(): void
-    {
-        $this->assertSame(['price' => '39'], ImageFields::withWholeImage(['price' => '39']));
-    }
-}
+it('leaves fields without any image as they are', function (): void {
+    expect(ImageFields::withWholeImage(['price' => '39']))->toBe(['price' => '39']);
+});

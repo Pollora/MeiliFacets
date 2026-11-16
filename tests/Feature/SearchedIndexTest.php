@@ -8,13 +8,11 @@ use Modules\MeiliFacets\Contracts\SearchEngine;
 use Modules\MeiliFacets\Providers\SearchServiceProvider;
 use Modules\MeiliFacets\Search\BrowserConnection;
 use Modules\MeiliFacets\Search\MeilisearchEngine;
-use PHPUnit\Framework\Attributes\Test;
 use Pollora\MeiliScout\Services\IndexNames;
 use ReflectionProperty;
 use Tests\TestCase;
 
-/** Until the first full indexation after an update, MeiliScout still searches the index it built before. */
-final class SearchedIndexTest extends TestCase
+trait SearchedIndexSteps
 {
     private const string ACTIVE_INDEXES_PRE_OPTION = 'pre_option_meiliscout/active_indexes';
 
@@ -22,34 +20,6 @@ final class SearchedIndexTest extends TestCase
 
     /** The name MeiliScout gave the index before it prefixed them. */
     private const string LEGACY_INDEX = 'posts';
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        add_filter(self::ACTIVE_INDEXES_PRE_OPTION, $this->legacyIndexes(...));
-        new SearchServiceProvider($this->app)->register();
-    }
-
-    protected function tearDown(): void
-    {
-        remove_all_filters(self::ACTIVE_INDEXES_PRE_OPTION);
-
-        parent::tearDown();
-    }
-
-    #[Test]
-    public function it_searches_the_index_meiliscout_searches_rather_than_the_one_it_writes_to(): void
-    {
-        $this->assertNotSame(self::LEGACY_INDEX, IndexNames::target(self::POST_INDEX_KEY));
-        $this->assertSame(self::LEGACY_INDEX, $this->engineIndex());
-    }
-
-    #[Test]
-    public function it_hands_the_browser_the_index_meiliscout_searches(): void
-    {
-        $this->assertSame(self::LEGACY_INDEX, $this->app->make(BrowserConnection::class)->index);
-    }
 
     /**
      * @return array<string, string>
@@ -68,3 +38,24 @@ final class SearchedIndexTest extends TestCase
         return new ReflectionProperty(MeilisearchEngine::class, 'index')->getValue($engine);
     }
 }
+
+// Until the first full indexation after an update, MeiliScout still searches the index it built before.
+uses(TestCase::class, SearchedIndexSteps::class);
+
+beforeEach(function (): void {
+    add_filter(self::ACTIVE_INDEXES_PRE_OPTION, $this->legacyIndexes(...));
+    new SearchServiceProvider($this->app)->register();
+});
+
+afterEach(function (): void {
+    remove_all_filters(self::ACTIVE_INDEXES_PRE_OPTION);
+});
+
+it('searches the index meiliscout searches rather than the one it writes to', function (): void {
+    expect(IndexNames::target(self::POST_INDEX_KEY))->not->toBe(self::LEGACY_INDEX);
+    expect($this->engineIndex())->toBe(self::LEGACY_INDEX);
+});
+
+it('hands the browser the index meiliscout searches', function (): void {
+    expect($this->app->make(BrowserConnection::class)->index)->toBe(self::LEGACY_INDEX);
+});

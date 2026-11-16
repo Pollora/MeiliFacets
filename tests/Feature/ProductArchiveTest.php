@@ -17,152 +17,14 @@ use Modules\MeiliFacets\Listing\VariationTaxonomies;
 use Modules\MeiliFacets\Listing\WooCommerceDefaultSort;
 use Modules\MeiliFacets\Listing\WooCommerceFacets;
 use Modules\MeiliFacets\Listing\WooCommerceSorts;
-use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 use WooCommerce;
 use WP_Query;
 use WP_Term;
 
-final class ProductArchiveTest extends TestCase
+trait ProductArchiveSteps
 {
     private const string BUILT_IN = 'category';
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        if (! class_exists(WooCommerce::class)) {
-            $this->markTestSkipped('The product listing is WooCommerce\'s.');
-        }
-    }
-
-    #[Test]
-    public function it_narrows_a_category_archive_to_its_term(): void
-    {
-        $category = $this->firstTermOf(ProductTaxonomy::Category->value);
-
-        if (! $category instanceof WP_Term) {
-            $this->markTestSkipped('This shop has no product category.');
-        }
-
-        $this->assertContains(
-            $this->clauseOn(ProductTaxonomy::Category->value, $category->slug),
-            $this->baseFilterOn([ProductTaxonomy::Category->value => $category->slug])
-        );
-    }
-
-    #[Test]
-    public function it_narrows_any_other_product_archive_to_its_term(): void
-    {
-        $browsable = $this->termsBrowsingTheCatalogue();
-
-        $this->assertNotEmpty($browsable, 'This shop has no product taxonomy beyond its categories.');
-
-        foreach ($browsable as $taxonomy => $slug) {
-            $this->assertContains(
-                $this->clauseOn($taxonomy, $slug),
-                $this->baseFilterOn([$taxonomy => $slug]),
-                $taxonomy.' leaves the archive showing the whole catalogue.'
-            );
-        }
-    }
-
-    /** A shop may file its products under the built-in categories: `is_tax()` answers false there, the queried object does not. */
-    #[Test]
-    public function it_narrows_an_archive_of_a_built_in_taxonomy_the_products_share(): void
-    {
-        $category = $this->firstTermOf(self::BUILT_IN);
-
-        if (! $category instanceof WP_Term) {
-            $this->markTestSkipped('This site has no post category.');
-        }
-
-        register_taxonomy_for_object_type(self::BUILT_IN, 'product');
-
-        try {
-            $this->assertContains(
-                $this->clauseOn(self::BUILT_IN, $category->slug),
-                $this->baseFilterOn(['category_name' => $category->slug])
-            );
-        } finally {
-            unregister_taxonomy_for_object_type(self::BUILT_IN, 'product');
-        }
-    }
-
-    #[Test]
-    public function it_ignores_an_archive_outside_the_catalogue(): void
-    {
-        [$taxonomy, $slug] = $this->aTermOutsideTheCatalogue();
-        $filter = $this->baseFilterOn([$taxonomy => $slug]);
-
-        $this->assertNotContains($this->clauseOn($taxonomy, $slug), $filter);
-        $this->assertSame($this->baseFilterOn([]), $filter);
-    }
-
-    /** The path already pins it: the facet would offer one value, its own, and the engine would count it for nothing. */
-    #[Test]
-    public function it_stops_offering_the_facet_of_the_taxonomy_the_path_pins(): void
-    {
-        $brand = $this->firstTermOf(ProductTaxonomy::Brand->value);
-
-        if (! $brand instanceof WP_Term) {
-            $this->markTestSkipped('This shop has no product brand.');
-        }
-
-        $archive = [ProductTaxonomy::Brand->value => $brand->slug];
-
-        $this->assertNotContains(ProductTaxonomy::Brand->value, $this->taxonomiesOf($archive, 'facets'));
-        $this->assertContains(ProductTaxonomy::Brand->value, $this->taxonomiesOf($archive, 'filters'));
-        $this->assertContains(ProductTaxonomy::Brand->value, $this->taxonomiesOf([], 'facets'));
-    }
-
-    /** It offers the children of the term the path pins, which is what it is for. */
-    #[Test]
-    public function it_keeps_offering_the_category_facet_on_a_category_archive(): void
-    {
-        $category = $this->firstTermOf(ProductTaxonomy::Category->value);
-
-        if (! $category instanceof WP_Term) {
-            $this->markTestSkipped('This shop has no product category.');
-        }
-
-        $this->assertContains(
-            ProductTaxonomy::Category->value,
-            $this->taxonomiesOf([ProductTaxonomy::Category->value => $category->slug], 'facets')
-        );
-    }
-
-    /**
-     * `/categorie-produit/visage?q=creme` searches the category, not the whole shop. The term lives in
-     * memory: nothing is written to the database, nor to the index.
-     */
-    #[Test]
-    public function it_keeps_its_term_when_the_visitor_searches(): void
-    {
-        $category = new WP_Term((object) ['term_id' => 0, 'taxonomy' => ProductTaxonomy::Category->value, 'slug' => 'visage']);
-
-        $this->assertContains(
-            $this->clauseOn(ProductTaxonomy::Category->value, $category->slug),
-            $this->onArchive(
-                [ProductTaxonomy::Category->value => $category->slug],
-                static fn (ProductListing $listing): array => $listing->searchScope()->filter,
-                $category,
-            )
-        );
-    }
-
-    #[Test]
-    public function it_narrows_nothing_off_an_archive(): void
-    {
-        $this->assertSame(
-            [
-                'post_type = "product"',
-                'post_status = "publish"',
-                'NOT facets.product_visibility = "exclude-from-catalog"',
-            ],
-            $this->baseFilterOn([])
-        );
-    }
 
     /**
      * @return array<string, string> taxonomy to the slug of one of its terms
@@ -273,3 +135,106 @@ final class ProductArchiveTest extends TestCase
         }
     }
 }
+
+uses(TestCase::class, ProductArchiveSteps::class);
+
+beforeEach(function (): void {
+    if (! class_exists(WooCommerce::class)) {
+        $this->markTestSkipped('The product listing is WooCommerce\'s.');
+    }
+});
+
+it('narrows a category archive to its term', function (): void {
+    $category = $this->firstTermOf(ProductTaxonomy::Category->value);
+
+    if (! $category instanceof WP_Term) {
+        $this->markTestSkipped('This shop has no product category.');
+    }
+
+    expect($this->baseFilterOn([ProductTaxonomy::Category->value => $category->slug]))->toContain($this->clauseOn(ProductTaxonomy::Category->value, $category->slug));
+});
+
+it('narrows any other product archive to its term', function (): void {
+    $browsable = $this->termsBrowsingTheCatalogue();
+
+    $this->assertNotEmpty($browsable, 'This shop has no product taxonomy beyond its categories.');
+
+    foreach ($browsable as $taxonomy => $slug) {
+        $this->assertContains(
+            $this->clauseOn($taxonomy, $slug),
+            $this->baseFilterOn([$taxonomy => $slug]),
+            $taxonomy.' leaves the archive showing the whole catalogue.'
+        );
+    }
+});
+
+// A shop may file its products under the built-in categories: `is_tax()` answers false there, the queried object does not.
+it('narrows an archive of a built in taxonomy the products share', function (): void {
+    $category = $this->firstTermOf(self::BUILT_IN);
+
+    if (! $category instanceof WP_Term) {
+        $this->markTestSkipped('This site has no post category.');
+    }
+
+    register_taxonomy_for_object_type(self::BUILT_IN, 'product');
+
+    try {
+        expect($this->baseFilterOn(['category_name' => $category->slug]))->toContain($this->clauseOn(self::BUILT_IN, $category->slug));
+    } finally {
+        unregister_taxonomy_for_object_type(self::BUILT_IN, 'product');
+    }
+});
+
+it('ignores an archive outside the catalogue', function (): void {
+    [$taxonomy, $slug] = $this->aTermOutsideTheCatalogue();
+    $filter = $this->baseFilterOn([$taxonomy => $slug]);
+
+    expect($filter)->not->toContain($this->clauseOn($taxonomy, $slug));
+    expect($filter)->toBe($this->baseFilterOn([]));
+});
+
+// The path already pins it: the facet would offer one value, its own, and the engine would count it for nothing.
+it('stops offering the facet of the taxonomy the path pins', function (): void {
+    $brand = $this->firstTermOf(ProductTaxonomy::Brand->value);
+
+    if (! $brand instanceof WP_Term) {
+        $this->markTestSkipped('This shop has no product brand.');
+    }
+
+    $archive = [ProductTaxonomy::Brand->value => $brand->slug];
+
+    expect($this->taxonomiesOf($archive, 'facets'))->not->toContain(ProductTaxonomy::Brand->value);
+    expect($this->taxonomiesOf($archive, 'filters'))->toContain(ProductTaxonomy::Brand->value);
+    expect($this->taxonomiesOf([], 'facets'))->toContain(ProductTaxonomy::Brand->value);
+});
+
+// It offers the children of the term the path pins, which is what it is for.
+it('keeps offering the category facet on a category archive', function (): void {
+    $category = $this->firstTermOf(ProductTaxonomy::Category->value);
+
+    if (! $category instanceof WP_Term) {
+        $this->markTestSkipped('This shop has no product category.');
+    }
+
+    expect($this->taxonomiesOf([ProductTaxonomy::Category->value => $category->slug], 'facets'))->toContain(ProductTaxonomy::Category->value);
+});
+
+// `/categorie-produit/visage?q=creme` searches the category, not the whole shop. The term lives in
+// memory: nothing is written to the database, nor to the index.
+it('keeps its term when the visitor searches', function (): void {
+    $category = new WP_Term((object) ['term_id' => 0, 'taxonomy' => ProductTaxonomy::Category->value, 'slug' => 'visage']);
+
+    expect($this->onArchive(
+        [ProductTaxonomy::Category->value => $category->slug],
+        static fn (ProductListing $listing): array => $listing->searchScope()->filter,
+        $category,
+    ))->toContain($this->clauseOn(ProductTaxonomy::Category->value, $category->slug));
+});
+
+it('narrows nothing off an archive', function (): void {
+    expect($this->baseFilterOn([]))->toBe([
+        'post_type = "product"',
+        'post_status = "publish"',
+        'NOT facets.product_visibility = "exclude-from-catalog"',
+    ]);
+});

@@ -7,82 +7,54 @@ namespace Modules\MeiliFacets\Tests\Unit;
 use Modules\MeiliFacets\Http\IndexingPolicy;
 use Modules\MeiliFacets\Http\ListingPage;
 use Modules\MeiliFacets\Support\UrlParameters;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 
-final class IndexingPolicyTest extends TestCase
-{
-    private IndexingPolicy $policy;
+beforeEach(function (): void {
+    $this->policy = new IndexingPolicy(new UrlParameters(['product_brand' => 'marque']), new ListingPage);
+});
 
-    protected function setUp(): void
-    {
-        parent::setUp();
+it('keeps a secondary view out of the index and its links followed', function (): void {
+    $robots = $this->policy->asSecondaryView(['index' => true, 'max-image-preview' => 'large']);
 
-        $this->policy = new IndexingPolicy(new UrlParameters(['product_brand' => 'marque']), new ListingPage);
-    }
+    expect($robots)->toBe(['max-image-preview' => 'large', 'noindex' => true, 'follow' => true]);
+});
 
-    #[Test]
-    public function it_keeps_a_secondary_view_out_of_the_index_and_its_links_followed(): void
-    {
-        $robots = $this->policy->asSecondaryView(['index' => true, 'max-image-preview' => 'large']);
+it('leaves a bare path indexable', function (): void {
+    expect($this->policy->appliesTo([]))->toBeFalse();
+});
 
-        $this->assertSame(['max-image-preview' => 'large', 'noindex' => true, 'follow' => true], $robots);
-    }
+it('covers a mapped facet', function (): void {
+    expect($this->policy->appliesTo(['marque' => 'acme']))->toBeTrue();
+});
 
-    #[Test]
-    public function it_leaves_a_bare_path_indexable(): void
-    {
-        $this->assertFalse($this->policy->appliesTo([]));
-    }
+it('covers a facet left unmapped', function (): void {
+    expect($this->policy->appliesTo(['f_product_cat' => 'coats']))->toBeTrue();
+});
 
-    #[Test]
-    public function it_covers_a_mapped_facet(): void
-    {
-        $this->assertTrue($this->policy->appliesTo(['marque' => 'acme']));
-    }
+// Nothing links to page 2 since the controls became buttons: it is a duplicate with no reader.
+it('covers a page number', function (): void {
+    expect($this->policy->appliesTo(['pg' => '2']))->toBeTrue();
+});
 
-    #[Test]
-    public function it_covers_a_facet_left_unmapped(): void
-    {
-        $this->assertTrue($this->policy->appliesTo(['f_product_cat' => 'coats']));
-    }
+// The same products in another order, and a search result page.
+it('covers a sort and a search', function (): void {
+    expect($this->policy->appliesTo(['sort' => 'price_asc']))->toBeTrue();
+    expect($this->policy->appliesTo(['q' => 'bonjour']))->toBeTrue();
+});
 
-    /** Nothing links to page 2 since the controls became buttons: it is a duplicate with no reader. */
-    #[Test]
-    public function it_covers_a_page_number(): void
-    {
-        $this->assertTrue($this->policy->appliesTo(['pg' => '2']));
-    }
+// A project may rename the reserved parameters; the policy follows the mapping, not the default.
+it('follows a renamed reserved parameter', function (): void {
+    $policy = new IndexingPolicy(new UrlParameters([], ['q' => 'recherche']), new ListingPage);
 
-    /** The same products in another order, and a search result page. */
-    #[Test]
-    public function it_covers_a_sort_and_a_search(): void
-    {
-        $this->assertTrue($this->policy->appliesTo(['sort' => 'price_asc']));
-        $this->assertTrue($this->policy->appliesTo(['q' => 'bonjour']));
-    }
+    expect($policy->appliesTo(['recherche' => 'bonjour']))->toBeTrue();
+    expect($policy->appliesTo(['q' => 'bonjour']))->toBeFalse();
+});
 
-    /** A project may rename the reserved parameters; the policy follows the mapping, not the default. */
-    #[Test]
-    public function it_follows_a_renamed_reserved_parameter(): void
-    {
-        $policy = new IndexingPolicy(new UrlParameters([], ['q' => 'recherche']), new ListingPage);
+it('ignores a parameter that belongs to nothing', function (): void {
+    expect($this->policy->appliesTo(['utm_source' => 'newsletter']))->toBeFalse();
+});
 
-        $this->assertTrue($policy->appliesTo(['recherche' => 'bonjour']));
-        $this->assertFalse($policy->appliesTo(['q' => 'bonjour']));
-    }
-
-    #[Test]
-    public function it_ignores_a_parameter_that_belongs_to_nothing(): void
-    {
-        $this->assertFalse($this->policy->appliesTo(['utm_source' => 'newsletter']));
-    }
-
-    #[Test]
-    public function it_ignores_a_facet_left_empty(): void
-    {
-        $this->assertFalse($this->policy->appliesTo(['marque' => '']));
-        $this->assertFalse($this->policy->appliesTo(['marque' => '   ']));
-        $this->assertFalse($this->policy->appliesTo(['marque' => ['acme']]));
-    }
-}
+it('ignores a facet left empty', function (): void {
+    expect($this->policy->appliesTo(['marque' => '']))->toBeFalse();
+    expect($this->policy->appliesTo(['marque' => '   ']))->toBeFalse();
+    expect($this->policy->appliesTo(['marque' => ['acme']]))->toBeFalse();
+});

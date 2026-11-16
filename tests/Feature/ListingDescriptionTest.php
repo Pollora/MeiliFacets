@@ -17,211 +17,11 @@ use Modules\MeiliFacets\Support\UrlParameters;
 use Modules\MeiliFacets\Tests\Feature\Concerns\RequestsAnAddress;
 use Modules\MeiliFacets\Tests\Feature\Concerns\SwitchesTheSiteLocale;
 use Modules\MeiliFacets\View\ListingDescription;
-use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-final class ListingDescriptionTest extends TestCase
+trait ListingDescriptionSteps
 {
-    use RequestsAnAddress;
-    use SwitchesTheSiteLocale;
-
     private const string PROMOTIONS = 'on_sale';
-
-    /** The suite shares one application: a query left behind would reach a later class. */
-    protected function tearDown(): void
-    {
-        request()->query->replace([]);
-        request()->server->remove('QUERY_STRING');
-        set_query_var(PageAddress::PAGED_QUERY_VAR, '');
-        $this->app->forgetScopedInstances();
-
-        parent::tearDown();
-    }
-
-    #[Test]
-    public function it_hands_the_client_the_state_the_server_read(): void
-    {
-        $parameters = $this->app->make(UrlParameters::class);
-        $taxonomy = $this->listing()->facets()[0]->taxonomy;
-
-        set_query_var(PageAddress::PAGED_QUERY_VAR, '3');
-        $state = $this->describedWith([
-            $parameters->for($taxonomy) => 'globex,acme',
-            $parameters->reserved(QueryParameter::MinPrice) => '12.5',
-        ])['state'];
-
-        $this->assertSame([$taxonomy => ['acme', 'globex']], (array) $state['facets']);
-        $this->assertSame(3, $state['page']);
-        $this->assertSame(['min' => 12.5, 'max' => null], $state['price']);
-        $this->assertSame('', $state['query']);
-        $this->assertNull($state['sort']);
-    }
-
-    #[Test]
-    public function it_reads_the_page_from_the_path_and_not_from_a_parameter(): void
-    {
-        $page = $this->app->make(UrlParameters::class)->reserved(QueryParameter::Page);
-
-        $this->assertSame(1, $this->describedWith([$page => '3'])['state']['page']);
-    }
-
-    /** The engine answers slugs only: a pill the client draws takes its words from here (`R-57`). */
-    #[Test]
-    public function it_hands_the_client_the_words_of_every_value_the_page_rendered(): void
-    {
-        $facets = $this->describedWith([])['facets'];
-        $listing = $this->listing();
-
-        foreach ($listing->facets() as $rank => $facet) {
-            $this->assertSame($listing->labelsOf($facet), (array) $facets[$rank]['labels']);
-        }
-
-        $this->assertNotSame([], array_filter(array_map(static fn (array $facet): array => (array) $facet['labels'], $facets)));
-    }
-
-    #[Test]
-    public function it_hands_the_client_the_query_that_reads_variants(): void
-    {
-        $variants = $this->describedWith([])['variantResults'];
-
-        $this->assertSame($this->app->make(ProductListing::class)->variantTaxonomies(), $variants['taxonomies']);
-        $this->assertStringContainsString('NOT document_kind = "parent"', $variants['filter']);
-        $this->assertStringContainsString('post_type = "product_variation"', $variants['filter']);
-        $this->assertStringContainsString('NOT document_kind = "parent"', $variants['searchScope']['filter']);
-        $this->assertSame('parent_id', $variants['distinct']);
-        $this->assertSame(['ID', 'card', 'parent_id'], $variants['attributes']);
-        $this->assertSame('in_stock:desc', $variants['sorts']['price_asc'][0] ?? null);
-    }
-
-    /** Missing, the whole site answers 500: the resolved listing copies the contract by hand. */
-    #[Test]
-    public function it_always_hands_the_client_a_base_query(): void
-    {
-        $this->assertSame('', $this->describedWith([])['baseQuery']);
-    }
-
-    /** The panel counts what the page finds: the same products, on the same fields. */
-    #[Test]
-    public function it_hands_the_client_the_scope_the_site_search_reads_for_products(): void
-    {
-        $product = $this->app->make(SearchableTypes::class)->all()[VisibleProducts::POST_TYPE];
-        $scope = $this->describedWith([])['searchScope'];
-
-        $this->assertSame(FilterExpression::all($product->baseFilter), $scope['filter']);
-        $this->assertSame($product->searchOn, $scope['fields']);
-        $this->assertStringContainsString('exclude-from-search', $scope['filter']);
-        $this->assertStringNotContainsString('exclude-from-search', $this->describedWith([])['filter']);
-    }
-
-    /** One threshold and one delay for every field that searches while typed. */
-    #[Test]
-    public function it_hands_the_client_the_typing_settings_of_the_site_search(): void
-    {
-        $this->app->instance(SearchSettings::class, new SearchSettings(3, 250));
-
-        try {
-            $description = $this->describedWith([]);
-        } finally {
-            $this->app->forgetInstance(SearchSettings::class);
-        }
-
-        $this->assertSame([3, 250], [$description['minChars'], $description['delay']]);
-    }
-
-    #[Test]
-    public function it_hands_over_the_path_of_the_first_page(): void
-    {
-        $this->requesting('/boutique/page/2?marque=globex');
-
-        $this->assertSame('/boutique', $this->describedWith([])['pagePath']);
-    }
-
-    #[Test]
-    public function it_hands_over_the_counts_of_the_values_the_page_renders(): void
-    {
-        $description = $this->describedWith([]);
-        $facet = $this->listing()->facets()[0];
-        $expected = [];
-
-        foreach ($this->listing()->valuesOf($facet) as $value) {
-            $expected[$value->slug] = $value->count;
-        }
-
-        $this->assertSame($expected, (array) $description['facets'][0]['counts']);
-        $this->assertMatchesRegularExpression('/^[a-z]{2,3}(-[A-Za-z0-9]+)*$/', $description['locale']);
-    }
-
-    #[Test]
-    public function it_hands_over_its_labels_in_the_language_wordpress_translates_the_page_in(): void
-    {
-        $description = $this->underLocales('fr', 'en_US', fn (): array => $this->describedWith([]));
-
-        $this->assertSame('en-US', $description['locale']);
-        $this->assertSame(':count result|:count results', $description['countPattern']);
-        $this->assertSame('Sort by: :choice', $description['sortPattern']);
-    }
-
-    #[Test]
-    public function it_hands_over_no_selection_as_an_empty_object(): void
-    {
-        $this->assertSame('{}', json_encode($this->describedWith([])['state']['facets']));
-    }
-
-    #[Test]
-    public function it_hands_over_what_wordpress_read_less_the_listings_own_parameters(): void
-    {
-        global $wp;
-
-        $parameters = $this->app->make(UrlParameters::class);
-        $owned = [
-            $parameters->reserved(QueryParameter::MinPrice),
-            $parameters->for($this->listing()->facets()[0]->taxonomy),
-        ];
-
-        $publicQueryVars = $wp->public_query_vars;
-        array_walk($owned, $wp->add_query_var(...));
-
-        try {
-            $pageQuery = $this->describedWith([
-                's' => '', 'post_type' => 'product', 'add-to-cart' => '12', 'paged' => '2',
-                $owned[0] => '10', $owned[1] => 'acme',
-            ])['pageQuery'];
-        } finally {
-            $wp->public_query_vars = $publicQueryVars;
-        }
-
-        $this->assertSame('s=&post_type=product', $pageQuery);
-    }
-
-    #[Test]
-    public function it_tells_the_client_which_field_promotions_filter_on(): void
-    {
-        if (! array_key_exists(self::PROMOTIONS, $this->listing()->sorts())) {
-            $this->markTestSkipped('The host listing declares no price filter, so it offers no promotions.');
-        }
-
-        $description = $this->app->make(ListingDescription::class)->of($this->listing());
-
-        $this->assertSame(['field' => 'price.onsale', 'value' => 'true'], ((array) $description['sortFilters'])[self::PROMOTIONS]);
-        $this->assertSame([], $description['sorts'][self::PROMOTIONS]);
-    }
-
-    /**
-     * @param  array<string, string>  $query
-     * @return array<string, mixed>
-     */
-    /** The same shape is written twice, once per language: a key added on one side only is a field nobody reads. */
-    #[Test]
-    public function it_publishes_exactly_the_fields_the_client_declares(): void
-    {
-        $published = array_keys($this->describedWith([]));
-        $declared = $this->fieldsTheClientDeclares();
-
-        sort($published);
-        sort($declared);
-
-        $this->assertSame($declared, $published);
-    }
 
     /**
      * @return list<string>
@@ -250,3 +50,168 @@ final class ListingDescriptionTest extends TestCase
         return $this->app->make(CurrentListing::class)->named(ProductListing::NAME);
     }
 }
+
+uses(TestCase::class, RequestsAnAddress::class, SwitchesTheSiteLocale::class, ListingDescriptionSteps::class);
+
+// The suite shares one application: a query left behind would reach a later class.
+afterEach(function (): void {
+    request()->query->replace([]);
+    request()->server->remove('QUERY_STRING');
+    set_query_var(PageAddress::PAGED_QUERY_VAR, '');
+    $this->app->forgetScopedInstances();
+});
+
+it('hands the client the state the server read', function (): void {
+    $parameters = $this->app->make(UrlParameters::class);
+    $taxonomy = $this->listing()->facets()[0]->taxonomy;
+
+    set_query_var(PageAddress::PAGED_QUERY_VAR, '3');
+    $state = $this->describedWith([
+        $parameters->for($taxonomy) => 'globex,acme',
+        $parameters->reserved(QueryParameter::MinPrice) => '12.5',
+    ])['state'];
+
+    expect((array) $state['facets'])->toBe([$taxonomy => ['acme', 'globex']]);
+    expect($state['page'])->toBe(3);
+    expect($state['price'])->toBe(['min' => 12.5, 'max' => null]);
+    expect($state['query'])->toBe('');
+    expect($state['sort'])->toBeNull();
+});
+
+it('reads the page from the path and not from a parameter', function (): void {
+    $page = $this->app->make(UrlParameters::class)->reserved(QueryParameter::Page);
+
+    expect($this->describedWith([$page => '3'])['state']['page'])->toBe(1);
+});
+
+// The engine answers slugs only: a pill the client draws takes its words from here (`R-57`).
+it('hands the client the words of every value the page rendered', function (): void {
+    $facets = $this->describedWith([])['facets'];
+    $listing = $this->listing();
+
+    foreach ($listing->facets() as $rank => $facet) {
+        expect((array) $facets[$rank]['labels'])->toBe($listing->labelsOf($facet));
+    }
+
+    expect(array_filter(array_map(static fn (array $facet): array => (array) $facet['labels'], $facets)))->not->toBe([]);
+});
+
+it('hands the client the query that reads variants', function (): void {
+    $variants = $this->describedWith([])['variantResults'];
+
+    expect($variants['taxonomies'])->toBe($this->app->make(ProductListing::class)->variantTaxonomies());
+    expect($variants['filter'])->toContain('NOT document_kind = "parent"');
+    expect($variants['filter'])->toContain('post_type = "product_variation"');
+    expect($variants['searchScope']['filter'])->toContain('NOT document_kind = "parent"');
+    expect($variants['distinct'])->toBe('parent_id');
+    expect($variants['attributes'])->toBe(['ID', 'card', 'parent_id']);
+    expect($variants['sorts']['price_asc'][0] ?? null)->toBe('in_stock:desc');
+});
+
+// Missing, the whole site answers 500: the resolved listing copies the contract by hand.
+it('always hands the client a base query', function (): void {
+    expect($this->describedWith([])['baseQuery'])->toBe('');
+});
+
+// The panel counts what the page finds: the same products, on the same fields.
+it('hands the client the scope the site search reads for products', function (): void {
+    $product = $this->app->make(SearchableTypes::class)->all()[VisibleProducts::POST_TYPE];
+    $scope = $this->describedWith([])['searchScope'];
+
+    expect($scope['filter'])->toBe(FilterExpression::all($product->baseFilter));
+    expect($scope['fields'])->toBe($product->searchOn);
+    expect($scope['filter'])->toContain('exclude-from-search');
+    expect($this->describedWith([])['filter'])->not->toContain('exclude-from-search');
+});
+
+// One threshold and one delay for every field that searches while typed.
+it('hands the client the typing settings of the site search', function (): void {
+    $this->app->instance(SearchSettings::class, new SearchSettings(3, 250));
+
+    try {
+        $description = $this->describedWith([]);
+    } finally {
+        $this->app->forgetInstance(SearchSettings::class);
+    }
+
+    expect([$description['minChars'], $description['delay']])->toBe([3, 250]);
+});
+
+it('hands over the path of the first page', function (): void {
+    $this->requesting('/boutique/page/2?marque=globex');
+
+    expect($this->describedWith([])['pagePath'])->toBe('/boutique');
+});
+
+it('hands over the counts of the values the page renders', function (): void {
+    $description = $this->describedWith([]);
+    $facet = $this->listing()->facets()[0];
+    $expected = [];
+
+    foreach ($this->listing()->valuesOf($facet) as $value) {
+        $expected[$value->slug] = $value->count;
+    }
+
+    expect((array) $description['facets'][0]['counts'])->toBe($expected);
+    expect($description['locale'])->toMatch('/^[a-z]{2,3}(-[A-Za-z0-9]+)*$/');
+});
+
+it('hands over its labels in the language wordpress translates the page in', function (): void {
+    $description = $this->underLocales('fr', 'en_US', fn (): array => $this->describedWith([]));
+
+    expect($description['locale'])->toBe('en-US');
+    expect($description['countPattern'])->toBe(':count result|:count results');
+    expect($description['sortPattern'])->toBe('Sort by: :choice');
+});
+
+it('hands over no selection as an empty object', function (): void {
+    expect(json_encode($this->describedWith([])['state']['facets']))->toBe('{}');
+});
+
+it('hands over what wordpress read less the listings own parameters', function (): void {
+    global $wp;
+
+    $parameters = $this->app->make(UrlParameters::class);
+    $owned = [
+        $parameters->reserved(QueryParameter::MinPrice),
+        $parameters->for($this->listing()->facets()[0]->taxonomy),
+    ];
+
+    $publicQueryVars = $wp->public_query_vars;
+    array_walk($owned, $wp->add_query_var(...));
+
+    try {
+        $pageQuery = $this->describedWith([
+            's' => '', 'post_type' => 'product', 'add-to-cart' => '12', 'paged' => '2',
+            $owned[0] => '10', $owned[1] => 'acme',
+        ])['pageQuery'];
+    } finally {
+        $wp->public_query_vars = $publicQueryVars;
+    }
+
+    expect($pageQuery)->toBe('s=&post_type=product');
+});
+
+it('tells the client which field promotions filter on', function (): void {
+    if (! array_key_exists(self::PROMOTIONS, $this->listing()->sorts())) {
+        $this->markTestSkipped('The host listing declares no price filter, so it offers no promotions.');
+    }
+
+    $description = $this->app->make(ListingDescription::class)->of($this->listing());
+
+    expect(((array) $description['sortFilters'])[self::PROMOTIONS])->toBe(['field' => 'price.onsale', 'value' => 'true']);
+    expect($description['sorts'][self::PROMOTIONS])->toBe([]);
+});
+
+// @param  array<string, string>  $query
+// @return array<string, mixed>
+// The same shape is written twice, once per language: a key added on one side only is a field nobody reads.
+it('publishes exactly the fields the client declares', function (): void {
+    $published = array_keys($this->describedWith([]));
+    $declared = $this->fieldsTheClientDeclares();
+
+    sort($published);
+    sort($declared);
+
+    expect($published)->toBe($declared);
+});

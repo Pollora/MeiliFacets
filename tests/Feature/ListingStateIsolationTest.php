@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Modules\MeiliFacets\Tests\Feature;
 
 use Illuminate\Support\Facades\Blade;
-use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
@@ -13,11 +12,8 @@ use Tests\TestCase;
  * next one. This has meaning only when the whole suite runs, and only while this
  * file sorts after the classes that place: alone, it passes either way.
  */
-final class ListingStateIsolationTest extends TestCase
-{
-    #[Test]
-    public function it_reaches_a_listing_no_earlier_class_has_placed(): void
-    {
-        $this->assertStringContainsString('data-meili="facet"', Blade::render('<x-meilifacets::listing.facets name="products" />'));
-    }
-}
+uses(TestCase::class);
+
+it('reaches a listing no earlier class has placed', function (): void {
+    expect(Blade::render('<x-meilifacets::listing.facets name="products" />'))->toContain('data-meili="facet"');
+});

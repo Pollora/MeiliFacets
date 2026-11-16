@@ -9,45 +9,11 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Modules\MeiliFacets\Http\ServiceUnavailable;
 use Modules\MeiliFacets\Http\ServiceUnavailableHeaders;
-use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 use Tests\TestCase;
 
-/** The status and the cache headers a page goes out with once its listing could not reach the engine. */
-final class ServiceUnavailableHeadersTest extends TestCase
+trait ServiceUnavailableHeadersSupport
 {
-    #[Test]
-    public function it_answers_503_uncached_once_a_listing_announced_the_outage(): void
-    {
-        $serviceUnavailable = new ServiceUnavailable;
-        $serviceUnavailable->announce();
-
-        $response = $this->through($serviceUnavailable, $this->publicPage());
-
-        $this->assertSame(503, $response->getStatusCode());
-        $this->assertTrue($response->headers->hasCacheControlDirective('no-store'));
-        $this->assertFalse($response->headers->hasCacheControlDirective('public'));
-        $this->assertSame('120', $response->headers->get('Retry-After'));
-        $this->assertFalse($response->headers->has('Expires'));
-    }
-
-    #[Test]
-    public function it_leaves_a_page_alone_while_no_outage_was_announced(): void
-    {
-        $response = $this->through(new ServiceUnavailable, $this->publicPage());
-
-        $this->assertSame(200, $response->getStatusCode());
-        $this->assertTrue($response->headers->hasCacheControlDirective('public'));
-    }
-
-    #[Test]
-    public function it_runs_around_every_request(): void
-    {
-        $kernel = $this->app->make(HttpKernel::class);
-
-        $this->assertTrue($kernel->hasMiddleware(ServiceUnavailableHeaders::class));
-    }
-
     private function through(ServiceUnavailable $serviceUnavailable, Response $page): SymfonyResponse
     {
         $middleware = new ServiceUnavailableHeaders($serviceUnavailable);
@@ -62,3 +28,32 @@ final class ServiceUnavailableHeadersTest extends TestCase
         return new Response('page', 200, $headers);
     }
 }
+
+/** The status and the cache headers a page goes out with once its listing could not reach the engine. */
+uses(TestCase::class, ServiceUnavailableHeadersSupport::class);
+
+it('answers 503 uncached once a listing announced the outage', function (): void {
+    $serviceUnavailable = new ServiceUnavailable;
+    $serviceUnavailable->announce();
+
+    $response = $this->through($serviceUnavailable, $this->publicPage());
+
+    expect($response->getStatusCode())->toBe(503);
+    expect($response->headers->hasCacheControlDirective('no-store'))->toBeTrue();
+    expect($response->headers->hasCacheControlDirective('public'))->toBeFalse();
+    expect($response->headers->get('Retry-After'))->toBe('120');
+    expect($response->headers->has('Expires'))->toBeFalse();
+});
+
+it('leaves a page alone while no outage was announced', function (): void {
+    $response = $this->through(new ServiceUnavailable, $this->publicPage());
+
+    expect($response->getStatusCode())->toBe(200);
+    expect($response->headers->hasCacheControlDirective('public'))->toBeTrue();
+});
+
+it('runs around every request', function (): void {
+    $kernel = $this->app->make(HttpKernel::class);
+
+    expect($kernel->hasMiddleware(ServiceUnavailableHeaders::class))->toBeTrue();
+});

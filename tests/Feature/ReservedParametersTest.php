@@ -6,72 +6,12 @@ namespace Modules\MeiliFacets\Tests\Feature;
 
 use Closure;
 use Modules\MeiliFacets\Support\ReservedParameters;
-use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 use WooCommerce;
 
-final class ReservedParametersTest extends TestCase
+trait ReservedParametersHelpers
 {
     private const string PROBE = 'meilifacets_probe';
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        if (! class_exists(WooCommerce::class)) {
-            $this->markTestSkipped('The names these tests expect are declared by WooCommerce.');
-        }
-    }
-
-    #[Test]
-    public function it_adds_the_query_vars_plugins_declare_through_the_filter(): void
-    {
-        $names = new ReservedParameters()->wordPress();
-
-        $this->assertContains('min_price', $names);
-        $this->assertContains('checkout-link', $names);
-    }
-
-    #[Test]
-    public function it_lists_each_name_once(): void
-    {
-        $names = new ReservedParameters()->wordPress();
-
-        $this->assertSame(array_values(array_unique($names)), $names);
-    }
-
-    #[Test]
-    public function it_names_the_price_bounds_for_what_woocommerce_reads_even_once_they_are_query_vars(): void
-    {
-        $reserved = new ReservedParameters;
-
-        $this->assertContains('min_price', $reserved->wordPress());
-        $this->assertStringContainsString('$_GET', (string) $reserved->reason('min_price'));
-    }
-
-    #[Test]
-    public function it_takes_the_list_of_a_parsed_request_as_wordpress_filtered_it(): void
-    {
-        $probe = static fn (array $names): array => [...$names, self::PROBE];
-        add_filter('query_vars', $probe);
-
-        try {
-            $names = $this->whileActionCount('parse_request', 1, new ReservedParameters()->wordPress(...));
-        } finally {
-            remove_filter('query_vars', $probe);
-        }
-
-        $this->assertNotContains(self::PROBE, $names);
-    }
-
-    #[Test]
-    public function it_reads_the_list_again_once_wordpress_has_initialised(): void
-    {
-        $reserved = new ReservedParameters;
-
-        $this->assertNotContains('checkout-link', $this->whileActionCount('init', 0, $reserved->wordPress(...)));
-        $this->assertContains('checkout-link', $reserved->wordPress());
-    }
 
     /**
      * @template T
@@ -93,3 +33,51 @@ final class ReservedParametersTest extends TestCase
         }
     }
 }
+
+uses(TestCase::class, ReservedParametersHelpers::class);
+
+beforeEach(function (): void {
+    if (! class_exists(WooCommerce::class)) {
+        $this->markTestSkipped('The names these tests expect are declared by WooCommerce.');
+    }
+});
+
+it('adds the query vars plugins declare through the filter', function (): void {
+    $names = new ReservedParameters()->wordPress();
+
+    expect($names)->toContain('min_price');
+    expect($names)->toContain('checkout-link');
+});
+
+it('lists each name once', function (): void {
+    $names = new ReservedParameters()->wordPress();
+
+    expect($names)->toBe(array_values(array_unique($names)));
+});
+
+it('names the price bounds for what woocommerce reads even once they are query vars', function (): void {
+    $reserved = new ReservedParameters;
+
+    expect($reserved->wordPress())->toContain('min_price');
+    expect((string) $reserved->reason('min_price'))->toContain('$_GET');
+});
+
+it('takes the list of a parsed request as wordpress filtered it', function (): void {
+    $probe = static fn (array $names): array => [...$names, self::PROBE];
+    add_filter('query_vars', $probe);
+
+    try {
+        $names = $this->whileActionCount('parse_request', 1, new ReservedParameters()->wordPress(...));
+    } finally {
+        remove_filter('query_vars', $probe);
+    }
+
+    expect($names)->not->toContain(self::PROBE);
+});
+
+it('reads the list again once wordpress has initialised', function (): void {
+    $reserved = new ReservedParameters;
+
+    expect($this->whileActionCount('init', 0, $reserved->wordPress(...)))->not->toContain('checkout-link');
+    expect($reserved->wordPress())->toContain('checkout-link');
+});

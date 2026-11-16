@@ -8,25 +8,19 @@ use Modules\MeiliFacets\Contracts\FacetCounter;
 use Modules\MeiliFacets\Providers\SearchServiceProvider;
 use Modules\MeiliFacets\Search\DisjunctiveFacetCounter;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeFacetCounter;
-use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-/** What `Unit\CounterDefaultBindingTest` proves of the container, this proves of the provider itself. */
-final class CounterBindingTest extends TestCase
-{
-    #[Test]
-    public function it_binds_the_disjunctive_counter_of_the_module(): void
-    {
-        $this->assertInstanceOf(DisjunctiveFacetCounter::class, $this->app->make(FacetCounter::class));
-    }
+// What `Unit\CounterDefaultBindingTest` proves of the container, this proves of the provider itself.
+uses(TestCase::class);
 
-    #[Test]
-    public function it_leaves_the_counter_a_project_bound_in_place(): void
-    {
-        $this->app->bind(FacetCounter::class, static fn (): FacetCounter => new FakeFacetCounter);
+it('binds the disjunctive counter of the module', function (): void {
+    expect($this->app->make(FacetCounter::class))->toBeInstanceOf(DisjunctiveFacetCounter::class);
+});
 
-        new SearchServiceProvider($this->app)->register();
+it('leaves the counter a project bound in place', function (): void {
+    $this->app->bind(FacetCounter::class, static fn (): FacetCounter => new FakeFacetCounter);
 
-        $this->assertInstanceOf(FakeFacetCounter::class, $this->app->make(FacetCounter::class));
-    }
-}
+    new SearchServiceProvider($this->app)->register();
+
+    expect($this->app->make(FacetCounter::class))->toBeInstanceOf(FakeFacetCounter::class);
+});

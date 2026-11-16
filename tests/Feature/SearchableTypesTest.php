@@ -23,15 +23,11 @@ use Modules\MeiliFacets\SiteSearch\WooCommerceSearchableTypes;
 use Modules\MeiliFacets\SiteSearch\WordPressSearchableTypes;
 use Modules\MeiliFacets\Tests\Feature\Concerns\PinsIndexedPostTypes;
 use Modules\MeiliFacets\Tests\Unit\Doubles\RetitledSearchableTypes;
-use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 use WooCommerce;
 
-/** Runs here rather than standalone: labels, archives, taxonomies and the indexed types are WordPress's. */
-final class SearchableTypesTest extends TestCase
+trait SearchableTypesSteps
 {
-    use PinsIndexedPostTypes;
-
     private const string NOTE = 'meili_test_note';
 
     private const string HIDDEN = 'meili_test_hidden';
@@ -43,232 +39,6 @@ final class SearchableTypesTest extends TestCase
         WooCommerceSearchableTypes::class,
         AcceptedSearchTypes::class,
     ];
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->pinIndexedPostTypes();
-    }
-
-    protected function tearDown(): void
-    {
-        $this->unpinIndexedPostTypes();
-        unregister_post_type(self::NOTE);
-        unregister_post_type(self::HIDDEN);
-
-        parent::tearDown();
-    }
-
-    #[Test]
-    public function it_binds_the_woocommerce_declaration_when_the_project_says_nothing(): void
-    {
-        $this->assertInstanceOf(WooCommerceSearchableTypes::class, $this->app->make(SearchableTypes::class));
-    }
-
-    #[Test]
-    public function it_declares_an_indexed_searchable_post_type_without_code(): void
-    {
-        register_post_type(self::NOTE, [
-            'public' => true,
-            'labels' => ['name' => 'Notes', 'all_items' => 'All notes'],
-        ]);
-        $this->index(['post', self::NOTE]);
-
-        $note = $this->withoutWooCommerce()->all()[self::NOTE];
-
-        $this->assertSame(
-            ['Notes', 'All notes', SearchableTypeFactory::CARD, null],
-            [$note->heading, $note->seeAllLabel, $note->card, $note->archive]
-        );
-        $this->assertSame(['post_type = "meili_test_note"', 'post_status = "publish"'], $note->baseFilter);
-    }
-
-    #[Test]
-    public function it_leaves_out_a_type_hidden_from_search_or_left_out_of_the_index(): void
-    {
-        register_post_type(self::HIDDEN, ['public' => true, 'exclude_from_search' => true]);
-        $this->index(['post', self::HIDDEN]);
-
-        $this->assertSame(['post'], array_keys($this->withoutWooCommerce()->all()));
-    }
-
-    #[Test]
-    public function it_reads_the_labels_and_the_archive_wordpress_gives_each_type(): void
-    {
-        $this->requireWooCommerce();
-
-        foreach ($this->withWooCommerce()->all() as $postType => $type) {
-            $labels = get_post_type_object($postType)->labels;
-
-            $this->assertSame(
-                [$labels->name, $labels->all_items, get_post_type_archive_link($postType)],
-                [$type->heading, $type->seeAllLabel, $type->archive],
-                $postType
-            );
-        }
-    }
-
-    #[Test]
-    public function it_leads_nowhere_for_a_type_without_archive(): void
-    {
-        $this->assertNull($this->factory()->forPostType('page')->archive);
-    }
-
-    #[Test]
-    public function it_declares_products_first_then_the_other_types_in_the_order_they_are_indexed(): void
-    {
-        $this->requireWooCommerce();
-        register_post_type(self::NOTE, ['public' => true]);
-        $this->index([self::NOTE, 'post', 'product']);
-
-        $this->assertSame(['product', self::NOTE, 'post'], array_keys($this->withWooCommerce()->all()));
-    }
-
-    #[Test]
-    public function it_declares_no_product_without_woocommerce(): void
-    {
-        $this->assertSame(['post'], array_keys($this->withoutWooCommerce()->all()));
-    }
-
-    #[Test]
-    public function it_searches_each_type_within_the_index_search_order(): void
-    {
-        $this->requireWooCommerce();
-
-        $order = $this->app->make(SearchableAttributes::class)->all();
-
-        foreach ($this->withWooCommerce()->all() as $type) {
-            $this->assertSame([], array_diff($type->searchOn, $order), $type->postType);
-        }
-    }
-
-    #[Test]
-    public function it_searches_posts_by_title_labels_and_excerpt_and_products_by_what_names_them(): void
-    {
-        $this->requireWooCommerce();
-
-        $types = $this->withWooCommerce()->all();
-        $postLabels = array_map(
-            static fn (string $taxonomy): string => 'labels.'.$taxonomy,
-            get_object_taxonomies('post')
-        );
-
-        $this->assertSame(
-            ['post_title', 'labels.product_brand', 'labels.product_cat', 'metas._sku'],
-            $types['product']->searchOn
-        );
-        $this->assertSame(['post_title', ...$postLabels, 'excerpt'], $types['post']->searchOn);
-    }
-
-    #[Test]
-    public function it_follows_an_order_the_project_narrowed(): void
-    {
-        $type = $this->factory($this->order(['post_title', 'content']))->forPostType('post');
-
-        $this->assertSame(['post_title'], $type->searchOn);
-    }
-
-    #[Test]
-    public function it_refuses_a_type_the_order_leaves_nothing_to_search(): void
-    {
-        $this->expectException(NoFieldToSearch::class);
-        $this->expectExceptionMessage('Post type "post" has no field to search');
-
-        $this->factory($this->order(['content']))->forPostType('post');
-    }
-
-    #[Test]
-    public function it_refuses_a_type_it_does_not_declare_naming_it_and_those_it_accepts(): void
-    {
-        $this->requireWooCommerce();
-
-        $this->expectException(SearchTypeRefused::class);
-        $this->expectExceptionMessage(
-            'Post type "page" is not searchable: declare it in SearchableTypes and index it in MeiliScout. '
-            .'Searchable here: product, post.'
-        );
-
-        $this->rootOf($this->accepted($this->withWooCommerce()))->type('page');
-    }
-
-    #[Test]
-    public function it_refuses_a_declared_type_meiliscout_does_not_index(): void
-    {
-        $page = $this->factory()->forPostType('page');
-        $declared = new readonly class($page) implements SearchableTypes
-        {
-            public function __construct(private SearchableType $page) {}
-
-            public function all(): array
-            {
-                return ['page' => $this->page];
-            }
-        };
-
-        $this->expectException(SearchTypeRefused::class);
-        $this->expectExceptionMessage('Post type "page" is not searchable');
-
-        $this->rootOf($this->accepted($declared))->type('page');
-    }
-
-    #[Test]
-    public function it_refuses_a_post_type_wordpress_does_not_know(): void
-    {
-        $this->expectException(SearchTypeRefused::class);
-        $this->expectExceptionMessage('Post type "meili_test_missing" is not registered');
-
-        $this->factory()->forPostType('meili_test_missing');
-    }
-
-    #[Test]
-    public function it_leaves_products_to_woocommerce_even_where_they_are_indexed(): void
-    {
-        $this->requireWooCommerce();
-
-        $wordPress = new WordPressSearchableTypes(new SearchablePostTypes(new IndexedPostTypes), $this->factory());
-
-        $this->assertSame(['post'], array_keys($wordPress->all()));
-    }
-
-    #[Test]
-    public function it_refuses_a_type_searched_on_a_field_outside_the_search_order(): void
-    {
-        $outside = new readonly class($this->withoutWooCommerce()) implements SearchableTypes
-        {
-            public function __construct(private SearchableTypes $default) {}
-
-            public function all(): array
-            {
-                $types = $this->default->all();
-                $types['post'] = $types['post']->withSearchOn(['post_title', 'url']);
-
-                return $types;
-            }
-        };
-
-        $this->expectException(UnsearchableFields::class);
-        $this->expectExceptionMessage('Post type "post" is searched on fields the index does not search: url.');
-
-        $this->accepted($outside)->all();
-    }
-
-    #[Test]
-    public function it_hands_out_what_the_decorator_of_the_documentation_corrects(): void
-    {
-        $this->forgetWiring();
-        $this->app->scoped(SearchableTypes::class, RetitledSearchableTypes::class);
-
-        try {
-            $post = $this->app->make(AcceptedSearchTypes::class)->all()['post'];
-        } finally {
-            $this->app->scoped(SearchableTypes::class, WooCommerceSearchableTypes::class);
-            $this->forgetWiring();
-        }
-
-        $this->assertSame(['News', 'All the news'], [$post->heading, $post->seeAllLabel]);
-        $this->assertSame(get_post_type_archive_link('post'), $post->archive);
-    }
 
     private function withWooCommerce(): WooCommerceSearchableTypes
     {
@@ -360,3 +130,182 @@ final class SearchableTypesTest extends TestCase
         }
     }
 }
+
+// Runs here rather than standalone: labels, archives, taxonomies and the indexed types are WordPress's.
+uses(TestCase::class, PinsIndexedPostTypes::class, SearchableTypesSteps::class);
+
+beforeEach(function (): void {
+    $this->pinIndexedPostTypes();
+});
+
+afterEach(function (): void {
+    $this->unpinIndexedPostTypes();
+    unregister_post_type(self::NOTE);
+    unregister_post_type(self::HIDDEN);
+});
+
+it('binds the woocommerce declaration when the project says nothing', function (): void {
+    expect($this->app->make(SearchableTypes::class))->toBeInstanceOf(WooCommerceSearchableTypes::class);
+});
+
+it('declares an indexed searchable post type without code', function (): void {
+    register_post_type(self::NOTE, [
+        'public' => true,
+        'labels' => ['name' => 'Notes', 'all_items' => 'All notes'],
+    ]);
+    $this->index(['post', self::NOTE]);
+
+    $note = $this->withoutWooCommerce()->all()[self::NOTE];
+
+    expect([$note->heading, $note->seeAllLabel, $note->card, $note->archive])->toBe(['Notes', 'All notes', SearchableTypeFactory::CARD, null]);
+    expect($note->baseFilter)->toBe(['post_type = "meili_test_note"', 'post_status = "publish"']);
+});
+
+it('leaves out a type hidden from search or left out of the index', function (): void {
+    register_post_type(self::HIDDEN, ['public' => true, 'exclude_from_search' => true]);
+    $this->index(['post', self::HIDDEN]);
+
+    expect(array_keys($this->withoutWooCommerce()->all()))->toBe(['post']);
+});
+
+it('reads the labels and the archive wordpress gives each type', function (): void {
+    $this->requireWooCommerce();
+
+    foreach ($this->withWooCommerce()->all() as $postType => $type) {
+        $labels = get_post_type_object($postType)->labels;
+
+        expect([$type->heading, $type->seeAllLabel, $type->archive])->toBe([$labels->name, $labels->all_items, get_post_type_archive_link($postType)], $postType);
+    }
+});
+
+it('leads nowhere for a type without archive', function (): void {
+    expect($this->factory()->forPostType('page')->archive)->toBeNull();
+});
+
+it('declares products first then the other types in the order they are indexed', function (): void {
+    $this->requireWooCommerce();
+    register_post_type(self::NOTE, ['public' => true]);
+    $this->index([self::NOTE, 'post', 'product']);
+
+    expect(array_keys($this->withWooCommerce()->all()))->toBe(['product', self::NOTE, 'post']);
+});
+
+it('declares no product without woocommerce', function (): void {
+    expect(array_keys($this->withoutWooCommerce()->all()))->toBe(['post']);
+});
+
+it('searches each type within the index search order', function (): void {
+    $this->requireWooCommerce();
+
+    $order = $this->app->make(SearchableAttributes::class)->all();
+
+    foreach ($this->withWooCommerce()->all() as $type) {
+        expect(array_diff($type->searchOn, $order))->toBe([], $type->postType);
+    }
+});
+
+it('searches posts by title labels and excerpt and products by what names them', function (): void {
+    $this->requireWooCommerce();
+
+    $types = $this->withWooCommerce()->all();
+    $postLabels = array_map(
+        static fn (string $taxonomy): string => 'labels.'.$taxonomy,
+        get_object_taxonomies('post')
+    );
+
+    expect($types['product']->searchOn)->toBe(['post_title', 'labels.product_brand', 'labels.product_cat', 'metas._sku']);
+    expect($types['post']->searchOn)->toBe(['post_title', ...$postLabels, 'excerpt']);
+});
+
+it('follows an order the project narrowed', function (): void {
+    $type = $this->factory($this->order(['post_title', 'content']))->forPostType('post');
+
+    expect($type->searchOn)->toBe(['post_title']);
+});
+
+it('refuses a type the order leaves nothing to search', function (): void {
+    $this->expectException(NoFieldToSearch::class);
+    $this->expectExceptionMessage('Post type "post" has no field to search');
+
+    $this->factory($this->order(['content']))->forPostType('post');
+});
+
+it('refuses a type it does not declare naming it and those it accepts', function (): void {
+    $this->requireWooCommerce();
+
+    $this->expectException(SearchTypeRefused::class);
+    $this->expectExceptionMessage(
+        'Post type "page" is not searchable: declare it in SearchableTypes and index it in MeiliScout. '
+        .'Searchable here: product, post.'
+    );
+
+    $this->rootOf($this->accepted($this->withWooCommerce()))->type('page');
+});
+
+it('refuses a declared type meiliscout does not index', function (): void {
+    $page = $this->factory()->forPostType('page');
+    $declared = new readonly class($page) implements SearchableTypes
+    {
+        public function __construct(private SearchableType $page) {}
+
+        public function all(): array
+        {
+            return ['page' => $this->page];
+        }
+    };
+
+    $this->expectException(SearchTypeRefused::class);
+    $this->expectExceptionMessage('Post type "page" is not searchable');
+
+    $this->rootOf($this->accepted($declared))->type('page');
+});
+
+it('refuses a post type wordpress does not know', function (): void {
+    $this->expectException(SearchTypeRefused::class);
+    $this->expectExceptionMessage('Post type "meili_test_missing" is not registered');
+
+    $this->factory()->forPostType('meili_test_missing');
+});
+
+it('leaves products to woocommerce even where they are indexed', function (): void {
+    $this->requireWooCommerce();
+
+    $wordPress = new WordPressSearchableTypes(new SearchablePostTypes(new IndexedPostTypes), $this->factory());
+
+    expect(array_keys($wordPress->all()))->toBe(['post']);
+});
+
+it('refuses a type searched on a field outside the search order', function (): void {
+    $outside = new readonly class($this->withoutWooCommerce()) implements SearchableTypes
+    {
+        public function __construct(private SearchableTypes $default) {}
+
+        public function all(): array
+        {
+            $types = $this->default->all();
+            $types['post'] = $types['post']->withSearchOn(['post_title', 'url']);
+
+            return $types;
+        }
+    };
+
+    $this->expectException(UnsearchableFields::class);
+    $this->expectExceptionMessage('Post type "post" is searched on fields the index does not search: url.');
+
+    $this->accepted($outside)->all();
+});
+
+it('hands out what the decorator of the documentation corrects', function (): void {
+    $this->forgetWiring();
+    $this->app->scoped(SearchableTypes::class, RetitledSearchableTypes::class);
+
+    try {
+        $post = $this->app->make(AcceptedSearchTypes::class)->all()['post'];
+    } finally {
+        $this->app->scoped(SearchableTypes::class, WooCommerceSearchableTypes::class);
+        $this->forgetWiring();
+    }
+
+    expect([$post->heading, $post->seeAllLabel])->toBe(['News', 'All the news']);
+    expect($post->archive)->toBe(get_post_type_archive_link('post'));
+});

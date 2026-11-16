@@ -9,40 +9,10 @@ use Modules\MeiliFacets\Enums\PaginationSetting;
 use Modules\MeiliFacets\Indexing\EmptyIndexAttributes;
 use Modules\MeiliFacets\Indexing\FacetedPostIndexable;
 use Modules\MeiliFacets\Search\EngineLimits;
-use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-/**
- * The ceiling the module reasons about and the one the engine enforces were two
- * values kept in step by hand. Now the module writes what it declares.
- *
- * Runs here rather than in the standalone suite: `getIndexSettings()` calls up
- * into MeiliScout, which reads WordPress options.
- */
-final class IndexPaginationTest extends TestCase
+trait IndexPaginationSteps
 {
-    #[Test]
-    public function it_writes_the_ceiling_it_declares(): void
-    {
-        $settings = $this->settingsFor(new EngineLimits(2500));
-
-        $this->assertSame(
-            2500,
-            $settings[IndexSetting::Pagination->value][PaginationSetting::MaxTotalHits->value]
-        );
-    }
-
-    #[Test]
-    public function it_writes_the_engine_default_when_nothing_says_otherwise(): void
-    {
-        $settings = $this->settingsFor(new EngineLimits(EngineLimits::DEFAULT_REACHABLE_HITS));
-
-        $this->assertSame(
-            1000,
-            $settings[IndexSetting::Pagination->value][PaginationSetting::MaxTotalHits->value]
-        );
-    }
-
     /**
      * @return array<string, mixed>
      */
@@ -53,3 +23,22 @@ final class IndexPaginationTest extends TestCase
         return $this->app->make(FacetedPostIndexable::class, $attributes)->getIndexSettings();
     }
 }
+
+// The ceiling the module reasons about and the one the engine enforces were two
+// values kept in step by hand. Now the module writes what it declares.
+//
+// Runs here rather than in the standalone suite: `getIndexSettings()` calls up
+// into MeiliScout, which reads WordPress options.
+uses(TestCase::class, IndexPaginationSteps::class);
+
+it('writes the ceiling it declares', function (): void {
+    $settings = $this->settingsFor(new EngineLimits(2500));
+
+    expect($settings[IndexSetting::Pagination->value][PaginationSetting::MaxTotalHits->value])->toBe(2500);
+});
+
+it('writes the engine default when nothing says otherwise', function (): void {
+    $settings = $this->settingsFor(new EngineLimits(EngineLimits::DEFAULT_REACHABLE_HITS));
+
+    expect($settings[IndexSetting::Pagination->value][PaginationSetting::MaxTotalHits->value])->toBe(1000);
+});
