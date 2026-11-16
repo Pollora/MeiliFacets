@@ -214,6 +214,13 @@ if (! function_exists('wp_get_canonical_url')) {
     }
 }
 
+if (! function_exists('_prime_post_caches')) {
+    function _prime_post_caches(array $ids, bool $update_term_cache = true, bool $update_meta_cache = true): void
+    {
+        WordPress::call('_prime_post_caches', [$ids, $update_term_cache, $update_meta_cache], static fn (): null => null);
+    }
+}
+
 // The long tail: each name answers only what a test faked, and raises on any other call. They take any arguments
 // because no test here exercises WordPress's own signatures, only what the module does with the answers.
 foreach ([
@@ -244,7 +251,6 @@ foreach ([
     'wp_strip_all_tags',
     'update_meta_cache',
     'is_taxonomy_hierarchical',
-    '_prime_post_caches',
     'get_post_type_object',
     'get_post_type_archive_link',
     'get_option',
