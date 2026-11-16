@@ -12,7 +12,6 @@ use Modules\MeiliFacets\Indexing\PostDocument;
 use Modules\MeiliFacets\Indexing\WooCommerce\ProductPriceProjector;
 use Modules\MeiliFacets\Indexing\WooCommerce\ShopTaxLocation;
 use Modules\MeiliFacets\Tests\Feature\Concerns\KeepsTheIndexOut;
-use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 use WC_Customer;
 use WC_Product;
@@ -23,10 +22,8 @@ use WC_Product_Variation;
 use WooCommerce;
 use WP_Post;
 
-final class ShownPriceProjectionTest extends TestCase
+trait ShownPriceProjectionHelpers
 {
-    use KeepsTheIndexOut;
-
     private const string SHOP = 'FR';
 
     private const string ELSEWHERE = 'BE';
@@ -60,124 +57,6 @@ final class ShownPriceProjectionTest extends TestCase
 
     /** @var list<WC_Product> */
     private array $created = [];
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        if (! class_exists(WooCommerce::class)) {
-            $this->markTestSkipped('Prices are WooCommerce\'s.');
-        }
-    }
-
-    protected function tearDown(): void
-    {
-        foreach (array_reverse($this->created) as $product) {
-            $product->delete(true);
-        }
-
-        parent::tearDown();
-    }
-
-    #[Test]
-    public function it_indexes_a_price_entered_without_tax_as_the_shop_shows_it_with_tax(): void
-    {
-        $product = $this->simple('50');
-
-        $this->assertSame([60.0, 60.0], $this->enteredWithoutTaxShownWithTax(fn (): array => $this->range($product)));
-    }
-
-    #[Test]
-    public function it_indexes_a_price_entered_with_tax_as_the_shop_shows_it_without_tax(): void
-    {
-        $product = $this->simple('50');
-        $range = $this->enteredWithTaxShownWithoutTax(fn (): array => $this->range($product));
-
-        $this->assertEqualsWithDelta(41.666667, $range[0], 0.000001);
-    }
-
-    #[Test]
-    public function it_indexes_the_sale_price_a_product_on_sale_is_billed(): void
-    {
-        $product = $this->simple('50', sale: '40');
-
-        $this->assertSame([48.0, 48.0], $this->enteredWithoutTaxShownWithTax(fn (): array => $this->range($product)));
-    }
-
-    #[Test]
-    public function it_indexes_the_range_a_variable_product_shows(): void
-    {
-        $product = $this->variable(['10', '20']);
-
-        $this->assertSame([12.0, 24.0], $this->enteredWithoutTaxShownWithTax(fn (): array => $this->range($product)));
-    }
-
-    #[Test]
-    public function it_indexes_the_range_a_grouped_product_shows(): void
-    {
-        $product = $this->grouped(['10', '20']);
-
-        $this->assertSame([12.0, 24.0], $this->enteredWithoutTaxShownWithTax(fn (): array => $this->range($product)));
-    }
-
-    #[Test]
-    public function it_skips_a_grouped_child_without_a_price_as_the_card_does(): void
-    {
-        $product = $this->grouped(['', '10', '20']);
-
-        $this->assertSame([12.0, 24.0], $this->enteredWithoutTaxShownWithTax(fn (): array => $this->range($product)));
-    }
-
-    #[Test]
-    public function it_indexes_no_price_for_a_grouped_product_whose_card_shows_none(): void
-    {
-        $this->assertSame([], $this->projected($this->grouped(['', ''])));
-    }
-
-    #[Test]
-    public function it_indexes_no_price_for_a_grouped_product_a_theme_labels_instead(): void
-    {
-        $product = $this->grouped(['', '']);
-        $label = static fn (): string => 'Price on request';
-        add_filter(self::EMPTY_GROUPED_PRICE_HTML, $label);
-
-        try {
-            $this->assertSame([], $this->projected($product));
-        } finally {
-            remove_filter(self::EMPTY_GROUPED_PRICE_HTML, $label);
-        }
-    }
-
-    #[Test]
-    public function it_keeps_a_grouped_product_of_free_children_at_zero(): void
-    {
-        $this->assertSame([0.0, 0.0], $this->range($this->grouped(['0', '0'])));
-    }
-
-    #[Test]
-    public function it_taxes_price_and_card_at_the_shop_address_whoever_is_in_session(): void
-    {
-        $product = $this->simple('50');
-        $postDocument = $this->app->make(PostDocument::class);
-        $customer = WC()->customer;
-        WC()->customer = new WC_Customer;
-        WC()->customer->set_shipping_country(self::ELSEWHERE);
-        WC()->customer->set_billing_country(self::ELSEWHERE);
-
-        try {
-            $document = $this->enteredWithoutTaxShownWithTax(
-                fn (): array => $postDocument->complete([], $this->postOf($product))
-            );
-        } finally {
-            WC()->customer = $customer;
-        }
-
-        $this->assertSame(60.0, $document[DocumentField::Price->value][PriceField::Min->value]);
-        $this->assertSame(
-            wp_strip_all_tags(wc_price(60)),
-            wp_strip_all_tags((string) $document[DocumentField::Card->value][CardField::Price->value])
-        );
-    }
 
     /**
      * @template T
@@ -367,3 +246,94 @@ final class ShownPriceProjectionTest extends TestCase
         return $post;
     }
 }
+
+uses(TestCase::class, KeepsTheIndexOut::class, ShownPriceProjectionHelpers::class);
+
+beforeEach(function (): void {
+    if (! class_exists(WooCommerce::class)) {
+        $this->markTestSkipped('Prices are WooCommerce\'s.');
+    }
+});
+
+afterEach(function (): void {
+    foreach (array_reverse($this->created) as $product) {
+        $product->delete(true);
+    }
+});
+
+it('indexes a price entered without tax as the shop shows it with tax', function (): void {
+    $product = $this->simple('50');
+
+    expect($this->enteredWithoutTaxShownWithTax(fn (): array => $this->range($product)))->toBe([60.0, 60.0]);
+});
+
+it('indexes a price entered with tax as the shop shows it without tax', function (): void {
+    $product = $this->simple('50');
+    $range = $this->enteredWithTaxShownWithoutTax(fn (): array => $this->range($product));
+
+    $this->assertEqualsWithDelta(41.666667, $range[0], 0.000001);
+});
+
+it('indexes the sale price a product on sale is billed', function (): void {
+    $product = $this->simple('50', sale: '40');
+
+    expect($this->enteredWithoutTaxShownWithTax(fn (): array => $this->range($product)))->toBe([48.0, 48.0]);
+});
+
+it('indexes the range a variable product shows', function (): void {
+    $product = $this->variable(['10', '20']);
+
+    expect($this->enteredWithoutTaxShownWithTax(fn (): array => $this->range($product)))->toBe([12.0, 24.0]);
+});
+
+it('indexes the range a grouped product shows', function (): void {
+    $product = $this->grouped(['10', '20']);
+
+    expect($this->enteredWithoutTaxShownWithTax(fn (): array => $this->range($product)))->toBe([12.0, 24.0]);
+});
+
+it('skips a grouped child without a price as the card does', function (): void {
+    $product = $this->grouped(['', '10', '20']);
+
+    expect($this->enteredWithoutTaxShownWithTax(fn (): array => $this->range($product)))->toBe([12.0, 24.0]);
+});
+
+it('indexes no price for a grouped product whose card shows none', function (): void {
+    expect($this->projected($this->grouped(['', ''])))->toBe([]);
+});
+
+it('indexes no price for a grouped product a theme labels instead', function (): void {
+    $product = $this->grouped(['', '']);
+    $label = static fn (): string => 'Price on request';
+    add_filter(self::EMPTY_GROUPED_PRICE_HTML, $label);
+
+    try {
+        expect($this->projected($product))->toBe([]);
+    } finally {
+        remove_filter(self::EMPTY_GROUPED_PRICE_HTML, $label);
+    }
+});
+
+it('keeps a grouped product of free children at zero', function (): void {
+    expect($this->range($this->grouped(['0', '0'])))->toBe([0.0, 0.0]);
+});
+
+it('taxes price and card at the shop address whoever is in session', function (): void {
+    $product = $this->simple('50');
+    $postDocument = $this->app->make(PostDocument::class);
+    $customer = WC()->customer;
+    WC()->customer = new WC_Customer;
+    WC()->customer->set_shipping_country(self::ELSEWHERE);
+    WC()->customer->set_billing_country(self::ELSEWHERE);
+
+    try {
+        $document = $this->enteredWithoutTaxShownWithTax(
+            fn (): array => $postDocument->complete([], $this->postOf($product))
+        );
+    } finally {
+        WC()->customer = $customer;
+    }
+
+    expect($document[DocumentField::Price->value][PriceField::Min->value])->toBe(60.0);
+    expect(wp_strip_all_tags((string) $document[DocumentField::Card->value][CardField::Price->value]))->toBe(wp_strip_all_tags(wc_price(60)));
+});

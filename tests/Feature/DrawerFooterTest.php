@@ -11,197 +11,170 @@ use Modules\MeiliFacets\Tests\Feature\Concerns\FindsHooks;
 use Modules\MeiliFacets\Tests\Feature\Concerns\HoldsCatalogueValues;
 use Modules\MeiliFacets\Tests\Feature\Concerns\RendersTheModuleViews;
 use Modules\MeiliFacets\Tests\Feature\Concerns\SwitchesApplyMode;
-use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-/** Step 5b: « Apply (X) » on its own, and « Clear all » drawn as an icon, for the footer of the drawer. */
-final class DrawerFooterTest extends TestCase
+trait DrawerFooterHelpers
 {
-    use FindsHooks;
-    use HoldsCatalogueValues;
-    use RendersTheModuleViews;
-    use SwitchesApplyMode;
-
     private mixed $applyMode;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->applyMode = config('meilifacets.apply_mode');
-        $this->app->forgetScopedInstances();
-        $this->renderTheModuleViews();
-    }
-
-    /** The suite shares one application: a mode or an address left here would reach a later class. */
-    protected function tearDown(): void
-    {
-        $this->restoreTheThemeViews();
-        $this->useApplyMode($this->applyMode);
-        request()->query->replace([]);
-        $this->app->forgetScopedInstances();
-
-        parent::tearDown();
-    }
-
-    #[Test]
-    public function it_renders_apply_with_the_count_it_would_apply_when_the_listing_waits_for_it(): void
-    {
-        $this->useApplyMode('submit');
-        $this->holdTwoValues();
-
-        $apply = $this->rendered('<x-meilifacets::listing.apply name="products" />')->querySelector($this->hooked(Hook::Apply));
-        $count = $apply->querySelector($this->hooked(Hook::ActiveCount));
-
-        $this->assertSame('button', $apply->getAttribute('type'));
-        $this->assertSame('pill', $apply->getAttribute('data-shape'));
-        $this->assertSame(__('Apply'), trim($apply->firstChild->textContent));
-        $this->assertSame('2', $count->textContent);
-        $this->assertSame($count->getAttribute('id'), $apply->getAttribute('aria-describedby'));
-        $this->assertSame('true', $count->getAttribute('aria-hidden'));
-    }
-
-    /** C-1: in `immediate` the button is a landmark of the drawer, rendered only when asked. */
-    #[Test]
-    public function it_renders_apply_in_immediate_only_when_visible_in_drawer(): void
-    {
-        $this->useApplyMode('immediate');
-
-        $this->assertNull($this->rendered('<x-meilifacets::listing.apply name="products" />')->querySelector($this->hooked(Hook::Apply)));
-        $this->assertNotNull($this->rendered('<x-meilifacets::listing.apply name="products" visible-in-drawer />')->querySelector($this->hooked(Hook::Apply)));
-    }
-
-    /** In `immediate` every box searches already: the button only marks the way out of the sheet, and the sheet alone shows it. */
-    #[Test]
-    public function it_marks_apply_for_the_sheet_only_when_the_listing_searches_at_once(): void
-    {
-        $this->useApplyMode('immediate');
-        $immediate = $this->rendered('<x-meilifacets::listing.apply name="products" visible-in-drawer />')->querySelector($this->hooked(Hook::Apply));
-        $this->app->forgetScopedInstances();
-        $this->useApplyMode('submit');
-        $submit = $this->rendered('<x-meilifacets::listing.apply name="products" visible-in-drawer />')->querySelector($this->hooked(Hook::Apply));
-
-        $this->assertSame('sheet', $immediate->getAttribute('data-only'));
-        $this->assertFalse($submit->hasAttribute('data-only'));
-    }
-
-    #[Test]
-    public function it_hides_and_empties_the_count_while_nothing_is_held(): void
-    {
-        $this->useApplyMode('submit');
-
-        $count = $this->rendered('<x-meilifacets::listing.apply name="products" />')->querySelector($this->hooked(Hook::ActiveCount));
-
-        $this->assertTrue($count->hasAttribute('hidden'));
-        $this->assertSame('', $count->textContent);
-    }
-
-    #[Test]
-    public function the_group_hands_its_button_over_when_asked(): void
-    {
-        $this->useApplyMode('submit');
-
-        $this->assertStringNotContainsString(Hook::Apply->attribute()->toHtml(), Blade::render('<x-meilifacets::listing.facets name="products" :with-apply="false" />'));
-    }
-
-    #[Test]
-    public function the_group_renders_its_button_unless_asked(): void
-    {
-        $this->useApplyMode('submit');
-        $explicit = Blade::render('<x-meilifacets::listing.facets name="products" :with-apply="true" />');
-        $this->app->forgetScopedInstances();
-
-        $this->assertSame($explicit, Blade::render('<x-meilifacets::listing.facets name="products" />'));
-        $this->assertStringContainsString(Hook::Apply->attribute()->toHtml(), $explicit);
-    }
-
-    /** The column keeps its look: a block named in words, with no count, through the one « Apply » component. */
-    #[Test]
-    public function the_group_renders_the_apply_component_as_a_block(): void
-    {
-        $this->useApplyMode('submit');
-        $this->holdTwoValues();
-
-        $group = $this->rendered('<x-meilifacets::listing.facets name="products" />')->querySelector($this->hooked(Hook::Facets));
-        $applies = $group->querySelectorAll($this->hooked(Hook::Apply));
-        $apply = $applies[0];
-
-        $this->assertCount(1, $applies);
-        $this->assertSame('meilifacetsApply', $apply->getAttribute('class'));
-        $this->assertSame(__('Apply filters'), trim($apply->textContent));
-        $this->assertFalse($apply->hasAttribute('data-shape'));
-        $this->assertFalse($apply->hasAttribute('aria-describedby'));
-        $this->assertNull($apply->querySelector($this->hooked(Hook::ActiveCount)));
-    }
-
-    #[Test]
-    public function it_draws_clear_all_as_an_icon_named_by_its_words(): void
-    {
-        $this->holdTwoValues();
-
-        $reset = $this->rendered('<x-meilifacets::listing.reset name="products" shape="icon" />')->querySelector($this->hooked(Hook::Reset));
-        $image = $reset->querySelector('img');
-
-        $this->assertSame(__('Clear all'), $reset->getAttribute('aria-label'));
-        $this->assertSame('icon', $reset->getAttribute('data-shape'));
-        $this->assertSame('', trim($reset->textContent));
-        $this->assertStringEndsWith('/modules/meilifacets/images/trash.svg', $image->getAttribute('src'));
-        $this->assertSame('', $image->getAttribute('alt'));
-        $this->assertSame(['20', '20', 'lazy', 'low'], [
-            $image->getAttribute('width'), $image->getAttribute('height'), $image->getAttribute('loading'), $image->getAttribute('fetchpriority'),
-        ]);
-    }
-
-    #[Test]
-    public function it_takes_the_icon_a_theme_gives_and_none_when_the_slot_is_empty(): void
-    {
-        $given = $this->rendered('<x-meilifacets::listing.reset name="products" shape="icon"><x-slot:icon><svg id="bin"></svg></x-slot:icon></x-meilifacets::listing.reset>')
-            ->querySelector($this->hooked(Hook::Reset));
-        $this->app->forgetScopedInstances();
-        $emptied = $this->rendered('<x-meilifacets::listing.reset name="products" shape="icon"><x-slot:icon></x-slot:icon></x-meilifacets::listing.reset>')
-            ->querySelector($this->hooked(Hook::Reset));
-
-        $this->assertNotNull($given->querySelector('svg#bin'));
-        $this->assertNull($given->querySelector('img'));
-        $this->assertSame('true', $given->firstElementChild->getAttribute('aria-hidden'));
-        $this->assertSame(0, $emptied->childElementCount);
-        $this->assertSame(__('Clear all'), $emptied->getAttribute('aria-label'));
-    }
-
-    /** The text variant is the default, and it renders as it always has. */
-    #[Test]
-    public function it_renders_the_text_reset_unchanged_without_a_shape(): void
-    {
-        $reset = $this->rendered('<x-meilifacets::listing.reset name="products" />')->querySelector($this->hooked(Hook::Reset));
-
-        $this->assertSame(__('Clear all'), trim($reset->textContent));
-        $this->assertFalse($reset->hasAttribute('aria-label'));
-        $this->assertFalse($reset->hasAttribute('data-shape'));
-    }
-
-    /** A variant beside the default, never in its place. */
-    #[Test]
-    public function it_marks_the_pill_reset_and_only_it(): void
-    {
-        $pill = $this->rendered('<x-meilifacets::listing.reset name="products" shape="pill" />')->querySelector($this->hooked(Hook::Reset));
-        $text = $this->rendered('<x-meilifacets::listing.reset name="products" shape="text" />')->querySelector($this->hooked(Hook::Reset));
-
-        $this->assertSame('pill', $pill->getAttribute('data-shape'));
-        $this->assertSame(__('Clear all'), trim($pill->textContent));
-        $this->assertFalse($text->hasAttribute('data-shape'));
-    }
-
-    #[Test]
-    public function it_points_at_a_trash_icon_that_was_published(): void
-    {
-        $published = public_path('modules/meilifacets/images/trash.svg');
-
-        $this->assertFileExists($published);
-        $this->assertFileEquals(module_path('MeiliFacets', 'resources/assets/images/trash.svg'), $published);
-    }
 
     private function rendered(string $blade): HTMLDocument
     {
         return HTMLDocument::createFromString('<div>'.Blade::render($blade).'</div>', LIBXML_NOERROR);
     }
 }
+
+/** Step 5b: « Apply (X) » on its own, and « Clear all » drawn as an icon, for the footer of the drawer. */
+uses(
+    TestCase::class,
+    FindsHooks::class,
+    HoldsCatalogueValues::class,
+    RendersTheModuleViews::class,
+    SwitchesApplyMode::class,
+    DrawerFooterHelpers::class,
+);
+
+beforeEach(function (): void {
+    $this->applyMode = config('meilifacets.apply_mode');
+    $this->app->forgetScopedInstances();
+    $this->renderTheModuleViews();
+});
+
+/** The suite shares one application: a mode or an address left here would reach a later class. */
+afterEach(function (): void {
+    $this->restoreTheThemeViews();
+    $this->useApplyMode($this->applyMode);
+    request()->query->replace([]);
+    $this->app->forgetScopedInstances();
+});
+
+it('renders apply with the count it would apply when the listing waits for it', function (): void {
+    $this->useApplyMode('submit');
+    $this->holdTwoValues();
+
+    $apply = $this->rendered('<x-meilifacets::listing.apply name="products" />')->querySelector($this->hooked(Hook::Apply));
+    $count = $apply->querySelector($this->hooked(Hook::ActiveCount));
+
+    expect($apply->getAttribute('type'))->toBe('button');
+    expect($apply->getAttribute('data-shape'))->toBe('pill');
+    expect(trim($apply->firstChild->textContent))->toBe(__('Apply'));
+    expect($count->textContent)->toBe('2');
+    expect($apply->getAttribute('aria-describedby'))->toBe($count->getAttribute('id'));
+    expect($count->getAttribute('aria-hidden'))->toBe('true');
+});
+
+/** C-1: in `immediate` the button is a landmark of the drawer, rendered only when asked. */
+it('renders apply in immediate only when visible in drawer', function (): void {
+    $this->useApplyMode('immediate');
+
+    expect($this->rendered('<x-meilifacets::listing.apply name="products" />')->querySelector($this->hooked(Hook::Apply)))->toBeNull();
+    expect($this->rendered('<x-meilifacets::listing.apply name="products" visible-in-drawer />')->querySelector($this->hooked(Hook::Apply)))->not->toBeNull();
+});
+
+/** In `immediate` every box searches already: the button only marks the way out of the sheet, and the sheet alone shows it. */
+it('marks apply for the sheet only when the listing searches at once', function (): void {
+    $this->useApplyMode('immediate');
+    $immediate = $this->rendered('<x-meilifacets::listing.apply name="products" visible-in-drawer />')->querySelector($this->hooked(Hook::Apply));
+    $this->app->forgetScopedInstances();
+    $this->useApplyMode('submit');
+    $submit = $this->rendered('<x-meilifacets::listing.apply name="products" visible-in-drawer />')->querySelector($this->hooked(Hook::Apply));
+
+    expect($immediate->getAttribute('data-only'))->toBe('sheet');
+    expect($submit->hasAttribute('data-only'))->toBeFalse();
+});
+
+it('hides and empties the count while nothing is held', function (): void {
+    $this->useApplyMode('submit');
+
+    $count = $this->rendered('<x-meilifacets::listing.apply name="products" />')->querySelector($this->hooked(Hook::ActiveCount));
+
+    expect($count->hasAttribute('hidden'))->toBeTrue();
+    expect($count->textContent)->toBe('');
+});
+
+it('the group hands its button over when asked', function (): void {
+    $this->useApplyMode('submit');
+
+    expect(Blade::render('<x-meilifacets::listing.facets name="products" :with-apply="false" />'))->not->toContain(Hook::Apply->attribute()->toHtml());
+});
+
+it('the group renders its button unless asked', function (): void {
+    $this->useApplyMode('submit');
+    $explicit = Blade::render('<x-meilifacets::listing.facets name="products" :with-apply="true" />');
+    $this->app->forgetScopedInstances();
+
+    expect(Blade::render('<x-meilifacets::listing.facets name="products" />'))->toBe($explicit);
+    expect($explicit)->toContain(Hook::Apply->attribute()->toHtml());
+});
+
+/** The column keeps its look: a block named in words, with no count, through the one « Apply » component. */
+it('the group renders the apply component as a block', function (): void {
+    $this->useApplyMode('submit');
+    $this->holdTwoValues();
+
+    $group = $this->rendered('<x-meilifacets::listing.facets name="products" />')->querySelector($this->hooked(Hook::Facets));
+    $applies = $group->querySelectorAll($this->hooked(Hook::Apply));
+    $apply = $applies[0];
+
+    expect($applies)->toHaveCount(1);
+    expect($apply->getAttribute('class'))->toBe('meilifacetsApply');
+    expect(trim($apply->textContent))->toBe(__('Apply filters'));
+    expect($apply->hasAttribute('data-shape'))->toBeFalse();
+    expect($apply->hasAttribute('aria-describedby'))->toBeFalse();
+    expect($apply->querySelector($this->hooked(Hook::ActiveCount)))->toBeNull();
+});
+
+it('draws clear all as an icon named by its words', function (): void {
+    $this->holdTwoValues();
+
+    $reset = $this->rendered('<x-meilifacets::listing.reset name="products" shape="icon" />')->querySelector($this->hooked(Hook::Reset));
+    $image = $reset->querySelector('img');
+
+    expect($reset->getAttribute('aria-label'))->toBe(__('Clear all'));
+    expect($reset->getAttribute('data-shape'))->toBe('icon');
+    expect(trim($reset->textContent))->toBe('');
+    expect($image->getAttribute('src'))->toEndWith('/modules/meilifacets/images/trash.svg');
+    expect($image->getAttribute('alt'))->toBe('');
+    expect([
+        $image->getAttribute('width'), $image->getAttribute('height'), $image->getAttribute('loading'), $image->getAttribute('fetchpriority'),
+    ])->toBe(['20', '20', 'lazy', 'low']);
+});
+
+it('takes the icon a theme gives and none when the slot is empty', function (): void {
+    $given = $this->rendered('<x-meilifacets::listing.reset name="products" shape="icon"><x-slot:icon><svg id="bin"></svg></x-slot:icon></x-meilifacets::listing.reset>')
+        ->querySelector($this->hooked(Hook::Reset));
+    $this->app->forgetScopedInstances();
+    $emptied = $this->rendered('<x-meilifacets::listing.reset name="products" shape="icon"><x-slot:icon></x-slot:icon></x-meilifacets::listing.reset>')
+        ->querySelector($this->hooked(Hook::Reset));
+
+    expect($given->querySelector('svg#bin'))->not->toBeNull();
+    expect($given->querySelector('img'))->toBeNull();
+    expect($given->firstElementChild->getAttribute('aria-hidden'))->toBe('true');
+    expect($emptied->childElementCount)->toBe(0);
+    expect($emptied->getAttribute('aria-label'))->toBe(__('Clear all'));
+});
+
+/** The text variant is the default, and it renders as it always has. */
+it('renders the text reset unchanged without a shape', function (): void {
+    $reset = $this->rendered('<x-meilifacets::listing.reset name="products" />')->querySelector($this->hooked(Hook::Reset));
+
+    expect(trim($reset->textContent))->toBe(__('Clear all'));
+    expect($reset->hasAttribute('aria-label'))->toBeFalse();
+    expect($reset->hasAttribute('data-shape'))->toBeFalse();
+});
+
+/** A variant beside the default, never in its place. */
+it('marks the pill reset and only it', function (): void {
+    $pill = $this->rendered('<x-meilifacets::listing.reset name="products" shape="pill" />')->querySelector($this->hooked(Hook::Reset));
+    $text = $this->rendered('<x-meilifacets::listing.reset name="products" shape="text" />')->querySelector($this->hooked(Hook::Reset));
+
+    expect($pill->getAttribute('data-shape'))->toBe('pill');
+    expect(trim($pill->textContent))->toBe(__('Clear all'));
+    expect($text->hasAttribute('data-shape'))->toBeFalse();
+});
+
+it('points at a trash icon that was published', function (): void {
+    $published = public_path('modules/meilifacets/images/trash.svg');
+
+    $this->assertFileExists($published);
+    $this->assertFileEquals(module_path('MeiliFacets', 'resources/assets/images/trash.svg'), $published);
+});

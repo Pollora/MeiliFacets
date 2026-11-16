@@ -10,173 +10,17 @@ use Modules\MeiliFacets\Enums\PriceField;
 use Modules\MeiliFacets\Enums\ProductMeta;
 use Modules\MeiliFacets\Indexing\WooCommerce\ProductPriceProjector;
 use Modules\MeiliFacets\Tests\Feature\Concerns\KeepsTheIndexOut;
-use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 use WC_Data_Store;
 use WC_Product;
 use WC_Product_Simple;
 use WP_Post;
 
-/**
- * Expectations come from WooCommerce itself rather than from this catalogue, so
- * adding a product cannot make the suite wrong.
- */
-final class ProductPriceProjectionTest extends TestCase
+trait ProductPriceProjectionHelpers
 {
-    use KeepsTheIndexOut;
-
     private const string AMOUNT = '.woocommerce-Price-amount';
 
     private const string NOT_BILLED = 'del, .woocommerce-price-suffix';
-
-    #[Test]
-    public function it_indexes_the_prices_the_card_bills(): void
-    {
-        foreach ($this->products() as $product) {
-            $billed = $this->billedAmounts($product);
-            $price = $this->project($product);
-
-            if ($billed === []) {
-                $this->assertSame([], $price, $this->say($product));
-
-                continue;
-            }
-
-            $this->assertNotSame([], $price, $this->say($product));
-            foreach ([PriceField::Min, PriceField::Max] as $end) {
-                $this->assertContains($this->plain(wc_price($price[$end->value])), $billed, $this->say($product));
-            }
-        }
-    }
-
-    /** A variable or grouped product spans its children, which is the whole point. */
-    #[Test]
-    public function it_gives_a_product_with_several_prices_an_interval(): void
-    {
-        $spanning = array_filter(
-            $this->products(),
-            fn (WC_Product $product): bool => count($this->distinctPrices($product)) > 1
-        );
-
-        $this->assertNotEmpty($spanning, 'No product in the catalogue carries more than one price.');
-
-        foreach ($spanning as $product) {
-            $price = $this->project($product);
-
-            $this->assertLessThan($price[PriceField::Max->value], $price[PriceField::Min->value], $this->say($product));
-        }
-    }
-
-    /** WooCommerce's own list: a variation on sale lists its parent, a grouped product is never listed. */
-    #[Test]
-    public function it_puts_on_sale_exactly_what_woocommerce_lists_as_on_sale(): void
-    {
-        $rows = WC_Data_Store::load('product')->get_on_sale_products();
-        $listed = [...array_column($rows, 'id'), ...array_column($rows, 'parent_id')];
-
-        foreach ($this->products() as $product) {
-            $this->assertSame(
-                in_array((string) $product->get_id(), array_map(strval(...), $listed), true),
-                $this->project($product)[PriceField::OnSale->value] ?? false,
-                $this->say($product)
-            );
-        }
-    }
-
-    /** R-112: the sale has begun by its dates, but the price billed has not switched yet. */
-    #[Test]
-    public function it_leaves_off_sale_a_product_still_billed_at_full_price(): void
-    {
-        $product = new WC_Product_Simple;
-        $product->set_name('Sale not switched yet, for the test');
-        $product->set_regular_price('30');
-        $product->set_sale_price('20');
-        $product->save();
-        update_post_meta($product->get_id(), ProductMeta::Price->value, '30');
-
-        try {
-            $this->assertTrue(wc_get_product($product->get_id())->is_on_sale());
-            $this->assertFalse($this->project(wc_get_product($product->get_id()))[PriceField::OnSale->value]);
-        } finally {
-            $product->delete(true);
-        }
-    }
-
-    /** Projecting 0 would make it look free, and a `>= 0` filter would return it. */
-    #[Test]
-    public function it_projects_nothing_for_a_product_that_carries_no_price(): void
-    {
-        $product = new WC_Product_Simple;
-        $product->set_name('Priceless, for the test');
-        $product->save();
-
-        try {
-            $this->assertSame([], $this->project($product));
-        } finally {
-            $product->delete(true);
-        }
-    }
-
-    #[Test]
-    public function it_projects_nothing_for_a_product_whose_price_was_emptied(): void
-    {
-        $product = new WC_Product_Simple;
-        $product->set_name('Price emptied, for the test');
-        $product->set_regular_price('30');
-        $product->save();
-        $product->set_regular_price('');
-        $product->save();
-
-        try {
-            $this->assertSame([''], get_post_meta($product->get_id(), ProductMeta::Price->value, false));
-            $this->assertSame([], $this->project($product));
-        } finally {
-            $product->delete(true);
-        }
-    }
-
-    #[Test]
-    public function it_projects_nothing_for_a_price_row_left_null(): void
-    {
-        $product = new WC_Product_Simple;
-        $product->set_name('Price left null, for the test');
-        $product->set_regular_price('30');
-        $product->save();
-        update_post_meta($product->get_id(), ProductMeta::Price->value, null);
-
-        try {
-            $this->assertSame([null], get_post_meta($product->get_id(), ProductMeta::Price->value, false));
-            $this->assertSame([], $this->project($product));
-        } finally {
-            $product->delete(true);
-        }
-    }
-
-    #[Test]
-    public function it_keeps_a_free_product_at_zero(): void
-    {
-        $product = new WC_Product_Simple;
-        $product->set_name('Free, for the test');
-        $product->set_regular_price('0');
-        $product->save();
-
-        try {
-            $price = $this->project($product);
-
-            $this->assertSame(0.0, $price[PriceField::Min->value]);
-            $this->assertSame(0.0, $price[PriceField::Max->value]);
-        } finally {
-            $product->delete(true);
-        }
-    }
-
-    #[Test]
-    public function it_projects_nothing_for_a_post_that_is_not_a_product(): void
-    {
-        $post = get_posts(['post_type' => 'post', 'numberposts' => 1])[0];
-
-        $this->assertSame([], $this->app->make(ProductPriceProjector::class)->project($post));
-    }
 
     /**
      * @return list<mixed>
@@ -239,3 +83,140 @@ final class ProductPriceProjectionTest extends TestCase
         return sprintf('#%d "%s" (%s)', $product->get_id(), $product->get_name(), $product->get_type());
     }
 }
+
+/**
+ * Expectations come from WooCommerce itself rather than from this catalogue, so
+ * adding a product cannot make the suite wrong.
+ */
+uses(TestCase::class, KeepsTheIndexOut::class, ProductPriceProjectionHelpers::class);
+
+it('indexes the prices the card bills', function (): void {
+    foreach ($this->products() as $product) {
+        $billed = $this->billedAmounts($product);
+        $price = $this->project($product);
+
+        if ($billed === []) {
+            $this->assertSame([], $price, $this->say($product));
+
+            continue;
+        }
+
+        $this->assertNotSame([], $price, $this->say($product));
+        foreach ([PriceField::Min, PriceField::Max] as $end) {
+            $this->assertContains($this->plain(wc_price($price[$end->value])), $billed, $this->say($product));
+        }
+    }
+});
+
+/** A variable or grouped product spans its children, which is the whole point. */
+it('gives a product with several prices an interval', function (): void {
+    $spanning = array_filter(
+        $this->products(),
+        fn (WC_Product $product): bool => count($this->distinctPrices($product)) > 1
+    );
+
+    $this->assertNotEmpty($spanning, 'No product in the catalogue carries more than one price.');
+
+    foreach ($spanning as $product) {
+        $price = $this->project($product);
+
+        $this->assertLessThan($price[PriceField::Max->value], $price[PriceField::Min->value], $this->say($product));
+    }
+});
+
+/** WooCommerce's own list: a variation on sale lists its parent, a grouped product is never listed. */
+it('puts on sale exactly what woocommerce lists as on sale', function (): void {
+    $rows = WC_Data_Store::load('product')->get_on_sale_products();
+    $listed = [...array_column($rows, 'id'), ...array_column($rows, 'parent_id')];
+
+    foreach ($this->products() as $product) {
+        $this->assertSame(
+            in_array((string) $product->get_id(), array_map(strval(...), $listed), true),
+            $this->project($product)[PriceField::OnSale->value] ?? false,
+            $this->say($product)
+        );
+    }
+});
+
+/** R-112: the sale has begun by its dates, but the price billed has not switched yet. */
+it('leaves off sale a product still billed at full price', function (): void {
+    $product = new WC_Product_Simple;
+    $product->set_name('Sale not switched yet, for the test');
+    $product->set_regular_price('30');
+    $product->set_sale_price('20');
+    $product->save();
+    update_post_meta($product->get_id(), ProductMeta::Price->value, '30');
+
+    try {
+        expect(wc_get_product($product->get_id())->is_on_sale())->toBeTrue();
+        expect($this->project(wc_get_product($product->get_id()))[PriceField::OnSale->value])->toBeFalse();
+    } finally {
+        $product->delete(true);
+    }
+});
+
+/** Projecting 0 would make it look free, and a `>= 0` filter would return it. */
+it('projects nothing for a product that carries no price', function (): void {
+    $product = new WC_Product_Simple;
+    $product->set_name('Priceless, for the test');
+    $product->save();
+
+    try {
+        expect($this->project($product))->toBe([]);
+    } finally {
+        $product->delete(true);
+    }
+});
+
+it('projects nothing for a product whose price was emptied', function (): void {
+    $product = new WC_Product_Simple;
+    $product->set_name('Price emptied, for the test');
+    $product->set_regular_price('30');
+    $product->save();
+    $product->set_regular_price('');
+    $product->save();
+
+    try {
+        expect(get_post_meta($product->get_id(), ProductMeta::Price->value, false))->toBe(['']);
+        expect($this->project($product))->toBe([]);
+    } finally {
+        $product->delete(true);
+    }
+});
+
+it('projects nothing for a price row left null', function (): void {
+    $product = new WC_Product_Simple;
+    $product->set_name('Price left null, for the test');
+    $product->set_regular_price('30');
+    $product->save();
+    update_post_meta($product->get_id(), ProductMeta::Price->value, null);
+
+    try {
+        expect(get_post_meta($product->get_id(), ProductMeta::Price->value, false))->toBe([null]);
+        expect($this->project($product))->toBe([]);
+    } finally {
+        $product->delete(true);
+    }
+});
+
+it('keeps a free product at zero', function (): void {
+    $product = new WC_Product_Simple;
+    $product->set_name('Free, for the test');
+    $product->set_regular_price('0');
+    $product->save();
+
+    try {
+        $price = $this->project($product);
+
+        expect($price[PriceField::Min->value])->toBe(0.0);
+        expect($price[PriceField::Max->value])->toBe(0.0);
+    } finally {
+        $product->delete(true);
+    }
+});
+
+it('projects nothing for a post that is not a product', function (): void {
+    $post = get_posts(['post_type' => 'post', 'numberposts' => 1])[0];
+
+    expect($this->app->make(ProductPriceProjector::class)->project($post))->toBe([]);
+});
