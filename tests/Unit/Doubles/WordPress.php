@@ -44,6 +44,7 @@ final class WordPress
     public static function bootWooCommerce(): void
     {
         require_once __DIR__.'/woocommerce-functions.php';
+        require_once __DIR__.'/woocommerce-classes.php';
     }
 
     public static function reset(): void

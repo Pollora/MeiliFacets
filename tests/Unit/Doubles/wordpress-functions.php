@@ -214,6 +214,17 @@ if (! function_exists('wp_get_canonical_url')) {
     }
 }
 
+if (! function_exists('rescue')) {
+    function rescue(callable $callback, mixed $rescue = null, bool|callable $report = true): mixed
+    {
+        try {
+            return $callback();
+        } catch (Throwable $failure) {
+            return value($rescue, $failure);
+        }
+    }
+}
+
 if (! function_exists('_prime_post_caches')) {
     function _prime_post_caches(array $ids, bool $update_term_cache = true, bool $update_meta_cache = true): void
     {
