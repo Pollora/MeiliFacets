@@ -33,7 +33,7 @@
         "illuminate/support": "^13.35",
         "illuminate/translation": "^13.35",
         "illuminate/view": "^13.35",
-        "league/uri": "^7.5",
+        "league/uri": "^7.5.1",
         "meilisearch/meilisearch-php": "^1.12"
     },
     "conflict": {
