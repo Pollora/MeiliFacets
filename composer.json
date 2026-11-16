@@ -33,7 +33,7 @@
         "illuminate/support": "^13.35",
         "illuminate/translation": "^13.35",
         "illuminate/view": "^13.35",
-        "league/uri": "^7.5",
+        "league/uri": "^7.5.1",
         "meilisearch/meilisearch-php": "^1.12"
     },
     "conflict": {
@@ -65,8 +65,14 @@
         "ext-dom": "*",
         "driftingly/rector-laravel": "^2.6",
         "laravel/pint": "^1.30",
+        "pestphp/pest": "^5.0",
+        "php-stubs/woocommerce-stubs": "^11.3",
         "phpunit/phpunit": "^13.4",
-        "rector/rector": "^2.6"
+        "pollora/attributes": "^0.1.2",
+        "pollora/discovery": "^0.1.0",
+        "pollora/harness": "^0.1.23",
+        "rector/rector": "^2.6",
+        "symfony/polyfill-php83": "^1.30"
     },
     "suggest": {
         "ext-intl": "Orders facet values as the site language does; without it, NameOrder falls back to a byte comparison that misplaces accented labels."
@@ -90,7 +96,9 @@
             "@test",
             "@test:js",
             "@build:check"
-        ]
+        ],
+        "qa": "@php vendor/bin/pollora-qa check",
+        "qa:fast": "@php vendor/bin/pollora-qa check --fast"
     },
     "scripts-descriptions": {
         "lint": "Check formatting without changing anything.",
@@ -109,7 +117,11 @@
         "sort-packages": true,
         "allow-plugins": {
             "composer/installers": true,
-            "php-http/discovery": true
+            "php-http/discovery": true,
+            "pestphp/pest-plugin": true
+        },
+        "audit": {
+            "ignore-abandoned": ["symplify/rule-doc-generator-contracts"]
         }
     }
 }
