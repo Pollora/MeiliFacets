@@ -9,98 +9,76 @@ use Modules\MeiliFacets\Discovery\ListingRegistry;
 use Modules\MeiliFacets\Listing\ListingUnavailable;
 use Modules\MeiliFacets\Support\NameRefused;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeListing;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 
-final class ListingRegistryTest extends TestCase
-{
-    #[Test]
-    public function it_hands_back_the_only_listing_declared(): void
-    {
-        $registry = new ListingRegistry(new Container);
+it('hands back the only listing declared', function (): void {
+    $registry = new ListingRegistry(new Container);
+    $registry->add(FakeListing::named('products'));
+
+    expect($registry->onlyOne()->name())->toBe('products');
+});
+
+it('refuses to guess when nothing is declared', function (): void {
+    $this->expectException(NameRefused::class);
+    $this->expectExceptionMessage('none is declared');
+
+    new ListingRegistry(new Container)->onlyOne();
+});
+
+// A second listing changes what the first one shows: the template has to say which.
+it('names the candidates when several are declared', function (): void {
+    $registry = new ListingRegistry(new Container);
+    $registry->add(FakeListing::named('products'));
+    $registry->add(FakeListing::named('articles'));
+
+    $this->expectException(NameRefused::class);
+    $this->expectExceptionMessage('2 are declared (products, articles)');
+
+    $registry->onlyOne();
+});
+
+// A second listing under the same name would silently replace the catalogue a template shows.
+it('keeps the first listing declared under a name', function (): void {
+    $registry = new ListingRegistry(new Container);
+    $first = FakeListing::named('products');
+    $registry->add($first);
+
+    try {
         $registry->add(FakeListing::named('products'));
-
-        $this->assertSame('products', $registry->onlyOne()->name());
+        $this->fail('A second listing named "products" was accepted.');
+    } catch (NameRefused $refused) {
+        expect($refused->getMessage())->toContain('"products" is already declared');
     }
 
-    #[Test]
-    public function it_refuses_to_guess_when_nothing_is_declared(): void
-    {
-        $this->expectException(NameRefused::class);
-        $this->expectExceptionMessage('none is declared');
+    expect($registry->named('products'))->toBe($first);
+});
 
-        new ListingRegistry(new Container)->onlyOne();
-    }
+it('leaves out a listing whose dependency is not loaded', function (): void {
+    $container = new Container;
+    $container->bind(FakeListing::class, fn (): never => throw new ListingUnavailable('WooCommerce is not loaded yet.'));
+    $registry = new ListingRegistry($container);
+    $registry->addDeclaration(FakeListing::class);
 
-    /** A second listing changes what the first one shows: the template has to say which. */
-    #[Test]
-    public function it_names_the_candidates_when_several_are_declared(): void
-    {
-        $registry = new ListingRegistry(new Container);
-        $registry->add(FakeListing::named('products'));
-        $registry->add(FakeListing::named('articles'));
+    $this->expectException(NameRefused::class);
+    $this->expectExceptionMessage('none is declared');
 
-        $this->expectException(NameRefused::class);
-        $this->expectExceptionMessage('2 are declared (products, articles)');
+    $registry->onlyOne();
+});
 
-        $registry->onlyOne();
-    }
+// Pollora may apply a module's discovery before WordPress loads its plugins.
+it('builds a declared listing once on first lookup', function (): void {
+    $builds = 0;
+    $container = new Container;
+    $container->bind(FakeListing::class, static function () use (&$builds): FakeListing {
+        $builds++;
 
-    /** A second listing under the same name would silently replace the catalogue a template shows. */
-    #[Test]
-    public function it_keeps_the_first_listing_declared_under_a_name(): void
-    {
-        $registry = new ListingRegistry(new Container);
-        $first = FakeListing::named('products');
-        $registry->add($first);
+        return FakeListing::named('products');
+    });
+    $registry = new ListingRegistry($container);
 
-        try {
-            $registry->add(FakeListing::named('products'));
-            $this->fail('A second listing named "products" was accepted.');
-        } catch (NameRefused $refused) {
-            $this->assertStringContainsString('"products" is already declared', $refused->getMessage());
-        }
+    $registry->addDeclaration(FakeListing::class);
+    expect($builds)->toBe(0);
 
-        $this->assertSame($first, $registry->named('products'));
-    }
-
-    #[Test]
-    public function it_leaves_out_a_listing_whose_dependency_is_not_loaded(): void
-    {
-        $container = new Container;
-        $container->bind(FakeListing::class, $this->unavailable(...));
-        $registry = new ListingRegistry($container);
-        $registry->addDeclaration(FakeListing::class);
-
-        $this->expectException(NameRefused::class);
-        $this->expectExceptionMessage('none is declared');
-
-        $registry->onlyOne();
-    }
-
-    /** Pollora may apply a module's discovery before WordPress loads its plugins. */
-    #[Test]
-    public function it_builds_a_declared_listing_once_on_first_lookup(): void
-    {
-        $builds = 0;
-        $container = new Container;
-        $container->bind(FakeListing::class, static function () use (&$builds): FakeListing {
-            $builds++;
-
-            return FakeListing::named('products');
-        });
-        $registry = new ListingRegistry($container);
-
-        $registry->addDeclaration(FakeListing::class);
-        $this->assertSame(0, $builds);
-
-        $this->assertSame('products', $registry->onlyOne()->name());
-        $this->assertSame(['products'], $registry->names());
-        $this->assertSame(1, $builds);
-    }
-
-    private function unavailable(): never
-    {
-        throw new ListingUnavailable('WooCommerce is not loaded yet.');
-    }
-}
+    expect($registry->onlyOne()->name())->toBe('products');
+    expect($registry->names())->toBe(['products']);
+    expect($builds)->toBe(1);
+});

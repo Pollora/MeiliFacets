@@ -6,24 +6,15 @@ namespace Modules\MeiliFacets\Tests\Unit;
 
 use Modules\MeiliFacets\Enums\ApplyShape;
 use Modules\MeiliFacets\Enums\ResetShape;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 use ValueError;
 
-final class ComponentVariantTest extends TestCase
-{
-    #[Test]
-    public function it_reads_a_variant_written_plainly_or_bound(): void
-    {
-        $this->assertSame(ApplyShape::Block, ApplyShape::fromAttribute('block'));
-        $this->assertSame(ResetShape::Icon, ResetShape::fromAttribute(ResetShape::Icon));
-    }
+it('reads a variant written plainly or bound', function (): void {
+    expect(ApplyShape::fromAttribute('block'))->toBe(ApplyShape::Block);
+    expect(ResetShape::fromAttribute(ResetShape::Icon))->toBe(ResetShape::Icon);
+});
 
-    #[Test]
-    public function it_refuses_a_variant_the_enum_does_not_declare(): void
-    {
-        $this->expectException(ValueError::class);
+it('refuses a variant the enum does not declare', function (): void {
+    $this->expectException(ValueError::class);
 
-        ApplyShape::fromAttribute('round');
-    }
-}
+    ApplyShape::fromAttribute('round');
+});

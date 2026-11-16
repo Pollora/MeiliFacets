@@ -15,301 +15,251 @@ use Modules\MeiliFacets\Listing\NameOrder;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeDefaultTerms;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeTermLabels;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeTermScope;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 
-/**
+/*
  * Labels come from WordPress, so these cases exercise the folding and the cap,
  * which are the parts that hold without it.
  */
-final class FacetValuesTest extends TestCase
+
+function facetValuesValues(): FacetValues
 {
-    #[Test]
-    public function it_folds_everything_past_the_visible_limit(): void
-    {
-        $values = $this->build($this->distribution(14), new Facet('brand', 'Brand'));
-
-        $this->assertCount(14, $values);
-        $this->assertCount(10, array_filter($values, static fn ($v): bool => ! $v->folded));
-        $this->assertTrue($values[10]->folded);
-        $this->assertFalse($values[9]->folded);
-    }
-
-    #[Test]
-    public function it_drops_everything_past_the_cap(): void
-    {
-        $values = $this->build($this->distribution(40), new Facet('brand', 'Brand'));
-
-        $this->assertCount(Facet::DEFAULT_CAP, $values);
-    }
-
-    #[Test]
-    public function it_honours_a_facet_that_sets_its_own_limits(): void
-    {
-        $values = $this->build($this->distribution(10), new Facet('brand', 'Brand', visible: 2, cap: 4));
-
-        $this->assertCount(4, $values);
-        $this->assertCount(2, array_filter($values, static fn ($v): bool => ! $v->folded));
-    }
-
-    #[Test]
-    public function it_keeps_the_order_the_engine_returned(): void
-    {
-        $values = $this->build(['b' => 9, 'a' => 5, 'c' => 1], new Facet('brand', 'Brand'));
-
-        $this->assertSame(['b', 'a', 'c'], array_map(static fn ($v): string => $v->slug, $values));
-    }
-
-    #[Test]
-    public function it_marks_the_values_the_url_holds(): void
-    {
-        $state = new ListingState(['brand' => ['a']]);
-        $values = $this->values()->of(new Facet('brand', 'Brand'), ['a' => 2, 'b' => 3], $state);
-
-        $this->assertTrue($values[0]->selected);
-        $this->assertFalse($values[1]->selected);
-    }
-
-    #[Test]
-    public function it_shows_the_values_in_the_order_the_facet_asked_for(): void
-    {
-        $facet = new Facet('size', 'Size', order: new NameOrder);
-        $values = $this->build(['500ml' => 9, '10ml' => 5, '50ml' => 1], $facet);
-
-        $this->assertSame(['10ml', '50ml', '500ml'], array_map(static fn ($v): string => $v->slug, $values));
-    }
-
-    /** What is read is the head of the declared order, not the best counted. */
-    #[Test]
-    public function it_folds_what_the_display_order_puts_last(): void
-    {
-        $facet = new Facet('size', 'Size', visible: 2, order: new NameOrder);
-        $values = $this->build(['b' => 9, 'z' => 8, 'a' => 1], $facet);
-
-        $folded = array_column(array_filter($values, static fn ($v): bool => $v->folded), 'slug');
-
-        $this->assertSame(['a', 'b', 'z'], array_map(static fn ($v): string => $v->slug, $values));
-        $this->assertSame(['z'], array_values($folded));
-    }
-
-    /** The two limits answer to two different masters: the engine spends the cap, the facet the fold. */
-    #[Test]
-    public function it_spends_the_cap_on_the_count_and_the_fold_on_the_order(): void
-    {
-        $facet = new Facet('size', 'Size', visible: 1, cap: 2, order: new NameOrder);
-        $values = $this->build(['b' => 9, 'z' => 8, 'a' => 1], $facet);
-
-        // "a" sorts first but counts last: the cap drops it before the order is applied.
-        $this->assertSame(['b', 'z'], array_map(static fn ($v): string => $v->slug, $values));
-        $this->assertSame([false, true], array_map(static fn ($v): bool => $v->folded, $values));
-    }
-
-    /** A held value the visitor cannot see is a filter they cannot lift. */
-    #[Test]
-    public function it_never_folds_away_a_value_the_url_holds(): void
-    {
-        $facet = new Facet('brand', 'Brand', visible: 1);
-        $values = $this->values()->of($facet, ['a' => 9, 'b' => 8, 'c' => 7], new ListingState(['brand' => ['c']]));
-
-        $this->assertSame(['a', 'b', 'c'], array_map(static fn (FacetValue $v): string => $v->slug, $values));
-        $this->assertSame([false, true, false], array_map(static fn (FacetValue $v): bool => $v->folded, $values));
-    }
-
-    #[Test]
-    public function it_keeps_every_value_the_unfiltered_listing_offers_hidden_without_results(): void
-    {
-        $values = $this->values()->of(new Facet('brand', 'Brand'), ['a' => 2], new ListingState(['cat' => ['x']]), ['a' => 5, 'b' => 4]);
-
-        $this->assertSame(['a', 'b'], array_map(static fn (FacetValue $v): string => $v->slug, $values));
-        $this->assertSame([2, 0], array_map(static fn (FacetValue $v): int => $v->count, $values));
-        $this->assertSame([false, true], array_map(static fn (FacetValue $v): bool => $v->folded, $values));
-    }
-
-    #[Test]
-    public function it_shows_a_held_value_that_has_no_result_left(): void
-    {
-        $values = $this->values()->of(new Facet('brand', 'Brand'), ['a' => 2], new ListingState(['brand' => ['b']]), ['a' => 5, 'b' => 4]);
-
-        $this->assertSame([false, false], array_map(static fn (FacetValue $v): bool => $v->folded, $values));
-    }
-
-    #[Test]
-    public function it_gives_the_visible_places_to_values_with_results(): void
-    {
-        $facet = new Facet('brand', 'Brand', visible: 1);
-        $values = $this->values()->of($facet, ['b' => 3, 'c' => 1], new ListingState(['cat' => ['x']]), ['a' => 9, 'b' => 8, 'c' => 7]);
-
-        $this->assertSame(['a', 'b', 'c'], array_map(static fn (FacetValue $v): string => $v->slug, $values));
-        $this->assertSame([true, false, true], array_map(static fn (FacetValue $v): bool => $v->folded, $values));
-    }
-
-    #[Test]
-    public function it_keeps_a_held_value_both_caps_left_out(): void
-    {
-        $facet = new Facet('brand', 'Brand', cap: 1);
-        $values = $this->values()->of($facet, ['c' => 5, 'b' => 3], new ListingState(['brand' => ['b', 'forged']]), ['a' => 9, 'b' => 8]);
-
-        $this->assertSame(['a', 'c', 'b'], array_map(static fn (FacetValue $v): string => $v->slug, $values));
-    }
-
-    #[Test]
-    public function it_keeps_the_values_the_narrowed_page_counts_beyond_the_unfiltered_cap(): void
-    {
-        $facet = new Facet('brand', 'Brand', cap: 2);
-        $values = $this->values()->of($facet, ['tail' => 4], new ListingState(query: 'zebra'), ['big' => 90, 'mid' => 50, 'tail' => 4]);
-
-        $this->assertSame(['big', 'mid', 'tail'], array_map(static fn (FacetValue $v): string => $v->slug, $values));
-        $this->assertSame([true, true, false], array_map(static fn (FacetValue $v): bool => $v->folded, $values));
-    }
-
-    #[Test]
-    public function it_never_shows_a_held_value_its_scope_or_fallback_leaves_out(): void
-    {
-        $values = $this->withFallback()->of(
-            new Facet('product_cat', 'Category'),
-            ['a' => 2],
-            new ListingState(['product_cat' => ['non-classe']]),
-            ['a' => 5, 'non-classe' => 9],
-        );
-
-        $this->assertSame(['a'], array_map(static fn (FacetValue $v): string => $v->slug, $values));
-    }
-
-    /** The taxonomy already carries an order a shop set; the module reads it rather than inventing one. */
-    #[Test]
-    public function it_shows_the_values_in_the_order_the_taxonomy_declares(): void
-    {
-        $labels = new FakeTermLabels(['50ml' => '50ml', '5ml' => '5ml', '4g' => '4g']);
-        $facet = new Facet('pa_size', 'Size', order: DisplayOrder::Declared);
-
-        $values = new FacetValues($labels, new FakeTermScope, new FakeDefaultTerms)
-            ->of($facet, ['4g' => 9, '50ml' => 5, '5ml' => 1], new ListingState);
-
-        $this->assertSame(['50ml', '5ml', '4g'], array_map(static fn (FacetValue $v): string => $v->slug, $values));
-    }
-
-    /** PHP turns an all-digit array key into an integer: a slug such as `100` must come back as text. */
-    #[Test]
-    public function it_keeps_an_all_digit_slug_as_text_in_the_declared_order(): void
-    {
-        $labels = new FakeTermLabels(['200' => '200 ml', '100' => '100 ml', 'xl' => 'XL']);
-        $facet = new Facet('pa_size', 'Size', order: DisplayOrder::Declared);
-
-        $values = new FacetValues($labels, new FakeTermScope, new FakeDefaultTerms)
-            ->of($facet, ['100' => 9, 'xl' => 5, '200' => 1], new ListingState(['pa_size' => ['100']]));
-
-        $this->assertSame(['200', '100', 'xl'], array_map(static fn (FacetValue $v): string => $v->slug, $values));
-        $this->assertSame([false, true, false], array_map(static fn (FacetValue $v): bool => $v->selected, $values));
-    }
-
-    #[Test]
-    public function it_keeps_an_all_digit_slug_as_text_in_the_engine_order(): void
-    {
-        $values = $this->values()->of(new Facet('pa_size', 'Size'), ['100' => 9, '200' => 1], new ListingState);
-
-        $this->assertSame(['100', '200'], array_map(static fn (FacetValue $v): string => $v->slug, $values));
-    }
-
-    /** A slug the taxonomy no longer lists still has a count: it waits at the end. */
-    #[Test]
-    public function it_sends_a_value_the_taxonomy_does_not_list_to_the_end(): void
-    {
-        $labels = new FakeTermLabels(['b' => 'B', 'a' => 'A']);
-        $facet = new Facet('pa_size', 'Size', order: DisplayOrder::Declared);
-
-        $values = new FacetValues($labels, new FakeTermScope, new FakeDefaultTerms)
-            ->of($facet, ['orphan' => 9, 'a' => 5, 'b' => 1], new ListingState);
-
-        $this->assertSame(['b', 'a', 'orphan'], array_map(static fn (FacetValue $v): string => $v->slug, $values));
-    }
-
-    private function values(): FacetValues
-    {
-        return new FacetValues(new FakeTermLabels(['a' => 'Acme']), new FakeTermScope, new FakeDefaultTerms);
-    }
-
-    /**
-     * @return array<string, int>
-     */
-    private function distribution(int $count): array
-    {
-        return array_combine(
-            array_map(static fn (int $i): string => 'value-'.$i, range(1, $count)),
-            array_fill(0, $count, 1)
-        );
-    }
-
-    /** The cap is spent on what the facet may show, not on what the engine returned. */
-    #[Test]
-    public function it_caps_a_scoped_facet_after_scoping_it(): void
-    {
-        $values = new FacetValues(
-            new FakeTermLabels([]),
-            new FakeTermScope(['product_cat' => ['b', 'c']]),
-            new FakeDefaultTerms
-        )->of(
-            new ChildTermsFacet('product_cat', 'Category', cap: 2),
-            ['a' => 9, 'b' => 8, 'c' => 7, 'd' => 6],
-            new ListingState
-        );
-
-        $this->assertSame(['b', 'c'], array_map(static fn (FacetValue $v): string => $v->slug, $values));
-    }
-
-    /** « Non classé » says a content was filed nowhere: that is not a way to browse. */
-    #[Test]
-    public function it_drops_the_term_a_taxonomy_falls_back_to(): void
-    {
-        $values = $this->withFallback()->of(
-            new Facet('product_cat', 'Category'),
-            ['a' => 4, 'non-classe' => 1],
-            new ListingState
-        );
-
-        $this->assertSame(['a'], array_map(static fn (FacetValue $v): string => $v->slug, $values));
-    }
-
-    /** A taxonomy whose fallback is a term an editor chose keeps it. */
-    #[Test]
-    public function it_keeps_the_fallback_a_facet_asks_to_show(): void
-    {
-        $values = $this->withFallback()->of(
-            new Facet('product_cat', 'Category', defaultTerm: DefaultTermVisibility::Shown),
-            ['a' => 4, 'non-classe' => 1],
-            new ListingState
-        );
-
-        $this->assertCount(2, $values);
-    }
-
-    #[Test]
-    public function it_leaves_a_taxonomy_without_a_fallback_alone(): void
-    {
-        $values = $this->withFallback()->of(
-            new Facet('product_brand', 'Brand'),
-            ['a' => 4, 'b' => 1],
-            new ListingState
-        );
-
-        $this->assertCount(2, $values);
-    }
-
-    /** A taxonomy that has a fallback term, and one that has none. */
-    private function withFallback(): FacetValues
-    {
-        return new FacetValues(
-            new FakeTermLabels([]),
-            new FakeTermScope,
-            new FakeDefaultTerms(['product_cat' => 'non-classe'])
-        );
-    }
-
-    /**
-     * @param  array<string, int>  $distribution
-     * @return list<FacetValue>
-     */
-    private function build(array $distribution, Facet $facet): array
-    {
-        return $this->values()->of($facet, $distribution, new ListingState);
-    }
+    return new FacetValues(new FakeTermLabels(['a' => 'Acme']), new FakeTermScope, new FakeDefaultTerms);
 }
+
+/**
+ * @return array<string, int>
+ */
+function facetValuesDistribution(int $count): array
+{
+    return array_combine(
+        array_map(static fn (int $i): string => 'value-'.$i, range(1, $count)),
+        array_fill(0, $count, 1)
+    );
+}
+
+/** A taxonomy that has a fallback term, and one that has none. */
+function facetValuesWithFallback(): FacetValues
+{
+    return new FacetValues(
+        new FakeTermLabels([]),
+        new FakeTermScope,
+        new FakeDefaultTerms(['product_cat' => 'non-classe'])
+    );
+}
+
+/**
+ * @param  array<string, int>  $distribution
+ * @return list<FacetValue>
+ */
+function facetValuesBuild(array $distribution, Facet $facet): array
+{
+    return facetValuesValues()->of($facet, $distribution, new ListingState);
+}
+
+it('folds everything past the visible limit', function (): void {
+    $values = facetValuesBuild(facetValuesDistribution(14), new Facet('brand', 'Brand'));
+
+    expect($values)->toHaveCount(14);
+    expect(array_filter($values, static fn ($v): bool => ! $v->folded))->toHaveCount(10);
+    expect($values[10]->folded)->toBeTrue();
+    expect($values[9]->folded)->toBeFalse();
+});
+
+it('drops everything past the cap', function (): void {
+    $values = facetValuesBuild(facetValuesDistribution(40), new Facet('brand', 'Brand'));
+
+    expect($values)->toHaveCount(Facet::DEFAULT_CAP);
+});
+
+it('honours a facet that sets its own limits', function (): void {
+    $values = facetValuesBuild(facetValuesDistribution(10), new Facet('brand', 'Brand', visible: 2, cap: 4));
+
+    expect($values)->toHaveCount(4);
+    expect(array_filter($values, static fn ($v): bool => ! $v->folded))->toHaveCount(2);
+});
+
+it('keeps the order the engine returned', function (): void {
+    $values = facetValuesBuild(['b' => 9, 'a' => 5, 'c' => 1], new Facet('brand', 'Brand'));
+
+    expect(array_map(static fn ($v): string => $v->slug, $values))->toBe(['b', 'a', 'c']);
+});
+
+it('marks the values the url holds', function (): void {
+    $state = new ListingState(['brand' => ['a']]);
+    $values = facetValuesValues()->of(new Facet('brand', 'Brand'), ['a' => 2, 'b' => 3], $state);
+
+    expect($values[0]->selected)->toBeTrue();
+    expect($values[1]->selected)->toBeFalse();
+});
+
+it('shows the values in the order the facet asked for', function (): void {
+    $facet = new Facet('size', 'Size', order: new NameOrder);
+    $values = facetValuesBuild(['500ml' => 9, '10ml' => 5, '50ml' => 1], $facet);
+
+    expect(array_map(static fn ($v): string => $v->slug, $values))->toBe(['10ml', '50ml', '500ml']);
+});
+
+// What is read is the head of the declared order, not the best counted.
+it('folds what the display order puts last', function (): void {
+    $facet = new Facet('size', 'Size', visible: 2, order: new NameOrder);
+    $values = facetValuesBuild(['b' => 9, 'z' => 8, 'a' => 1], $facet);
+
+    $folded = array_column(array_filter($values, static fn ($v): bool => $v->folded), 'slug');
+
+    expect(array_map(static fn ($v): string => $v->slug, $values))->toBe(['a', 'b', 'z']);
+    expect(array_values($folded))->toBe(['z']);
+});
+
+// The two limits answer to two different masters: the engine spends the cap, the facet the fold.
+it('spends the cap on the count and the fold on the order', function (): void {
+    $facet = new Facet('size', 'Size', visible: 1, cap: 2, order: new NameOrder);
+    $values = facetValuesBuild(['b' => 9, 'z' => 8, 'a' => 1], $facet);
+
+    // "a" sorts first but counts last: the cap drops it before the order is applied.
+    expect(array_map(static fn ($v): string => $v->slug, $values))->toBe(['b', 'z']);
+    expect(array_map(static fn ($v): bool => $v->folded, $values))->toBe([false, true]);
+});
+
+// A held value the visitor cannot see is a filter they cannot lift.
+it('never folds away a value the url holds', function (): void {
+    $facet = new Facet('brand', 'Brand', visible: 1);
+    $values = facetValuesValues()->of($facet, ['a' => 9, 'b' => 8, 'c' => 7], new ListingState(['brand' => ['c']]));
+
+    expect(array_map(static fn (FacetValue $v): string => $v->slug, $values))->toBe(['a', 'b', 'c']);
+    expect(array_map(static fn (FacetValue $v): bool => $v->folded, $values))->toBe([false, true, false]);
+});
+
+it('keeps every value the unfiltered listing offers hidden without results', function (): void {
+    $values = facetValuesValues()->of(new Facet('brand', 'Brand'), ['a' => 2], new ListingState(['cat' => ['x']]), ['a' => 5, 'b' => 4]);
+
+    expect(array_map(static fn (FacetValue $v): string => $v->slug, $values))->toBe(['a', 'b']);
+    expect(array_map(static fn (FacetValue $v): int => $v->count, $values))->toBe([2, 0]);
+    expect(array_map(static fn (FacetValue $v): bool => $v->folded, $values))->toBe([false, true]);
+});
+
+it('shows a held value that has no result left', function (): void {
+    $values = facetValuesValues()->of(new Facet('brand', 'Brand'), ['a' => 2], new ListingState(['brand' => ['b']]), ['a' => 5, 'b' => 4]);
+
+    expect(array_map(static fn (FacetValue $v): bool => $v->folded, $values))->toBe([false, false]);
+});
+
+it('gives the visible places to values with results', function (): void {
+    $facet = new Facet('brand', 'Brand', visible: 1);
+    $values = facetValuesValues()->of($facet, ['b' => 3, 'c' => 1], new ListingState(['cat' => ['x']]), ['a' => 9, 'b' => 8, 'c' => 7]);
+
+    expect(array_map(static fn (FacetValue $v): string => $v->slug, $values))->toBe(['a', 'b', 'c']);
+    expect(array_map(static fn (FacetValue $v): bool => $v->folded, $values))->toBe([true, false, true]);
+});
+
+it('keeps a held value both caps left out', function (): void {
+    $facet = new Facet('brand', 'Brand', cap: 1);
+    $values = facetValuesValues()->of($facet, ['c' => 5, 'b' => 3], new ListingState(['brand' => ['b', 'forged']]), ['a' => 9, 'b' => 8]);
+
+    expect(array_map(static fn (FacetValue $v): string => $v->slug, $values))->toBe(['a', 'c', 'b']);
+});
+
+it('keeps the values the narrowed page counts beyond the unfiltered cap', function (): void {
+    $facet = new Facet('brand', 'Brand', cap: 2);
+    $values = facetValuesValues()->of($facet, ['tail' => 4], new ListingState(query: 'zebra'), ['big' => 90, 'mid' => 50, 'tail' => 4]);
+
+    expect(array_map(static fn (FacetValue $v): string => $v->slug, $values))->toBe(['big', 'mid', 'tail']);
+    expect(array_map(static fn (FacetValue $v): bool => $v->folded, $values))->toBe([true, true, false]);
+});
+
+it('never shows a held value its scope or fallback leaves out', function (): void {
+    $values = facetValuesWithFallback()->of(
+        new Facet('product_cat', 'Category'),
+        ['a' => 2],
+        new ListingState(['product_cat' => ['non-classe']]),
+        ['a' => 5, 'non-classe' => 9],
+    );
+
+    expect(array_map(static fn (FacetValue $v): string => $v->slug, $values))->toBe(['a']);
+});
+
+// The taxonomy already carries an order a shop set; the module reads it rather than inventing one.
+it('shows the values in the order the taxonomy declares', function (): void {
+    $labels = new FakeTermLabels(['50ml' => '50ml', '5ml' => '5ml', '4g' => '4g']);
+    $facet = new Facet('pa_size', 'Size', order: DisplayOrder::Declared);
+
+    $values = new FacetValues($labels, new FakeTermScope, new FakeDefaultTerms)
+        ->of($facet, ['4g' => 9, '50ml' => 5, '5ml' => 1], new ListingState);
+
+    expect(array_map(static fn (FacetValue $v): string => $v->slug, $values))->toBe(['50ml', '5ml', '4g']);
+});
+
+// PHP turns an all-digit array key into an integer: a slug such as `100` must come back as text.
+it('keeps an all digit slug as text in the declared order', function (): void {
+    $labels = new FakeTermLabels(['200' => '200 ml', '100' => '100 ml', 'xl' => 'XL']);
+    $facet = new Facet('pa_size', 'Size', order: DisplayOrder::Declared);
+
+    $values = new FacetValues($labels, new FakeTermScope, new FakeDefaultTerms)
+        ->of($facet, ['100' => 9, 'xl' => 5, '200' => 1], new ListingState(['pa_size' => ['100']]));
+
+    expect(array_map(static fn (FacetValue $v): string => $v->slug, $values))->toBe(['200', '100', 'xl']);
+    expect(array_map(static fn (FacetValue $v): bool => $v->selected, $values))->toBe([false, true, false]);
+});
+
+it('keeps an all digit slug as text in the engine order', function (): void {
+    $values = facetValuesValues()->of(new Facet('pa_size', 'Size'), ['100' => 9, '200' => 1], new ListingState);
+
+    expect(array_map(static fn (FacetValue $v): string => $v->slug, $values))->toBe(['100', '200']);
+});
+
+// A slug the taxonomy no longer lists still has a count: it waits at the end.
+it('sends a value the taxonomy does not list to the end', function (): void {
+    $labels = new FakeTermLabels(['b' => 'B', 'a' => 'A']);
+    $facet = new Facet('pa_size', 'Size', order: DisplayOrder::Declared);
+
+    $values = new FacetValues($labels, new FakeTermScope, new FakeDefaultTerms)
+        ->of($facet, ['orphan' => 9, 'a' => 5, 'b' => 1], new ListingState);
+
+    expect(array_map(static fn (FacetValue $v): string => $v->slug, $values))->toBe(['b', 'a', 'orphan']);
+});
+
+// The cap is spent on what the facet may show, not on what the engine returned.
+it('caps a scoped facet after scoping it', function (): void {
+    $values = new FacetValues(
+        new FakeTermLabels([]),
+        new FakeTermScope(['product_cat' => ['b', 'c']]),
+        new FakeDefaultTerms
+    )->of(
+        new ChildTermsFacet('product_cat', 'Category', cap: 2),
+        ['a' => 9, 'b' => 8, 'c' => 7, 'd' => 6],
+        new ListingState
+    );
+
+    expect(array_map(static fn (FacetValue $v): string => $v->slug, $values))->toBe(['b', 'c']);
+});
+
+// « Non classé » says a content was filed nowhere: that is not a way to browse.
+it('drops the term a taxonomy falls back to', function (): void {
+    $values = facetValuesWithFallback()->of(
+        new Facet('product_cat', 'Category'),
+        ['a' => 4, 'non-classe' => 1],
+        new ListingState
+    );
+
+    expect(array_map(static fn (FacetValue $v): string => $v->slug, $values))->toBe(['a']);
+});
+
+// A taxonomy whose fallback is a term an editor chose keeps it.
+it('keeps the fallback a facet asks to show', function (): void {
+    $values = facetValuesWithFallback()->of(
+        new Facet('product_cat', 'Category', defaultTerm: DefaultTermVisibility::Shown),
+        ['a' => 4, 'non-classe' => 1],
+        new ListingState
+    );
+
+    expect($values)->toHaveCount(2);
+});
+
+it('leaves a taxonomy without a fallback alone', function (): void {
+    $values = facetValuesWithFallback()->of(
+        new Facet('product_brand', 'Brand'),
+        ['a' => 4, 'b' => 1],
+        new ListingState
+    );
+
+    expect($values)->toHaveCount(2);
+});

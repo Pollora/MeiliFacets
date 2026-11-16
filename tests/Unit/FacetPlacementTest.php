@@ -18,140 +18,118 @@ use Modules\MeiliFacets\Tests\Unit\Doubles\FakeListing;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeSearchEngine;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeTermLabels;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeTermScope;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 
-/**
+/*
  * The rules a template plays by, on facets the test declares itself — the host
  * project must never be able to break the module's suite by adding a facet.
  */
-final class FacetPlacementTest extends TestCase
+
+/**
+ * @param  list<Facet>|null  $facets
+ */
+function facetPlacementListing(?array $facets = null): ResolvedListing
 {
-    #[Test]
-    public function it_offers_every_facet_when_a_template_places_none(): void
-    {
-        $this->assertSame(['brand', 'size'], $this->namesOf($this->listing()->placement()->remainingFilters()));
-    }
+    return new ResolvedListing(
+        new FakeListing($facets ?? [
+            new Facet('product_brand', 'Brand', name: 'brand'),
+            new Facet('pa_size', 'Size', name: 'size'),
+        ]),
+        new ListingState,
+        new ListingSearch(new FakeSearchEngine, new DisjunctiveFacetCounter),
+        new FacetValues(new FakeTermLabels, new FakeTermScope, new FakeDefaultTerms),
 
-    #[Test]
-    public function it_drops_from_the_group_what_a_template_placed_on_its_own(): void
-    {
-        $listing = $this->listing();
-
-        $listing->placement()->placeNamed('brand', Facet::class);
-
-        $this->assertSame(['size'], $this->namesOf($listing->placement()->remainingFilters()));
-    }
-
-    /** Two identical blocks would duplicate the inputs and the ids they carry. */
-    #[Test]
-    public function it_refuses_to_render_the_same_facet_twice(): void
-    {
-        $listing = $this->listing();
-        $brand = array_find($listing->filters(), static fn (Placeable $filter): bool => $filter->name === 'brand');
-
-        $listing->placement()->placeFilter($brand, Facet::class);
-
-        $this->expectException(PlacementRefused::class);
-        $this->expectExceptionMessageMatches('/Facet "brand" is rendered twice/');
-
-        $listing->placement()->placeFilter($brand, Facet::class);
-    }
-
-    /** The sort is a control like a facet: a drawer shows the one copy, never a second. */
-    #[Test]
-    public function it_refuses_to_render_the_sort_twice(): void
-    {
-        $listing = $this->listing();
-
-        $listing->placement()->placeSort();
-
-        $this->expectException(PlacementRefused::class);
-        $this->expectExceptionMessageMatches('/The sort of listing "fake" is rendered twice.*Render <x-meilifacets::listing.sort> once per page\\./');
-
-        $listing->placement()->placeSort();
-    }
-
-    /** The group takes what is left, so placing a facet after it places it twice. */
-    #[Test]
-    public function it_refuses_a_facet_placed_after_the_group(): void
-    {
-        $listing = $this->listing();
-
-        foreach ($listing->placement()->remainingFilters() as $facet) {
-            $listing->placement()->placeFilter($facet, Facet::class);
-        }
-
-        $this->expectException(PlacementRefused::class);
-
-        $listing->placement()->placeNamed('brand', Facet::class);
-    }
-
-    #[Test]
-    public function it_names_the_facets_it_knows_when_asked_for_one_it_does_not(): void
-    {
-        $this->expectException(PlacementRefused::class);
-        $this->expectExceptionMessageMatches('/No facet named "colour".*brand, size/');
-
-        $this->listing()->placement()->placeNamed('colour', Facet::class);
-    }
-
-    /** A facet that names nothing answers to its taxonomy. */
-    #[Test]
-    public function it_finds_a_facet_that_was_never_named(): void
-    {
-        $listing = $this->listing([new Facet('product_tag', 'Tag')]);
-
-        $this->assertSame('product_tag', $listing->placement()->placeNamed('product_tag', Facet::class)->name);
-    }
-
-    #[Test]
-    public function it_refuses_two_facets_answering_to_the_same_name(): void
-    {
-        $this->expectException(PlacementRefused::class);
-        $this->expectExceptionMessageMatches('/Facets "Aisles" and "Shelves" answer to the same name "product_cat"/');
-
-        $this->listing([
-            new Facet('product_cat', 'Aisles'),
-            new Facet('product_cat', 'Shelves'),
-        ])->filters();
-    }
-
-    #[Test]
-    public function it_takes_two_facets_on_one_taxonomy_once_a_name_tells_them_apart(): void
-    {
-        $listing = $this->listing([
-            new Facet('product_cat', 'Aisles', name: 'aisles'),
-            new Facet('product_cat', 'Shelves'),
-        ]);
-
-        $this->assertSame(['aisles', 'product_cat'], $this->namesOf($listing->filters()));
-    }
-
-    /**
-     * @param  list<Facet>|null  $facets
-     */
-    private function listing(?array $facets = null): ResolvedListing
-    {
-        return new ResolvedListing(
-            new FakeListing($facets ?? [
-                new Facet('product_brand', 'Brand', name: 'brand'),
-                new Facet('pa_size', 'Size', name: 'size'),
-            ]),
-            new ListingState,
-            new ListingSearch(new FakeSearchEngine, new DisjunctiveFacetCounter),
-            new FacetValues(new FakeTermLabels, new FakeTermScope, new FakeDefaultTerms),
-
-            new EngineLimits(1000),
-        );
-    }
-
-    /**
-     * @param  list<Placeable>  $filters
-     * @return list<string>
-     */
-    private function namesOf(array $filters): array
-    {
-        return array_map(static fn (Placeable $filter): string => $filter->name, $filters);
-    }
+        new EngineLimits(1000),
+    );
 }
+
+/**
+ * @param  list<Placeable>  $filters
+ * @return list<string>
+ */
+function facetPlacementNamesOf(array $filters): array
+{
+    return array_map(static fn (Placeable $filter): string => $filter->name, $filters);
+}
+
+it('offers every facet when a template places none', function (): void {
+    expect(facetPlacementNamesOf(facetPlacementListing()->placement()->remainingFilters()))->toBe(['brand', 'size']);
+});
+
+it('drops from the group what a template placed on its own', function (): void {
+    $listing = facetPlacementListing();
+
+    $listing->placement()->placeNamed('brand', Facet::class);
+
+    expect(facetPlacementNamesOf($listing->placement()->remainingFilters()))->toBe(['size']);
+});
+
+// Two identical blocks would duplicate the inputs and the ids they carry.
+it('refuses to render the same facet twice', function (): void {
+    $listing = facetPlacementListing();
+    $brand = array_find($listing->filters(), static fn (Placeable $filter): bool => $filter->name === 'brand');
+
+    $listing->placement()->placeFilter($brand, Facet::class);
+
+    $this->expectException(PlacementRefused::class);
+    $this->expectExceptionMessageMatches('/Facet "brand" is rendered twice/');
+
+    $listing->placement()->placeFilter($brand, Facet::class);
+});
+
+// The sort is a control like a facet: a drawer shows the one copy, never a second.
+it('refuses to render the sort twice', function (): void {
+    $listing = facetPlacementListing();
+
+    $listing->placement()->placeSort();
+
+    $this->expectException(PlacementRefused::class);
+    $this->expectExceptionMessageMatches('/The sort of listing "fake" is rendered twice.*Render <x-meilifacets::listing.sort> once per page\\./');
+
+    $listing->placement()->placeSort();
+});
+
+// The group takes what is left, so placing a facet after it places it twice.
+it('refuses a facet placed after the group', function (): void {
+    $listing = facetPlacementListing();
+
+    foreach ($listing->placement()->remainingFilters() as $facet) {
+        $listing->placement()->placeFilter($facet, Facet::class);
+    }
+
+    $this->expectException(PlacementRefused::class);
+
+    $listing->placement()->placeNamed('brand', Facet::class);
+});
+
+it('names the facets it knows when asked for one it does not', function (): void {
+    $this->expectException(PlacementRefused::class);
+    $this->expectExceptionMessageMatches('/No facet named "colour".*brand, size/');
+
+    facetPlacementListing()->placement()->placeNamed('colour', Facet::class);
+});
+
+// A facet that names nothing answers to its taxonomy.
+it('finds a facet that was never named', function (): void {
+    $listing = facetPlacementListing([new Facet('product_tag', 'Tag')]);
+
+    expect($listing->placement()->placeNamed('product_tag', Facet::class)->name)->toBe('product_tag');
+});
+
+it('refuses two facets answering to the same name', function (): void {
+    $this->expectException(PlacementRefused::class);
+    $this->expectExceptionMessageMatches('/Facets "Aisles" and "Shelves" answer to the same name "product_cat"/');
+
+    facetPlacementListing([
+        new Facet('product_cat', 'Aisles'),
+        new Facet('product_cat', 'Shelves'),
+    ])->filters();
+});
+
+it('takes two facets on one taxonomy once a name tells them apart', function (): void {
+    $listing = facetPlacementListing([
+        new Facet('product_cat', 'Aisles', name: 'aisles'),
+        new Facet('product_cat', 'Shelves'),
+    ]);
+
+    expect(facetPlacementNamesOf($listing->filters()))->toBe(['aisles', 'product_cat']);
+});

@@ -6,96 +6,73 @@ namespace Modules\MeiliFacets\Tests\Unit;
 
 use Modules\MeiliFacets\Support\NameRefused;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeRegistry;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 use stdClass;
 
-final class NamedRegistryTest extends TestCase
-{
-    #[Test]
-    public function it_hands_back_the_entry_under_its_name(): void
-    {
-        $shoes = new stdClass;
-        $registry = new FakeRegistry(['hats' => new stdClass, 'shoes' => $shoes]);
+it('hands back the entry under its name', function (): void {
+    $shoes = new stdClass;
+    $registry = new FakeRegistry(['hats' => new stdClass, 'shoes' => $shoes]);
 
-        $this->assertSame($shoes, $registry->named('shoes'));
-    }
+    expect($registry->named('shoes'))->toBe($shoes);
+});
 
-    #[Test]
-    public function it_names_the_declared_entries_when_asked_for_an_unknown_one(): void
-    {
-        $registry = new FakeRegistry(['hats' => new stdClass, 'shoes' => new stdClass]);
+it('names the declared entries when asked for an unknown one', function (): void {
+    $registry = new FakeRegistry(['hats' => new stdClass, 'shoes' => new stdClass]);
 
-        $this->expectException(NameRefused::class);
-        $this->expectExceptionMessage('No shelf named "coats". Declared: hats, shoes.');
+    $this->expectException(NameRefused::class);
+    $this->expectExceptionMessage('No shelf named "coats". Declared: hats, shoes.');
 
-        $registry->named('coats');
-    }
+    $registry->named('coats');
+});
 
-    #[Test]
-    public function it_says_none_is_declared_when_asked_for_a_name_in_an_empty_registry(): void
-    {
-        $this->expectException(NameRefused::class);
-        $this->expectExceptionMessage('No shelf named "hats". Declared: none.');
+it('says none is declared when asked for a name in an empty registry', function (): void {
+    $this->expectException(NameRefused::class);
+    $this->expectExceptionMessage('No shelf named "hats". Declared: none.');
 
-        new FakeRegistry()->named('hats');
-    }
+    new FakeRegistry()->named('hats');
+});
 
-    #[Test]
-    public function it_does_not_match_a_name_written_in_another_case(): void
-    {
-        $this->expectException(NameRefused::class);
+it('does not match a name written in another case', function (): void {
+    $this->expectException(NameRefused::class);
 
-        new FakeRegistry(['hats' => new stdClass])->named('Hats');
-    }
+    new FakeRegistry(['hats' => new stdClass])->named('Hats');
+});
 
-    #[Test]
-    public function it_hands_back_the_only_entry_without_a_name(): void
-    {
-        $hats = new stdClass;
+it('hands back the only entry without a name', function (): void {
+    $hats = new stdClass;
 
-        $this->assertSame($hats, new FakeRegistry(['hats' => $hats])->onlyOne());
-    }
+    expect(new FakeRegistry(['hats' => $hats])->onlyOne())->toBe($hats);
+});
 
-    #[Test]
-    public function it_refuses_to_pick_one_entry_out_of_several(): void
-    {
-        $registry = new FakeRegistry(['hats' => new stdClass, 'shoes' => new stdClass]);
+it('refuses to pick one entry out of several', function (): void {
+    $registry = new FakeRegistry(['hats' => new stdClass, 'shoes' => new stdClass]);
 
-        $this->expectException(NameRefused::class);
-        $this->expectExceptionMessage('Name the shelf: 2 are declared (hats, shoes).');
+    $this->expectException(NameRefused::class);
+    $this->expectExceptionMessage('Name the shelf: 2 are declared (hats, shoes).');
 
-        $registry->onlyOne();
-    }
+    $registry->onlyOne();
+});
 
-    #[Test]
-    public function it_refuses_to_pick_one_entry_out_of_none(): void
-    {
-        $this->expectException(NameRefused::class);
-        $this->expectExceptionMessage('Name the shelf: none is declared.');
+it('refuses to pick one entry out of none', function (): void {
+    $this->expectException(NameRefused::class);
+    $this->expectExceptionMessage('Name the shelf: none is declared.');
 
-        new FakeRegistry()->onlyOne();
-    }
+    new FakeRegistry()->onlyOne();
+});
 
-    #[Test]
-    public function it_lists_the_names_in_the_order_they_were_declared(): void
-    {
-        $registry = new FakeRegistry(['shoes' => new stdClass, 'hats' => new stdClass]);
+it('lists the names in the order they were declared', function (): void {
+    $registry = new FakeRegistry(['shoes' => new stdClass, 'hats' => new stdClass]);
 
-        $this->assertSame(['shoes', 'hats'], $registry->names());
-        $this->assertSame([], new FakeRegistry()->names());
-    }
+    expect($registry->names())->toBe(['shoes', 'hats']);
+    expect(new FakeRegistry()->names())->toBe([]);
+});
 
-    /** A registry that builds its entries lazily relies on this to build them before any read. */
-    #[Test]
-    public function it_prepares_its_entries_before_every_kind_of_lookup(): void
-    {
-        $registry = new FakeRegistry(['hats' => new stdClass]);
+// A registry that builds its entries lazily relies on this to build them before any read.
+it('prepares its entries before every kind of lookup', function (): void {
+    $registry = new FakeRegistry(['hats' => new stdClass]);
 
-        $registry->named('hats');
-        $registry->onlyOne();
-        $registry->names();
+    $registry->named('hats');
+    $registry->onlyOne();
+    $registry->names();
 
-        $this->assertSame(3, $registry->lookups);
-    }
-}
+    expect($registry->lookups)->toBe(3);
+});
