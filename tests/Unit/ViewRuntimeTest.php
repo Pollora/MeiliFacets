@@ -25,14 +25,10 @@ use Modules\MeiliFacets\View\ListingRobots;
 use Modules\MeiliFacets\View\Preconnect;
 use Modules\MeiliFacets\View\SiteSearchDescription;
 use Modules\MeiliFacets\View\WordPressPageMetadata;
-use PHPUnit\Framework\Attributes\PreserveGlobalState;
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /** Reads WordPress and Laravel helpers, so each test gets a process of its own: see `Doubles\WordPress`. */
-#[RunTestsInSeparateProcesses]
-#[PreserveGlobalState(false)]
 final class ViewRuntimeTest extends TestCase
 {
     use BuildsResolvedListings;

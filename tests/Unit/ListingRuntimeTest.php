@@ -36,14 +36,12 @@ use Modules\MeiliFacets\View\CountLabel;
 use Modules\MeiliFacets\View\ListingDescription;
 use Modules\MeiliFacets\View\ListingRobots;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
 /** Reads WordPress and Laravel helpers, so each test gets a process of its own: see `Doubles\WordPress`. */
-#[RunTestsInSeparateProcesses]
-#[PreserveGlobalState(false)]
 final class ListingRuntimeTest extends TestCase
 {
     use BuildsResolvedListings;
@@ -140,6 +138,8 @@ final class ListingRuntimeTest extends TestCase
     }
 
     #[Test]
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
     public function it_describes_a_listing_for_the_browser_client(): void
     {
         $GLOBALS['wp'] = (object) ['public_query_vars' => ['s']];
@@ -181,6 +181,8 @@ final class ListingRuntimeTest extends TestCase
     }
 
     #[Test]
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
     public function it_describes_the_page_metadata_only_for_the_listing_the_page_paginates(): void
     {
         $GLOBALS['wp'] = (object) ['public_query_vars' => []];

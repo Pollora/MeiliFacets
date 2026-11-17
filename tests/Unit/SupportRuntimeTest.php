@@ -15,16 +15,12 @@ use Modules\MeiliFacets\Support\SiteLocale;
 use Modules\MeiliFacets\Support\UrlParameters;
 use Modules\MeiliFacets\Tests\Unit\Doubles\Application;
 use Modules\MeiliFacets\Tests\Unit\Doubles\WordPress;
-use PHPUnit\Framework\Attributes\PreserveGlobalState;
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\BufferedOutput;
 
 /** Reads WordPress and Laravel helpers, so each test gets a process of its own: see `Doubles\WordPress`. */
-#[RunTestsInSeparateProcesses]
-#[PreserveGlobalState(false)]
 final class SupportRuntimeTest extends TestCase
 {
     private string $directory = '';

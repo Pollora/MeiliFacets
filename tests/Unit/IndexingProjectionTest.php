@@ -33,7 +33,7 @@ use Modules\MeiliFacets\Indexing\WordPressTermHierarchy;
 use Modules\MeiliFacets\Search\EngineLimits;
 use Modules\MeiliFacets\Tests\Unit\Doubles\WordPress;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Pollora\MeiliScout\Contracts\Indexable;
@@ -42,8 +42,6 @@ use WP_Post;
 use WP_Term;
 
 /** Reads WordPress helpers, so each test gets a process of its own: see `Doubles\WordPress`. */
-#[RunTestsInSeparateProcesses]
-#[PreserveGlobalState(false)]
 final class IndexingProjectionTest extends TestCase
 {
     protected function setUp(): void
@@ -233,6 +231,8 @@ final class IndexingProjectionTest extends TestCase
     }
 
     #[Test]
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
     public function it_completes_a_meiliscout_document_with_facets_labels_and_text(): void
     {
         WordPress::fake('get_option', ['post']);
@@ -263,6 +263,8 @@ final class IndexingProjectionTest extends TestCase
     }
 
     #[Test]
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
     public function it_adds_no_term_fields_to_a_document_without_a_term_list(): void
     {
         WordPress::fake('get_option', []);
@@ -278,6 +280,8 @@ final class IndexingProjectionTest extends TestCase
     }
 
     #[Test]
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
     public function it_bridges_meiliscout_hooks_to_the_module(): void
     {
         WordPress::fake('get_option', []);

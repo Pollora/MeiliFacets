@@ -18,15 +18,11 @@ use Modules\MeiliFacets\Tests\Unit\Doubles\BuildsResolvedListings;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeListing;
 use Modules\MeiliFacets\Tests\Unit\Doubles\UnavailableSearchEngine;
 use Modules\MeiliFacets\Tests\Unit\Doubles\WordPress;
-use PHPUnit\Framework\Attributes\PreserveGlobalState;
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Response;
 
 /** Reads WordPress and Laravel helpers, so each test gets a process of its own: see `Doubles\WordPress`. */
-#[RunTestsInSeparateProcesses]
-#[PreserveGlobalState(false)]
 final class HttpLayerTest extends TestCase
 {
     use BuildsResolvedListings;

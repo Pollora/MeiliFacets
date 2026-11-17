@@ -23,7 +23,8 @@ use Modules\MeiliFacets\Tests\Unit\Doubles\FakeTermLabels;
 use Modules\MeiliFacets\Tests\Unit\Doubles\FakeTermScope;
 use Modules\MeiliFacets\View\ActiveValue;
 use Modules\MeiliFacets\View\ActiveValueList;
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -31,12 +32,13 @@ use PHPUnit\Framework\TestCase;
  * Standalone, `__()` hands back its key: the patterns below are the English ones. A suite that loaded WordPress
  * would translate them, and `wc_price()` would format the prices.
  */
-#[RunTestsInSeparateProcesses]
 final class ActiveValueListTest extends TestCase
 {
     private const array BRANDS = ['acme' => 5, 'globex' => 3, 'initech' => 2];
 
     #[Test]
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
     public function it_lists_the_ticked_values_in_facet_order_then_the_price(): void
     {
         $state = new ListingState(
@@ -52,6 +54,8 @@ final class ActiveValueListTest extends TestCase
 
     /** The price pill says what it is: its parameter and empty value are no convention to read it by. */
     #[Test]
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
     public function it_tells_a_term_pill_from_the_price_pill(): void
     {
         $state = new ListingState(['product_brand' => ['acme']], price: new Range(10.0, 50.0));
@@ -88,6 +92,8 @@ final class ActiveValueListTest extends TestCase
     }
 
     #[Test]
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
     public function it_writes_a_range_held_by_one_bound(): void
     {
         $from = $this->valuesFor(new ListingState(price: new Range(10.0)));

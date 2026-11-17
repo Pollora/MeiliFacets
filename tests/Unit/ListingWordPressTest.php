@@ -25,16 +25,12 @@ use Modules\MeiliFacets\Listing\WordPressDefaultTerms;
 use Modules\MeiliFacets\Listing\WordPressTermLabels;
 use Modules\MeiliFacets\Listing\WordPressTermScope;
 use Modules\MeiliFacets\Tests\Unit\Doubles\WordPress;
-use PHPUnit\Framework\Attributes\PreserveGlobalState;
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use WP_Term;
 
 /** WooCommerce is "active" the moment `wc_get_product()` exists, so each test gets a process of its own. */
-#[RunTestsInSeparateProcesses]
-#[PreserveGlobalState(false)]
 final class ListingWordPressTest extends TestCase
 {
     protected function setUp(): void

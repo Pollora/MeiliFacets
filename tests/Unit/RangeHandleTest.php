@@ -6,9 +6,17 @@ namespace Modules\MeiliFacets\Tests\Unit\RangeHandle;
 
 use Modules\MeiliFacets\Enums\PriceBound;
 use Modules\MeiliFacets\Support\Money;
+use Modules\MeiliFacets\Tests\Unit\Doubles\WordPress;
 use Modules\MeiliFacets\View\RangeHandle;
 
-// Standalone, WooCommerce is absent: `Money` writes two decimals and a thousands comma.
+// WooCommerce formats the price through `wc_price()`, answered here with two decimals and a thousands comma:
+// the doubles stay in the shared process, so a test cannot rely on WooCommerce being absent.
+beforeEach(function (): void {
+    WordPress::boot();
+    WordPress::bootWooCommerce();
+    WordPress::fake('wp_strip_all_tags', static fn (string $text): string => strip_tags($text));
+    WordPress::fake('wc_price', static fn (float $value): string => '<span>'.number_format($value, 2).'</span>');
+});
 
 function handle(float $value, ?float $shown): RangeHandle
 {

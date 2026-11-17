@@ -32,13 +32,11 @@ use Modules\MeiliFacets\View\Components\Listing\Price as PriceComponent;
 use Modules\MeiliFacets\View\Components\Listing\Sort as SortComponent;
 use Modules\MeiliFacets\View\CountLabel;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /** The values a Blade view reads off its component, without rendering the view: see `Doubles\WordPress`. */
-#[RunTestsInSeparateProcesses]
-#[PreserveGlobalState(false)]
 final class ComponentsTest extends TestCase
 {
     protected function setUp(): void
@@ -103,6 +101,8 @@ final class ComponentsTest extends TestCase
     }
 
     #[Test]
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
     public function a_price_component_draws_one_handle_per_bound_inside_what_the_catalogue_offers(): void
     {
         $component = $this->price(['price.min' => ['min' => 10.4, 'max' => 10.4], 'price.max' => ['min' => 80.0, 'max' => 99.2]]);
