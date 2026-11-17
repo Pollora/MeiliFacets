@@ -35,15 +35,11 @@ use Modules\MeiliFacets\View\ActiveValueList;
 use Modules\MeiliFacets\View\CountLabel;
 use Modules\MeiliFacets\View\ListingDescription;
 use Modules\MeiliFacets\View\ListingRobots;
-use PHPUnit\Framework\Attributes\PreserveGlobalState;
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
 /** Reads WordPress and Laravel helpers, so each test gets a process of its own: see `Doubles\WordPress`. */
-#[RunTestsInSeparateProcesses]
-#[PreserveGlobalState(false)]
 final class ListingRuntimeTest extends TestCase
 {
     use BuildsResolvedListings;

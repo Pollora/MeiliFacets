@@ -32,8 +32,6 @@ use Modules\MeiliFacets\Indexing\WooCommerce\WooCommerceProductFields;
 use Modules\MeiliFacets\Indexing\WordPressTermHierarchy;
 use Modules\MeiliFacets\Search\EngineLimits;
 use Modules\MeiliFacets\Tests\Unit\Doubles\WordPress;
-use PHPUnit\Framework\Attributes\PreserveGlobalState;
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Pollora\MeiliScout\Contracts\Indexable;
@@ -42,8 +40,6 @@ use WP_Post;
 use WP_Term;
 
 /** Reads WordPress helpers, so each test gets a process of its own: see `Doubles\WordPress`. */
-#[RunTestsInSeparateProcesses]
-#[PreserveGlobalState(false)]
 final class IndexingProjectionTest extends TestCase
 {
     protected function setUp(): void

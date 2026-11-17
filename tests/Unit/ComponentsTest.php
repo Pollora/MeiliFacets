@@ -31,14 +31,10 @@ use Modules\MeiliFacets\View\Components\Listing\Facet as FacetComponent;
 use Modules\MeiliFacets\View\Components\Listing\Price as PriceComponent;
 use Modules\MeiliFacets\View\Components\Listing\Sort as SortComponent;
 use Modules\MeiliFacets\View\CountLabel;
-use PHPUnit\Framework\Attributes\PreserveGlobalState;
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /** The values a Blade view reads off its component, without rendering the view: see `Doubles\WordPress`. */
-#[RunTestsInSeparateProcesses]
-#[PreserveGlobalState(false)]
 final class ComponentsTest extends TestCase
 {
     protected function setUp(): void
