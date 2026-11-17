@@ -30,15 +30,13 @@ use Modules\MeiliFacets\View\YoastPageCount;
 use Modules\MeiliFacets\View\YoastPageMetadata;
 use Modules\MeiliFacets\View\YoastPageWords;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use WP_Post_Type;
 use Yoast\WP\SEO\Models\Indexable;
 
 /** Reads WordPress helpers, so each test gets a process of its own: see `Doubles\WordPress`. */
-#[RunTestsInSeparateProcesses]
-#[PreserveGlobalState(false)]
 final class SiteSearchAndSeoTest extends TestCase
 {
     use BuildsResolvedListings;
@@ -154,6 +152,8 @@ final class SiteSearchAndSeoTest extends TestCase
     }
 
     #[Test]
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
     public function it_says_whether_yoast_is_active_by_the_function_it_defines(): void
     {
         $this->assertFalse(YoastSeo::isActive());

@@ -56,13 +56,11 @@ use Modules\MeiliFacets\View\CardSettings;
 use Modules\MeiliFacets\View\CountLabel;
 use Modules\MeiliFacets\View\WordPressPageMetadata;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /** What each layer binds, resolved from a container of its own, in a process of its own: see `Doubles\WordPress`. */
-#[RunTestsInSeparateProcesses]
-#[PreserveGlobalState(false)]
 final class ProvidersTest extends TestCase
 {
     private Application $app;
@@ -178,6 +176,8 @@ final class ProvidersTest extends TestCase
     }
 
     #[Test]
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
     public function the_page_metadata_is_the_wordpress_one_until_yoast_is_active(): void
     {
         $this->register(RenderingServiceProvider::class);

@@ -19,8 +19,6 @@ use Modules\MeiliFacets\Indexing\WooCommerce\VariationMetaRewrites;
 use Modules\MeiliFacets\Indexing\WooCommerce\WooCommerceCardProjector;
 use Modules\MeiliFacets\Support\Money;
 use Modules\MeiliFacets\Tests\Unit\Doubles\WordPress;
-use PHPUnit\Framework\Attributes\PreserveGlobalState;
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use stdClass;
@@ -32,8 +30,6 @@ use WP_Post;
 use WP_Term;
 
 /** WooCommerce is "active" the moment `wc_get_product()` exists, so each test gets a process of its own. */
-#[RunTestsInSeparateProcesses]
-#[PreserveGlobalState(false)]
 final class WooCommerceIndexingTest extends TestCase
 {
     protected function setUp(): void
