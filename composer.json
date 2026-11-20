@@ -70,7 +70,7 @@
         "phpunit/phpunit": "^13.4",
         "pollora/attributes": "^0.1.2",
         "pollora/discovery": "^0.1.0",
-        "pollora/harness": "^0.1.24",
+        "pollora/harness": "^0.1.32",
         "rector/rector": "^2.6",
         "symfony/polyfill-php83": "^1.30"
     },
