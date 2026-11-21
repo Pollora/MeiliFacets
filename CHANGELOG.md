@@ -9,6 +9,11 @@ What to change in a project when moving from one version to the next is in
 
 ## [Unreleased]
 
+### Fixed
+
+- A `SelectionMode::Single` facet holding a value keeps its other values: it is counted without its own selection, on
+  the server and in the browser, as a multiple-selection facet is (issue #4). It costs one extra query per such facet.
+
 ### Changed
 
 - Requires `league/uri` 7.5.1 or later: 7.5.0 declares a dependency on `league/uri-interfaces` that is too loose
