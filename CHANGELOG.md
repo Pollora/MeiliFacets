@@ -20,6 +20,9 @@ What to change in a project when moving from one version to the next is in
 
 ### Changed
 
+- `docs/production.md` and `docs/indexing/README.md` describe MeiliScout 2.6's batching of meta writes (one push per
+  post at the end of the request) instead of one push per write (issue #21, partly: the count of engine tasks per
+  save is still to be measured on a test project).
 - Requires `league/uri` 7.5.1 or later: 7.5.0 declares a dependency on `league/uri-interfaces` that is too loose
   and fails when Composer resolves the lowest versions.
 
