@@ -12,7 +12,6 @@ changes is in the [changelog](../CHANGELOG.md).
   shop's default sorting is « Popularity (sales) » or « Average rating »: the products now carry
   `total_sales`, `average_rating` and `rating_count`, and the index declares them and `ID` sortable. Until then, these
   two sortings fail like any sort on a field that is not sortable.
-
 - **Run `php artisan module:publish MeiliFacets`**: the browser script changed. Clear the page cache too.
 
 ## 0.5.0
