@@ -15,6 +15,11 @@ What to change in a project when moving from one version to the next is in
   again. The products carry `total_sales`, `average_rating` and `rating_count`, sortable together with `ID`, and are
   ranked as WooCommerce ranks them. A product is re-indexed when an order changes its sales. Run `wp meiliscout index` again.
 
+### Fixed
+
+- In `submit` mode, turning the page no longer unticks the boxes the visitor ticked and has not applied yet. The
+  page turned to stays the one of the filters applied, and its address is unchanged. Publish the assets again.
+
 ### Changed
 
 - Requires `league/uri` 7.5.1 or later: 7.5.0 declares a dependency on `league/uri-interfaces` that is too loose

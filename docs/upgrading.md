@@ -13,6 +13,8 @@ changes is in the [changelog](../CHANGELOG.md).
   `total_sales`, `average_rating` and `rating_count`, and the index declares them and `ID` sortable. Until then, these
   two sortings fail like any sort on a field that is not sortable.
 
+- **Run `php artisan module:publish MeiliFacets`**: the browser script changed. Clear the page cache too.
+
 ## 0.5.0
 
 - **Require `pollora/meilifacets:^0.5`**: `composer require pollora/meilifacets:^0.5 -W`. Below 1.0, `^0.4` does not

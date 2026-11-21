@@ -257,8 +257,8 @@ The sort of listing "products" is rendered twice on this page: its list and ids 
   entry for its address, so Back returns to the page before. A click with Ctrl, Cmd, Shift or Alt held, or with the
   middle button, is left to the browser, which opens the address; so is a link an override points at another tab,
   another site or a download. A click on the current page does nothing. Without JavaScript the links load the page.
-- **In `submit` mode**, the page turned to is the one of the filters applied: boxes ticked and not applied are left
-  behind, as the link's address says.
+- **In `submit` mode**, the page turned to is the one of the filters applied, as the link's address says, and the boxes
+  ticked and not applied stay ticked: pressing Apply then shows the first page of the new filters.
 - **After a filter or a sort**, the client rewrites the links for the new state, and replaces the current history
   entry.
 - **The tab's title, the canonical and the robots directives follow the page.** See

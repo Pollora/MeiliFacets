@@ -112,9 +112,18 @@ export class Listing extends EventTarget {
             return this
         }
 
+        const turned = this.#answered.onPage(page)
+
         this.#keepsHistory = true
 
-        return this.#applyNow(this.#answered.onPage(page))
+        if (this.#waitsForApply(turned)) {
+            this.#writeUrl(turned)
+            void this.#search(turned)
+
+            return this
+        }
+
+        return this.#applyNow(turned)
     }
 
     remove(taxonomy: string, value: string) {
@@ -146,6 +155,12 @@ export class Listing extends EventTarget {
         return this
     }
 
+    /** On submit, boxes ticked since the last answer are the visitor's, and a page turn does not take them away. */
+    #waitsForApply(turned: ListingState) {
+        return !this.appliesImmediately
+            && JSON.stringify(this.#state.onPage(turned.page).toDescription()) !== JSON.stringify(turned.toDescription())
+    }
+
     #restore(shown: StateDescription) {
         this.#setState(new ListingState(shown))
 
@@ -160,10 +175,9 @@ export class Listing extends EventTarget {
     }
 
     /** A search the visitor overtook is not a failure and says nothing. */
-    async #search() {
+    async #search(state = this.#state) {
         this.#pendingSearches.start()
 
-        const state = this.#state
         const asked = JSON.stringify(state.toDescription())
 
         try {
@@ -176,7 +190,7 @@ export class Listing extends EventTarget {
         } catch (failure) {
             if (!(failure instanceof SearchSuperseded)) {
                 console.error('[meilifacets] the search failed:', failure)
-                this.#rollBack(asked)
+                this.#rollBack(asked, state)
                 this.#dispatch('failed', { failure })
             }
         } finally {
@@ -188,15 +202,18 @@ export class Listing extends EventTarget {
      * The page claims no state the engine did not answer: the controls and the URL go back to the last one it did,
      * and a page change that failed leaves no entry behind.
      */
-    #rollBack(asked: string) {
-        this.#setState(this.#answered)
+    #rollBack(asked: string, searched: ListingState) {
+        if (searched === this.#state) {
+            this.#setState(this.#answered)
+        }
+
         this.#askedFor = this.#searchedFor
 
         if (asked === this.#pushedFor) {
             this.#pushedFor = null
             this.#history.back()
         } else {
-            this.#writeUrl()
+            this.#writeUrl(this.#answered)
         }
     }
 
@@ -223,15 +240,15 @@ export class Listing extends EventTarget {
         this.#dispatch('change', { state })
     }
 
-    #writeUrl() {
+    #writeUrl(state = this.#state) {
         const { name } = this.#description
-        const url = this.#url.toUrl(this.#state)
+        const url = this.#url.toUrl(state)
 
         if (this.#keepsHistory) {
-            this.#history.push(name, this.#state.toDescription(), url)
-            this.#pushedFor = JSON.stringify(this.#state.toDescription())
+            this.#history.push(name, state.toDescription(), url)
+            this.#pushedFor = JSON.stringify(state.toDescription())
         } else {
-            this.#history.replace(name, this.#state.toDescription(), url)
+            this.#history.replace(name, state.toDescription(), url)
             this.#pushedFor = null
         }
 
