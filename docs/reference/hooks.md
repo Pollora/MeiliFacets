@@ -175,6 +175,7 @@ The client also relies on these, which an override must keep.
 | `data-bound` | `price-handle` | `min`, `max` | yes |
 | `data-media` | `drawer` | a media query | yes |
 | `data-overflow` | `drawer`, past its row limit | `side-sheet`, `show-more` | yes |
+| `data-started` | `drawer`, set by the client once it has taken the drawer over | present or absent | written |
 | `data-side-sheet` | `drawer`, set by the client while it is a side sheet | present or absent | written |
 | `data-beyond-row` | `facet`, past the row limit with `show-more` | present or absent | yes |
 | `data-type`, `data-limit` | `search-section` | post type, number of results | yes |

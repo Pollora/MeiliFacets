@@ -255,12 +255,15 @@ it('plans no price for a listing that declares none', function (): void {
     expect($prices)->toBe([]);
 });
 
-/** A single-selection facet reads correctly off the main response, so it must never cost an extra search. */
-it('never gives a single selection facet its own search', function (): void {
-    $state = new ListingState(['product_cat' => ['coats']]);
+/** `#4`: a radio cannot be unchecked, so a single-selection facet holding a value is counted without its own selection, like a multiple one. */
+it('gives a single selection facet holding a value a search of its own', function (): void {
+    $held = new ListingState(['product_cat' => ['coats']]);
+    $queries = (new DisjunctiveFacetCounter)->queries($this->listing, $held);
 
-    expect((new DisjunctiveFacetCounter)->queries($this->listing, $state))->toBe([]);
-    expect(QueryPlan::results($this->listing, $state, [])['facets'])->toContain('facets.product_cat');
+    expect(array_keys($queries))->toBe(['product_cat']);
+    expect($queries['product_cat']['filter'])->not->toContain('product_cat');
+    expect(QueryPlan::results($this->listing, $held, ['count:product_cat'])['facets'])->not->toContain('facets.product_cat');
+    expect((new DisjunctiveFacetCounter)->queries($this->listing, new ListingState))->toBe([]);
 });
 
 /** The client reads the same cases (`listing-query.test.ts`): a first render and the first gesture after it must search the same products on the same fields. */

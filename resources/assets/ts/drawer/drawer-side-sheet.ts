@@ -6,6 +6,8 @@ const OVERFLOW = 'data-overflow'
 const SIDE_SHEET_OVERFLOW = 'side-sheet'
 const SHOW_MORE_OVERFLOW = 'show-more'
 const SIDE_SHEET = 'data-side-sheet'
+/** The stylesheet takes the drawer out of the page only once this client runs: without it, the filters stay reachable. */
+const STARTED = 'data-started'
 
 export class DrawerSideSheet {
     #drawer: HTMLElement
@@ -24,6 +26,8 @@ export class DrawerSideSheet {
         if (this.#overflowsTo(SIDE_SHEET_OVERFLOW)) {
             this.#drawer.setAttribute(SIDE_SHEET, '')
         }
+
+        this.#drawer.setAttribute(STARTED, '')
     }
 
     isSideSheet() {

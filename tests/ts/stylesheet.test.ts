@@ -316,6 +316,7 @@ describe('the drawer as a sheet', () => {
     const source = readFileSync(new URL('../../resources/assets/css/meilifacets.css', import.meta.url), 'utf8')
     const sheet = source.slice(source.indexOf('@media (scripting: enabled) and (width < 48em)'))
     const DRAWER = Contract.selector('drawer')
+    const STARTED = `${DRAWER}:where([data-started])`
 
     /** Figma 17:754: 24 × 32 head, 40 around the body, 32 at the sides, 16 × 32 foot. */
     it('spaces its parts with the mock-up\'s measures, through variables a theme can move', () => {
@@ -324,6 +325,13 @@ describe('the drawer as a sheet', () => {
         assert.match(declared(sheet, '.meilifacetsDrawerHead'), /padding: var\(--meili-section-gap\) var\(--meili-drawer-gutter\);/)
         assert.match(declared(sheet, Contract.selector('drawer-body')), /padding: var\(--meili-drawer-block\) var\(--meili-drawer-gutter\);/)
         assert.match(declared(sheet, Contract.selector('drawer-footer')), /padding: var\(--meili-section-step\) var\(--meili-drawer-gutter\)/)
+    })
+
+    /** `#25`: a client that does not start leaves the filters in the page, not behind an opener that opens nothing. */
+    it('leaves the page and shows its opener only once the client has started', () => {
+        assert.match(declared(sheet, STARTED), /position: fixed;/)
+        assert.match(declared(sheet, `:where([data-listing]:has(${DRAWER}[data-started])) ${Contract.selector('drawer-open')}`), /display: inline-flex;/)
+        assert.doesNotMatch(sheet.slice(0, sheet.indexOf('@media (scripting: enabled) and (width >= 48em)')), /^ {4}\[data-meili="drawer"\] \{/m)
     })
 
     /** The field heading the body sits as far from the head as from the section below it. */
@@ -335,7 +343,7 @@ describe('the drawer as a sheet', () => {
 
     /** At rest nothing may move: a transition there plays on the first render and on every crossing of the threshold. */
     it('holds no transition while closed at rest, and plays its way out only while it closes', () => {
-        for (const selector of [DRAWER, `${DRAWER}::before`, Contract.selector('drawer-sheet')]) {
+        for (const selector of [STARTED, `${STARTED}::before`, `:where(${DRAWER}[data-started]) ${Contract.selector('drawer-sheet')}`]) {
             assert.doesNotMatch(declared(sheet, selector), /transition/, selector)
         }
 
@@ -364,7 +372,7 @@ describe('the drawer as a sheet', () => {
         const apply = `${Contract.selector('apply')}[data-only="sheet"]`
 
         assert.match(declared(source, apply), /display: none;/)
-        assert.match(declared(sheet, `${DRAWER} ${apply}`), /display: inline-flex;/)
+        assert.match(declared(sheet, `${STARTED} ${apply}`), /display: inline-flex;/)
     })
 })
 
@@ -593,23 +601,25 @@ describe('the side sheet', () => {
 
         assert.match(panel, /margin-left: auto;/)
         assert.match(panel, /transform: translateX\(100%\);/)
-        assert.doesNotMatch(declared(sideSheet, '[data-meili="drawer"]:is([data-overflow="side-sheet"], [data-side-sheet])'), /justify-content/)
+        assert.doesNotMatch(declared(sideSheet, '[data-meili="drawer"][data-side-sheet]'), /justify-content/)
     })
 
-    it('shows the opener of its own listing only', () => {
-        assert.match(sideSheet, /:where\(\[data-listing\]:has\(\[data-meili="drawer"\]\[data-overflow="side-sheet"\]\)\) \[data-meili="drawer-open"\] \{\s+display: inline-flex;/)
+    /** `#25`: while the client has not started, the opener would open nothing. */
+    it('shows the opener of its own listing only, once the client has started', () => {
+        assert.match(sideSheet, /:where\(\[data-listing\]:has\(\[data-meili="drawer"\]\[data-overflow="side-sheet"\]\[data-started\]\)\) \[data-meili="drawer-open"\] \{\s+display: inline-flex;/)
     })
 
-    it('leaves the page before the client starts, from the server mark, and only with scripting', () => {
-        assert.match(declared(sideSheet, '[data-meili="drawer"]:is([data-overflow="side-sheet"], [data-side-sheet])'), /position: fixed;/)
-        assert.ok(source.indexOf('[data-overflow="side-sheet"]') > source.indexOf('@media (scripting: enabled) and (width >= 48em)'))
+    it('leaves the page only once the client has taken over, and only with scripting', () => {
+        assert.match(declared(sideSheet, '[data-meili="drawer"][data-side-sheet]'), /position: fixed;/)
+        assert.doesNotMatch(sideSheet, /\[data-meili="drawer"\]:is\(\[data-overflow="side-sheet"\]/)
+        assert.ok(source.indexOf('[data-meili="drawer"][data-side-sheet] {') > source.indexOf('@media (scripting: enabled) and (width >= 48em)'))
     })
 })
 
 describe('the row past its limit with « Show more »', () => {
     const source = readFileSync(new URL('../../resources/assets/css/meilifacets.css', import.meta.url), 'utf8')
     const scripted = source.slice(source.indexOf('@media (scripting: enabled) and (width >= 48em)'))
-    const ROW = '[data-overflow="show-more"]:not([data-side-sheet])'
+    const ROW = '[data-overflow="show-more"][data-started]:not([data-side-sheet])'
 
     it('hides the filters past the limit in the row, and only with scripting', () => {
         assert.match(declared(scripted, `${ROW} [data-beyond-row]`), /display: none;/)

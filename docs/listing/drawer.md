@@ -243,10 +243,11 @@ in [Accessibility and motion](../accessibility.md).
 - **An ancestor with `transform`, `filter`, `contain` or `container-type`** traps the sheet: `position: fixed` then
   attaches to that ancestor instead of the viewport, and the sheet opens inside its box. Keep the listing out of such
   an ancestor.
-- **The client must start.** The stylesheet hides the drawer below `48em`, and on wide screens past the row limit
-  with `side-sheet`, whenever scripting is enabled, whether or not the client is loaded. If the browser connection is not configured,
-  the client is not published or its script fails, the opener shows and opens nothing, and the filters are out of
-  reach. See [Installation](../installation.md).
+- **The drawer waits for the client.** The client marks the drawer `data-started` when it takes it over, and the
+  stylesheet hides the drawer (below `48em`, or past the row limit with `side-sheet`) and shows its opener only then.
+  If the browser connection is not configured, the client is not published or its script fails, the filters stay in
+  the page, as without JavaScript. The page shows them first and the drawer takes them over once the client has
+  started: expect a small shift on a slow connection. See [Installation](../installation.md).
 - **Change the breakpoint in both places**: the `media` attribute and the stylesheet.
 - **A drawer view copied before `row-overflow` existed** fails: it calls `$isSideSheet()`. Copy the view again. A
   facet or price view copied before it keeps its filters in the row with `show-more`: it does not carry

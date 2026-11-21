@@ -36,10 +36,11 @@ final readonly class FacetQuery implements FilterQuery
 
     /**
      * A facet only needs a search of its own once it constrains the results;
-     * until then the main response counts it correctly.
+     * until then the main response counts it correctly. A single-selection facet
+     * needs it too: its other values stay offered, since a radio cannot be unchecked.
      */
     public function isMeasuredSeparately(ListingState $state): bool
     {
-        return $this->facet->needsDisjunctiveCount() && $state->selected($this->facet->taxonomy) !== [];
+        return $state->selected($this->facet->taxonomy) !== [];
     }
 }
