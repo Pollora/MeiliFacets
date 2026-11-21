@@ -22,6 +22,7 @@ use Modules\MeiliFacets\Indexing\SummaryCardProjector;
 use Modules\MeiliFacets\Indexing\TermAncestry;
 use Modules\MeiliFacets\Indexing\WooCommerce\AnonymousVisitor;
 use Modules\MeiliFacets\Indexing\WooCommerce\EmptyVariantFields;
+use Modules\MeiliFacets\Indexing\WooCommerce\ProductPopularity;
 use Modules\MeiliFacets\Indexing\WooCommerce\ProductPriceProjector;
 use Modules\MeiliFacets\Indexing\WooCommerce\ProductStock;
 use Modules\MeiliFacets\Indexing\WooCommerce\ProductVariants;
@@ -409,6 +410,7 @@ final class IndexingProjectionTest extends TestCase
             $cards,
             new ProductVariants(new EmptyVariantFields, new WordPressTermHierarchy, 'medium'),
             new ProductStock,
+            new ProductPopularity,
             new ProductPriceProjector,
             new ShopTaxLocation,
             new AnonymousVisitor,

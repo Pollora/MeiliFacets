@@ -6,7 +6,7 @@ namespace Modules\MeiliFacets\Tests\Unit\CatalogOrderChoices;
 
 use Modules\MeiliFacets\Listing\CatalogOrderChoices;
 
-it('offers only the sortings the listing follows keeping their labels and order', function (): void {
+it('offers every sorting the listing follows and no other, keeping their labels and order', function (): void {
     $choices = [
         'menu_order' => 'Default sorting',
         'popularity' => 'Popularity',
@@ -14,10 +14,13 @@ it('offers only the sortings the listing follows keeping their labels and order'
         'date' => 'Sort by latest',
         'price' => 'Sort by price: low to high',
         'price-desc' => 'Sort by price: high to low',
+        'rand' => 'Random',
     ];
 
     expect(new CatalogOrderChoices()->onlyFollowable($choices))->toBe([
         'menu_order' => 'Default sorting',
+        'popularity' => 'Popularity',
+        'rating' => 'Average rating',
         'date' => 'Sort by latest',
         'price' => 'Sort by price: low to high',
         'price-desc' => 'Sort by price: high to low',

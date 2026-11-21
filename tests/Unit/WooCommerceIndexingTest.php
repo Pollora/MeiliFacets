@@ -9,7 +9,9 @@ use Modules\MeiliFacets\Contracts\TermHierarchy;
 use Modules\MeiliFacets\Indexing\WooCommerce\AnonymousVisitor;
 use Modules\MeiliFacets\Indexing\WooCommerce\EmptyVariantFields;
 use Modules\MeiliFacets\Indexing\WooCommerce\ProductOrderingChanges;
+use Modules\MeiliFacets\Indexing\WooCommerce\ProductPopularity;
 use Modules\MeiliFacets\Indexing\WooCommerce\ProductPriceProjector;
+use Modules\MeiliFacets\Indexing\WooCommerce\ProductSalesChanges;
 use Modules\MeiliFacets\Indexing\WooCommerce\ProductStock;
 use Modules\MeiliFacets\Indexing\WooCommerce\ProductVariants;
 use Modules\MeiliFacets\Indexing\WooCommerce\ShopFields;
@@ -378,6 +380,55 @@ final class WooCommerceIndexingTest extends TestCase
     }
 
     #[Test]
+    public function it_projects_the_sales_and_the_rating_the_shop_ranks_a_product_on(): void
+    {
+        WordPress::fake('wc_get_product', new WC_Product(['total_sales' => 12, 'average_rating' => '4.50', 'rating_count' => 8]));
+
+        $this->assertSame(
+            ['total_sales' => 12, 'average_rating' => 4.5, 'rating_count' => 8],
+            new ProductPopularity()->project(new WP_Post)
+        );
+    }
+
+    #[Test]
+    public function it_projects_no_sales_for_a_non_product(): void
+    {
+        WordPress::fake('wc_get_product', false);
+
+        $this->assertSame([], new ProductPopularity()->project(new WP_Post));
+    }
+
+    #[Test]
+    public function it_keeps_the_sales_of_a_product_without_a_price(): void
+    {
+        WordPress::fake('wc_get_product', new WC_Product(['price' => '', 'total_sales' => 3]));
+        WordPress::fake('get_current_user_id', 0);
+        WordPress::fake('wp_set_current_user', null);
+        $cards = new class implements CardProjector
+        {
+            public function project(WP_Post $post): array
+            {
+                return [];
+            }
+        };
+
+        $document = $this->shopFields($cards)->project(new WP_Post);
+
+        $this->assertSame(3, $document['total_sales']);
+        $this->assertArrayNotHasKey('price', $document);
+    }
+
+    #[Test]
+    public function it_reindexes_the_product_whose_sales_an_order_changed(): void
+    {
+        WordPress::fake('do_action', null);
+
+        new ProductSalesChanges()->reindex(9);
+
+        $this->assertSame(['meiliscout/reindex_post', 9], WordPress::$log[array_key_last(WordPress::$log)][1]);
+    }
+
+    #[Test]
     public function it_clears_the_cache_of_the_products_and_variations_using_an_edited_term(): void
     {
         WordPress::fake('taxonomy_is_product_attribute', static fn (string $taxonomy): bool => $taxonomy === 'pa_color');
@@ -492,6 +543,7 @@ final class WooCommerceIndexingTest extends TestCase
             $card,
             new ProductVariants(new EmptyVariantFields, $this->noHierarchy(), 'medium'),
             new ProductStock,
+            new ProductPopularity,
             new ProductPriceProjector,
             new ShopTaxLocation,
             new AnonymousVisitor,

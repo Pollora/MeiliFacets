@@ -9,6 +9,12 @@ What to change in a project when moving from one version to the next is in
 
 ## [Unreleased]
 
+### Added
+
+- « Popularity (sales) » and « Average rating » can be the shop's default sorting, and the Customizer offers them
+  again. The products carry `total_sales`, `average_rating` and `rating_count`, sortable together with `ID`, and are
+  ranked as WooCommerce ranks them. A product is re-indexed when an order changes its sales. Run `wp meiliscout index` again.
+
 ### Changed
 
 - Requires `league/uri` 7.5.1 or later: 7.5.0 declares a dependency on `league/uri-interfaces` that is too loose
