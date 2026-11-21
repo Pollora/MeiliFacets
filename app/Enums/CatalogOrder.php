@@ -15,8 +15,12 @@ enum CatalogOrder: string
     case Date = 'date';
     case Price = 'price';
     case Relevance = 'relevance';
+    case Popularity = 'popularity';
+    case Rating = 'rating';
 
     /**
+     * `Popularity` and `Rating` have one direction only, as WooCommerce ranks them, whatever the setting says.
+     *
      * @return list<string>
      */
     public function expressions(SortDirection $direction): array
@@ -30,13 +34,25 @@ enum CatalogOrder: string
             self::Date => [$direction->of(DocumentField::Date->value)],
             self::Price => [$direction->of($this->priceBound($direction)->path())],
             self::Relevance => [],
+            self::Popularity => [
+                SortDirection::Descending->of(DocumentField::TotalSales->value),
+                SortDirection::Descending->of(DocumentField::Id->value),
+            ],
+            self::Rating => [
+                SortDirection::Descending->of(DocumentField::AverageRating->value),
+                SortDirection::Descending->of(DocumentField::RatingCount->value),
+                SortDirection::Descending->of(DocumentField::Id->value),
+            ],
         };
     }
 
-    /** WooCommerce lists the newest first unless asked otherwise, and everything else from the start. */
+    /** WooCommerce lists the newest, the most sold and the best rated first, and everything else from the start. */
     public function defaultDirection(): SortDirection
     {
-        return $this === self::Date ? SortDirection::Descending : SortDirection::Ascending;
+        return match ($this) {
+            self::Date, self::Popularity, self::Rating => SortDirection::Descending,
+            default => SortDirection::Ascending,
+        };
     }
 
     /** A product spanning 28–62 belongs at 28 going up and at 62 going down, as WooCommerce ranks it. */

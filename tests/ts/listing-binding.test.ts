@@ -272,6 +272,17 @@ describe('ListingBinding', () => {
         )
     })
 
+    it('keeps the box ticked and not applied when the page turns', async () => {
+        client.answer = { results: { hits: [], totalHits: 25 } }
+        await listing.apply()
+
+        tick(window, box('acme'))
+        click(window, second('page'))
+        await Promise.resolve()
+
+        assert.deepEqual([box('acme').checked, history.pushed, listing.state.selected('product_brand')], [true, ['/shop/page/2'], ['acme']])
+    })
+
     it('titles the tab for the page turned to, and for the first once a filter brings it back', async () => {
         const titled = described({ ...description, pageTitles: { first: 'Shop - Site', paged: 'Shop - Page :page of :pages - Site' } })
 

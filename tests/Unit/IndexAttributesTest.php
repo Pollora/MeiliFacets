@@ -43,7 +43,7 @@ it('declares the price interval outside the metas', function (): void {
 
 // Ascending reads the low end, descending the high one — see `WooCommerceSorts`.
 it('sorts on both ends of the price interval on the stock and on the shop order', function (): void {
-    expect((new WooCommerceIndexAttributes)->sortable())->toBe(['price.min', 'price.max', 'in_stock', 'menu_order']);
+    expect((new WooCommerceIndexAttributes)->sortable())->toBe(['price.min', 'price.max', 'in_stock', 'menu_order', 'total_sales', 'average_rating', 'rating_count', 'ID']);
 });
 
 it('filters on the kind of document', function (): void {

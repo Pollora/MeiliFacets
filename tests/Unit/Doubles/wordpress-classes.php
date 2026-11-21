@@ -89,6 +89,21 @@ if (! class_exists('WC_Product')) {
             return (bool) ($this->data['in_stock'] ?? true);
         }
 
+        public function get_total_sales(): int
+        {
+            return (int) ($this->data['total_sales'] ?? 0);
+        }
+
+        public function get_average_rating(): string
+        {
+            return (string) ($this->data['average_rating'] ?? '0');
+        }
+
+        public function get_rating_count(): int
+        {
+            return (int) ($this->data['rating_count'] ?? 0);
+        }
+
         public function is_on_sale(): bool
         {
             return (bool) ($this->data['on_sale'] ?? false);

@@ -11,7 +11,7 @@ use Modules\MeiliFacets\Enums\DocumentField;
 use Modules\MeiliFacets\Enums\DocumentKind;
 use WP_Post;
 
-/** The card, the price, the stock and the kind of a product's document, read as an anonymous visitor of the shop. */
+/** The card, the price, the stock, the sales, the rating and the kind of a product's document, read as an anonymous visitor of the shop. */
 final readonly class ShopFields
 {
     private const array FIELDS_SET_BY_THE_MODULE = [CardField::Variants->value, CardField::OutOfStock->value];
@@ -20,6 +20,7 @@ final readonly class ShopFields
         private CardProjector $cards,
         private ProductVariants $variants,
         private ProductStock $stock,
+        private ProductPopularity $popularity,
         private ProductPriceProjector $prices,
         private ShopTaxLocation $shopTaxLocation,
         private AnonymousVisitor $anonymousVisitor,
@@ -40,13 +41,14 @@ final readonly class ShopFields
     {
         $card = $this->card($post);
         $price = $this->prices->project($post);
+        $shared = [DocumentField::Card->value => $card, ...$this->popularity->project($post)];
 
         if ($price === []) {
-            return [DocumentField::Card->value => $card];
+            return $shared;
         }
 
         return [
-            DocumentField::Card->value => $card,
+            ...$shared,
             DocumentField::Price->value => $price,
             ...$this->inStockField($card),
             ...$this->kindField($card),

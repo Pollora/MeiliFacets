@@ -20,6 +20,8 @@ it('follows the setting as woocommerce reads it', function (string $setting, arr
     yield 'empty direction takes the default one' => ['price-', ['price.min:asc']];
     yield 'anything after the direction is ignored' => ['price-desc-extra', ['price.max:desc']];
     yield 'relevance keeps the engine order' => ['relevance', []];
+    yield 'popularity ignores a direction' => ['popularity-asc', ['total_sales:desc', 'ID:desc']];
+    yield 'rating' => ['rating', ['average_rating:desc', 'rating_count:desc', 'ID:desc']];
 });
 
 it('refuses a setting it cannot follow and adds no sort', function (string $setting): void {
@@ -28,8 +30,8 @@ it('refuses a setting it cannot follow and adds no sort', function (string $sett
     expect($order->listingCanFollow())->toBeFalse();
     expect($order->expressions())->toBe([]);
 })->with(function () {
-    yield 'popularity' => ['popularity'];
-    yield 'rating' => ['rating'];
+    yield 'random' => ['rand'];
+    yield 'modified' => ['modified'];
     yield 'empty' => [''];
     yield 'direction alone' => ['-desc'];
     yield 'a known order glued to its direction' => ['pricedesc'];

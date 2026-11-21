@@ -33,6 +33,10 @@ final readonly class WooCommerceIndexAttributes implements IndexAttributes
             PriceField::Max->path(),
             DocumentField::InStock->value,
             DocumentField::MenuOrder->value,
+            DocumentField::TotalSales->value,
+            DocumentField::AverageRating->value,
+            DocumentField::RatingCount->value,
+            DocumentField::Id->value,
         ];
     }
 
