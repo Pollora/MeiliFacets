@@ -9,26 +9,15 @@ What to change in a project when moving from one version to the next is in
 
 ## [Unreleased]
 
+## [0.6.0](https://github.com/Pollora/MeiliFacets/releases/tag/0.6.0) - 2026-11-24
+
+Tenth beta. A shop can sort by popularity or average rating by default, the boxes ticked and not yet applied survive a page turn in `submit` mode, a single-selection facet keeps its other values, and the filters no longer hide behind buttons that open nothing when the client does not start. Run `wp meiliscout index` again, publish the assets, and read [docs/upgrading.md](docs/upgrading.md).
 
 ### Added
 
 - « Popularity (sales) » and « Average rating » can be the shop's default sorting, and the Customizer offers them
   again. The products carry `total_sales`, `average_rating` and `rating_count`, sortable together with `ID`, and are
   ranked as WooCommerce ranks them. A product is re-indexed when an order changes its sales. Run `wp meiliscout index` again.
-
-### Fixed
-
-- In `submit` mode, turning the page no longer unticks the boxes the visitor ticked and has not applied yet. The
-  page turned to stays the one of the filters applied, and its address is unchanged. Publish the assets again.
-
-||||||| d4f19a7
-
-- When the client does not start, the drawer no longer hides the filters behind a « Filters » or « Show more »
-  button that opens nothing: the client marks the drawer `data-started`, and the stylesheet hides it and shows its
-  openers only then, below `48em` as well as past the row limit (issue #25). A theme rule that relied on the drawer
-  being hidden by scripting alone must also name `[data-started]`.
-- A `SelectionMode::Single` facet holding a value keeps its other values: it is counted without its own selection, on
-  the server and in the browser, as a multiple-selection facet is (issue #4). It costs one extra query per such facet.
 
 ### Changed
 
@@ -37,6 +26,18 @@ What to change in a project when moving from one version to the next is in
   save is still to be measured on a test project).
 - Requires `league/uri` 7.5.1 or later: 7.5.0 declares a dependency on `league/uri-interfaces` that is too loose
   and fails when Composer resolves the lowest versions.
+
+### Fixed
+
+- In `submit` mode, turning the page no longer unticks the boxes the visitor ticked and has not applied yet. The
+  page turned to stays the one of the filters applied, and its address is unchanged. Publish the assets again.
+
+- When the client does not start, the drawer no longer hides the filters behind a « Filters » or « Show more »
+  button that opens nothing: the client marks the drawer `data-started`, and the stylesheet hides it and shows its
+  openers only then, below `48em` as well as past the row limit (issue #25). A theme rule that relied on the drawer
+  being hidden by scripting alone must also name `[data-started]`.
+- A `SelectionMode::Single` facet holding a value keeps its other values: it is counted without its own selection, on
+  the server and in the browser, as a multiple-selection facet is (issue #4). It costs one extra query per such facet.
 
 ### Security
 
