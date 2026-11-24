@@ -92,13 +92,4 @@ readonly class Facet implements Placeable
     {
         return DocumentField::Facets->path($this->taxonomy);
     }
-
-    /**
-     * Counting a facet without the constraint it carries only makes sense when
-     * several of its values can be held at once.
-     */
-    public function needsDisjunctiveCount(): bool
-    {
-        return $this->selection->allowsSeveralValues();
-    }
 }

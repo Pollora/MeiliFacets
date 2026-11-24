@@ -283,8 +283,9 @@ with AND: checking Acme and Globex in Brand, then Red in Color, lists the red pr
 
 The count beside each value is the number of results that value would give:
 
-- for a multiple-selection facet holding at least one value, the count ignores the facet's own selection, so checking
-  Acme does not turn Globex's count to zero. This takes one extra query per such facet;
+- for a facet holding at least one value, whether it takes one value or several, the count ignores the facet's own
+  selection, so checking Acme does not turn Globex's count to zero and a `Single` facet still offers every value. This
+  takes one extra query per such facet;
 - a facet on a variation attribute, such as a size, is always counted by a query of its own, on the variant
   documents: each count is the number of products checking it would list. Once one is checked, the other facets are
   counted on the variant documents too, once per product
@@ -292,11 +293,6 @@ The count beside each value is the number of results that value would give:
 - every other facet is counted on the main query.
 
 A value with no result is hidden, unless it is selected.
-
-> **Known limitation in 0.1.** A `Single` facet holding a value is counted on the main query, which its own selection
-> already filters: every other value falls to 0 and is hidden, and a radio cannot be unchecked. To switch value, the
-> visitor removes the current one first, through its pill or « Clear all ».
-> [Issue #4](https://github.com/Pollora/MeiliFacets/issues/4) tracks the fix. The default facets use multiple selection.
 
 ## Value order
 
@@ -460,7 +456,6 @@ When the fallback term is a real one an editor chose, declare
 - **A taxonomy MeiliScout does not index has no field**: its facet renders hidden. Check the indexed post types, then
   reindex.
 - **Single facets before the group**, each facet once per page.
-- **A `Single` facet hides its other values once one is picked** in 0.1: see [One value or several](#one-value-or-several).
 - **`NameOrder` from the container**, not `new NameOrder()`.
 - **Changing `engine.max_facet_values` needs a reindex** to reach the index.
 - **The client counts like the module's default.** After the first gesture, the browser rebuilds the queries itself,

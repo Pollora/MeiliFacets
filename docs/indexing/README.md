@@ -257,13 +257,15 @@ A card that a page renders itself, outside the listing, reads the image on every
 ## Every meta write reindexes the post
 
 MeiliScout listens to `added_post_meta`, `updated_post_meta` and `deleted_post_meta` **without filtering on the meta
-key**. Any meta written on an indexed post reindexes the whole document: one request to Meilisearch per write.
+key**. Any meta written on an indexed post reindexes the whole document. MeiliScout 2.6 queues the writes of a
+request and pushes each post once, when the request ends, rather than once per write.
 
 Most of the time this is what keeps the index right. It becomes visible when a plugin writes metas often:
 
-- WooCommerce writes `_regular_price`, then `_price`, when a price changes: the product is pushed twice;
-- a plugin that saves metas over AJAX, a bulk editor for example, reindexes one document per field it saves;
-- a script that writes many metas in a loop pushes as many documents.
+- WooCommerce writes `_regular_price`, then `_price`, when a price changes: the product is pushed once at the end
+  of the request;
+- a plugin that saves metas over AJAX, a bulk editor for example, reindexes one document per post and per request;
+- a script that writes many metas of many posts in one request pushes one document per post, all at the end.
 
 A meta written on a variation reindexes its product once, at the end of the request.
 

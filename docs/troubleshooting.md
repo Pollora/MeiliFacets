@@ -49,9 +49,10 @@ The page renders, the boxes can be checked, and nothing happens.
 | the page is opened over `http` while WordPress declares `https` | the browser refuses the scripts as another origin, the theme's too | open the site over the scheme of `home` and `siteurl` |
 | the engine refuses the browser's key | `403` or `401` from the engine in the network panel | use a search-only key that can search the prefixed post index (`<prefix>posts`). See [Going to production](production.md#the-search-key) |
 
-When the client does not start, **mobile filters are out of reach**. Below `48em`, the stylesheet hides the drawer as
-soon as scripting is enabled, whether the client loaded or not. The « Filters » button then opens nothing. Fix the
-client first; see [Mobile drawer and filter bar](listing/drawer.md#watch-out).
+When the client does not start, **the filters stay in the page**: the drawer marks itself with `data-started` once the
+client runs, and the stylesheet hides it, below `48em` or as a side sheet, only then. The « Filters » and « Show more »
+buttons stay hidden too. Fix the client to get the drawer back; see
+[Mobile drawer and filter bar](listing/drawer.md#watch-out).
 
 ## After a deployment
 

@@ -38,6 +38,17 @@ it('sends every search in a single request', function (): void {
     expect(array_keys($engine->received[0]))->toBe([RESULTS, COUNT.'product_brand', UNFILTERED]);
 });
 
+/** `#4`: a radio cannot be unchecked, so a single-selection facet keeps every value by counting without its own selection. */
+it('counts a single-selection facet holding a value on a search of its own', function (): void {
+    $engine = new FakeSearchEngine;
+    $state = new ListingState(['product_cat' => ['coats']]);
+
+    searchWith($engine)->run(FakeListing::withBrandAndCategory(), $state);
+
+    expect(array_keys($engine->received[0]))->toBe([RESULTS, COUNT.'product_cat', UNFILTERED]);
+    expect($engine->received[0][COUNT.'product_cat']['filter'] ?? '')->not->toContain('product_cat');
+});
+
 it('counts the unfiltered listing only once a visitor narrows it', function (): void {
     $engine = new FakeSearchEngine;
     $listing = FakeListing::withBrandAndCategory();
