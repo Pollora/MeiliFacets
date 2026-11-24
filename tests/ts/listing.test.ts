@@ -3,6 +3,8 @@ import { describe, it } from 'node:test'
 
 import { filterQueriesOf } from '../../resources/assets/ts/filter-queries.ts'
 import { Listing } from '../../resources/assets/ts/listing/listing.ts'
+import { ListingQuery } from '../../resources/assets/ts/listing/listing-query.ts'
+import { ListingState } from '../../resources/assets/ts/listing/listing-state.ts'
 import { SearchError, SearchSuperseded } from '../../resources/assets/ts/shared/search-client.ts'
 import { connection, described, FakeClient, FakeHistory, served } from './fixtures.ts'
 
@@ -152,11 +154,65 @@ describe('Listing', () => {
             assert.equal(client.plans.length, 3)
         })
 
-        it('turns the page of the state it answered, the boxes ticked since left behind', async () => {
-            const { listing } = build({ facets: { product_brand: ['acme'] } })
+        it('turns the page of the state it answered and keeps the boxes ticked since', async () => {
+            const { listing, client, history, heard } = build({ facets: { product_brand: ['acme'] } })
+            const appliedPlan = new ListingQuery(description, filterQueriesOf(description)).plan(new ListingState(served({ facets: { product_brand: ['acme'] }, page: 2 })))
+
+            await listing.apply()
+            heard.length = 0
+            listing.toggle('product_brand', 'globex').goToPage(2)
+            await Promise.resolve()
+
+            assert.deepEqual(listing.state.selected('product_brand'), ['acme', 'globex'])
+            assert.deepEqual(history.pushed, ['/shop/page/2?brand=acme'])
+            assert.deepEqual(client.plans[1], appliedPlan)
+            assert.equal(heard.filter(([name]) => name === 'change').length, 1)
+        })
+
+        it('applies the boxes kept from page one, not from the page turned to', async () => {
+            const { listing, history } = build({ facets: { product_brand: ['acme'] } })
 
             await listing.apply()
             listing.toggle('product_brand', 'globex').goToPage(2)
+            await Promise.resolve()
+            await listing.apply()
+
+            assert.deepEqual(history.replaced.at(-1), '/shop?brand=acme,globex')
+            assert.equal(listing.state.page, 1)
+        })
+
+        it('leaves the boxes ticked when the page turned to is not answered', async (t) => {
+            t.mock.method(console, 'error', () => undefined)
+            const { listing, history, client } = build({ facets: { product_brand: ['acme'] } })
+
+            await listing.apply()
+            client.failure = new SearchError('The engine did not answer in time.')
+            listing.toggle('product_brand', 'globex').goToPage(2)
+            await Promise.resolve()
+            await Promise.resolve()
+
+            assert.deepEqual(listing.state.selected('product_brand'), ['acme', 'globex'])
+            assert.deepEqual([history.pushed, history.wentBack], [['/shop/page/2?brand=acme'], 1])
+        })
+
+        it('keeps turning pages of the state it answered', async () => {
+            const { listing, history } = build({ facets: { product_brand: ['acme'] } })
+
+            await listing.apply()
+            listing.toggle('product_brand', 'globex').goToPage(2)
+            await Promise.resolve()
+            listing.goToPage(3)
+            await Promise.resolve()
+
+            assert.deepEqual(history.pushed, ['/shop/page/2?brand=acme', '/shop/page/3?brand=acme'])
+        })
+
+        it('turns the page of the state it answered when no box is waiting', async () => {
+            const { listing } = build({ facets: { product_brand: ['acme'] } })
+
+            await listing.apply()
+            listing.goToPage(2)
+            await Promise.resolve()
 
             assert.deepEqual(listing.state.toDescription(), served({ facets: { product_brand: ['acme'] }, page: 2 }))
         })

@@ -23,6 +23,9 @@ enum DocumentField: string
     case Kind = 'document_kind';
     case ParentId = 'parent_id';
     case InStock = 'in_stock';
+    case TotalSales = 'total_sales';
+    case AverageRating = 'average_rating';
+    case RatingCount = 'rating_count';
 
     public function path(string $key): string
     {

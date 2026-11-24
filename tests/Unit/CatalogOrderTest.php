@@ -19,19 +19,24 @@ it('sorts on the fields woocommerce sorts on', function (CatalogOrder $order, So
     yield 'price going up, on the lowest price' => [CatalogOrder::Price, SortDirection::Ascending, ['price.min:asc']];
     yield 'price going down, on the highest price' => [CatalogOrder::Price, SortDirection::Descending, ['price.max:desc']];
     yield 'relevance' => [CatalogOrder::Relevance, SortDirection::Ascending, []];
+    yield 'popularity, the most sold first, then the newest product' => [CatalogOrder::Popularity, SortDirection::Descending, ['total_sales:desc', 'ID:desc']];
+    yield 'popularity has no reverse' => [CatalogOrder::Popularity, SortDirection::Ascending, ['total_sales:desc', 'ID:desc']];
+    yield 'rating, the best rated, the most reviewed, then the newest product' => [CatalogOrder::Rating, SortDirection::Descending, ['average_rating:desc', 'rating_count:desc', 'ID:desc']];
+    yield 'rating has no reverse' => [CatalogOrder::Rating, SortDirection::Ascending, ['average_rating:desc', 'rating_count:desc', 'ID:desc']];
     yield 'relevance has no reverse' => [CatalogOrder::Relevance, SortDirection::Descending, []];
 });
 
-it('lists the newest first and everything else from the start', function (): void {
-    expect(CatalogOrder::Date->defaultDirection())->toBe(SortDirection::Descending);
+it('lists the newest, the most sold and the best rated first and everything else from the start', function (): void {
+    foreach ([CatalogOrder::Date, CatalogOrder::Popularity, CatalogOrder::Rating] as $order) {
+        $this->assertSame(SortDirection::Descending, $order->defaultDirection(), $order->name);
+    }
 
     foreach ([CatalogOrder::MenuOrder, CatalogOrder::Title, CatalogOrder::Price, CatalogOrder::Relevance] as $order) {
         $this->assertSame(SortDirection::Ascending, $order->defaultDirection(), $order->name);
     }
 });
 
-/** `popularity` and `rating` read sales and reviews the index does not hold. */
-it('does not know the sortings the listing cannot follow', function (): void {
-    expect(CatalogOrder::tryFrom('popularity'))->toBeNull();
-    expect(CatalogOrder::tryFrom('rating'))->toBeNull();
+it('does not know a sorting woocommerce does not rank on', function (): void {
+    expect(CatalogOrder::tryFrom('rand'))->toBeNull();
+    expect(CatalogOrder::tryFrom('modified'))->toBeNull();
 });

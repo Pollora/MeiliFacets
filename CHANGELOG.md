@@ -9,7 +9,19 @@ What to change in a project when moving from one version to the next is in
 
 ## [Unreleased]
 
+
+### Added
+
+- « Popularity (sales) » and « Average rating » can be the shop's default sorting, and the Customizer offers them
+  again. The products carry `total_sales`, `average_rating` and `rating_count`, sortable together with `ID`, and are
+  ranked as WooCommerce ranks them. A product is re-indexed when an order changes its sales. Run `wp meiliscout index` again.
+
 ### Fixed
+
+- In `submit` mode, turning the page no longer unticks the boxes the visitor ticked and has not applied yet. The
+  page turned to stays the one of the filters applied, and its address is unchanged. Publish the assets again.
+
+||||||| d4f19a7
 
 - When the client does not start, the drawer no longer hides the filters behind a « Filters » or « Show more »
   button that opens nothing: the client marks the drawer `data-started`, and the stylesheet hides it and shows its

@@ -127,9 +127,12 @@ on the first page as on every page the visitor turns to:
 | Sort by most recent | publication date, newest first |
 | Sort by price (asc) | by the lowest price of each product |
 | Sort by price (desc) | by the highest price of each product |
+| Sort by popularity (sales) | by the number of sales, the most sold first, then the newest product |
+| Sort by average rating | by the average rating, then the number of reviews, the best first, then the newest product |
 
-- « Popularity (sales) » and « Average rating » are not offered: the module removes them from the list, since the
-  index holds neither sales nor ratings as a sortable field. They are not supported for now.
+- « Popularity (sales) » and « Average rating » read `total_sales`, `average_rating` and `rating_count`, which the
+  module indexes and declares sortable. Like WooCommerce, they have one direction only. A product that is sold again
+  is re-indexed on its own; a new review re-indexes it through the save WooCommerce makes.
 - A theme can answer the setting in code with the `woocommerce_default_catalog_orderby` filter. `title`,
   `date-asc` and the other `field-direction` values WooCommerce reads are followed; anything else (`popularity`,
   `rating`, `rand`, `modified`, `id`) keeps the engine's order.
@@ -254,8 +257,8 @@ The sort of listing "products" is rendered twice on this page: its list and ids 
   entry for its address, so Back returns to the page before. A click with Ctrl, Cmd, Shift or Alt held, or with the
   middle button, is left to the browser, which opens the address; so is a link an override points at another tab,
   another site or a download. A click on the current page does nothing. Without JavaScript the links load the page.
-- **In `submit` mode**, the page turned to is the one of the filters applied: boxes ticked and not applied are left
-  behind, as the link's address says.
+- **In `submit` mode**, the page turned to is the one of the filters applied, as the link's address says, and the boxes
+  ticked and not applied stay ticked: pressing Apply then shows the first page of the new filters.
 - **After a filter or a sort**, the client rewrites the links for the new state, and replaces the current history
   entry.
 - **The tab's title, the canonical and the robots directives follow the page.** See

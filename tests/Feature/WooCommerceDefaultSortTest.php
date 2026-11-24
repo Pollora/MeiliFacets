@@ -51,18 +51,20 @@ it('sorts as woocommerce sorts by default', function (string $setting, array $ex
     'price, low to high' => ['price', ['price.min:asc']],
     'price, high to low' => ['price-desc', ['price.max:desc']],
     'relevance' => ['relevance', []],
+    'popularity' => ['popularity', ['total_sales:desc', 'ID:desc']],
+    'rating' => ['rating', ['average_rating:desc', 'rating_count:desc', 'ID:desc']],
 ]);
 
 test('a sorting the listing cannot follow keeps the engine order', function (): void {
-    expect($this->defaultSortFor('popularity'))->toBe([]);
+    expect($this->defaultSortFor('rand'))->toBe([]);
 });
 
 test('the customizer offers only the sortings the listing follows', function (): void {
-    $choices = array_fill_keys(['menu_order', 'popularity', 'rating', 'date', 'price', 'price-desc'], '');
+    $choices = array_fill_keys(['menu_order', 'popularity', 'rating', 'rand', 'date', 'price', 'price-desc'], '');
 
     $offered = apply_filters('woocommerce_default_catalog_orderby_options', $choices);
 
-    expect(array_keys($offered))->toBe(['menu_order', 'date', 'price', 'price-desc']);
+    expect(array_keys($offered))->toBe(['menu_order', 'popularity', 'rating', 'date', 'price', 'price-desc']);
 });
 
 test('the setting is read once', function (): void {

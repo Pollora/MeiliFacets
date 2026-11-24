@@ -6,6 +6,14 @@ changes is in the [changelog](../CHANGELOG.md).
 0.1.0 was the first release, a beta; 0.2.0 is the second; 0.2.1 is the third; 0.2.2 is the fourth; 0.2.3 is the fifth;
 0.2.4 is the sixth; 0.3.0 is the seventh; 0.4.0 is the eighth; 0.5.0 is the ninth.
 
+## Unreleased
+
+- **Run `wp meiliscout index` again** (it writes the settings and re-indexes the products) if the
+  shop's default sorting is « Popularity (sales) » or « Average rating »: the products now carry
+  `total_sales`, `average_rating` and `rating_count`, and the index declares them and `ID` sortable. Until then, these
+  two sortings fail like any sort on a field that is not sortable.
+- **Run `php artisan module:publish MeiliFacets`**: the browser script changed. Clear the page cache too.
+
 ## 0.5.0
 
 - **Require `pollora/meilifacets:^0.5`**: `composer require pollora/meilifacets:^0.5 -W`. Below 1.0, `^0.4` does not
