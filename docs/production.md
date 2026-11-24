@@ -115,7 +115,7 @@ The variable wins over MeiliScout's `meiliscout/meiliscout_async_indexing` optio
 | | Immediate (default) | Deferred |
 | --- | --- | --- |
 | Saving a post | waits for the engine | does not call the engine |
-| Several writes to one post | one push per write | one queue entry |
+| Several writes to one post, in one request | one push, at the end of the request | one queue entry |
 | Index freshness | immediate | up to five minutes later (MeiliScout's `meiliscout/async_indexing_delay` filter, in seconds) |
 | Without cron | index up to date | **index never updated** |
 
@@ -123,9 +123,13 @@ The last row is why deferred indexing is only switched on once cron is proven to
 
 ## Every meta write reindexes
 
-MeiliScout reindexes a post on every meta write, whatever the meta key. WooCommerce writes `_regular_price` then
-`_price` when a price changes, so the product is pushed twice. A plugin that saves metas over AJAX, such as a bulk
-editor, pushes one document per field it saves.
+MeiliScout 2.6 reacts to every meta write, whatever the meta key, but it no longer pushes once per write: it queues
+the writes of a request, one task per post (the last one wins), and sends them once the request ends. It resends the
+index settings only when their fingerprint changed. WooCommerce writes `_regular_price` then `_price` when a price
+changes, and a variable product syncs its price again on `shutdown`: the product is still pushed once, or twice when
+the sync writes after the first push has gone. A plugin that saves metas over AJAX, such as a bulk editor, pushes one
+document per post and per request. *Not measured with the module*: the number of tasks one save puts in the engine's
+queue (`GET /tasks`) is to be counted on a test project ([issue #21](https://github.com/Pollora/MeiliFacets/issues/21)).
 
 Two counter-measures, in this order:
 

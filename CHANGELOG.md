@@ -9,8 +9,20 @@ What to change in a project when moving from one version to the next is in
 
 ## [Unreleased]
 
+### Fixed
+
+- When the client does not start, the drawer no longer hides the filters behind a « Filters » or « Show more »
+  button that opens nothing: the client marks the drawer `data-started`, and the stylesheet hides it and shows its
+  openers only then, below `48em` as well as past the row limit (issue #25). A theme rule that relied on the drawer
+  being hidden by scripting alone must also name `[data-started]`.
+- A `SelectionMode::Single` facet holding a value keeps its other values: it is counted without its own selection, on
+  the server and in the browser, as a multiple-selection facet is (issue #4). It costs one extra query per such facet.
+
 ### Changed
 
+- `docs/production.md` and `docs/indexing/README.md` describe MeiliScout 2.6's batching of meta writes (one push per
+  post at the end of the request) instead of one push per write (issue #21, partly: the count of engine tasks per
+  save is still to be measured on a test project).
 - Requires `league/uri` 7.5.1 or later: 7.5.0 declares a dependency on `league/uri-interfaces` that is too loose
   and fails when Composer resolves the lowest versions.
 

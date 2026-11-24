@@ -134,12 +134,20 @@ describe('ListingQuery', () => {
         assert.equal(counting.hitsPerPage, 0)
     })
 
-    it('leaves a single-select facet on the main search', () => {
+    it('counts a single-select facet holding a value without its own selection', () => {
         const single = { facets: [{ taxonomy: 'product_cat', multiple: false, cap: 1, visible: 10, labels: {}, counts: {} }] }
         const state = { facets: { product_cat: ['coats'] } }
+        const queries = plan(state, single)
 
-        assert.deepEqual(Object.keys(plan(state, single)), ['results'])
-        assert.deepEqual(plan(state, single).results.facets, ['facets.product_cat'])
+        assert.deepEqual(Object.keys(queries), ['results', 'count:product_cat'])
+        assert.ok(!queries['count:product_cat']?.filter.includes('product_cat'))
+        assert.deepEqual(queries['count:product_cat']?.facets, ['facets.product_cat'])
+    })
+
+    it('leaves a single-select facet holding no value on the main search', () => {
+        const single = { facets: [{ taxonomy: 'product_cat', multiple: false, cap: 1, visible: 10, labels: {}, counts: {} }] }
+
+        assert.deepEqual(Object.keys(plan({ facets: {} }, single)), ['results'])
     })
 
     it('sorts only by a sort the listing declares', () => {

@@ -131,6 +131,11 @@ describe('Drawer', () => {
 
     beforeEach(() => start())
 
+    /** `#25`: the stylesheet takes the drawer out of the page only for a client that has started. */
+    it('marks the drawer once the client has taken it over', () => {
+        assert.equal(drawer().hasAttribute('data-started'), true)
+    })
+
     it('promotes the container to a modal dialog named by its title', () => {
         click(window, opener())
 
@@ -860,6 +865,7 @@ describe('a grid behind an open sheet', () => {
 describe('the foot of the drawer', () => {
     const source = readFileSync(new URL('../../resources/assets/css/meilifacets.css', import.meta.url), 'utf8')
     const sheet = source.slice(source.indexOf('@media (scripting: enabled) and (width < 48em)'))
+    const STARTED_DRAWER = ':where([data-meili="drawer"][data-started]) '
     /** The selector of the rule that holds a declaration. */
     const holding = (css: string, declaration: string) => {
         const at = css.indexOf(declaration)
@@ -869,11 +875,11 @@ describe('the foot of the drawer', () => {
         return css.slice(css.lastIndexOf('}', at) + 1, css.lastIndexOf('{', at)).trim()
     }
     /** happy-dom matches no `:has()` holding `:not()`: the rule's three parts are matched one by one. */
-    const [, FOOT = '', BIN = '', RESIZED = ''] = /^(\S+):has\(> (.+)\) > (\S+)$/.exec(holding(sheet, 'width: calc(')) ?? []
+    const [, FOOT = '', BIN = '', RESIZED = ''] = /^(\S+):has\(> (.+)\) > (\S+)$/.exec(holding(sheet, 'width: calc(').replace(STARTED_DRAWER, '')) ?? []
     const resized = (apply: HTMLElement) => apply.matches(`${FOOT} > ${RESIZED}`)
         && [...apply.parentElement?.children ?? []].some((sibling) => sibling.matches(BIN))
     const SHEET_ONLY = `${Contract.selector('apply')}[data-only="sheet"]`
-    const IN_SHEET = `${Contract.selector('drawer')} ${SHEET_ONLY}`
+    const IN_SHEET = `${Contract.selector('drawer')}:where([data-started]) ${SHEET_ONLY}`
 
     it('lets « Apply » take the room of the bin only while the bin is shown', () => {
         const { window, drawer, box } = boundUnderDrawer('submit')
