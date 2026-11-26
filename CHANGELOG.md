@@ -9,6 +9,13 @@ What to change in a project when moving from one version to the next is in
 
 ## [Unreleased]
 
+### Changed
+
+- A value of the wrong type coming from outside is left out instead of raising a `TypeError` or being passed on:
+  a term that is not an array in a document being indexed, a name that is not a string in
+  `meilifacets.displayed_attributes`, in MeiliScout's indexed post types or in its attribute lists, a part of an
+  engine answer, and a negative number of hits per page (read as 0).
+
 ## [0.6.0](https://github.com/Pollora/MeiliFacets/releases/tag/0.6.0) - 2026-11-24
 
 Tenth beta. A shop can sort by popularity or average rating by default, the boxes ticked and not yet applied survive a page turn in `submit` mode, a single-selection facet keeps its other values, and the filters no longer hide behind buttons that open nothing when the client does not start. Run `wp meiliscout index` again, publish the assets, and read [docs/upgrading.md](docs/upgrading.md).
