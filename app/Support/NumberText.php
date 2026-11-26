@@ -12,8 +12,6 @@ final readonly class NumberText
 
     private const int SMALLEST_PLAIN_EXPONENT = -6;
 
-    private const string SCIENTIFIC_PATTERN = '/^(\d)(?:\.(\d+))?e([+-]\d+)$/';
-
     private const string ZERO = '0';
 
     private const string MINUS = '-';
@@ -52,9 +50,9 @@ final readonly class NumberText
             $scientific = sprintf("%.{$precision}e", $number);
         }
 
-        preg_match(self::SCIENTIFIC_PATTERN, $scientific, $parts);
+        [$mantissa, $exponent] = explode(self::EXPONENT, $scientific);
 
-        return [rtrim($parts[1].($parts[2] ?? ''), self::ZERO), (int) $parts[3]];
+        return [rtrim(str_replace(self::POINT, '', $mantissa), self::ZERO), (int) $exponent];
     }
 
     private static function readsBackAs(string $scientific, float $number): bool

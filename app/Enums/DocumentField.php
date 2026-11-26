@@ -33,11 +33,11 @@ enum DocumentField: string
     }
 
     /**
-     * @param  list<string>  $keys
+     * @param  array<string>  $keys
      * @return list<string>
      */
     public function paths(array $keys): array
     {
-        return array_map($this->path(...), $keys);
+        return array_map($this->path(...), array_values($keys));
     }
 }

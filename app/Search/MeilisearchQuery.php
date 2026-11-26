@@ -22,7 +22,7 @@ final readonly class MeilisearchQuery
         $search = (new SearchQuery)
             ->setIndexUid($this->index)
             ->setQuery((string) ($query['q'] ?? ''))
-            ->setHitsPerPage((int) ($query['hitsPerPage'] ?? 0))
+            ->setHitsPerPage(max(0, (int) ($query['hitsPerPage'] ?? 0)))
             ->setPage((int) ($query['page'] ?? 1));
 
         foreach (self::OPTIONS as $option) {

@@ -146,7 +146,7 @@ final readonly class ProductVariants
     }
 
     /**
-     * @param  list<WC_Product_Variation>  $variations
+     * @param  array<WC_Product_Variation>  $variations
      */
     private function primeOwnImages(array $variations): void
     {

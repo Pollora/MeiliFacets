@@ -45,7 +45,8 @@ final readonly class PostDocument
             return [];
         }
 
-        $expanded = $this->ancestry->expand($terms);
+        // The document went through the filters of other plugins: what is not a term is left out.
+        $expanded = $this->ancestry->expand(array_values(array_filter($terms, is_array(...))));
 
         return [
             DocumentField::Facets->value => FacetProjection::fromTerms($expanded),

@@ -283,6 +283,23 @@ final class IndexingProjectionTest extends TestCase
     #[Test]
     #[RunInSeparateProcess]
     #[PreserveGlobalState(false)]
+    public function it_reads_the_terms_around_what_another_plugin_left_in_the_list(): void
+    {
+        WordPress::fake('get_option', ['post']);
+        WordPress::fake('get_object_taxonomies', ['category']);
+        WordPress::fake('strip_shortcodes', static fn (string $markup): string => $markup);
+        $hierarchy = new WordPressTermHierarchy;
+        $document = new PostDocument(new TermAncestry($hierarchy), new IndexedTaxonomies(new IndexedPostTypes), new PostText, $this->shopFields());
+        $term = ['term_id' => 5, 'name' => 'News', 'slug' => 'news', 'taxonomy' => 'category', 'term_taxonomy_id' => 5, 'parent' => 0];
+
+        $completed = $document->complete(['terms' => ['junk', null, $term]], new WP_Post);
+
+        $this->assertSame(['category' => ['news']], $completed['facets'] ?? null);
+    }
+
+    #[Test]
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
     public function it_bridges_meiliscout_hooks_to_the_module(): void
     {
         WordPress::fake('get_option', []);
