@@ -48,3 +48,16 @@ it('escapes markup so a value cannot close the script element', function (): voi
     expect($list->toJson())->not->toContain('<');
     expect($list->toJson())->not->toContain('>');
 });
+
+it('writes the schema.org types a search engine reads the list by', function (): void {
+    $list = new ItemList([itemListCard('First'), [CardField::Url->value => 'https://example.test/untitled', CardField::Title->value => 12]]);
+
+    expect(json_decode($list->toJson(), true))->toBe([
+        '@context' => 'https://schema.org',
+        '@type' => 'ItemList',
+        'itemListElement' => [
+            ['@type' => 'ListItem', 'position' => 1, 'url' => 'https://example.test/'.md5('First'), 'name' => 'First'],
+            ['@type' => 'ListItem', 'position' => 2, 'url' => 'https://example.test/untitled', 'name' => ''],
+        ],
+    ]);
+});

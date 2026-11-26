@@ -14,9 +14,11 @@ permissions: {}
 
 jobs:
   harness:
-    uses: Pollora/harness/.github/workflows/php-package.yml@v0.1.35
+    uses: Pollora/harness/.github/workflows/php-package.yml@v0.1.36
     with:
       # composer.json requires PHP ^8.4: the default matrix (8.3 and 8.4) could not install the module on 8.3.
       php-versions: '["8.4"]'
+      # The whole mutation pass runs on main and every night: about 2 minutes on a developer's Mac, far longer on the runner.
+      quality-timeout-minutes: 90
     permissions:
       contents: read

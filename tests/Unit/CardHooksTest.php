@@ -75,3 +75,14 @@ it('leaves out the price a card does not carry but keeps it in a template', func
     expect(new CardHooks(CardBinding::of(['title' => 'Free']))->price()->isPresent())->toBeFalse();
     expect(new CardHooks(CardBinding::template())->price()->isPresent())->toBeTrue();
 });
+
+/** The browser rebuilds a listed card's image from these: a missing one stays the previous product's. */
+it('writes every attribute the layout of an image needs, on the image and the thumbnail', function (): void {
+    $hooks = new CardHooks(CardBinding::of(CARD_HOOKS_CARD));
+    $image = $hooks->image(ImagePriority::Eager)->attributes;
+    $thumbnail = $hooks->thumbnail()->attributes;
+
+    expect([$image->get('sizes'), (string) $image->get('width'), (string) $image->get('height')])->toBe(['300px', '300', '200'])
+        ->and([$thumbnail->get('src'), (string) $thumbnail->get('height'), $thumbnail->get('data-meili')])
+        ->toBe(['https://example.test/red.jpg', '200', 'image']);
+});
