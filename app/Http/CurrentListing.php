@@ -62,6 +62,8 @@ final class CurrentListing
     {
         $page = $this->parameters->reserved(QueryParameter::Page);
 
-        return [...request()->query(), $page => (string) get_query_var(PageAddress::PAGED_QUERY_VAR)];
+        $paged = get_query_var(PageAddress::PAGED_QUERY_VAR);
+
+        return [...request()->query(), $page => is_scalar($paged) ? (string) $paged : ''];
     }
 }

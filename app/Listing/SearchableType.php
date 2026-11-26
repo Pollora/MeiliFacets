@@ -68,12 +68,19 @@ final readonly class SearchableType
     }
 
     /**
-     * @param  array<string, mixed>  $changes  constructor arguments, by name
+     * @param  array{heading?: string, seeAllLabel?: string, searchOn?: list<string>, card?: string, archive?: string|null}  $changes
      */
     private function with(array $changes): self
     {
-        $arguments = [...get_object_vars($this), ...$changes];
-
-        return new self(...$arguments);
+        return new self(
+            postType: $this->postType,
+            heading: $changes['heading'] ?? $this->heading,
+            seeAllLabel: $changes['seeAllLabel'] ?? $this->seeAllLabel,
+            baseFilter: $this->baseFilter,
+            searchOn: $changes['searchOn'] ?? $this->searchOn,
+            card: $changes['card'] ?? $this->card,
+            // `null` is a value here: it takes the archive off.
+            archive: array_key_exists('archive', $changes) ? $changes['archive'] : $this->archive,
+        );
     }
 }

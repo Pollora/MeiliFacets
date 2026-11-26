@@ -51,7 +51,9 @@ final class CheckParametersCommand extends Command
     /** Without permalinks WordPress paginates in `?paged=N`, which the pagination links leave out. */
     private function paginatesInThePath(): bool
     {
-        if ($GLOBALS['wp_rewrite']->using_permalinks()) {
+        $rewrite = $GLOBALS['wp_rewrite'] ?? null;
+
+        if (is_object($rewrite) && method_exists($rewrite, 'using_permalinks') && $rewrite->using_permalinks()) {
             return true;
         }
 

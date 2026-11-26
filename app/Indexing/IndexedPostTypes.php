@@ -15,6 +15,6 @@ final readonly class IndexedPostTypes
      */
     public function all(): array
     {
-        return array_values((array) Settings::get(self::OPTION, []));
+        return array_values(array_filter((array) Settings::get(self::OPTION, []), is_string(...)));
     }
 }

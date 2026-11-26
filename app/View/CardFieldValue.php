@@ -31,6 +31,9 @@ final readonly class CardFieldValue
         };
     }
 
+    /**
+     * @phpstan-assert-if-true int|float $this->value
+     */
     private function isFiniteNumber(): bool
     {
         return is_int($this->value) || (is_float($this->value) && is_finite($this->value));

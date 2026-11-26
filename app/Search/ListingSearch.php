@@ -28,12 +28,15 @@ final readonly class ListingSearch
 
     public function run(Listing $listing, ListingState $state): ListingResults
     {
-        $responses = $this->engine->multiSearch($this->searches($listing, $state));
-        $results = $responses[self::RESULTS] ?? [];
+        $responses = array_map(
+            static fn (array $response): EngineAnswer => new EngineAnswer($response),
+            $this->engine->multiSearch($this->searches($listing, $state)),
+        );
+        $results = $responses[self::RESULTS] ?? new EngineAnswer;
 
         return new ListingResults(
-            array_values($results['hits'] ?? []),
-            (int) ($results['totalHits'] ?? 0),
+            $results->hits(),
+            $results->total(),
             $this->distributions($listing, $responses),
             $this->facetStats($responses),
             $this->unfilteredDistributions($listing, $responses),
@@ -73,12 +76,11 @@ final readonly class ListingSearch
     }
 
     /**
-     * @param  array<string, array<string, mixed>>  $responses
-     * @return array<string, mixed>
+     * @param  array<string, EngineAnswer>  $responses
      */
-    private function measuresIn(array $responses): array
+    private function measuresIn(array $responses): EngineAnswer
     {
-        return $responses[self::MEASURES] ?? $responses[self::RESULTS] ?? [];
+        return $responses[self::MEASURES] ?? $responses[self::RESULTS] ?? new EngineAnswer;
     }
 
     /**
@@ -161,17 +163,16 @@ final readonly class ListingSearch
     }
 
     /**
-     * @param  array<string, mixed>  $measures
      * @return array<string, int>
      */
-    private function sortMatches(Listing $listing, array $measures): array
+    private function sortMatches(Listing $listing, EngineAnswer $measures): array
     {
-        return QueryPlan::sortQuery($listing)?->matchesIn($measures['facetDistribution'] ?? []) ?? [];
+        return QueryPlan::sortQuery($listing)?->matchesIn($measures->distributions()) ?? [];
     }
 
     /**
-     * @param  array<string, array<string, mixed>>  $responses
-     * @return array<string, array<string, int>>
+     * @param  array<string, EngineAnswer>  $responses
+     * @return array<string, array<array-key, int>>
      */
     private function unfilteredDistributions(Listing $listing, array $responses): array
     {
@@ -184,25 +185,25 @@ final readonly class ListingSearch
 
         foreach ($listing->facets() as $facet) {
             $isVariantFacet = in_array(FacetQuery::keyFor($facet->taxonomy), $variantKeys, true);
-            $response = $responses[$isVariantFacet ? self::UNFILTERED_VARIANTS : self::UNFILTERED] ?? [];
-            $distributions[$facet->taxonomy] = $response['facetDistribution'][$facet->field()] ?? [];
+            $response = $responses[$isVariantFacet ? self::UNFILTERED_VARIANTS : self::UNFILTERED] ?? new EngineAnswer;
+            $distributions[$facet->taxonomy] = $response->distribution($facet->field());
         }
 
         return $distributions;
     }
 
     /**
-     * @param  array<string, array<string, mixed>>  $responses
-     * @return array<string, array<string, float>>
+     * @param  array<string, EngineAnswer>  $responses
+     * @return array<array-key, array<array-key, float>>
      */
     private function facetStats(array $responses): array
     {
-        return ($responses[PriceQuery::KEY] ?? $this->measuresIn($responses))['facetStats'] ?? [];
+        return ($responses[PriceQuery::KEY] ?? $this->measuresIn($responses))->stats();
     }
 
     /**
-     * @param  array<string, array<string, mixed>>  $responses
-     * @return array<string, array<string, int>>
+     * @param  array<string, EngineAnswer>  $responses
+     * @return array<string, array<array-key, int>>
      */
     private function distributions(Listing $listing, array $responses): array
     {
@@ -210,7 +211,7 @@ final readonly class ListingSearch
 
         foreach ($listing->facets() as $facet) {
             $response = $responses[FacetQuery::keyFor($facet->taxonomy)] ?? $this->measuresIn($responses);
-            $distributions[$facet->taxonomy] = $response['facetDistribution'][$facet->field()] ?? [];
+            $distributions[$facet->taxonomy] = $response->distribution($facet->field());
         }
 
         return $distributions;

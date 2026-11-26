@@ -37,7 +37,12 @@ final class ListingDiscovery implements DiscoveryInterface
     public function apply(): void
     {
         foreach ($this->getItems() as $item) {
-            $this->registry->addDeclaration($item['class']);
+            // Items can come back from a cache: the condition `discover()` applied is checked again.
+            $listingClass = is_array($item) ? $item['class'] ?? null : null;
+
+            if (is_string($listingClass) && is_a($listingClass, Listing::class, true)) {
+                $this->registry->addDeclaration($listingClass);
+            }
         }
     }
 

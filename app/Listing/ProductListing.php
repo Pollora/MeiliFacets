@@ -132,7 +132,8 @@ final readonly class ProductListing implements DefaultSortedListing, VariantScop
 
     public function baseQuery(): string
     {
-        $term = is_search() ? (string) get_query_var(self::SEARCH_QUERY_VAR) : '';
+        $asked = is_search() ? get_query_var(self::SEARCH_QUERY_VAR) : '';
+        $term = is_scalar($asked) ? (string) $asked : '';
 
         return mb_substr(trim($term), 0, StateReader::MAX_QUERY_LENGTH);
     }

@@ -55,8 +55,8 @@ final readonly class PostDocument
     }
 
     /**
-     * @param  list<array<string, mixed>>  $terms
-     * @return list<array<string, mixed>>
+     * @param  list<array<mixed>>  $terms
+     * @return list<array<mixed>>
      */
     private function labelledOnly(array $terms): array
     {

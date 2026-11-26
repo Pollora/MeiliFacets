@@ -11,7 +11,7 @@ use Modules\MeiliFacets\Support\PlainText;
 final readonly class LabelProjection
 {
     /**
-     * @param  list<array<string, mixed>>  $terms
+     * @param  list<array<mixed>>  $terms
      * @return array<string, list<string>>
      */
     public static function fromTerms(array $terms): array

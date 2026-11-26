@@ -121,9 +121,20 @@ final readonly class ProductPriceProjector
      */
     private function carriesSalePrice(int $id): bool
     {
-        $price = wc_format_decimal(get_post_meta($id, ProductMeta::Price->value, true));
-        $sale = wc_format_decimal(get_post_meta($id, '_sale_price', true));
+        $price = wc_format_decimal($this->amount($id, ProductMeta::Price->value));
+        $sale = wc_format_decimal($this->amount($id, '_sale_price'));
 
         return (bool) $sale && $price === $sale;
+    }
+
+    private function amount(int $id, string $key): float|string
+    {
+        $amount = get_post_meta($id, $key, true);
+
+        if (is_float($amount)) {
+            return $amount;
+        }
+
+        return is_scalar($amount) ? (string) $amount : '';
     }
 }

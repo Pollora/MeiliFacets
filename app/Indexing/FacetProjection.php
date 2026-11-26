@@ -9,7 +9,7 @@ use Modules\MeiliFacets\Enums\TermField;
 final readonly class FacetProjection
 {
     /**
-     * @param  list<array<string, mixed>>  $terms
+     * @param  list<array<mixed>>  $terms
      * @return array<string, list<string>>
      */
     public static function fromTerms(array $terms): array

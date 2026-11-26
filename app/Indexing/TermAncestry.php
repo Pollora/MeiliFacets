@@ -14,14 +14,14 @@ final class TermAncestry
 
     private const string NO_TAXONOMY = '';
 
-    /** @var array<string, list<array<string, mixed>>> */
+    /** @var array<string, list<array<mixed>>> */
     private array $chains = [];
 
     public function __construct(private readonly TermHierarchy $hierarchy) {}
 
     /**
-     * @param  list<array<string, mixed>>  $terms
-     * @return list<array<string, mixed>>
+     * @param  list<array<mixed>>  $terms
+     * @return list<array<mixed>>
      */
     public function expand(array $terms): array
     {
@@ -33,8 +33,8 @@ final class TermAncestry
     /**
      * A document filed under both a parent and its child would carry the parent twice.
      *
-     * @param  list<array<string, mixed>>  $terms
-     * @return list<array<string, mixed>>
+     * @param  list<array<mixed>>  $terms
+     * @return list<array<mixed>>
      */
     private function withoutRepeats(array $terms): array
     {
@@ -48,8 +48,8 @@ final class TermAncestry
     }
 
     /**
-     * @param  array<string, mixed>  $term
-     * @return list<array<string, mixed>>
+     * @param  array<mixed>  $term
+     * @return list<array<mixed>>
      */
     private function chainOf(array $term): array
     {
@@ -64,7 +64,7 @@ final class TermAncestry
     }
 
     /**
-     * @param  array<string, mixed>  $term
+     * @param  array<mixed>  $term
      */
     private function hasAncestors(array $term): bool
     {
@@ -74,7 +74,7 @@ final class TermAncestry
     }
 
     /**
-     * @param  array<string, mixed>  $term
+     * @param  array<mixed>  $term
      */
     private function keyOf(array $term): string
     {
@@ -82,7 +82,7 @@ final class TermAncestry
     }
 
     /**
-     * @param  array<string, mixed>  $term
+     * @param  array<mixed>  $term
      */
     private function taxonomyOf(array $term): string
     {
@@ -90,7 +90,7 @@ final class TermAncestry
     }
 
     /**
-     * @param  array<string, mixed>  $term
+     * @param  array<mixed>  $term
      */
     private function readId(array $term, TermField $field): int
     {

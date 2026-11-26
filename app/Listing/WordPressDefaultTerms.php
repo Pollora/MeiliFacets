@@ -31,7 +31,8 @@ final class WordPressDefaultTerms implements DefaultTerms
     private function resolve(string $taxonomy): ?string
     {
         foreach (self::OPTIONS as $option) {
-            $term = get_term((int) get_option(sprintf($option, $taxonomy)), $taxonomy);
+            $id = get_option(sprintf($option, $taxonomy));
+            $term = get_term(is_scalar($id) ? (int) $id : 0, $taxonomy);
 
             if ($term instanceof WP_Term) {
                 return $term->slug;
