@@ -11517,6 +11517,20 @@ cesser de transmettre `$scroll` — les trois sont tuées.
 
 ---
 
+### R-253 · 🟡 · **fermé le 2026-11-26** · ouvert le 2026-11-26 — PHPStan s'arrêtait au niveau 5, avec quatre erreurs en baseline
+
+Niveau 9 atteint, un commit par niveau. Les quatre erreurs de la baseline sont corrigées dans le code.
+Ce qui vient d'ailleurs (réponse du moteur, options, metas, découverte en cache) est lu avant d'être
+typé : `Search\EngineAnswer` lit une réponse du moteur. Une valeur mal formée est désormais écartée au
+lieu de lever une `TypeError` ou d'être transmise telle quelle ; aucune signature publique ne casse.
+
+Le niveau 10 n'est pas fait : 120 erreurs, qui viennent surtout de ce que le module est analysé sans
+son hôte (helpers Laravel, Yoast SEO, WooCommerce, `$wpdb`). Les résoudre demande Larastan ou des
+stubs, donc une dépendance de développement à décider.
+
+Observé : PHPStan 0 erreur au niveau 9 sans baseline, 1039 tests Pest verts. La suite `Feature`
+(application hôte) et le navigateur n'ont pas été lancés.
+
 ## 10. Questions ouvertes
 
 Rangées de la plus structurante à la plus locale. Une réponse ici ferme ou réoriente les constats
