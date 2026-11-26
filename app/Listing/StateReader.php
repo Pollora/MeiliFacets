@@ -140,7 +140,11 @@ final readonly class StateReader
         return is_string($value) ? trim($value) : '';
     }
 
-    /** `1e400` is numeric, casts to `INF`, and `INF` is neither a price nor a filter. */
+    /**
+     * `1e400` is numeric, casts to `INF`, and `INF` is neither a price nor a filter.
+     *
+     * @param  array<string, mixed>  $query
+     */
     private function bound(array $query, QueryParameter $parameter): ?float
     {
         $written = $this->text($query, $parameter);

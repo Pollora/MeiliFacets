@@ -44,13 +44,19 @@ final readonly class CardVariant
     /** Anything without a finite price is not a variant. */
     public static function read(mixed $stored): ?self
     {
-        if (! is_array($stored) || ! self::isPrice($stored[VariantField::Price->value] ?? null)) {
+        if (! is_array($stored)) {
+            return null;
+        }
+
+        $price = $stored[VariantField::Price->value] ?? null;
+
+        if (! self::isPrice($price)) {
             return null;
         }
 
         return new self(
             self::facetsOf($stored[VariantField::Facets->value] ?? null),
-            (float) $stored[VariantField::Price->value],
+            (float) $price,
             self::fieldsOf($stored[VariantField::Fields->value] ?? null),
             ($stored[VariantField::InStock->value] ?? true) !== false,
             ($stored[VariantField::OnSale->value] ?? false) === true,
@@ -97,6 +103,9 @@ final readonly class CardVariant
         return $price->contains($this->price);
     }
 
+    /**
+     * @phpstan-assert-if-true int|float $stored
+     */
     private static function isPrice(mixed $stored): bool
     {
         return is_int($stored) || (is_float($stored) && is_finite($stored));

@@ -37,7 +37,12 @@ final class ListingDiscovery implements DiscoveryInterface
     public function apply(): void
     {
         foreach ($this->getItems() as $item) {
-            $this->registry->addDeclaration($item['class']);
+            // Not autoloaded here: the class may extend one of a plugin WordPress has not loaded yet.
+            $listingClass = is_array($item) ? $item['class'] ?? null : null;
+
+            if (is_string($listingClass)) {
+                $this->registry->addDeclaration($listingClass);
+            }
         }
     }
 

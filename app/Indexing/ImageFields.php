@@ -69,11 +69,18 @@ final readonly class ImageFields
 
         return [
             CardField::ImageUrl->value => (string) $url,
-            CardField::ImageAlt->value => PlainText::from((string) get_post_meta($imageId, self::ALT_META, true)),
+            CardField::ImageAlt->value => self::alternative($imageId),
             CardField::ImageWidth->value => (int) $width,
             CardField::ImageHeight->value => (int) $height,
             ...self::candidates($imageId, $size),
         ];
+    }
+
+    private static function alternative(int $imageId): string
+    {
+        $alternative = get_post_meta($imageId, self::ALT_META, true);
+
+        return PlainText::from(is_scalar($alternative) ? (string) $alternative : '');
     }
 
     /**

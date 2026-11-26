@@ -76,11 +76,11 @@ final class FacetedPostIndexable extends PostIndexable implements HasDependentDo
         $settings[IndexSetting::DisplayedAttributes->value] = $this->displayedAttributes();
 
         $settings[IndexSetting::Faceting->value] = $this->facetingSettings(
-            $settings[IndexSetting::Faceting->value] ?? []
+            $this->current($settings, IndexSetting::Faceting)
         );
 
         $settings[IndexSetting::Pagination->value] = [
-            ...$settings[IndexSetting::Pagination->value] ?? [],
+            ...$this->current($settings, IndexSetting::Pagination),
             PaginationSetting::MaxTotalHits->value => $this->limits->reachableHits,
         ];
 
@@ -98,7 +98,7 @@ final class FacetedPostIndexable extends PostIndexable implements HasDependentDo
         $settings[IndexSetting::SearchableAttributes->value] = $this->searchable->all();
 
         $settings[IndexSetting::TypoTolerance->value] = [
-            ...$settings[IndexSetting::TypoTolerance->value] ?? [],
+            ...$this->current($settings, IndexSetting::TypoTolerance),
             TypoToleranceSetting::DisableOnAttributes->value => $this->attributes->exactlyMatched(),
         ];
 
@@ -119,18 +119,32 @@ final class FacetedPostIndexable extends PostIndexable implements HasDependentDo
 
     /**
      * @param  array<string, mixed>  $settings
-     * @param  list<string>  ...$lists
+     * @param  array<string>  ...$lists
      * @return array<string, mixed>
      */
     private function mergeInto(array $settings, IndexSetting $setting, array ...$lists): array
     {
-        $settings[$setting->value] = UniqueList::merge($settings[$setting->value] ?? [], ...$lists);
+        $declared = array_filter($this->current($settings, $setting), is_string(...));
+        $settings[$setting->value] = UniqueList::merge($declared, ...$lists);
 
         return $settings;
     }
 
     /**
-     * @param  array<string, mixed>  $faceting
+     * What MeiliScout declares for a setting.
+     *
+     * @param  array<string, mixed>  $settings
+     * @return array<mixed>
+     */
+    private function current(array $settings, IndexSetting $setting): array
+    {
+        $current = $settings[$setting->value] ?? null;
+
+        return is_array($current) ? $current : [];
+    }
+
+    /**
+     * @param  array<mixed>  $faceting
      * @return array<string, mixed>
      */
     private function facetingSettings(array $faceting): array

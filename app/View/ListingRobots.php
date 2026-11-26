@@ -49,9 +49,6 @@ final readonly class ListingRobots
         return $this->printedWith('wp_robots', $this->policy->asSecondaryView(...), self::POLICY_PRIORITY);
     }
 
-    /**
-     * @param  Closure(mixed): mixed  $filter
-     */
     private function printedWith(string $hook, Closure $filter, int $priority): string
     {
         add_filter($hook, $filter, $priority);

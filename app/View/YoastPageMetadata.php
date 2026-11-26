@@ -14,7 +14,7 @@ final readonly class YoastPageMetadata implements PageMetadata
         private YoastCanonicals $canonicals,
     ) {}
 
-    public function titles(): ?array
+    public function titles(): array
     {
         return [
             'first' => $this->titleWithPageWords(''),

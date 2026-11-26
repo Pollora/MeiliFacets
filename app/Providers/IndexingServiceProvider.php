@@ -63,7 +63,9 @@ final class IndexingServiceProvider extends ServiceProvider
             new EmptyIndexAttributes
         );
 
-        return new ConfiguredIndexAttributes($plugin, (array) config('meilifacets.displayed_attributes', []));
+        $displayed = array_values(array_filter((array) config('meilifacets.displayed_attributes', []), is_string(...)));
+
+        return new ConfiguredIndexAttributes($plugin, $displayed);
     }
 
     private function card(): CardProjector

@@ -16,7 +16,7 @@ use Throwable;
  */
 final class ListingRegistry extends NamedRegistry
 {
-    /** @var array<class-string<Listing>, true> */
+    /** @var array<string, true> */
     private array $declarations = [];
 
     public function __construct(private readonly Container $container) {}
@@ -33,7 +33,7 @@ final class ListingRegistry extends NamedRegistry
     /**
      * Built on first lookup: Pollora may apply a module's discovery before WordPress loads its plugins.
      *
-     * @param  class-string<Listing>  $listingClass
+     * @param  string  $listingClass  a class implementing `Listing`
      */
     public function addDeclaration(string $listingClass): void
     {
@@ -54,13 +54,16 @@ final class ListingRegistry extends NamedRegistry
         $this->declarations = [];
     }
 
-    /**
-     * @param  class-string<Listing>  $listingClass
-     */
     private function build(string $listingClass): void
     {
         try {
-            $this->add($this->container->make($listingClass));
+            $listing = $this->container->make($listingClass);
+
+            if (! $listing instanceof Listing) {
+                throw DeclarationRefused::notAListing($listingClass);
+            }
+
+            $this->add($listing);
         } catch (ListingUnavailable) {
             return;
         } catch (Throwable $failure) {

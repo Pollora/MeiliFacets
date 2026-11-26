@@ -27,7 +27,7 @@ final readonly class WordPressTermLabels implements TermLabels
     }
 
     /**
-     * @param  list<mixed>  $terms
+     * @param  array<mixed>  $terms
      * @return array<string, string>
      */
     private function named(array $terms): array

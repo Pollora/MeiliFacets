@@ -27,7 +27,7 @@ final readonly class SortFilter
         $filters = [];
 
         foreach ($sorts as $key => $sort) {
-            if ($sort->isFiltering()) {
+            if ($sort->filter instanceof self) {
                 $filters[$key] = $sort->filter;
             }
         }

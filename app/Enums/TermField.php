@@ -14,7 +14,7 @@ enum TermField: string
     case Parent = 'parent';
 
     /**
-     * @param  array<string, mixed>  $term
+     * @param  array<mixed>  $term
      */
     public function textIn(array $term): ?string
     {

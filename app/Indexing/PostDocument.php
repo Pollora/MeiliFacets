@@ -45,7 +45,8 @@ final readonly class PostDocument
             return [];
         }
 
-        $expanded = $this->ancestry->expand($terms);
+        // The document went through the filters of other plugins: what is not a term is left out.
+        $expanded = $this->ancestry->expand(array_values(array_filter($terms, is_array(...))));
 
         return [
             DocumentField::Facets->value => FacetProjection::fromTerms($expanded),
@@ -54,8 +55,8 @@ final readonly class PostDocument
     }
 
     /**
-     * @param  list<array<string, mixed>>  $terms
-     * @return list<array<string, mixed>>
+     * @param  list<array<mixed>>  $terms
+     * @return list<array<mixed>>
      */
     private function labelledOnly(array $terms): array
     {

@@ -12,7 +12,7 @@ final readonly class TermGrouping
     public function __construct(private TermField $kept) {}
 
     /**
-     * @param  list<array<string, mixed>>  $terms
+     * @param  list<array<mixed>>  $terms
      * @return array<string, list<string>>
      */
     public function group(array $terms): array
