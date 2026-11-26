@@ -4,7 +4,7 @@ includes:
     # Larastan is not included: the module is analysed on its own, without the host application it is installed in.
 
 parameters:
-    level: 5
+    level: 6
     paths:
         - app
     excludePaths:

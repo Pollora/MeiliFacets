@@ -7,6 +7,7 @@ namespace Modules\MeiliFacets\Indexing\WooCommerce;
 use Modules\MeiliFacets\Listing\VisibleProducts;
 use Modules\MeiliFacets\Support\WooCommerce;
 use Pollora\Attributes\Action;
+use WP_Post;
 use WP_Term;
 
 /** WooCommerce rewrites the attribute metas of products and variations in SQL, and leaves their cache stale. */
@@ -80,6 +81,9 @@ final class VariationMetaRewrites
         return WooCommerce::isActive() && taxonomy_is_product_attribute($taxonomy);
     }
 
+    /**
+     * @return array<int>
+     */
     private function productsOf(WP_Term $term): array
     {
         $productIds = get_objects_in_term($term->term_id, $term->taxonomy);
@@ -91,16 +95,26 @@ final class VariationMetaRewrites
         return array_map(intval(...), $productIds);
     }
 
+    /**
+     * @return array<int|WP_Post>
+     */
     private function variationsWithKey(string $metaKey): array
     {
         return $this->variationIds(['meta_key' => $metaKey]);
     }
 
+    /**
+     * @return array<int|WP_Post>
+     */
     private function variationsWithValue(string $metaKey, string $value): array
     {
         return $this->variationIds(['meta_key' => $metaKey, 'meta_value' => $value]);
     }
 
+    /**
+     * @param  array{meta_key: string, meta_value?: string}  $criteria
+     * @return array<int|WP_Post>
+     */
     private function variationIds(array $criteria): array
     {
         return get_posts([
@@ -112,7 +126,11 @@ final class VariationMetaRewrites
         ]);
     }
 
-    /** `clean_post_cache` is also the hook WooCommerce drops its cached product instances on. */
+    /**
+     * `clean_post_cache` is also the hook WooCommerce drops its cached product instances on.
+     *
+     * @param  array<int|WP_Post>  $postIds
+     */
     private function clearPostCache(array $postIds): void
     {
         foreach ($postIds as $postId) {
