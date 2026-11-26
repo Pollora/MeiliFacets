@@ -81,7 +81,7 @@ final readonly class QueryPlan
     }
 
     /**
-     * @phpstan-assert-if-true VariantScopedListing $listing
+     * @phpstan-assert-if-true =VariantScopedListing $listing
      */
     public static function readsVariants(Listing $listing, ListingState $state): bool
     {

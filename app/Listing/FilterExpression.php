@@ -17,7 +17,7 @@ final readonly class FilterExpression
      */
     public static function all(array $clauses): string
     {
-        return implode(' AND ', array_filter($clauses, strlen(...)));
+        return implode(' AND ', self::written($clauses));
     }
 
     /**
@@ -40,9 +40,18 @@ final readonly class FilterExpression
      */
     public static function any(array $clauses): string
     {
-        $kept = array_values(array_filter($clauses, strlen(...)));
+        $kept = self::written($clauses);
 
         return count($kept) > 1 ? '('.implode(' OR ', $kept).')' : $kept[0] ?? '';
+    }
+
+    /**
+     * @param  list<string>  $clauses
+     * @return list<string> without the empty ones
+     */
+    private static function written(array $clauses): array
+    {
+        return array_values(array_filter($clauses, static fn (string $clause): bool => $clause !== ''));
     }
 
     /**
