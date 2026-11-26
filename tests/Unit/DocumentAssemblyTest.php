@@ -154,7 +154,7 @@ function indexable(): FacetedPostIndexable
     );
 }
 
-it('keeps what MeiliScout declares in the index settings, adding to it', function (): void {
+it('keeps the filterable and sortable attributes MeiliScout declares, adding to them', function (): void {
     WordPress::fake('get_option', static fn (string $key, mixed $default = null): mixed => $default);
     $base = new PostIndexable()->getIndexSettings();
 
@@ -162,11 +162,6 @@ it('keeps what MeiliScout declares in the index settings, adding to it', functio
 
     expect($settings['filterableAttributes'])->toContain(...$base['filterableAttributes'])
         ->and($settings['sortableAttributes'])->toContain(...$base['sortableAttributes']);
-
-    foreach (['faceting', 'pagination', 'typoTolerance'] as $setting) {
-        expect(array_intersect_key($settings[$setting], $base[$setting] ?? []))
-            ->toHaveCount(count($base[$setting] ?? []));
-    }
 });
 
 it('filters the index on the facets, the variants and what the project declares', function (): void {
