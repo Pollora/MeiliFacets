@@ -16,6 +16,9 @@ dataset('number text numbers', function (): iterable {
     yield 'negative zero' => [-0.0, '0'];
     yield 'whole number' => [15.0, '15'];
     yield 'whole number ending in zeros' => [100.0, '100'];
+    yield 'one' => [1.0, '1'];
+    yield 'minus one' => [-1.0, '-1'];
+    yield 'negative below one' => [-0.5, '-0.5'];
     yield 'negative decimal' => [-1.5, '-1.5'];
     yield 'decimal' => [12.5, '12.5'];
     yield 'tenth' => [0.1, '0.1'];

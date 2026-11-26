@@ -71,3 +71,38 @@ it('searches every field when nothing is searched', function (): void {
 
     $this->assertArrayNotHasKey('attributesToSearchOn', translated($query));
 });
+
+it('sends the term, the page and every option of a query to the engine', function (): void {
+    $search = translated([
+        'q' => 'wine',
+        'hitsPerPage' => 12,
+        'page' => 3,
+        'filter' => 'post_type = "product"',
+        'facets' => ['facets.pa_color'],
+        'sort' => ['price.min:asc'],
+        'distinct' => 'parent_id',
+        'attributesToRetrieve' => ['card'],
+    ]);
+
+    // The order of the keys is the client's business.
+    expect($search)->toEqual([
+        'indexUid' => 'posts',
+        'q' => 'wine',
+        'filter' => ['post_type = "product"'],
+        'facets' => ['facets.pa_color'],
+        'distinct' => 'parent_id',
+        'attributesToRetrieve' => ['card'],
+        'sort' => ['price.min:asc'],
+        'hitsPerPage' => 12,
+        'page' => 3,
+    ]);
+});
+
+it('asks for the first page, an empty term and no hit when a query names none', function (): void {
+    expect(translated(['filter' => '', 'sort' => []]))->toBe([
+        'indexUid' => 'posts',
+        'q' => '',
+        'hitsPerPage' => 0,
+        'page' => 1,
+    ]);
+});
